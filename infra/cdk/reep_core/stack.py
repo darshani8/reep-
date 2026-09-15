@@ -1246,17 +1246,66 @@ class CoreStack(Stack):
             # Activation, reset and confirmation mail (app/mail_transport.py).
             # Scoped to the college's verified identity, and only from the
             # configured sender, so a compromised task cannot spoof the domain.
-            inline["send-mail"] = iam.PolicyDocument(
-                statements=[
+            send_mail_statements = [
+                iam.PolicyStatement(
+                    sid="SendFromVerifiedIdentity",
+                    actions=["ses:SendEmail", "ses:SendRawEmail"],
+                    resources=[f"arn:aws:ses:{self.region}:{self.account}:identity/{ses_identity_domain}"],
+                    conditions=(
+                        {"StringEquals": {"ses:FromAddress": ses_from_address}} if ses_from_address else None
+                    ),
+                )
+            ]
+            if ses_configuration_set:
+                # A SEND THAT NAMES A CONFIGURATION SET IS AUTHORISED AGAINST
+                # THE SET AS WELL AS THE IDENTITY, AND THE STATEMENT ABOVE DOES
+                # NOT COVER IT.
+                #
+                # INCIDENT, 2026-09-15, 16:24 to 17:45. `SES_CONFIGURATION_SET`
+                # reached the task in the same deploy that introduced it, so
+                # from that minute every application send named
+                # `reep-transactional` and every one was refused: the role held
+                # the identity and nothing else. ALL outbound mail was down for
+                # eighty minutes -- activation links, password resets, sign-in
+                # codes, leave notifications.
+                #
+                # IT WAS SILENT IN BOTH DIRECTIONS, which is why it lasted.
+                # `mailer.deliver_once` catches the driver's exception, writes
+                # it to `mail_logs.error` and LOGS NOTHING; the endpoints above
+                # answer 200 because a decision must stand whether or not its
+                # mail went. A registration was rejected at 17:27 and the
+                # applicant -- who is not a user and has no other channel --
+                # received nothing. It surfaced because a human said so, not
+                # because anything reported it.
+                #
+                # WHAT LET IT PAST VERIFICATION, and the lesson worth more than
+                # the fix: the sends that "proved SES worked" were made with
+                # ACCOUNT ROOT credentials, which bypass IAM entirely. They
+                # exercised the identity, the DKIM, the domain, the
+                # configuration set and the delivery path, and never once
+                # exercised the thing that was broken. A mail test that does not
+                # run AS THE TASK ROLE proves nothing about whether the product
+                # can send. `POST /api/auth/forgot` against the live host does,
+                # and is what finally showed it -- no SES datapoint at 17:35
+                # before this statement existed, Send and Delivery at 17:51
+                # after it.
+                #
+                # NO `ses:FromAddress` CONDITION HERE, deliberately. That key is
+                # evaluated where SES resolves the sender -- the identity -- and
+                # a StringEquals on a key that is absent DENIES. The fence is
+                # not weakened by leaving it off: a send still has to satisfy
+                # the identity statement, which still pins the From address.
+                # This statement on its own permits sending as nobody.
+                send_mail_statements.append(
                     iam.PolicyStatement(
+                        sid="SendUnderConfigurationSet",
                         actions=["ses:SendEmail", "ses:SendRawEmail"],
-                        resources=[f"arn:aws:ses:{self.region}:{self.account}:identity/{ses_identity_domain}"],
-                        conditions=(
-                            {"StringEquals": {"ses:FromAddress": ses_from_address}} if ses_from_address else None
-                        ),
+                        resources=[
+                            f"arn:aws:ses:{self.region}:{self.account}:configuration-set/{ses_configuration_set}"
+                        ],
                     )
-                ]
-            )
+                )
+            inline["send-mail"] = iam.PolicyDocument(statements=send_mail_statements)
         api_task_role = iam.Role(self, "ApiTaskRole", role_name=f"{project}-api-task", assumed_by=ecs_tasks, inline_policies=inline)
 
         # -------------------------------------------------------------- alb --

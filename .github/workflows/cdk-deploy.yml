@@ -55,7 +55,7 @@ on:
         #
         # `all` stays absent: it would sweep reep-core into a voice-platform
         # deploy, which is the bare deploy again wearing a different label.
-        options: [voice-platform, edge-waf, dr-vault, core-9a, core-9b, core-nat-instance, core-nat-retire]
+        options: [voice-platform, edge-waf, dr-vault, core-9a, core-9b, core-arm64, core-nat-instance, core-nat-retire]
       action:
         description: "What to do"
         type: choice
@@ -190,6 +190,15 @@ jobs:
             core-9a)        echo "stacks=reep-core" >> "$GITHUB_OUTPUT"
                             echo "context=-c hardenEcs=false" >> "$GITHUB_OUTPUT" ;;
             core-9b)        echo "stacks=reep-core" >> "$GITHUB_OUTPUT" ;;
+            # Graviton. ONLY after a Deploy has published a MULTI-ARCH image:
+            # flipping this against an amd64-only `:latest` gives "Manifest does
+            # not contain descriptor matching platform linux/arm64" and every
+            # task dies at pull, before a health check, with the circuit breaker
+            # rolling it back. deploy.yml asserts both architectures are in the
+            # manifest before its job may pass, which is the gate that makes
+            # this option safe to offer at all.
+            core-arm64)     echo "stacks=reep-core" >> "$GITHUB_OUTPUT"
+                            echo "context=-c apiArm64=true" >> "$GITHUB_OUTPUT" ;;
             # The NAT swap, split for the reason 9a/9b is split: the first step
             # is reversible because it LEAVES THE GATEWAY STANDING, the second
             # is the one that removes it. Both flags are set here, beside the

@@ -1329,7 +1329,22 @@ class CoreStack(Stack):
             ),
         )
 
-        if ledger_bucket is not None:
+        if harden_ecs and ledger_bucket is not None:
+            # GATED ON `harden_ecs`, THE SAME CONDITION AS THE BUCKET VARIABLE,
+            # and not merely on the bucket existing. The bucket is created in the
+            # harden phase while the variable arrives with the ECS half, so a
+            # schedule gated on the bucket alone is live between step 9a and 9b
+            # with a task that does not know where to write -- and an unconfigured
+            # `app.export_identity` used to print the ledger to stdout, which on
+            # Fargate is the `/reep/api` log group. Nightly, every password hash
+            # and Google subject, into a place read by anyone holding
+            # `logs:FilterLogEvents`. Found by Seer in review on PR #45.
+            #
+            # `run()` now refuses an unconfigured export outright, so this gate is
+            # the second of two locks rather than the only one. Both are kept:
+            # this one stops the job existing before it can work, that one stops
+            # it leaking however it is invoked.
+            #
             # THE IDENTITY LEDGER, DAILY AT 23:30 IST -- deliberately BEFORE the
             # retention sweep at 03:00, not after. The sweep is the one scheduled
             # destructor in the product, and a ledger written after it is a

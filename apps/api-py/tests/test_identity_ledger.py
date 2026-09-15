@@ -235,3 +235,67 @@ def test_an_empty_export_is_refused_rather_than_written() -> None:
 
     with pytest.raises(RuntimeError, match="empty ledger"):
         export_identity.run(_NoAccounts())  # type: ignore[arg-type]
+
+
+# ----------------------------------------------- it never prints unasked --
+
+
+class _OneAccount:
+    """A session that yields exactly one joined row."""
+
+    def execute(self, *_a: object, **_k: object) -> "_OneAccount":
+        return self
+
+    def mappings(self) -> list[dict[str, object]]:
+        return [_row()]
+
+
+def test_an_unconfigured_run_refuses_instead_of_printing(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The leak Seer caught in review on PR #45.
+
+    With no bucket this used to fall back to stdout, which is fine on a laptop
+    and a CREDENTIAL LEAK anywhere else: on Fargate this process's stdout is the
+    `/reep/api` CloudWatch group, 30-day retention, and the bytes are every
+    account's password hash and Google subject. The window was real -- the
+    schedule is created in the harden phase while the bucket variable arrives
+    with the ECS half, so between cutover steps 9a and 9b the job would have
+    fired nightly, unconfigured, straight into the log.
+
+    Fails without the fix: `run()` returned a summary and wrote the body.
+    """
+    monkeypatch.setattr(export_identity.settings, "identity_ledger_bucket", "", raising=False)
+    with pytest.raises(RuntimeError, match="nowhere to put the ledger"):
+        export_identity.run(_OneAccount())  # type: ignore[arg-type]
+    assert capsys.readouterr().out == "", "the ledger reached stdout anyway"
+
+
+def test_no_hash_reaches_stdout_on_the_refusal(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The assertion that would have caught it: look for the secret itself.
+
+    Checking only that an exception was raised would pass on a version that
+    printed first and raised afterwards.
+    """
+    monkeypatch.setattr(export_identity.settings, "identity_ledger_bucket", "", raising=False)
+    with pytest.raises(RuntimeError):
+        export_identity.run(_OneAccount())  # type: ignore[arg-type]
+    out = capsys.readouterr().out
+    assert "scrypt:" not in out
+    assert "google_sub" not in out
+
+
+def test_stdout_still_works_when_it_is_asked_for(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """`--stdout` is the one way bytes reach the terminal, and it must be typed.
+
+    Kept working on purpose: reading the ledger you are about to store is how an
+    operator checks it before trusting it.
+    """
+    monkeypatch.setattr(export_identity.settings, "identity_ledger_bucket", "", raising=False)
+    summary = export_identity.run(_OneAccount(), to_stdout=True)  # type: ignore[arg-type]
+    assert summary["destination"] == "stdout"
+    assert "scrypt:" in capsys.readouterr().out

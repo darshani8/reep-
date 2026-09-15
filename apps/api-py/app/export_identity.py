@@ -340,14 +340,37 @@ def run(db: Session, *, to_stdout: bool = False, now: datetime | None = None) ->
             "connection, then re-run."
         )
 
-    if to_stdout or not settings.identity_ledger_bucket.strip():
+    # IT NEVER PRINTS UNASKED, AND THIS IS THE WHOLE OF THE FALLBACK STORY.
+    #
+    # This used to fall back to stdout whenever no bucket was configured, on the
+    # reasoning that a developer running it on a laptop should see something.
+    # That reasoning is correct on a laptop and a CREDENTIAL LEAK anywhere else:
+    # on Fargate this process's stdout is the `/reep/api` CloudWatch log group,
+    # 30-day retention, readable by every role holding `logs:FilterLogEvents` --
+    # and the thing being printed is every account's `password_hash` and
+    # `google_sub`. The window was real rather than theoretical: the schedule is
+    # created in the harden phase while the bucket variable arrives with the ECS
+    # half, so between step 9a and 9b of docs/cdk-cutover.md the job would have
+    # fired nightly, unconfigured, straight into the log. Found in review by
+    # Seer on PR #45 before it ever ran.
+    #
+    # So an unconfigured run is a FAILURE, not a quieter success. `--stdout` is
+    # the only way bytes reach the terminal, and it has to be typed. The
+    # schedule is gated on the same condition as the variable now as well
+    # (reep_core/stack.py), which closes the same hole a second time; this half
+    # is the one that holds no matter how the stack is deployed.
+    if not to_stdout and not settings.identity_ledger_bucket.strip():
+        raise RuntimeError(
+            "IDENTITY_LEDGER_BUCKET is not set, so there is nowhere to put the "
+            "ledger. Refusing rather than printing it: this file carries every "
+            "account's password hash and Google subject, and on a hosted "
+            "runtime stdout is a log group somebody else can read. Set the "
+            "bucket, or pass --stdout if you meant to read it here."
+        )
+
+    if to_stdout:
         sys.stdout.write(body)
         summary["destination"] = "stdout"
-        if not to_stdout:
-            log.warning(
-                "IDENTITY_LEDGER_BUCKET is not set, so the ledger was printed "
-                "rather than stored. Nothing is being kept."
-            )
         return summary
 
     key = object_key(now)

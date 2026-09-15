@@ -1117,3 +1117,61 @@ def test_the_tls_branch_synthesises_with_terraforms_listener_policy() -> None:
 def test_an_existing_oidc_provider_is_referenced_not_redeclared() -> None:
     t = _core("import", githubOidcProviderArn="arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com")
     t.resource_count_is("AWS::IAM::OIDCProvider", 0)
+
+
+def test_graviton_is_off_by_default_and_renders_nothing(hardened: Template) -> None:
+    """The api task definition carries NO RuntimePlatform unless asked.
+
+    Not tidiness — the live task definition has no such property, so rendering
+    one (even `X86_64`, which is what ECS defaults to anyway) is a diff against
+    the import mirror, and `test_the_database_half_does_not_touch_the_ecs_trio`
+    would fail on a change that alters nothing about how the api runs. CDK
+    renders the property only when `runtime_platform` is not None, which is why
+    the flag passes None rather than an explicit X86_64.
+    """
+    for td in hardened.find_resources("AWS::ECS::TaskDefinition").values():
+        assert "RuntimePlatform" not in td["Properties"], (
+            "a RuntimePlatform appeared with apiArm64 unset — the import mirror has none"
+        )
+
+
+def test_graviton_flag_moves_every_api_family_to_arm64() -> None:
+    """`-c apiArm64=true` puts ARM64 on the task definition, and on EVERY api
+    family rather than one of them.
+
+    Under blue/green there are three (`reep-api`, `-blue`, `-green`) built by
+    one helper, and a colour left on x86 while the others move is a service
+    whose rollback target cannot pull the image the live colour is running.
+    """
+    t = _core(
+        "harden",
+        apiArm64="true",
+        blueGreen="true",
+        drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr",
+    )
+    tds = t.find_resources("AWS::ECS::TaskDefinition")
+    assert len(tds) == 3, f"expected the three api families under blueGreen, found {len(tds)}"
+    for lid, td in tds.items():
+        rp = td["Properties"].get("RuntimePlatform")
+        assert rp is not None, f"{lid} kept no RuntimePlatform while apiArm64 was set"
+        assert rp.get("CpuArchitecture") == "ARM64", f"{lid} is not ARM64: {rp}"
+        assert rp.get("OperatingSystemFamily") == "LINUX", f"{lid} lost its OS family: {rp}"
+
+
+def test_graviton_changes_nothing_but_the_platform() -> None:
+    """Flipping the flag must not move cpu, memory, the image or the secrets.
+
+    The whole claim of this change is "same capacity, 20% cheaper". If the flag
+    were ever to alter a sizing property as well, that claim stops being true
+    and nothing else would notice.
+    """
+    base = _core("harden", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    arm = _core("harden", apiArm64="true", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    b = next(iter(base.find_resources("AWS::ECS::TaskDefinition").values()))["Properties"]
+    a = next(iter(arm.find_resources("AWS::ECS::TaskDefinition").values()))["Properties"]
+    assert a["Cpu"] == b["Cpu"], "apiArm64 changed the vCPU allocation"
+    assert a["Memory"] == b["Memory"], "apiArm64 changed the memory allocation"
+    assert a["ContainerDefinitions"] == b["ContainerDefinitions"], "apiArm64 changed the container"
+    assert {k: v for k, v in a.items() if k != "RuntimePlatform"} == {
+        k: v for k, v in b.items() if k != "RuntimePlatform"
+    }, "apiArm64 changed more than the platform"

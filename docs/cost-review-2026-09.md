@@ -200,7 +200,7 @@ line is a real trade, not free money.
 |---|---:|---|
 | **NAT gateway → tasks in public subnets, ALB-only ingress SG** | **~$40** | Tasks hold public IPs. Ingress stays SG-locked to the ALB; you lose a layer of defence in depth. |
 | NAT gateway → NAT instance on `t4g.nano` | ~$40 | Same saving, keeps the private subnets, but it is now an EC2 box you patch. |
-| **Fargate → ARM64 / Graviton** | **~$7.6** | Needs a `buildx --platform linux/arm64` image and `runtime_platform` on the task def. **No capacity change at all** — same vCPU, 20% cheaper. |
+| **Fargate → ARM64 / Graviton** | **~$7.6** | **Built — see below.** **No capacity change at all** — same vCPU, same memory, 20% cheaper. |
 | RDS Multi-AZ → Single-AZ | ~$9 | AZ failure becomes a ~20–30 min restore instead of a failover. A business decision, and one step 9b deliberately made in the other direction. |
 | Consolidate CloudWatch alarms | ~$2 | Four of the sixteen are autoscaling's own. Low value. |
 | Weekly rather than daily Singapore copy | ~$2.5 | A worse recovery point for very little. Not recommended. |
@@ -216,6 +216,62 @@ Taking the NAT and ARM64 rows gets to **~$105/month gross (~$124 with GST)**.
 Taking Single-AZ as well gets to **~$96**. Against $606 today, that is an
 **80–84% reduction**, and the only thing given up is the NAT layer and
 (optionally) database failover.
+
+### 3a. Graviton — built, flag OFF, and the ORDER is the whole risk
+
+`-c apiArm64=true` on `reep-core` puts `RuntimePlatform: {ARM64, LINUX}` on the
+api task definition. Nothing else moves: the synth guard
+`test_graviton_changes_nothing_but_the_platform` compares the two templates
+property by property and asserts `Cpu`, `Memory` and the whole container
+definition are identical. Same vCPU, same memory, ~20% less money — which is why
+this is the only row on the menu above with no trade written beside it.
+
+**It ships OFF, and merging it changes nothing.** The flag defaults to false and
+false renders *no* `RuntimePlatform` property at all — not an explicit `X86_64`,
+which would be a diff against the import mirror and would fail
+`test_the_database_half_does_not_touch_the_ecs_trio` on a change that alters
+nothing about how the api runs.
+
+**Do these in this order. Reversing them is an outage:**
+
+1. **Merge, then run Deploy once.** `deploy.yml` now builds a MULTI-ARCH
+   manifest (`linux/amd64,linux/arm64`) and asserts both are present before the
+   job can pass. Until that has run, the newest image is amd64-only.
+2. **Then** flip the flag: CDK deploy, `core-9b`, with `-c apiArm64=true`.
+
+Flipping first gives `image Manifest does not contain descriptor matching
+platform linux/arm64` — every task dies at pull, before any health check, and
+the circuit breaker rolls it back. Recoverable, but it is an avoidable incident.
+
+**Rollback is the flag alone**, with no rebuild and no retag, because the
+manifest carries both architectures. That is the reason it is multi-arch rather
+than arm64-only: an arm64-only image is one line simpler to publish and makes
+going back a release.
+
+Two things were verified rather than assumed, because this image is on **Python
+3.14** and a `cp313` wheel will not install on it:
+
+* **Every dependency has a Python-3.14-compatible aarch64 wheel.** All 40 direct
+  pins and the known-risky transitives were checked against PyPI for a `cp314`
+  or `abi3` `manylinux…aarch64` wheel — `psycopg`, `cryptography`, `awscrt`,
+  `pillow`, `numpy`, `pydantic-core`, `grpcio`, `uvloop`, `tokenizers`,
+  `litellm` included. Nothing compiles from source, which is also why QEMU
+  emulation costs minutes rather than hours.
+* **`--provenance=false`.** buildx otherwise attaches attestations that appear
+  in the manifest list as `unknown/unknown` platform entries; ECR stores them
+  and some pull paths mishandle them. Nothing here consumes an attestation.
+
+QEMU rather than an `ubuntu-24.04-arm` runner is deliberate: the native runner
+is faster and a fine swap later, but it is a label whose availability depends on
+the plan, and a deploy path that fails with "no runner matching labels" on the
+evening somebody needs to ship is the worse trade.
+
+**What is NOT proven here: the arm64 image has never been built.** There is no
+Docker daemon in the environment this review was written in, so the wheel
+evidence above is from PyPI's index, not from a build. The first
+`docker buildx build` is the real test, and the manifest assertion is what
+stops a half-built image reaching the flag.
+
 
 ### 4. Two things I declined to change
 

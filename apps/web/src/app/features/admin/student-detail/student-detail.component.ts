@@ -138,14 +138,14 @@ const TABS: TabSpec[] = [
     label: 'SWOC',
     reason:
       'SWOC is read as a board across every student a grant reaches (/api/admin/swoc); ' +
-      'there is no per-student read, and this screen never widens to a roster. Open SWOC boards.',
+      'there is no per-student read, and this screen never widens to a roster. Open SWOC notes.',
   },
   {
     key: 'leave',
     label: 'Leave',
     reason:
       'Leave is read as an approval queue, not as one person’s file — no endpoint answers ' +
-      '“this student’s leave requests”. Open Leave approvals.',
+      '“this student’s leave requests”. Open Leave requests.',
   },
   {
     key: 'uploads',

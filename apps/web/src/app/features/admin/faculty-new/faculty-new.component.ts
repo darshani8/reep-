@@ -187,7 +187,7 @@ const EMPLOYEE_ID_REASON =
  *  a later phase: plain `disabled` with the reason on it, and the notice above
  *  pointing at the one screen that records why a function was given. */
 const FUNCTIONS_AT_CREATION_REASON =
-  'A function is granted in Roles & functions, never at account creation: the ' +
+  'A function is granted in Who can do what, never at account creation: the ' +
   'grant carries a reason, a scope target and an expiry that this wizard does ' +
   'not ask for, and those three are the record of who gave it and why.';
 
@@ -235,7 +235,7 @@ const FUNCTION_CHOICES: FunctionChoice[] = [
   {
     label: 'Mentor',
     description:
-      'Mentee log, meeting notes, SWOC and evidence verification for their own group. Granted automatically when the Main Admin assigns this person their first student on Mentor mapping — never here.',
+      'Mentee log, meeting notes, SWOC and evidence verification for their own group. Granted automatically when the Main Admin assigns this person their first student on Assign faculty — never here.',
   },
   {
     label: 'HOD',
@@ -244,7 +244,7 @@ const FUNCTION_CHOICES: FunctionChoice[] = [
   },
   {
     label: 'Placement officer',
-    description: 'Jobs sheet, offers and the placement funnel for the scope they are given.',
+    description: 'Job postings, offers and placement for the scope they are given.',
   },
   {
     label: 'Verifier',

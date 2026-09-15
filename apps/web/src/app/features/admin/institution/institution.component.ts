@@ -236,9 +236,9 @@ const TRACKS_NOT_READ_NOTE =
   'The interview tracks have not been read yet, so this column is not ' +
   'reporting whether a specialization is mapped.';
 const TRACKS_REFUSED_NOTE =
-  'The interview tracks are read through the Question bank, which is a ' +
+  'The interview tracks are read through Interview questions, which is a ' +
   'different function from this screen\'s. Ask the Main Admin for ' +
-  'admin.interview_questions in Roles & functions.';
+  'admin.interview_questions in Who can do what.';
 const TRACKS_FAILED_NOTE =
   'The interview tracks could not be read, so this column is not reporting ' +
   'whether a specialization is mapped. Reload the screen to try again.';

@@ -1,7 +1,7 @@
 <div class="panel" data-p="faculty">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Institution</span><span class="sep">/</span><span>Faculty</span></div>
+      <div class="crumb"><span>People</span><span class="sep">/</span><span>Faculty</span></div>
       <h1 class="dt-title">Faculty</h1>
       <div class="dt-sub">{{ summaryLine() }}</div>
     </div>
@@ -14,7 +14,7 @@
         routerLink="/admin/governance"
         [queryParams]="{ tab: 'review' }"
       >
-        <span class="icon" aria-hidden="true">pending_actions</span> Review expiring grants
+        <span class="icon" aria-hidden="true">pending_actions</span> Review expiring access
       </a>
       <a class="btn primary" routerLink="/admin/faculty/new">
         <span class="icon" aria-hidden="true">person_add</span> Add faculty
@@ -96,7 +96,7 @@
     </div>
 
     <a class="btn ghost filters-end" routerLink="/admin/mentors">
-      <span class="icon" aria-hidden="true">diversity_3</span> Assign students on Mentor mapping
+      <span class="icon" aria-hidden="true">diversity_3</span> Assign students
     </a>
   </div>
 
@@ -398,7 +398,7 @@
                 <span class="icon" aria-hidden="true">info</span>
                 The mentor function is a group the office creates by assigning the first student. HOD,
                 placement officer and verifier are grants with a scope, a reason and an expiry, and they
-                are made on <a routerLink="/admin/governance">Governance</a> — this drawer does not carry
+                are made on <a routerLink="/admin/governance">Who can do what</a> — this drawer does not carry
                 a second copy of that form.
               </div>
             }

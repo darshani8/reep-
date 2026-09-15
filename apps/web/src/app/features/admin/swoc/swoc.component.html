@@ -1,28 +1,9 @@
 <div class="panel" data-p="swoc">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Notes</span><span class="sep">/</span><span>SWOC</span></div>
+      <div class="crumb"><span>Interviews</span><span class="sep">/</span><span>SWOC notes</span></div>
       <h1 class="dt-title">SWOC notes</h1>
-      <div class="dt-sub">
-        Strengths, weaknesses, opportunities and challenges per student — written by the mentor or
-        the placement cell, seen by the student with author and date.
-      </div>
-    </div>
-    <div class="dt-toolbar">
-      <!-- DEMOTED, NOT PENDING. There is no SWOC export anywhere in the API:
-           /admin/exports/ serves students.csv, placement.csv and ledger.csv,
-           and nothing serves written notes about named students as a file. No
-           phase number, because nothing is on its way — plain `disabled` with
-           the real reason in the title, the treatment 45b91a9 gave the Faculty
-           screen's orphan controls. -->
-      <button
-        type="button"
-        class="btn secondary"
-        disabled
-        title="There is no SWOC export. The console's CSVs are the roster, placement and the time ledger, on the Exports screen; written notes about named students are not among them."
-      >
-        <span class="icon" aria-hidden="true">download</span> Export
-      </button>
+      <div class="dt-sub">Strengths, weaknesses, opportunities and challenges, per student.</div>
     </div>
   </div>
 
@@ -51,24 +32,6 @@
       </select>
     </div>
 
-    <!-- DEMOTED, NOT PENDING. `SwocStudentRow` is student, USN, batch and the
-         entries — no mentor — and GET /admin/swoc takes no mentor parameter, so
-         this menu could only have hidden students without saying why. No B7
-         task added one. Plain `disabled`, the real reason in the title, no
-         phase number. -->
-    <div class="select sw-filter-pending">
-      <span class="lbl">Mentor</span>
-      <span class="val">All mentors</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
-      <select
-        aria-label="Mentor — this board cannot be narrowed to one mentor's group"
-        disabled
-        title="A SWOC row carries the student, their USN and their batch, and no mentor — so this board cannot be cut to one mentor's group. The Mentee Log is the per-group screen."
-      >
-        <option>All mentors</option>
-      </select>
-    </div>
-
     <div class="select" [class.sw-filter-pending]="semesterOptions().length === 0">
       <span class="lbl">Semester</span>
       <span class="val">{{ semesterFilterLabel() }}</span>
@@ -77,7 +40,7 @@
         <select
           aria-label="Semester — no line on this board carries one yet"
           disabled
-          title="No line on this board carries a semester yet. The semester is stamped when a line is written and is never backfilled, so lines written before that existed have none."
+          title="No line on this board carries a semester yet."
         >
           <option>All semesters</option>
         </select>
@@ -214,12 +177,6 @@
           {{ writtenInView() | plural: 'of those has notes' : 'of those have notes' }}
         </p>
 
-        <div class="notice accent">
-          <span class="icon" aria-hidden="true">info</span>
-          This is every student your grant reaches — <code>GET /api/admin/swoc</code> is scoped and
-          narrows the students and their entries alike, which is what the pill above states. It is
-          not a mentor group: the row carries no mentor, so this board cannot be cut to one.
-        </div>
       }
     </section>
 
@@ -358,12 +315,9 @@
 
         <div class="notice accent">
           <span class="icon" aria-hidden="true">info</span>
-          Each line below carries the author, the semester it was written in, the date and the
-          viewpoint the API stamped — and whether the student has acknowledged it. A line belongs to
-          whoever wrote it: its author may edit or remove it, the Main Admin may edit any, and a
-          line nobody is recorded as having written is the office's alone. If you disagree with a
-          colleague's line, add your own — this board keeps every viewpoint instead of averaging
-          them.
+          <div>
+            Each line shows its author, semester, date and viewpoint, and whether the student has acknowledged it. Its author or the Main Admin may edit it.
+          </div>
         </div>
 
         <div class="sw-quads">

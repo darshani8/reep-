@@ -2041,3 +2041,112 @@ def test_the_manifest_is_released_before_the_bytes_are_destroyed() -> None:
         f"{offenders}. Move release() ahead of the unlink — a query in that gap "
         "loses the record and keeps the damage."
     )
+
+
+# ---------------------------------------------------------------------------#
+# §37  The console's buttons: a glyph the font has, a gate the route checks   #
+# ---------------------------------------------------------------------------#
+#
+# Two facts about the Main Admin console live in TypeScript DATA rather than
+# in templates, and both were invisible to every existing check.
+#
+# ICONS. The icon font is SUBSET to tools/fonts/icon-names.txt (plus the
+# declared extras), and a glyph outside it renders as NOTHING — no box, no
+# word, an empty 22px square where the button's picture should be.
+# `collect-icon-names.py` reads TEMPLATES, so the ligatures the sidebar and the
+# Home carry as `icon: 'xyz'` in a `.ts` file are exactly the ones it cannot
+# find. Both files are read here as text and every `icon:` literal is checked
+# against the subset.
+#
+# GATES. The shell's own rule is that a navigation row is gated on EXACTLY what
+# its route guard checks — gated on less, the row is a link the guard bounces
+# back to /admin with nothing on screen saying so. Ten rows had no gate at all
+# on 2026-09-15 (harmless only because the Main Admin holds every admin.* key
+# by baseline) and the vitest spec beside the shell found it by comparing the
+# rows against Home. This is the same comparison against the route table:
+# `capabilityGuard('k')` on a route means `capability: 'k'` on its row and
+# button; `roleGuard('ADMIN')` means `mainAdminOnly: true`.
+
+_SHELL_TS = WEB_SRC / "app" / "layout" / "app-shell.component.ts"
+_HOME_TS = WEB_SRC / "app" / "features" / "admin" / "home" / "home.component.ts"
+_ROUTES_TS = WEB_SRC / "app" / "app.routes.ts"
+
+
+def _icon_subset() -> set[str]:
+    fonts = REPO / "tools" / "fonts"
+    names: set[str] = set()
+    for file in ("icon-names.txt", "icon-names.extra.txt"):
+        for line in (fonts / file).read_text(encoding="utf-8").splitlines():
+            line = line.split("#", 1)[0].strip()
+            if line:
+                names.add(line)
+    return names
+
+
+def test_every_console_icon_is_in_the_font_subset() -> None:
+    subset = _icon_subset()
+    offenders: list[str] = []
+    for path in (_SHELL_TS, _HOME_TS):
+        text = path.read_text(encoding="utf-8")
+        for n, line in enumerate(text.splitlines(), 1):
+            for glyph in re.findall(r"\bicon:\s*'([a-z0-9_]+)'", line):
+                if glyph not in subset:
+                    offenders.append(f"{path.relative_to(REPO)}:{n}: '{glyph}'")
+    assert not offenders, (
+        "a glyph outside tools/fonts/icon-names.txt renders as nothing at all — "
+        "add it to icon-names.extra.txt and regenerate the font:\n  " + "\n  ".join(offenders)
+    )
+
+
+def _route_gates() -> dict[str, str]:
+    """`/admin/...` -> the gate its route declares, as the capability key or `admin`.
+
+    Read per route: the slice between one `path:` and the next is that route's
+    own object, so a redirect (no `canActivate`) contributes nothing and cannot
+    swallow the guard of the route after it.
+    """
+    text = _ROUTES_TS.read_text(encoding="utf-8")
+    gates: dict[str, str] = {}
+    starts = [m for m in re.finditer(r"path:\s*'(admin[^']*)'", text)]
+    for i, m in enumerate(starts):
+        stop = starts[i + 1].start() if i + 1 < len(starts) else len(text)
+        body = text[m.end() : stop]
+        guard = re.search(r"canActivate:\s*\[(capabilityGuard\('([a-z._]+)'\)|roleGuard\('ADMIN'\))\]", body)
+        if guard:
+            gates["/" + m.group(1)] = guard.group(2) or "admin"
+    return gates
+
+
+def _declared_gates(text: str) -> dict[str, str]:
+    """Every `{ ... path: '/admin/x' ... }` object in a TS data block -> its gate."""
+    out: dict[str, str] = {}
+    for m in re.finditer(r"\{[^{}]*\}", text):
+        body = m.group(0)
+        path = re.search(r"path:\s*'(/admin[^']*)'", body)
+        if not path:
+            continue
+        cap = re.search(r"capability:\s*'([a-z._]+)'", body)
+        main = re.search(r"mainAdminOnly:\s*true", body)
+        out[path.group(1)] = cap.group(1) if cap else ("admin" if main else "none")
+    return out
+
+
+def test_every_sidebar_row_and_home_button_is_gated_exactly_as_its_route() -> None:
+    routes = _route_gates()
+    assert routes, "could not read the admin routes' guards out of app.routes.ts"
+    offenders: list[str] = []
+    for path in (_SHELL_TS, _HOME_TS):
+        text = path.read_text(encoding="utf-8")
+        for target, gate in _declared_gates(text).items():
+            expected = routes.get(target)
+            if expected is None:
+                offenders.append(f"{path.name}: {target} is not a guarded admin route")
+            elif gate != expected:
+                offenders.append(
+                    f"{path.name}: {target} is gated '{gate}', its route checks '{expected}'"
+                )
+    assert not offenders, (
+        "a row or button gated on less than its route guard is a link the guard "
+        "bounces; on more, a screen the account may open but cannot find:\n  "
+        + "\n  ".join(offenders)
+    )

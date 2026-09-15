@@ -404,7 +404,7 @@ export class AlertRulesDialogComponent {
       /* not JSON — fall through to the status */
     }
     if (response.status === 403) {
-      return 'Alert rules need the Analytics function. Ask the Main Admin to grant admin.analytics in Roles & functions.';
+      return 'Alert rules need the Analytics function. Ask the Main Admin to grant admin.analytics in Who can do what.';
     }
     return `The request was refused (${response.status}).`;
   }

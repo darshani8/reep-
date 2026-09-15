@@ -555,7 +555,7 @@ export class AdminImportsComponent {
       if (response.status === 403) {
         this.criteriaState.set('refused');
         this.criteriaError.set(
-          'Reading and setting the placement criteria needs the Analytics function as well as Data imports. Ask the Main Admin to grant admin.analytics in Roles & functions.',
+          'Reading and setting the placement criteria needs the Analytics function as well as Upload spreadsheets. Ask the Main Admin to grant admin.analytics in Who can do what.',
         );
         return;
       }

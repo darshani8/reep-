@@ -16,11 +16,9 @@
  * and guessing it from a blank field would be exactly the plausible-looking
  * cell this file exists to refuse.
  *
- * Sign-in stays an em dash. Login events ARE recorded (B15), but the only
- * endpoint that reads them serves the SIGNED-IN account its own history on My
- * account; no admin endpoint answers "when did somebody else last sign in", so
- * there is nothing here to draw. The header tooltip says that, and the screen
- * repeats it once in a `.notice.accent`.
+ * There is no Sign-in column. Login events are recorded, but no admin endpoint
+ * answers "when did somebody else last sign in", so a column would only ever
+ * be a dash — and it was, until 2026-09-15.
  *
  * FUNCTIONS IS HALF ANSWERABLE AND SHOWS EXACTLY THAT HALF. The mentor function
  * is real today — it is the `Mentor` group the office creates by assigning the
@@ -35,13 +33,10 @@ import type { ColDef, ICellRendererParams, RowSelectionOptions, SelectionColumnD
 
 import { NOT_READABLE, dayLabelOf, escapeHtml, type FacultyRow } from './faculty-row';
 
-/** Said once here so the header tooltip and the screen's notice cannot drift
- *  apart. The Status one is no longer about a missing endpoint — it is about
- *  the one state of the board's three that nothing reports. */
+/** The header tooltip on Status: the one state of the board's three that
+ *  nothing reports. */
 export const STATUS_UNKNOWN_REASON =
   'Active and Disabled are read from the account itself. “Invited” — an account that has never redeemed its activation link — is not reported by any endpoint, so it is not shown.';
-export const SIGN_IN_PENDING_REASON =
-  'Sign-ins are recorded (B15), but the only endpoint that reads them serves the signed-in account its own history on My account. Nothing answers “when did this person last sign in”.';
 
 function renderNotReadable(): string {
   return `<span style="color: var(--faint);">${NOT_READABLE}</span>`;
@@ -161,7 +156,7 @@ export const FACULTY_COLUMNS: ColDef<FacultyRow>[] = [
   },
   {
     colId: 'functions',
-    headerName: 'Functions',
+    headerName: 'Mentor group',
     width: 165,
     sortable: false,
     filter: false,
@@ -183,16 +178,6 @@ export const FACULTY_COLUMNS: ColDef<FacultyRow>[] = [
     headerTooltip: STATUS_UNKNOWN_REASON,
   },
   {
-    colId: 'signIn',
-    headerName: 'Sign-in',
-    width: 130,
-    sortable: false,
-    filter: false,
-    floatingFilter: false,
-    cellRenderer: renderNotReadable,
-    headerTooltip: SIGN_IN_PENDING_REASON,
-  },
-  {
     colId: 'actions',
     headerName: '',
     width: 60,
@@ -209,7 +194,6 @@ export const FACULTY_COLUMNS: ColDef<FacultyRow>[] = [
 export const TOGGLEABLE_FACULTY_COLUMNS = [
   { id: 'department', label: 'Department' },
   { id: 'designation', label: 'Designation' },
-  { id: 'functions', label: 'Functions' },
+  { id: 'functions', label: 'Mentor group' },
   { id: 'status', label: 'Status' },
-  { id: 'signIn', label: 'Sign-in' },
 ];

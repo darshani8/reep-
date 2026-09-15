@@ -9,11 +9,7 @@
     <header class="dialog-head">
       <div>
         <h2 class="dialog-title" [id]="titleId">Leave policy</h2>
-        <p class="dialog-sub">
-          One allowance per person, per printed option, per academic year. An account with no
-          allowance recorded is not checked against one — which is not the same as a balance of
-          zero.
-        </p>
+        <p class="dialog-sub">One allowance per person, per option, per academic year.</p>
       </div>
       <button
         type="button"
@@ -87,13 +83,10 @@
 
       <p class="dialog-sub" id="leave-year-hint">
         @if (yearIsServerSpelling()) {
-          The submit path looks an allowance up by this exact string, and
-          <code>{{ serverYear() }}</code> is how REEP spells the current year. A row filed under a
-          different spelling is never found, and the balance check then simply does not run.
+          <code>{{ serverYear() }}</code> is how REEP spells the current year.
         } @else {
-          <strong>This is not the spelling REEP uses.</strong> A request submitted today is measured
-          against <code>{{ serverYear() }}</code>; an allowance recorded under
-          <code>{{ year() }}</code> will never be found, and the check will silently not run.
+          <strong>This is not the spelling REEP uses.</strong> Write it as
+          <code>{{ serverYear() }}</code>, or the allowance will never be found.
         }
       </p>
 
@@ -173,10 +166,9 @@
       </div>
       <div class="notice accent">
         <span class="icon" aria-hidden="true">info</span>
-        This creates and never overwrites. Anybody who already holds an allowance for this option
-        and year is left exactly as they are, because their row carries the days already taken —
-        resetting it would hand those days back to a whole department at once. Correct one person
-        in the table below.
+        <div>
+          Existing allowances are left as they are; correct one person in the table below.
+        </div>
       </div>
 
       <!-- ------------------------------------------------- person by person -->

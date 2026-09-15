@@ -27,6 +27,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ..architecture_events import record_change
 from ..db import get_db
 from ..governance import require_capability
 from ..identity import get_current_session
@@ -320,6 +321,7 @@ def revoke_badge(
     student_id: str,
     code: str,
     body: AwardIn,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> BadgeDashboardOut:
@@ -333,8 +335,41 @@ def revoke_badge(
     )
     if row is None or row.status != StudentBadgeStatus.EARNED:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Badge is not earned.")
-    # The award row goes; the evidence history stays — the tile falls back to
+    # THE BEFORE-IMAGE, BECAUSE THIS ROW CANNOT BE SOFT-DELETED IN PLACE.
+    #
+    # Revoking used to be the one destructive endpoint in the product that left
+    # NO record of what it destroyed: the award row went, and with it the fact
+    # that this student earned this badge, on this date, for these points, and
+    # who awarded it. Every sibling destructive endpoint here already writes a
+    # before-image — governance, the leave policies, the registration rules,
+    # SWOC, the stage-rule catalogue — and this one did not.
+    #
+    # A `deleted_at` flag was the obvious alternative and `uq_student_badge`
+    # rules it out. One row per (student, badge), and `_award` re-earns a badge
+    # by UPDATING that same row: a flagged row would be revived and overwritten
+    # the next time the badge was awarded, losing the revocation exactly as the
+    # delete does. The record has to live somewhere the unique constraint does
+    # not reach, and `audit_events` is where this codebase already puts it.
+    #
+    # The evidence history still stays, unchanged — the tile falls back to
     # whatever the remaining rows honestly derive to.
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type="student_badge", entity_id=row.id, action="REVOKED",
+        before={
+            "student_id": row.student_id,
+            "badge_code": row.badge_code,
+            "status": row.status.value,
+            "points_awarded": row.points_awarded,
+            "earned_at": row.earned_at.isoformat() if row.earned_at else None,
+            "awarded_by_id": row.awarded_by_id,
+            "award_note": row.award_note,
+        },
+        after=None,
+        event_type="badge.revoked",
+        payload={"student_id": student_id, "badge_code": code,
+                 "reason": (body.note or "").strip() or None},
+    )
     db.delete(row)
     db.commit()
     return compose_badges(db.get(Student, student_id), db)

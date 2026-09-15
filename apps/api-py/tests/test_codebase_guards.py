@@ -1862,3 +1862,128 @@ def test_the_sweep_path_uses_no_raw_sql() -> None:
             "the identity guards above read the syntax tree and cannot see inside "
             "a string."
         )
+
+
+# ---------------------------------------------------------------------------#
+# §36  A file never reaches the permanent archive without a name              #
+# ---------------------------------------------------------------------------#
+#
+# `app/document_archive.py` copies every stored file into a versioned,
+# Object-Locked bucket with no lifecycle rule, so the bytes outlive the
+# database. The key is the `stored_name`, a bare `uuid4().hex`. The only thing
+# that ever knows whose file that was is the `archived_documents` row written
+# beside it, and the only writer of that row is
+# `document_manifest.save_and_record`.
+#
+# A router that calls `document_store.save_bytes` directly therefore puts a
+# file into a permanent archive that nothing can ever name — undiscoverable,
+# undeletable, and indistinguishable from every other uuid in the bucket.
+#
+# THIS IS THE SAME FAILURE THE QUOTA HAD, ONE LAYER UP. `document_store`'s own
+# docstring records it: the comment claimed enforcement lived in "the single
+# caller of save_bytes", and three writers later `routers/alumni.py` had no
+# quota check at all. The fix then was to move the arithmetic into the store
+# and refuse a caller that brings no `VolumeQuota`. The store cannot host this
+# one — a manifest row needs a `Session` and the store holds no ORM, which is
+# what lets it be tested with four integers — so the enforcement is this guard.
+
+
+def test_no_router_stores_a_file_without_recording_it() -> None:
+    """`document_manifest.save_and_record` is the only spelling routers use."""
+    offenders: dict[str, list[str]] = {}
+    for path in sorted((APP / "routers").rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        hits: list[str] = []
+        for node in ast.walk(tree):
+            # `from ..document_store import save_bytes`
+            if isinstance(node, ast.ImportFrom) and node.module and "document_store" in node.module:
+                hits += [f"import {a.name}" for a in node.names if a.name == "save_bytes"]
+            # `document_store.save_bytes(...)`
+            if (
+                isinstance(node, ast.Attribute)
+                and node.attr == "save_bytes"
+                and isinstance(node.value, ast.Name)
+                and node.value.id.endswith("document_store")
+            ):
+                hits.append("document_store.save_bytes")
+        if hits:
+            offenders[path.name] = hits
+
+    assert not offenders, (
+        f"these routers store a file without recording it: {offenders}. "
+        "Use document_manifest.save_and_record — a file written straight to the "
+        "store is copied into the permanent archive under a bare uuid that "
+        "nothing in the database names, so a restore can never tell whose it was."
+    )
+
+
+def test_the_manifest_is_the_only_writer_of_the_archive_row() -> None:
+    """One writer, so `save_and_record` cannot be bypassed by constructing the
+    row by hand somewhere the guard above does not look."""
+    writers = [
+        path.relative_to(APP).as_posix()
+        for path in sorted(APP.rglob("*.py"))
+        if path.name not in {"archived_document.py", "document_manifest.py"}
+        and "ArchivedDocument(" in path.read_text(encoding="utf-8")
+    ]
+    assert not writers, (
+        f"{writers} construct an ArchivedDocument directly. The manifest row and "
+        "the stored file are written together by document_manifest.save_and_record "
+        "or they drift apart."
+    )
+
+
+def test_both_destructors_keep_the_manifest() -> None:
+    """KEEP in both, and asserted rather than left to a reading of the dicts.
+
+    This is the one verdict whose reasoning runs against the grain of those
+    modules: `archived_documents` names files belonging to the very people a
+    purge is removing, so EMPTY is the instinctive answer — and EMPTY destroys
+    the only thing that can say whose file a given object in the Object-Locked
+    bucket was. The bytes survive either way; the name does not.
+    """
+    from app import purge_people, purge_students
+
+    assert purge_people.VERDICTS["archived_documents"] == purge_people.KEEP
+    assert purge_students.STUDENT_VERDICTS["archived_documents"] == purge_students.KEEP
+
+
+def test_the_manifest_carries_no_academic_record() -> None:
+    """It is an index into an archive, not a second copy of the student record.
+
+    It survives both destructors, so every column on it is a column that
+    outlives a purge. A name, a size, a type, an owner id and two timestamps
+    are what an operator needs to find a file; marks, attendance, a USN or an
+    address would make this table a quiet way for those to survive a deletion
+    somebody asked for.
+    """
+    from app.models.archived_document import ArchivedDocument
+
+    columns = {c.name for c in ArchivedDocument.__table__.columns}
+    assert columns == {
+        "id",
+        "stored_name",
+        "kind",
+        "owner_id",
+        "original_name",
+        "title",
+        "mime_type",
+        "size_bytes",
+        "recorded_at",
+        "released_at",
+        "released_reason",
+    }, f"the manifest grew a column: {sorted(columns)}"
+
+
+def test_the_manifest_owner_is_not_a_foreign_key() -> None:
+    """An FK would mirror the ON DELETE CASCADE the columns it shadows carry,
+    so the manifest would be destroyed at the exact moment it becomes the only
+    remaining record of the file — when the account goes. `export_identity`
+    makes the same argument about labels rather than foreign keys."""
+    from app.models.archived_document import ArchivedDocument
+
+    owner = ArchivedDocument.__table__.c["owner_id"]
+    assert not owner.foreign_keys, (
+        "archived_documents.owner_id gained a foreign key. It must outlive the "
+        "row it names; a cascade here empties the manifest during purge_people."
+    )

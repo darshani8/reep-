@@ -674,3 +674,77 @@ def test_student_360_draws_the_spells_and_says_which_empty_it_means(
     assert spell["reason"] == REASON["reason"]
     # And the present-tense card beside it still answers separately.
     assert body["current_mentor"]["mentor_user_id"] == faculty.user_id
+
+
+# ------------------------------------------------- one open spell, enforced --
+
+
+@requires_db
+def test_a_student_cannot_hold_two_open_spells_at_once(client, make_user, swept):
+    """The open-row invariant is the DATABASE's now, not the writer's alone
+    (`uq_mentor_assignment_one_open_spell`, migration e1c4b7a209d6).
+
+    The module docstring says `to_at IS NULL` is "what makes 'one open row per
+    current pair' a statement a query can check rather than a convention a
+    writer has to remember". A query could check it and nothing did, so a second
+    open row inserted cleanly. `record_mentor_change` is a read-then-write —
+    read the open row, close it, open the next — so two concurrent assignments
+    for one student both see no open row and both insert, and the console posts
+    one request per ticked student on a batch save.
+
+    The insert below goes around the writer ON PURPOSE. Driving this through the
+    API cannot reach it: the writer closes the first spell before opening the
+    second, which is exactly the behaviour that is correct and exactly why the
+    race is invisible from the endpoint. What is under test is the constraint,
+    so the test states the race directly.
+
+    The second half matters as much as the first: the index is PARTIAL, so a
+    CLOSED spell beside an open one is still legal. A plain
+    `UNIQUE (student_id, to_at)` would have been the obvious thing to reach for
+    and would have been wrong twice over — it permits two NULLs (Postgres treats
+    them as distinct) and it would forbid the ordinary history this table exists
+    to keep.
+    """
+    from sqlalchemy.exc import IntegrityError
+
+    student_ids, faculty_ids = swept
+    admin = make_user("ma-dup-adm", Role.ADMIN)
+    first = make_user("ma-dup-fac1", Role.MENTOR)
+    second = make_user("ma-dup-fac2", Role.MENTOR)
+    stu = make_user("ma-dup-stu", Role.STUDENT)
+    sid = _student_id(stu.user_id)
+    student_ids.append(sid)
+    faculty_ids += [first.user_id, second.user_id]
+    assign = f"{ADMIN_API}/students/{sid}/mentor"
+
+    assert client.post(
+        assign, headers=admin.headers, json={"mentor_user_id": first.user_id, **REASON}
+    ).status_code == 204
+    # A reassignment closes one spell and opens another: two rows, one open.
+    assert client.post(
+        assign, headers=admin.headers, json={"mentor_user_id": second.user_id, **REASON}
+    ).status_code == 204
+    rows = _spells(sid)
+    assert len(rows) == 2, "the closed spell must survive — this is history, not a pointer"
+    assert sum(r.to_at is None for r in rows) == 1
+
+    # The race, stated directly. Without the partial unique index this commits.
+    with SessionLocal() as db:
+        db.add(
+            MentorAssignment(
+                student_id=sid,
+                mentor_id=_group_of(first.user_id),
+                from_at=datetime.now(timezone.utc),
+                to_at=None,
+                kind="assign",
+            )
+        )
+        with pytest.raises(IntegrityError) as caught:
+            db.commit()
+        db.rollback()
+    assert "uq_mentor_assignment_one_open_spell" in str(caught.value)
+
+    # Untouched by the refusal, and still exactly one open spell.
+    rows = _spells(sid)
+    assert len(rows) == 2
+    assert sum(r.to_at is None for r in rows) == 1

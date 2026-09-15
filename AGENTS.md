@@ -1036,7 +1036,23 @@ therefore deliberately NOT a superset of `ROLE_BASELINE["MENTOR"]`, which is wha
 `students.mentor_id` stays the current pointer and stays the only thing rule 2
 filters on; `mentor_assignments` (`app/models/mentor_assignment.py`) is history
 BESIDE it — one row per (student, mentor) spell, `to_at IS NULL` meaning open, so
-"one open row per current pair" is a query rather than a convention. 04's column
+"one open row per current pair" is a query rather than a convention — and since
+`e1c4b7a209d6` it is a CONSTRAINT rather than a query:
+`uq_mentor_assignment_one_open_spell` is UNIQUE on `(student_id) WHERE to_at IS
+NULL`. It had to be. `record_mentor_change` reads the open row, closes it and
+opens the next, which is a read-then-write, so two concurrent assignments for
+one student both saw no open row and both inserted — and the console posts one
+request per ticked student on a batch save. Rule 2 was never at risk (it filters
+on `students.mentor_id`, one column that cannot disagree with itself); what a
+duplicate cost was the history card's whole answer, because `open_assignment()`
+returns `.first()` of two. **PARTIAL, and a plain `UNIQUE (student_id, to_at)`
+would NOT have done it** — NULLs are distinct in Postgres, so it permits exactly
+the duplicate it looks like it forbids. The migration REPAIRS before it
+constrains (a unique index over violating data fails at CREATE, on production,
+inside the migration task) and keeps the spell that AGREES WITH THE POINTER,
+closing the losers `duplicate_open` — a value deliberately outside `END_KINDS`,
+because that vocabulary is of human acts and nobody chose this one. Nothing is
+deleted: this table is append-only. 04's column
 list has ONE `by_user_id`/`reason`/`kind`, which cannot describe a period: a
 reassignment would either overwrite who made the original assignment or leave
 the closing act unrecorded, and the second is the question the screen exists to
@@ -1146,6 +1162,7 @@ property's docstring says why.
 ## Backend conventions
 
 - **Models** live in `apps/api-py/app/models/` and are the schema's source of truth; each new module is imported in `models/__init__.py` so Alembic autogenerate sees it.
+- **A JSON column is `JSONB`, never `JSON`.** All 41 of them are, as of `e1c4b7a209d6` — `users.notification_prefs` and `export_events.filters` were the last two holdouts. `json` stores the raw text: no containment, no GIN index, and no equality operator at all, so `SELECT DISTINCT notification_prefs FROM users` is an *error* rather than an answer. Both were read whole into Python, so nothing was broken — which is exactly why it was cheap to change, and why the next one should never be written. Note `alembic check` does NOT compare server defaults, so a `server_default` belongs on the model as well as in the migration: `export_events.filters` had one in the database and none on the model, silently, from the day it was created.
 - **An index created in a migration must ALSO be declared on the model**, and this is not tidiness. Three Phase 3 indexes (`ix_capgrant_scope`, `ix_login_events_user_at`, `ix_users_disabled_at`) lived only in their migrations, so `alembic check` asked to DROP all three on every single run — which is how a real drop goes unnoticed, in the noise. Declaring them was not free: it immediately failed `tests/test_codebase_guards.py::test_no_index_duplicates_the_prefix_of_another`, because `login_events.user_id` also carried `index=True` and `ix_login_events_user_id` was a second btree buying nothing that `(user_id, at)` did not already give. That redundancy was real in every database and **invisible to the guard, which reads the models** — an undeclared index is a hole the schema guards see straight through. Dropped by `f3a8d61c07be`; the FK stays indexed by the composite, which leads with it. Note `ix_users_disabled_at` is PARTIAL — the `postgresql_where` predicate is part of the declaration, or the two definitions differ and the drift comes back.
 - **Alembic enum gotchas** (hit these repeatedly): (a) adding an enum *column* to an existing table does not auto-`CREATE TYPE` — create it first; (b) a *new table* reusing an *existing* enum must use `postgresql.ENUM(..., name='x', create_type=False)` in the migration (autogenerate emits a bare `sa.Enum` that errors "type already exists" — hand-fix it); (c) two columns sharing one enum reuse a single `Enum` instance.
 - **Universal LLM adapter** (`app/ai/llm.py`) is OpenAI-compatible and auto-selects the first configured provider (Sakana → Groq → Mistral → OpenRouter → Gemini → Cohere), or an explicit `LLM_BASE_URL`+`LLM_MODEL`+`LLM_API_KEY`. One set of keys, any provider, no code change.

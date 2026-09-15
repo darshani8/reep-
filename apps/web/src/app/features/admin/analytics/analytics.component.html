@@ -42,49 +42,6 @@
   }
 
   <div class="filters">
-    <!-- THREE OF THESE FOUR ARE DISABLED WITH THE REAL REASON, NOT A PHASE.
-         `GET /admin/analytics/kpis` and `/analytics/series` take one parameter
-         between them, `?weeks=`, which is the Period select below. Neither
-         takes a cohort, a course or a track, and both compute their aggregates
-         server-side — so there is nothing for this screen to narrow after the
-         fact either. A phase number here would promise work nobody has
-         scheduled; the sentence in the title is what is actually true. -->
-    <div class="select filter-pending">
-      <span class="lbl">Batch</span>
-      <span class="val">All batches</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
-      <select
-        aria-label="Batch — the analytics endpoints do not narrow by batch"
-        disabled
-        title="The analytics figures are aggregates computed across the whole of your reach; neither the KPI strip nor the weekly series takes a batch, so there is nothing here to narrow. Batch-level figures are on Mentors &amp; Students and on the batch’s own screen."
-      >
-        <option value="">All batches</option>
-      </select>
-    </div>
-    <div class="select filter-pending">
-      <span class="lbl">Course</span>
-      <span class="val">All courses</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
-      <select
-        aria-label="Course — the analytics endpoints do not narrow by course"
-        disabled
-        title="The analytics figures are aggregates computed across the whole of your reach; neither the KPI strip nor the weekly series takes a course. What narrows them is the scope your Analytics function was granted."
-      >
-        <option value="">All courses</option>
-      </select>
-    </div>
-    <div class="select filter-pending">
-      <span class="lbl">Track</span>
-      <span class="val">All tracks</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
-      <select
-        aria-label="Track — nothing on this board is recorded against a track"
-        disabled
-        title="A track is the interview vocabulary. Neither an attendance record, a ledger entry nor a placement offer carries one, so no figure on this board can be split by track."
-      >
-        <option value="">All tracks</option>
-      </select>
-    </div>
 
     <!-- LIVE: `?weeks=` on both analytics endpoints, so one control moves the
          strip and the chart together. -->

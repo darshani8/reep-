@@ -17,7 +17,7 @@
   </div>
 
   <div class="card wizard-card">
-    <ol class="wizard-steps wizard-rail" aria-label="Add faculty member: four steps">
+    <ol class="wizard-steps wizard-rail" aria-label="Add faculty member: three steps">
       @for (wizardStep of steps; track wizardStep.number) {
         <li
           class="step"
@@ -179,22 +179,6 @@
                   autocomplete="off"
                 />
                 <p class="help">Printed on the college’s leave form beside their signature.</p>
-              </div>
-              <div class="field employee-field">
-                <label for="faculty-employee-id">Employee ID (optional)</label>
-                <input
-                  id="faculty-employee-id"
-                  disabled
-                  [title]="employeeIdReason"
-                  placeholder="e.g. BGS-F-0231"
-                  autocomplete="off"
-                />
-                <p class="help">
-                  Disabled, and waiting on no phase. The faculty identity work (B3.1–B3.6) and
-                  Phase 4 have both landed and there is still no employee id — no column on the
-                  account, no field on <code>POST /api/admin/faculty</code>, and none asked for.
-                  An enabled box here would take a number and drop it.
-                </p>
               </div>
             </div>
 
@@ -373,48 +357,9 @@
       </section>
     }
 
-    <!-- ------------------------------------------------- 3 · Functions -->
+    <!-- ---------------------------------------------------- 3 · Invite -->
     @if (step() === 3) {
-      <section class="wizard-body" aria-label="Step 3: functions">
-        <div class="notice accent">
-          <span class="icon" aria-hidden="true">key</span>
-          <div>
-            <strong>This wizard grants no functions, and these boxes are disabled for good.</strong>
-            The functions below are real — but they are granted somewhere else.
-            <code>POST /api/admin/faculty</code> creates the account as Faculty with no mentor group
-            and nothing granted, and it has no field to ask for one. A grant also carries a reason,
-            a scope target and an expiry that this wizard never asks for, so a tick here could not
-            write the row <a routerLink="/admin/governance">Who can do what</a> writes — and
-            that row is the only record of who granted a function, why, and until when.
-          </div>
-        </div>
-
-        <ul class="function-list">
-          @for (choice of functionChoices; track choice.label) {
-            <li class="function-row">
-              <label class="check">
-                <input type="checkbox" disabled [title]="functionsAtCreationReason" />
-                <span class="function-name">{{ choice.label }}</span>
-              </label>
-              <p class="function-desc">{{ choice.description }}</p>
-            </li>
-          }
-        </ul>
-
-        <div class="notice info">
-          <span class="icon" aria-hidden="true">group</span>
-          <div>
-            A faculty account is not a mentor by existing. It sees nobody until the Main Admin
-            assigns it a student on <a routerLink="/admin/mentors">Assign faculty</a> — that first
-            assignment is what creates the mentor group.
-          </div>
-        </div>
-      </section>
-    }
-
-    <!-- ---------------------------------------------------- 4 · Invite -->
-    @if (step() === 4) {
-      <section class="wizard-body" aria-label="Step 4: invite">
+      <section class="wizard-body" aria-label="Step 3: invite">
         @if (created(); as account) {
           <div class="notice good" role="status">
             <span class="icon" aria-hidden="true">check_circle</span>

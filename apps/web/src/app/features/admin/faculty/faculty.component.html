@@ -131,11 +131,6 @@
           (input)="onQuickFilterInput($event)"
         />
 
-        <!-- Grants are made in Governance; see GRANT_FUNCTION_PHASE. -->
-        <button type="button" class="btn secondary sm" disabled [title]="grantFunctionReason">
-          <span class="icon" aria-hidden="true">key</span>
-          Give access
-        </button>
         <button
           type="button"
           class="btn secondary sm"
@@ -264,7 +259,6 @@
           <button type="button" class="tab" [class.active]="activeTab() === 'profile'" (click)="showTab('profile')">Profile</button>
           <button type="button" class="tab" [class.active]="activeTab() === 'functions'" (click)="showTab('functions')">Functions</button>
           <button type="button" class="tab" [class.active]="activeTab() === 'sessions'" (click)="showTab('sessions')">Sessions</button>
-          <button type="button" class="tab" [class.active]="activeTab() === 'history'" (click)="showTab('history')">History</button>
         </div>
 
         <div class="drawer-body">
@@ -390,10 +384,6 @@
                 </a>
               </div>
 
-              <button type="button" class="btn secondary" disabled [title]="grantFunctionReason">
-                <span class="icon" aria-hidden="true">key</span> Give access
-              </button>
-
               <div class="notice accent">
                 <span class="icon" aria-hidden="true">info</span>
                 The mentor function is a group the office creates by assigning the first student. HOD,
@@ -465,14 +455,6 @@
               </div>
             }
 
-            @case ('history') {
-              <div class="notice accent">
-                <span class="icon" aria-hidden="true">history</span>
-                Every change to this account is already written to the audit trail by the server; the
-                console can read it back when the audit log endpoint lands (B2.7, Phase 3). Nothing is
-                shown here rather than a partial history that looks complete.
-              </div>
-            }
           }
         </div>
 

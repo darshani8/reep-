@@ -24,23 +24,6 @@
       </div>
     </div>
     <div class="dt-toolbar">
-      <!-- DEMOTED, NOT PENDING. B9.1 landed and every move is recorded — but the
-           read it shipped is GET /admin/students/{id}/mentor-history, which
-           answers for ONE STUDENT. A per-faculty feed is a different query and
-           nothing wrote it; composing one from the mentees this faculty member
-           holds NOW would silently omit everybody they have handed over, which
-           is the half anyone opens a history for. So this is plain `disabled`
-           with the real reason in the title and NO phase number on it — a phase
-           number here would be a promise nothing keeps. The history is on the
-           mentee rows, where the server can answer it. -->
-      <button
-        type="button"
-        class="btn secondary"
-        disabled
-        title="Assignment history is recorded per student, not per faculty member — open it from a mentee’s row in the list on the left."
-      >
-        <span class="icon" aria-hidden="true">history</span> Assignment history
-      </button>
       <button
         type="button"
         class="btn secondary"
@@ -214,24 +197,6 @@
           }
         </select>
       }
-    </div>
-
-    <!-- DEMOTED, NOT PENDING. Neither /mentor-load nor /unassigned-students
-         takes a specialization, and no Phase 4 task added one: a batch is the
-         narrowest rung either feed answers, and a batch already names one
-         specialization. Plain `disabled` with the real reason in the title and
-         no phase number — the Leave approvals "Requester" treatment. -->
-    <div class="select filter-pending">
-      <span class="lbl">Specialization</span>
-      <span class="val">All</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
-      <select
-        aria-label="Specialization — neither list can be narrowed by one"
-        disabled
-        title="Neither of these lists can be narrowed by specialization; a batch is the narrowest slice they answer, and a batch already names one."
-      >
-        <option>All</option>
-      </select>
     </div>
 
     @if (narrowed()) {

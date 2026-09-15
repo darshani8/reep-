@@ -197,28 +197,6 @@ const LEVEL_OPTIONS: Record<string, 'courses' | 'specializations'> = {
 /** The two values PATCH accepts for any level's `status` (_SETTABLE_STATUSES). */
 const COURSE_STATUSES = ['ACTIVE', 'ARCHIVED'];
 
-/** The course's DEGREE LEVEL and TOTAL SEMESTERS, and why they are grey with
- *  Phase 4 merged.
- *
- *  B4.1 landed and both are real columns on `academic_courses` — read by
- *  `app/semester_bounds.py` for a student's semester ceiling, by Student 360
- *  and by the catalogue's course list. What B4.1 did NOT add is a writer:
- *  `AcademicCourseIn` and `AcademicCoursePatchIn` in `app/routers/admin.py`
- *  are still `code`, `name`, `duration_months`, `status`, and nothing else
- *  under `/api/admin` sets either column — `tests/test_admin_promotion.py`
- *  writes `total_semesters` through the ORM session precisely because there is
- *  no endpoint to write it through.
- *
- *  SO THE PHASE NUMBER COMES OFF. These sat at `[reepPending]="4"`; Phase 4
- *  has come and gone past them, and a control promising a phase that has
- *  arrived is the stale label commit 45b91a9 fixed. Plain `disabled` with the
- *  real reason in a `title`, the treatment the Leave approvals "Requester"
- *  filter carries. */
-const COURSE_SHAPE_REASON =
-  'A course stores its degree level and its total semesters, but no endpoint ' +
-  'sets them: PATCH /api/admin/academic-courses/{id} takes the code, the ' +
-  'name, the duration in months and the status only.';
-
 /** SEMESTERS PER YEAR IS NOT A DIFFERENT PHASE, IT IS NOT A FIELD.
  *
  *  There is no `semesters_per_year` column anywhere in `apps/api-py/app`, and
@@ -242,11 +220,6 @@ const TRACKS_REFUSED_NOTE =
 const TRACKS_FAILED_NOTE =
   'The interview tracks could not be read, so this column is not reporting ' +
   'whether a specialization is mapped. Reload the screen to try again.';
-
-const SEMESTERS_PER_YEAR_REASON =
-  'REEP does not record semesters per year. A programme\'s shape is its ' +
-  'duration in months and its total semesters; a third number derived from ' +
-  'those two is a fact stored twice.';
 
 @Component({
   selector: 'app-admin-institution',
@@ -323,8 +296,6 @@ export class AdminInstitutionComponent implements OnDestroy {
     }
   }
 
-  readonly courseShapeReason = COURSE_SHAPE_REASON;
-  readonly semestersPerYearReason = SEMESTERS_PER_YEAR_REASON;
   readonly courseStatuses = COURSE_STATUSES;
 
 

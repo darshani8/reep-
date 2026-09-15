@@ -72,21 +72,6 @@
     </div>
 
     <div class="fs-filters">
-      <!-- THE SERVER DECIDES REACH (B1.4), so this is not a control and is not
-           waiting for a phase: /governance/features, /catalogue and /hierarchy
-           take no college and answer with what the caller's grants reach. It is
-           not a client-side filter either — a STUDENT-scope rule has no college
-           this screen can resolve, and those are the rules that beat every
-           other. See COLLEGE_PICKER_IS_THE_SERVERS in the component; the notice
-           under this row says the same thing in visible text. -->
-      <div class="select fs-filter-locked">
-        <span class="lbl">College</span>
-        <span class="val">All colleges you reach</span>
-        <span class="icon" aria-hidden="true">expand_more</span>
-        <select disabled [title]="collegePickerNote" [attr.aria-label]="'College — ' + collegePickerNote">
-          <option>All colleges you reach</option>
-        </select>
-      </div>
 
       <div class="select fs-scope-filter">
         <span class="lbl">Applies to</span>

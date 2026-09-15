@@ -390,42 +390,6 @@
                     <label for="course-months">Duration in months</label>
                     <input id="course-months" type="number" min="1" max="120" formControlName="duration_months" />
                   </div>
-                  <!-- B4.1 added `academic_courses.degree_level` and
-                       `.total_semesters` and PHASE 4 HAS LANDED — but it added
-                       READERS only (`app/semester_bounds.py`, Student 360, the
-                       catalogue's course list). `AcademicCourseIn` and
-                       `AcademicCoursePatchIn` are still code, name,
-                       duration_months and status, so there is no request this
-                       form could send; `tests/test_admin_promotion.py` writes
-                       the column through the ORM for exactly that reason.
-                       A phase number here would name a phase that has come and
-                       gone, so these carry the real reason instead. -->
-                  <div class="field narrow">
-                    <label for="course-degree">Degree level</label>
-                    <select id="course-degree" class="ctrl" disabled [title]="courseShapeReason">
-                      <option value="">Not recorded</option>
-                    </select>
-                  </div>
-                  <div class="field narrow">
-                    <label for="course-total-semesters">Total semesters</label>
-                    <input
-                      id="course-total-semesters"
-                      type="number"
-                      placeholder="—"
-                      disabled
-                      [title]="courseShapeReason"
-                    />
-                  </div>
-                  <div class="field narrow">
-                    <label for="course-semesters-per-year">Semesters per year</label>
-                    <input
-                      id="course-semesters-per-year"
-                      type="number"
-                      placeholder="—"
-                      disabled
-                      [title]="semestersPerYearReason"
-                    />
-                  </div>
                 </form>
 
                 <div class="notice accent">

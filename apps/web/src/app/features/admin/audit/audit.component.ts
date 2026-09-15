@@ -143,33 +143,6 @@ const PAGE_SIZE_CHOICES = [25, 50, 100, 200];
  *  guards its own Main-Admin-only card. */
 const MAX_EXPORT_ROWS = 10_000;
 
-/**
- * The College filter, and why it is grey with no phase on it.
- *
- * THERE IS NO COLLEGE FILTER ON THIS ENDPOINT AND AN AUDIT ROW CARRIES NO
- * COLLEGE. `redesign_audit_events`'s only tenancy column is `tenant_id`, it is
- * nullable, and nothing in `app/` or `migrations/` has ever set it — every row
- * is NULL and always has been. Scoping the trail is not a query this screen
- * could ask for: it needs a college STAMPED AT WRITE TIME by `record_change`,
- * because the ancestry of an entity at the moment it was changed is not
- * recoverable from the entity's current row. That is a change to the writer and
- * to the table, not to the reader `B2.7` shipped.
- *
- * IT CARRIED `[reepPending]="4"` AND PHASE 4 HAS LANDED WITHOUT IT — the
- * router says so in as many words (`app/routers/audit.py`: "the honest
- * implementation of 'scoped' today is 'the office alone'"). A phase number on
- * a control nothing is coming for is the stale label commit 45b91a9 fixed, so
- * this is a plain `disabled` carrying the real reason, the treatment the Leave
- * approvals "Requester" filter was given.
- *
- * Until it exists the trail is not scoped at all: the Main Admin sees every
- * event, and there is nothing here for a college admin to be narrowed to.
- */
-const AUDIT_COLLEGE_SCOPE_REASON =
-  'The audit trail is not scoped by college: an audit row records the actor, ' +
-  'the target and the change, and never the college the target sat under. ' +
-  'Stamping one at write time is a change to the writer and to the table.';
-
 /** The date ranges the board's Range pill offers. `from` is sent as an ISO
  *  instant; `to` is left open, because "up to now" is what every one of these
  *  means and a second bound would exclude an event written mid-read. */
@@ -331,7 +304,6 @@ export class AdminAuditLogComponent {
 
   readonly pageSizes = PAGE_SIZE_CHOICES;
   readonly rangeChoices = RANGE_CHOICES;
-  readonly collegeScopeReason = AUDIT_COLLEGE_SCOPE_REASON;
   readonly maxExportRows = MAX_EXPORT_ROWS;
   readonly unfilterableActions = UNFILTERABLE_LOWERCASE_ACTIONS;
 

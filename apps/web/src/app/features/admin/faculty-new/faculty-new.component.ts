@@ -39,11 +39,11 @@
  *     domains falls back to the deployment's own list
  *     (`app/institution_domains.py`), which this screen cannot see. The server
  *     is the only fence; this one only saves a round trip.
- *   - **Employee ID** and **functions at creation** are disabled and carry no
- *     phase number: Phase 4 has landed and reached neither, and neither is
- *     coming — there is no employee id anywhere in the API, and a function is
- *     granted with a reason, a scope and an expiry that this wizard does not
- *     ask for. See `EMPLOYEE_ID_REASON` and `FUNCTIONS_AT_CREATION_REASON`.
+ *   - **No Employee ID field and no Functions step.** There is no employee id
+ *     anywhere in the API, and a function is granted with a reason, a scope
+ *     and an expiry that this wizard does not ask for — both were drawn
+ *     disabled for board fidelity and removed on 2026-09-15, because a control
+ *     that can never work is the first one a first-day clerk presses.
  *   - **Mail.** `GET /api/admin/platform/status` (`B3.7`) still does not exist
  *     — nothing under `/api/admin` answers it — so this screen never predicts
  *     whether the invitation can be emailed. The create response's own
@@ -64,7 +64,7 @@
  * sandboxed gets, every time.
  *
  * ONE PRIMARY BUTTON. The footer's Continue is the view's primary through
- * steps 1–3, becomes "Create account & invite" on step 4, and becomes "Done"
+ * steps 1–2, becomes "Create account & invite" on step 3, and becomes "Done"
  * once the account exists. Every other control here is secondary or ghost.
  */
 
@@ -128,7 +128,7 @@ interface CreatedFacultyOut {
   shown_once: boolean;
 }
 
-/** What the four steps collect, in the order the board asks for it. */
+/** What the three steps collect, in the order the board asks for it. */
 interface FacultyDraft {
   collegeId: string;
   departmentId: string;
@@ -153,44 +153,6 @@ const EMPTY_DRAFT: FacultyDraft = {
 
 type LoadState = 'loading' | 'ready' | 'error';
 
-/** Employee ID is drawn on the board (`design/admin/AddFaculty.html`) and
- *  exists nowhere else. There is no `employee_id` column on `users`, no field
- *  for it on `AdminFacultyIn`, and `04-backend-changes.md` never adds one —
- *  B3.5's identity PATCH is name, email, designation and department. Phase 3
- *  landed B3.1–B3.6 and Phase 4 has now landed too; `grep employee_id` over
- *  `apps/api-py/app` still finds nothing.
- *
- *  SO IT CARRIES NO PHASE NUMBER. It sat at `[reepPending]="4"` while 4 was
- *  the answer, and it is not — a control promising a phase that has arrived is
- *  the stale label commit 45b91a9 fixed. Plain `disabled` with the real reason
- *  in a `title`, the treatment the Leave approvals "Requester" filter carries.
- *  The control is kept rather than deleted because the board draws it and a
- *  reviewer cannot tell a control that is missing from one that was missed. */
-const EMPLOYEE_ID_REASON =
-  'REEP stores no employee id: there is no column for one on a faculty ' +
-  'account and no field for one on the endpoint that creates it, so a number ' +
-  'typed here would be dropped.';
-
-/** B2.3 LANDED, and the functions on step 3 are real — `ensure_mentor_group`
- *  grants the four mentor capabilities on the first student assignment, and
- *  every other function is a scoped grant made in Roles & functions. What has
- *  never landed, in Phase 3 or Phase 4, is a way to ask for one HERE.
- *  `AdminFacultyIn` is name, email, designation, department, department_id,
- *  allow_external, external_reason; there is no functions field, and §8 of
- *  `02-admin-console-spec.md` never asked for one — its "Needs" list is B3.1,
- *  B3.2, B3.4, B3.7.
- *
- *  AND IT SHOULD NOT GET ONE HERE. Ticking a box would write a grant with no
- *  reason, no scope target and no expiry, which is exactly the audit row B1.2
- *  and B2.4 exist to require; `POST /api/admin/governance/grants` refuses a
- *  grant without a reason for that reason. So this is a settled NO rather than
- *  a later phase: plain `disabled` with the reason on it, and the notice above
- *  pointing at the one screen that records why a function was given. */
-const FUNCTIONS_AT_CREATION_REASON =
-  'A function is granted in Who can do what, never at account creation: the ' +
-  'grant carries a reason, a scope target and an expiry that this wizard does ' +
-  'not ask for, and those three are the record of who gave it and why.';
-
 /** `AdminFacultyIn._department_id`'s own refusal, copied verbatim. The
  *  consequence is the half that matters and the half a paraphrase drops. */
 const DEPARTMENT_REQUIRED_MESSAGE =
@@ -208,8 +170,7 @@ const ACTIVE_STATUS = 'ACTIVE';
 const FIRST_STEP = 1;
 const INSTITUTION_STEP = 1;
 const IDENTITY_STEP = 2;
-const FUNCTIONS_STEP = 3;
-const INVITE_STEP = 4;
+const INVITE_STEP = 3;
 const LAST_STEP = INVITE_STEP;
 
 interface WizardStep {
@@ -220,36 +181,7 @@ interface WizardStep {
 const WIZARD_STEPS: WizardStep[] = [
   { number: INSTITUTION_STEP, label: 'Institution' },
   { number: IDENTITY_STEP, label: 'Identity' },
-  { number: FUNCTIONS_STEP, label: 'Functions' },
   { number: INVITE_STEP, label: 'Invite' },
-];
-
-/** A function the office can give a faculty member, as Governance names it.
- *  These are LABELS, not data: no grant is read or written by this screen. */
-interface FunctionChoice {
-  label: string;
-  description: string;
-}
-
-const FUNCTION_CHOICES: FunctionChoice[] = [
-  {
-    label: 'Mentor',
-    description:
-      'Mentee log, meeting notes, SWOC and evidence verification for their own group. Granted automatically when the Main Admin assigns this person their first student on Assign faculty — never here.',
-  },
-  {
-    label: 'HOD',
-    description:
-      'Department-wide reads and the first signature on a leave request from the department.',
-  },
-  {
-    label: 'Placement officer',
-    description: 'Job postings, offers and placement for the scope they are given.',
-  },
-  {
-    label: 'Verifier',
-    description: 'The badge-evidence queue, without the rest of a mentor’s instruments.',
-  },
 ];
 
 @Component({
@@ -261,9 +193,6 @@ const FUNCTION_CHOICES: FunctionChoice[] = [
 })
 export class AdminAddFacultyComponent implements OnInit {
   readonly steps = WIZARD_STEPS;
-  readonly functionChoices = FUNCTION_CHOICES;
-  readonly employeeIdReason = EMPLOYEE_ID_REASON;
-  readonly functionsAtCreationReason = FUNCTIONS_AT_CREATION_REASON;
   readonly departmentRequiredMessage = DEPARTMENT_REQUIRED_MESSAGE;
   readonly externalReasonRequiredMessage = EXTERNAL_REASON_REQUIRED_MESSAGE;
   readonly lastStep = LAST_STEP;
@@ -518,8 +447,7 @@ export class AdminAddFacultyComponent implements OnInit {
     if (step === IDENTITY_STEP) {
       return this.identityStepIsComplete();
     }
-    // Functions grants nothing today and Invite is the submit step, which has
-    // its own gate below.
+    // Invite is the submit step, which has its own gate below.
     return true;
   });
 

@@ -484,30 +484,6 @@
             </div>
           }
 
-          <!-- B13 landed and `POST /api/admin/catalogue/copy` is real, but it
-               copies FROM one course TO another and a college being created
-               has no courses yet — there is no `to_course` to name on this
-               panel, and there will not be one until departments and courses
-               are added. So this is not a later phase, it is the wrong screen:
-               plain `disabled` with the real reason, and a link to where the
-               copy is actually made. -->
-          <div class="field">
-            <label for="college-catalogues">Copy catalogues from</label>
-            <input
-              id="college-catalogues"
-              disabled
-              [title]="catalogueCopyReason"
-              placeholder="Copied on Catalogue, once this college has a course"
-              autocomplete="off"
-            />
-            <p class="help">
-              A catalogue is copied between COURSES — certifications, the badge map and stage
-              rules, on <a routerLink="/admin/catalogue">Catalogue</a>'s "Copy to course…". A
-              college being created has no course to copy into yet, so the copy is made after its
-              departments and courses exist.
-            </p>
-          </div>
-
           <div class="notice accent">
             <span class="icon" aria-hidden="true">info</span>
             <div>

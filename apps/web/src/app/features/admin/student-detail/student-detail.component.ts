@@ -117,44 +117,22 @@ const LEDGER_WINDOW_DAYS = 14;
 /** Activity lines the card shows before it stops. The board draws five. */
 const RECENT_ACTIVITY_LINES = 5;
 
-/** The board's nine views. Six are answerable and three are not; `reason` is
- *  filled for exactly the three that are not, and it is the sentence that goes
- *  on the disabled control. No phase number: nothing is coming to fill them,
- *  and a phase badge past its phase is the stale label 45b91a9 deleted. */
+/** The six views this screen can answer, each on an endpoint that names this
+ *  student. The board drew three more (SWOC, Leave, Uploads); none has a
+ *  by-id read, and a tab that can never open is not drawn — the boards those
+ *  three belong to are SWOC notes, Leave requests and the pending queue. */
 interface TabSpec {
   key: string;
   label: string;
-  reason: string | null;
 }
 
 const TABS: TabSpec[] = [
-  { key: 'overview', label: 'Overview', reason: null },
-  { key: 'results', label: 'Results', reason: null },
-  { key: 'attendance', label: 'Attendance', reason: null },
-  { key: 'timesheet', label: 'Time sheet', reason: null },
-  { key: 'interviews', label: 'Interviews', reason: null },
-  {
-    key: 'swoc',
-    label: 'SWOC',
-    reason:
-      'SWOC is read as a board across every student a grant reaches (/api/admin/swoc); ' +
-      'there is no per-student read, and this screen never widens to a roster. Open SWOC notes.',
-  },
-  {
-    key: 'leave',
-    label: 'Leave',
-    reason:
-      'Leave is read as an approval queue, not as one person’s file — no endpoint answers ' +
-      '“this student’s leave requests”. Open Leave requests.',
-  },
-  {
-    key: 'uploads',
-    label: 'Uploads',
-    reason:
-      'The only upload read is the programme-wide pending queue; nothing answers “this ' +
-      'student’s documents”. How many are waiting for a verdict is on Open items.',
-  },
-  { key: 'audit', label: 'Audit', reason: null },
+  { key: 'overview', label: 'Overview' },
+  { key: 'results', label: 'Results' },
+  { key: 'attendance', label: 'Attendance' },
+  { key: 'timesheet', label: 'Time sheet' },
+  { key: 'interviews', label: 'Interviews' },
+  { key: 'audit', label: 'Audit' },
 ];
 
 /** One read's outcome: the body, or the server's own sentence for refusing. */

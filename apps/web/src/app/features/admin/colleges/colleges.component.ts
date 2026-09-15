@@ -158,23 +158,6 @@ interface PlatformFact {
   reports: string;
 }
 
-/** Copying a catalogue. `B13` LANDED and `POST /api/admin/catalogue/copy` is
- *  real — but its shape is `{from_course, to_course, parts[]}` (the owner's
- *  settled decision), and this panel is CREATING a college. A college being
- *  created has no departments, so no courses, so no `to_course`: there is
- *  nothing this field could name on the receiving end, and there will not be
- *  until Structure has been used.
- *
- *  SO IT IS NOT A PHASE, IT IS THE WRONG SCREEN. The control stays because the
- *  board draws it, disabled with the real reason rather than a phase number —
- *  a "Phase 4" badge on a screen running Phase 4 is the stale label commit
- *  45b91a9 fixed — and the help text points at the Catalogue screen, where
- *  "Copy to course…" does the real thing against two real courses. */
-const CATALOGUE_COPY_REASON =
-  'A catalogue is copied from one COURSE to another, and a college being ' +
-  'created has no courses yet. Add its departments and courses in Structure, ' +
-  'then copy on the Catalogue screen.';
-
 /** `GET /api/admin/platform/status` is `B3.7`, and `05-delivery-workflow.md`
  *  schedules it in PHASE 5 ("Cleanup + hardening … CDK harden (B3.7) with the
  *  owner"), not Phase 3. The notice used to say Phase 3; it shipped with the
@@ -237,7 +220,6 @@ interface AdminSummary {
 export class AdminCollegesComponent implements OnInit {
   private readonly auth = inject(AuthService);
 
-  readonly catalogueCopyReason = CATALOGUE_COPY_REASON;
   readonly platformStatusPhase = PLATFORM_STATUS_PHASE;
   readonly countUnsourcedNote = COUNT_UNSOURCED_NOTE;
   readonly minReasonChars = MIN_REASON_CHARS;

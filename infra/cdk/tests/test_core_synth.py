@@ -212,14 +212,34 @@ def test_the_service_keeps_both_tasks_in_every_phase(imported: Template, hardene
     assert service["DeploymentConfiguration"]["MinimumHealthyPercent"] == 100, "step 9a would send 50 to the live service mid-conversion"
 
 
+def _plans_by_name(t: Template) -> dict[str, dict]:
+    """Every backup plan in the template, keyed by its plan name.
+
+    There are two once the archive tier is on, and `next(r for r in ...)` would
+    pick whichever CDK happened to emit first — which is how a guard about the
+    DAILY rule silently starts asserting things about the archive one.
+    """
+    plans = {}
+    for r in t.to_json()["Resources"].values():
+        if r["Type"] == "AWS::Backup::BackupPlan":
+            plan = r["Properties"]["BackupPlan"]
+            plans[plan["BackupPlanName"]] = plan
+    return plans
+
+
 def test_one_retention_number_everywhere(hardened: Template) -> None:
     """RDS automated backups, the daily rule, the DR copy and the vault lock
-    all read backupRetentionDays. They were 14 and 35."""
+    all read backupRetentionDays. They were 14 and 35.
+
+    The ARCHIVE rule is deliberately not in this set — it is the one number
+    that is allowed to differ, and `test_the_archive_tier_outlives_the_daily_one`
+    is what holds it to being LONGER rather than merely different.
+    """
     t = hardened.to_json()["Resources"]
     db = next(r for r in t.values() if r["Type"] == "AWS::RDS::DBInstance")["Properties"]
-    plan = next(r for r in t.values() if r["Type"] == "AWS::Backup::BackupPlan")["Properties"]["BackupPlan"]
+    daily = _plans_by_name(hardened)["reep-daily"]
     vault = next(r for r in t.values() if r["Type"] == "AWS::Backup::BackupVault")["Properties"]
-    rule = plan["BackupPlanRule"][0]
+    rule = daily["BackupPlanRule"][0]
     n = db["BackupRetentionPeriod"]
     assert rule["Lifecycle"]["DeleteAfterDays"] == n
     assert rule["CopyActions"][0]["Lifecycle"]["DeleteAfterDays"] == n
@@ -282,8 +302,11 @@ def test_backup_schedule_clears_the_rds_windows(hardened: Template) -> None:
     This asserts the relationship, not the literal time, because moving either
     window is a legitimate fix and pinning one string would only pin the bug.
     """
-    plan = next(iter(hardened.find_resources("AWS::Backup::BackupPlan").values()))
-    rules = plan["Properties"]["BackupPlan"]["BackupPlanRule"]
+    # EVERY rule of EVERY plan. This read one plan, which was every plan until
+    # the archive tier added a second — and a clearance guard that checks only
+    # the plan CDK happened to emit first is the guard that was not there on
+    # 2026-09-07.
+    rules = [rule for plan in _plans_by_name(hardened).values() for rule in plan["BackupPlanRule"]]
     assert rules, "the harden phase must define at least one backup rule"
 
     db = next(iter(hardened.find_resources("AWS::RDS::DBInstance").values()))["Properties"]
@@ -293,9 +316,24 @@ def test_backup_schedule_clears_the_rds_windows(hardened: Template) -> None:
     }
 
     for rule in rules:
-        # cron(minute hour day-of-month month day-of-week year)
-        fields = re.fullmatch(r"cron\((\d{1,2}) (\d{1,2}) .*\)", rule["ScheduleExpression"])
+        # cron(minute hour day-of-month month day-of-week year) — all six
+        # fields, not just the two this reads. The regex matched `.*` after the
+        # hour, so the day-of-month field was unchecked: a monthly rule, whose
+        # whole meaning is in that field, could carry anything at all and this
+        # guard would still pass. AWS Backup uses CloudWatch Events cron, where
+        # exactly one of day-of-month / day-of-week must be `?`, and matching
+        # the shape is how a hand-written expression gets caught here rather
+        # than by a rule that silently never fires.
+        fields = re.fullmatch(
+            r"cron\((\d{1,2}) (\d{1,2}) (\S+) (\S+) (\S+) (\S+)\)", rule["ScheduleExpression"]
+        )
         assert fields, f"unparseable schedule expression {rule['ScheduleExpression']!r}"
+        day_of_month, day_of_week = fields.group(3), fields.group(5)
+        assert (day_of_month == "?") != (day_of_week == "?"), (
+            f"backup rule {rule['RuleName']!r} has day-of-month {day_of_month!r} and "
+            f"day-of-week {day_of_week!r}: EventBridge cron requires exactly one of "
+            "them to be '?', and rejects the expression otherwise"
+        )
         fires_at = int(fields.group(2)) * 60 + int(fields.group(1))
         for name, (start, end) in windows.items():
             too_close = start - BACKUP_WINDOW_CLEARANCE_MINUTES <= fires_at <= end + BACKUP_WINDOW_CLEARANCE_MINUTES
@@ -306,6 +344,149 @@ def test_backup_schedule_clears_the_rds_windows(hardened: Template) -> None:
                 f"{start // 60:02d}:{start % 60:02d}-{end // 60:02d}:{end % 60:02d} — "
                 "every job that lands there fails, and it fails silently"
             )
+
+
+# --------------------------------------------------------------------------- #
+#  The archive tier — the second plan that outlives RDS's 35-day ceiling        #
+# --------------------------------------------------------------------------- #
+
+
+def _archive_rule(t: Template) -> dict:
+    return _plans_by_name(t)["reep-archive"]["BackupPlanRule"][0]
+
+
+def test_the_archive_tier_outlives_the_daily_one(hardened: Template) -> None:
+    """The point of the whole tier: a number RDS's 35-day cap cannot express.
+
+    `backupRetentionDays` is capped at 35 because RDS refuses more on its own
+    automated backups, and until this plan existed that cap reached every copy
+    in both regions — so a record lost 36 days ago was gone everywhere at once.
+    """
+    daily = _plans_by_name(hardened)["reep-daily"]["BackupPlanRule"][0]["Lifecycle"]["DeleteAfterDays"]
+    archive = _archive_rule(hardened)["Lifecycle"]["DeleteAfterDays"]
+    assert archive > daily, "an archive shorter than the daily rule is not an archive"
+    assert archive > 35, "the tier exists to pass RDS's ceiling; at or below it, it buys nothing"
+
+
+def test_the_archive_rule_never_asks_for_cold_storage(hardened: Template) -> None:
+    """AWS Backup does not support cold storage for RDS, and says so by IGNORING
+    the setting rather than refusing it.
+
+    A `MoveToColdStorageAfterDays` here would synthesise, deploy, report success
+    and do nothing for the database — the same silent shape as the Sunday
+    backup that failed for weeks against a green-looking vault. The only honest
+    lifecycle for an RDS rule is a delete-after.
+    """
+    rule = _archive_rule(hardened)
+    assert "MoveToColdStorageAfterDays" not in rule["Lifecycle"], (
+        "AWS Backup ignores cold-storage transitions for resource types that do "
+        "not support them, RDS among them: this clause would be a no-op nothing reports"
+    )
+    for copy in rule.get("CopyActions", []):
+        assert "MoveToColdStorageAfterDays" not in copy["Lifecycle"]
+
+
+def test_the_archive_selection_is_the_database_alone(hardened: Template) -> None:
+    """A selection is PLAN-scoped, not rule-scoped, which is why this is a second
+    plan rather than a second rule.
+
+    The daily selection covers the database AND the EFS file system. A
+    multi-year rule inheriting that would keep every student's resume,
+    marksheet, certificate, staff signature and recorded voice in a locked
+    vault for years — outliving INTERVIEW_RETENTION_DAYS and the "files go
+    before rows" rule both purge modules are built on, with nothing reporting
+    it.
+    """
+    selections = [
+        r["Properties"]["BackupSelection"]
+        for r in hardened.to_json()["Resources"].values()
+        if r["Type"] == "AWS::Backup::BackupSelection"
+    ]
+    archive = next(s for s in selections if s["SelectionName"] == "reep-db-archive")
+    assert len(archive["Resources"]) == 1, (
+        f"the archive selection covers {len(archive['Resources'])} resources; it must "
+        "be the database and nothing else"
+    )
+    rendered = json.dumps(archive["Resources"])
+    assert "elasticfilesystem" not in rendered and "FileSystem" not in rendered, (
+        "the EFS file system reached the archive selection — student documents would "
+        "be retained for years by a rule written for the database"
+    )
+
+
+def test_the_archive_rule_bounds_its_own_start(hardened: Template) -> None:
+    """AWS Backup runs ONE job per resource. A monthly job landing on the daily
+    one does not run twice — it queues, and is cancelled if the queue outlasts
+    its start window. Without an explicit window that cancellation is the
+    default behaviour on the one day a month this point is taken."""
+    rule = _archive_rule(hardened)
+    assert rule["StartWindowMinutes"] >= 60
+    assert rule["CompletionWindowMinutes"] >= rule["StartWindowMinutes"] + 60, (
+        "AWS Backup requires the completion window to exceed the start window by at "
+        "least an hour"
+    )
+    daily = _plans_by_name(hardened)["reep-daily"]["BackupPlanRule"][0]
+    both = {r["RuleName"]: r["ScheduleExpression"] for r in (rule, daily)}
+    hours = {name: int(re.fullmatch(r"cron\(\d{1,2} (\d{1,2}) .*\)", expr).group(1)) for name, expr in both.items()}
+    assert len(set(hours.values())) == 2, f"the two rules fire in the same hour: {both}"
+
+
+def test_the_archive_point_is_copied_to_the_dr_region(hardened: Template) -> None:
+    """And with a lifecycle at least the DR vault's minimum — a copy shorter
+    than the destination lock's MinRetentionDays fails the copy job."""
+    rule = _archive_rule(hardened)
+    copies = rule["CopyActions"]
+    assert copies, "an archive that exists in one region only is not a disaster plan"
+    assert "ap-southeast-1" in json.dumps(copies[0]["DestinationBackupVaultArn"])
+    assert copies[0]["Lifecycle"]["DeleteAfterDays"] == rule["Lifecycle"]["DeleteAfterDays"]
+
+
+def test_the_archive_tier_is_off_unless_it_is_asked_for() -> None:
+    """Zero is off, and off is the code default: a synth with no context renders
+    the stack that exists today. cdk.json is where the number is turned on,
+    because the number is a decision about how long a deleted student stays
+    restorable."""
+    off = _core("harden", archiveRetentionDays=0)
+    assert "reep-archive" not in _plans_by_name(off), "archiveRetentionDays=0 still built the plan"
+    off.resource_count_is("AWS::Backup::BackupPlan", 1)
+
+
+def test_the_import_mirror_grows_no_archive_plan(imported: Template) -> None:
+    """The import template is a MIRROR of what exists. CloudFormation refuses an
+    import template that adds a resource it cannot adopt, so a second plan here
+    would break the cutover it was written after."""
+    imported.resource_count_is("AWS::Backup::BackupPlan", 1)
+    assert "reep-archive" not in _plans_by_name(imported)
+
+
+@pytest.mark.parametrize("bad", [35, 20, 36501])
+def test_an_archive_number_that_is_not_an_archive_is_refused(bad: int) -> None:
+    """Shorter than or equal to the daily rule is not an archive, and past AWS
+    Backup's own ceiling is not a lifecycle. Both are caught at synth rather
+    than by a copy job failing in a month's time."""
+    with pytest.raises(ValueError):
+        _core("harden", archiveRetentionDays=bad)
+
+
+def test_an_alarm_reports_a_plan_that_stopped_running(hardened: Template) -> None:
+    """The three failure alarms cannot see a job that never started.
+
+    They fire on NumberOfBackupJobs*Failed with missing data NOT breaching,
+    which is right for them — a day with no failures publishes no datapoint.
+    The consequence is that a plan which stops running entirely is the one
+    state none of them reports. AWS Backup publishes a metric only for a
+    nonzero value, so "nothing completed" IS missing data, and BREACHING is
+    what makes the absence legible.
+    """
+    hardened.has_resource_properties(
+        "AWS::CloudWatch::Alarm",
+        {
+            "AlarmName": "reep-backup-no-job-completed",
+            "MetricName": "NumberOfBackupJobsCompleted",
+            "ComparisonOperator": "LessThanThreshold",
+            "TreatMissingData": "breaching",
+        },
+    )
 
 
 def test_multi_az_defaults_on_in_harden_and_can_be_opted_out(hardened: Template) -> None:

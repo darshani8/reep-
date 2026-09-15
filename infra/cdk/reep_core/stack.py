@@ -264,6 +264,29 @@ class CoreStack(Stack):
         api_memory = int(opt("apiMemory", 1024))
         api_min = int(opt("apiMinTasks", 2))
         api_max = int(opt("apiMaxTasks", 10))
+        # GRAVITON: the same vCPU and the same memory for ~20% less, and the
+        # ONLY change on the cost review's list that alters no capacity at all
+        # (docs/cost-review-2026-09.md). It is a FLAG, defaulting to x86, for
+        # two reasons that pull the same way.
+        #
+        # ORDER. `deploy.yml` publishes a MULTI-ARCH manifest (amd64 + arm64),
+        # so the image can serve either architecture — but the manifest has to
+        # exist first. Flipping this on a repository whose last image is
+        # amd64-only gives `image Manifest does not contain descriptor matching
+        # platform linux/arm64`: every task dies at pull, before a health check,
+        # and the circuit breaker rolls back. Merge is therefore INERT; the flip
+        # is a separate, deliberate act taken after one Deploy has run.
+        #
+        # ROLLBACK. Because the manifest carries both, going back is this flag
+        # and nothing else — no rebuild, no image retag. That is worth more than
+        # the arm64-only image that would have been simpler to publish.
+        #
+        # And it must stay conditional rather than become the default: passing
+        # X86_64 explicitly would RENDER a RuntimePlatform property where the
+        # live task definition has none, which is a diff against the import
+        # mirror that test_the_database_half_does_not_touch_the_ecs_trio exists
+        # to refuse. None renders nothing, which is what the mirror holds.
+        api_arm64 = flag("apiArm64", False)
         db_class: str = opt("dbInstanceClass", "db.t4g.small")
         # THE IMPORT MIRROR CARRIES THE LIVE VALUES, the harden template the
         # targets — and they must come from DIFFERENT context keys. cdk.json
@@ -1308,6 +1331,16 @@ class CoreStack(Stack):
                 family=family,
                 cpu=api_cpu,
                 memory_limit_mib=api_memory,
+                # None when the flag is off, so no RuntimePlatform property is
+                # rendered and the import mirror is unchanged. See api_arm64.
+                runtime_platform=(
+                    ecs.RuntimePlatform(
+                        cpu_architecture=ecs.CpuArchitecture.ARM64,
+                        operating_system_family=ecs.OperatingSystemFamily.LINUX,
+                    )
+                    if api_arm64
+                    else None
+                ),
                 # without_policy_updates: the secrets and log-driver helpers would
                 # otherwise attach a generated AWS::IAM::Policy that exists nowhere
                 # and cannot be imported. The inline read-app-secrets policy and the

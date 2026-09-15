@@ -505,12 +505,7 @@
                  the PUBLIC form, before anybody has read anything, and an
                  auto-approving rule ends with an account that exists. That is
                  the sentence an author needs before they type, not after. -->
-            <p class="dialog-sub">
-              The order the engine evaluates when an application arrives on the public form. The
-              lowest priority among the rules that match wins; equal priorities are settled by which
-              rule is older. A rule that auto-approves creates the account itself — that application
-              never reaches the queue.
-            </p>
+            <p class="dialog-sub">Lowest priority wins; ties go to the older rule.</p>
           </div>
           <button type="button" class="btn ghost sm" aria-label="Close the rules" (click)="closeSeatingRules()">
             <span class="icon" aria-hidden="true">close</span>

@@ -145,7 +145,7 @@
         <select
           aria-label="Department — narrows both lists"
           disabled
-          title="No faculty member on this list is filed under a department yet, so there is nothing to narrow by. Filing is done on the Faculty screen."
+          title="No faculty member is filed under a department yet."
         >
           <option>All departments</option>
         </select>
@@ -194,12 +194,7 @@
     </div>
 
     @if (narrowed()) {
-      <p class="filters__note">
-        Both lists are cut by the server. A batch narrows the STUDENTS and leaves the faculty rail
-        whole, so a faculty member with nobody in this batch is still here to seat somebody with —
-        and the count beside each name is then this batch's share of their group, not its size, so
-        the load bar is not drawn.
-      </p>
+      <p class="filters__note">A batch narrows the students; the faculty list stays whole.</p>
     }
   </div>
 

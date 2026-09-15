@@ -384,15 +384,9 @@
             @case ('sessions') {
               <div class="drawer-card card">
                 <h2 class="card-heading">Activation link</h2>
-                <p class="drawer-line">
-                  Minting a new link supersedes every older one, so what you hand over is the only link that
-                  works. It is how “the email never arrived” is closed on the call, not a stopgap.
-                </p>
+                <p class="drawer-line">A new link replaces every older one.</p>
                 @if (faculty.isDisabled) {
-                  <p class="drawer-line faint-line">
-                    This account is disabled, so a link minted now cannot be redeemed until it is enabled
-                    again — disabling killed every link that was outstanding.
-                  </p>
+                  <p class="drawer-line faint-line">This account is disabled, so a link cannot be used until it is enabled again.</p>
                 }
                 <button type="button" class="btn secondary" [disabled]="busy()" (click)="mintActivationLink()">
                   <span class="icon" aria-hidden="true">link</span> Make a sign-in link
@@ -421,19 +415,13 @@
 
               <div class="drawer-card card">
                 <h2 class="card-heading">Sessions</h2>
-                <p class="drawer-line">
-                  Retires every device this account is signed in on. Nothing else changes — no password
-                  reset, no disable — so it is the safe first move while the facts are still unclear.
-                </p>
+                <p class="drawer-line">Signs this account out of every device. Nothing else changes.</p>
                 <button type="button" class="btn secondary" [disabled]="busy()" (click)="signOutEverywhere()">
                   <span class="icon" aria-hidden="true">logout</span> Sign out everywhere
                 </button>
               </div>
 
-              <p class="drawer-line faint-line">
-                Passwords are never set by an admin — an active account resets through “Forgot password”.
-                REEP holds one live session per account, so a new sign-in retires the previous device.
-              </p>
+              <p class="drawer-line faint-line">An admin never sets a password; an active account uses “Forgot password”.</p>
 
             }
 

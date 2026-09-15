@@ -204,10 +204,7 @@
           <div class="card-head">
             <div>
               <h2 class="card-title">Semester timeline · nothing is rewritten on promotion</h2>
-              <div class="card-sub">
-                promotion increments current_semester and writes one history row per student; every
-                other table keeps the semester number it was written with
-              </div>
+              <div class="card-sub">Promotion moves the semester and writes one history row per student.</div>
             </div>
           </div>
           @if (semesterSteps().length > 0) {
@@ -329,10 +326,7 @@
               <div class="card-head">
                 <div>
                   <h2 class="card-title">Identity &amp; login</h2>
-                  <div class="card-sub">
-                    an admin never sets a password; a student's setup link comes from the onboarding
-                    walk, not from here
-                  </div>
+                  <div class="card-sub">An admin never sets a password.</div>
                 </div>
               </div>
               @if (disabledLine(); as line) {
@@ -716,10 +710,7 @@
           <div class="card-head">
             <div>
               <h2 class="card-title">Results, semester by semester</h2>
-              <div class="card-sub">
-                read from semester_results · a promotion never rewrites one, so every row is a fact
-                about the semester it was scored in
-              </div>
+              <div class="card-sub">Read from semester results.</div>
             </div>
           </div>
           @if (resultRows().length > 0) {
@@ -786,10 +777,7 @@
           <div class="card-head">
             <div>
               <h2 class="card-title">Attendance · the last six weeks</h2>
-              <div class="card-sub">
-                the window the analytics read answers — attendance is recorded per session, not per
-                semester, so it cannot be filed under one
-              </div>
+              <div class="card-sub">Attendance is recorded per session.</div>
             </div>
           </div>
           @if (weeklyRefusal(); as refusal) {
@@ -842,10 +830,7 @@
           <div class="card-head">
             <div>
               <h2 class="card-title">Time allocation ledger</h2>
-              <div class="card-sub">
-                the student's own fortnight · a day reconciles when its cells add to exactly 24 h,
-                and only a submitted day is latched
-              </div>
+              <div class="card-sub">The student’s own fortnight.</div>
             </div>
           </div>
           @if (menteeReadsRefusal(); as refusal) {
@@ -914,10 +899,7 @@
           <div class="card-head">
             <div>
               <h2 class="card-title">Mock interviews</h2>
-              <div class="card-sub">
-                every session this student has opened · a session with no score is one that was
-                never scored, which is not a zero
-              </div>
+              <div class="card-sub">Every session this student has opened.</div>
             </div>
           </div>
           @if (interviewRows().length > 0) {
@@ -987,10 +969,7 @@
           <div class="card-head">
             <div>
               <h2 class="card-title">What staff have done to this record</h2>
-              <div class="card-sub">
-                the most recent trail rows filed against this student and this account — the whole
-                trail is the Audit screen
-              </div>
+              <div class="card-sub">The most recent trail rows for this student.</div>
             </div>
             <div class="card-actions">
               <a class="btn ghost sm" routerLink="/admin/audit">

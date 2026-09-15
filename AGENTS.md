@@ -274,6 +274,28 @@ this" card, no tutorial; if a label needs decoding, change the label. The
 owner's words were that a screen which has to be explained is a screen that
 was not built.
 
+**SETTING UP A COLLEGE IS ONE SCREEN NOW (2026-09-15): `/admin/setup`,
+`features/admin/college-setup`.** The spine used to be about fifteen forms
+across Colleges, College structure and Catalogue, and the owner named
+"complete college setup" as the main problem. The screen is six steps — the
+college, its departments, their courses (degree and years), the optional
+specializations, one batch per leaf, then "Create everything" — and it sends
+EXACTLY the five POSTs College structure sends, with the same payloads, so it
+is the existing way onto the spine typed once rather than a new one. Step 1
+offers every college already on the deployment; picking one loads what it has
+(departments, courses, specializations, batches), shows those rows locked, and
+lets the office add what is missing — a half-set-up college finally has a
+screen that says what is left. **"Create everything" is additive and
+re-runnable**, `app.seed_catalogue`'s rule: a 409 is answered by looking the
+row up by its code and using it ("Already there"), a row whose parent failed
+is "Skipped" with the reason, and pressing the button again resumes from what
+landed. The batch conventions are the seeder's, in `college-setup.model.ts`
+and pinned by its spec: code `COLLEGE-DEPT-COURSE[-SPEC]-LABEL`, name "Course
+- Specialization 2026-28", July to the last day of June, and the mock-interview
+chip per leaf is the same case-folded code match `_default_track` applies —
+"Mock interview: general" is a fact the office sees before the first student
+does, not a surprise on the day. Nothing on the screen explains itself.
+
 An item with `path: null` renders as a LABELLED, NON-CLICKABLE row carrying its
 `arrivesIn` badge ("Available with Phase 2"). This is deliberate and it is the
 opposite of the usual instinct, which is to leave an unbuilt screen out until it

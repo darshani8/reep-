@@ -10,10 +10,13 @@
            button is only offered there: shown while the list is loading or after
            it failed, it is a control that removes itself and opens nothing. -->
       @if (state() === 'ready' && !addPanelOpen()) {
-        <button type="button" class="btn primary" (click)="openAddPanel()">
+        <button type="button" class="btn secondary" (click)="openAddPanel()">
           <span class="icon" aria-hidden="true">add</span> Add college
         </button>
       }
+      <a class="btn primary" routerLink="/admin/setup">
+        <span class="icon" aria-hidden="true">add_circle</span> Set up a college
+      </a>
     </div>
   </div>
 

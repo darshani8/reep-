@@ -19,7 +19,7 @@
         [disabled]="state() !== 'ready'"
         (click)="startNewOverride()"
       >
-        <span class="icon" aria-hidden="true">add</span> Add override
+        <span class="icon" aria-hidden="true">add</span> Add a rule
       </button>
     </div>
   </div>
@@ -89,10 +89,10 @@
       </div>
 
       <div class="select fs-scope-filter">
-        <span class="lbl">Override scope</span>
+        <span class="lbl">Applies to</span>
         <span class="val">{{ scopeFilterLabel() }}</span>
         <span class="icon" aria-hidden="true">expand_more</span>
-        <select aria-label="Override scope" (change)="setScopeFilter($any($event.target).value)">
+        <select aria-label="Applies to" (change)="setScopeFilter($any($event.target).value)">
           <option value="" [selected]="scopeFilter() === ''">All</option>
           @for (scope of hierarchyScopes; track scope) {
             <option [value]="scope" [selected]="scopeFilter() === scope">
@@ -147,7 +147,7 @@
               <tr>
                 <th class="pinned fs-feature-col">Feature</th>
                 <th>Default</th>
-                <th class="fs-scope-col">Override scope</th>
+                <th class="fs-scope-col">Applies to</th>
                 <th>Value</th>
                 <th class="fs-enforcement-col">Enforcement</th>
                 <th>Changed</th>

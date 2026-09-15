@@ -35,7 +35,7 @@
 
   <div class="filters">
     <div class="select">
-      <span class="lbl">Actor</span>
+      <span class="lbl">Who</span>
       <span class="val">{{ actorLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Actor" (change)="setActor(selectValue($event))">
@@ -49,7 +49,7 @@
     </div>
 
     <div class="select">
-      <span class="lbl">Action</span>
+      <span class="lbl">What</span>
       <span class="val">{{ actionLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Action" (change)="setAction(selectValue($event))">
@@ -61,7 +61,7 @@
     </div>
 
     <div class="select">
-      <span class="lbl">Target</span>
+      <span class="lbl">On what</span>
       <span class="val">{{ targetTypeLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Target type" (change)="setTargetType(selectValue($event))">
@@ -94,7 +94,7 @@
     </div>
 
     <div class="select">
-      <span class="lbl">Range</span>
+      <span class="lbl">When</span>
       <span class="val">{{ rangeLabel() }}</span>
       <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Date range" (change)="setRange(selectValue($event))">
@@ -286,7 +286,7 @@
       } @else if (openEvent(); as event) {
         <dl class="event-facts">
           <div class="event-fact">
-            <dt class="eyebrow">Actor</dt>
+            <dt class="eyebrow">Who</dt>
             <dd class="fact">{{ actorPanelLabel() }}</dd>
           </div>
           <div class="event-fact">
@@ -298,11 +298,11 @@
             <dd class="fact">{{ event.route || '—' }}</dd>
           </div>
           <div class="event-fact">
-            <dt class="eyebrow">Action</dt>
+            <dt class="eyebrow">What</dt>
             <dd class="fact">{{ event.action }}</dd>
           </div>
           <div class="event-fact event-fact-wide">
-            <dt class="eyebrow">Target</dt>
+            <dt class="eyebrow">On what</dt>
             <dd class="fact">{{ event.target_type }} · {{ event.target_id }}</dd>
           </div>
         </dl>

@@ -712,7 +712,7 @@
 
                     <div class="seat-add">
                       <div class="field">
-                        <label for="seat-pick">Seat a student</label>
+                        <label for="seat-pick">Add a student to this batch</label>
                         <select
                           id="seat-pick"
                           class="ctrl"
@@ -721,7 +721,7 @@
                           [disabled]="busy() || unseated().length === 0"
                         >
                           <option value="">
-                            {{ unseated().length ? '— Choose a student not yet in any batch —' : 'Every student is already seated in a batch' }}
+                            {{ unseated().length ? '— Choose a student not yet in any batch —' : 'Every student is already in a batch' }}
                           </option>
                           @for (s of unseated(); track s.student_id) {
                             <option [value]="s.student_id">{{ s.name }}{{ s.usn ? ' · ' + s.usn : '' }}</option>
@@ -729,7 +729,7 @@
                         </select>
                       </div>
                       <button type="button" class="btn secondary" (click)="seat()" [disabled]="busy() || !seatPick()">
-                        <span class="icon" aria-hidden="true">person_add</span>Seat
+                        <span class="icon" aria-hidden="true">person_add</span>Add
                       </button>
                     </div>
 
@@ -757,7 +757,7 @@
                                 <td>{{ stageLabel(s.current_stage) }}</td>
                                 <td>
                                   <button type="button" class="btn ghost sm" (click)="release(s)" [disabled]="busy()">
-                                    <span class="icon" aria-hidden="true">person_remove</span>Release
+                                    <span class="icon" aria-hidden="true">person_remove</span>Remove
                                   </button>
                                 </td>
                               </tr>

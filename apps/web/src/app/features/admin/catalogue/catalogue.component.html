@@ -297,14 +297,14 @@
           [disabled]="importBusy() || !importFileName()"
         >
           <span class="icon" aria-hidden="true">visibility</span>
-          {{ importBusy() ? 'Reading…' : 'Dry run' }}
+          {{ importBusy() ? 'Reading…' : 'Check first' }}
         </button>
         <button
           type="button"
           class="btn primary"
           (click)="runImport(false)"
           [disabled]="importBusy() || !importResult()?.dry_run"
-          title="A dry run has to report first — that is what the file is checked against."
+          title="Press Check first."
         >
           <span class="icon" aria-hidden="true">check</span>Import
         </button>
@@ -728,14 +728,14 @@
                       [disabled]="copyBusy() || !canRunCopy()"
                     >
                       <span class="icon" aria-hidden="true">visibility</span>
-                      {{ copyBusy() ? 'Counting…' : 'Dry run' }}
+                      {{ copyBusy() ? 'Counting…' : 'Check first' }}
                     </button>
                     <button
                       type="button"
                       class="btn primary"
                       (click)="runCopy(false)"
                       [disabled]="copyBusy() || !canRunCopy() || !copyPreview()?.dry_run"
-                      title="A dry run has to report first — it is what says how many rows are already there."
+                      title="Press Check first."
                     >
                       <span class="icon" aria-hidden="true">content_copy</span>Copy
                     </button>

@@ -141,7 +141,7 @@ type FunctionFilter = '' | 'mentor' | 'none';
  */
 /** Why "Grant function" cannot be pressed, shown on the control itself. */
 const GRANT_FUNCTION_REASON =
-  'Functions are granted in Governance, which owns the reason, the scope target and ' +
+  'Access is given in Who can do what, which owns the reason, the scope target and ' +
   'the expiry a grant carries. This screen would need that whole composer a second time.';
 
 

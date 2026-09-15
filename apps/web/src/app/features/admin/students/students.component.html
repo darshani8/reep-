@@ -289,7 +289,7 @@
             <div><dt>Department</dt><dd>{{ batch.departmentName }}</dd></div>
             <div><dt>Current semester</dt><dd>{{ semesterLabel() }}</dd></div>
             <div><dt>Students</dt><dd>{{ batchRosterCount() }}</dd></div>
-            <div><dt>Unseated</dt><dd>{{ batchUnseatedCount() }} without a faculty member</dd></div>
+            <div><dt>No faculty member</dt><dd>{{ batchUnseatedCount() }}</dd></div>
             @if (rosterIsNarrowed()) {
               <div><dt>In view</dt><dd>{{ studentCount() }} after the filters</dd></div>
             }
@@ -301,8 +301,8 @@
         } @else {
           <dl class="rail-facts">
             <div><dt>Students in view</dt><dd>{{ studentCount() }}</dd></div>
-            <div><dt>Seated</dt><dd>{{ seatedCount() }} with a faculty member</dd></div>
-            <div><dt>Unseated</dt><dd>{{ unseatedCount() }}</dd></div>
+            <div><dt>With a faculty member</dt><dd>{{ seatedCount() }}</dd></div>
+            <div><dt>No faculty member</dt><dd>{{ unseatedCount() }}</dd></div>
             <div><dt>Batches</dt><dd>{{ batches().length }}</dd></div>
           </dl>
           <p class="rail-hint">Pick one batch above to act on it, promote it or graduate it.</p>

@@ -446,7 +446,7 @@
                   <option [value]="department.id" [selected]="department.id === draft().departmentId">{{ department.label }}</option>
                 }
               </select>
-              <span class="help">The batch decides the department whenever the batch names one; this is what files a student who has no batch.</span>
+              <span class="help">The batch decides the department whenever it names one.</span>
             </label>
             <label class="field">
               <span>Faculty member</span>
@@ -519,7 +519,7 @@
                   The faculty list could not be read, so only “release them” can be chosen here.
                 </span>
               } @else {
-                <span class="help">A faculty account becomes a mentor on its first assignment; there is no flag to set.</span>
+                <span class="help">A faculty account becomes a mentor on its first assignment.</span>
               }
             </label>
           } @else {

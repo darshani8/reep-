@@ -462,10 +462,7 @@
               [value]="formReason()"
               (input)="formReason.set($any($event.target).value)"
             ></textarea>
-            <span class="help">
-              At least {{ minReason() | plural: 'character' }}. It is written onto the audit trail
-              and read by whoever reviews this rule later.
-            </span>
+            <span class="help">At least {{ minReason() | plural: 'character' }}.</span>
           </div>
 
           <!-- B2.2 made this real: `student_message` is a column, it travels on
@@ -484,17 +481,10 @@
               [value]="formStudentMessage()"
               (input)="formStudentMessage.set($any($event.target).value)"
             ></textarea>
-            <span class="help">
-              What the student reads when this rule refuses them — not the reason above, which is
-              the office's own note. Leave it blank and the feature is simply absent from their
-              console. It goes on the audit trail either way.
-            </span>
+            <span class="help">What the student reads when this rule refuses them. Blank hides the feature silently.</span>
             <div role="status">
               @if (studentMessageWillNotBeShown()) {
-                <span class="help">
-                  This rule switches the feature <b>on</b>, so nothing refuses the student and this
-                  sentence is stored but never shown.
-                </span>
+                <span class="help">This rule switches the feature <b>on</b>, so this message is never shown.</span>
               }
             </div>
           </div>

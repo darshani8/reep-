@@ -396,7 +396,7 @@
             (input)="setDraft('tracks', inputValue($event))"
           />
           <div class="help">
-            Specialization codes, separated by commas, matched against the student’s own batch.
+            Specialization codes, comma separated.
             @if (draftTracks().length > 0) {
               Sent as <b>{{ draftTracks().join(' · ') }}</b>.
             } @else {
@@ -409,10 +409,7 @@
           <div class="field">
             <label for="jobs-skills">Required skills</label>
             <input id="jobs-skills" class="ctrl" type="text" readonly [value]="carriedSkillsLabel()" />
-            <div class="help">
-              Copied from the posting you duplicated and published with it — these slugs are what
-              the student board matches a resume against. Nothing on this screen edits them.
-            </div>
+            <div class="help">Copied from the duplicated posting.</div>
           </div>
         }
 

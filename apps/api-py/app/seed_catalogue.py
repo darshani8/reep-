@@ -63,6 +63,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .db import SessionLocal
@@ -304,14 +305,46 @@ def _get_or_create(db: Session, model: Any, where: Any, **fields: Any) -> tuple[
     ADDITIVE ONLY. An existing row is returned UNTOUCHED even where its fields
     differ from this file -- see the module docstring: the office renames things
     on screen, and a seeder that reasserted its own names would quietly undo
-    that work on every run. Divergence is reported by `plan()`, never corrected.
+    that work on every run. Divergence is reported by `seed()`, never corrected.
+
+    THE SELECT-THEN-INSERT IS A RACE, AND IT IS CLOSED WITH A SAVEPOINT RATHER
+    THAN A BARE `except`. Two runs that both find nothing both insert, and the
+    loser hits the unique constraint. The Ops task carries `concurrency:
+    ops-task`, so two button presses queue rather than overlap -- but this module
+    is also runnable as a one-off ECS task with a command override, which nothing
+    serialises, and "idempotent" is a promise this file makes in its own
+    docstring.
+
+    THE OBVIOUS FIX DOES NOT WORK ON POSTGRES, which is why this is worth the
+    eight lines. Catching `IntegrityError` and re-querying inside the same
+    transaction fails: Postgres ABORTS a transaction on error and refuses every
+    later statement in it ("current transaction is aborted, commands ignored
+    until end of transaction block"), so the recovering SELECT raises too. The
+    result would LOOK like graceful recovery and would in fact turn one clear
+    failure into a confusing one. `begin_nested()` issues a SAVEPOINT, so the
+    rollback undoes only the failed INSERT and the outer transaction -- which
+    holds every row written so far, and commits once at the end -- survives.
+
+    A re-select that finds NOTHING is re-raised rather than swallowed. Only a
+    row matching this call's own `where` proves we lost the race; any other
+    IntegrityError (a different constraint, a `cohorts.code` collision with some
+    other college's batch) is a real defect, and reporting it as "already
+    existed" would hide exactly the mistake worth catching.
     """
     row = db.scalar(select(model).where(where))
     if row is not None:
         return row, False
-    row = model(**fields)
-    db.add(row)
-    db.flush()  # so children can reference the id inside this one transaction
+    try:
+        with db.begin_nested():  # SAVEPOINT; see the docstring
+            row = model(**fields)
+            db.add(row)
+            db.flush()  # so children can reference the id, and so the
+            # constraint fires HERE, inside the savepoint
+    except IntegrityError:
+        row = db.scalar(select(model).where(where))
+        if row is None:
+            raise
+        return row, False
     return row, True
 
 

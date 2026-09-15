@@ -1,5 +1,7 @@
 /**
- * The floating REEP Agent orb.
+ * The floating REEP orb — the one button on every screen that opens the
+ * assistant dock (agent-dock.component.ts): the typed REEP Agent and, for a
+ * student, the mock interviewer, as two tabs of one panel.
  *
  * Lives in the SHELL, not in a route, because the design puts it on every
  * screen — a route-owned copy would vanish on the login screen's sibling routes
@@ -7,37 +9,33 @@
  *
  * DRAG VS TAP IS ONE GESTURE, resolved by distance. `pointerdown` starts a
  * drag; a `pointerup` that has travelled under DRAG_THRESHOLD px is treated as a
- * tap and opens the REEP Agent chat. Without that threshold the orb is either
+ * tap and toggles the dock. Without that threshold the orb is either
  * draggable or clickable but never both: every real tap moves a pointer by a
  * pixel or two, so "moved at all ⇒ drag" makes the button impossible to press on
  * a trackpad, and "pointerup ⇒ tap" makes it impossible to drag without
- * navigating away.
+ * opening the dock.
+ *
+ * KEYBOARD. Enter and Space on a button fire `click`, never `pointerdown`, so
+ * the pointer gesture alone left the orb unreachable without a mouse. A
+ * keyboard-invoked click carries `detail === 0` (no pointer press count), and
+ * that is what `onClick` toggles on; a pointer tap's own `click` (detail ≥ 1)
+ * is ignored because the gesture already handled it.
  *
  * LISTENERS GO ON `document`, NOT ON THE ORB. A pointer that leaves the orb's
  * 58px box mid-drag — which is most of a drag — stops delivering events to it,
  * and the orb sticks to the cursor until the next click. They are removed on
- * pointerup and again in ngOnDestroy, so a component torn down mid-drag (a
- * sign-out, say) does not leave two handlers bound to a dead component.
+ * pointerup and again in ngOnDestroy.
  *
- * THERE IS NO VOICE OVERLAY. The orb used to open a full-screen LiveKit voice
- * session; that stack was removed from the repo. The two voice experiences that
- * remain are unaffected and neither belongs to the orb: the mock interviewer at
- * /student/assistant (Amazon Nova 2 Sonic, speech-to-speech, in-process) and
- * nothing else. A tap therefore does the one thing the overlay's "Type instead"
- * always did — it opens the typed agent for whoever is signed in.
+ * THE ORB SHOWS THE INTERVIEW'S STATE without importing InterviewService: the
+ * room mirrors a three-word state and its clock into AgentDockService (see
+ * that file for why), so the orb pulses and carries "Live 04:12" while an
+ * interview runs, wherever the dock is. Text and colour together — the clock
+ * is the words, the pulse is the colour.
  */
 
-import {
-  Component,
-  computed,
-  inject,
-  OnDestroy,
-  signal,
-} from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 
-import { AuthService } from '../core/auth.service';
-import type { Role } from '../core/session';
+import { AgentDockService } from '../core/agent-dock.service';
 
 const DRAG_THRESHOLD = 4;
 
@@ -45,36 +43,45 @@ const DRAG_THRESHOLD = 4;
  *  anchored corner, leaving ~110px of it always reachable. */
 const EDGE_MARGIN = 110;
 
-/** Where a tap goes: each role's own REEP Agent route. */
-function agentRouteFor(role: Role | undefined): string {
-  if (role === 'ADMIN') return '/admin/agent';
-  if (role === 'MENTOR') return '/mentor/agent';
-  return '/student/agent';
-}
-
 @Component({
   selector: 'app-agent-orb',
   standalone: true,
   template: `
-    <button
-      type="button"
-      class="agent-orb"
-      [style.transform]="translate()"
-      aria-label="Open the REEP Agent"
-      (pointerdown)="onPointerDown($event)"
-    >
-      <span class="icon" aria-hidden="true">smart_toy</span>
-    </button>
+    <div class="agent-orb-wrap" [style.transform]="translate()">
+      @if (dock.live() && dock.liveClock(); as clock) {
+        <span class="agent-orb__live" role="status">Live · {{ clock }}</span>
+      }
+      <button
+        type="button"
+        class="agent-orb"
+        [class.agent-orb--open]="dock.open()"
+        [class.agent-orb--live]="dock.live()"
+        [attr.aria-label]="label()"
+        [attr.aria-expanded]="dock.open()"
+        aria-haspopup="dialog"
+        (pointerdown)="onPointerDown($event)"
+        (click)="onClick($event)"
+      >
+        <span class="icon" aria-hidden="true">{{ glyph() }}</span>
+      </button>
+    </div>
   `,
 })
 export class AgentOrbComponent implements OnDestroy {
-  private readonly router = inject(Router);
-  private readonly auth = inject(AuthService);
+  readonly dock = inject(AgentDockService);
 
   /** Drag offset from the anchored corner, in px. Both are <= 0. */
   private readonly bx = signal(0);
   private readonly by = signal(0);
   readonly translate = computed(() => `translate(${this.bx()}px, ${this.by()}px)`);
+
+  readonly label = computed(() =>
+    this.dock.open() ? 'Close the REEP assistant' : 'Open the REEP assistant',
+  );
+  /** All three are in the icon subset (tools/fonts/icon-names.txt). */
+  readonly glyph = computed(() =>
+    this.dock.open() ? 'close' : this.dock.live() ? 'graphic_eq' : 'smart_toy',
+  );
 
   private startX = 0;
   private startY = 0;
@@ -95,6 +102,11 @@ export class AgentOrbComponent implements OnDestroy {
     document.addEventListener('pointercancel', this.onUp);
   }
 
+  /** Keyboard activation only — see the file header. */
+  onClick(event: MouseEvent): void {
+    if (event.detail === 0) this.toggle();
+  }
+
   private readonly onMove = (event: PointerEvent): void => {
     if (!this.dragging) return;
     const dx = event.clientX - this.startX;
@@ -109,7 +121,7 @@ export class AgentOrbComponent implements OnDestroy {
     if (!this.dragging) return;
     this.dragging = false;
     this.detach();
-    if (this.travelled < DRAG_THRESHOLD) this.open();
+    if (this.travelled < DRAG_THRESHOLD) this.toggle();
   };
 
   private detach(): void {
@@ -118,9 +130,15 @@ export class AgentOrbComponent implements OnDestroy {
     document.removeEventListener('pointercancel', this.onUp);
   }
 
-  /** The REEP Agent chat screen for whoever is signed in. */
-  open(): void {
-    void this.router.navigate([agentRouteFor(this.auth.session()?.role)]);
+  /** Open the dock on its last tab, or close it. Closing over a live
+   *  interview asks first — the service raises the question and the dock
+   *  renders it — rather than hiding outright. */
+  toggle(): void {
+    if (this.dock.open()) {
+      this.dock.requestClose();
+      return;
+    }
+    this.dock.show();
   }
 
   ngOnDestroy(): void {

@@ -415,34 +415,58 @@ def _track_list(db: Session, college_id: str | None) -> list[TrackOut]:
 def _default_track(db: Session, student_id: str, available: list[TrackOut]) -> str | None:
     """B5.3: the track this student's BATCH implies, or None.
 
-    Two ways to match, in order: a track row explicitly mapped to the batch's
-    specialization, then the specialization's own `code` read as a track code.
-    NEITHER IS A GUESS — if the batch names no specialization, or names one
-    nothing is mapped to, this is None and the picker stays. Filling it in with
-    "hr because it is first" would assess a Finance student against an HR bar
-    with nothing on the screen to say so, which is the exact failure the socket
+    FOUR ways to match, most specific first: a track row mapped to the batch's
+    SPECIALIZATION, the specialization's own `code` read as a track code, then
+    the same two against the batch's COURSE. NONE OF THEM IS A GUESS — every one
+    is an exact, case-folded match on a code somebody typed on purpose. If
+    nothing matches, this is None and the picker stays. Filling it in with "hr
+    because it is first" would assess a Finance student against an HR bar with
+    nothing on the screen to say so, which is the exact failure the socket
     refuses `?specialization=` typos to avoid.
+
+    THE COURSE RUNG WAS MISSING AND `interview_tracks.course_id` HAS EXISTED THE
+    WHOLE TIME. The column is written by the admin screen, returned by the track
+    API and rendered as a mapping -- and nothing read it, so a track mapped to a
+    course looked mapped, reported mapped, and preselected nothing. B6.6's shape
+    exactly, and found the same way: by trying to file a real catalogue.
+
+    It is not a rare shape either. A specialization is OPTIONAL
+    (`HIERARCHY_LEVELS`), and a two-year programme that IS the qualification --
+    BGSCET's Digital Marketing and Logistics & Supply Chain MBAs -- has no
+    specialization under it to hang a track on, because there is nothing to
+    specialise into. Reading the specialization alone meant every student on
+    such a course fell through to the generic interview, which has no wrap-up
+    phase and therefore CANNOT BE SCORED. That is the same dead end
+    `grant_access --department-id` was added to close, reached from the
+    catalogue instead of from the account.
+
+    Specialization still wins where a batch names one, because it is the more
+    specific statement -- the same precedence `ancestry_of_student` applies to
+    the two department pointers.
     """
     pairs = dict(ancestry_of_student(db, student_id))
-    specialization_id = pairs.get(ScopeLevel.SPECIALIZATION)
-    if not specialization_id:
-        return None
     codes = {t.code for t in available}
-    mapped = db.scalar(
-        select(InterviewTrack.code).where(
-            InterviewTrack.specialization_id == specialization_id,
-            InterviewTrack.enabled.is_(True),
-        )
+
+    # (rung, the model whose own `code` stands in, the track column mapped to it)
+    rungs = (
+        (ScopeLevel.SPECIALIZATION, AcademicSpecialization, InterviewTrack.specialization_id),
+        (ScopeLevel.COURSE, AcademicCourse, InterviewTrack.course_id),
     )
-    if mapped and mapped.strip().lower() in codes:
-        return mapped.strip().lower()
-    spec_code = db.scalar(
-        select(AcademicSpecialization.code).where(
-            AcademicSpecialization.id == specialization_id
+    for level, model, track_column in rungs:
+        rung_id = pairs.get(level)
+        if not rung_id:
+            continue
+        mapped = db.scalar(
+            select(InterviewTrack.code).where(
+                track_column == rung_id,
+                InterviewTrack.enabled.is_(True),
+            )
         )
-    )
-    if spec_code and spec_code.strip().lower() in codes:
-        return spec_code.strip().lower()
+        if mapped and mapped.strip().lower() in codes:
+            return mapped.strip().lower()
+        own_code = db.scalar(select(model.code).where(model.id == rung_id))
+        if own_code and own_code.strip().lower() in codes:
+            return own_code.strip().lower()
     return None
 
 

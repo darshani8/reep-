@@ -44,15 +44,19 @@
  * the first is a governance problem for one account and the second is a fact
  * about the college.
  *
- * WHAT THE BOARD DRAWS THAT NO ENDPOINT ANSWERS. Two things, and both are
- * plainly `disabled` with the real reason in a `title` and NO phase number on
- * them — the treatment `45b91a9` gave the Faculty screen's orphan controls,
- * because a phase number beside a control nothing is bringing is a promise the
- * product does not keep. The MENTOR filter: `SwocStudentRow` carries no mentor
- * and `GET /admin/swoc` takes no mentor parameter, so a menu here could only
- * hide students without saying why. The EXPORT: there is no SWOC CSV anywhere
- * in the API — `/admin/exports/` serves students, placement and the ledger, and
- * nothing serves written notes about named students as a file.
+ * WHAT THE BOARD DRAWS THAT NO ENDPOINT ANSWERS is not drawn. The MENTOR
+ * filter (`SwocStudentRow` carries no mentor and `GET /admin/swoc` takes no
+ * mentor parameter) and the EXPORT (there is no SWOC CSV anywhere in the API)
+ * were grey controls with the reason in a tooltip, and the owner's rule for
+ * the console removed them. The Semester filter is drawn only when a line on
+ * the board carries a semester; before that it would be the same grey control.
+ *
+ * NO PROSE (2026-09-15). The three scope sentences, the semester-slice note,
+ * the "each line shows its author…" notice and the "edits save when you click
+ * away" footnote are gone; the reach chip, the counts and the chips on each
+ * line say the same things as facts. The student rows are College structure's
+ * bordered pick-rows, with the note count and the acknowledged count on the
+ * row.
  */
 
 import { Component, computed, signal } from '@angular/core';
@@ -296,49 +300,18 @@ export class AdminSwocComponent {
     },
   );
 
-  /** The sentence under the filters, saying what the list below is. */
-  readonly scopeNote = computed<{ text: string; tone: 'accent' | 'warn' } | null>(() => {
-    const reach = this.scope();
-    if (reach === null) return null;
-    if (reach.word === 'programme') {
-      return {
-        tone: 'accent',
-        text: 'Your grant reaches every student on the deployment, so that is what the list holds. The server narrowed nothing; there is no department to pick, because a picker here could only hide students you are entitled to write for.',
-      };
-    }
-    if (reach.word === 'none') {
-      return {
-        tone: 'warn',
-        text: 'Your grant for SWOC notes reaches no student: it names no college, department, batch or student that still exists. The list below is empty for that reason and not because nobody is enrolled. A Main Admin can give the grant a scope in Governance.',
-      };
-    }
-    return {
-      tone: 'accent',
-      text: 'Your grant is narrowed, and the server has already cut this list to it — the pill counts what it reaches. Every student you can write for is below; nobody is being hidden by a filter on this screen.',
-    };
-  });
-
   /** Why the list is empty — the two reasons are opposite facts. */
   readonly emptyListNote = computed(() => {
-    if (this.error()) return 'The list could not be loaded, so nothing is shown here.';
+    if (this.error()) return 'The list could not be loaded.';
     if (this.query() || this.batchFilter()) return 'No student matches this filter.';
-    if (this.scope()?.word === 'none') {
-      return 'Your grant reaches no student, so there is nobody here to write about. This is not an empty college.';
-    }
-    return 'No students yet.';
+    if (this.scope()?.word === 'none') return 'Your access reaches no student.';
+    return 'No student yet.';
   });
 
   readonly studentCount = computed(() => (this.rows() ?? []).length);
 
   readonly writtenCount = computed(
     () => (this.rows() ?? []).filter((student) => student.entries.length > 0).length,
-  );
-
-  /** The same count for the rows actually on screen. The foot line reads
-   *  "3 of 14 students", so the number beside it must be about the 3 — the
-   *  whole-deployment figure there says nine of these three have notes. */
-  readonly writtenInView = computed(
-    () => this.filtered().filter((student) => student.entries.length > 0).length,
   );
 
   /** Every batch present in the loaded list, for the board's batch filter. */
@@ -675,9 +648,7 @@ export class AdminSwocComponent {
       const saved = (await response.json()) as SwocEntry;
       this.patchStudent(student.student_id, (row) => ({ ...row, entries: [...row.entries, saved] }));
       this.closeComposer();
-      this.flash.set(
-        `Added to ${student.name}'s ${this.quadrantLabel(kind).toLowerCase()}. It is on their landing now.`,
-      );
+      this.flash.set(`Added to ${student.name}'s ${this.quadrantLabel(kind).toLowerCase()}.`);
     });
   }
 

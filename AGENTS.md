@@ -322,6 +322,29 @@ opens on press, in place of the rail-and-detail-stack board. The card that
 described what a college admin may and may not do was prose about the
 capability catalogue and is gone; Who can do what lists it.
 
+**THE INTERVIEWS GROUP TOOK THE SAME SHAPE (2026-09-15).** Interview
+questions: the 290px track rail is a row of pill tabs, then one card for the
+track and one for its questions, with the add-one and add-many forms opening
+inside the questions card; the "Asked" and "Avg score" columns — a permanent
+dash each, with a tooltip saying why (B6.6: the free-style interviewer
+rephrases, so no turn can be attributed to a row) — went, and the column
+chooser and density toggle whose only job was to hide them went with them;
+the help line under every field is a placeholder now; the duplicate "Add many"
+on the grid bar went. Interview records: the side column (record panel,
+progress card, retention card with the policy behind a toggle) is gone; the
+open record is a card under the list with its report or transcript beside the
+student's score-over-time chart, and the policy is its own card, always open,
+with the college picker on it; the Transcript/Report buttons that duplicated
+the record's own tabs went, as did the Batch filter for a session whose grant
+cannot read the batch list (a grey control with the reason in a tooltip) and
+every paragraph — consent note, chart note, retention list, the two policy
+notes. SWOC notes: the three scope sentences, the semester-slice note, the
+"each line shows…" notice and the "edits save when you click away" footnote
+are gone; the reach chip, the counts and the chips on each line say the same
+things as facts; the Semester filter is drawn only when a line carries one;
+the student rows are the bordered pick-rows. Nothing that could do anything
+went, and nothing on any of the three explains itself.
+
 An item with `path: null` renders as a LABELLED, NON-CLICKABLE row carrying its
 `arrivesIn` badge ("Available with Phase 2"). This is deliberate and it is the
 opposite of the usual instinct, which is to leave an unbuilt screen out until it

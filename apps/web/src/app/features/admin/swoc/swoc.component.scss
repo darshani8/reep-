@@ -1,11 +1,10 @@
 /* SWOC notes — this screen's LAYOUT only.
  *
- * .panel .card .chip .btn .iconbtn .select .field .notice .avatar .crumb
- * .card-head .card-heading .sr-only .dt-header .dt-title .dt-sub .dt-toolbar
- * .dt-table .dt-quickfilter are global (styles/reep-v2.scss) and are used as
- * they are. What is here is the shape of this board: the filter row, the two
- * columns, the student list and the four quadrants with their entries and
- * composer.
+ * .panel .card .card-head .card-title .chip .btn .iconbtn .select .field
+ * .notice .avatar .crumb .sr-only .dt-header .dt-title .dt-sub .dt-quickfilter
+ * are global (styles/reep-v2.scss) and are used as they are. What is here is
+ * the shape of this screen: the filter row, the two columns, the student rows
+ * and the four quadrants with their entries and composer.
  *
  * The quadrant tones are the board's own four colours, read from the status
  * tokens (good / risk / brand purple / warn) so a strength and a weakness are
@@ -15,37 +14,13 @@
   display: block;
 }
 
-/* --- the board's filter row --------------------------------------------- */
+/* --- the filter row ------------------------------------------------------ */
 .sw-filters {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 12px;
-}
-
-/* A filter that cannot be offered — either because no endpoint answers it
-   (Mentor) or because nothing on the board carries the value it would sort by
-   (Semester, on a board where nothing has been stamped). The <select> inside is
-   plainly `disabled` and carries the real reason in its title; this dims the
-   pill it sits in so the row reads as "not available" at a glance. NO PHASE
-   NUMBER: nothing is on its way. */
-.sw-filter-pending {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.sw-summary {
-  margin: 0 0 0 auto;
-  font-size: 11.5px;
-  color: var(--faint);
-}
-/* The sentence that says what a semester slice is. It takes the whole row, so
-   it never competes with the count for the right-hand margin. */
-.sw-summary--note {
-  flex: 1 1 100%;
-  margin: 2px 0 0;
-  color: var(--muted);
 }
 
 .panel > .notice {
@@ -55,7 +30,7 @@
 /* --- the two columns ----------------------------------------------------- */
 .sw-board {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: 340px minmax(0, 1fr);
   gap: 12px;
   align-items: start;
 }
@@ -66,17 +41,14 @@
   }
 }
 
-/* The card title row is global now (.card-head / .card-heading), and so is the
-   visually-hidden label (.sr-only). The one thing this board does differently:
-   its title row is one short heading beside a count chip, so the two sit on the
-   same line rather than on the global's flex-start. */
+/* The title row is one short heading beside a count chip, so the two sit on
+   the same line rather than on the global's flex-start. */
 .card-head {
   align-items: center;
 }
 
 /* --- the student list ---------------------------------------------------- */
 .sw-list {
-  padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -91,41 +63,24 @@
 }
 
 .sw-rows {
-  max-height: 52vh;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 60vh;
   overflow-y: auto;
-  border: 1px solid var(--hairline-42);
-  border-radius: var(--r-control);
-  background: var(--surface);
 }
 
-.sw-rows th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--tint-3);
-}
-
-.sw-num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-/* A fact nobody has recorded reads as a dash, never as a zero or a tick. */
-.sw-unknown {
-  color: var(--faint);
-}
-
-/* The row's selector. The whole row shows the state; this button is what the
-   keyboard reaches, so the name and USN are inside it. */
+/* A bordered row per student, College structure's shape: the whole row is the
+   button, selected is tint-1 with a brand-purple border. */
 .sw-pick {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  padding: 0;
-  border: 0;
-  background: transparent;
+  padding: 8px 10px;
+  border: 1px solid var(--hairline-26);
+  border-radius: var(--r-btn);
+  background: var(--surface);
   font: inherit;
   color: var(--ink);
   text-align: left;
@@ -133,11 +88,30 @@
   min-width: 0;
 }
 
+.sw-pick:hover {
+  background: var(--tint-2);
+}
+
+.sw-pick.selected {
+  background: var(--tint-1);
+  border-color: var(--brand-purple);
+}
+
+.sw-pick:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.sw-pick .avatar {
+  flex: none;
+}
+
 .sw-pick__main {
   display: flex;
   flex-direction: column;
   line-height: 1.25;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .sw-pick__name {
@@ -155,10 +129,29 @@
   white-space: nowrap;
 }
 
-.sw-empty-cell {
-  padding: 18px 10px;
+.sw-pick__count {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sw-pick .icon {
+  flex: none;
+  font-size: 18px;
+  color: var(--faint);
+}
+
+.sw-pick.selected .icon {
+  color: var(--brand-purple);
+}
+
+.sw-state {
+  margin: 0;
+  padding: 10px 2px;
+  font-size: 12.5px;
   color: var(--muted);
-  text-align: center;
 }
 
 .sw-foot {
@@ -169,7 +162,6 @@
 
 /* --- the editor ---------------------------------------------------------- */
 .sw-editor {
-  padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -192,11 +184,6 @@
   margin: 2px 0 0;
   font-size: 12px;
   color: var(--faint);
-}
-
-.sw-usn {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12.5px;
 }
 
 .sw-who__actions {
@@ -429,9 +416,7 @@
 /* --- the failure alert --------------------------------------------------
    `.notice` is a flex row that starts its children at the top, which is right
    for a wrapped sentence and wrong for a sentence with a 28px button beside
-   it. The retry button is the one control that answers "could not load", so
-   it sits on the alert rather than leaving a page reload as the only way
-   back. */
+   it. The retry button is the one control that answers "could not load". */
 .sw-alert {
   align-items: center;
 }

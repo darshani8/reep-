@@ -1,28 +1,25 @@
 <div class="panel" data-p="interview-questions">
   <div class="dt-header">
     <div>
-      <div class="crumb"><span>Interviews</span><span class="sep">/</span><span>Interview questions</span></div>
+      <div class="crumb">
+        <span>Interviews</span><span class="sep">/</span><span>Interview questions</span>
+      </div>
       <h1 class="dt-title">Interview questions</h1>
-      <div class="dt-sub">What the mock interviewer asks, per track.</div>
+      @if (trackCount() > 0) {
+        <div class="dt-sub">
+          {{ trackCount() | plural: 'track' }} · {{ questionsAcrossTracks() | plural: 'question' }}
+        </div>
+      }
     </div>
-
     <div class="dt-toolbar">
       <button
         type="button"
         class="btn secondary"
-        [attr.aria-expanded]="bulkOpen()"
-        (click)="toggleBulkPanel()"
+        [attr.aria-expanded]="addTrackOpen()"
+        (click)="toggleAddTrackForm()"
       >
-        <span class="icon" aria-hidden="true">upload_file</span> Add many
-      </button>
-      <!-- ONE PRIMARY PER VIEW (01-design-system.md §4): this one. -->
-      <button
-        type="button"
-        class="btn primary"
-        [attr.aria-expanded]="addFormOpen()"
-        (click)="toggleAddForm()"
-      >
-        <span class="icon" aria-hidden="true">{{ addToggleIcon() }}</span> {{ addToggleLabel() }}
+        <span class="icon" aria-hidden="true">{{ addTrackOpen() ? 'close' : 'add' }}</span>
+        {{ addTrackOpen() ? 'Close' : 'Add track' }}
       </button>
     </div>
   </div>
@@ -46,253 +43,79 @@
     </div>
   }
 
-  <div class="bank-body">
-    <!-- ============================================================ rail -->
-    <div class="card bank-rail-card">
-      <div class="rail">
-        <div class="tree-row bank-tree-static">
-          <span class="label">Interview tracks</span>
-          <span class="count">
-            {{ trackCount() | plural: 'track' }} · {{ questionsAcrossTracks() | plural: 'question' }}
-          </span>
-        </div>
-
-        @for (track of tracks() ?? []; track track.key) {
-          <button
-            type="button"
-            class="tree-row depth-1"
-            [class.selected]="track.key === selectedTrackKey()"
-            [attr.aria-current]="track.key === selectedTrackKey() ? 'true' : null"
-            (click)="selectTrack(track.key)"
-          >
-            <span [class]="trackDotClass(track.key)" aria-hidden="true"></span>
-            <span class="label">{{ trackCode(track.key) }} · {{ track.label }}</span>
-            <span class="count">{{ track.count }}</span>
-          </button>
-        } @empty {
-          @if (tracks() !== null) {
-            <p class="bank-state">No interview tracks are configured.</p>
-          }
-        }
-      </div>
-
-      <!-- A TRACK IS A ROW NOW (B5.1). `GET/POST/PATCH/DELETE
-           /api/admin/interview-questions/tracks`. A code with no row is still
-           listed and still runs interviews — it is the constant in
-           app/interview_matrix.py — and its card says so rather than offering a
-           PATCH with no id. -->
-
+  <!-- ================================================== which track -->
+  <div class="tabs bank-tracks" role="tablist" aria-label="Interview tracks">
+    @for (track of tracks() ?? []; track track.key) {
       <button
         type="button"
-        class="btn ghost sm bank-add-track"
-        [attr.aria-expanded]="addTrackOpen()"
-        (click)="toggleAddTrackForm()"
+        class="tab bank-tab"
+        role="tab"
+        [class.active]="track.key === selectedTrackKey()"
+        [attr.aria-selected]="track.key === selectedTrackKey()"
+        (click)="selectTrack(track.key)"
       >
-        <span class="icon" aria-hidden="true">{{ addTrackOpen() ? 'close' : 'add' }}</span>
-        {{ addTrackOpen() ? 'Close' : 'Add track' }}
+        <span [class]="trackDotClass(track.key)" aria-hidden="true"></span>
+        {{ track.label }}
+        <span class="bank-tab-count">{{ track.count }}</span>
       </button>
-    </div>
+    } @empty {
+      @if (tracks() !== null) {
+        <p class="bank-state">No interview track yet.</p>
+      }
+    }
+  </div>
 
-    <!-- ============================================================ main -->
-    <div class="bank-main">
-      <!-- ------------------------------------------------- the track card -->
-      <div class="card bank-track-card">
+  <div class="bank-stack">
+    <!-- ================================================= a new track -->
+    @if (addTrackOpen()) {
+      <section class="card" aria-labelledby="bank-new-track-title">
         <div class="card-head">
-          <h2 class="card-title">Track · {{ selectedTrackLabel() }}</h2>
-          <span class="bank-track-chips">
-            @if (selectedTrackIsProgrammeWide()) {
-              <span class="chip neutral">Programme-wide</span>
-            } @else {
-              <span class="chip good">Tied to one college</span>
-            }
-            @if (selectedTrack(); as track) {
-              @if (track.enabled) {
-                <span class="chip dot good">Offered</span>
-              } @else {
-                <span class="chip dot warn">Not offered</span>
-              }
-            }
-          </span>
-          <span class="bank-track-actions">
-            <button
-              type="button"
-              class="btn danger sm"
-              [disabled]="!canEditTrack() || busy()"
-              [attr.title]="trackEditBlockedReason()"
-              (click)="removeTrack()"
-            >
-              <span class="icon" aria-hidden="true">delete</span> Remove
-            </button>
-            <button
-              type="button"
-              class="btn secondary sm"
-              [disabled]="!canSaveTrack()"
-              [attr.title]="trackSaveBlockedReason()"
-              (click)="saveTrack()"
-            >
-              <span class="icon" aria-hidden="true">save</span> Save
-            </button>
-          </span>
+          <h2 class="card-title" id="bank-new-track-title">New track</h2>
         </div>
 
-        @if (trackEditBlockedReason(); as reason) {
-          <div class="notice accent" role="status">
-            <span class="icon" aria-hidden="true">info</span>
-            <span>{{ reason }}</span>
-          </div>
-        }
-
-        @if (trackWarnings().length) {
-          <div class="notice bank-track-warnings" role="status">
-            <span class="icon" aria-hidden="true">info</span>
-            <div>
-              <strong>Saved, with a note:</strong>
-              <ul>
-                @for (note of trackWarnings(); track note) {
-                  <li>{{ note }}</li>
-                }
-              </ul>
-            </div>
-          </div>
-        }
-
-        <div class="field bank-persona">
-          <label for="bank-persona-field">Interviewer role</label>
-          <textarea
-            id="bank-persona-field"
-            class="ctrl"
-            rows="2"
-            [disabled]="!canEditTrack() || busy()"
-            [value]="draftPersona()"
-            (input)="draftPersona.set(textAreaValue($event))"
-          ></textarea>
-          <span class="help">A noun phrase, e.g. “{{ personaExample }}”.</span>
-        </div>
-
-        <div class="field bank-persona">
-          <label for="bank-sample-field">Sample question</label>
-          <textarea
-            id="bank-sample-field"
-            class="ctrl"
-            rows="2"
-            [disabled]="!canEditTrack() || busy()"
-            [value]="draftSample()"
-            (input)="draftSample.set(textAreaValue($event))"
-          ></textarea>
-          <span class="help">Asked early in the interview.</span>
-        </div>
-
-        <div class="bank-track-row">
-          <div class="field bank-frameworks">
-            <label for="bank-frameworks-field">Frameworks</label>
+        <div class="bank-row">
+          <div class="field narrow">
+            <label for="bank-new-track-code">Code <span class="required-mark">*</span></label>
             <input
-              id="bank-frameworks-field"
+              id="bank-new-track-code"
               class="ctrl"
               type="text"
-              [disabled]="!canEditTrack() || busy()"
-              [value]="draftFrameworks()"
-              (input)="draftFrameworks.set(inputValue($event))"
+              placeholder="ops"
+              [value]="newTrackCode()"
+              (input)="newTrackCode.set(inputValue($event))"
             />
-            <span class="help">Comma separated · worked through one at a time</span>
           </div>
-          <div class="field bank-voice">
-            <label for="bank-voice-field">Voice</label>
-            <select
-              id="bank-voice-field"
+          <div class="field grow">
+            <label for="bank-new-track-label">Name <span class="required-mark">*</span></label>
+            <input
+              id="bank-new-track-label"
               class="ctrl"
-              [disabled]="!canEditTrack() || busy()"
-              (change)="draftVoice.set(selectValue($event))"
+              type="text"
+              placeholder="Operations"
+              [value]="newTrackLabel()"
+              (input)="newTrackLabel.set(inputValue($event))"
+            />
+          </div>
+          <div class="field narrow">
+            <label for="bank-new-track-voice">Voice</label>
+            <select
+              id="bank-new-track-voice"
+              class="ctrl"
+              (change)="newTrackVoice.set(selectValue($event))"
             >
-              <option value="" [selected]="draftVoice() === ''">Deployment default</option>
+              <option value="" [selected]="newTrackVoice() === ''">Default</option>
               @for (voice of novaVoices; track voice) {
-                <option [value]="voice" [selected]="voice === draftVoice()">{{ voice }}</option>
+                <option [value]="voice" [selected]="voice === newTrackVoice()">{{ voice }}</option>
               }
             </select>
-            <span class="help">Amazon Nova 2 Sonic voices only</span>
           </div>
         </div>
 
-        <div class="field bank-persona">
-          <label for="bank-syllabus-field">Syllabus</label>
-          <input
-            id="bank-syllabus-field"
-            class="ctrl"
-            type="text"
-            [disabled]="!canEditTrack() || busy()"
-            [value]="draftSyllabus()"
-            (input)="draftSyllabus.set(inputValue($event))"
-          />
-          <span class="help">Comma separated, optional.</span>
-        </div>
-
-        <label class="bank-enabled">
-          <input
-            type="checkbox"
-            [disabled]="!canEditTrack() || busy()"
-            [checked]="draftEnabled()"
-            (change)="draftEnabled.set(checkboxValue($event))"
-          />
-          <span>
-            Offered to students. Unticking retires the track without deleting it — which is what a
-            track that has already been interviewed on must have, because every past record is
-            filed under its code.
-          </span>
-        </label>
-      </div>
-
-      <!-- ---------------------------------------------------- add a track -->
-      @if (addTrackOpen()) {
-        <div class="card bank-form-card">
-          <div class="card-head">
-            <h2 class="card-title">Add a track</h2>
-          </div>
-
-          <p class="bank-hint">
-            The code is what <code>?specialization=</code> carries on the interview socket and what
-            every past interview is filed under, so it is a slug and it cannot be changed later.
-            The track is created programme-wide.
-          </p>
-
-          <div class="bank-form-row">
-            <div class="field bank-phase-field">
-              <label for="bank-new-track-code">Code</label>
-              <input
-                id="bank-new-track-code"
-                class="ctrl"
-                type="text"
-                placeholder="ops"
-                [value]="newTrackCode()"
-                (input)="newTrackCode.set(inputValue($event))"
-              />
-            </div>
-            <div class="field bank-text-field">
-              <label for="bank-new-track-label">Name</label>
-              <input
-                id="bank-new-track-label"
-                class="ctrl"
-                type="text"
-                placeholder="Operations"
-                [value]="newTrackLabel()"
-                (input)="newTrackLabel.set(inputValue($event))"
-              />
-            </div>
-            <div class="field bank-voice">
-              <label for="bank-new-track-voice">Voice</label>
-              <select
-                id="bank-new-track-voice"
-                class="ctrl"
-                (change)="newTrackVoice.set(selectValue($event))"
-              >
-                <option value="" [selected]="newTrackVoice() === ''">Deployment default</option>
-                @for (voice of novaVoices; track voice) {
-                  <option [value]="voice" [selected]="voice === newTrackVoice()">{{ voice }}</option>
-                }
-              </select>
-            </div>
-          </div>
-
-          <div class="field bank-persona">
-            <label for="bank-new-track-persona">Interviewer role</label>
+        <div class="bank-row">
+          <div class="field grow">
+            <label for="bank-new-track-persona"
+              >Interviewer role <span class="required-mark">*</span></label
+            >
             <textarea
               id="bank-new-track-persona"
               class="ctrl"
@@ -301,11 +124,11 @@
               [value]="newTrackPersona()"
               (input)="newTrackPersona.set(textAreaValue($event))"
             ></textarea>
-            <span class="help">A noun phrase, e.g. “{{ personaExample }}”.</span>
           </div>
-
-          <div class="field bank-persona">
-            <label for="bank-new-track-sample">Sample question</label>
+          <div class="field grow">
+            <label for="bank-new-track-sample"
+              >Sample question <span class="required-mark">*</span></label
+            >
             <textarea
               id="bank-new-track-sample"
               class="ctrl"
@@ -315,42 +138,208 @@
               (input)="newTrackSample.set(textAreaValue($event))"
             ></textarea>
           </div>
+        </div>
 
-          <div class="field bank-persona">
-            <label for="bank-new-track-frameworks">Frameworks</label>
-            <input
-              id="bank-new-track-frameworks"
-              class="ctrl"
-              type="text"
-              placeholder="SIPOC, Little’s Law, OEE, root-cause analysis"
-              [value]="newTrackFrameworks()"
-              (input)="newTrackFrameworks.set(inputValue($event))"
-            />
-            <span class="help">Comma separated, four or more.</span>
-          </div>
+        <div class="field">
+          <label for="bank-new-track-frameworks">Frameworks</label>
+          <input
+            id="bank-new-track-frameworks"
+            class="ctrl"
+            type="text"
+            placeholder="SIPOC, Little’s Law, OEE, root-cause analysis"
+            [value]="newTrackFrameworks()"
+            (input)="newTrackFrameworks.set(inputValue($event))"
+          />
+        </div>
 
-          <div class="bank-form-foot">
-            <button
-              type="button"
-              class="btn secondary"
-              [disabled]="!canCreateTrack()"
-              (click)="createTrack()"
-            >
-              <span class="icon" aria-hidden="true">add</span> Create track
-            </button>
+        <div class="footbar">
+          <button type="button" class="btn ghost" (click)="toggleAddTrackForm()">Cancel</button>
+          <button
+            type="button"
+            class="btn primary"
+            [disabled]="!canCreateTrack()"
+            (click)="createTrack()"
+          >
+            <span class="icon" aria-hidden="true">add</span> Create track
+          </button>
+        </div>
+      </section>
+    }
+
+    <!-- ================================================== the track -->
+    <section class="card" aria-labelledby="bank-track-title">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title" id="bank-track-title">{{ selectedTrackLabel() }}</h2>
+          <div class="card-sub">{{ trackCode(selectedTrackKey()) }}</div>
+        </div>
+        <span class="bank-track-chips">
+          @if (selectedTrackIsProgrammeWide()) {
+            <span class="chip neutral">Every college</span>
+          } @else {
+            <span class="chip good">One college</span>
+          }
+          @if (selectedTrack(); as track) {
+            @if (track.enabled) {
+              <span class="chip dot good">Offered</span>
+            } @else {
+              <span class="chip dot warn">Not offered</span>
+            }
+          }
+        </span>
+        <span class="bank-track-actions">
+          <button
+            type="button"
+            class="btn danger sm"
+            [disabled]="!canEditTrack() || busy()"
+            (click)="removeTrack()"
+          >
+            <span class="icon" aria-hidden="true">delete</span> Remove
+          </button>
+          <button
+            type="button"
+            class="btn secondary sm"
+            [disabled]="!canSaveTrack()"
+            [attr.title]="trackSaveBlockedReason()"
+            (click)="saveTrack()"
+          >
+            <span class="icon" aria-hidden="true">save</span> Save
+          </button>
+        </span>
+      </div>
+
+      @if (trackEditBlockedReason(); as reason) {
+        <div class="notice accent" role="status">
+          <span class="icon" aria-hidden="true">info</span>
+          <span>{{ reason }}</span>
+        </div>
+      }
+
+      @if (trackWarnings().length) {
+        <div class="notice bank-track-warnings" role="status">
+          <span class="icon" aria-hidden="true">info</span>
+          <div>
+            <strong>Saved, with a note:</strong>
+            <ul>
+              @for (note of trackWarnings(); track note) {
+                <li>{{ note }}</li>
+              }
+            </ul>
           </div>
         </div>
       }
 
-      <!-- ------------------------------------------------- add a question -->
-      @if (addFormOpen()) {
-        <div class="card bank-form-card">
-          <div class="card-head">
-            <h2 class="card-title">Add a question to {{ selectedTrackLabel() }}</h2>
-          </div>
+      <div class="bank-row">
+        <div class="field grow">
+          <label for="bank-persona-field">Interviewer role</label>
+          <textarea
+            id="bank-persona-field"
+            class="ctrl"
+            rows="2"
+            [placeholder]="personaExample"
+            [disabled]="!canEditTrack() || busy()"
+            [value]="draftPersona()"
+            (input)="draftPersona.set(textAreaValue($event))"
+          ></textarea>
+        </div>
+        <div class="field grow">
+          <label for="bank-sample-field">Sample question</label>
+          <textarea
+            id="bank-sample-field"
+            class="ctrl"
+            rows="2"
+            [disabled]="!canEditTrack() || busy()"
+            [value]="draftSample()"
+            (input)="draftSample.set(textAreaValue($event))"
+          ></textarea>
+        </div>
+      </div>
 
-          <div class="bank-form-row">
-            <div class="field bank-phase-field">
+      <div class="bank-row">
+        <div class="field grow">
+          <label for="bank-frameworks-field">Frameworks</label>
+          <input
+            id="bank-frameworks-field"
+            class="ctrl"
+            type="text"
+            placeholder="STAR, situational judgement, competency mapping"
+            [disabled]="!canEditTrack() || busy()"
+            [value]="draftFrameworks()"
+            (input)="draftFrameworks.set(inputValue($event))"
+          />
+        </div>
+        <div class="field grow">
+          <label for="bank-syllabus-field">Syllabus</label>
+          <input
+            id="bank-syllabus-field"
+            class="ctrl"
+            type="text"
+            placeholder="Recruitment, performance management, labour law"
+            [disabled]="!canEditTrack() || busy()"
+            [value]="draftSyllabus()"
+            (input)="draftSyllabus.set(inputValue($event))"
+          />
+        </div>
+        <div class="field narrow">
+          <label for="bank-voice-field">Voice</label>
+          <select
+            id="bank-voice-field"
+            class="ctrl"
+            [disabled]="!canEditTrack() || busy()"
+            (change)="draftVoice.set(selectValue($event))"
+          >
+            <option value="" [selected]="draftVoice() === ''">Default</option>
+            @for (voice of novaVoices; track voice) {
+              <option [value]="voice" [selected]="voice === draftVoice()">{{ voice }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <label class="check bank-enabled">
+        <input
+          type="checkbox"
+          [disabled]="!canEditTrack() || busy()"
+          [checked]="draftEnabled()"
+          (change)="draftEnabled.set(checkboxValue($event))"
+        />
+        <span>Offered to students</span>
+      </label>
+    </section>
+
+    <!-- ============================================== the questions -->
+    <section class="card" aria-labelledby="bank-questions-title">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title" id="bank-questions-title">Questions · {{ questionCount() }}</h2>
+          <div class="card-sub">{{ enabledCount() }} asked · {{ pausedCount() }} paused</div>
+        </div>
+        <div class="dt-toolbar">
+          <button
+            type="button"
+            class="btn secondary sm"
+            [attr.aria-expanded]="bulkOpen()"
+            (click)="toggleBulkPanel()"
+          >
+            <span class="icon" aria-hidden="true">upload_file</span> Add many
+          </button>
+          <button
+            type="button"
+            class="btn primary sm"
+            [attr.aria-expanded]="addFormOpen()"
+            (click)="toggleAddForm()"
+          >
+            <span class="icon" aria-hidden="true">{{ addToggleIcon() }}</span>
+            {{ addToggleLabel() }}
+          </button>
+        </div>
+      </div>
+
+      <!-- ------------------------------------------------ add one -->
+      @if (addFormOpen()) {
+        <div class="bank-form">
+          <div class="bank-row">
+            <div class="field narrow">
               <label for="bank-new-phase">Phase</label>
               <select
                 id="bank-new-phase"
@@ -364,15 +353,14 @@
                 }
               </select>
             </div>
-
-            <div class="field bank-text-field">
+            <div class="field grow">
               <label for="bank-new-text">Question</label>
               <textarea
                 id="bank-new-text"
                 class="ctrl"
-                rows="3"
+                rows="2"
                 [attr.maxlength]="maximumQuestionChars"
-                placeholder="e.g. Tell me about a time you had to deliver difficult feedback."
+                placeholder="Tell me about a time you had to deliver difficult feedback."
                 [value]="newQuestionText()"
                 (input)="newQuestionText.set(textAreaValue($event))"
               ></textarea>
@@ -381,8 +369,8 @@
               </span>
             </div>
           </div>
-
-          <div class="bank-form-foot">
+          <div class="footbar">
+            <button type="button" class="btn ghost" (click)="toggleAddForm()">Cancel</button>
             <button
               type="button"
               class="btn secondary"
@@ -395,21 +383,11 @@
         </div>
       }
 
-      <!-- ---------------------------------------------- add many at once -->
+      <!-- ----------------------------------------------- add many -->
       @if (bulkOpen()) {
-        <div class="card bank-form-card">
-          <div class="card-head">
-            <h2 class="card-title">Add many at once</h2>
-          </div>
-
-          <p class="bank-hint">
-            One question per line. Pin a phase with <code>[probing]</code> at the start, or
-            <code>probing | …</code>; a line with no phase goes to Probing. Blank lines and lines
-            starting with <code>#</code> are ignored. Or pick a <strong>.txt / .csv</strong> file.
-          </p>
-
+        <div class="bank-form">
           <div class="field">
-            <label for="bank-bulk-text">Questions</label>
+            <label for="bank-bulk-text">One question per line</label>
             <textarea
               id="bank-bulk-text"
               class="ctrl bank-bulk-text"
@@ -419,12 +397,11 @@
               (input)="bulkText.set(textAreaValue($event))"
             ></textarea>
           </div>
-
-          <div class="bank-form-foot">
+          <div class="footbar">
             <!-- The input is hidden by GEOMETRY and stays focusable: `hidden`
                  here makes the picker mouse-only. -->
-            <label class="btn secondary bank-file">
-              <span class="icon" aria-hidden="true">upload_file</span> Choose file
+            <label class="btn ghost bank-file">
+              <span class="icon" aria-hidden="true">upload_file</span> Choose a .txt or .csv
               <input
                 type="file"
                 class="bank-file__input"
@@ -432,6 +409,7 @@
                 (change)="onBulkFile($event)"
               />
             </label>
+            <button type="button" class="btn ghost" (click)="toggleBulkPanel()">Cancel</button>
             <button
               type="button"
               class="btn secondary"
@@ -441,12 +419,11 @@
               <span class="icon" aria-hidden="true">add_circle</span> Add all
             </button>
           </div>
-
           @if (bulkSkipped().length) {
             <div class="notice bank-skipped" role="alert">
               <span class="icon" aria-hidden="true">error</span>
               <div>
-                <strong>Not added — fix and paste these again:</strong>
+                <strong>Not added:</strong>
                 <ul>
                   @for (line of bulkSkipped(); track line) {
                     <li>{{ line }}</li>
@@ -458,278 +435,203 @@
         </div>
       }
 
-      <!-- ------------------------------------------------------ the grid -->
-      <div class="card bank-grid-card">
-        <div class="card-head">
-          <h2 class="card-title">Questions · {{ questionCount() }}</h2>
-          <span class="bank-hint">{{ enabledCount() }} asked · {{ pausedCount() }} paused</span>
+      <!-- ------------------------------------------------ the list -->
+      <div class="dt-frame bank-frame">
+        <div class="dt-gridbar">
+          <input
+            class="dt-quickfilter"
+            type="search"
+            placeholder="Search questions…"
+            aria-label="Search the questions on this track"
+            [value]="quickFilter()"
+            (input)="onQuickFilterInput($event)"
+          />
+          <button
+            type="button"
+            class="btn secondary sm"
+            [disabled]="!hasSelection() || busy()"
+            (click)="setEnabledOnSelection(true)"
+          >
+            <span class="icon" aria-hidden="true">visibility</span> Enable
+          </button>
+          <button
+            type="button"
+            class="btn secondary sm"
+            [disabled]="!hasSelection() || busy()"
+            (click)="setEnabledOnSelection(false)"
+          >
+            <span class="icon" aria-hidden="true">visibility_off</span> Pause
+          </button>
         </div>
 
-        <div class="dt-frame bank-frame">
-          <div class="dt-gridbar">
-            <input
-              class="dt-quickfilter"
-              type="search"
-              placeholder="Search questions…"
-              aria-label="Search the questions on this track"
-              [value]="quickFilter()"
-              (input)="onQuickFilterInput($event)"
-            />
-
-            <button type="button" class="btn secondary sm" (click)="toggleBulkPanel()">
-              <span class="icon" aria-hidden="true">content_copy</span> Add many
-            </button>
-            <button
-              type="button"
-              class="btn secondary sm"
-              [disabled]="!hasSelection() || busy()"
-              (click)="setEnabledOnSelection(true)"
-            >
-              <span class="icon" aria-hidden="true">visibility</span> Enable
-            </button>
-            <button
-              type="button"
-              class="btn secondary sm"
-              [disabled]="!hasSelection() || busy()"
-              (click)="setEnabledOnSelection(false)"
-            >
-              <span class="icon" aria-hidden="true">visibility_off</span> Pause
-            </button>
-
-            <span class="bank-gridbar-end">
-              <button
-                type="button"
-                class="btn secondary sm"
-                [attr.aria-expanded]="columnsPanelOpen()"
-                aria-label="Choose which columns are shown"
-                (click)="toggleColumnsPanel()"
-              >
-                <span class="icon" aria-hidden="true">table_rows</span>
-              </button>
-              <button
-                type="button"
-                class="btn secondary sm"
-                [attr.aria-pressed]="isCompact()"
-                aria-label="Toggle compact rows"
-                (click)="toggleDensity()"
-              >
-                <span class="icon" aria-hidden="true">tune</span>
-              </button>
-            </span>
-
-            <!-- A ROW OF THE GRID BAR, NOT A FLOATING CARD. `.dt-frame` is
-                 `overflow: hidden`, so a panel positioned over the table is
-                 clipped on a short track, and a fixed top offset sits on top of
-                 the toolbar as soon as the bar wraps. The bar already wraps;
-                 a full-width child is a second line of it. -->
-            @if (columnsPanelOpen()) {
-              <div class="bank-columns-panel">
-                <div class="bank-columns-panel__title">Columns</div>
-                @for (column of optionalColumns; track column.id) {
-                  <label class="bank-columns-panel__row">
+        @if (isLoading()) {
+          <p class="bank-state" role="status">Loading…</p>
+        } @else {
+          <div class="bank-scroll">
+            <table class="dt-table bank-table">
+              <thead>
+                <tr>
+                  <th class="bank-tick">
                     <input
                       type="checkbox"
-                      [checked]="isColumnVisible(column.id)"
-                      (change)="toggleColumn(column.id)"
+                      aria-label="Select every question on this page"
+                      [checked]="everyRowOnPageIsSelected()"
+                      (change)="toggleSelectionOnPage()"
                     />
-                    <span>{{ column.label }}</span>
-                  </label>
-                }
-              </div>
-            }
-          </div>
-
-          @if (isLoading()) {
-            <p class="bank-state" role="status">Loading…</p>
-          } @else {
-            <div class="bank-scroll">
-              <table class="dt-table bank-table" [class.bank-table--compact]="isCompact()">
-                <thead>
-                  <tr>
-                    <th class="bank-tick">
+                  </th>
+                  <th class="pinned bank-number">#</th>
+                  <th class="bank-phase">Phase</th>
+                  <th>Question</th>
+                  <th class="bank-status">Status</th>
+                  <th class="bank-actions"><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- The generation is part of the identity on purpose: a
+                     refused inline edit rebuilds the row so the DOM cannot
+                     keep showing an edit the bank never took. -->
+                @for (row of pageRows(); track row.question.id + ':' + rowGeneration()) {
+                  <tr [class.selected]="isRowSelected(row.question)">
+                    <td class="bank-tick">
                       <input
                         type="checkbox"
-                        aria-label="Select every question on this page"
-                        [checked]="everyRowOnPageIsSelected()"
-                        (change)="toggleSelectionOnPage()"
+                        [attr.aria-label]="'Select question ' + row.number"
+                        [checked]="isRowSelected(row.question)"
+                        (change)="toggleRowSelection(row.question)"
                       />
-                    </th>
-                    <th class="pinned bank-number">#</th>
-                    <th class="bank-phase">Phase</th>
-                    <th>Question</th>
-                    @if (isColumnVisible('asked')) {
-                      <th class="bank-metric" [attr.title]="notMeasuredReason">Asked</th>
-                    }
-                    @if (isColumnVisible('averageScore')) {
-                      <th class="bank-metric" [attr.title]="notMeasuredReason">Avg score</th>
-                    }
-                    @if (isColumnVisible('status')) {
-                      <th class="bank-status">Status</th>
-                    }
-                    <th class="bank-actions"><span class="sr-only">Actions</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <!-- The generation is part of the identity on purpose: a
-                       refused inline edit rebuilds the row so the DOM cannot
-                       keep showing an edit the bank never took. -->
-                  @for (row of pageRows(); track row.question.id + ':' + rowGeneration()) {
-                    <tr [class.selected]="isRowSelected(row.question)">
-                      <td class="bank-tick">
-                        <input
-                          type="checkbox"
-                          [attr.aria-label]="'Select question ' + row.number"
-                          [checked]="isRowSelected(row.question)"
-                          (change)="toggleRowSelection(row.question)"
-                        />
-                      </td>
-                      <td class="pinned bank-number">{{ row.number }}</td>
-                      <td class="bank-phase">
-                        <select
-                          class="ctrl bank-phase-select"
-                          [disabled]="busy()"
-                          aria-label="Phase"
-                          (change)="setPhase(row.question, selectValue($event))"
-                        >
-                          @for (phase of phases(); track phase) {
-                            <option [value]="phase" [selected]="phase === row.question.phase">
-                              {{ phaseLabel(phase) }}
-                            </option>
-                          }
-                        </select>
-                      </td>
-                      <td>
-                        <textarea
-                          class="bank-question-text"
-                          rows="1"
-                          [attr.maxlength]="maximumQuestionChars"
-                          [value]="row.question.text"
-                          [disabled]="busy()"
-                          aria-label="Question text"
-                          (change)="saveText(row.question, textAreaValue($event))"
-                        ></textarea>
-                      </td>
-                      @if (isColumnVisible('asked')) {
-                        <td class="bank-metric">{{ notMeasuredYet }}</td>
-                      }
-                      @if (isColumnVisible('averageScore')) {
-                        <td class="bank-metric">{{ notMeasuredYet }}</td>
-                      }
-                      @if (isColumnVisible('status')) {
-                        <td class="bank-status">
-                          <button
-                            type="button"
-                            class="bank-status-toggle"
-                            [disabled]="busy()"
-                            [attr.aria-label]="
-                              row.question.enabled
-                                ? 'Pause this question — it stays in the bank and is left out of interviews'
-                                : 'Enable this question'
-                            "
-                            (click)="toggleEnabled(row.question)"
-                          >
-                            @if (row.question.enabled) {
-                              <span class="chip dot good">Enabled</span>
-                            } @else {
-                              <span class="chip dot neutral">Disabled</span>
-                            }
-                          </button>
-                        </td>
-                      }
-                      <td class="bank-actions">
-                        <button
-                          type="button"
-                          class="btn secondary sm bank-icon-btn"
-                          [disabled]="busy() || !reorderIsAvailable() || row.number === 1"
-                          [title]="reorderHint()"
-                          aria-label="Move this question up"
-                          (click)="moveQuestionUp(row.question)"
-                        >
-                          <span class="icon bank-arrow-up" aria-hidden="true">expand_more</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="btn secondary sm bank-icon-btn"
-                          [disabled]="busy() || !reorderIsAvailable() || row.number === questionCount()"
-                          [title]="reorderHint()"
-                          aria-label="Move this question down"
-                          (click)="moveQuestionDown(row.question)"
-                        >
-                          <span class="icon" aria-hidden="true">expand_more</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="btn danger sm bank-icon-btn"
-                          [disabled]="busy()"
-                          aria-label="Remove this question"
-                          (click)="removeQuestion(row.question)"
-                        >
-                          <span class="icon" aria-hidden="true">delete</span>
-                        </button>
-                      </td>
-                    </tr>
-                  } @empty {
-                    <tr>
-                      <td class="bank-empty" [attr.colspan]="columnCount()">
-                        @if (questionCount() === 0) {
-                          No questions on this track yet — the interviewer improvises entirely. Add
-                          one above, or paste a list.
-                        } @else {
-                          No question on this track matches “{{ quickFilter() }}”.
+                    </td>
+                    <td class="pinned bank-number">{{ row.number }}</td>
+                    <td class="bank-phase">
+                      <select
+                        class="ctrl bank-phase-select"
+                        [disabled]="busy()"
+                        aria-label="Phase"
+                        (change)="setPhase(row.question, selectValue($event))"
+                      >
+                        @for (phase of phases(); track phase) {
+                          <option [value]="phase" [selected]="phase === row.question.phase">
+                            {{ phaseLabel(phase) }}
+                          </option>
                         }
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          }
-
-          <div class="dt-statusbar">
-            <span>Rows: <b>{{ matchingRows().length }}</b></span>
-            <span>Selected: <b>{{ selectedCount() }}</b></span>
-            <span class="pager">
-              <label class="bank-pagesize">
-                <span>Page size</span>
-                <select aria-label="Rows per page" (change)="setPageSize(numberValue($event))">
-                  @for (size of pageSizes; track size) {
-                    <option [value]="size" [selected]="size === pageSize()">{{ size }}</option>
-                  }
-                </select>
-              </label>
-              <span>{{ rangeLabel() }}</span>
-              <button
-                type="button"
-                class="btn secondary sm bank-icon-btn"
-                [disabled]="currentPage() === 0"
-                aria-label="Previous page"
-                (click)="goToPreviousPage()"
-              >
-                <span class="icon" aria-hidden="true">chevron_left</span>
-              </button>
-              <span>Page {{ currentPage() + 1 }} of {{ pageCount() }}</span>
-              <button
-                type="button"
-                class="btn secondary sm bank-icon-btn"
-                [disabled]="currentPage() + 1 >= pageCount()"
-                aria-label="Next page"
-                (click)="goToNextPage()"
-              >
-                <span class="icon" aria-hidden="true">chevron_right</span>
-              </button>
-            </span>
+                      </select>
+                    </td>
+                    <td>
+                      <textarea
+                        class="bank-question-text"
+                        rows="1"
+                        [attr.maxlength]="maximumQuestionChars"
+                        [value]="row.question.text"
+                        [disabled]="busy()"
+                        aria-label="Question text"
+                        (change)="saveText(row.question, textAreaValue($event))"
+                      ></textarea>
+                    </td>
+                    <td class="bank-status">
+                      <button
+                        type="button"
+                        class="bank-status-toggle"
+                        [disabled]="busy()"
+                        [attr.aria-label]="
+                          row.question.enabled ? 'Pause this question' : 'Enable this question'
+                        "
+                        (click)="toggleEnabled(row.question)"
+                      >
+                        @if (row.question.enabled) {
+                          <span class="chip dot good">Asked</span>
+                        } @else {
+                          <span class="chip dot neutral">Paused</span>
+                        }
+                      </button>
+                    </td>
+                    <td class="bank-actions">
+                      <button
+                        type="button"
+                        class="btn secondary sm bank-icon-btn"
+                        [disabled]="busy() || !reorderIsAvailable() || row.number === 1"
+                        [title]="reorderHint()"
+                        aria-label="Move this question up"
+                        (click)="moveQuestionUp(row.question)"
+                      >
+                        <span class="icon bank-arrow-up" aria-hidden="true">expand_more</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn secondary sm bank-icon-btn"
+                        [disabled]="
+                          busy() || !reorderIsAvailable() || row.number === questionCount()
+                        "
+                        [title]="reorderHint()"
+                        aria-label="Move this question down"
+                        (click)="moveQuestionDown(row.question)"
+                      >
+                        <span class="icon" aria-hidden="true">expand_more</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn danger sm bank-icon-btn"
+                        [disabled]="busy()"
+                        aria-label="Remove this question"
+                        (click)="removeQuestion(row.question)"
+                      >
+                        <span class="icon" aria-hidden="true">delete</span>
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td class="bank-empty" colspan="6">
+                      @if (questionCount() === 0) {
+                        No question on this track yet.
+                      } @else {
+                        No question matches “{{ quickFilter() }}”.
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
           </div>
-        </div>
+        }
 
-        <p class="bank-foot">
-          Asked and Avg score read “{{ notMeasuredYet }}”, and they always will: the interviewer is
-          free-style, so it works a question in, rephrases it and follows up on the answer, and no
-          turn it produces can be attributed to one row here. Attributing them was examined and
-          found to be impossible without scripting the interview, which is the one thing this bank
-          is not. Every edit here is audited, and order matters: the interviewer works these in
-          from the top, one at a time, and never asks the next until the student has answered.
-        </p>
+        <div class="dt-statusbar">
+          <span
+            >Rows: <b>{{ matchingRows().length }}</b></span
+          >
+          <span
+            >Selected: <b>{{ selectedCount() }}</b></span
+          >
+          <span class="pager">
+            <label class="bank-pagesize">
+              <span>Page size</span>
+              <select aria-label="Rows per page" (change)="setPageSize(numberValue($event))">
+                @for (size of pageSizes; track size) {
+                  <option [value]="size" [selected]="size === pageSize()">{{ size }}</option>
+                }
+              </select>
+            </label>
+            <span>{{ rangeLabel() }}</span>
+            <button
+              type="button"
+              class="btn secondary sm bank-icon-btn"
+              [disabled]="currentPage() === 0"
+              aria-label="Previous page"
+              (click)="goToPreviousPage()"
+            >
+              <span class="icon" aria-hidden="true">chevron_left</span>
+            </button>
+            <span>Page {{ currentPage() + 1 }} of {{ pageCount() }}</span>
+            <button
+              type="button"
+              class="btn secondary sm bank-icon-btn"
+              [disabled]="currentPage() + 1 >= pageCount()"
+              aria-label="Next page"
+              (click)="goToNextPage()"
+            >
+              <span class="icon" aria-hidden="true">chevron_right</span>
+            </button>
+          </span>
+        </div>
       </div>
-    </div>
+    </section>
   </div>
 </div>

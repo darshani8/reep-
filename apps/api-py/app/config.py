@@ -654,6 +654,32 @@ class Settings(BaseSettings):
     # region as the thing it is protecting against losing is half a plan.
     identity_ledger_region: str = ""
 
+    # ---------------------------------------------------------------- #
+    # THE LOGICAL BACKUP (app/backup_database.py). The counterpart to the
+    # ledger above and to the RDS snapshots both: the snapshots are PHYSICAL
+    # and restore only into PostgreSQL 17 on RDS, the ledger carries identity
+    # alone, and this carries every other row in a format PostgreSQL itself
+    # can read anywhere.
+    #
+    # TWO BUCKETS, AND THEY CANNOT BE ONE. S3 Object Lock's default retention
+    # is a property of the BUCKET and not of a prefix, so a single bucket
+    # cannot both promise "the daily copy goes at 90 days" and "the monthly
+    # copy is kept for years". Worse, getting it wrong fails silently in the
+    # direction nobody checks: a lifecycle expiration aimed at an object whose
+    # lock has not expired is not an error, it is a rule that re-evaluates
+    # every day, deletes nothing and reports success -- so the bucket grows
+    # without bound behind a console showing a rule that looks like it works.
+    db_dump_bucket: str = ""
+    # Blank means the deployment keeps 90 days and no more. It is a supported
+    # configuration and `app.backup_database` SAYS SO on every run rather than
+    # letting a reader assume the monthly copy exists.
+    db_dump_archive_bucket: str = ""
+    db_dump_prefix: str = ""
+    # Blank falls back to the ordinary AWS environment. Named separately for
+    # the ledger's reason: a copy of the database in the same region as the
+    # database is half a plan.
+    db_dump_region: str = ""
+
     platform_aws_region: str = ""
     platform_ug_queue_url: str = ""
     platform_pg_queue_url: str = ""

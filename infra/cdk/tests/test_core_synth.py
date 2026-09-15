@@ -638,6 +638,204 @@ def test_the_ledger_schedule_runs_the_ledger(hardened: Template) -> None:
     assert "app.export_identity" in sched["Properties"]["Target"]["Input"]
 
 
+# --------------------------------------------------- the logical backup (M2) --
+
+
+def _dump_buckets(t: Template, prefix: str) -> list[dict]:
+    return [
+        r["Properties"]
+        for r in t.to_json()["Resources"].values()
+        if r["Type"] == "AWS::S3::Bucket"
+        and str(r["Properties"].get("BucketName", "")).startswith(prefix)
+    ]
+
+
+def test_both_dump_tiers_are_versioned_and_object_locked(hardened: Template) -> None:
+    """The recovery matrix's "vault deleted / account compromised" row.
+
+    A copy an attacker can delete does not answer that row, and Object Lock
+    cannot be added to a bucket after creation -- a dump bucket created without
+    it has to be REPLACED, every object copied by hand under a new name.
+    """
+    for prefix in ("reep-db-dumps-", "reep-db-archive-"):
+        buckets = _dump_buckets(hardened, prefix)
+        assert len(buckets) == 1, f"expected exactly one {prefix}* bucket"
+        b = buckets[0]
+        assert b["VersioningConfiguration"] == {"Status": "Enabled"}, prefix
+        assert b["ObjectLockEnabled"] is True, prefix
+        assert (
+            b["ObjectLockConfiguration"]["Rule"]["DefaultRetention"]["Mode"]
+            == "GOVERNANCE"
+        ), prefix
+
+
+def test_the_daily_lifecycle_fires_after_its_lock_lapses(hardened: Template) -> None:
+    """THE SILENT FAILURE THIS WHOLE ARRANGEMENT IS SHAPED AROUND.
+
+    A lifecycle expiration aimed at an object whose Object Lock retention has
+    not lapsed is NOT an error. S3 re-evaluates it the next day, and the next,
+    deleting nothing and reporting nothing -- so the bucket grows without bound
+    behind a rule the console shows as working, and the first symptom is a bill.
+
+    Setting the two numbers equal makes that a race on every single object.
+    They must differ, and in this direction.
+    """
+    b = _dump_buckets(hardened, "reep-db-dumps-")[0]
+    lock_days = b["ObjectLockConfiguration"]["Rule"]["DefaultRetention"]["Days"]
+    rules = b["LifecycleConfiguration"]["Rules"]
+    assert len(rules) == 1, rules
+    assert rules[0]["ExpirationInDays"] > lock_days, (
+        f"the daily dump's lifecycle expires at {rules[0]['ExpirationInDays']}d but its "
+        f"Object Lock holds for {lock_days}d. The delete is refused and silently retried "
+        "forever; nothing ever leaves the bucket."
+    )
+    # A versioned bucket's expiration writes a DELETE MARKER and leaves the
+    # version behind, still stored and still billed. A rule without this half
+    # looks right in the console and frees nothing.
+    assert rules[0]["NoncurrentVersionExpiration"]["NoncurrentDays"] > lock_days
+
+
+def test_the_archive_tier_has_no_lifecycle_rule(hardened: Template) -> None:
+    """The ledger bucket's rule, for the same reason.
+
+    This is the copy that outlives the 35-day ceiling. A lifecycle rule here --
+    added later, by someone tidying up storage costs -- is that promise quietly
+    expiring, and it would read as protection until the day it was asked for
+    something older than the rule.
+    """
+    assert "LifecycleConfiguration" not in _dump_buckets(hardened, "reep-db-archive-")[0]
+
+
+def test_the_two_tiers_are_separate_buckets(hardened: Template) -> None:
+    """Not two prefixes, and the reason is not taste.
+
+    S3 Object Lock's DEFAULT RETENTION IS BUCKET-WIDE. One bucket cannot hold
+    both "the daily copy goes at 90 days" and "the monthly copy is kept for a
+    decade"; the attempt produces one retention and two rules that disagree
+    with it.
+    """
+    daily = _dump_buckets(hardened, "reep-db-dumps-")[0]
+    archive = _dump_buckets(hardened, "reep-db-archive-")[0]
+    assert daily["BucketName"] != archive["BucketName"]
+    assert (
+        archive["ObjectLockConfiguration"]["Rule"]["DefaultRetention"]["Days"]
+        > daily["ObjectLockConfiguration"]["Rule"]["DefaultRetention"]["Days"]
+    )
+
+
+def test_the_import_phase_has_no_dump_buckets(imported: Template) -> None:
+    """Resources this stack ADDS never appear in the mirror."""
+    names = [
+        str(r["Properties"].get("BucketName", ""))
+        for r in imported.to_json()["Resources"].values()
+        if r["Type"] == "AWS::S3::Bucket"
+    ]
+    assert not [n for n in names if n.startswith(("reep-db-dumps-", "reep-db-archive-"))]
+
+
+def test_the_backup_task_can_write_the_dumps_and_never_read_them(
+    hardened: Template,
+) -> None:
+    """PutObject to write; ListBucket to ask; s3:GetObject NOWHERE.
+
+    These buckets hold a complete copy of every student record in the
+    deployment. A task that can READ them is one compromise away from
+    exfiltrating the whole database from the BACKUPS -- past every control on
+    the database itself, and past rule 1 entirely.
+
+    The trap is specific and easy to walk into: `head_object` is the obvious way
+    to ask "is this month already archived", and S3 authorises HeadObject with
+    s3:GetObject. `backup_database.month_is_archived` uses `list_objects_v2`
+    instead, which returns key names and never contents.
+    """
+    role = next(
+        r
+        for r in hardened.to_json()["Resources"].values()
+        if r["Type"] == "AWS::IAM::Role"
+        and r["Properties"].get("RoleName") == "reep-api-task"
+    )
+    policies = {p["PolicyName"]: p for p in role["Properties"]["Policies"]}
+
+    def actions_of(name: str) -> list[str]:
+        return [
+            a
+            for st in policies[name]["PolicyDocument"]["Statement"]
+            for a in (st["Action"] if isinstance(st["Action"], list) else [st["Action"]])
+        ]
+
+    assert actions_of("write-db-dumps") == ["s3:PutObject"]
+    assert actions_of("list-db-archive") == ["s3:ListBucket"]
+
+    for name, policy in policies.items():
+        for st in policy["PolicyDocument"]["Statement"]:
+            acts = st["Action"] if isinstance(st["Action"], list) else [st["Action"]]
+            resources = st.get("Resource", [])
+            resources = resources if isinstance(resources, list) else [resources]
+            if any("db-dumps" in str(r) or "db-archive" in str(r) for r in resources):
+                assert not [
+                    a for a in acts if a.startswith(("s3:Get", "s3:Delete"))
+                ], f"policy {name} can read or delete a dump: {acts}"
+
+
+def test_the_dump_runs_before_the_sweep_and_outside_the_rds_backup_window(
+    hardened: Template,
+) -> None:
+    """Three clocks, and the dump has to clear all of them.
+
+    * BEFORE the retention sweep, the ledger's argument: `app/retention.py` is
+      the one scheduled destructor in the product, and a dump taken after it
+      never saw what it removed. Both jobs would be green.
+    * OUTSIDE the RDS backup window. pg_dump is a long read over every table;
+      landing it inside the window puts that load on the instance while the
+      snapshot is being taken.
+    """
+    res = hardened.to_json()["Resources"]
+    schedules = {
+        r["Properties"]["Name"]: r["Properties"]["ScheduleExpression"]
+        for r in res.values()
+        if r["Type"] == "AWS::Scheduler::Schedule"
+    }
+
+    def minutes(expr: str) -> int:
+        m = re.match(r"cron\((\d+) (\d+)", expr)
+        return int(m.group(2)) * 60 + int(m.group(1))
+
+    dump = minutes(schedules["reep-db-dump-daily"])
+    assert dump < minutes(schedules["reep-retention-daily"]), (
+        "the logical dump must run before the retention sweep, or it never sees "
+        "what the sweep removed"
+    )
+
+    db = next(r for r in res.values() if r["Type"] == "AWS::RDS::DBInstance")
+    window = db["Properties"]["PreferredBackupWindow"]  # "HH:MM-HH:MM"
+    start, end = window.split("-")
+    to_min = lambda hm: int(hm[:2]) * 60 + int(hm[3:])
+    assert not (to_min(start) <= dump <= to_min(end)), (
+        f"the dump at {schedules['reep-db-dump-daily']} lands inside the RDS backup "
+        f"window {window}"
+    )
+
+
+def test_the_dump_schedule_runs_the_dump(hardened: Template) -> None:
+    """A schedule pointing at the wrong module is a green job that backs up
+    nothing."""
+    sched = next(
+        r
+        for r in hardened.to_json()["Resources"].values()
+        if r["Type"] == "AWS::Scheduler::Schedule"
+        and r["Properties"]["Name"] == "reep-db-dump-daily"
+    )
+    assert "app.backup_database" in sched["Properties"]["Target"]["Input"]
+
+
+def test_a_daily_tier_no_longer_than_the_snapshots_is_refused() -> None:
+    """35 days of physical snapshots already exist. A logical tier that expires
+    no later adds nothing they do not already give, and would read on a diagram
+    as a second line of defence that is not one."""
+    with pytest.raises(ValueError):
+        _core("harden", dbDumpDailyDays=30)
+
+
 def test_secrets_are_referenced_never_written(imported: Template, hardened: Template) -> None:
     for t in (imported, hardened):
         types = {r["Type"] for r in t.to_json()["Resources"].values()}

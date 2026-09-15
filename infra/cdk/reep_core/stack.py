@@ -174,6 +174,35 @@ DEFAULT_ARCHIVE_RETENTION_DAYS = 0
 #: AWS Backup's own ceiling on a lifecycle (100 years).
 MAX_ARCHIVE_RETENTION_DAYS = 36500
 
+#: How long the DAILY logical dump is locked, and therefore kept.
+#:
+#: The physical snapshots already answer "restore last Tuesday" for 35 days.
+#: This tier exists to answer it from an artefact that does not need RDS at
+#: all, so a number at or below the snapshots' would add nothing they do not
+#: already give; 90 is the span across which a loss is usually noticed.
+DEFAULT_DUMP_DAILY_DAYS = 90
+
+#: The gap between the daily object's Object Lock expiry and the lifecycle
+#: rule that deletes it.
+#:
+#: NOT padding, and not a rounding allowance. A lifecycle expiration aimed at
+#: an object whose retention has not lapsed is NOT AN ERROR -- S3 re-evaluates
+#: it the next day, and the next, deleting nothing and reporting nothing, so
+#: the bucket grows without bound behind a rule the console shows as working.
+#: Setting the two to the same number makes that race a coin toss on every
+#: object. Seven days makes it impossible.
+DUMP_LIFECYCLE_LAG_DAYS = 7
+
+#: The monthly archive copy's Object Lock retention, in years.
+#:
+#: THIS IS A PLACEHOLDER FOR A DECISION THE COLLEGE HAS NOT MADE. The real
+#: question is "how long must a graduate's academic record remain retrievable",
+#: which is a records-retention policy and not an engineering choice —
+#: `archiveRetentionDays` carries the same caveat for the same reason. Ten
+#: years is long enough to be useful and short enough not to be a promise
+#: nobody agreed to. It costs a few dollars a year at this data volume.
+DEFAULT_DUMP_ARCHIVE_YEARS = 10
+
 #: CloudFront's managed policy ids, the same three cdn.tf hardcodes.
 _CACHE_OPTIMIZED = "658327ea-f89d-4fab-a63d-7e88639e58f6"
 _CACHE_DISABLED = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
@@ -276,6 +305,32 @@ class CoreStack(Stack):
         # Flip it once a few days of objects have been read back.
         identity_ledger_compliance = flag("identityLedgerCompliance", False)
         identity_ledger_years = int(opt("identityLedgerYears", 10))
+        # THE LOGICAL BACKUP'S TWO BUCKETS (app/backup_database.py). Harden-only,
+        # like the ledger and for the same reason: the import phase is a strict
+        # subset of this template and CloudFormation refuses an import template
+        # that adds a resource it cannot adopt.
+        #
+        # TWO BUCKETS AND NOT TWO PREFIXES, because S3 Object Lock's default
+        # retention is a property of the BUCKET. One bucket cannot hold both
+        # "the daily copy goes at 90 days" and "the monthly copy is kept for a
+        # decade", and the way that fails is the worst kind: a lifecycle
+        # expiration blocked by an unexpired lock is not an error, it is a rule
+        # that deletes nothing forever while reporting success.
+        db_dumps = harden and flag("dbDumps", True)
+        db_dump_daily_days = int(opt("dbDumpDailyDays", DEFAULT_DUMP_DAILY_DAYS))
+        if not retention_days < db_dump_daily_days <= 3650:
+            raise ValueError(
+                f"dbDumpDailyDays must be greater than backupRetentionDays "
+                f"({retention_days}) and at most 3650, not {db_dump_daily_days}. "
+                "A logical tier that expires no later than the physical snapshots "
+                "adds nothing the snapshots do not already give."
+            )
+        # The archive tier can be switched off on its own. A deployment that
+        # keeps 90 days and no more is a supported choice; what must not happen
+        # is a deployment that believes it keeps years and does not, which is
+        # why `app.backup_database` reports the absence on every single run.
+        db_dump_archive = db_dumps and flag("dbDumpArchive", True)
+        db_dump_archive_years = int(opt("dbDumpArchiveYears", DEFAULT_DUMP_ARCHIVE_YEARS))
         archive_retention_days = int(opt("archiveRetentionDays", DEFAULT_ARCHIVE_RETENTION_DAYS)) if harden else 0
         if archive_retention_days and not retention_days < archive_retention_days <= MAX_ARCHIVE_RETENTION_DAYS:
             raise ValueError(
@@ -582,6 +637,97 @@ class CoreStack(Stack):
                 "IdentityLedgerBucketName",
                 value=ledger_bucket.bucket_name,
                 description="IDENTITY_LEDGER_BUCKET for the api task",
+            )
+
+        dump_bucket = None
+        dump_archive_bucket = None
+        if db_dumps:
+            # THE DAILY TIER. Read on the worst night of the year, so it is
+            # STANDARD_IA and never Glacier -- the artefact you most need in a
+            # crisis must not have a retrieval time measured in hours. The
+            # storage class is set by the WRITER on PutObject rather than by a
+            # transition rule here, because a transition to IA cannot happen
+            # before day 30 and would bill the first month at Standard rates.
+            dump_bucket = s3.Bucket(
+                self,
+                "DbDumpBucket",
+                bucket_name=f"{project}-db-dumps-{self.account}",
+                versioned=True,
+                # Object Lock, because this tier's job in the recovery matrix is
+                # the row that reads "vault deleted / account compromised". A
+                # copy an attacker can delete does not answer that row.
+                object_lock_enabled=True,
+                object_lock_default_retention=s3.ObjectLockRetention.governance(
+                    Duration.days(db_dump_daily_days)
+                ),
+                # THE LIFECYCLE RUNS AFTER THE LOCK LAPSES, NEVER WITH IT. See
+                # DUMP_LIFECYCLE_LAG_DAYS: equal numbers make every object's
+                # deletion a race that silently resolves to "never".
+                #
+                # `noncurrent_version_expiration` is not optional on a versioned
+                # bucket. Expiring a current version writes a delete MARKER and
+                # leaves the object itself behind, still stored and still
+                # billed, so a rule without it looks like it works in the
+                # console and frees nothing at all.
+                lifecycle_rules=[
+                    s3.LifecycleRule(
+                        id=f"expire-{db_dump_daily_days + DUMP_LIFECYCLE_LAG_DAYS}d",
+                        enabled=True,
+                        expiration=Duration.days(
+                            db_dump_daily_days + DUMP_LIFECYCLE_LAG_DAYS
+                        ),
+                        noncurrent_version_expiration=Duration.days(
+                            db_dump_daily_days + DUMP_LIFECYCLE_LAG_DAYS
+                        ),
+                    )
+                ],
+                encryption=s3.BucketEncryption.S3_MANAGED,
+                enforce_ssl=True,
+                block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+                removal_policy=RemovalPolicy.RETAIN,
+            )
+            CfnOutput(
+                self,
+                "DbDumpBucketName",
+                value=dump_bucket.bucket_name,
+                description="DB_DUMP_BUCKET for the api task",
+            )
+
+        if db_dump_archive:
+            # THE ARCHIVE TIER: the first successful dump of each month, kept
+            # for years, in Deep Archive. NO LIFECYCLE RULE AT ALL -- the same
+            # deliberate absence the identity ledger's bucket carries, and for
+            # the same reason. This is the copy that outlives the 35-day
+            # ceiling, and a rule it acquires by accident is that promise
+            # quietly expiring.
+            #
+            # A SEPARATE BUCKET rather than a prefix, because the retention
+            # above is bucket-wide: a ten-year default here and a ninety-day
+            # default there cannot both be set on one bucket.
+            dump_archive_bucket = s3.Bucket(
+                self,
+                "DbDumpArchiveBucket",
+                bucket_name=f"{project}-db-archive-{self.account}",
+                versioned=True,
+                object_lock_enabled=True,
+                # GOVERNANCE, matching the ledger and `vaultLockCompliance`.
+                # Compliance mode cannot be undone by anybody including root,
+                # which is the right end state and the wrong thing to switch on
+                # in the change that creates the bucket: a retention typed wrong
+                # would be permanent too.
+                object_lock_default_retention=s3.ObjectLockRetention.governance(
+                    Duration.days(365 * db_dump_archive_years)
+                ),
+                encryption=s3.BucketEncryption.S3_MANAGED,
+                enforce_ssl=True,
+                block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+                removal_policy=RemovalPolicy.RETAIN,
+            )
+            CfnOutput(
+                self,
+                "DbDumpArchiveBucketName",
+                value=dump_archive_bucket.bucket_name,
+                description="DB_DUMP_ARCHIVE_BUCKET for the api task",
             )
 
         alb_logs_bucket = s3.Bucket(
@@ -901,6 +1047,42 @@ class CoreStack(Stack):
                 ]
             )
 
+        dump_targets = [b for b in (dump_bucket, dump_archive_bucket) if b is not None]
+        if dump_targets:
+            # PUT ONLY, and s3:GetObject is deliberately NOT here either.
+            # `month_is_archived` asks the archive bucket whether this month is
+            # already held, and HeadObject is authorised by s3:GetObject -- so a
+            # reader might add it. It must not: this task writes every student
+            # record in the deployment into these buckets, and a task that can
+            # also READ them is one compromise away from exfiltrating the whole
+            # database from the backups rather than from the database. The head
+            # call is granted narrowly below, on the archive prefix alone.
+            inline["write-db-dumps"] = iam.PolicyDocument(
+                statements=[
+                    iam.PolicyStatement(
+                        actions=["s3:PutObject"],
+                        resources=[b.arn_for_objects("*") for b in dump_targets],
+                    )
+                ]
+            )
+            if dump_archive_bucket is not None:
+                # LIST, NOT GET. `backup_database.month_is_archived` needs to
+                # know whether this month's object exists; s3:ListBucket answers
+                # that with key NAMES and never contents, while the obvious
+                # HeadObject would need s3:GetObject -- read access to every
+                # archived dump, which is a complete copy of every student
+                # record in the deployment. The prefix condition keeps even the
+                # listing to the one place the job looks.
+                inline["list-db-archive"] = iam.PolicyDocument(
+                    statements=[
+                        iam.PolicyStatement(
+                            actions=["s3:ListBucket"],
+                            resources=[dump_archive_bucket.bucket_arn],
+                            conditions={"StringLike": {"s3:prefix": ["monthly/*"]}},
+                        )
+                    ]
+                )
+
         if harden and ses_identity_domain:
             # Activation, reset and confirmation mail (app/mail_transport.py).
             # Scoped to the college's verified identity, and only from the
@@ -1100,6 +1282,19 @@ class CoreStack(Stack):
             # The asymmetry is the point, not an oversight.
             api_environment["IDENTITY_LEDGER_BUCKET"] = ledger_bucket.bucket_name
             api_environment["IDENTITY_LEDGER_REGION"] = self.region
+
+        if harden_ecs and dump_bucket is not None:
+            # `harden_ecs` and not `harden`, the ledger's rule and the same
+            # reason: a task definition is IMMUTABLE, so setting an environment
+            # variable registers a new revision the service rolls onto, and step
+            # 9a must leave this definition byte-identical to the import mirror.
+            # The IAM grants above sit on `harden` because they are inert
+            # without these names -- s3:PutObject on a bucket a task cannot name
+            # writes nothing.
+            api_environment["DB_DUMP_BUCKET"] = dump_bucket.bucket_name
+            api_environment["DB_DUMP_REGION"] = self.region
+            if dump_archive_bucket is not None:
+                api_environment["DB_DUMP_ARCHIVE_BUCKET"] = dump_archive_bucket.bucket_name
 
         def _api_task_def(cid: str, family: str, image_tag: str) -> tuple[ecs.FargateTaskDefinition, ecs.ContainerDefinition]:
             """One api task definition. ONE helper for the three families
@@ -1383,6 +1578,61 @@ class CoreStack(Stack):
                     ),
                     input=json.dumps(
                         {"containerOverrides": [{"name": "api", "command": ["python", "-m", "app.export_identity"]}]},
+                        separators=(",", ":"),
+                        sort_keys=True,
+                    ),
+                ),
+            )
+
+        if harden_ecs and dump_bucket is not None:
+            # THE LOGICAL BACKUP, DAILY AT 01:00 IST. Gated on `harden_ecs` for
+            # the ledger's reason -- a schedule that exists before the bucket
+            # variable does is a job that fires nightly and fails nightly, and
+            # here it would fail after putting the production database through a
+            # full dump first. `run()` refuses before dumping for that reason;
+            # this gate stops the job existing at all until it can work.
+            #
+            # 19:30 UTC is chosen against three other clocks and clears all of
+            # them:
+            #   * AFTER the identity ledger (18:00 UTC). Independent jobs, but
+            #     the ledger is the small fast one and the file that matters
+            #     most; it should not queue behind a multi-minute dump.
+            #   * BEFORE the retention sweep (21:30 UTC). The sweep is the one
+            #     scheduled destructor in the product, and a dump taken after it
+            #     is a dump that never saw what it removed -- the same ordering
+            #     argument the ledger's schedule makes, and the reason neither
+            #     runs in the small hours.
+            #   * BEFORE the RDS backup window (20:30-21:30 UTC). pg_dump is a
+            #     long read over every table; landing it inside the window puts
+            #     that load on the instance while the snapshot is being taken.
+            #     An hour of clearance, which is far more than this dump needs
+            #     at this data volume and leaves room for it to grow.
+            #
+            # It reuses the api task definition and so the scheduler role's
+            # existing ecs:RunTask on `{project}-api:*`. A second family would
+            # need a second grant, which is a thing to forget.
+            scheduler.CfnSchedule(
+                self,
+                "DbDumpSchedule",
+                name=f"{project}-db-dump-daily",
+                schedule_expression="cron(30 19 * * ? *)",  # 01:00 IST
+                flexible_time_window=scheduler.CfnSchedule.FlexibleTimeWindowProperty(mode="OFF"),
+                target=scheduler.CfnSchedule.TargetProperty(
+                    arn=cluster.cluster_arn,
+                    role_arn=scheduler_role.role_arn,
+                    ecs_parameters=scheduler.CfnSchedule.EcsParametersProperty(
+                        task_definition_arn=task_def.task_definition_arn,
+                        launch_type="FARGATE",
+                        network_configuration=scheduler.CfnSchedule.NetworkConfigurationProperty(
+                            awsvpc_configuration=scheduler.CfnSchedule.AwsVpcConfigurationProperty(
+                                subnets=[s.ref for s in private_subnets],
+                                security_groups=[api_sg.ref],
+                                assign_public_ip="DISABLED",
+                            )
+                        ),
+                    ),
+                    input=json.dumps(
+                        {"containerOverrides": [{"name": "api", "command": ["python", "-m", "app.backup_database"]}]},
                         separators=(",", ":"),
                         sort_keys=True,
                     ),

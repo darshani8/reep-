@@ -22,31 +22,56 @@ on:
         description: "Which stack"
         type: choice
         default: voice-platform
-        # `core` and `all` are deliberately ABSENT, and the reason has changed
-        # now that the import has run (2026-09-07). It was: a deploy of
-        # reep-core before its import would CreateStack a second VPC, NAT
-        # gateway and four security groups before colliding on the database
-        # name. reep-core is now IMPORT_COMPLETE, so that is no longer the
-        # risk. THE RISK NOW IS THE OPPOSITE: this workflow runs a bare
-        # `cdk deploy reep-core`, which is the FULL harden — the Multi-AZ
-        # database conversion and the ECS roll in ONE update — and step 9 of
-        # docs/cdk-cutover.md splits those two on purpose, so that an ECS
-        # circuit-breaker rollback cannot undo a database conversion.
-        # Add `core` back in a commit AFTER step 9b, when a one-click
-        # reep-core deploy is a no-op against an already-hardened stack.
-        options: [voice-platform, edge-waf, dr-vault]
+        # `core` IS HERE NOW, AS TWO HALVES. `all` is still absent.
+        #
+        # The history, because the reason has changed twice. `core` was removed
+        # before the import: a deploy of reep-core then would CreateStack a
+        # second VPC, NAT gateway and four security groups before colliding on
+        # the database name. reep-core has been IMPORT_COMPLETE since
+        # 2026-09-07, so that risk is gone and a different one replaced it — a
+        # BARE `cdk deploy reep-core` is the FULL harden, the Multi-AZ database
+        # conversion and the ECS roll in ONE stack update, and step 9 of
+        # docs/cdk-cutover.md splits those two on purpose so that an ECS
+        # circuit-breaker rollback cannot also undo a database conversion that
+        # has no undo.
+        #
+        # So what is offered is NOT `core`. It is the two halves of step 9, each
+        # doing exactly one of them:
+        #
+        #   core-9a  `-c hardenEcs=false` — the database and backup half: the
+        #            Multi-AZ conversion, the 35-day retention, the archive
+        #            plan, the identity-ledger bucket and the task role's IAM
+        #            grants. The api task definition is left BYTE-IDENTICAL to
+        #            the import mirror, so this update has no ECS deployment in
+        #            it and therefore nothing for a circuit breaker to roll back.
+        #   core-9b  the ECS half, AFTER 9a has finished: the task definition's
+        #            new environment (SES_FROM_ADDRESS, IDENTITY_LEDGER_BUCKET),
+        #            the 600 s deregistration delay and the ledger's schedule.
+        #
+        # RUNNING 9b FIRST IS THE BARE DEPLOY THIS SPLIT EXISTS TO PREVENT, and
+        # nothing in CloudFormation knows whether 9a ran — a stack update does
+        # not carry the memory of the last one. That is why 9b asks for a typed
+        # sentence instead of the word "deploy"; see the confirm box below.
+        #
+        # `all` stays absent: it would sweep reep-core into a voice-platform
+        # deploy, which is the bare deploy again wearing a different label.
+        options: [voice-platform, edge-waf, dr-vault, core-9a, core-9b]
       action:
         description: "What to do"
         type: choice
         default: diff
         options: [diff, deploy]
       confirm:
-        description: 'For deploy: type "deploy" to confirm this creates resources in the production account'
+        description: 'For deploy: type "deploy" — except core-9b, which wants MULTI-AZ IS AVAILABLE'
         required: false
         default: ""
 
 concurrency:
-  group: cdk-${{ inputs.stack }}
+  # The two core halves share ONE group. They are two updates to the same
+  # CloudFormation stack, and a stack that is already UPDATE_IN_PROGRESS
+  # rejects the second with a ValidationError -- which reads, in the Actions
+  # log, exactly like a broken workflow rather than like 9a still running.
+  group: cdk-${{ startsWith(inputs.stack, 'core') && 'core' || inputs.stack }}
   cancel-in-progress: false
 
 permissions:
@@ -60,8 +85,35 @@ jobs:
     steps:
       - name: Check the confirmation word
         if: inputs.action == 'deploy'
+        # Through `env:` and never interpolated into the script body: `confirm`
+        # is free text from the dispatch form, and `${{ }}` inside a `run:` is
+        # substituted before the shell ever sees it, so a value containing a
+        # backtick or `$(...)` would execute here rather than be compared.
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+          STACK: ${{ inputs.stack }}
         run: |
-          if [ "${{ inputs.confirm }}" != "deploy" ]; then
+          # core-9b asks for a SENTENCE, not the word, and the reason is the
+          # same one the ops task's purge sentence is built on: by the time
+          # anybody reaches this box, "deploy" is muscle memory -- it is what
+          # the other four options take and what the Deploy workflow takes.
+          #
+          # 9b is the one run here whose precondition lives OUTSIDE this
+          # repository. Nothing in the template, the diff or the Actions log
+          # can tell you whether 9a finished; the RDS console can. Typing what
+          # it says is how a human confirms they went and looked, and it is the
+          # only check available -- this workflow's role holds CDK bootstrap
+          # rights, not rds:DescribeDBInstances, so the job cannot read it.
+          if [ "$STACK" = "core-9b" ]; then
+            if [ "$CONFIRM" != "MULTI-AZ IS AVAILABLE" ]; then
+              echo "::error::Before 9b: open RDS -> reep-postgres in ap-south-1."
+              echo "::error::Multi-AZ must read Yes, AND Status must be 'available' -- not 'modifying'."
+              echo "::error::A conversion still in progress means 9a has not finished."
+              echo "::error::Then type exactly: MULTI-AZ IS AVAILABLE"
+              echo "::error::Nothing was changed."
+              exit 1
+            fi
+          elif [ "$CONFIRM" != "deploy" ]; then
             echo "::error::Type 'deploy' in the confirm box to deploy. Nothing was changed."
             exit 1
           fi
@@ -102,26 +154,70 @@ jobs:
       # is a one-time, human-attended step (docs/cdk-cutover.md).
       - name: Resolve the stack selector
         id: sel
+        env:
+          STACK: ${{ inputs.stack }}
         run: |
-          case "${{ inputs.stack }}" in
+          case "$STACK" in
             voice-platform) echo "stacks=reep-voice-platform" >> "$GITHUB_OUTPUT" ;;
-            core)           echo "stacks=reep-core" >> "$GITHUB_OUTPUT" ;;
             edge-waf)       echo "stacks=reep-edge-waf" >> "$GITHUB_OUTPUT" ;;
             dr-vault)       echo "stacks=reep-dr-vault" >> "$GITHUB_OUTPUT" ;;
-            all)            echo "stacks=--all" >> "$GITHUB_OUTPUT" ;;
+            # THE CONTEXT FLAG IS THE ENTIRE DIFFERENCE BETWEEN THE TWO HALVES,
+            # so it is set HERE, beside the stack name, and never left to the
+            # person running the workflow. `hardenEcs=false` is what holds the
+            # api task definition identical to the import mirror: the ECS trio
+            # (SES_FROM_ADDRESS, IDENTITY_LEDGER_BUCKET and the 600 s drain)
+            # and the ledger's schedule all sit behind that one flag in
+            # reep_core/stack.py, and test_the_database_half_does_not_touch_the
+            # _ecs_trio is the guard that keeps them there.
+            core-9a)        echo "stacks=reep-core" >> "$GITHUB_OUTPUT"
+                            echo "context=-c hardenEcs=false" >> "$GITHUB_OUTPUT" ;;
+            core-9b)        echo "stacks=reep-core" >> "$GITHUB_OUTPUT" ;;
+            *)              echo "::error::Unknown stack: $STACK"; exit 1 ;;
           esac
+      # The context flag travels with BOTH verbs. A `diff` of core-9a run
+      # without it would show the ECS half as pending and then 9a would not
+      # deliver it -- a diff that describes a different deploy from the one the
+      # button next to it runs is worse than no diff.
       - name: cdk diff
         if: inputs.action == 'diff'
         working-directory: infra/cdk
-        run: cdk diff ${{ steps.sel.outputs.stacks }} --no-color
+        run: cdk diff ${{ steps.sel.outputs.stacks }} ${{ steps.sel.outputs.context }} --no-color
 
       - name: cdk deploy
         if: inputs.action == 'deploy'
         working-directory: infra/cdk
         run: |
-          cdk deploy ${{ steps.sel.outputs.stacks }} --require-approval never --no-color --outputs-file outputs.json
+          cdk deploy ${{ steps.sel.outputs.stacks }} ${{ steps.sel.outputs.context }} \
+            --require-approval never --no-color --outputs-file outputs.json
           echo "## ${{ inputs.stack }} outputs" >> "$GITHUB_STEP_SUMMARY"
           echo '```json' >> "$GITHUB_STEP_SUMMARY"
           cat outputs.json >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          echo "Next: run the Deploy workflow so the api restarts and reads these parameters." >> "$GITHUB_STEP_SUMMARY"
+          # What comes next differs per half, and saying "run Deploy" after 9a
+          # would be wrong: 9a deliberately leaves the task definition alone, so
+          # there is nothing for a restart to pick up, and the next step is a
+          # WAIT on a conversion that takes tens of minutes.
+          case "${{ inputs.stack }}" in
+            core-9a)
+              {
+                echo "### Next: wait, then 9b"
+                echo "The Multi-AZ conversion runs in the background and takes tens of minutes."
+                echo "Open RDS -> reep-postgres and wait until Multi-AZ reads **Yes** and Status reads **available**."
+                echo "Then run this workflow again with stack \`core-9b\`, action \`deploy\`,"
+                echo "and \`MULTI-AZ IS AVAILABLE\` in the confirm box."
+                echo "Do NOT run the Deploy workflow in between: 9a changes no task definition,"
+                echo "so a restart would pick up nothing."
+              } >> "$GITHUB_STEP_SUMMARY" ;;
+            core-9b)
+              {
+                echo "### Next: the Deploy workflow"
+                echo "9b registered a new api task definition revision and the service is rolling onto it."
+                echo "Run **Deploy** (target \`api-only\`, confirm \`deploy\`) so the image and the new"
+                echo "environment land together, then check:"
+                echo "- SES: a password reset should now send mail rather than log it."
+                echo "- The identity ledger writes its first object at 23:30 IST tonight."
+                echo "- \`IdentityLedgerBucketName\` above is the bucket to look in."
+              } >> "$GITHUB_STEP_SUMMARY" ;;
+            *)
+              echo "Next: run the Deploy workflow so the api restarts and reads these parameters." >> "$GITHUB_STEP_SUMMARY" ;;
+          esac

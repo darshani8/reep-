@@ -20,6 +20,47 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# pg_dump 17, for the nightly logical backup (app/backup_database.py).
+#
+# NOT the distribution's client, and the major version is not a detail. Debian
+# bookworm ships PostgreSQL 16's client, the database is 17, and pg_dump REFUSES
+# a server newer than itself. That refusal is the good failure -- it stops
+# rather than writing something subtly wrong -- but it stops at 01:00 with
+# nobody watching, and the thing that does not get written is the only
+# engine-portable copy of every student record. So the major is pinned here,
+# from PostgreSQL's own repository, and `tests/test_codebase_guards.py` compares
+# this number against `engine_version` in `infra/cdk/reep_core/stack.py`. They
+# are ONE FACT WRITTEN IN TWO FILES: an RDS upgrade that forgets this line does
+# not break the API, it breaks only the backup, silently.
+#
+# ~20 MB in a web-facing image, and worth saying why that is acceptable rather
+# than leaving the next reader to wonder. This task already holds DATABASE_URL
+# and psycopg, so it can already read every row; pg_dump adds convenience for an
+# attacker who has already won, not access. What it buys is that the backup runs
+# on the api's OWN task definition -- one image, one ECR repository, one deploy
+# path, and the scheduler role's existing ecs:RunTask grant on `reep-api:*`. A
+# second image for one nightly job is a second thing to build, scan, and forget
+# to rebuild.
+#
+# `apt-mark manual ca-certificates` before the purge is deliberate: it is a
+# dependency of curl here, and --auto-remove would take it with curl on a base
+# image where it had been marked automatic. An api that cannot verify TLS
+# reaches no AWS endpoint at all, and the failure would be at runtime.
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends curl ca-certificates; \
+    apt-mark manual ca-certificates; \
+    install -d /usr/share/postgresql-common/pgdg; \
+    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+      -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc; \
+    echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" \
+      > /etc/apt/sources.list.d/pgdg.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends postgresql-client-17; \
+    apt-get purge -y --auto-remove curl; \
+    rm -rf /var/lib/apt/lists/*; \
+    pg_dump --version
+
 # Dependencies first so a code change does not invalidate the pip layer.
 COPY requirements.txt ./
 RUN pip install --upgrade pip && pip install -r requirements.txt

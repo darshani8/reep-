@@ -328,7 +328,7 @@ def test_the_students_go_and_the_faculty_survive_every_foreign_key():
     with SessionLocal() as db:
         ids = _seed_one_of_each(db)
         kept_before = {
-            name: db.scalar(select(func.count()).select_from(T[name]))
+            name: db.scalar(select(func.count()).select_from(purge_people.table_for(name)))
             for name, verdict in purge_students.STUDENT_VERDICTS.items()
             if verdict == purge_students.KEEP
         }
@@ -384,10 +384,16 @@ def test_the_students_go_and_the_faculty_survive_every_foreign_key():
             # holds exactly what it held.
             for name, verdict in purge_students.STUDENT_VERDICTS.items():
                 if verdict == purge_students.ALL:
-                    n = db.scalar(select(func.count()).select_from(T[name]))
+                    # `table_for` and not `T[name]`: a preserved rescue table is
+                    # classified here but has no model to look up.
+                    n = db.scalar(
+                        select(func.count()).select_from(purge_people.table_for(name))
+                    )
                     assert n == 0, f"{name} still holds {n} row(s)"
             for name, before in kept_before.items():
-                after = db.scalar(select(func.count()).select_from(T[name]))
+                after = db.scalar(
+                    select(func.count()).select_from(purge_people.table_for(name))
+                )
                 assert after == before, f"{name} lost rows: {before} -> {after}"
         finally:
             db.rollback()
@@ -401,13 +407,18 @@ def test_the_plan_counts_what_the_delete_deletes():
         _seed_one_of_each(db)
         plan = purge_students.build_plan(db)
         before = {
-            name: db.scalar(select(func.count()).select_from(T[name])) for name in plan.rows
+            # `table_for`: once a preserved rescue table holds rows it appears
+            # in `plan.rows` like any other, and it has no model to look up.
+            name: db.scalar(select(func.count()).select_from(purge_people.table_for(name)))
+            for name in plan.rows
         }
         try:
             purge_students._null_created_by(db, plan)
             purge_students._delete_rows(db, plan)
             for name, planned in plan.rows.items():
-                after = db.scalar(select(func.count()).select_from(T[name]))
+                after = db.scalar(
+                    select(func.count()).select_from(purge_people.table_for(name))
+                )
                 assert before[name] - after == planned, name
         finally:
             db.rollback()

@@ -49,7 +49,7 @@
         aria-controls="batch-bar"
         (click)="toggleBatchBar()"
       >
-        <span class="icon" aria-hidden="true">groups</span> Bulk assign batch
+        <span class="icon" aria-hidden="true">groups</span> Assign a whole batch
       </button>
     </div>
   </div>
@@ -354,7 +354,7 @@
                   <button
                     type="button"
                     class="btn ghost sm"
-                    [attr.aria-label]="'Release ' + student.name + ' from ' + mentor.name"
+                    [attr.aria-label]="'Remove ' + student.name + ' from ' + mentor.name"
                     [disabled]="busy()"
                     (click)="releaseStudent(student)"
                   >

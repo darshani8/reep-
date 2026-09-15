@@ -18,7 +18,7 @@
         [attr.aria-expanded]="bulkOpen()"
         (click)="toggleBulkPanel()"
       >
-        <span class="icon" aria-hidden="true">upload_file</span> Bulk import
+        <span class="icon" aria-hidden="true">upload_file</span> Add many
       </button>
       <!-- ONE PRIMARY PER VIEW (01-design-system.md §4): this one. -->
       <button
@@ -170,7 +170,7 @@
         }
 
         <div class="field bank-persona">
-          <label for="bank-persona-field">Interviewer persona</label>
+          <label for="bank-persona-field">Interviewer role</label>
           <textarea
             id="bank-persona-field"
             class="ctrl"
@@ -323,7 +323,7 @@
           </div>
 
           <div class="field bank-persona">
-            <label for="bank-new-track-persona">Interviewer persona</label>
+            <label for="bank-new-track-persona">Interviewer role</label>
             <textarea
               id="bank-new-track-persona"
               class="ctrl"
@@ -510,7 +510,7 @@
             />
 
             <button type="button" class="btn secondary sm" (click)="toggleBulkPanel()">
-              <span class="icon" aria-hidden="true">content_copy</span> Bulk paste
+              <span class="icon" aria-hidden="true">content_copy</span> Add many
             </button>
             <button
               type="button"

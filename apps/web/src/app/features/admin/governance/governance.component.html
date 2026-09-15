@@ -17,7 +17,7 @@
         }
       </button>
       <button type="button" class="btn secondary" (click)="focusGrantForm()">
-        <span class="icon" aria-hidden="true">key</span> Grant function
+        <span class="icon" aria-hidden="true">key</span> Give access
       </button>
     </div>
   </div>
@@ -302,7 +302,7 @@
               [disabled]="selectedGrantIds().length === 0"
               (click)="startActionForSelection('revoke')"
             >
-              <span class="icon" aria-hidden="true">block</span> Revoke
+              <span class="icon" aria-hidden="true">block</span> Remove access
             </button>
             <!-- B2.4's POST /grants/{id}/extend, live. Batched the same way the
                  revoke is: one reason, applied to each row in turn. -->
@@ -403,7 +403,7 @@
                           Extend
                         </button>
                         <button type="button" class="btn ghost sm" (click)="startAction('revoke', [row])">
-                          Revoke
+                          Remove access
                         </button>
                       </span>
                     </td>
@@ -778,7 +778,7 @@
                           <span class="icon" aria-hidden="true">how_to_reg</span> Approve
                         </button>
                         <button type="button" class="btn ghost sm" (click)="startAction('revoke', [row])">
-                          Revoke
+                          Remove access
                         </button>
                       </span>
                     </td>
@@ -852,7 +852,7 @@
                           <span class="icon" aria-hidden="true">schedule</span> Extend
                         </button>
                         <button type="button" class="btn ghost sm" (click)="startAction('revoke', [row])">
-                          Revoke
+                          Remove access
                         </button>
                       </span>
                     </td>

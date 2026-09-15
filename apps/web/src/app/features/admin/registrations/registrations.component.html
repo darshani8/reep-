@@ -13,7 +13,7 @@
     </div>
     <div class="dt-toolbar">
       <button type="button" class="btn secondary" (click)="openSeatingRules()">
-        <span class="icon" aria-hidden="true">settings</span> Seating rules
+        <span class="icon" aria-hidden="true">settings</span> Auto-approve rules
       </button>
       <!-- THE ONE EXPORT ON THIS SCREEN, and the only grid Export in the
            console: the board puts it here and spec §10 lists it. Everywhere
@@ -514,7 +514,7 @@
       >
         <header class="dialog-head">
           <div>
-            <h2 class="dialog-title" id="seating-rules-title">Seating rules</h2>
+            <h2 class="dialog-title" id="seating-rules-title">Auto-approve rules</h2>
             <!-- WHAT A RULE IS, IN THE ORDER THAT MATTERS. The engine runs on
                  the PUBLIC form, before anybody has read anything, and an
                  auto-approving rule ends with an account that exists. That is
@@ -526,7 +526,7 @@
               never reaches the queue.
             </p>
           </div>
-          <button type="button" class="btn ghost sm" aria-label="Close the seating rules" (click)="closeSeatingRules()">
+          <button type="button" class="btn ghost sm" aria-label="Close the rules" (click)="closeSeatingRules()">
             <span class="icon" aria-hidden="true">close</span>
           </button>
         </header>

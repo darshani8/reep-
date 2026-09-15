@@ -134,7 +134,7 @@
         <!-- Grants are made in Governance; see GRANT_FUNCTION_PHASE. -->
         <button type="button" class="btn secondary sm" disabled [title]="grantFunctionReason">
           <span class="icon" aria-hidden="true">key</span>
-          Grant function
+          Give access
         </button>
         <button
           type="button"
@@ -391,7 +391,7 @@
               </div>
 
               <button type="button" class="btn secondary" disabled [title]="grantFunctionReason">
-                <span class="icon" aria-hidden="true">key</span> Grant function
+                <span class="icon" aria-hidden="true">key</span> Give access
               </button>
 
               <div class="notice accent">
@@ -417,7 +417,7 @@
                   </p>
                 }
                 <button type="button" class="btn secondary" [disabled]="busy()" (click)="mintActivationLink()">
-                  <span class="icon" aria-hidden="true">link</span> Mint activation link
+                  <span class="icon" aria-hidden="true">link</span> Make a sign-in link
                 </button>
 
                 @if (activationLink(); as minted) {

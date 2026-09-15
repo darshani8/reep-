@@ -833,7 +833,7 @@ export class AdminRegistrationsComponent {
     if (automatic.length === 0) {
       return 'No seating rule auto-approves, so every application waits here for a decision.';
     }
-    const counted = plural(automatic.length, 'seating rule auto-approves', 'seating rules auto-approve');
+    const counted = plural(automatic.length, 'rule auto-approves', 'rules auto-approve');
     return `${counted}; everything else waits here for a decision.`;
   });
 
@@ -1742,7 +1742,7 @@ export class AdminRegistrationsComponent {
         credentials: 'include',
       });
       if (!response.ok) {
-        this.seatingRulesError.set('Could not load the seating rules.');
+        this.seatingRulesError.set('Could not load the rules.');
         this.seatingRules.set([]);
         return;
       }

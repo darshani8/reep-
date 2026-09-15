@@ -175,11 +175,14 @@ def remove_signature(
     require_mentor(session)
     row = _mine(db, session)
     if row is not None:
+        # Released before the unlink -- routers/student.py's delete carries the
+        # full reasoning: a SELECT between an irreversible delete and the commit
+        # turns any query failure into destroyed bytes plus a surviving row.
+        release(db, row.stored_name, reason="signature removed")
         try:
             delete_stored(row.stored_name)
         except FileNotFoundError:
             pass
-        release(db, row.stored_name, reason="signature removed")
         db.delete(row)
         db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

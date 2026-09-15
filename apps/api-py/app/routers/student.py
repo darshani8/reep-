@@ -2489,13 +2489,27 @@ def delete_upload(
     upload = db.get(Upload, upload_id)
     if upload is None or upload.student_id != student_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Upload not found.")
-    document_store_delete(upload.stored_name)
-    # The bytes leave the volume and the row goes, exactly as before -- the
-    # student's screen, their quota and the store are all correct a second
-    # later. The file itself is already in the permanent archive and stays
-    # there; this marks the manifest row so a restore can tell "the student
-    # removed this" from "this is still on their shelf".
+    # RELEASED BEFORE THE BYTES GO, NOT AFTER, AND THE ORDER IS THE WHOLE POINT.
+    # `release` runs a SELECT against `archived_documents`. Between an
+    # irreversible `unlink` and the commit, ANY failure of that query -- a lock
+    # timeout, a connection blip, or the table not existing yet because
+    # deploy.yml's `run_migrations` was left off -- rolls the transaction back
+    # with the file already destroyed, leaving a row whose download 404s. Ahead
+    # of the unlink, the same failure destroys nothing: the request 500s and
+    # the person retries.
+    #
+    # Deliberately NOT a `try/except OperationalError` around the call, which
+    # was the suggested fix: swallowing it would drop the manifest row silently
+    # and that row is the only thing that can ever name the archived bytes.
+    # The failure must stay loud. Moving it earlier makes it harmless as well.
+    #
+    # The bytes still leave the volume and the row still goes -- the student's
+    # screen, their quota and the store are all correct a second later. The
+    # file itself is already in the permanent archive and stays there; this
+    # marks the manifest row so a restore can tell "the student removed this"
+    # from "this is still on their shelf".
     release(db, upload.stored_name, reason="student deleted upload")
+    document_store_delete(upload.stored_name)
     db.delete(upload)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

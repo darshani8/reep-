@@ -350,8 +350,21 @@ def delete_attachment(
                 "Ask the office if it needs to go."
             ),
         )
-    document_store_delete(row.stored_name)
+    # RELEASED BEFORE THE BYTES GO, NOT AFTER, AND THE ORDER IS THE WHOLE POINT.
+    # `release` runs a SELECT against `archived_documents`. Between an
+    # irreversible `unlink` and the commit, ANY failure of that query -- a lock
+    # timeout, a connection blip, or the table not existing yet because
+    # deploy.yml's `run_migrations` was left off -- rolls the transaction back
+    # with the file already destroyed, leaving a row whose download 404s. Ahead
+    # of the unlink, the same failure destroys nothing: the request 500s and
+    # the person retries.
+    #
+    # Deliberately NOT a `try/except OperationalError` around the call, which
+    # was the suggested fix: swallowing it would drop the manifest row silently
+    # and that row is the only thing that can ever name the archived bytes.
+    # The failure must stay loud. Moving it earlier makes it harmless as well.
     release(db, row.stored_name, reason="attachment removed from leave request")
+    document_store_delete(row.stored_name)
     db.delete(row)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

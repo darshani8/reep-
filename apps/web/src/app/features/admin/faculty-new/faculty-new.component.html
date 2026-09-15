@@ -243,21 +243,14 @@
               Type a full email address — this is the address they sign in with.
             </p>
           }
-          <p class="help">
-            The address is lower-cased and must be free: an address already on any account is
-            refused, so a faculty row can never be attached to someone else’s login.
-          </p>
+          <p class="help">Must not already be on another account.</p>
           @if (collegeDomains().length > 0) {
             <p class="help">
               {{ selectedCollege()?.code }} admits addresses on
               <strong>{{ collegeDomains().join(', ') }}</strong>.
             </p>
           } @else {
-            <p class="help">
-              {{ selectedCollege()?.code }} has recorded no domains of its own, so the deployment’s
-              own list is what fences this address. That list is not on any endpoint this screen
-              reads — the server checks it when the account is created.
-            </p>
+            <p class="help">{{ selectedCollege()?.code }} has no domains of its own, so the deployment’s list applies.</p>
           }
         </div>
 
@@ -302,10 +295,7 @@
                 {{ externalReasonRequiredMessage }}
               </p>
             }
-            <p class="help">
-              Written to the audit row verbatim. It is the answer to “why does this account exist on
-              that address”, asked six months from now.
-            </p>
+            <p class="help">Recorded on the account.</p>
           </div>
         }
 

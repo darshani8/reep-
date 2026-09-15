@@ -166,10 +166,7 @@
             [value]="draftPersona()"
             (input)="draftPersona.set(textAreaValue($event))"
           ></textarea>
-          <span class="help">
-            A NOUN PHRASE, not a sentence — it is embedded as “you are {{ personaExample }}”, so a
-            full stop composes into “you are a sharp CFO..”
-          </span>
+          <span class="help">A noun phrase, e.g. “{{ personaExample }}”.</span>
         </div>
 
         <div class="field bank-persona">
@@ -182,9 +179,7 @@
             [value]="draftSample()"
             (input)="draftSample.set(textAreaValue($event))"
           ></textarea>
-          <span class="help">
-            The question PROBING works in early, rephrased naturally rather than recited
-          </span>
+          <span class="help">Asked early in the interview.</span>
         </div>
 
         <div class="bank-track-row">
@@ -227,9 +222,7 @@
             [value]="draftSyllabus()"
             (input)="draftSyllabus.set(inputValue($event))"
           />
-          <span class="help">
-            Comma separated, and optional — only Digital Marketing ships with one
-          </span>
+          <span class="help">Comma separated, optional.</span>
         </div>
 
         <label class="bank-enabled">
@@ -308,7 +301,7 @@
               [value]="newTrackPersona()"
               (input)="newTrackPersona.set(textAreaValue($event))"
             ></textarea>
-            <span class="help">A noun phrase — it is embedded as “you are {{ personaExample }}”</span>
+            <span class="help">A noun phrase, e.g. “{{ personaExample }}”.</span>
           </div>
 
           <div class="field bank-persona">
@@ -333,9 +326,7 @@
               [value]="newTrackFrameworks()"
               (input)="newTrackFrameworks.set(inputValue($event))"
             />
-            <span class="help">
-              Comma separated. Four or more, or the interview runs out of frameworks before wrap-up.
-            </span>
+            <span class="help">Comma separated, four or more.</span>
           </div>
 
           <div class="bank-form-foot">

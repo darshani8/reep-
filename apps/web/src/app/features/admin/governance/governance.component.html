@@ -92,10 +92,7 @@
                 [value]="actionReview()"
                 (change)="actionReview.set($any($event.target).value)"
               />
-              <span class="help">
-                Optional if you set an expiry. A grant with no expiry is brought back by this
-                date and nothing else.
-              </span>
+              <span class="help">Optional if you set an expiry.</span>
             </div>
           </div>
         }
@@ -173,7 +170,7 @@
         [attr.aria-selected]="tab() === 'catalogue'"
         (click)="tab.set('catalogue')"
       >
-        Functions catalogue<span class="gov-tab-count">· {{ functionCatalogue().length }}</span>
+        Access types<span class="gov-tab-count">· {{ functionCatalogue().length }}</span>
       </button>
       <button
         type="button"
@@ -234,7 +231,7 @@
         </div>
 
         <div class="select gov-function-filter">
-          <span class="lbl">Function</span>
+          <span class="lbl">Access</span>
           <span class="val">{{ functionFilterLabel() }}</span>
           <span class="icon" aria-hidden="true">expand_more</span>
           <select aria-label="Function" (change)="setFunctionFilter($any($event.target).value)">
@@ -328,8 +325,8 @@
                       <span>Person / group</span>
                     </label>
                   </th>
-                  <th>Function</th>
-                  <th>Function scope</th>
+                  <th>Access</th>
+                  <th>Scope</th>
                   <th>Reach</th>
                   <th>Granted by</th>
                   <th>Expires</th>
@@ -549,7 +546,7 @@
           }
 
           <div class="field">
-            <label for="gov-function">Function</label>
+            <label for="gov-function">Access</label>
             <select
               id="gov-function"
               #functionSelect
@@ -595,10 +592,7 @@
                 </option>
               }
             </select>
-            <span class="help" id="gov-scope-help">
-              How far this grant reaches. A student-level target is storable through the API but
-              is not offered here — a college of students is not a dropdown.
-            </span>
+            <span class="help" id="gov-scope-help">How far this grant reaches.</span>
           </div>
 
           <div class="gov-two">
@@ -705,7 +699,7 @@
               <thead>
                 <tr>
                   <th class="pinned gov-who-col">Person / group</th>
-                  <th>Function</th>
+                  <th>Access</th>
                   <th>Reach</th>
                   <th>Granted by</th>
                   <th>Reason</th>
@@ -773,7 +767,7 @@
               <thead>
                 <tr>
                   <th class="pinned gov-who-col">Person / group</th>
-                  <th>Function</th>
+                  <th>Access</th>
                   <th>Reach</th>
                   <th>Expires</th>
                   <th>Review</th>
@@ -844,7 +838,7 @@
         <table class="dt-table gov-table">
           <thead>
             <tr>
-              <th class="pinned gov-fn-col">Function</th>
+              <th class="pinned gov-fn-col">Access</th>
               <th>Key</th>
               <th>Scope</th>
               <th>Personal data</th>
@@ -1022,10 +1016,7 @@
               [value]="memberReason()"
               (input)="memberReason.set($any($event.target).value)"
             ></textarea>
-            <span class="help">
-              Joining hands over every function the group holds, so it asks for the same reason a
-              grant does — at least {{ minReason() | plural: 'character' }}.
-            </span>
+            <span class="help">At least {{ minReason() | plural: 'character' }}.</span>
           </div>
           <div class="gov-actions">
             <button

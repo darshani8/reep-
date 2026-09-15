@@ -120,9 +120,7 @@
               [value]="formEmail()"
               (input)="onEmail(emailInput.value)"
             />
-            <div class="help">
-              Only a college domain is accepted — the roster is the access control.
-            </div>
+            <div class="help">Only a college domain is accepted.</div>
           </div>
           <div class="field">
             <label for="student-usn">USN</label>
@@ -443,12 +441,7 @@
                     [value]="capReason()"
                     (input)="onCapReason(capReasonInput.value)"
                   ></textarea>
-                  <div class="help">
-                    This does not zero a counter — there is no counter. The cap is a rolling
-                    24-hour count, and the reset moves the window's start forward to now, so
-                    attempts already counted are not taken back and a second reset can only move it
-                    on again.
-                  </div>
+                  <div class="help">Attempts already counted are kept; the count restarts from now.</div>
                 </div>
                 <div class="row-actions" role="group" aria-label="Confirm the cap reset">
                   <button

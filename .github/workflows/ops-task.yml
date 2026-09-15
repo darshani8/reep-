@@ -31,11 +31,16 @@ on:
           - seed-roster-dry-run
           - seed-roster
           - seed-kb
+          - seed-catalogue-dry-run
+          - seed-catalogue
           - grant-access
           - purge-people-dry-run
           - purge-people
           - purge-students-dry-run
           - purge-students
+      college_code:
+        description: "seed-catalogue only: which college to write, e.g. 1MP. The catalogue itself lives in app/seed_catalogue.py; this box only chooses which block of it to apply. An unknown code is refused rather than defaulted - seeding the wrong college leaves a catalogue somebody unpicks by hand, and there is no destructor for one."
+        required: false
       email:
         description: "grant-access only: the Google email to allow"
         required: false
@@ -122,6 +127,7 @@ jobs:
           GRANT_EMAIL: ${{ inputs.email }}
           GRANT_NAME: ${{ inputs.display_name }}
           GRANT_ROLE: ${{ inputs.role }}
+          CATALOGUE_COLLEGE: ${{ inputs.college_code }}
           GRANT_USN: ${{ inputs.usn }}
           GRANT_DEPARTMENT: ${{ inputs.department_id }}
           GRANT_HASH: ${{ inputs.password_hash }}
@@ -137,6 +143,16 @@ jobs:
               CMD=$(jq -cn '["python","-m","app.seed_roster"]') ;;
             seed-kb)
               CMD=$(jq -cn '["python","-m","app.seed_kb"]') ;;
+            # DRY RUN IS A SEPARATE MENU ENTRY, not a checkbox, for the two
+            # purges' reason: the difference between looking and writing must be
+            # visible in the run's own title afterwards. The dry run does the
+            # whole seed inside a transaction and rolls it back, so its counts
+            # are real rather than guessed -- it catches a unique-constraint
+            # collision that a guess would not.
+            seed-catalogue-dry-run)
+              CMD=$(jq -cn --arg c "$CATALOGUE_COLLEGE" '["python","-m","app.seed_catalogue","--college",$c]') ;;
+            seed-catalogue)
+              CMD=$(jq -cn --arg c "$CATALOGUE_COLLEGE" '["python","-m","app.seed_catalogue","--college",$c,"--apply"]') ;;
             purge-people-dry-run)
               CMD=$(jq -cn '["python","-m","app.purge_people"]') ;;
             purge-people)

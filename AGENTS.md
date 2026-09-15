@@ -296,6 +296,32 @@ chip per leaf is the same case-folded code match `_default_track` applies —
 "Mock interview: general" is a fact the office sees before the first student
 does, not a surprise on the day. Nothing on the screen explains itself.
 
+**THE THREE COLLEGE-SETUP SCREENS NO LONGER REPEAT EACH OTHER (2026-09-15).**
+Colleges carried its own Add-college form beside the header's "Set up a
+college" button; College structure carried a third Add-college form plus
+inline Add-department / Add-course / Add-specialization forms that were the
+setup flow's five POSTs typed one at a time on a second screen; and the owner
+named the repetition. The split is one sentence now: **Set up a college ADDS,
+College structure SEES AND CHANGES, Colleges LISTS.** `/admin/setup` step 1
+took the one field Colleges' form had that it lacked (`contact`), and every
+"Add a …" on College structure is a link into
+`/admin/setup?college=<id>&step=<n>` that loads that college and opens on that
+step, so adding one department is not six presses of Continue. What stays on
+College structure is what the flow cannot do: edit or archive a course, map a
+mock interview, edit a batch, add a NON-standard batch (a section, odd dates —
+the flow writes one per leaf on the academic year), seat students, and the
+email domains. The one thing Colleges' form did that the flow could not —
+appointing a college admin — is an "Appoint" action on each college card,
+which also works for a college that already exists rather than only at the
+moment of creation. Both screens are the setup screen's shape now: on
+Colleges a college is a card with its facts and two buttons ("Open", "Add
+departments, courses, batches"); College structure picks ONE college in a
+select at the top (`?college=` preselects it, which is how "Open" lands) and
+lists its sections top to bottom, a department or course a bordered row that
+opens on press, in place of the rail-and-detail-stack board. The card that
+described what a college admin may and may not do was prose about the
+capability catalogue and is gone; Who can do what lists it.
+
 An item with `path: null` renders as a LABELLED, NON-CLICKABLE row carrying its
 `arrivesIn` badge ("Available with Phase 2"). This is deliberate and it is the
 opposite of the usual instinct, which is to leave an unbuilt screen out until it

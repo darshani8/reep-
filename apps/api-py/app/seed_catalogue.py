@@ -58,7 +58,8 @@ from __future__ import annotations
 
 import argparse
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import select
@@ -66,6 +67,7 @@ from sqlalchemy.orm import Session
 
 from .db import SessionLocal
 from .models.cohort import Cohort
+from .models.job import DegreeLevel
 from .models.institution import (
     STATUS_ACTIVE,
     AcademicCourse,
@@ -97,6 +99,14 @@ class Course:
 
     code: str
     name: str
+    #: UG or PG. REQUIRED AND DEFAULTED NOWHERE, because `cohorts.degree_level`
+    #: is not bookkeeping: it gates which vacancies the batch sees
+    #: (`models/cohort.py`'s own first line). A default would file a new
+    #: college's courses as whatever this file happened to guess, and the
+    #: symptom would be students seeing the wrong jobs with nothing on any
+    #: screen to explain it. It sits on the COURSE and not the college because
+    #: one institution can run both.
+    degree_level: DegreeLevel
     specializations: tuple[Spec, ...] = ()
 
 
@@ -122,6 +132,7 @@ CATALOGUES: dict[str, Catalogue] = {
             Course(
                 code="gen",
                 name="General MBA",
+                degree_level=DegreeLevel.PG,
                 specializations=(
                     # Three of these four match a built-in interview track by
                     # code. `marketing` deliberately does not: the only
@@ -136,8 +147,12 @@ CATALOGUES: dict[str, Catalogue] = {
                 ),
             ),
             # No specializations, and the code IS the track key.
-            Course(code="dm", name="Digital Marketing"),
-            Course(code="lscm", name="Logistics and Supply Chain Management"),
+            Course(code="dm", name="Digital Marketing", degree_level=DegreeLevel.PG),
+            Course(
+                code="lscm",
+                name="Logistics and Supply Chain Management",
+                degree_level=DegreeLevel.PG,
+            ),
         ),
         batches=("2025-27",),
     ),
@@ -179,6 +194,53 @@ def batch_code(cat: Catalogue, course: Course, spec: Spec | None, label: str) ->
     return "-".join(p.strip().upper() for p in parts)
 
 
+#: The month an academic year is taken to begin, for deriving a batch's dates.
+#:
+#: `cohorts.start_date` and `end_date` are NOT NULL, so a batch cannot be
+#: written without them, and this file is not told the college's real term
+#: dates. This is therefore a stated CONVENTION and not a fact: 1 July of the
+#: first year to 30 June of the last. Both dates are printed by every run and
+#: both are editable on the Batches screen, so an office whose term runs on
+#: other dates corrects two fields rather than discovering a silent guess.
+#:
+#: The alternative -- inventing a narrower-looking date such as "1 August,
+#: because that is when most Indian MBAs start" -- would read as researched
+#: rather than assumed, which is worse than a round number that announces
+#: itself.
+ACADEMIC_YEAR_START_MONTH = 7
+
+
+def batch_dates(label: str) -> tuple[datetime, datetime]:
+    """``"2025-27"`` -> (1 Jul 2025, 30 Jun 2027), in UTC.
+
+    A malformed label is REFUSED rather than defaulted. A batch carrying dates
+    nobody meant is worse than one that failed to write: `status` filters,
+    promotion and graduation all read these, and nothing on screen would say the
+    span came from a parse that gave up.
+    """
+    head, _, tail = label.partition("-")
+    if not head.isdigit() or not tail.isdigit():
+        raise ValueError(
+            f"batch label {label!r} is not <start>-<end>, e.g. '2025-27' or "
+            "'2025-2027'. Refusing rather than guessing the dates."
+        )
+    start_year = int(head)
+    end_year = int(tail)
+    if end_year < 100:  # "27" means 2027, not the year 27
+        end_year += start_year - start_year % 100
+    if not start_year < end_year <= start_year + 10:
+        raise ValueError(
+            f"batch label {label!r} spans {start_year} to {end_year}, which is "
+            "not a programme. Refusing rather than writing it."
+        )
+    start = datetime(start_year, ACADEMIC_YEAR_START_MONTH, 1, tzinfo=timezone.utc)
+    # The day BEFORE the academic year would next begin: 1 Jul 2025 -> 30 Jun
+    # 2027. Subtracting a day rather than naming month-1 keeps this correct if
+    # the constant is ever moved to January, where month-1 is not a month.
+    end = datetime(end_year, ACADEMIC_YEAR_START_MONTH, 1, tzinfo=timezone.utc) - timedelta(days=1)
+    return start, end
+
+
 def batch_name(cat: Catalogue, course: Course, spec: Spec | None, label: str) -> str:
     """What the office reads on the Batches screen.
 
@@ -190,6 +252,47 @@ def batch_name(cat: Catalogue, course: Course, spec: Spec | None, label: str) ->
     """
     tail = f" - {spec.name}" if spec is not None else ""
     return f"{course.name}{tail} {label}"
+
+
+def cohort_fields(
+    cat: Catalogue,
+    course: Course,
+    spec: Spec | None,
+    label: str,
+    department_id: str,
+    course_id: str,
+    specialization_id: str | None,
+) -> dict[str, Any]:
+    """Every column a new `cohorts` row needs, in one place.
+
+    EXTRACTED SO A TEST CAN CHECK IT AGAINST THE TABLE ITSELF. The first version
+    of this module supplied five of `cohorts`' eight required columns, and CI
+    caught it -- but only by failing an INSERT, which names whichever column
+    Postgres happened to reach first and says nothing about the other two. That
+    table has grown `degree_level` and `status` in separate rounds already and
+    will grow more; a hand-written list checked by a hand-written test goes
+    stale the same way, in the same silence.
+
+    `tests/test_seed_catalogue.py` compares these keys against
+    `Cohort.__table__` and fails on any non-nullable column this dict omits, so
+    the next person to add one is stopped here rather than in production.
+
+    `degree_level` is the one that matters beyond the insert succeeding: it
+    gates which vacancies the batch sees, which is why it is declared per course
+    rather than defaulted.
+    """
+    start, end = batch_dates(label)
+    return {
+        "code": batch_code(cat, course, spec, label),
+        "name": batch_name(cat, course, spec, label),
+        "batch_label": label,
+        "department_id": department_id,
+        "course_id": course_id,
+        "specialization_id": specialization_id,
+        "degree_level": course.degree_level,
+        "start_date": start,
+        "end_date": end,
+    }
 
 
 # ---------------------------------------------------------------- the write --
@@ -284,18 +387,25 @@ def seed(db: Session, cat: Catalogue) -> dict[str, Any]:
             code = batch_code(cat, course, spec, label)
             crow = course_rows[course.code]
             srow = spec_rows[(course.code, spec.code)] if spec is not None else None
+            start, end = batch_dates(label)
             _, made = _get_or_create(
                 db,
                 Cohort,
                 Cohort.code == code,
-                code=code,
-                name=batch_name(cat, course, spec, label),
-                batch_label=label,
-                department_id=department.id,
-                course_id=crow.id,
-                specialization_id=srow.id if srow is not None else None,
+                **cohort_fields(
+                    cat,
+                    course,
+                    spec,
+                    label,
+                    department.id,
+                    crow.id,
+                    srow.id if srow is not None else None,
+                ),
             )
             tally("batch", made)
+            summary.setdefault("batch_dates", {})[label] = (
+                f"{start:%d %b %Y} to {end:%d %b %Y}"
+            )
 
     return summary
 
@@ -402,6 +512,9 @@ def main(argv: list[str] | None = None) -> int:
         log.info("already present (left untouched): %s", kept)
     for line in summary["drift"]:
         log.warning("%s", line)
+    for label, span in sorted(summary.get("batch_dates", {}).items()):
+        # Printed because they are a CONVENTION, not a fact this file was told.
+        log.info("Batch %s runs %s (a convention - edit on the Batches screen)", label, span)
     log.info("Interview track preselection, per leaf:")
     for line in report:
         log.info("%s", line)

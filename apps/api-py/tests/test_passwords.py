@@ -25,6 +25,7 @@ out of the message text exactly as a person would read it.
 """
 
 import re
+import uuid
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -494,9 +495,19 @@ def application():
         with SessionLocal() as db:
             db.execute(delete(Registration).where(Registration.email == email))
             db.commit()
+        # USN, phone, personal email and LinkedIn are required at the schema
+        # (2026-09-16); a caller that names no USN gets a unique one.
         return client.post(
             "/api/register",
-            json={"name": name, "email": email, "usn": usn, "phone": None, "degree_level": "PG"},
+            json={
+                "name": name,
+                "email": email,
+                "usn": usn or f"1BG26PWD{uuid.uuid4().hex[:3].upper()}",
+                "phone": "+91 90000 00000",
+                "personal_email": f"personal.{uuid.uuid4().hex[:8]}@gmail.com",
+                "linkedin_url": "https://www.linkedin.com/in/password-applicant",
+                "degree_level": "PG",
+            },
         )
 
     def _rule(**kw) -> str:

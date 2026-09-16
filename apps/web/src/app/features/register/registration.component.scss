@@ -79,6 +79,29 @@
   font-weight: 700;
 }
 
+/* The accepted format and size, on the dropzone itself. A rule the applicant
+   meets only as a refusal after picking a file is a rule stated too late. */
+.reg-file-hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Why the last picked file was refused: under the picker, announced. */
+.reg-file-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  color: var(--risk);
+
+  .icon {
+    font-size: 16px;
+  }
+}
+
 .reg-chain {
   display: flex;
   align-items: center;

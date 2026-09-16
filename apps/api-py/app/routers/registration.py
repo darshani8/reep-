@@ -41,7 +41,7 @@ from fastapi import (
     UploadFile,
     status,
 )
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
@@ -300,14 +300,81 @@ def _pick_rule(
     return None
 
 
+def _looks_like_email(value: str) -> bool:
+    """The same light shape check `submit` applies to the college address:
+    an `@` with a dotted domain after it. Deliberately not the email-validator
+    dependency; the domain is what the rule engine keys on."""
+    return "@" in value and "." in value.rsplit("@", 1)[-1]
+
+
 class RegisterIn(BaseModel):
+    """EVERY FIELD THE FORM ASKS FOR IS REQUIRED HERE TOO (2026-09-16), except
+    the claim of where the applicant belongs, which the hierarchy decides.
+
+    The owner's rule for the public form is "everything is compulsory except
+    Specialization". A rule the form keeps and the API does not is one a
+    curl, an older bundle or a retry after a half-loaded page walks straight
+    past, and the reviewer then meets an application with no phone number and
+    no way to reach the person except the address they are still proving they
+    own. So USN, phone, the personal address and the LinkedIn profile are
+    required at the schema, stripped, and refused blank; the two columns
+    they land in stay NULLABLE, because requiredness is a rule about new rows
+    and nullability is a promise about the ones already written.
+
+    The CV and the photo are required by the same rule and CANNOT be here:
+    they are posted to `attach_document` after the 201, keyed on the id this
+    endpoint mints. The form refuses to submit without both, and the reviewer's
+    checklist (`CHECK_DOCUMENTS`) names whichever is missing on a row that
+    arrived without them.
+    """
+
     name: str = Field(min_length=1, max_length=200)
     # A plain string with a light shape check (avoids the email-validator dep);
     # the domain is what the rule engine actually keys on.
     email: str = Field(min_length=3, max_length=200)
-    usn: str | None = Field(default=None, max_length=32)
-    phone: str | None = Field(default=None, max_length=32)
+    usn: str = Field(min_length=1, max_length=32)
+    phone: str = Field(min_length=1, max_length=32)
+    #: A second address the office can reach when the college one is not yet
+    #: live, or stops being. Never what the account is keyed on.
+    personal_email: str = Field(min_length=3, max_length=200)
+    #: A LinkedIn profile URL or handle; copied onto the student's profile at
+    #: approval, where the placement record already asks for one.
+    linkedin_url: str = Field(min_length=1, max_length=300)
     degree_level: DegreeLevel = DegreeLevel.PG
+
+    @field_validator("usn", "phone", "personal_email", "linkedin_url")
+    @classmethod
+    def _not_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("this field is required")
+        return value
+
+    @field_validator("personal_email")
+    @classmethod
+    def _personal_email_shape(cls, value: str) -> str:
+        value = value.lower()
+        if not _looks_like_email(value):
+            raise ValueError("enter a valid personal email address")
+        return value
+
+    @field_validator("linkedin_url")
+    @classmethod
+    def _linkedin_shape(cls, value: str) -> str:
+        """Accepts `linkedin.com/in/asha`, `www.linkedin.com/in/asha` or the
+        full https URL and stores the https form; anything without a
+        linkedin.com path is refused, because a free-text box labelled LinkedIn
+        collects Instagram handles otherwise."""
+        bare = value.strip()
+        lowered = bare.lower()
+        if lowered.startswith("http://"):
+            bare = bare[len("http://"):]
+        elif lowered.startswith("https://"):
+            bare = bare[len("https://"):]
+        host, _, path = bare.partition("/")
+        if host.lower() not in {"linkedin.com", "www.linkedin.com"} or not path.strip("/"):
+            raise ValueError("enter your LinkedIn profile link, e.g. linkedin.com/in/your-name")
+        return "https://www.linkedin.com/" + path.strip("/")
     # WHERE THE APPLICANT SAYS THEY BELONG, from the hierarchy the admin built.
     # Send the DEEPEST level known; the API derives the ancestors and refuses a
     # contradiction. All optional at the API - the form requires College and
@@ -367,6 +434,12 @@ CHECK_USN_PATTERN = "usn_pattern"
 #: the new application is the one person who needs to know it is not the first
 #: - and what the office said last time. Approve is not refused by it.
 CHECK_PRIOR_APPLICATIONS = "prior_applications"
+#: A WARN, never a block: the form requires both files (2026-09-16), so a row
+#: without them is one whose upload failed after the 201 or that was posted
+#: past the form. Approve still works - the office can hold it and ask for the
+#: file, which is what HOLD is for - but the reviewer must see the gap before
+#: pressing the button, not after the student has no resume.
+CHECK_DOCUMENTS = "documents"
 
 
 class CheckOut(BaseModel):
@@ -398,6 +471,12 @@ class RegistrationOut(BaseModel):
     review_note: str | None
     approved_student_id: str | None
     created_at: datetime
+    #: How to reach the applicant (2026-09-16): the phone and the personal
+    #: address they typed, and the LinkedIn profile. Staff-only for free, like
+    #: the hold stamp below - `PublicRegistrationOut` declares none of them.
+    phone: str | None = None
+    personal_email: str | None = None
+    linkedin_url: str | None = None
     #: The HOLD stamp (B11.2) — who parked this application, when, and why. All
     #: three are null on every row that is not, and has never been, on hold.
     #: Staff-only for free: `PublicRegistrationOut` declares none of them, and
@@ -657,7 +736,12 @@ def domain_verdict(
     return DomainVerdict(ok=bool(domain) and domain in allowed, domain=domain, allowed=allowed)
 
 
-def _checks_for(db: Session, rows: Sequence[Registration]) -> dict[str, list[CheckOut]]:
+def _checks_for(
+    db: Session,
+    rows: Sequence[Registration],
+    *,
+    docs: dict[str, list[str]] | None = None,
+) -> dict[str, list[CheckOut]]:
     """The pre-decision checklist for a whole page, in a handful of queries.
 
     BATCHED BY `IN`, NEVER PER ROW — `_doc_kinds` and `_claim_names` above are the
@@ -674,6 +758,10 @@ def _checks_for(db: Session, rows: Sequence[Registration]) -> dict[str, list[Che
     """
     if not rows:
         return {}
+
+    # -- what was attached (the queue passes its own lookup; one query else) --
+    if docs is None:
+        docs = _doc_kinds(db, [r.id for r in rows])
 
     # -- the college fence, per distinct college ------------------------------
     cohort_colleges = college_ids_for_cohorts(
@@ -759,6 +847,7 @@ def _checks_for(db: Session, rows: Sequence[Registration]) -> dict[str, list[Che
             # (DECIDABLE_STATUSES), but the exclusion costs nothing and keeps
             # the helper honest if that ever changes.
             prior=[p for p in prior_by_email.get((r.email or "").strip().lower(), []) if p.id != r.id],
+            docs=docs.get(r.id, ()),
         )
         for r in rows
     }
@@ -773,6 +862,7 @@ def _checks_for_one(
     student_by_usn: dict[str, Student],
     rule: RegistrationRule | None,
     prior: Sequence[Registration] = (),
+    docs: Sequence[str] = (),
 ) -> list[CheckOut]:
     """One application's checklist, from facts the caller already resolved.
 
@@ -781,6 +871,7 @@ def _checks_for_one(
     can reach the database is a helper somebody calls in a loop.
 
     `prior` is this address's REJECTED applications, newest decision first.
+    `docs` is the kinds attached ("CV", "PHOTO"), from the queue's own lookup.
     """
     checks: list[CheckOut] = []
     reason = (r.decision_reason or "").strip()
@@ -1006,6 +1097,39 @@ def _checks_for_one(
                 )
             )
 
+    # ---- the CV and the photo ------------------------------------------------
+    # Both are required by the form (2026-09-16). A row missing one arrived
+    # through something other than a completed form - an upload that failed
+    # after the 201, or a direct POST - and the reviewer decides what that
+    # means; the check only makes sure they decide it knowingly.
+    missing = [
+        noun
+        for kind, noun in ((DOCUMENT_KIND_CV, "CV"), (DOCUMENT_KIND_PHOTO, "photo"))
+        if kind not in docs
+    ]
+    if missing:
+        checks.append(
+            CheckOut(
+                key=CHECK_DOCUMENTS,
+                status=CHECK_WARN,
+                label=(" and ".join(missing) + " missing") if len(missing) > 1 else f"No {missing[0]} attached",
+                detail=(
+                    "The form requires a CV (PDF) and a photo (PNG or JPG). Hold the "
+                    "application and ask the applicant for the file, or approve without it "
+                    "and they start with no " + " or ".join(missing) + " on their uploads."
+                ),
+            )
+        )
+    else:
+        checks.append(
+            CheckOut(
+                key=CHECK_DOCUMENTS,
+                status=CHECK_OK,
+                label="CV and photo attached",
+                detail="Both files came with the application; Approve moves them onto the student's uploads.",
+            )
+        )
+
     return checks
 
 
@@ -1052,6 +1176,9 @@ def _out(
         name=r.name,
         email=r.email,
         usn=r.usn,
+        phone=r.phone,
+        personal_email=r.personal_email,
+        linkedin_url=r.linkedin_url,
         degree_level=r.degree_level.value,
         status=r.status.value,
         cohort_id=r.cohort_id,
@@ -1359,6 +1486,8 @@ def submit(
         email=email,
         usn=body.usn,
         phone=body.phone,
+        personal_email=body.personal_email,
+        linkedin_url=body.linkedin_url,
         degree_level=body.degree_level,
         status=RegistrationStatus.PENDING_REVIEW,
         cohort_id=None,
@@ -1481,7 +1610,7 @@ def pending(
     names = _claim_names(db, rows)
     # Only a row somebody can still decide gets a checklist. See
     # DECIDABLE_STATUSES: null here means NOT COMPUTED, never "nothing wrong".
-    checks = _checks_for(db, rows) if wanted in DECIDABLE_STATUSES else {}
+    checks = _checks_for(db, rows, docs=kinds) if wanted in DECIDABLE_STATUSES else {}
     return [_out(r, kinds.get(r.id, ()), names.get(r.id), checks.get(r.id)) for r in rows]
 
 
@@ -1765,7 +1894,23 @@ def _provision_student(db: Session, reg: Registration) -> Student:
         select(StudentProfile).where(StudentProfile.student_id == student.id)
     )
     if existing_profile is None:
-        db.add(StudentProfile(student_id=student.id, email=email))
+        # The phone and LinkedIn the form required (2026-09-16) are the same
+        # two the placement profile asks the student for on day one; typing
+        # them twice was the only outcome of not copying them.
+        db.add(
+            StudentProfile(
+                student_id=student.id,
+                email=email,
+                phone=reg.phone,
+                linkedin_url=reg.linkedin_url,
+            )
+        )
+    else:
+        # A re-applicant keeps what they have; the application fills blanks only.
+        if not existing_profile.phone and reg.phone:
+            existing_profile.phone = reg.phone
+        if not existing_profile.linkedin_url and reg.linkedin_url:
+            existing_profile.linkedin_url = reg.linkedin_url
 
     reg.approved_student_id = student.id
     return student

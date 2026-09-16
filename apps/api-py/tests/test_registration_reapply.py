@@ -22,6 +22,7 @@ What these pin:
 """
 
 import pytest
+import uuid
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 
@@ -75,7 +76,15 @@ def address():
 def _submit(client, email: str, usn: str):
     return client.post(
         "/api/register",
-        json={"name": "Reapply Test", "email": email, "usn": usn, "phone": None, "degree_level": "PG"},
+        json={
+            "name": "Reapply Test",
+            "email": email,
+            "usn": usn,
+            "phone": "+91 90000 00000",
+            "personal_email": f"personal.{uuid.uuid4().hex[:8]}@gmail.com",
+            "linkedin_url": "https://www.linkedin.com/in/reapply-test",
+            "degree_level": "PG",
+        },
     )
 
 

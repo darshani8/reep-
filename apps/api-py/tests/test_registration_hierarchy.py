@@ -61,9 +61,20 @@ def applicant():
         with SessionLocal() as db:
             db.execute(delete(Registration).where(Registration.email == email))
             db.commit()
+        # USN, phone, personal email and LinkedIn are required at the schema
+        # (2026-09-16); a caller that names no USN gets a unique one.
         return client.post(
             "/api/register",
-            json={"name": "Hierarchy Applicant", "email": email, "usn": usn, "phone": None, "degree_level": "PG", **claim},
+            json={
+                "name": "Hierarchy Applicant",
+                "email": email,
+                "usn": usn or f"1BG26HIE{uuid.uuid4().hex[:3].upper()}",
+                "phone": "+91 90000 00000",
+                "personal_email": f"personal.{uuid.uuid4().hex[:8]}@gmail.com",
+                "linkedin_url": "https://www.linkedin.com/in/hierarchy-applicant",
+                "degree_level": "PG",
+                **claim,
+            },
         )
 
     def rule(**kw) -> str:

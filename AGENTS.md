@@ -346,7 +346,13 @@ Skilling; the orb's "Type instead" opens `/student/agent`); admins get
 Analytics, Leave Approvals, Mentors & Students, Jobs Sheet, Exports, REEP Agent
 (Registrations, Catalogue and Placement stay routed and are reached from the
 Analytics tiles). The REEP Agent chat (`features/agent`, `POST /api/agent/ask`)
-is the design's assistant, so `AGENT_RUNS_COLLECTED` is `True` again. Deleted
+is the design's assistant, so `AGENT_RUNS_COLLECTED` is `True` again. **The
+REEP Agent row left every sidebar on 2026-09-16** — admin's "Ask REEP" and
+faculty's "REEP Agent" both — because the floating orb on every screen opens
+the same chat and a sidebar row was the same door drawn twice; the three
+`/agent` routes stay as deep links, the orb's "Type instead" and the admin
+Home's "Ask REEP" tile still reach them, and `AGENT_RUNS_COLLECTED` stays
+`True` because the screen is still mounted. Deleted
 with this: the student Badges, Overview, Academics and Offers screens, the
 mentor Badge Centre and the placeholder component. **The mock interviewer is
 NOT in the design and was kept on purpose** — it is deployed and working, and

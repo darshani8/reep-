@@ -39,6 +39,27 @@
   text-underline-offset: 2px;
 }
 
+/* The Main Admin's rehearsal line: a note tone, not an error. */
+.rehearsal {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border-left: 3px solid var(--brand-purple);
+  background: var(--tint-2);
+  color: var(--ink);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+.rehearsal .icon {
+  font-size: 16px;
+  flex: none;
+  margin-top: 1px;
+  color: var(--brand-purple);
+}
+
 /* Inline text-button (Dismiss, Read again). */
 .link-btn {
   background: none;

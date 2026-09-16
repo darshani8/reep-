@@ -95,6 +95,22 @@ can pulse and carry "Live · 04:12" without importing `InterviewService`; the
 room is the only writer and clears it in `ngOnDestroy`, which is also where the
 microphone is released — so closing the dock over a live interview asks first.
 
+### The Main Admin's rehearsal (2026-09-16)
+
+The office can sit the interview from the dock's "Mock interview" tab to hear
+the interviewer it deploys, and **the server stores nothing for it**. The gate
+is `_is_rehearsal` in `app/routers/interview.py` (role ADMIN only); the
+mechanism is that `_open_records` — the one function that writes the
+conversation, the `interview_sessions` row and the consent check — is never
+called, and the engine is constructed through `_run_relay` with every writer
+`None`, no recorder, the default policy with both storage scopes off, and no
+`interview_session_id` for the backstop to close. The scorecard still arrives
+on the socket and is shown once; the room says on screen that nothing is
+saved and asks for no consent. The cookie, the Origin check, engine readiness
+and both concurrency caps apply unchanged. `GET /api/interview/status` carries
+`rehearsal: true` for that account so the client can tell the two apart; a
+MENTOR is still refused with 1008.
+
 ### Nova 2 Sonic — what is different, and what is not
 
 **Not different:** the persona (imported verbatim from `interview_core.py`, so

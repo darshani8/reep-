@@ -75,7 +75,8 @@ import asyncio
 import logging
 import uuid
 from collections.abc import Callable
-from dataclasses import dataclass
+from typing import Any
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketException
@@ -102,6 +103,7 @@ from ..interview_policy import (
     cap_message,
     evaluate_caps,
     policy_for_student,
+    default_policy,
 )
 from ..interview_tracks import resolve_specialization
 # B6.2. The four numbers are copied out of the record at finalization, because
@@ -283,6 +285,35 @@ class StatusOut(BaseModel):
     reason: str | None = None
     active_sessions: int
     max_sessions: int
+    #: True for the Main Admin: the interview runs, and NOTHING is stored.
+    #: See `_is_rehearsal`.
+    rehearsal: bool = False
+
+
+def _is_rehearsal(session: dict) -> bool:
+    """The Main Admin's rehearsal — the interview with no record (2026-09-16).
+
+    The office asked to be able to TRY the interviewer: hear the persona, walk
+    the four phases, see the scorecard arrive, on the deployment the students
+    use. The Main Admin is not a student, so it has no `students` row, no
+    consent to record, no cap to count and no mentor to read a transcript —
+    every table the interview writes is keyed on a student, and every reader of
+    those tables is rule 2's. So the rehearsal is the interview with ALL of its
+    writers unplugged: no conversation, no `interview_sessions` row, no turns,
+    no report row, no recording, no consent row. The engine speaks, the socket
+    relays, the scorecard is shown once on screen and is gone with the tab.
+
+    What still applies: the session cookie, the Origin check, the engine's
+    readiness, and BOTH halves of the concurrency limiter — a rehearsal bills
+    an upstream session exactly as a real interview does, and the per-user cap
+    is what keeps "test it" from becoming "open six of them".
+
+    Only ADMIN. A MENTOR is still refused (1008): faculty read interview
+    records through rule 2 and do not sit them, and a staff rehearsal path with
+    no record would be a way to spend the college's Bedrock budget that nothing
+    accounts for. The one office account is a bounded audience.
+    """
+    return session.get("role") == Role.ADMIN.value
 
 
 @router.get("/status", response_model=StatusOut)
@@ -302,26 +333,32 @@ def interview_status(
     throw away the very explanation this endpoint exists to give. Nothing about
     a student's data is disclosed either way.
     """
-    if session.get("role") != Role.STUDENT.value:
+    rehearsal = _is_rehearsal(session)
+    if session.get("role") != Role.STUDENT.value and not rehearsal:
         return StatusOut(
             available=False,
             reason="Mock interviews are a student feature.",
             active_sessions=_LIMITER.active,
             max_sessions=_LIMITER.limit,
+            rehearsal=rehearsal,
         )
     # ASKED BEFORE "is the engine configured", and the order is the message.
     # A student whose office switched mock interviews off must read the sentence
     # the office wrote, not "Voice service not configured" — which is an
     # operator's problem, sends them to support, and is not even true for them.
-    switch = feature_state(db, session["studentId"], "student.assistant") if session.get(
-        "studentId"
-    ) else None
+    # The switch is per STUDENT and the rehearsal has none, so it is not asked.
+    switch = (
+        feature_state(db, session["studentId"], "student.assistant")
+        if session.get("studentId") and not rehearsal
+        else None
+    )
     if switch is not None and not switch.enabled:
         return StatusOut(
             available=False,
             reason=switch.message or FEATURE_DISABLED_DEFAULT_MESSAGE,
             active_sessions=_LIMITER.active,
             max_sessions=_LIMITER.limit,
+            rehearsal=rehearsal,
         )
     if not settings.interview_ready:
         # ENGINE-AWARE, and it has to be: `realtime_ready` asks the OpenAI
@@ -338,6 +375,7 @@ def interview_status(
             reason=settings.interview_unready_reason,
             active_sessions=_LIMITER.active,
             max_sessions=_LIMITER.limit,
+            rehearsal=rehearsal,
         )
     if _LIMITER.active >= _LIMITER.limit:
         return StatusOut(
@@ -345,6 +383,7 @@ def interview_status(
             reason="Too many interviews are running right now. Try again shortly.",
             active_sessions=_LIMITER.active,
             max_sessions=_LIMITER.limit,
+            rehearsal=rehearsal,
         )
     if _LIMITER.active_for(session["userId"]) >= _LIMITER.per_user_limit:
         # Asked here as well as at the socket so the student reads a sentence
@@ -360,12 +399,14 @@ def interview_status(
             ),
             active_sessions=_LIMITER.active,
             max_sessions=_LIMITER.limit,
+            rehearsal=rehearsal,
         )
     return StatusOut(
         available=True,
         reason=None,
         active_sessions=_LIMITER.active,
         max_sessions=_LIMITER.limit,
+        rehearsal=rehearsal,
     )
 
 
@@ -936,7 +977,8 @@ async def interview(websocket: WebSocket) -> None:
     # in the Angular component is not a gate: a MENTOR or the Main Admin holding a
     # valid cookie can open this socket from devtools in one line, and each open
     # costs a billed upstream Realtime session.
-    if session.get("role") != Role.STUDENT.value:
+    rehearsal = _is_rehearsal(session)
+    if session.get("role") != Role.STUDENT.value and not rehearsal:
         log.warning(
             "[conn=%s] WS /api/interview -> %d: role %s is not STUDENT",
             conn_id,
@@ -958,7 +1000,17 @@ async def interview(websocket: WebSocket) -> None:
     # instead of meeting the NOT NULL violation as an opaque 1011 thirty seconds
     # later with an upstream session already billed.
     student_id = session.get("studentId")
-    if not student_id:
+    if rehearsal:
+        # The Main Admin has no Student row and needs none: nothing below
+        # writes. `student_id` stays None, and every branch that would have
+        # written keys off `rehearsal` rather than off its absence.
+        log.info(
+            "[conn=%s] WS /api/interview: REHEARSAL by the Main Admin (%s) — "
+            "nothing from this interview will be stored",
+            conn_id,
+            session.get("userId"),
+        )
+    elif not student_id:
         log.error(
             "[conn=%s] WS /api/interview -> %d: STUDENT session has no studentId",
             conn_id,
@@ -977,8 +1029,12 @@ async def interview(websocket: WebSocket) -> None:
     # than an operator's, and a refusal that happens before `try_acquire` can
     # never leak the slot it did not take. to_thread because this is a SELECT
     # and this coroutine shares its loop with every live interview's audio.
-    switch = await asyncio.to_thread(_assistant_switch, student_id)
-    if not switch.enabled:
+    switch = (
+        await asyncio.to_thread(_assistant_switch, student_id)
+        if not rehearsal
+        else None
+    )
+    if switch is not None and not switch.enabled:
         log.info(
             "[conn=%s] WS /api/interview -> %d: student.assistant is switched off for %s",
             conn_id,
@@ -1089,6 +1145,33 @@ async def interview(websocket: WebSocket) -> None:
         return
 
     # From here on the slot is HELD, so every exit path must release it.
+    if rehearsal:
+        # THE REHEARSAL OPENS NO RECORDS. `_open_records` is the one function
+        # that writes the conversation, the `interview_sessions` row and the
+        # consent check, and it is keyed on a student; not calling it is the
+        # whole mechanism, and it is why nothing downstream needs a "skip"
+        # flag — the writers below are constructed only when it ran. The
+        # policy is the deployment default with BOTH storage scopes off, so an
+        # engine that reads `store_transcript` sees the truth, and the time
+        # limit is the default one, which the engine floors at Bedrock's wall.
+        rehearsal_policy = replace(
+            default_policy(), store_transcript=False, store_audio=False
+        )
+        await _run_relay(
+            websocket,
+            conn_id,
+            user_id,
+            specialization,
+            on_turn=None,
+            on_report=None,
+            on_finalize=None,
+            on_heartbeat=None,
+            recorder=None,
+            max_seconds=rehearsal_policy.time_limit_seconds,
+            interview_session_id=None,
+        )
+        return
+
     try:
         # The conversation is derived from the SESSION, never from the client —
         # the same rule POST /api/agent/ask and POST /api/voice/token follow.
@@ -1249,6 +1332,61 @@ async def interview(websocket: WebSocket) -> None:
                 conn_id,
             )
 
+    await _run_relay(
+        websocket,
+        conn_id,
+        user_id,
+        specialization,
+        on_turn=_make_turn_writer(
+            conversation_id,
+            interview_session_id,
+            store_transcript=policy.store_transcript,
+        ),
+        on_report=_make_report_writer(interview_session_id),
+        on_finalize=_make_finalizer(interview_session_id),
+        on_heartbeat=_make_heartbeat(
+            interview_session_id,
+            consent_id=consent_id,
+            on_consent_revoked=_consent_withdrawn,
+            consent_scopes=opened.consent_scopes,
+        ),
+        recorder=recorder,
+        # B6.1: the college's session length. The engine floors it at Bedrock's
+        # own 8-minute stream wall (`_effective_cap`), so this can only ever
+        # SHORTEN an interview — which is the only direction a policy is allowed
+        # to move it, because a number here that outlived the provider's wall
+        # would end the interview mid-verdict.
+        max_seconds=policy.time_limit_seconds,
+        interview_session_id=interview_session_id,
+        relay_box=relay_box,
+    )
+
+
+async def _run_relay(
+    websocket: WebSocket,
+    conn_id: str,
+    user_id: str,
+    specialization: Specialization | None,
+    *,
+    on_turn: Callable[..., None] | None,
+    on_report: Callable[..., None] | None,
+    on_finalize: Callable[..., None] | None,
+    on_heartbeat: Callable[[], None] | None,
+    recorder: Any | None,
+    max_seconds: int,
+    interview_session_id: str | None,
+    relay_box: list[InterviewEngine] | None = None,
+) -> None:
+    """Construct the engine, run it, release the slot, close the record.
+
+    ONE BODY FOR TWO CALLERS: the real interview, which arrives with every
+    writer wired, and the Main Admin's rehearsal, which arrives with every
+    hook `None` and no `interview_session_id` — so Layer 2's backstop has no
+    row to close and is skipped. The engines already treat a `None` hook as
+    "do not write" (their per-hook guards predate this), which is what makes
+    the rehearsal a call with fewer arguments rather than a second relay.
+    The slot was acquired by the caller and is released HERE, on every exit.
+    """
     # WHICH ENGINE. Chosen here and nowhere else: both classes satisfy
     # interview_core.InterviewEngine — the same constructor, the same
     # (code, reason) from run() — so every writer, the limiter, the recorder and
@@ -1271,29 +1409,16 @@ async def interview(websocket: WebSocket) -> None:
     relay = engine_cls(
         websocket,
         conn_id,
-        on_turn=_make_turn_writer(
-            conversation_id,
-            interview_session_id,
-            store_transcript=policy.store_transcript,
-        ),
+        on_turn=on_turn,
         specialization=specialization,
-        on_report=_make_report_writer(interview_session_id),
-        on_finalize=_make_finalizer(interview_session_id),
-        on_heartbeat=_make_heartbeat(
-            interview_session_id,
-            consent_id=consent_id,
-            on_consent_revoked=_consent_withdrawn,
-            consent_scopes=opened.consent_scopes,
-        ),
+        on_report=on_report,
+        on_finalize=on_finalize,
+        on_heartbeat=on_heartbeat,
         recorder=recorder,
-        # B6.1: the college's session length. The engine floors it at Bedrock's
-        # own 8-minute stream wall (`_effective_cap`), so this can only ever
-        # SHORTEN an interview — which is the only direction a policy is allowed
-        # to move it, because a number here that outlived the provider's wall
-        # would end the interview mid-verdict.
-        max_seconds=policy.time_limit_seconds,
+        max_seconds=max_seconds,
     )
-    relay_box.append(relay)
+    if relay_box is not None:
+        relay_box.append(relay)
     _LIVE_SESSIONS.add(relay)
     code, reason = _CLOSE_INTERNAL, "Internal error"
     try:
@@ -1315,7 +1440,7 @@ async def interview(websocket: WebSocket) -> None:
             f"interview {getattr(specialization, 'key', None) or 'generic'}",
             op="websocket.server",
             conn_id=conn_id,
-            interview_session_id=interview_session_id,
+            interview_session_id=interview_session_id or "rehearsal",
             engine=engine_cls.__name__,
         ):
             code, reason = await relay.run()
@@ -1338,13 +1463,15 @@ async def interview(websocket: WebSocket) -> None:
         # cancelling this coroutine (CancelledError re-raises AFTER this block,
         # so this still runs). Idempotent by predicate, not by flag — one UPDATE
         # with `AND status = 'running'`, so when the relay already finalized this
-        # touches zero rows and says nothing.
+        # touches zero rows and says nothing. A rehearsal has no row to close.
         #
         # Bounded honesty about cancellation: under CancelledError the await
         # below may itself be cancelled, in which case the thread's UPDATE
         # usually still lands and Layer 3's sweeper covers the case where it does
         # not. That is the correct shape — a deploy must not be held open by a
         # bookkeeping write, and there is a third layer for exactly this.
+        if interview_session_id is None:
+            return
         try:
             await asyncio.to_thread(
                 _finalize_if_running, interview_session_id, conn_id, code, reason

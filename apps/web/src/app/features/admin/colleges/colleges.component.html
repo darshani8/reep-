@@ -73,7 +73,6 @@
         <div class="select">
           <span class="lbl">Campus</span>
           <span class="val">{{ campusFilterLabel() }}</span>
-          <span class="icon" aria-hidden="true">expand_more</span>
           <select aria-label="Campus" (change)="setCampusFilter($any($event.target).value)">
             <option value="all" [selected]="campusFilter() === 'all'">All</option>
             @for (campus of campusesOnRecord(); track campus) {

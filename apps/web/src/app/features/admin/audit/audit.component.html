@@ -34,7 +34,6 @@
     <div class="select">
       <span class="lbl">Who</span>
       <span class="val">{{ actorLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Actor" (change)="setActor(selectValue($event))">
         <option value="" [selected]="actorFilter() === ''">Anyone</option>
         @for (actor of actorOptions(); track actor.key) {
@@ -48,7 +47,6 @@
     <div class="select">
       <span class="lbl">What</span>
       <span class="val">{{ actionLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Action" (change)="setAction(selectValue($event))">
         <option value="" [selected]="actionFilter() === ''">All actions</option>
         @for (action of actionOptions(); track action) {
@@ -60,7 +58,6 @@
     <div class="select">
       <span class="lbl">On what</span>
       <span class="val">{{ targetTypeLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Target type" (change)="setTargetType(selectValue($event))">
         <option value="" [selected]="targetTypeFilter() === ''">All types</option>
         @for (target of targetTypeOptions(); track target) {
@@ -72,7 +69,6 @@
     <div class="select">
       <span class="lbl">When</span>
       <span class="val">{{ rangeLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Date range" (change)="setRange(selectValue($event))">
         @for (choice of rangeChoices; track choice.key) {
           <option [value]="choice.key" [selected]="rangeKey() === choice.key">

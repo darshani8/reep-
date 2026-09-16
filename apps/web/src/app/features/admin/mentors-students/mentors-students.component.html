@@ -71,7 +71,6 @@
                 Pick a batch
               }
             </span>
-            <span class="icon" aria-hidden="true">expand_more</span>
             <select
               aria-label="The batch to assign"
               (change)="batchCohortId.set(selectValue($event))"
@@ -135,7 +134,6 @@
     <div class="select" [class.filter-pending]="departmentOptions().length === 0">
       <span class="lbl">Department</span>
       <span class="val">{{ departmentFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <!-- The menu is built from the faculty rail's own resolved placements:
            GET /admin/departments is gated on admin.institution, a third key this
            screen does not otherwise need, and a filter that 403s for a college
@@ -169,7 +167,6 @@
     <div class="select" [class.filter-pending]="cohorts() === null">
       <span class="lbl">Batch</span>
       <span class="val">{{ batchFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       @if (cohorts() === null) {
         <select
           aria-label="Batch — narrows the students"

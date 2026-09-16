@@ -73,7 +73,6 @@
       <div class="select fs-scope-filter">
         <span class="lbl">Applies to</span>
         <span class="val">{{ scopeFilterLabel() }}</span>
-        <span class="icon" aria-hidden="true">expand_more</span>
         <select aria-label="Applies to" (change)="setScopeFilter($any($event.target).value)">
           <option value="" [selected]="scopeFilter() === ''">All</option>
           @for (scope of hierarchyScopes; track scope) {
@@ -88,7 +87,6 @@
       <div class="select fs-enforcement-filter">
         <span class="lbl">Enforcement</span>
         <span class="val">{{ enforcementFilterLabel() }}</span>
-        <span class="icon" aria-hidden="true">expand_more</span>
         <select aria-label="Enforcement" (change)="setEnforcementFilter($any($event.target).value)">
           <option value="all" [selected]="enforcementFilter() === 'all'">All</option>
           <option value="enforced" [selected]="enforcementFilter() === 'enforced'">

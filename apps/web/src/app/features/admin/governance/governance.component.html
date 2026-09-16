@@ -206,7 +206,6 @@
         <div class="select">
           <span class="lbl">College</span>
           <span class="val">{{ collegeFilterLabel() }}</span>
-          <span class="icon" aria-hidden="true">expand_more</span>
           <select aria-label="College" (change)="setCollegeFilter($any($event.target).value)">
             <option value="" [selected]="collegeFilter() === ''">All colleges</option>
             @for (node of colleges(); track node.id) {
@@ -219,7 +218,6 @@
         <div class="select">
           <span class="lbl">Department</span>
           <span class="val">{{ departmentFilterLabel() }}</span>
-          <span class="icon" aria-hidden="true">expand_more</span>
           <select aria-label="Department" (change)="setDepartmentFilter($any($event.target).value)">
             <option value="" [selected]="departmentFilter() === ''">All departments</option>
             @for (node of departmentsInScope(); track node.id) {
@@ -233,7 +231,6 @@
         <div class="select gov-function-filter">
           <span class="lbl">Access</span>
           <span class="val">{{ functionFilterLabel() }}</span>
-          <span class="icon" aria-hidden="true">expand_more</span>
           <select aria-label="Function" (change)="setFunctionFilter($any($event.target).value)">
             <option value="" [selected]="functionFilter() === ''">All functions</option>
             @for (capability of capabilities(); track capability.key) {
@@ -247,7 +244,6 @@
         <div class="select">
           <span class="lbl">Status</span>
           <span class="val">{{ statusFilterLabel() }}</span>
-          <span class="icon" aria-hidden="true">expand_more</span>
           <select aria-label="Status" (change)="setStatusFilter($any($event.target).value)">
             <option value="all" [selected]="statusFilter() === 'all'">All</option>
             <option value="live" [selected]="statusFilter() === 'live'">Live</option>

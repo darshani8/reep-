@@ -74,7 +74,6 @@
     <div class="select" [class.jobs-filter--empty]="collegeFilterDisabledReason() !== null">
       <span class="lbl">College</span>
       <span class="val">{{ collegeFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select
         aria-label="College — narrows to the postings a student at that college can see"
         [disabled]="collegeFilterDisabledReason() !== null"
@@ -98,7 +97,6 @@
     <div class="select" [class.jobs-filter--empty]="courseFilterDisabledReason() !== null">
       <span class="lbl">Course</span>
       <span class="val">{{ courseFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select
         aria-label="Course — narrows to the postings a student on that course can see"
         [disabled]="courseFilterDisabledReason() !== null"
@@ -122,7 +120,6 @@
     <div class="select" [class.jobs-filter--empty]="trackFilterDisabledReason() !== null">
       <span class="lbl">Track</span>
       <span class="val">{{ trackFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select
         aria-label="Track — narrows to the postings a student on that specialization can see"
         [disabled]="trackFilterDisabledReason() !== null"
@@ -144,7 +141,6 @@
     <div class="select">
       <span class="lbl">Status</span>
       <span class="val">{{ statusFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Filter postings by status" (change)="setStatusFilter(selectValue($event))">
         @for (option of statusFilters; track option.key) {
           <option [value]="option.key" [selected]="option.key === statusFilter()">

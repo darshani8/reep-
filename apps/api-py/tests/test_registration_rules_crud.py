@@ -89,8 +89,9 @@ def scoped_grant():
 
     A row rather than `POST /api/admin/governance/grants`, for the reason
     test_registration_hold.py gives: `admin.registrations` is `carries_pii`, so
-    an API-made grant lands `pending_approval` and holds NOTHING — every scope
-    test would then pass for the wrong reason.
+    a deputy's API-made grant lands `pending_approval` and holds NOTHING while
+    the Main Admin's is live at once — a fixture that depended on who granted
+    would make every scope test about the approval rule instead.
     """
     made: list[str] = []
 

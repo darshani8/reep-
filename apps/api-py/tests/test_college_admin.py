@@ -20,9 +20,12 @@ What these tests hold down:
    the day somebody "simplifies" this into a role change is the day the one
    rule `_refuse_second_main_admin` exists to enforce is routed around by an
    endpoint that never calls it.
-4. FOUR-EYES SURVIVES. Delete `test_a_pii_capability_still_waits_for_a_second_pair_of_eyes`
-   and appointing a college admin becomes the way to issue five `carries_pii`
-   grants without the second approval B2.4 requires of every other path.
+4. THE APPOINTMENT FOLLOWS THE GRANTS SCREEN'S RULE. Delete
+   `test_the_main_admins_appointment_is_live_at_once_and_a_deputys_waits` and
+   the endpoint is free to drift from `POST /governance/grants`: either the
+   office's own appointment goes back to waiting on a deputy it appointed
+   itself, or a deputy's becomes the way to issue seven `carries_pii` grants
+   without the second approval B2.4 requires of every other path.
 5. IT IS IDEMPOTENT AND AUDITED. Delete `test_appointing_twice_changes_nothing`
    and a second click leaves two live rows for one decision, which makes
    revocation a question of which one; delete `test_every_grant_lands_on_the_trail`
@@ -208,25 +211,53 @@ def test_nobody_becomes_a_second_main_admin(client, make_user, colleges, forget_
 
 
 @requires_db
-def test_a_pii_capability_still_waits_for_a_second_pair_of_eyes(
+def test_the_main_admins_appointment_is_live_at_once_and_a_deputys_waits(
     client, make_user, colleges, forget_grants
 ):
-    """Five of the eleven carry PII, so five land `pending_approval` (B2.4).
+    """WHO appoints decides the state — the same rule as `POST /governance/grants`.
 
-    Appointing through grants rather than through a role is what makes this
-    possible at all: a role would have handed over the roster the moment it was
-    typed. Delete this and the appointment endpoint becomes the one door in
-    Governance where four-eyes does not apply.
+    Appointed by the Main Admin, all thirteen are live the moment they are
+    written (2026-09-16): the office is the one authority on the deployment
+    and does not wait for a deputy it appointed itself to agree. Appointed by
+    a DEPUTY, the seven that carry PII land `pending_approval` (B2.4) and the
+    six that do not are live, so that college admin can start on the screens
+    that name no student while the office approves the rest.
+
+    Appointing through grants rather than through a role is what makes the
+    second half possible at all: a role would have handed over the roster the
+    moment it was typed, whoever typed it. Delete this and the appointment
+    endpoint becomes the one door in Governance whose rule differs from the
+    grants screen's.
     """
     admin = make_user(f"ca-pii-{colleges['tag']}", Role.ADMIN)
     faculty = make_user(f"ca-piifac-{colleges['tag']}", Role.MENTOR)
     forget_grants.append(faculty.user_id)
-    body = client.post(
+    r = client.post(
         f"/api/admin/colleges/{colleges['mine']}/admins",
         headers=admin.headers, json={"user_id": faculty.user_id, "reason": REASON},
-    ).json()
+    )
+    assert r.status_code == 201, r.text
+    states = {row["capability"]: row["approval_state"] for row in r.json()["capabilities"]}
+    assert set(states.values()) == {"active"}, states
 
-    states = {row["capability"]: row["approval_state"] for row in body["capabilities"]}
+    # A deputy: a faculty account the office gave `admin.governance`.
+    deputy = make_user(f"ca-dep-{colleges['tag']}", Role.MENTOR)
+    other = make_user(f"ca-piifar-{colleges['tag']}", Role.MENTOR)
+    forget_grants.extend([deputy.user_id, other.user_id])
+    dep = client.post(
+        "/api/admin/governance/grants", headers=admin.headers,
+        json={
+            "capability": "admin.governance", "user_ids": [deputy.user_id],
+            "reason": "Deputy for governance while the office covers the main campus.",
+        },
+    )
+    assert dep.status_code == 201, dep.text
+    r = client.post(
+        f"/api/admin/colleges/{colleges['mine']}/admins",
+        headers=deputy.headers, json={"user_id": other.user_id, "reason": REASON},
+    )
+    assert r.status_code == 201, r.text
+    states = {row["capability"]: row["approval_state"] for row in r.json()["capabilities"]}
     assert states["admin.students"] == "pending_approval"
     assert states["admin.exports"] == "pending_approval"
     # And one that does not carry PII is live at once, so a fresh college admin

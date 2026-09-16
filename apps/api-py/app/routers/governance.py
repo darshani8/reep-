@@ -33,12 +33,19 @@ existing writer, rather than a second audit table. It already records actor,
 entity, action, before/after and the route; a parallel implementation would be
 the copy that stops matching.
 
-A `carries_pii` CAPABILITY NEEDS TWO PEOPLE (B2.4). The grant is written
-`pending_approval` and holds nothing until a DIFFERENT holder of
-`admin.governance` approves it; `granted_capabilities` and `granted_reaches`
-both ignore a pending row, so the state is enforced where access is resolved and
-not only on the screen that shows it. The approver may not be the granter, which
-is the only part of a four-eyes rule that actually does anything.
+THE MAIN ADMIN'S GRANT IS LIVE THE MOMENT IT IS WRITTEN; A DEPUTY'S
+`carries_pii` GRANT NEEDS TWO PEOPLE (B2.4, amended 2026-09-16). The office is
+one account by rule and the authority every other grant on the deployment
+traces back to, so a second signature on ITS decision could only ever come from
+a deputy it appointed itself -- one person's decision, asked twice.
+`initial_approval_state` is the one place that reads WHO is granting: the Main
+Admin's rows are written `active`; a deputy's grant of a capability that shows
+a student's own record is written `pending_approval` and holds nothing until a
+DIFFERENT holder of `admin.governance` approves it. `granted_capabilities` and
+`granted_reaches` both ignore a pending row, so the state is enforced where
+access is resolved and not only on the screen that shows it. The approver may
+not be the granter, which is the only part of a four-eyes rule that actually
+does anything.
 
 THE CATALOGUE ENDPOINTS EXIST FOR THE DROPDOWNS. `/catalogue` and `/hierarchy`
 serve exactly what the console's selects need, from the same constants the
@@ -66,6 +73,7 @@ from ..models.governance import (
     APPROVAL_PENDING,
     CAPABILITIES,
     CAPABILITIES_BY_KEY,
+    Capability,
     FEATURES,
     FEATURES_BY_KEY,
     REVIEW_AFTER_DAYS,
@@ -110,6 +118,45 @@ def require_governance(db: Session, session: dict) -> None:
     """
     policies.require_staff(session)
     require_capability(db, session, GOVERNANCE_CAPABILITY)
+
+
+def initial_approval_state(capability: Capability, session: dict) -> str:
+    """The state a NEW grant is written in, decided by WHO is granting it.
+
+    THE MAIN ADMIN DOES NOT ASK ANYBODY'S PERMISSION (2026-09-16). The office is
+    ONE account by rule (`_refuse_second_main_admin`), it holds every console
+    key by baseline, and every deputy on the deployment holds Governance on its
+    say-so -- so a second signature on the office's own decision could only
+    ever come from somebody the office appointed to give it. That is one
+    person's decision asked twice, at the cost of a second account, and until
+    this function existed it was exactly what happened: a `carries_pii` grant
+    made by the Main Admin landed `pending_approval`, and on the one-admin
+    deployment this product is built for it never activated until the office
+    appointed a deputy whose only job was to agree with it. The owner's rule is
+    that the Main Admin is the one authority that grants access and control,
+    and does so without a second approval.
+
+    A DEPUTY'S GRANT OF A `carries_pii` CAPABILITY STILL WAITS (B2.4). A deputy
+    holds exactly one key, on the office's say-so; handing a student's records
+    to a colleague on their own is the decision the four-eyes rule exists for,
+    and the second pair of eyes is the Main Admin's -- or another deputy's,
+    `approve_grant`'s rule unchanged. A capability that shows no student record
+    is live on anybody's say-so, as it always was.
+
+    `session["role"]` is the signed claim and is the right thing to read here:
+    this is a WRITE, decided by who is at the keyboard now, and a role change
+    through `grant_access` advances `token_version` so a demoted office account
+    cannot keep minting live grants on a stale cookie.
+
+    ONE function, called by BOTH writers of `capability_grants` (`create_grants`
+    here and `appoint_college_admin` in admin.py): the rule that decides whether
+    a student's records changed hands on one signature or two must not exist in
+    two spellings.
+    """
+    if session.get("role") == Role.ADMIN.value:
+        return APPROVAL_ACTIVE
+    return APPROVAL_PENDING if capability.carries_pii else APPROVAL_ACTIVE
+
 
 #: Long enough that "asdf" and "ok" do not pass, short enough that a real
 #: sentence does. A trail of one-word reasons is indistinguishable from none.
@@ -514,10 +561,11 @@ def create_grants(
 
     now = _now()
     cap = CAPABILITIES_BY_KEY[body.capability]
-    # B2.4. A capability that shows a student's own record needs two people: the
-    # row is written, listed and audited, and holds NOTHING until a different
-    # holder of `admin.governance` approves it.
-    approval_state = APPROVAL_PENDING if cap.carries_pii else APPROVAL_ACTIVE
+    # WHO is granting decides the state, not only WHAT is granted. The Main
+    # Admin's row is live at once; a deputy's grant of a capability that shows
+    # a student's own record is written, listed and audited, and holds NOTHING
+    # until a different holder of `admin.governance` approves it (B2.4).
+    approval_state = initial_approval_state(cap, session)
     # A grant with an expiry reviews AT that expiry -- the queue shows it as
     # running out, and the admin extends it or lets it lapse. One with no expiry
     # is the grant that most needs a date, because nothing else will ever bring
@@ -684,7 +732,11 @@ def approve_grant(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> GrantOut:
-    """The second pair of eyes on a `carries_pii` grant (B2.4).
+    """The second pair of eyes on a DEPUTY'S `carries_pii` grant (B2.4).
+
+    Only a deputy's row ever arrives here pending: the Main Admin's grants are
+    written live (`initial_approval_state`), so the office's own decisions never
+    queue and the 409 below is what an approve on one of them answers.
 
     THE SELF-APPROVAL REFUSAL IS THE WHOLE FEATURE. Everything else here —
     the state column, the check constraint, the four readers that honour it — is
@@ -696,8 +748,8 @@ def approve_grant(
     granter but admits anybody else is no better.
 
     It is the GRANTER that is refused, not the SUBJECT. A Main Admin approving a
-    grant made to themselves by somebody else is fine and is the ordinary shape
-    of "the office was given exports by the deputy"; what must not happen is one
+    grant made to themselves by a deputy is fine and is the ordinary shape of
+    "the office was given exports by the deputy"; what must not happen is one
     person writing and agreeing to the same row.
     """
     require_governance(db, session)
@@ -719,9 +771,8 @@ def approve_grant(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
                 "You granted this, so you cannot also approve it. A capability that "
-                "carries a student's own records needs a second person holding "
-                "Governance — grant a colleague the Governance capability if there "
-                "is nobody who can."
+                "carries a student's own records, granted by a deputy, needs a second "
+                "person holding Governance — the Main Admin, or another deputy."
             ),
         )
     g.approval_state = APPROVAL_ACTIVE

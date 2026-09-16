@@ -212,9 +212,10 @@ def scoped_grant():
 
     Written as a row rather than through `POST /api/admin/governance/grants` for
     the reason test_exports.py gives: five of these keys are flagged
-    `carries_pii`, so an API-made grant lands `pending_approval` (B2.4) and
-    holds nothing until a second Main Admin approves it — which would make every
-    test below pass for the wrong reason.
+    `carries_pii`, so a deputy's API-made grant lands `pending_approval` (B2.4)
+    and holds nothing until a different `admin.governance` holder approves it,
+    while the Main Admin's is live at once — a fixture that depended on who
+    granted would make every test below about the approval rule instead.
     """
     made: list[str] = []
 

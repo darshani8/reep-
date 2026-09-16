@@ -56,8 +56,8 @@ from .policies import Reach
 #:
 #: `Capability.carries_pii` is the obvious candidate and it cannot be the test
 #: here — not through oversight, but because `admin.exports` is ITSELF flagged
-#: `carries_pii=True` (that flag is what makes a grant of it need a second Main
-#: Admin, B2.4). "Does the caller hold a capability that carries PII" is
+#: `carries_pii=True` (that flag is what makes a DEPUTY's grant of it wait for
+#: a second signature, B2.4). "Does the caller hold a capability that carries PII" is
 #: therefore answered yes by the very capability that let them through the door,
 #: for every caller, on every one of these endpoints. A rule that is true for
 #: everybody is not a rule; it is a comment.

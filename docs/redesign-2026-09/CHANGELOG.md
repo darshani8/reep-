@@ -91,6 +91,12 @@ The theme of the whole phase. Highlights, and the places the kit was overruled:
   `pending_approval` and **holds nothing** until a second holder approves it;
   grants carry `review_at`; `GET /api/admin/audit` is the trail, and **listing it
   writes no event of its own** while the CSV download audits itself.
+  **Amended 2026-09-16:** the second signature applies to a DEPUTY's grant
+  only. The Main Admin's grants are live the moment they are written — the
+  office is the one authority on the deployment, and a second signature on its
+  decision could only come from a deputy it appointed itself
+  (`initial_approval_state` in `routers/governance.py`, called by both writers
+  of `capability_grants`).
 - **B3.1–B3.6** — faculty lifecycle. `disable` **refuses an empty reason**: it is
   the single console action whose effect is invisible from the console
   afterwards.

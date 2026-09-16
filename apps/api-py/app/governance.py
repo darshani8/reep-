@@ -133,8 +133,10 @@ def _live_grant_clauses(now: datetime, role: str | None = None) -> tuple:
     Python, so a long-expired grant never reaches the process at all.
     `approval_state` was added for B2.4's two-person rule, written on every row,
     carried a check constraint and a docstring about four-eyes approval — and
-    was read by NO query, so a grant awaiting a second Main Admin was fully live
-    the moment it was inserted.
+    was read by NO query, so a grant awaiting a second signature was fully live
+    the moment it was inserted. (Only a DEPUTY's `carries_pii` grant waits now;
+    the Main Admin's are written live — `routers/governance.py::
+    initial_approval_state`. The reader does not care who wrote the row.)
 
     `role_at_grant` is B2.5's, and it is the same shape of hole. A grant is a
     decision about a person IN A ROLE — "this MENTOR may read the registrations

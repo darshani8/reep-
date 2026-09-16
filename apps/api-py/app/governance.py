@@ -90,8 +90,9 @@ _SCOPED: Final[frozenset[str]] = frozenset(
 #: shelf. These stay in the catalogue and stay SCOPED, so the Main Admin can
 #: GRANT any of them in Governance -- to a faculty member, or to itself when a
 #: student's evidence is stuck and nobody else will look -- and revoke them
-#: again. `mentor.leave_approve` is NOT here: the Main Admin is the Program
-#: Director, the second of the two approvers, and removing it breaks sanctioning.
+#: again. Leave approval is not a capability at all since 2026-09-16: it is
+#: the Main Admin's by role (`routers/leave.py`), so there is no key to keep
+#: out of anybody's baseline.
 _FACULTY_ONLY: Final[frozenset[str]] = frozenset(
     {"mentor.mentees", "mentor.notebook", "mentor.verifications", "mentor.upskilling"}
 )

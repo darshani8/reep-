@@ -375,12 +375,14 @@ DISABLED_SIGN_IN_MESSAGE = (
 
 
 def refuse_disabled_sign_in(user: User) -> None:
-    """403 if this account has been offboarded. Called by every sign-in door."""
-    if user.disabled_at is not None:
+    """403 if this account has been offboarded OR removed from the roster.
+    Called by every sign-in door; `User.barred_at` is the one answer to both."""
+    if user.barred_at is not None:
         log.warning(
-            "sign-in refused for %s: the account was disabled at %s",
+            "sign-in refused for %s: the account was %s at %s",
             user.email,
-            user.disabled_at,
+            "removed" if user.deleted_at is not None else "disabled",
+            user.barred_at,
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail=DISABLED_SIGN_IN_MESSAGE
@@ -388,7 +390,7 @@ def refuse_disabled_sign_in(user: User) -> None:
 
 
 def _payload_for(user: User) -> dict:
-    if user.disabled_at is not None:
+    if user.barred_at is not None:
         # The backstop. Every door above checks first, so reaching here means a
         # new door was written without one — which must be a 500 in the log
         # rather than a session for an offboarded account.
@@ -1165,9 +1167,9 @@ def google_callback(
         )
         return _sso_failure("sso_not_enrolled")
 
-    if user.disabled_at is not None:
-        # OFFBOARDED (B3.3). Google verified them; the roster no longer admits
-        # them, which is the same sentence `sso_not_enrolled` already says and
+    if user.barred_at is not None:
+        # OFFBOARDED (B3.3) OR REMOVED (2026-09-16). Google verified them; the
+        # roster no longer admits them, which is the same sentence `sso_not_enrolled` already says and
         # the same thing to do about it — talk to the placement office.
         #
         # DELIBERATELY REUSING THAT CODE rather than adding `sso_disabled`. The
@@ -1180,10 +1182,10 @@ def google_callback(
         # separate for that reason.
         log.warning(
             "GET /api/auth/sso/google/callback -> 302 /login?error=sso_not_enrolled: "
-            "%s is DISABLED (since %s) — Google verified the identity, the account "
-            "is offboarded",
+            "%s is DISABLED or REMOVED (since %s) — Google verified the identity, "
+            "the account is offboarded",
             identity.email,
-            user.disabled_at,
+            user.barred_at,
         )
         return _sso_failure("sso_not_enrolled")
 

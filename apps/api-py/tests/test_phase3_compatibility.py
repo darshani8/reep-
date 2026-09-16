@@ -248,7 +248,7 @@ def test_a_grant_made_before_b1_2_still_opens_its_screen(unmentored_faculty):
 def test_the_main_admin_is_never_narrowed_by_scoping(client, login):
     """GUARDRAIL, and the one that covers several others at once.
 
-    "FIRST_APPROVED leave rows are decidable by the Main Admin immediately" and
+    "pending leave rows are decidable by the Main Admin immediately" and
     "SWOC entries show their author without re-entry" are both really this: the
     office account holds its keys through ROLE_BASELINE, and a baseline
     capability is UNSCOPED by design (`require_capability` says why). So B1.4
@@ -261,7 +261,7 @@ def test_the_main_admin_is_never_narrowed_by_scoping(client, login):
     with SessionLocal() as db:
         admin = db.scalar(select(User).where(User.email == ADMIN[0]))
         session = {"role": "ADMIN", "userId": admin.id}
-        for key in ("admin.analytics", "admin.exports", "admin.swoc", "mentor.leave_approve"):
+        for key in ("admin.analytics", "admin.exports", "admin.swoc"):
             if key in ROLE_BASELINE["ADMIN"]:
                 assert scope_filter(db, session, key).everything, (
                     f"the Main Admin was narrowed on {key}"

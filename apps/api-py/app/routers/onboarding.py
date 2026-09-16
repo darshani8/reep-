@@ -77,8 +77,8 @@ def _refuse_if_disabled(user: User) -> None:
     `_REFUSED` exists to prevent. They cannot sign in either way, and the
     placement office is who both sentences send them to.
     """
-    if user.disabled_at is not None:
-        log.warning("onboarding refused for %s: the account is disabled", user.email)
+    if user.barred_at is not None:
+        log.warning("onboarding refused for %s: the account is disabled or removed", user.email)
         raise HTTPException(status_code=status.HTTP_410_GONE, detail=_REFUSED)
 
 

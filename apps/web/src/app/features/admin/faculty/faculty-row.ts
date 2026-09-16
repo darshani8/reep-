@@ -63,6 +63,10 @@ export interface FacultyApiRow {
    *  derives once and then has to keep in step. */
   disabled_at: string | null;
   disable_reason: string | null;
+  /** REMOVED from the roster (2026-09-16): rows kept, off every list, listed
+   *  only by `?removed=true` for Restore. */
+  deleted_at: string | null;
+  delete_reason: string | null;
 }
 
 /** `AccountStateOut` — the answer from disable, enable and sign-out-everywhere.
@@ -133,6 +137,10 @@ export interface FacultyRow {
   disabledAt: string | null;
   disableReason: string | null;
   isDisabled: boolean;
+  /** Off the roster, rows kept (2026-09-16). Only ever true on the Removed list. */
+  isRemoved: boolean;
+  deletedAt: string | null;
+  deleteReason: string | null;
 }
 
 /** A college, derived from the department picker rather than fetched again:

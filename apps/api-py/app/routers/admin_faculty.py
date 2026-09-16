@@ -42,8 +42,14 @@ only with `allow_external` AND a written reason, and both land in the audit row.
 OFFBOARDING IS A COLUMN, NOT A DELETE (B3.3). `users.disabled_at` and its two
 companions; nothing the person wrote is removed, because the mentor notes, the
 sanctioned leave and the verified evidence are parts of OTHER people's records
-and were true when they were written. Deleting a faculty account is
-`python -m app.purge_people`'s business and nothing else's.
+and were true when they were written.
+
+DELETING IS TWO OTHER COLUMNS AND ONE OTHER MODULE (2026-09-16). REMOVE
+(`users.deleted_at`, `routers/admin_deletion.py`) takes the account off this
+list and every other while keeping every row; `?removed=true` lists exactly
+those for Restore. DELETE, for good, is the same module with a code emailed to
+the office account, through `app/account_deletion.py`; `python -m
+app.purge_people` remains the way to empty a whole deployment.
 """
 
 from __future__ import annotations
@@ -334,6 +340,11 @@ class AdminFacultyRowOut(BaseModel):
     #: to be able to find them to switch them back on.
     disabled_at: datetime | None = None
     disable_reason: str | None = None
+    #: REMOVED (2026-09-16): off every screen, rows kept, Restore undoes it.
+    #: Null on every listed account; the removed ones are listed only by
+    #: `?removed=true`, where these two say when and why.
+    deleted_at: datetime | None = None
+    delete_reason: str | None = None
 
 
 @faculty_router.post("", response_model=AdminFacultyOut, status_code=status.HTTP_201_CREATED)
@@ -403,10 +414,19 @@ def list_faculty(
         False,
         description="Only the accounts with no department — the ones to file.",
     ),
+    removed: bool = Query(
+        False,
+        description="Only the accounts REMOVED from the roster (users.deleted_at) — the ones to restore.",
+    ),
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[AdminFacultyRowOut]:
     """Every faculty account and where it is filed.
+
+    A REMOVED account (2026-09-16) is not in this list: that is the whole
+    meaning of removal, and `?removed=true` is the list of exactly those, for
+    the Restore button. A DISABLED account stays listed, greyed — the model
+    says why the two are different columns.
 
     UNFILED FIRST, then by name. The screen's job is to get everyone placed, and
     a list that buries the six unfiled accounts alphabetically among two hundred
@@ -436,9 +456,10 @@ def list_faculty(
     query = (
         select(
             User.id, User.name, User.email, User.designation, User.department,
-            User.disabled_at, User.disable_reason,
+            User.disabled_at, User.disable_reason, User.deleted_at, User.delete_reason,
         )
         .where(User.role == Role.MENTOR)
+        .where(User.deleted_at.is_not(None) if removed else User.deleted_at.is_(None))
         .order_by(User.name)
     )
     if unfiled:
@@ -455,8 +476,11 @@ def list_faculty(
             placement=StaffPlacementOut.of(placements.get(uid, UNFILED)),
             disabled_at=disabled_at,
             disable_reason=disable_reason,
+            deleted_at=deleted_at,
+            delete_reason=delete_reason,
         )
-        for uid, name, email, designation, department, disabled_at, disable_reason in rows
+        for (uid, name, email, designation, department, disabled_at, disable_reason,
+             deleted_at, delete_reason) in rows
     ]
     out.sort(key=lambda r: (r.placement.filed, r.name.lower()))
     return out
@@ -575,6 +599,7 @@ def update_faculty(
         designation=user.designation, department=user.department,
         placement=StaffPlacementOut.of(placement_for(db, user.id)),
         disabled_at=user.disabled_at, disable_reason=user.disable_reason,
+        deleted_at=user.deleted_at, delete_reason=user.delete_reason,
     )
 
 
@@ -685,6 +710,14 @@ def disable_account(
                 "MENTOR with `python -m app.grant_access`), then disable it."
             ),
         )
+    if user.deleted_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"{user.email} was removed from the roster on {user.deleted_at:%Y-%m-%d} "
+                "and cannot sign in already. Restore it first if you mean to disable it."
+            ),
+        )
     if user.disabled_at is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -780,6 +813,14 @@ def enable_account(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"{user.email} is not disabled.",
+        )
+    if user.deleted_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"{user.email} was removed from the roster on {user.deleted_at:%Y-%m-%d}. "
+                "Restore it first; enabling a removed account would admit nobody."
+            ),
         )
     disabled_at = user.disabled_at
     if disabled_at.tzinfo is None:  # a column read back from a naive driver

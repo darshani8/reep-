@@ -19,6 +19,8 @@ and is refused HERE, after the sniff, because a signature is an image.
 
 from __future__ import annotations
 
+import io
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
@@ -42,6 +44,8 @@ from ..identity import get_current_session
 from ..models.staff_signature import StaffSignature
 from .mentor import require_mentor
 
+log = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/staff/signature", tags=["staff-signature"])
 
 #: A signature is a small image. Two megabytes is generous for a scan and far
@@ -55,6 +59,30 @@ class SignatureOut(BaseModel):
     mime_type: str | None
     size_bytes: int | None
     uploaded_at: datetime | None
+
+
+def _normalised_png(content: bytes) -> bytes:
+    """`content` as a flat, upright RGBA PNG — or, when Pillow cannot decode
+    what the sniffer accepted, the bytes exactly as uploaded, with a warning.
+
+    BEST-EFFORT, NOT A GATE. The sniffer has already said this is a PNG or a
+    JPEG; refusing here on Pillow's word would turn a codec gap into "your
+    signature was rejected". Stored as uploaded, the paper tries ReportLab
+    first and Pillow second (`leave_paper._image`) and logs when neither can
+    draw it, which is the failure that used to be silent.
+    """
+    try:
+        from PIL import Image, ImageOps
+
+        with Image.open(io.BytesIO(content)) as image:
+            image = ImageOps.exif_transpose(image) or image
+            flat = image.convert("RGBA")
+        out = io.BytesIO()
+        flat.save(out, format="PNG", optimize=True)
+        return out.getvalue()
+    except Exception as exc:  # noqa: BLE001
+        log.warning("signature stored as uploaded; Pillow could not normalise it: %s", exc)
+        return content
 
 
 def _out(row: StaffSignature | None) -> SignatureOut:
@@ -105,6 +133,14 @@ def upload_signature(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="A signature is an image: upload a PNG or a JPEG.",
         )
+    # NORMALISED BEFORE IT IS STORED (2026-09-16): whatever the phone or the
+    # scanner produced — a palette PNG with a transparency chunk, a CMYK or
+    # EXIF-rotated JPEG, a 16-bit PNG — becomes a flat, upright RGBA PNG, the
+    # one shape `app/leave_paper.py` draws without a fallback. The paper used
+    # to swallow an unreadable image silently, and "my signature is not on the
+    # PDF" was the only symptom. A file Pillow cannot read is refused here,
+    # in words, rather than stored and silently skipped on every paper.
+    content = _normalised_png(content)
     try:
         stored_name, mime, size = save_and_record(
             db,

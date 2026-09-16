@@ -88,6 +88,7 @@
         <option value="" [selected]="statusFilter() === ''">All</option>
         <option value="active" [selected]="statusFilter() === 'active'">Active</option>
         <option value="disabled" [selected]="statusFilter() === 'disabled'">Disabled</option>
+        <option value="removed" [selected]="statusFilter() === 'removed'">Removed · off the roster, record kept</option>
       </select>
     </div>
 
@@ -425,19 +426,33 @@
         </div>
 
         <div class="drawer-foot">
-          <button type="button" class="btn secondary" [disabled]="busy()" (click)="signOutEverywhere()">
-            <span class="icon" aria-hidden="true">logout</span> Sign out everywhere
-          </button>
-          <!-- One button, two directions. An account that is already disabled
-               has no second offboarding to offer, and the only act the office
-               wants on it is the one that undoes the first. -->
-          @if (faculty.isDisabled) {
-            <button type="button" class="btn secondary" [disabled]="busy()" (click)="enableAccount()">
-              <span class="icon" aria-hidden="true">lock_open</span> Enable account
+          <!-- A REMOVED account has one act here, the one that undoes it;
+               everything else on this foot is for an account on the roster. -->
+          @if (faculty.isRemoved) {
+            <button type="button" class="btn secondary" [disabled]="busy()" (click)="restoreAccount()">
+              <span class="icon" aria-hidden="true">undo</span> Restore to the roster
             </button>
           } @else {
-            <button type="button" class="btn danger" (click)="openDisableDialog(faculty.userId)">
-              <span class="icon" aria-hidden="true">person_remove</span> Disable account
+            <button type="button" class="btn secondary" [disabled]="busy()" (click)="signOutEverywhere()">
+              <span class="icon" aria-hidden="true">logout</span> Sign out everywhere
+            </button>
+            <!-- One button, two directions. An account that is already disabled
+                 has no second offboarding to offer, and the only act the office
+                 wants on it is the one that undoes the first. -->
+            @if (faculty.isDisabled) {
+              <button type="button" class="btn secondary" [disabled]="busy()" (click)="enableAccount()">
+                <span class="icon" aria-hidden="true">lock_open</span> Enable account
+              </button>
+            } @else {
+              <button type="button" class="btn secondary" (click)="openDisableDialog(faculty.userId)">
+                <span class="icon" aria-hidden="true">block</span> Disable account
+              </button>
+            }
+            <!-- Remove (record kept) or delete for good (2026-09-16): the
+                 shared dialog asks which, and asks for the emailed code
+                 before anything permanent. -->
+            <button type="button" class="btn danger" [disabled]="busy()" (click)="openDeleteDialog(faculty.userId)">
+              <span class="icon" aria-hidden="true">person_remove</span> Remove or delete…
             </button>
           }
         </div>
@@ -459,6 +474,14 @@
       [faculty]="faculty"
       (dismissed)="closeDisableDialog()"
       (accountDisabled)="onDisabled($event)"
+    />
+  }
+
+  @if (deletingFaculty(); as target) {
+    <app-admin-delete-dialog
+      [target]="target"
+      (dismissed)="closeDeleteDialog()"
+      (done)="onDeleteDone($event)"
     />
   }
 </div>

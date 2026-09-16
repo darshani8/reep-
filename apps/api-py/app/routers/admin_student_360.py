@@ -153,6 +153,10 @@ class Login360Out(BaseModel):
     disabled_at: datetime | None
     disable_reason: str | None
     disabled_by_name: str | None
+    #: REMOVED from the roster (2026-09-16): the record is reachable by id
+    #: while the account is off every list. Null on a listed student.
+    deleted_at: datetime | None = None
+    delete_reason: str | None = None
     last_login_at: datetime | None
     recent_sign_ins: list[SignIn360Out]
 
@@ -393,6 +397,8 @@ def _login_panel(db: Session, user: User) -> Login360Out:
         disabled_at=user.disabled_at,
         disable_reason=user.disable_reason,
         disabled_by_name=disabled_by,
+        deleted_at=user.deleted_at,
+        delete_reason=user.delete_reason,
         last_login_at=user.last_login_at,
         recent_sign_ins=[
             SignIn360Out(at=e.at, door=e.door, ip=e.ip, user_agent=e.user_agent)

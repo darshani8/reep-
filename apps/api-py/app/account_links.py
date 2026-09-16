@@ -40,6 +40,7 @@ from .models.auth_token import (
     CODE_PURPOSES,
     PURPOSE_ACTIVATION,
     PURPOSE_CHANGE_CODE,
+    PURPOSE_DELETE_CODE,
     PURPOSE_LOGIN_CODE,
     PURPOSE_ONBOARD,
     PURPOSE_ONBOARD_CODE,
@@ -515,6 +516,33 @@ def send_change_code(db: Session, user: User, code: str, token_id: str) -> None:
     )
 
 
+def send_delete_code(db: Session, user: User, code: str, token_id: str) -> None:
+    """The code that authorises a PERMANENT deletion from the console.
+
+    Its own purpose and its own words, for `send_change_code`'s reason: the
+    office reading "your sign-in code" when they pressed Delete cannot tell
+    their own act from somebody else's on their account. This one says what it
+    is for, and what to do if they did not press anything.
+    """
+    subject = "Your REEP deletion code"
+    text = (
+        f"Hello {user.name},\n\n"
+        f"Your code to confirm a PERMANENT deletion on the REEP console is:\n\n"
+        f"    {code}\n\n"
+        f"It expires in {settings.otp_code_minutes} minutes and works once.\n\n"
+        f"If you did NOT press Delete on the console, do not enter this code - "
+        f"somebody may be signed in as you. Sign out everywhere from My account.\n"
+    )
+    deliver_once(
+        db,
+        kind="delete-code",
+        recipient=user.email,
+        dedupe_key=f"delete-code:{user.id}:{token_id}",
+        subject=subject,
+        send=_driver(text),
+    )
+
+
 def send_registration_rejected(db: Session, registration: Registration, reason: str) -> None:
     """Tell an applicant their registration was not accepted, and why.
 
@@ -598,9 +626,9 @@ def issue_activation(
     # Refused at this chokepoint and not in the router, so `app.grant_access`
     # gets the same refusal — the CLI is the path the very first account takes
     # and it would otherwise print a link nobody can use.
-    if user.disabled_at is not None:
+    if user.barred_at is not None:
         raise ValueError(
-            f"{user.email} is disabled, so an activation link for it could not "
+            f"{user.email} is disabled or removed, so an activation link for it could not "
             "be redeemed. Enable the account first; its outstanding links were "
             "spent when it was disabled, so it will need a fresh one afterwards."
         )
@@ -686,6 +714,24 @@ def issue_change_code(db: Session, user: User) -> None:
     )
     db.commit()
     send_change_code(db, user, code, row.id)
+
+
+def issue_delete_code(db: Session, user: User) -> None:
+    """Mail the Main Admin the code that authorises one permanent deletion.
+
+    Re-issuing deletes the previous code (`issue_user_token`'s rule for every
+    CODE purpose), so pressing "Send me a code" twice leaves ONE live code, and
+    spending it spends it for every delete — one code, one act.
+    """
+    _, row = issue_user_token(
+        db,
+        user,
+        PURPOSE_DELETE_CODE,
+        timedelta(minutes=settings.otp_code_minutes),
+        raw=(code := new_login_code()),
+    )
+    db.commit()
+    send_delete_code(db, user, code, row.id)
 
 
 def issue_password_reset(db: Session, user: User) -> None:

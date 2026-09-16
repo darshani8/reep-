@@ -77,6 +77,13 @@ from ..architecture_events import record_change
 from ..db import get_db
 from ..governance import require_capability
 from ..identity import get_current_session
+# The subject import's byte ceiling is the spreadsheet importer's, IMPORTED and
+# never re-declared: two admin upload doors refusing at two numbers is two
+# numbers nobody can recall, which is the reason written above the constant
+# itself in `imports_sheet.py`. Nothing heavy comes with it — that module's
+# openpyxl import is function-local, so this does not put a parser in the import
+# graph of every catalogue request.
+from ..imports_sheet import MAX_UPLOAD_BYTES
 from ..models.badge import (
     BADGE_BY_CODE,
     BADGES,
@@ -1195,7 +1202,23 @@ def import_subjects(
             ),
         )
 
-    raw = file.file.read()
+    # read(MAX + 1), never read(), and BEFORE the decode, because the order is
+    # what makes the bound worth anything: a cap checked after the read has
+    # already spent the memory the cap exists to protect. On this path it is
+    # spent three times over — `read()` buffers the upload, `decode` builds a
+    # second copy of it and `io.StringIO` a third — and MAX_IMPORT_ROWS, the
+    # only bound this endpoint had, cannot fire until the reader is already
+    # walking parsed lines out of that third copy. Nothing sits in front of
+    # uvicorn on the AWS deployment to make up the difference, so this read is
+    # the bound. One byte past the ceiling is enough to refuse, with the same
+    # 422 and the same sentence `admin_imports.py` answers, so the console's two
+    # upload doors behave alike rather than at two numbers.
+    raw = file.file.read(MAX_UPLOAD_BYTES + 1)
+    if len(raw) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"The file is larger than {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
+        )
     try:
         text = raw.decode("utf-8-sig")
     except UnicodeDecodeError:

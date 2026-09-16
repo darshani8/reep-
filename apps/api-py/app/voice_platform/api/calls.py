@@ -2,12 +2,17 @@
 call-close endpoint.
 
     GET  /api/platform/calls                 mine (STUDENT) / all (Main Admin)
-    GET  /api/platform/calls/{id}            + a fresh presigned recording_s3_url
+    GET  /api/platform/calls/{id}            + recording_s3_url for a holder of
+                                             `admin.interview_audio`, and only
+                                             for a holder of it
     POST /api/platform/calls/{id}/close      package whatever the buffer holds
 
 Who may read a call: its owner; the Main Admin; and a MENTOR only through
 rule 2's gate on the linked interview record's student
 (`_assert_can_access_student`, imported and never reimplemented).
+
+Who may HEAR one is a narrower question with a different answer, asked
+separately in `_detail` — see the argument there.
 """
 
 from __future__ import annotations
@@ -19,6 +24,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ...db import get_db
+from ...governance import has_capability
 from ...identity import get_current_session
 from ...models.interview import InterviewSession
 from ...models.user import Role
@@ -69,11 +75,56 @@ def _can_read(session: dict, row: PlatformCallSession, db: Session) -> None:
     raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your call session.")
 
 
-def _detail(row: PlatformCallSession, db: Session) -> CallDetailOut:
+def _detail(row: PlatformCallSession, db: Session, session: dict) -> CallDetailOut:
+    """The call as its reader sees it — metadata for everyone `_can_read`
+    admits, and a link to the audio for a holder of `admin.interview_audio`.
+
+    THE RECORDING URL IS THE CAPABILITY'S AND NOTHING ELSE ON THIS PAYLOAD IS.
+    `_can_read` admits three callers — the candidate themselves, the Main Admin,
+    and a MENTOR through rule 2's gate — and until now all three were handed a
+    presigned URL to the dual-channel WAV. That is the same audio the interview
+    record refuses them: `api/media_bridge.py` builds one
+    `TeeRecorder(buffer, primary)`, so the bytes behind `recording_s3_key` are
+    the bytes behind `GET /api/mentor/students/{id}/interviews/{id}/audio`, and
+    that endpoint has gated playback on `admin.interview_audio` since it was
+    written. One recording cannot have two access policies; the stricter one is
+    the policy, and this module is the second door onto it rather than a second
+    opinion about it.
+
+    The argument is `app/routers/interview_records.py`'s (`_require_developer`,
+    and the block above `student_interview_audio`), and it is quoted rather than
+    restated so the next reader finds it there and does not re-litigate it. On
+    why a MENTOR is refused while every other staff read in this product lets
+    them through: "A voice recording is not placement business. It exists so
+    whoever operates this system can hear what the ENGINE did ... an operator's
+    artefact that happens to contain a named student speaking." On why the
+    candidate's own session is the widest surface of the three rather than the
+    safest: "A student endpoint is the widest possible surface for the most
+    sensitive bytes REEP holds. Any live student session — a shared lab machine,
+    a borrowed laptop, a tab left signed in — would stream a named person's
+    voice on request. Every recording is reachable through exactly one role
+    here, and that is worth the asymmetry."
+
+    `has_capability` and not `require_capability`, because the refusal has to
+    narrow the PAYLOAD and not the REQUEST: a mentor who may legitimately read
+    this call still gets its status, its turns, its close code and its timings,
+    which is everything they could answer a placement question with. Only the
+    link goes. And the presign is skipped rather than minted-and-dropped — a
+    signed URL handed to nobody is still a signed URL, sitting in this process's
+    logs and in S3's access record with hours left on it.
+
+    What is NOT withheld is the FACT of a recording. `recording_available` stays
+    true and the note says plainly that one was kept and what it takes to hear
+    it, which is interview_records' own "what the student DOES get is honesty":
+    the consent copy already told them a recording would be kept, and a payload
+    that quietly reported `false` would make this module the one place in REEP
+    that lies to a student about their own voice.
+    """
     base = call_out(row).model_dump()
     url: str | None = None
     expires: int | None = None
-    if row.recording_s3_key:
+    may_hear = has_capability(db, session, "admin.interview_audio")
+    if row.recording_s3_key and may_hear:
         store = recording_store()
         if store is not None:
             policy = aurora.get_recording_policy(db, row.degree_level)
@@ -86,6 +137,15 @@ def _detail(row: PlatformCallSession, db: Session) -> CallDetailOut:
     meta = row.recording_meta or {}
     if row.recording_s3_key and url:
         note = "Presigned link; expires with recording_url_expires_in."
+    elif row.recording_s3_key and not may_hear:
+        # Ordered before the "no bucket client" branch deliberately: a caller
+        # without the capability must be told the same sentence whether or not
+        # this server happens to hold S3 credentials, or the note becomes a way
+        # to probe the deployment's configuration from a student session.
+        note = (
+            "A recording was kept for this call. Playing it back needs the 'Interview audio' "
+            "capability, which an administrator can grant in Governance."
+        )
     elif row.recording_s3_key:
         note = "Recording is in S3 but no bucket client is configured on this server to sign a link."
     elif meta.get("local_path"):
@@ -132,7 +192,7 @@ def list_calls(
 def get_call(session_id: str, session: dict = Depends(get_current_session), db: Session = Depends(get_db)) -> CallDetailOut:
     row = _row_or_404(db, session_id)
     _can_read(session, row, db)
-    return _detail(row, db)
+    return _detail(row, db, session)
 
 
 @router.post("/{session_id}/close", response_model=CloseOut)
@@ -153,7 +213,7 @@ async def close_call(
     live = wav_buffer.live(session_id)
     if row.status != "running" and live is None:
         db.refresh(row)
-        detail = _detail(row, db)
+        detail = _detail(row, db, session)
         return CloseOut(
             session_id=row.id, status=row.status, recorded=bool(row.recording_bytes), uploaded=bool(row.recording_s3_key),
             s3_key=row.recording_s3_key, size_bytes=row.recording_bytes or 0, duration_ms=row.recording_duration_ms or 0,
@@ -173,7 +233,7 @@ async def close_call(
     fresh_db = next(get_db())
     try:
         fresh = _row_or_404(fresh_db, session_id)
-        detail = _detail(fresh, fresh_db)
+        detail = _detail(fresh, fresh_db, session)
     finally:
         fresh_db.close()
     return CloseOut(

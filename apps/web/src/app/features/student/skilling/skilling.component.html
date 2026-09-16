@@ -32,15 +32,58 @@
     } @else {
       <div class="field-label">Certificate</div>
       @if (claimFile()) {
-        <div class="cert-picked">
+        <!-- The picked row is a drop target as well. The gesture is learned on
+             the dropzone this row replaces, and if it stopped working the
+             moment a file was attached then the SECOND drop — the one swapping
+             out a certificate for the right one — would be the drop that
+             navigates the window away and loses the claim. Same handlers, same
+             code path; the button says what the drop will do, so the state is
+             never colour alone. -->
+        <div
+          class="cert-picked"
+          [style.border-color]="certDragOver() ? 'var(--purple-mid)' : null"
+          [style.background]="certDragOver() ? 'var(--tint-3)' : null"
+          (dragenter)="onCertDragOver($event)"
+          (dragover)="onCertDragOver($event)"
+          (dragleave)="onCertDragLeave($event)"
+          (drop)="onCertDrop($event)"
+        >
           <span class="icon" aria-hidden="true">check_circle</span>
           <span class="cert-name">{{ claimFileName() }}</span>
-          <button type="button" class="link-btn" (click)="picker.click()">Replace</button>
+          <button type="button" class="link-btn" (click)="picker.click()">
+            {{ certDragOver() ? 'Drop to replace' : 'Replace' }}
+          </button>
         </div>
       } @else {
-        <button type="button" class="cert-drop" (click)="picker.click()">
+        <!-- A real drop target, not just a line of copy claiming to be one.
+             preventDefault on dragenter/dragover is what makes an element
+             droppable at all; without it a dropped certificate kept the
+             browser's default and NAVIGATED the window to the file, unloading
+             the app and taking the half-filled claim beside it — category,
+             badge, issuer, note — with no error and nothing to go back to.
+             The state is drawn inline as the `.cert-drop:hover` treatment
+             (the box looks the way it does when a click would land) and is
+             also SAID on the main line, because a state carried by colour
+             alone is not one every student can see. The glyph does not change
+             with it: the icon font is subset to tools/fonts/icon-names.txt and
+             a name outside that list renders as nothing at all. (click) and
+             the tab order are untouched — the picker is still the way in from
+             the keyboard. -->
+        <button
+          type="button"
+          class="cert-drop"
+          [style.border-color]="certDragOver() ? 'var(--purple-mid)' : null"
+          [style.background]="certDragOver() ? 'var(--tint-3)' : null"
+          (click)="picker.click()"
+          (dragenter)="onCertDragOver($event)"
+          (dragover)="onCertDragOver($event)"
+          (dragleave)="onCertDragLeave($event)"
+          (drop)="onCertDrop($event)"
+        >
           <span class="icon" aria-hidden="true">upload_file</span>
-          <span class="cert-drop-main">Click to upload or drop a file</span>
+          <span class="cert-drop-main">{{
+            certDragOver() ? 'Drop the certificate to attach it' : 'Click to upload or drop a file'
+          }}</span>
           <span class="cert-drop-sub">PDF or JPEG, up to 5 MB</span>
         </button>
       }

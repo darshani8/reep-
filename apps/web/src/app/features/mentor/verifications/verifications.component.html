@@ -2,16 +2,24 @@
   <div class="dt-header">
     <div>
       <div class="eyebrow">Faculty · sole approver</div>
-      <h1 class="dt-title">Skill verifications</h1>
+      <h1 class="dt-title">Verifications</h1>
       <div class="dt-sub vq-lede">
-        Evidence your assigned mentees submitted for a skill. Only you can verify, request changes,
-        or reject it — nothing here goes to Admin.
+        Skill claims and uploaded documents from your assigned mentees. Nothing here goes to Admin —
+        you are the only approver.
       </div>
     </div>
-    <span class="chip warn queue-chip">
-      <span class="icon" aria-hidden="true">hourglass_top</span> Pending {{ pendingCount() }}
-    </span>
+    <div class="head-actions">
+      <span class="chip warn queue-chip">
+        <span class="icon" aria-hidden="true">hourglass_top</span> Skill claims {{ pendingCount() }}
+      </span>
+      <span class="chip warn queue-chip">
+        <span class="icon" aria-hidden="true">hourglass_top</span> Documents
+        {{ pendingUploadCount() }}
+      </span>
+    </div>
   </div>
+
+  <div class="eyebrow">Skill claims</div>
 
   @if (error()) {
     <div class="notice vq-notice" role="alert">
@@ -158,6 +166,95 @@
       </div>
     }
   }
+
+  <!--
+    Documents: the same mentor group, the same file route the claim cards open,
+    and until now no client at all — every upload sat at PENDING_REVIEW for the
+    life of the deployment. Verify and Reject are the only two decisions
+    POST /mentor/uploads/{id}/review accepts, so they are the only two offered.
+  -->
+  <div style="margin-top: 26px">
+    <div class="eyebrow">Documents</div>
+
+    @if (uploadsError()) {
+      <div class="notice vq-notice" role="alert">
+        <span class="icon" aria-hidden="true">error</span>
+        <div>{{ uploadsError() }}</div>
+      </div>
+    }
+
+    @if (uploads() === null) {
+      <div class="state-note">
+        <span class="icon" aria-hidden="true">hourglass_empty</span>Loading the document queue…
+      </div>
+    } @else if (uploads()!.length === 0 && !uploadsError()) {
+      <div class="card empty-card">
+        <span class="icon" aria-hidden="true">check_circle</span> No documents waiting for your
+        review.
+      </div>
+    } @else {
+      @for (u of uploads()!; track u.id) {
+        <div class="card claim">
+          <div class="claim-head">
+            <div>
+              <strong>{{ u.title || u.original_name }}</strong>
+              <span class="claim-lvl"> · {{ uploadKind(u) }}</span>
+              <div class="claim-who">
+                {{ u.student_name }} · uploaded {{ u.uploaded_at | date: 'd MMM y, HH:mm' }}
+              </div>
+            </div>
+            <span class="chip warn">
+              <span class="icon" aria-hidden="true">hourglass_top</span> Pending review
+            </span>
+          </div>
+
+          <div class="claim-body">
+            <div class="claim-file">
+              <a class="btn" [href]="fileUrl(u.id)" target="_blank" rel="noopener">
+                <span class="icon" aria-hidden="true">open_in_new</span>
+                Open {{ u.original_name }}
+              </a>
+            </div>
+
+            <label class="note-field">
+              <span class="fld">
+                Reviewer note
+                <span class="fld-hint">(required for Reject, optional for Verify)</span>
+              </span>
+              <input
+                type="text"
+                [value]="uploadNote(u.id)"
+                (input)="setUploadNote(u.id, $any($event.target).value)"
+                placeholder="e.g. The name on the certificate is not yours."
+              />
+            </label>
+            @if (uploadNoteError()?.id === u.id) {
+              <div class="note-error" role="alert">{{ uploadNoteError()!.message }}</div>
+            }
+
+            <div class="decide-row">
+              <button
+                type="button"
+                class="btn primary"
+                [disabled]="decidingUpload() === u.id"
+                (click)="decideUpload(u, 'VERIFY')"
+              >
+                <span class="icon" aria-hidden="true">check_circle</span> Verify
+              </button>
+              <button
+                type="button"
+                class="btn btn-reject"
+                [disabled]="decidingUpload() === u.id"
+                (click)="decideUpload(u, 'REJECT')"
+              >
+                <span class="icon" aria-hidden="true">cancel</span> Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    }
+  </div>
 
   <!-- Recently reviewed: the same scope, read back with the note the student was given. -->
   @if (historyError()) {

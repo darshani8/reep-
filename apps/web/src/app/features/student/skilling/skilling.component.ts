@@ -129,6 +129,10 @@ function categoryNote(cat: Category): string {
 
 const MAX_CERT_BYTES = 5 * 1024 * 1024;
 
+/** What the picker's `accept` attribute allows, said again where a DROPPED
+ *  file can be checked against it. */
+const ACCEPTED_CERT_TYPES = ['application/pdf', 'image/jpeg'];
+
 @Component({
   selector: 'app-student-skilling',
   standalone: true,
@@ -263,10 +267,66 @@ export class SkillingComponent {
     const file = input.files?.[0] ?? null;
     // Cleared so re-picking the SAME file still fires a change event.
     input.value = '';
+    this.acceptFile(file);
+  }
+
+  // --- drag and drop -------------------------------------------------------
+  //
+  // The dropzone said "Click to upload or drop a file" and implemented only
+  // the click. A drop on an element with no dragover handler keeps the
+  // BROWSER's default, which is to navigate the top-level window to the
+  // dropped file: the SPA unloads and the half-filled claim beside it —
+  // category, badge, issuer, the note to the mentor — goes with it, with no
+  // error and nothing to go back to. preventDefault on dragover/dragenter is
+  // what makes this a drop target at all; without it `drop` never fires here.
+
+  /// true while a file is being dragged over the certificate dropzone.
+  readonly certDragOver = signal(false);
+
+  onCertDragOver(event: DragEvent): void {
+    event.preventDefault();
+    this.certDragOver.set(true);
+  }
+
+  onCertDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    this.certDragOver.set(false);
+  }
+
+  onCertDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.certDragOver.set(false);
+    const file = event.dataTransfer?.files?.[0];
+    // Only when there IS one: a drag that carried text must not silently
+    // discard the certificate the student already chose.
+    if (file) this.acceptFile(file);
+  }
+
+  /**
+   * The one place a chosen certificate is accepted or refused, whichever way
+   * it arrived. The picker and the dropzone share it rather than each keeping
+   * their own rules — the size floor is this screen's (5 MB, stricter than the
+   * server's 10) and a second copy of it would drift.
+   *
+   * The type check exists FOR the drop path: `accept` on the input filters the
+   * file dialog and has no say over what gets dragged in, so without it a
+   * dropped PNG or DOCX is accepted here and refused by the server at Submit,
+   * after the whole claim has been filled in. A browser that reports no type
+   * at all is not second-guessed — the server sniffs magic bytes and is the
+   * authority on what a file really is.
+   */
+  private acceptFile(file: File | null): void {
     this.claimError.set(null);
     if (file && file.size > MAX_CERT_BYTES) {
       this.claimFile.set(null);
       this.claimError.set('That file is over 5 MB. Export a smaller PDF or JPEG and try again.');
+      return;
+    }
+    if (file && file.type && !ACCEPTED_CERT_TYPES.includes(file.type)) {
+      this.claimFile.set(null);
+      this.claimError.set(
+        'That file is not a PDF or a JPEG. Attach the certificate as one of those.',
+      );
       return;
     }
     this.claimFile.set(file);

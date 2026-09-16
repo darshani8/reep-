@@ -12,6 +12,10 @@ of letting it accumulate indefinitely:
   share one function on purpose: **one retention story in this codebase, not
   two.** A second module with its own clock and its own grace window is how a
   student's transcript ends up outliving the conversation it was quoted from.
+  It also destroys the CV and photograph of an application the office REJECTED
+  more than ``REJECTED_REGISTRATION_DOCUMENT_DAYS`` ago — the one subject on
+  this path that is not a record with a soft-delete stage, because the decision
+  row is kept forever and only its attachments age out. See step 0b.
 * ``redact_expired_runs`` walks the ``AgentRun`` audit trail: a run older than the
   window keeps its METRICS (status, intent, resolved, duration_ms, model) but has
   its free text (question, answer, trace, citations) replaced with the redaction
@@ -62,6 +66,40 @@ log = logging.getLogger("reep.retention")
 # the same question for both subjects, and two different numbers would only mean
 # two different wrong answers to give a student who asks.
 SOFT_DELETE_GRACE_DAYS = 30
+
+# How long a REJECTED application's attached files — the CV and the photograph —
+# are kept before this sweep destroys them.
+#
+# Rejection deliberately keeps them, and that is not an oversight to be tidied
+# away: `POST /api/register/{id}/reopen` is the queue's Undo, and it is lossless
+# only because the papers are still there when somebody presses it. What was
+# missing is the other end. Nothing aged them out — not the decision, not
+# `purge_expired`, not any console screen — so the CV of an applicant the office
+# refused stayed on the volume for the life of the deployment, with nothing
+# anywhere saying so. An undo nobody is going to press is not a reason to keep a
+# person's documents forever.
+#
+# 180 days is the interview record's window, chosen for the same reason: it
+# covers a placement season and the review that follows it, which is the period
+# in which a rejection is still argued about. Past it, a reopen brings back the
+# application and not its papers, and the applicant is asked to send them again —
+# which the public attach route still accepts, because a reopened row is
+# PENDING_REVIEW again. That is the honest reading of "lossless": a promise about
+# the window in which an undo actually happens, not one that runs forever.
+#
+# A CONSTANT HERE AND NOT A SETTING, on purpose. Every knob in config.py is an
+# operator's dial, and how long the college keeps the papers of somebody it
+# refused a place is not an operator's decision — it is the college's records
+# policy, and moving it belongs in a pull request somebody read, the way the
+# badge catalogue and HIERARCHY_LEVELS do. There is no "keep forever" value for
+# the same reason the interview window has none.
+#
+# THE `registrations` ROW ITSELF IS NEVER TOUCHED by any of this. It is the
+# record that this person applied and was refused, the audit trail hangs off it,
+# and `POST /api/register`'s duplicate guard is keyed on the address it carries;
+# deleting it would quietly reopen the form to an address the office has already
+# ruled on. This sweep destroys the files and leaves the decision standing.
+REJECTED_REGISTRATION_DOCUMENT_DAYS = 180
 
 
 def _utcnow() -> datetime:
@@ -237,9 +275,15 @@ def purge_expired(db: Session, now: datetime | None = None) -> dict[str, int]:
         # grace: consumed, or expired unused. Issue deletes a user's earlier
         # codes, so this is the last code of anyone who stopped signing in.
         "login_codes_deleted": 0,
-        # Public applications that were never confirmed by email: the address
-        # may not even exist. Swept after a grace well past the link's own TTL,
-        # WITH their attached files — the one case a CASCADE cannot cover.
+        # Stored files destroyed off REJECTED applications more than
+        # REJECTED_REGISTRATION_DOCUMENT_DAYS past their decision: a CV, a
+        # photograph, or both. The rejected application itself survives — it is
+        # the record of a decision — so this number counts FILES, never rows in
+        # `registrations`, and the key keeps a name it was given when it counted
+        # something else (see step 0b). Zero on a healthy deployment most nights,
+        # which is why the key has to stay in the summary whatever it counts: a
+        # key that vanishes from a nightly job's output reads as a job that
+        # stopped running.
         "registrations_purged": 0,
     }
 
@@ -248,14 +292,73 @@ def purge_expired(db: Session, now: datetime | None = None) -> dict[str, int]:
     # /login/code will ever read — so a plain delete, on the same run.
     summary["login_codes_deleted"] = sweep_login_codes(db, now=now)
 
-    # --- 0b) REMOVED (2026-09-10). This swept PENDING_VERIFICATION applications
-    # — ones that never clicked their confirmation link — a week past the link's
-    # life. Submission no longer writes that status (the mailbox proof moved
-    # past approval), and migration 9b2d47f0ce15 moved the rows that were
-    # already stuck into the review queue, so this could only ever have deleted
-    # nothing. `registrations_purged` stays in the summary at 0 rather than
-    # disappearing: a key that vanishes from a nightly job's output reads as a
-    # job that stopped running.
+    # --- 0b) The papers of applications the office refused, well past the
+    # decision. See REJECTED_REGISTRATION_DOCUMENT_DAYS for why they are kept
+    # that long and why the `registrations` row itself is left standing.
+    #
+    # THE KEY IS OLDER THAN THE SWEEP IT NOW REPORTS. Until 2026-09-10 this step
+    # swept PENDING_VERIFICATION applications whole — ones that never clicked a
+    # confirmation link — a week past the link's life. Submission stopped writing
+    # that status when the mailbox proof moved past approval, migration
+    # 9b2d47f0ce15 moved the rows already stuck in it into the review queue, and
+    # the step could then only ever delete nothing; `registrations_purged` was
+    # left in the summary at 0 rather than removed, because a key that vanishes
+    # from a nightly job's output reads as a job that stopped running. It now
+    # counts something real again, and it counts FILES rather than applications.
+    #
+    # THE WORK IS DONE BY THE MODULE THAT OWNS THOSE FILES, not repeated here —
+    # `_delete_interview_audio`'s "single integration point" argument, arriving
+    # from the other side. `routers/registration.py` already destroys these bytes
+    # in two other places (an upload replacing one, and approval moving them into
+    # the student's own uploads), and a third delete path written in this module
+    # would be a second implementation of the ordering that matters most here:
+    # the manifest row is RELEASED, carrying the file's full facts, BEFORE the
+    # bytes are unlinked, because doing it the other way round leaves a file in
+    # the permanent archive that nothing in the database can ever name. Those
+    # facts — kind, original name, mime type, size, recorded_at — hang off a row
+    # this module deliberately does not import. The archived copy in S3 is not
+    # touched at all, by that archive's own rule.
+    #
+    # THE HELPER IS ITS OWN MODULE, AND THAT IS THE WHOLE POINT OF ITS ADDRESS.
+    # It was first written inside `app/routers/registration.py`, which is the
+    # module that PROVISIONS ACCOUNTS on approval and therefore imports all
+    # three of the identity models by name. Reaching it there would have pulled
+    # every one of them into this nightly process — past the letter of §35,
+    # whose AST check reads only this file's own import statements, and straight
+    # through the middle of what that guard exists to prevent.
+    # `app/registration_documents.py` names `Registration` and
+    # `RegistrationDocument` and nothing that is an account, so the import can
+    # be read honestly by the guard and by a human.
+    #
+    # It is still FUNCTION-LOCAL, for `_delete_interview_audio`'s reason: an
+    # ImportError costs this one step and is reported loudly, rather than taking
+    # conversations, agent runs and interview records down with it at boot.
+    #
+    # A failure INSIDE the helper is deliberately not caught. At the point of
+    # this call everything the pass has done is still uncommitted — step 0's
+    # deleted sign-in codes included — so carrying on past a database error
+    # would need a rollback that silently discards them while the summary goes
+    # on reporting them, and a session left needing a rollback fails every query
+    # after it anyway. Letting it propagate loses this pass and nothing else,
+    # and the next night runs it again. The per-file catches at step 3b are not
+    # a precedent for doing otherwise here: they exist because a filesystem
+    # delete is not in the transaction, which is a different problem.
+    try:
+        from .registration_documents import purge_rejected_documents
+    except ImportError:
+        log.exception(
+            "app/registration_documents.py is not importable, so the documents of "
+            "applications rejected more than %d days ago were NOT swept this "
+            "pass. Their files are still on the volume; the rest of the sweep "
+            "continues.",
+            REJECTED_REGISTRATION_DOCUMENT_DAYS,
+        )
+    else:
+        summary["registrations_purged"] = purge_rejected_documents(
+            db,
+            older_than_days=REJECTED_REGISTRATION_DOCUMENT_DAYS,
+            now=now,
+        )
 
     # --- 1) Soft-delete conversations whose retention window has closed. -------
     expired = db.scalars(

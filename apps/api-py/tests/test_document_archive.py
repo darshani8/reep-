@@ -17,6 +17,7 @@ unconfigured deployment says so instead of looking archived.
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -160,6 +161,19 @@ def test_an_unconfigured_deployment_archives_nothing_and_claims_nothing(monkeypa
 # -------------------------------------------------------------- the sweep --
 
 
+def _settled() -> datetime:
+    """A `now` past the freshness floor, for tests about the AUDIO root.
+
+    `archive_documents._QUIET_SECONDS` defers a recording that was written to
+    recently, because the two per-speaker tracks of a LIVE interview sit in the
+    store under their final names. A test that writes a file and sweeps in the
+    same millisecond is describing exactly that state, so it has to say which
+    one it means. The documents root is exempt (see `_needs_settling`) and its
+    tests pass no clock at all.
+    """
+    return datetime.now(timezone.utc) + timedelta(seconds=archive_documents._QUIET_SECONDS + 60)
+
+
 def _store(tmp_path: Path, *names: str) -> Path:
     d = tmp_path / "uploads"
     d.mkdir(exist_ok=True)
@@ -176,7 +190,7 @@ def test_the_sweep_uploads_what_the_bucket_does_not_have(monkeypatch, tmp_path, 
 
     summary = archive_documents.run()
 
-    assert summary == {"seen": 2, "already": 1, "archived": 1, "failed": 0}
+    assert summary == {"seen": 2, "already": 1, "archived": 1, "deferred": 0, "failed": 0}
     assert [p["Key"] for p in client.puts] == ["documents/two.png"]
 
 
@@ -251,7 +265,7 @@ def test_a_nested_recording_is_archived_under_its_folder(monkeypatch, tmp_path, 
     monkeypatch.setattr(document_archive, "_client", lambda: client)
     monkeypatch.setattr(archive_documents, "_store_roots", lambda: [("interview-audio", store)])
 
-    summary = archive_documents.run()
+    summary = archive_documents.run(now=_settled())
 
     assert summary["seen"] == 2
     assert sorted(p["Key"] for p in client.puts) == [
@@ -273,9 +287,9 @@ def test_a_nested_file_already_archived_is_not_re_uploaded(monkeypatch, tmp_path
     monkeypatch.setattr(document_archive, "_client", lambda: client)
     monkeypatch.setattr(archive_documents, "_store_roots", lambda: [("interview-audio", store)])
 
-    summary = archive_documents.run()
+    summary = archive_documents.run(now=_settled())
 
-    assert summary == {"seen": 1, "already": 1, "archived": 0, "failed": 0}
+    assert summary == {"seen": 1, "already": 1, "archived": 0, "deferred": 0, "failed": 0}
     assert client.puts == []
 
 
@@ -353,3 +367,69 @@ def test_an_unconfigured_sweep_says_so_rather_than_looking_healthy(monkeypatch, 
         summary = archive_documents.run()
     assert summary["seen"] == 0
     assert "NO permanent copy" in caplog.text
+
+
+# --------------------------------------------------- the freshness floor --
+
+
+def test_a_live_interviews_tracks_are_deferred_not_truncated(
+    monkeypatch, tmp_path, configured
+) -> None:
+    """THE DEFECT THIS FLOOR EXISTS FOR, pinned.
+
+    `_SKIP_SUFFIXES` covers the MIXDOWN, which `interview_audio` writes through
+    a `.part` name. It does not cover the two per-speaker SOURCE tracks: those
+    are opened at their final `track_path` and flushed after every write so they
+    stay playable at all times, which makes a live interview's tracks
+    indistinguishable from a finished recording by name alone.
+
+    Without the floor the 02:00 sweep PUTs whatever had been written by 20:30
+    UTC into a versioned, Object-Locked bucket with no lifecycle rule -- and
+    `rel_key in have` means the finished file is never re-PUT afterwards, so the
+    archive keeps a two-minute fragment of that interview forever and reports it
+    as archived every night for years.
+    """
+    store = _store(tmp_path)
+    (store / "sess-live.student.wav").write_bytes(b"first two minutes")
+    client = FakeS3()
+    monkeypatch.setattr(document_archive, "_client", lambda: client)
+    monkeypatch.setattr(
+        archive_documents, "_store_roots", lambda: [("interview-audio", store)]
+    )
+
+    # Swept while the interview is still running: nothing is uploaded, and the
+    # run says so in its own counter rather than reporting a clean night.
+    summary = archive_documents.run()
+    assert client.puts == []
+    assert summary["deferred"] == 1
+    assert summary["archived"] == 0
+    assert summary["failed"] == 0
+
+    # Tomorrow, untouched since, the same file is taken whole.
+    summary = archive_documents.run(now=_settled())
+    assert [p["Key"] for p in client.puts] == ["interview-audio/sess-live.student.wav"]
+    assert summary["archived"] == 1 and summary["deferred"] == 0
+
+
+def test_a_document_is_never_deferred(monkeypatch, tmp_path, configured) -> None:
+    """THE OTHER HALF OF THE FLOOR, AND THE ONE THAT WAS WRONG FIRST.
+
+    The floor was applied to both roots, which broke this module's stated
+    contract on its first run after any upload. Nothing appends to a document:
+    `save_bytes` writes it in a single `write_bytes` under a fresh `uuid4()`
+    name and no second writer ever touches that path. And the only documents the
+    sweep ever has work to do on are the ones whose best-effort inline PUT
+    ALREADY FAILED -- so deferring them delays the repair of exactly those files
+    by a night, every night, to close a window that does not exist.
+    """
+    _store(tmp_path, "just-uploaded.pdf")
+    client = FakeS3()
+    monkeypatch.setattr(document_archive, "_client", lambda: client)
+    monkeypatch.setattr(
+        archive_documents, "_store_roots", lambda: [("documents", tmp_path / "uploads")]
+    )
+
+    summary = archive_documents.run()
+
+    assert [p["Key"] for p in client.puts] == ["documents/just-uploaded.pdf"]
+    assert summary["deferred"] == 0 and summary["archived"] == 1

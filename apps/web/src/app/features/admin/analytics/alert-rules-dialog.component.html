@@ -44,7 +44,7 @@
             } @else {
               @for (batch of batches(); track batch.id) {
                 <option [value]="batch.id" [selected]="batch.id === batchId()">
-                  {{ batch.name }} · {{ batch.batch_label }} · {{ batch.student_count }} students
+                  {{ batch.display_label }} · {{ batch.student_count }} students
                 </option>
               } @empty {
                 <option value="">No batches on this deployment</option>

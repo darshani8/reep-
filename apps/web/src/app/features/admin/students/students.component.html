@@ -89,7 +89,7 @@
         <option value="unseated" [selected]="batchFilter() === 'unseated'">No batch yet</option>
         @for (batch of batchOptions(); track batch.id) {
           <option [value]="batch.id" [selected]="batch.id === batchFilter()">
-            {{ batch.name }} · {{ batch.batchLabel }}{{ batch.isRunning ? '' : ' (ended)' }}
+            {{ batch.displayLabel }}{{ batch.isRunning ? '' : ' (ended)' }}
           </option>
         }
       </select>
@@ -430,7 +430,7 @@
               <select class="ctrl" (change)="setDraft('cohortId', selectValue($event))">
                 <option value="">No batch</option>
                 @for (batch of batches(); track batch.id) {
-                  <option [value]="batch.id" [selected]="batch.id === draft().cohortId">{{ batch.name }} · {{ batch.batchLabel }}</option>
+                  <option [value]="batch.id" [selected]="batch.id === draft().cohortId">{{ batch.displayLabel }}</option>
                 }
               </select>
             </label>
@@ -545,7 +545,7 @@
               <select class="ctrl" (change)="moveToBatchId.set(selectValue($event))">
                 <option value="">Choose a batch</option>
                 @for (batch of otherBatches(); track batch.id) {
-                  <option [value]="batch.id" [selected]="batch.id === moveToBatchId()">{{ batch.name }} · {{ batch.batchLabel }}</option>
+                  <option [value]="batch.id" [selected]="batch.id === moveToBatchId()">{{ batch.displayLabel }}</option>
                 }
               </select>
               <span class="help">The destination batch's department travels with the move.</span>
@@ -569,7 +569,7 @@
       <div class="dialog narrow" role="dialog" aria-modal="true" aria-labelledby="batch-actions-title" (click)="$event.stopPropagation()">
         <header class="dialog-head">
           <div>
-            <h2 class="dialog-title" id="batch-actions-title">Batch actions · {{ batch.name }}</h2>
+            <h2 class="dialog-title" id="batch-actions-title">Batch actions · {{ batch.displayLabel }}</h2>
             <p class="dialog-sub">Every action here touches all {{ batchRosterCount() | plural: 'student' }} in this batch — the filters above do not narrow it.</p>
           </div>
           <button type="button" class="btn ghost sm" aria-label="Close this dialog" (click)="closeDialog()">
@@ -584,7 +584,7 @@
               <select class="ctrl" (change)="moveToBatchId.set(selectValue($event))">
                 <option value="">Choose a batch</option>
                 @for (destination of otherBatches(); track destination.id) {
-                  <option [value]="destination.id" [selected]="destination.id === moveToBatchId()">{{ destination.name }} · {{ destination.batchLabel }}</option>
+                  <option [value]="destination.id" [selected]="destination.id === moveToBatchId()">{{ destination.displayLabel }}</option>
                 }
               </select>
             </label>

@@ -52,7 +52,7 @@
           <option value="all">All batches</option>
           @for (batch of cohorts() ?? []; track batch.id) {
             <option [value]="batch.id" [selected]="batch.id === cohortFilter()">
-              {{ batch.code }} · {{ batch.batch_label }}
+              {{ batch.display_label }}
             </option>
           }
         </select>

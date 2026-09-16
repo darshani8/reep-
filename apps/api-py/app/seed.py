@@ -683,7 +683,15 @@ def main() -> None:
             db.add(
                 Cohort(
                     code="MBA-2026-B",
-                    name="MBA Batch 2024-26 - Section B",
+                    # A BATCH IS A YEAR, plus whatever the office adds to tell
+                    # two sections of it apart. The course and the
+                    # specialization are the three pointers below and are
+                    # composed back on at read time (`app/batch_labels.py`), so
+                    # this seeds the one shape that rule has to survive: a
+                    # non-standard batch whose own name says more than the span.
+                    # It used to read "MBA Batch 2024-26 - Section B", which
+                    # printed the course and the year twice over.
+                    name="2024-26 Section B",
                     batch_label="2024-26",
                     degree_level=DegreeLevel.PG,
                     department_id=department.id if department else None,

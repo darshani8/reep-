@@ -55,8 +55,12 @@ export interface AdminStudentOut {
 export interface CohortOut {
   id: string;
   code: string;
+  /** The batch itself: a YEAR, "2026-28". */
   name: string;
   batch_label: string;
+  /** The spine and the year in one sentence, composed by the server from the
+   *  batch's own links: "General MBA - Finance · 2026-28". */
+  display_label: string;
   degree_level: string;
   student_count: number;
 }

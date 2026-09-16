@@ -161,7 +161,7 @@
             <select id="reg-batch" name="batch" [value]="batchId()" [disabled]="!departmentId() || !batches().length" (change)="setBatch($any($event.target).value)">
               <option value="">{{ !departmentId() ? 'Choose a department first' : (batches().length ? 'Choose your batch (optional)' : 'No batches listed') }}</option>
               @for (b of batches(); track b.id) {
-                <option [value]="b.id">{{ b.name }} · {{ b.batch_label }}{{ b.current ? '' : ' (ended)' }}</option>
+                <option [value]="b.id">{{ b.display_label }}{{ b.current ? '' : ' (ended)' }}</option>
               }
             </select>
           </div>

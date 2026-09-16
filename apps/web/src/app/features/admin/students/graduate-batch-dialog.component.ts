@@ -169,8 +169,8 @@ export class GraduateBatchDialogComponent implements OnInit {
 
   readonly headline = computed(() =>
     this.isReversing()
-      ? `Reverse the graduation of ${this.batch().batchName}`
-      : `Graduate ${this.batch().batchName}`,
+      ? `Reverse the graduation of ${this.batch().batchDisplayLabel}`
+      : `Graduate ${this.batch().batchDisplayLabel}`,
   );
 
   readonly subLine = computed(() => {

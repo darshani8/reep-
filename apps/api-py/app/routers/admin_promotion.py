@@ -80,6 +80,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select, tuple_
 from sqlalchemy.orm import Session, aliased
 
+from .. import batch_labels
 from ..db import get_db
 from ..governance import require_capability
 from ..identity import get_current_session
@@ -87,7 +88,7 @@ from ..models.academics import SemesterResult
 from ..models.alumni import AlumniProfile
 from ..models.catalogue import StageRule
 from ..models.cohort import Cohort
-from ..models.institution import STATUS_ACTIVE
+from ..models.institution import STATUS_ACTIVE, AcademicCourse, AcademicSpecialization
 from ..models.semester_history import (
     KIND_GRADUATE,
     KIND_PROMOTE,
@@ -280,8 +281,25 @@ class SemesterHistoryOut(BaseModel):
 # ------------------------------------------------------------- helpers --
 
 
-def _batch_label(cohort: Cohort) -> str:
-    return f"{cohort.name} · {cohort.batch_label}"
+def _batch_label(db: Session, cohort: Cohort) -> str:
+    """How this batch is named in a confirmation and in an audit row.
+
+    The spine comes down the LINKS. `cohorts.name` is the year and nothing else
+    since a4e7c92d1f38, so the old `name · batch_label` would make every
+    "Promote ..." dialog on the console read "2026-28 · 2026-28" and give
+    four identical sentences to four different batches — on the one screen
+    whose whole job is to move a specific set of students forward a semester.
+    `db.get` on a row this request has already opened costs no round trip.
+    """
+    course = db.get(AcademicCourse, cohort.course_id) if cohort.course_id else None
+    spec = (
+        db.get(AcademicSpecialization, cohort.specialization_id)
+        if cohort.specialization_id
+        else None
+    )
+    return batch_labels.compose(
+        course.name if course else None, spec.name if spec else None, cohort.name
+    )
 
 
 def _open_batch(db: Session, session: dict, cohort_id: str) -> Cohort:
@@ -457,7 +475,7 @@ def promote_batch(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
-                f"{_batch_label(cohort)} has graduated. Reverse the graduation first "
+                f"{_batch_label(db, cohort)} has graduated. Reverse the graduation first "
                 "if this batch is still running."
             ),
         )
@@ -540,7 +558,7 @@ def promote_batch(
     ]
 
     out = PromoteOut(
-        cohort_id=cohort.id, batch=_batch_label(cohort), dry_run=dry_run,
+        cohort_id=cohort.id, batch=_batch_label(db, cohort), dry_run=dry_run,
         affected=len(movers), held_back=len(held), skipped=skipped,
         ceiling=ceiling.value, ceiling_source=ceiling.source,
         checks=checks, students=rows,
@@ -702,7 +720,7 @@ def graduate_batch(
     ]
 
     out = GraduateOut(
-        cohort_id=cohort.id, batch=_batch_label(cohort), dry_run=dry_run,
+        cohort_id=cohort.id, batch=_batch_label(db, cohort), dry_run=dry_run,
         affected=len(movers), skipped=skipped,
         cohort_status=cohort.status if dry_run else COHORT_STATUS_GRADUATED,
         checks=checks, students=rows,
@@ -790,7 +808,7 @@ def ungraduate_batch(
     if not graduates:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=f"{_batch_label(cohort)} has no graduated students to reverse.",
+            detail=f"{_batch_label(db, cohort)} has no graduated students to reverse.",
         )
 
     now = datetime.now(timezone.utc)
@@ -838,7 +856,7 @@ def ungraduate_batch(
     ) or 0
 
     out = UngraduateOut(
-        cohort_id=cohort.id, batch=_batch_label(cohort), dry_run=dry_run,
+        cohort_id=cohort.id, batch=_batch_label(db, cohort), dry_run=dry_run,
         affected=len(graduates),
         cohort_status=cohort.status if dry_run else STATUS_ACTIVE,
         alumni_profiles_kept=int(kept), students=rows,

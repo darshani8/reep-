@@ -129,12 +129,13 @@ def scoped_grant():
     """A grant hung on one rung of the spine, and removed afterwards.
 
     A ROW RATHER THAN `POST /api/admin/governance/grants`, for the reason
-    test_scoped_lists.py and test_exports.py both give: `admin.analytics`
-    carries PII, so an API-made grant lands `pending_approval` under B2.4 and
-    holds NOTHING until a second `admin.governance` holder approves it — which
-    would make every test below pass for the wrong reason (an empty series
-    because the grant is inert, read as an empty series because the scope is
-    narrow).
+    test_scoped_lists.py and test_exports.py both give: a fixture should not
+    depend on who is granting or on what the key carries. A deputy's grant of
+    a `carries_pii` key lands `pending_approval` under B2.4 and holds NOTHING
+    until a different `admin.governance` holder approves it (the Main Admin's
+    is live at once) — and a test that turned on that would pass for the wrong
+    reason (an empty series because the grant is inert, read as an empty
+    series because the scope is narrow).
 
     Removed afterwards, and that is not tidiness: a grant is keyed on a user id
     and OUTLIVES the throwaway account that named it, so a leaked row silently

@@ -172,9 +172,10 @@ def scoped_grant():
     """One capability, scoped to one rung, written as a ROW.
 
     Not through `POST /api/admin/governance/grants`, for `test_scoped_lists.py`'s
-    reason: a `carries_pii` key lands `pending_approval` under B2.4 and holds
-    nothing until a second Main Admin approves it, which would make these tests
-    pass for the wrong reason.
+    reason: a deputy's grant of a `carries_pii` key lands `pending_approval`
+    under B2.4 and holds nothing until a different `admin.governance` holder
+    approves it, while the Main Admin's is live at once — a fixture that
+    depended on who granted would make these tests about the approval rule.
     """
     made: list[str] = []
 

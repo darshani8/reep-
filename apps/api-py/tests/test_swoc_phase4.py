@@ -75,9 +75,11 @@ def swept(make_user):
 
 
 def _grant(client, admin, user_id: str, capability: str = "admin.swoc") -> list[str]:
-    """A grant through the real endpoint, approved where B2.4 demands a second
-    signature. `admin.swoc` carries PII, so it lands `pending_approval` and
-    holds nothing until a second `admin.governance` holder agrees."""
+    """A grant through the real endpoint, by the Main Admin — live at once.
+
+    `admin.swoc` carries PII, so a DEPUTY's grant of it would land
+    `pending_approval` and wait for the office (B2.4); the office's own does
+    not (2026-09-16), which is why nothing here approves anything."""
     r = client.post(
         f"{GOV}/grants",
         headers=admin.headers,
@@ -91,43 +93,12 @@ def _grant(client, admin, user_id: str, capability: str = "admin.swoc") -> list[
     return [g["id"] for g in r.json()]
 
 
-@pytest.fixture
-def deputy(client, make_user):
-    """A second `admin.governance` holder, because `admin.swoc` cannot be handed
-    over by one person (B2.4). Returns a function that approves a grant id."""
-    made: dict = {}
-
-    def _approve(admin, grant_id: str) -> None:
-        if "user" not in made:
-            person = make_user("sw4-dep", Role.MENTOR)
-            r = client.post(
-                f"{GOV}/grants",
-                headers=admin.headers,
-                json={
-                    "capability": "admin.governance",
-                    "user_ids": [person.user_id],
-                    "reason": "Deputy for governance while the office is away this term.",
-                },
-            )
-            assert r.status_code == 201, r.text
-            made["user"] = person
-            made["grants"] = [g["id"] for g in r.json()]
-        ok = client.post(
-            f"{GOV}/grants/{grant_id}/approve",
-            headers=made["user"].headers,
-            json={"reason": "Agreed: this faculty member writes the batch's SWOC lines."},
-        )
-        assert ok.status_code == 200, ok.text
-
-    return _approve
-
-
 # ------------------------------------------------------------- B7.1 --
 
 
 @requires_db
 def test_the_viewpoint_follows_the_relationship_and_not_the_role(
-    client, make_user, swept, deputy
+    client, make_user, swept
 ):
     """A mentor of THIS student writes MENTOR; the same account writes
     PLACEMENT about a student they do not mentor.
@@ -149,7 +120,7 @@ def test_the_viewpoint_follows_the_relationship_and_not_the_role(
         headers=admin.headers,
         json={"mentor_user_id": faculty.user_id, "reason": "Their tutor this term."},
     ).status_code == 204
-    deputy(admin, _grant(client, admin, faculty.user_id)[0])
+    _grant(client, admin, faculty.user_id)
 
     entry = {"kind": "weakness", "text": "Needs structured problem-solving practice."}
     r = client.post(f"{API}/{mine_id}", headers=faculty.headers, json=entry)
@@ -173,7 +144,7 @@ def test_the_viewpoint_follows_the_relationship_and_not_the_role(
 
 @requires_db
 def test_only_the_author_edits_their_line_and_the_office_edits_any(
-    client, make_user, swept, deputy
+    client, make_user, swept
 ):
     """B7.2. Any holder in reach could rewrite or delete anybody's line before
     this — which is "erase the one thing the source column exists to keep",
@@ -189,8 +160,8 @@ def test_only_the_author_edits_their_line_and_the_office_edits_any(
     stu = make_user("sw4-own-stu", Role.STUDENT)
     sid = _student_id(stu.user_id)
     swept.append(sid)
-    deputy(admin, _grant(client, admin, author.user_id)[0])
-    deputy(admin, _grant(client, admin, colleague.user_id)[0])
+    _grant(client, admin, author.user_id)
+    _grant(client, admin, colleague.user_id)
 
     r = client.post(
         f"{API}/{sid}", headers=author.headers,
@@ -221,7 +192,7 @@ def test_only_the_author_edits_their_line_and_the_office_edits_any(
 
 
 @requires_db
-def test_an_authorless_line_belongs_to_the_office_alone(client, make_user, swept, deputy):
+def test_an_authorless_line_belongs_to_the_office_alone(client, make_user, swept):
     """A seeded row, or one written before `author_user_id` existed, is
     editable by the Main Admin and by nobody else.
 
@@ -233,7 +204,7 @@ def test_an_authorless_line_belongs_to_the_office_alone(client, make_user, swept
     stu = make_user("sw4-anon-stu", Role.STUDENT)
     sid = _student_id(stu.user_id)
     swept.append(sid)
-    deputy(admin, _grant(client, admin, faculty.user_id)[0])
+    _grant(client, admin, faculty.user_id)
 
     with SessionLocal() as db:
         from app.models.swoc import SwocKind, SwocSource

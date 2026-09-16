@@ -447,9 +447,10 @@ def _admin(login) -> dict:
 
 #: The key these tests hang a scope on. `admin.analytics` and NOT
 #: `admin.students`, which is the obvious example and the wrong one: it
-#: `carries_pii`, so B2.4 writes it `pending_approval` and `granted_reaches`
-#: correctly reports no reach at all until a second admin approves it. A scope
-#: test that had to approve its way past that would be testing two things and
+#: `carries_pii`, so a deputy's grant of it is written `pending_approval` under
+#: B2.4 and `granted_reaches` correctly reports no reach at all until somebody
+#: else approves it (the Main Admin's own grant is live at once). A scope test
+#: whose outcome turned on who was granting would be testing two things and
 #: would fail for the other one. Approval-plus-scope has its own test below.
 _KEY = "admin.analytics"
 
@@ -694,39 +695,43 @@ def test_the_trail_records_how_far_the_grant_went(client, login, spine):
 def test_a_pii_grant_keeps_its_reach_across_the_second_approval(client, login, spine):
     """B2.4 AND B1.2 TOGETHER, because the interaction is the risk.
 
-    A capability that shows a student's own record is written
-    `pending_approval` and holds nothing until a second holder of
-    `admin.governance` approves it. The approval path rewrites `approval_state`
-    on a row it did not create, and the mistake it invites is re-deriving the
-    row rather than updating it — which would drop a scope the granter chose and
-    silently widen a PII grant to the whole programme at the moment a second
-    person signed it off. That is the worst version of this bug, so it has its
-    own test.
-    """
-    r = client.post(
-        "/api/admin/governance/grants",
-        headers=_admin(login),
-        json={
-            "capability": "admin.students",
-            "user_ids": [spine["holder"]],
-            "reason": "Their own department's students, and nobody else's.",
-            "scope_level": "DEPARTMENT",
-            "scope_id": spine["dept_one"],
-        },
-    )
-    assert r.status_code == 201, r.text
-    row = r.json()[0]
-    assert row["approval_state"] == APPROVAL_PENDING
-    assert row["scope_level"] == "DEPARTMENT"
+    A DEPUTY's grant of a capability that shows a student's own record is
+    written `pending_approval` and holds nothing until a different holder of
+    `admin.governance` approves it (the Main Admin's own grants are live at
+    once — `initial_approval_state`). The approval path rewrites
+    `approval_state` on a row it did not create, and the mistake it invites is
+    re-deriving the row rather than updating it — which would drop a scope the
+    granter chose and silently widen a PII grant to the whole programme at the
+    moment a second person signed it off. That is the worst version of this
+    bug, so it has its own test.
 
+    The pending row is written directly, as a deputy's would be, and approved
+    through the REAL endpoint by the Main Admin — the one door that rewrites
+    the state, and the one this test is about.
+    """
     with SessionLocal() as db:
+        row = CapabilityGrant(
+            capability="admin.students", subject_kind=SubjectKind.USER,
+            subject_user_id=spine["holder"],
+            reason="Their own department's students, and nobody else's.",
+            scope_level=ScopeLevel.DEPARTMENT, scope_id=spine["dept_one"],
+            approval_state=APPROVAL_PENDING, role_at_grant=Role.MENTOR.value,
+        )
+        db.add(row)
+        db.commit()
+        grant_id = row.id
         # Pending means NO reach yet, scope or no scope.
         assert granted_reaches(db, spine["holder"], "admin.students") == []
-        # Approve it the way the second admin does, on the row itself.
-        grant = db.get(CapabilityGrant, row["id"])
-        grant.approval_state = APPROVAL_ACTIVE
-        grant.approved_at = datetime.now(timezone.utc)
-        db.commit()
+
+    r = client.post(
+        f"/api/admin/governance/grants/{grant_id}/approve",
+        headers=_admin(login),
+        json={"reason": "Agreed at the governance meeting; the panel needs this department."},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["approval_state"] == APPROVAL_ACTIVE
+    assert r.json()["scope_level"] == "DEPARTMENT"
+    assert r.json()["scope_id"] == spine["dept_one"]
 
     with SessionLocal() as db:
         assert granted_reaches(db, spine["holder"], "admin.students") == [

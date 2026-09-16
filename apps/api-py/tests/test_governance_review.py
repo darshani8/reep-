@@ -1,14 +1,18 @@
-"""B2.4 and B2.5: a grant needs two people, a review date, and the right role.
+"""B2.4 and B2.5: a deputy's grant needs two people and the Main Admin's needs
+one; every grant gets a review date and describes a person in a role.
 
 Three properties, and every one of them fails SILENTLY if it regresses — the
 console still renders, the endpoint still answers 200, and the damage is a
 faculty member holding a student's records on one person's say-so, or holding
 them still after they stopped being faculty.
 
-  * A capability the catalogue flags `carries_pii` is written
-    `pending_approval` and holds NOTHING until a different holder of
+  * A capability the catalogue flags `carries_pii`, granted by a DEPUTY, is
+    written `pending_approval` and holds NOTHING until a different holder of
     `admin.governance` approves it. The approver may not be the granter, and
     that one refusal is the only part of a four-eyes rule that does anything.
+    The MAIN ADMIN's grants are live the moment they are written, whatever they
+    carry (2026-09-16): the office is the one authority on the deployment and
+    does not wait for a deputy it appointed itself to agree.
   * Every reader of a grant honours the pending state. There are four of them
     and they are in three files; one forgetting is one door left open.
   * A grant describes a person IN A ROLE. Change the role and it stops counting
@@ -112,12 +116,12 @@ def swept():
 def deputy(client, make_user, admin, swept):
     """A faculty account the office gave `admin.governance` to.
 
-    THIS FIXTURE IS THE POINT OF B2.6 AND THE PRECONDITION OF B2.4. REEP has one
-    Main Admin, so without a deputy there is no second person on the deployment
-    and no `carries_pii` grant could ever be approved. `admin.governance` is
-    therefore deliberately NOT flagged `carries_pii` itself — see the comment on
-    the catalogue entry — and appointing one is what gives the four-eyes rule its
-    two pairs of eyes.
+    THIS FIXTURE IS THE POINT OF B2.6 AND THE SUBJECT OF B2.4. A deputy is the
+    account whose `carries_pii` grants WAIT: the Main Admin's are live at once,
+    so the two-person rule can only be exercised through somebody who is not
+    the office. `admin.governance` is deliberately NOT flagged `carries_pii`
+    itself — see the comment on the catalogue entry — so the appointment is
+    live at once whoever makes it.
     """
     account = make_user(f"rev-dep-{uuid.uuid4().hex[:4]}", Role.MENTOR)
     swept["users"].append(account.user_id)
@@ -139,10 +143,11 @@ def deputy(client, make_user, admin, swept):
     return account
 
 
-def _grant(client, admin, swept, capability: str, user_id: str, **extra) -> dict:
+def _grant_as(client, headers: dict, swept, capability: str, user_id: str, **extra) -> dict:
+    """A grant through the real endpoint, made by whoever `headers` signs as."""
     r = client.post(
         f"{GOV}/grants",
-        headers=admin.headers,
+        headers=headers,
         json={"capability": capability, "user_ids": [user_id], "reason": REASON, **extra},
     )
     assert r.status_code == 201, r.text
@@ -151,22 +156,73 @@ def _grant(client, admin, swept, capability: str, user_id: str, **extra) -> dict
     return rows[0]
 
 
+def _grant(client, admin, swept, capability: str, user_id: str, **extra) -> dict:
+    """The Main Admin's grant — the common case, and the one that is live at once."""
+    return _grant_as(client, admin.headers, swept, capability, user_id, **extra)
+
+
 # --------------------------------------------------------------------------- #
-# B2.4 — two people
+# B2.4 — two people, unless the one person is the Main Admin
 # --------------------------------------------------------------------------- #
 
 @requires_db
-def test_a_capability_carrying_a_students_records_is_not_live_until_someone_agrees(
+def test_the_main_admins_grant_is_live_the_moment_it_is_written(
+    client, admin, faculty, swept
+):
+    """The office does not ask anybody's permission (2026-09-16).
+
+    REEP has ONE Main Admin by rule, every deputy holds Governance on its
+    say-so, and so a second signature on the office's own decision could only
+    ever come from somebody the office appointed to give it. Before this test
+    existed the office's `carries_pii` grant landed `pending_approval` and, on
+    the one-admin deployment this product is built for, never activated at all
+    until a deputy was appointed to agree with it. The owner's rule is that the
+    Main Admin grants access and control without a second approval, and
+    `initial_approval_state` is where that is decided.
+
+    DELETE THIS and the next editor makes every `carries_pii` grant pending
+    "for safety", and the office is back to appointing a deputy whose only job
+    is to agree with it.
+    """
+    row = _grant(client, admin, swept, PII_KEY, faculty.user_id)
+    assert row["approval_state"] == APPROVAL_ACTIVE
+    assert row["carries_pii"] is True
+    # Nobody else signed it, and the row does not pretend somebody did.
+    assert row["approved_by"] is None and row["approved_at"] is None
+
+    with SessionLocal() as db:
+        assert PII_KEY in granted_capabilities(db, faculty.user_id), (
+            "the Main Admin's grant did not take effect"
+        )
+    # Same cookie, no re-login: capabilities resolve live, as they always have.
+    assert PII_KEY in client.get("/api/auth/me", headers=faculty.headers).json()["capabilities"]
+    assert client.get("/api/admin/exports/students.csv", headers=faculty.headers).status_code == 200
+
+    # There is nothing to approve, and nothing waits in the queue.
+    again = client.post(
+        f"{GOV}/grants/{row['id']}/approve", headers=admin.headers, json={"reason": AGREED}
+    )
+    assert again.status_code == 409, again.text
+    queue = client.get(f"{GOV}/review", headers=admin.headers).json()
+    assert row["id"] not in {g["id"] for g in queue["pending"]}
+
+
+@requires_db
+def test_a_deputys_grant_of_a_students_records_is_not_live_until_someone_agrees(
     client, admin, faculty, deputy, swept
 ):
     """The grant is written, listed, audited — and holds nothing.
+
+    A deputy holds exactly one key on the office's say-so; handing a student's
+    records to a colleague on their own is the decision the four-eyes rule
+    exists for, and the second pair of eyes is the Main Admin's.
 
     DELETE THIS and `approval_state` goes back to what it was before B2.4: a
     column written on every row, carrying a check constraint and a docstring
     about four-eyes approval, read by nobody. A grant awaiting a second person
     was fully live the moment it was inserted, and the screen said so.
     """
-    row = _grant(client, admin, swept, PII_KEY, faculty.user_id)
+    row = _grant_as(client, deputy.headers, swept, PII_KEY, faculty.user_id)
     assert row["approval_state"] == APPROVAL_PENDING
     assert row["carries_pii"] is True
 
@@ -178,7 +234,7 @@ def test_a_capability_carrying_a_students_records_is_not_live_until_someone_agre
     assert client.get("/api/admin/exports/students.csv", headers=faculty.headers).status_code == 403
 
     ok = client.post(
-        f"{GOV}/grants/{row['id']}/approve", headers=deputy.headers, json={"reason": AGREED}
+        f"{GOV}/grants/{row['id']}/approve", headers=admin.headers, json={"reason": AGREED}
     )
     assert ok.status_code == 200, ok.text
     assert ok.json()["approval_state"] == APPROVAL_ACTIVE
@@ -201,15 +257,15 @@ def test_the_person_who_granted_it_cannot_be_the_person_who_agreed(
     around one sentence: the person who decided cannot be the person who agreed.
     Remove this refusal and the flow still works end to end, still writes two
     audit rows, still shows an approver's name on screen, and protects nobody at
-    all: one admin clicks Grant and then clicks Approve.
+    all: one deputy clicks Grant and then clicks Approve.
 
     DELETE THIS and four-eyes becomes two-clicks, invisibly — every other test
     in this module still passes.
     """
-    row = _grant(client, admin, swept, PII_KEY, faculty.user_id)
+    row = _grant_as(client, deputy.headers, swept, PII_KEY, faculty.user_id)
 
     refused = client.post(
-        f"{GOV}/grants/{row['id']}/approve", headers=admin.headers, json={"reason": AGREED}
+        f"{GOV}/grants/{row['id']}/approve", headers=deputy.headers, json={"reason": AGREED}
     )
     assert refused.status_code == 403, refused.text
     assert "cannot also approve" in refused.text
@@ -218,15 +274,15 @@ def test_the_person_who_granted_it_cannot_be_the_person_who_agreed(
         assert PII_KEY not in granted_capabilities(db, faculty.user_id)
 
     # ...and the refusal is about the GRANTER, not about approving in general:
-    # somebody else holding Governance is exactly who this is waiting for.
+    # the Main Admin is exactly who this is waiting for.
     ok = client.post(
-        f"{GOV}/grants/{row['id']}/approve", headers=deputy.headers, json={"reason": AGREED}
+        f"{GOV}/grants/{row['id']}/approve", headers=admin.headers, json={"reason": AGREED}
     )
     assert ok.status_code == 200, ok.text
 
     # And a second approval is a conflict, not a silent overwrite of who agreed.
     again = client.post(
-        f"{GOV}/grants/{row['id']}/approve", headers=deputy.headers, json={"reason": AGREED}
+        f"{GOV}/grants/{row['id']}/approve", headers=admin.headers, json={"reason": AGREED}
     )
     assert again.status_code == 409
 
@@ -247,33 +303,35 @@ def test_approving_demands_a_reason_and_the_subject_may_be_the_approvers_own_acc
     which locks the office out of its own console the first time a deputy hands
     it something.
     """
-    row = _grant(client, admin, swept, PII_KEY, admin.user_id)
+    row = _grant_as(client, deputy.headers, swept, PII_KEY, admin.user_id)
+    assert row["approval_state"] == APPROVAL_PENDING
     thin = client.post(
-        f"{GOV}/grants/{row['id']}/approve", headers=deputy.headers, json={"reason": "ok"}
+        f"{GOV}/grants/{row['id']}/approve", headers=admin.headers, json={"reason": "ok"}
     )
     assert thin.status_code == 422 and "20 characters" in thin.text
 
     ok = client.post(
-        f"{GOV}/grants/{row['id']}/approve", headers=deputy.headers, json={"reason": AGREED}
+        f"{GOV}/grants/{row['id']}/approve", headers=admin.headers, json={"reason": AGREED}
     )
     assert ok.status_code == 200, ok.text
 
 
 @requires_db
 def test_a_capability_that_shows_no_student_record_is_live_on_one_persons_say_so(
-    client, admin, faculty, swept
+    client, admin, faculty, deputy, swept
 ):
     """The rule is NARROW, and that is what keeps it alive.
 
     A four-eyes rule that applies to everything is a rule the office routes
     around, because the day it blocks "let this colleague see the approved
     certifications list" is the day somebody asks for it to be switched off.
-    `carries_pii` is the whole of the distinction.
+    `carries_pii` is the whole of the distinction — for a deputy, who is the
+    only granter it still applies to.
 
-    DELETE THIS and the next editor makes every grant pending "for consistency",
-    and the console grows a queue nobody can clear.
+    DELETE THIS and the next editor makes every deputy's grant pending "for
+    consistency", and the console grows a queue nobody can clear.
     """
-    row = _grant(client, admin, swept, PLAIN_KEY, faculty.user_id)
+    row = _grant_as(client, deputy.headers, swept, PLAIN_KEY, faculty.user_id)
     assert row["approval_state"] == APPROVAL_ACTIVE
     assert row["carries_pii"] is False
     with SessionLocal() as db:
@@ -281,7 +339,9 @@ def test_a_capability_that_shows_no_student_record_is_live_on_one_persons_say_so
 
 
 @requires_db
-def test_every_reader_of_a_grant_honours_the_pending_state(client, admin, faculty, swept):
+def test_every_reader_of_a_grant_honours_the_pending_state(
+    client, admin, faculty, deputy, swept
+):
     """Four readers, three files, and one of them had forgotten.
 
     `granted_capabilities` and `granted_reaches` share `_live_grant_clauses`, so
@@ -291,6 +351,9 @@ def test_every_reader_of_a_grant_honours_the_pending_state(client, admin, facult
     capability the group HOLDS while it resolved to nothing on every request —
     a console that shows access the API does not give, which is worse than one
     that shows none, because nobody goes looking.
+
+    The pending rows are a DEPUTY's, because only a deputy's are pending now;
+    the readers do not care who wrote the row.
 
     DELETE THIS and the next reader written against `revoked_at IS NULL` alone
     is a door left open with a green badge over it.
@@ -325,10 +388,11 @@ def test_every_reader_of_a_grant_honours_the_pending_state(client, admin, facult
     assert grp.status_code == 201, grp.text
     gid = grp.json()["id"]
     swept["groups"].append(gid)
-    made = client.post(f"{GOV}/grants", headers=admin.headers, json={
+    made = client.post(f"{GOV}/grants", headers=deputy.headers, json={
         "capability": PII_KEY, "group_ids": [gid], "reason": REASON})
     assert made.status_code == 201, made.text
     swept["grants"] += [g["id"] for g in made.json()]
+    assert made.json()[0]["approval_state"] == APPROVAL_PENDING
     card = next(g for g in client.get(f"{GOV}/groups", headers=admin.headers).json() if g["id"] == gid)
     assert PII_KEY not in card["capabilities"], (
         "the group card listed a capability nobody in the group actually holds"
@@ -336,10 +400,11 @@ def test_every_reader_of_a_grant_honours_the_pending_state(client, admin, facult
 
     # 4: the duplicate check. A pending row is already a decision about this
     # pair, so re-granting must not write a second one for the approver to
-    # choose between.
-    again = client.post(f"{GOV}/grants", headers=admin.headers, json={
-        "capability": PII_KEY, "group_ids": [gid], "reason": REASON})
-    assert again.status_code == 201 and again.json() == [], again.text
+    # choose between — whoever re-grants, the office included.
+    for headers in (deputy.headers, admin.headers):
+        again = client.post(f"{GOV}/grants", headers=headers, json={
+            "capability": PII_KEY, "group_ids": [gid], "reason": REASON})
+        assert again.status_code == 201 and again.json() == [], again.text
 
 
 # --------------------------------------------------------------------------- #
@@ -390,7 +455,8 @@ def test_the_queue_separates_what_is_waiting_on_a_person_from_what_is_running_ou
     expiring = _grant(
         client, admin, swept, PLAIN_KEY, faculty.user_id, expires_at=soon.isoformat()
     )
-    waiting = _grant(client, admin, swept, PII_KEY, faculty.user_id)
+    # A deputy's, because only a deputy's `carries_pii` grant waits.
+    waiting = _grant_as(client, deputy.headers, swept, PII_KEY, faculty.user_id)
 
     # A grant with NO expiry, whose review date is inside the horizon. This is
     # the population the queue exists for and the one an expiry-only query drops
@@ -421,7 +487,7 @@ def test_the_queue_separates_what_is_waiting_on_a_person_from_what_is_running_ou
     # Approved, it leaves the pending list — and its own expiry is far out, so
     # it does not simply move across.
     client.post(
-        f"{GOV}/grants/{waiting['id']}/approve", headers=deputy.headers, json={"reason": AGREED}
+        f"{GOV}/grants/{waiting['id']}/approve", headers=admin.headers, json={"reason": AGREED}
     )
     body = client.get(f"{GOV}/review", headers=admin.headers).json()
     assert waiting["id"] not in {g["id"] for g in body["pending"]}

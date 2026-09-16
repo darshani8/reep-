@@ -726,6 +726,16 @@ class NovaSonicSession:
         # in half an interview. Closing the block is the unambiguous signal.
         self._user_text: dict[str, list[str]] = {}
         self._response_open = False
+        # Steering notes that arrived while the interviewer was still speaking.
+        # `_inject` is a USER text input, and Nova treats that as a barge-in: it
+        # stops generating and answers the new input. So a directive sent during
+        # an open response cuts the interviewer off mid-sentence and replaces
+        # the question the student was listening to -- and the interruption
+        # marker that follows makes `_on_text_output` flush the browser's PCM
+        # queue, so the voice does not tail off, it vanishes. Held here and sent
+        # in the gap between turns instead, which is the same deferral
+        # `_request_report` has always relied on for exactly this reason.
+        self._pending_notes: list[str] = []
         # The model's FINAL sentence-level transcript of what it actually said,
         # which is what gets recorded. The SPECULATIVE text is streamed to the
         # browser live (it is what makes the caption appear while the
@@ -1420,6 +1430,13 @@ class NovaSonicSession:
         closing words.
         """
         await self._end_response()
+        if await self._drain_pending_notes():
+            # A held directive just went upstream, so the next interviewer turn
+            # is the one it asks for -- the verdict, in the case that matters.
+            # Asking for the scorecard here would ask for it before that turn
+            # has been spoken, which is the same "one turn early" mistake this
+            # method's docstring exists to prevent.
+            return
         if self._verdict_requested and not self._report_requested:
             await self._request_report()
 
@@ -1454,7 +1471,7 @@ class NovaSonicSession:
                 _SENDER_STUDENT, transcript, turn_id, status=status, quality=None
             )
             self._verdict_requested = True
-            await self._inject(turn_directive("verdict"))
+            await self._steer(turn_directive("verdict"))
             return
 
         quality = classify_answer(transcript)
@@ -1485,9 +1502,9 @@ class NovaSonicSession:
         await self._announce_phase()
         if self._machine.phase is InterviewPhase.WRAP_UP:
             self._awaiting_candidate_questions = True
-            await self._inject(turn_directive("invite_questions"))
+            await self._steer(turn_directive("invite_questions"))
             return
-        await self._inject(phase_directive(spec, self._machine.phase))
+        await self._steer(phase_directive(spec, self._machine.phase))
 
     # -- the interviewer's turn --------------------------------------------
 
@@ -1537,6 +1554,28 @@ class NovaSonicSession:
                 await self._finish_report(salvaged, "ok")
 
     # -- steering ----------------------------------------------------------
+
+    async def _steer(self, body: str) -> None:
+        """One control note, held back while the interviewer is mid-sentence.
+
+        The arc is unchanged -- the directive still governs the next question --
+        it simply arrives between turns rather than on top of one. See
+        `_pending_notes` for what injecting mid-turn actually does to the audio.
+        """
+        if self._response_open:
+            self._pending_notes.append(body)
+            return
+        await self._inject(body)
+
+    async def _drain_pending_notes(self) -> bool:
+        """Send what was held back. True when anything went, which means a new
+        interviewer turn is about to open because of it."""
+        if not self._pending_notes:
+            return False
+        held, self._pending_notes = self._pending_notes, []
+        for note in held:
+            await self._inject(note)
+        return True
 
     async def _inject(self, body: str) -> None:
         """One control note into the live session, as cross-modal text input.

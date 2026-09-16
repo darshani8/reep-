@@ -1,5 +1,13 @@
-@if (!isStudent()) {
+@if (!canSit()) {
   <p class="room-err" role="status">Mock interviews are a student feature.</p>
+}
+
+@if (isRehearsal()) {
+  <p class="rehearsal" role="status">
+    <span class="icon" aria-hidden="true">visibility_off</span>
+    Rehearsal. You are the Main Admin: the interview runs exactly as a student's does, and
+    nothing from it is stored — no transcript, no report, no recording.
+  </p>
 }
 
 @if (!secureContext) {
@@ -239,7 +247,7 @@
     @if (!active()) {
       <!-- The round picker — radio behaviour on plain buttons. Only while
            idle; a live interview's row is fixed. -->
-      @if (isStudent()) {
+      @if (canSit()) {
         <div class="picker" role="radiogroup" aria-label="Interview round">
           @for (spec of specializationOptions; track spec.label) {
             <button
@@ -313,10 +321,14 @@
 @if (reportView(); as view) {
   <section class="report" aria-label="Practice report">
     <interview-report-card [view]="view" />
-    <p class="report__link">
-      Saved to <a class="room-link" routerLink="/student/interviews">your past interviews</a> with
-      the full transcript.
-    </p>
+    @if (isRehearsal()) {
+      <p class="report__link">Rehearsal — this report is not saved anywhere.</p>
+    } @else {
+      <p class="report__link">
+        Saved to <a class="room-link" routerLink="/student/interviews">your past interviews</a> with
+        the full transcript.
+      </p>
+    }
   </section>
 }
 

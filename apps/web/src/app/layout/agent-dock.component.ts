@@ -33,8 +33,10 @@
  * first, in the bar, with the words saying what closing does. Escape asks the
  * same question.
  *
- * MOCK INTERVIEW IS A STUDENT TAB. The backend refuses anyone else, so staff
- * and alumni get the one tab rather than a second tab that 403s.
+ * MOCK INTERVIEW IS A STUDENT TAB — AND THE MAIN ADMIN'S. The backend refuses
+ * faculty and alumni, so they get the one tab rather than a second tab that
+ * 403s; the Main Admin's interview is a rehearsal the server stores nothing
+ * for (2026-09-16), so the office can hear the interviewer it deploys.
  */
 
 import { Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
@@ -69,11 +71,21 @@ export class AgentDockComponent {
   readonly live = this.dock.live;
 
   readonly isStudent = computed(() => this.auth.session()?.role === 'STUDENT');
+  /** Who gets the "Mock interview" tab: a student, and the Main Admin — whose
+   *  interview is a REHEARSAL the server stores nothing for (see
+   *  InterviewRoomComponent.isRehearsal). Faculty and alumni do not. */
+  readonly canInterview = computed(() => {
+    const role = this.auth.session()?.role;
+    return role === 'STUDENT' || role === 'ADMIN';
+  });
 
-  /** The page behind the tab in front. */
-  readonly pageRoute = computed(() =>
-    this.mode() === 'interview' ? '/student/assistant' : agentRouteFor(this.auth.session()?.role),
-  );
+  /** The page behind the tab in front, or null when there is none: the
+   *  interview page is a student route, and the Main Admin's rehearsal lives
+   *  only here. */
+  readonly pageRoute = computed<string | null>(() => {
+    if (this.mode() !== 'interview') return agentRouteFor(this.auth.session()?.role);
+    return this.isStudent() ? '/student/assistant' : null;
+  });
 
   /** Sticky "has been shown": the `@defer` triggers. */
   readonly askSeen = signal(false);
@@ -91,12 +103,12 @@ export class AgentDockComponent {
       const mode = this.mode();
       if (mode === 'ask') this.askSeen.set(true);
       // A non-student cannot show the room, whatever the mode says.
-      if (mode === 'interview' && this.isStudent()) this.roomSeen.set(true);
+      if (mode === 'interview' && this.canInterview()) this.roomSeen.set(true);
     });
     // A non-student opened on the interview tab (a stale mode from an earlier
     // session, say) lands on the one tab they have.
     effect(() => {
-      if (this.open() && this.mode() === 'interview' && !this.isStudent()) {
+      if (this.open() && this.mode() === 'interview' && !this.canInterview()) {
         this.dock.setMode('ask');
       }
     });

@@ -947,11 +947,63 @@ export class AdminInstitutionComponent implements OnDestroy {
     return false;
   }
 
+  /**
+   * Put every conditionally-disabled control of the batch form into the state
+   * its rule says it should be in.
+   *
+   * `[attr.disabled]` DOES NOT WORK ON A CONTROL THAT CARRIES
+   * `formControlName`, and that is not a style preference — it is measured.
+   * `setUpControl` calls `valueAccessor.setDisabledState(control.disabled)` at
+   * directive setup (`callSetDisabledState: 'always'` is the default from
+   * Angular 16), `SelectControlValueAccessor.setDisabledState` sets the
+   * `disabled` PROPERTY, and setting that property to false removes the
+   * content attribute the binding just wrote. A throwaway spec in this repo's
+   * own harness, on this form's exact shape (a `@if` that opens on a later
+   * change-detection cycle), rendered `disabled === false` and
+   * `getAttribute('disabled') === null` with the expression TRUE.
+   *
+   * So three selects on this form looked locked and were not:
+   *   - End year, until a start year is chosen (added with the year selects);
+   *   - Specialization, until a course is chosen — the cascade this file's own
+   *     class docstring calls "CASCADING SELECTS ENFORCE CONTIGUITY", which
+   *     the server then refuses with a 422 from `_resolve_ancestry`;
+   *   - Degree level on an EDIT, where `saveBatch` deliberately never puts
+   *     `degree_level` on the wire — so the admin could change UG to PG, be
+   *     told "Saved", and watch the reload put the old value back.
+   * The reactive form is the one that actually holds, so the rule is applied
+   * here and the bindings are gone from the template.
+   *
+   * `emitEvent: false` throughout: this is bookkeeping about what is
+   * REACHABLE, and a status round-trip per control would fire the form watch
+   * for every one of them on every open.
+   */
+  private syncBatchDisabled(): void {
+    const setEnabled = (name: string, enabled: boolean): void => {
+      const c = this.batchForm.get(name);
+      if (!c) return;
+      if (enabled && c.disabled) c.enable({ emitEvent: false });
+      else if (!enabled && c.enabled) c.disable({ emitEvent: false });
+    };
+    // A year is not an end until something is a start.
+    if (!this.labelIsFreeText()) setEnabled('end_year', this.spanStart() !== null);
+    // The level cascade, from the same rule the template used to ask for.
+    for (const lv of this.levels()) {
+      if (this.levelDisabled(lv)) setEnabled(lv.field, false);
+      else setEnabled(lv.field, true);
+    }
+    // Create-only, and now create-only in the model rather than in a binding
+    // that does nothing. `code` is disabled by `openEditBatch` directly, as it
+    // always was.
+    setEnabled('degree_level', this.batchMode() !== 'edit');
+  }
+
   async onLevelChange(lv: HierarchyLevel): Promise<void> {
     if (lv.key !== 'course') return;
     // Changing the course clears anything under it and reloads its options.
     const courseId = this.batchForm.get('course_id')?.value as string | null;
     this.batchForm.get('specialization_id')?.setValue(null);
+    // Specialization becomes reachable or unreachable with the course above it.
+    this.syncBatchDisabled();
     if (!courseId) {
       this.formSpecializations.set([]);
       return;
@@ -982,6 +1034,8 @@ export class AdminInstitutionComponent implements OnDestroy {
       this.batchForm.get('end_year')?.setValue(null);
       this.spanEnd.set(null);
     }
+    // End year has just become reachable, or stopped being.
+    this.syncBatchDisabled();
     this.syncSpan();
   }
 
@@ -1043,8 +1097,12 @@ export class AdminInstitutionComponent implements OnDestroy {
     } else {
       label?.disable({ emitEvent: false });
       start?.enable({ emitEvent: false });
-      end?.enable({ emitEvent: false });
+      // NOT enabled here — `syncBatchDisabled` owns End's own rule, and
+      // enabling it unconditionally is what would put an End select in front
+      // of somebody who has not picked a Start.
+      end?.disable({ emitEvent: false });
     }
+    this.syncBatchDisabled();
   }
 
   /** A select's value as a number. `[ngValue]` binds the numbers themselves,
@@ -1071,6 +1129,10 @@ export class AdminInstitutionComponent implements OnDestroy {
     this.editingBatchId.set(null);
     this.batchError.set(null);
     this.batchMode.set('create');
+    // LAST, because `batchMode` is one of the rules it reads and it is only
+    // true from the line above. The same reason it is repeated at the foot of
+    // `openEditBatch`, where Degree level's create-only rule depends on it.
+    this.syncBatchDisabled();
   }
 
   async openEditBatch(b: AdminCohortOut): Promise<void> {
@@ -1132,6 +1194,10 @@ export class AdminInstitutionComponent implements OnDestroy {
     this.editingBatchId.set(b.id);
     this.batchError.set(null);
     this.batchMode.set('edit');
+    // LAST: `syncBatchDisabled` reads `batchMode` for Degree level's
+    // create-only rule, and `levels()` for the specialization cascade, both of
+    // which are only settled here.
+    this.syncBatchDisabled();
   }
 
   /** The batch's value at one hierarchy level, without naming the level. */

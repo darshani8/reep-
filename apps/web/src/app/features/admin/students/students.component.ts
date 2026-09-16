@@ -93,6 +93,7 @@ import {
   trackColourOf,
   type BatchAction,
   type BatchOption,
+  batchPickerLabel,
   type CourseOption,
   type DepartmentOption,
   type FacultyOption,
@@ -408,10 +409,31 @@ export class AdminStudentsComponent {
     return this.courses().filter((course) => course.departmentId === department);
   });
 
+  /**
+   * Narrowed by the course, and — when no course is picked — by the DEPARTMENT
+   * above it, which it was not.
+   *
+   * Every rung is supposed to narrow the one below, and this was the hole:
+   * with a department chosen and Course still on "All", the Specialization
+   * select listed every specialization on the deployment, another college's
+   * included. That was merely untidy while Specialization only filtered rows
+   * already loaded. It stopped being untidy when Batch started narrowing on it
+   * too — picking a foreign specialization now empties the Batch select of
+   * every real option and leaves a roster reading "No student matches", which
+   * looks like a deployment with no data rather than a filter that cannot
+   * match.
+   */
   readonly specializationOptions = computed<SpecializationOption[]>(() => {
     const course = this.courseFilter();
-    if (course === '') return this.specializations();
-    return this.specializations().filter((specialization) => specialization.courseId === course);
+    if (course !== '') {
+      return this.specializations().filter((s) => s.courseId === course);
+    }
+    const department = this.departmentFilter();
+    if (department === '') return this.specializations();
+    const withinDepartment = new Set(
+      this.courseOptions().map((c) => c.id),
+    );
+    return this.specializations().filter((s) => withinDepartment.has(s.courseId));
   });
 
   /** Every batch except the one in view — the destinations a move offers. */
@@ -431,14 +453,50 @@ export class AdminStudentsComponent {
     return chosen?.name ?? 'All';
   });
 
+  /**
+   * The Batch options, each labelled with WHAT THE SELECTS ABOVE HAVE NOT
+   * ALREADY PINNED.
+   *
+   * THE FIRST ATTEMPT AT THIS PRINTED SIX IDENTICAL OPTIONS. Dropping the
+   * spine entirely was right about the duplication and wrong about the
+   * default state: `seed_catalogue.batch_name` returns the label unchanged and
+   * the setup screen's `batchName` is `label.trim()`, so every batch a
+   * deployment writes has `name === batch_label === "2026-28"`. BGSCET's one
+   * department has six leaves, so opening this screen with Course and
+   * Specialization on "All" — which is how it opens — listed six options
+   * reading exactly "2026-28", and picking one was a guess.
+   *
+   * The rule is therefore not "never show the spine" but "never show what the
+   * reader has already fixed". Course is named while the Course select is on
+   * "All" and drops out the moment it is not; the same for Specialization. At
+   * the bottom of the cascade both are pinned and the option is the year
+   * alone, which is the case the owner asked for and also the only case where
+   * the year alone is unambiguous.
+   */
+  readonly batchPickerOptions = computed(() => {
+    const spellCourse = this.courseFilter() === '';
+    const spellSpecialization = this.specializationFilter() === '';
+    return this.batchOptions().map((batch) => ({
+      batch,
+      label: batchPickerLabel(
+        batch,
+        { course: !spellCourse, specialization: !spellSpecialization },
+        composeBatchLabel,
+      ),
+    }));
+  });
+
   readonly batchFilterLabel = computed(() => {
     if (this.batchFilter() === 'unseated') return 'No batch yet';
     const chosen = this.selectedBatch();
-    // `yearLabel` and not `name`: this is the bold half of the Batch pill, the
-    // one piece of chrome that sits directly over the option the reader picked,
-    // so it has to read back the same words the list offered. `name` would drop
-    // the year off a batch the office named something else.
-    return chosen?.yearLabel ?? 'All';
+    if (!chosen) return 'All';
+    // The pill is the one piece of chrome sitting directly over the option the
+    // reader picked, so it reads back the SAME string the list offered —
+    // including the rungs the selects above have not pinned. Anything else
+    // makes the summary and the list disagree about which batch this is.
+    return (
+      this.batchPickerOptions().find((o) => o.batch.id === chosen.id)?.label ?? chosen.yearLabel
+    );
   });
 
   readonly specializationFilterLabel = computed(() => {

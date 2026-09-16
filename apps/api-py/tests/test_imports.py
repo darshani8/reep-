@@ -153,9 +153,11 @@ def batch():
 def programme_grant():
     """A programme-wide grant written as a ROW, taken back afterwards.
 
-    `admin.imports` carries PII, so a grant made through
-    `POST /api/admin/governance/grants` lands `pending_approval` and holds
-    nothing (B2.4) — the tests below would then pass for the wrong reason.
+    A ROW rather than `POST /api/admin/governance/grants`, so the fixture does
+    not depend on who is granting: `admin.imports` carries PII, so a deputy's
+    grant lands `pending_approval` and holds nothing (B2.4) while the Main
+    Admin's is live at once — and a test that turned on that difference would
+    be about the approval rule, which has its own module.
     `tests/test_imports_schema.py` and `tests/test_scoped_lists.py` say the same.
     """
     made: list[str] = []

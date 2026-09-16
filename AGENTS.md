@@ -462,11 +462,24 @@ it. `enable` and `sign-out-everywhere` sit beside it. **There is still no way to
 DELETE a faculty account from the console**, which is unchanged and deliberate;
 emptying a deployment of people is `python -m app.purge_people`.
 
-**GOVERNANCE GREW A SECOND SIGNATURE, AN EXPIRY AND A QUEUE (B2.4–B2.7).** A
-capability that `carries_pii` is written `pending_approval` and **holds nothing**
-until a different holder of `admin.governance` approves it — so a pending grant
-that renders like a live one is an admin believing they granted access that does
-not exist. Grants carry `review_at`; one with **no** expiry is the grant that most
+**GOVERNANCE GREW A SECOND SIGNATURE, AN EXPIRY AND A QUEUE (B2.4–B2.7), AND
+THE MAIN ADMIN IS EXEMPT FROM THE SIGNATURE (2026-09-16).** A capability that
+`carries_pii`, granted by a DEPUTY, is written `pending_approval` and **holds
+nothing** until a different holder of `admin.governance` approves it — so a
+pending grant that renders like a live one is an admin believing they granted
+access that does not exist. **The Main Admin's own grants are live the moment
+they are written, whatever they carry.** The office is one account by rule and
+every deputy holds Governance on its say-so, so a second signature on the
+office's decision could only ever come from somebody the office appointed to
+give it: one decision asked twice. Until this date that is exactly what
+happened — the office's `carries_pii` grant sat `pending_approval` on the
+one-admin deployment this product is built for until a deputy was appointed to
+agree with it. `initial_approval_state` in `routers/governance.py` is the ONE
+place that reads who is granting, and BOTH writers of `capability_grants`
+(`create_grants` and `appoint_college_admin`) call it; the readers do not care
+who wrote the row, so a deputy's pending grant is still enforced where access
+is resolved. `tests/test_governance_review.py` pins both halves. Grants carry
+`review_at`; one with **no** expiry is the grant that most
 needs a date, because nothing else will ever bring it back to anybody's
 attention. `role_at_grant` stops a grant counting when the account becomes
 something else (and stays NULL on a group grant, because that decision named "the

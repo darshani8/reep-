@@ -168,9 +168,10 @@ def scoped_grant():
     """One capability, one rung, taken back afterwards.
 
     A row rather than `POST /api/admin/governance/grants`, for the reason
-    test_scoped_lists.py gives: `admin.imports` carries PII, so an API-made
-    grant lands `pending_approval` and holds nothing — every test below would
-    then pass for the wrong reason.
+    test_scoped_lists.py gives: `admin.imports` carries PII, so a deputy's
+    API-made grant lands `pending_approval` and holds nothing while the Main
+    Admin's is live at once — a fixture that depended on who granted would
+    make every test below about the approval rule instead.
     """
     made: list[str] = []
 

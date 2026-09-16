@@ -75,7 +75,9 @@ interface CollegeOut {
 interface CollegeAdminGrantOut {
   capability: string;
   label: string;
-  /** `active` or `pending_approval` (B2.4: five of the eleven carry PII). */
+  /** `active` or `pending_approval`. Seven of the thirteen carry PII and wait
+   *  when a DEPUTY appoints (B2.4); the Main Admin's appointment is live at
+   *  once (2026-09-16). */
   approval_state: string;
   grant_id: string;
 }

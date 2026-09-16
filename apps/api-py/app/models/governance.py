@@ -167,13 +167,13 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     # every student in the batch by USN with their marks or their attendance
     # beside it, on screen, before anything is written - it is one of the most
     # concentrated views of student records the console has. So under B2.4 a
-    # grant of this key lands `pending_approval` and HOLDS NOTHING until a
-    # second `admin.governance` holder approves it. On a one-admin deployment it
-    # therefore never activates, which is a real cost and an honest one: the
-    # Colleges screen's admin column already renders "N awaiting approval"
-    # rather than pretending. The way to make it work is to appoint a deputy,
-    # which is what `admin.governance`'s bootstrap note above exists for - not
-    # to drop the flag.
+    # DEPUTY's grant of this key lands `pending_approval` and HOLDS NOTHING
+    # until a different `admin.governance` holder approves it; the Colleges
+    # screen's admin column renders "N awaiting approval" rather than
+    # pretending. The Main Admin's own grant is live at once
+    # (`initial_approval_state`, 2026-09-16) - the office is the authority the
+    # rule protects, not a party it applies to - so a one-admin deployment
+    # never needs a deputy to make this work, and the flag stays.
     Capability("admin.imports", "Data imports", _P, carries_pii=True),
     # B6.1/B6.4/B6.7's interviews: the college's interview POLICY (what is kept,
     # for how long, how many attempts a day) and the records grid behind it.
@@ -185,11 +185,11 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     # `carries_pii` IS TRUE, and the half that earns it is not the policy row —
     # it is everything that hangs off this key: the records grid names students
     # with their scores beside them, and the cap reset names one student and
-    # gives them back attempts. So a grant lands `pending_approval` under B2.4
-    # and holds NOTHING until a second `admin.governance` holder approves it.
-    # On a one-admin deployment it therefore never activates, which is a real
-    # consequence and an honest one; the way to make it work is to appoint a
-    # deputy, not to drop the flag. (04-backend-changes.md B1.3 listed this key
+    # gives them back attempts. So a DEPUTY's grant lands `pending_approval`
+    # under B2.4 and holds NOTHING until a different `admin.governance` holder
+    # approves it; the Main Admin's is live at once (`initial_approval_state`,
+    # 2026-09-16), so a one-admin deployment never needs a deputy to make this
+    # work, and the flag stays. (04-backend-changes.md B1.3 listed this key
     # in `COLLEGE_ADMIN_CAPABILITIES` for months while it did not exist —
     # `app/routers/admin.py` carried the note. It exists now, in the same commit
     # as its first `require_capability` call site and its place in that set.)
@@ -197,20 +197,20 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     # Governance itself: the grants screen, the access groups and the student
     # feature switches (app/routers/governance.py). B2.6.
     #
-    # IT IS NOT FLAGGED `carries_pii`, AND THAT IS THE BOOTSTRAP, NOT AN
-    # OVERSIGHT. 04-backend-changes.md asks for this key to be "grantable to one
-    # deputy with a reason and second approval". It cannot be both: the second
-    # approver must be somebody OTHER than the granter who also holds this key
-    # (`_approver_of` in the router), REEP has exactly ONE Main Admin by rule,
-    # and so on a fresh deployment the only account that could approve the
-    # deputy's grant is the account that made it. A `carries_pii` flag here
-    # would make the appointment of the first deputy permanently pending --
-    # four-eyes with one pair of eyes -- and the four-eyes rule would then
-    # protect nothing at all, because no PII grant could ever be approved
-    # either.
+    # IT IS NOT FLAGGED `carries_pii`, AND THAT IS DELIBERATE. It reads no
+    # student record itself -- it hands out screens -- which is what
+    # `carries_pii` actually means on this dataclass. It was also, until
+    # 2026-09-16, the bootstrap of the four-eyes rule: every `carries_pii`
+    # grant then waited for a second holder of this key, the Main Admin's own
+    # included, and REEP has exactly ONE Main Admin by rule, so a deputy had to
+    # exist before any student record could change hands at all. That is no
+    # longer how the rule reads. The Main Admin's grants are live at once
+    # (`initial_approval_state` in the router): the office is the authority the
+    # rule protects, not a party it applies to. What a deputy is for now is the
+    # day the office is unreachable -- and a deputy's own `carries_pii` grants
+    # DO wait, for the Main Admin or another deputy, which is where the second
+    # pair of eyes belongs.
     #
-    # So the deputy is the bootstrap: appointing one takes effect at once, and
-    # from that moment REEP has the two people every `carries_pii` grant needs.
     # The appointment is still a decision on the trail with a typed reason, made
     # by the one account that holds this by baseline.
     #
@@ -391,8 +391,10 @@ class AccessGroupMember(Base):
     added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
-#: A grant takes effect immediately unless the capability carries PII, in which
-#: case a second Main Admin has to agree first (B2.4).
+#: A grant takes effect immediately, unless a DEPUTY granted a capability that
+#: carries PII, in which case a different holder of `admin.governance` has to
+#: agree first (B2.4). The Main Admin's grants are always written `active`
+#: (`routers/governance.py::initial_approval_state`, 2026-09-16).
 APPROVAL_ACTIVE: Final[str] = "active"
 APPROVAL_PENDING: Final[str] = "pending_approval"
 APPROVAL_STATES: Final[frozenset[str]] = frozenset({APPROVAL_ACTIVE, APPROVAL_PENDING})
@@ -511,8 +513,11 @@ class CapabilityGrant(Base):
     review_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     #: `active` or `pending_approval` (B2.4). A capability the catalogue marks
-    #: `carries_pii` does not take effect until a second Main Admin approves it,
-    #: so the person granting and the person agreeing are two people.
+    #: `carries_pii`, granted by a DEPUTY, does not take effect until a
+    #: different holder of `admin.governance` approves it, so the person
+    #: granting and the person agreeing are two people. The Main Admin's grants
+    #: are written `active` whatever they carry
+    #: (`routers/governance.py::initial_approval_state`).
     #:
     #: A String with a check constraint rather than a Postgres enum, for the
     #: reason `capability` above is one: a new state should be a deploy, not a

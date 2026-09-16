@@ -80,34 +80,14 @@ def test_the_editor_is_a_capability_the_office_holds_and_faculty_are_granted(cli
     assert r.status_code == 201, r.text
     rows = r.json()
     grant_ids = [g["id"] for g in rows]
-    # SWOC CARRIES PII, SO ONE PERSON CANNOT HAND IT OVER (B2.4). A SWOC line
-    # names a student and characterises them, so `admin.swoc` is flagged
-    # `carries_pii` and the grant is written `pending_approval`: listed, audited
-    # and holding nothing. A second holder of `admin.governance` — a deputy the
-    # office appointed — is what makes it live. Asserted rather than worked
-    # around, because the shut gate between the two is the behaviour.
-    assert rows[0]["approval_state"] == "pending_approval", rows[0]
-    assert client.get(API, headers=mentor.headers).status_code == 403, (
-        "an unapproved grant handed over the SWOC editor"
-    )
-    deputy = make_user("sw-dep", Role.MENTOR)
-    dep = client.post(
-        f"{GOV}/grants",
-        headers=admin.headers,
-        json={
-            "capability": "admin.governance",
-            "user_ids": [deputy.user_id],
-            "reason": "Deputy for governance while the office is away this term.",
-        },
-    )
-    assert dep.status_code == 201, dep.text
-    grant_ids += [g["id"] for g in dep.json()]
-    ok = client.post(
-        f"{GOV}/grants/{rows[0]['id']}/approve",
-        headers=deputy.headers,
-        json={"reason": "Agreed: this faculty member writes the batch's SWOC lines."},
-    )
-    assert ok.status_code == 200, ok.text
+    # SWOC CARRIES PII, AND THE MAIN ADMIN HANDS IT OVER ON ITS OWN SIGNATURE
+    # (2026-09-16). A SWOC line names a student and characterises them, so
+    # `admin.swoc` is flagged `carries_pii`: a DEPUTY's grant of it is written
+    # `pending_approval` and waits for the office (B2.4), but the office is the
+    # one authority here and its own grant is live at once. Asserted rather
+    # than assumed, because the previous rule made this same grant hold nothing
+    # until the office appointed a deputy to agree with it.
+    assert rows[0]["approval_state"] == "active", rows[0]
     try:
         # Same cookie, no re-login: capabilities resolve live.
         assert client.get(API, headers=mentor.headers).status_code == 200

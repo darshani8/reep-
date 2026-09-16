@@ -274,10 +274,11 @@ def _grant(db, user_id: str, *, level=None, target=None) -> CapabilityGrant:
     """A live grant of `admin.interviews`, written directly.
 
     Direct rather than through `POST /api/admin/governance/grants` because the
-    key is `carries_pii=True`, so the endpoint writes it `pending_approval` and
-    it would hold NOTHING until a second Main Admin approved it (B2.4). That is
-    the correct behaviour of the endpoint and it is not what these tests are
-    about; `test_governance_review.py` owns it.
+    key is `carries_pii=True`, so the endpoint writes a deputy's grant
+    `pending_approval` — holding NOTHING until a different `admin.governance`
+    holder approves it (B2.4) — and the Main Admin's live at once. Who is
+    granting is the endpoint's concern and not what these tests are about;
+    `test_governance_review.py` owns it.
     """
     row = CapabilityGrant(
         capability=CAPABILITY,

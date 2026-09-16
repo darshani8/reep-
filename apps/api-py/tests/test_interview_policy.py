@@ -81,9 +81,10 @@ KEY = "admin.interviews"
 def test_the_interviews_capability_exists_and_carries_pii():
     """B6.7's key, added by B6.1's endpoints.
 
-    `carries_pii` is TRUE and the consequence is deliberate: a grant lands
-    `pending_approval` under B2.4 and holds nothing until a second
-    `admin.governance` holder approves it. What earns the flag is not the policy
+    `carries_pii` is TRUE and the consequence is deliberate: a DEPUTY's grant
+    lands `pending_approval` under B2.4 and holds nothing until a different
+    `admin.governance` holder approves it (the Main Admin's own grant is live
+    at once). What earns the flag is not the policy
     row — it is the cap reset, which names one student, and the records grid
     that hangs off the same key.
     """

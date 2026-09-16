@@ -269,11 +269,13 @@ def test_a_grant_adds_a_screen_and_a_group_hands_it_to_its_members(
     cleanup["groups"].append(gid)
 
     # THE GROUP'S CAPABILITY CHANGED FROM `admin.exports`, THE PROPERTY DID NOT
-    # (B2.4). Exports is flagged `carries_pii`, so a grant of it is now written
-    # `pending_approval` and holds nothing until a SECOND holder of
-    # `admin.governance` approves it — which would make this test about the
-    # four-eyes rule rather than about groups, and it would have gone green
-    # again the moment somebody approved for the wrong reason.
+    # (B2.4). Exports is flagged `carries_pii`; when this was written the
+    # office's grant of it landed `pending_approval` and held nothing until a
+    # SECOND holder of `admin.governance` approved it — which would have made
+    # this test about the four-eyes rule rather than about groups. The Main
+    # Admin's grants are live at once now (2026-09-16), but the swap stays: a
+    # deputy's still waits, and a group test has no business turning on who
+    # happened to be granting.
     # `admin.catalogue` is the nearest live equivalent: PROGRAMME, not held by a
     # mentor's baseline, and not personal, so joining the group is the only thing
     # that can hand it over. The approval rule has its own module
@@ -494,13 +496,15 @@ def test_interview_audio_is_a_capability_faculty_must_be_granted(client, admin, 
     would 404 them for scope and the test would pass on the wrong 404 - green
     whether or not the capability gate ever opened.
 
-    THE GRANT NOW NEEDS A SECOND PAIR OF EYES (B2.4). `admin.interview_audio` is
-    flagged `carries_pii` — it is a named student's recorded voice, the most
-    sensitive bytes REEP stores — so the grant is written `pending_approval` and
-    hands over NOTHING until a different holder of `admin.governance` approves
-    it. That step is asserted here rather than skipped, because the interesting
-    moment is the one between: the row exists, the console lists it, the audit
-    trail records it, and the gate is still shut.
+    THE MAIN ADMIN'S GRANT IS LIVE AT ONCE (2026-09-16). `admin.interview_audio`
+    is flagged `carries_pii` — it is a named student's recorded voice, the most
+    sensitive bytes REEP stores — and between B2.4 and this date the office's
+    own grant of it landed `pending_approval`, waiting for a deputy the office
+    had appointed to agree with it. The office is the one authority on this
+    deployment and does not ask its own appointee's permission; a DEPUTY's
+    grant of this key still waits, and `tests/test_governance_review.py` is
+    where that is pinned. Asserted here rather than assumed, because the old
+    rule made this exact grant hold nothing.
     """
     from app.models.user import Mentor, Student
 
@@ -550,28 +554,10 @@ def test_interview_audio_is_a_capability_faculty_must_be_granted(client, admin, 
         assert r.status_code == 201, r.text
         rows = r.json()
         cleanup["grants"] += [g["id"] for g in rows]
-        assert rows[0]["approval_state"] == "pending_approval", (
-            "a capability carrying a student's recorded voice went live on one "
-            "person's say-so"
+        assert rows[0]["approval_state"] == "active", (
+            "the Main Admin's grant of a student's recorded voice waited for a "
+            "second signature that only an appointee of the office could give"
         )
-
-        # Granted, listed, audited - and still shut.
-        assert client.get(url, headers=headers).status_code == 403
-
-        # The second pair of eyes. A deputy is a faculty member the office gave
-        # `admin.governance` to; the Main Admin cannot approve its own grant.
-        deputy = make_user(f"gov-dep-{uuid.uuid4().hex[:4]}", Role.MENTOR)
-        dep = client.post(f"{GOV}/grants", headers=admin.headers, json={
-            "capability": "admin.governance", "user_ids": [deputy.user_id],
-            "reason": "Deputy for governance while the office is away for the audit.",
-        })
-        assert dep.status_code == 201, dep.text
-        cleanup["grants"] += [g["id"] for g in dep.json()]
-        ok = client.post(
-            f"{GOV}/grants/{rows[0]['id']}/approve", headers=deputy.headers,
-            json={"reason": "Agreed: this faculty member sits on the review panel."},
-        )
-        assert ok.status_code == 200, ok.text
 
         # Same cookie, no re-login: the gate now opens for them too.
         assert client.get(url, headers=headers).status_code == 404

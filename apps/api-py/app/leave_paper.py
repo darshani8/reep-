@@ -52,6 +52,7 @@ from __future__ import annotations
 
 import html
 import io
+import logging
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -64,6 +65,25 @@ from reportlab.pdfgen import canvas
 from reportlab.platypus import Paragraph
 
 from .models.leave import SIGNED_AS_DELEGATE, SIGNED_AS_MAIN_ADMIN, SIGNED_AS_MENTOR
+
+log = logging.getLogger(__name__)
+
+
+def _renormalised(content: bytes) -> bytes | None:
+    """`content` re-encoded as a flat RGBA PNG through Pillow, EXIF rotation
+    applied, or None when Pillow cannot read it either."""
+    try:
+        from PIL import Image, ImageOps
+
+        with Image.open(io.BytesIO(content)) as image:
+            image = ImageOps.exif_transpose(image) or image
+            flat = image.convert("RGBA")
+        out = io.BytesIO()
+        flat.save(out, format="PNG")
+        return out.getvalue()
+    except Exception as exc:  # noqa: BLE001
+        log.warning("leave paper: Pillow could not re-encode the signature image: %s", exc)
+        return None
 
 TEMPLATE = Path(__file__).resolve().parent / "assets" / "leave_form_template.pdf"
 TEMPLATE_BYTES = 84718  # pinned in tests: the layout below is measured from this exact file
@@ -241,14 +261,33 @@ def _esc_free(value: Any) -> str:
 
 def _image(c: canvas.Canvas, sig: tuple[bytes, str] | None, x: float, bottom: float,
            *, max_h: float, max_w: float) -> None:
-    """The uploaded signature, its bottom edge on `bottom`, scaled to fit."""
+    """The uploaded signature, its bottom edge on `bottom`, scaled to fit.
+
+    AN UNREADABLE IMAGE PRINTS NOTHING AND SAYS SO IN THE LOG (2026-09-16).
+    It used to be swallowed silently, which is how "the signature is not on
+    the PDF" reached the office with no line anywhere saying why. The image
+    is first handed to ReportLab as stored; if ReportLab cannot read it (a
+    palette PNG with transparency, a CMYK or EXIF-rotated phone JPEG), it is
+    re-encoded through Pillow as a flat RGBA PNG and tried once more. The
+    upload path normalises new images the same way (`routers/signature.py`),
+    so this fallback is for files stored before it did.
+    """
     if sig is None or max_h <= 6:
         return
     content, _mime = sig
-    try:
-        reader = ImageReader(io.BytesIO(content))
-        w, h = reader.getSize()
-    except Exception:  # noqa: BLE001 - an unreadable image prints nothing, never breaks the paper
+    reader = None
+    for attempt, payload in enumerate((content, _renormalised(content))):
+        if payload is None:
+            continue
+        try:
+            reader = ImageReader(io.BytesIO(payload))
+            w, h = reader.getSize()
+            break
+        except Exception as exc:  # noqa: BLE001 - reported, never fatal to the paper
+            reader = None
+            log.warning("leave paper: signature image unreadable (attempt %d): %s", attempt + 1, exc)
+    if reader is None:
+        log.warning("leave paper: the signature image could not be drawn; name and time print alone")
         return
     if not w or not h:
         return

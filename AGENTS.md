@@ -31,7 +31,7 @@ Seeded logins: `student@bgscet.ac.in` / `student123`, `mentor@bgscet.ac.in` / `m
 - `python -m app.seed_kb` is the production-safe seed: the grounded assistant's Knowledge Base, no accounts. Production needs it (without it the assistant has nothing to ground against) and never needs the demo users, which is why they no longer travel together.
 - `python -m app.seed_catalogue --college 1MP` is the **third** seed and the same kind of thing: the institutional spine -- college, department, courses, specializations and one batch per LEAF -- as code, reviewed in a pull request, written by pressing one button on the Ops task menu. Production-safe (no accounts, nothing to refuse on `ENV=prod`), **idempotent**, **dry run by default** and **ADDITIVE ONLY**: an existing row is returned untouched even where its fields differ, because the office renames things on screen and a seeder that reasserted its own names would undo that work on every press -- divergence is REPORTED, never corrected. Before it, the only route into a real deployment was about fifteen Catalogue forms per college. **THE FIELD THAT MATTERS IS A LEAF'S `code`**, because `_default_track` preselects the interview track by exact match on it: `fa` gets the Financial Analytics interviewer and `FIN` -- which the model's own column comment suggests -- gets nothing at all, so that college's students meet "General interview", which has no wrap-up phase and CANNOT BE SCORED. That is `grant_access --department-id`'s dead end reached from the catalogue instead of the account, and closing one door while leaving the other open is closing neither. A code matching no track is LEGITIMATE (BGSCET's Marketing and Logistics & Supply Chain have none, and the office can add one on the Interview Tracks screen whenever it likes, at which point the match starts working with no change to the file) -- so every run prints, per leaf, whether a student there is preselected today and names the exact string that would fix it. `tests/test_seed_catalogue.py` pins the codes BY NAME, including that **Marketing is deliberately not mapped to `dm`**: the only marketing track in the matrix is DIGITAL marketing, a different discipline and one of that college's own courses, so the tempting "fix" would sit a Marketing student in front of a growth CMO asking about CAC/LTV ratios and score them against it.
 
-**Handing a deployment over: `python -m app.purge_people`.** The counterpart to the seeds — it empties a deployment of PEOPLE (every account except the Main Admin, every record those accounts produced, every transcript and every recording, and the documents and audio on the volume) while leaving the institution and the catalogues standing: colleges, departments, courses, specializations, batches, job postings, the badge and certification catalogues and the Knowledge Base. It exists because nothing else can do it: `grant_access` creates and updates accounts and cannot remove one, the Main Admin console has no screen at all for deleting a faculty account, and the Ops task menu is a FIXED LIST because free text there is RCE on the cluster. **Every one of the 111 tables carries a written verdict in `VERDICTS`, and a table nobody classified ABORTS THE RUN** — not kept (which leaves a student's records behind) and not emptied (which destroys a catalogue somebody added last week); `tests/test_purge_people.py` fails in CI first, so the next person to add a table is made to decide. **That question is asked of the DATABASE and not of `app/models/`** (`known_tables`), and until `e1c4b7a209d6` it was not: every reader here walked `Base.metadata`, so a table created by a MIGRATION and deliberately given no model was invisible to the coverage check AND to the delete pass. `students_orphaned_cohort_ids` — migration `d5a1c8b30f47`'s rescue table, model-less on purpose (`_PRESERVED_DATA_TABLES` in `migrations/env.py`: it is an operator's receipt, not part of the schema) — sat outside both destructors that way, so a pass whose whole purpose is removing every trace of people left a list of their `students.id`s standing, in the one table nobody thinks to look at because it is not in `app/models/`. It is `EMPTY` in `VERDICTS` and `ALL` in `STUDENT_VERDICTS` now, and reflecting the live database is what makes the refusal cover the NEXT one even if nobody remembers to add it to the tuple. **Files go before rows**, because a row is the last pointer to a student's resume and a named student's recorded voice, and a delete that loses the pointer first leaves bytes nobody can find — `retention._delete_interview_audio`'s reasoning, applied to the five document stores and the S3 recordings. It refuses unless there is EXACTLY ONE ADMIN: zero would lock every human out of the console, and picking between two would be this module choosing which colleague keeps their account. **Dry run is the default**; `--apply` also demands `--i-understand-this-is-permanent`, and the Ops task's `purge-people` demands a typed sentence of its own on top of the menu's `confirm: run`, because that box is muscle memory by the time anyone reaches this task and nothing else on the menu destroys anything. The delete order satisfies 180 real foreign keys — several with no `ON DELETE` at all (`login_days.user_id`, `mentors.user_id`, `students.user_id`, and the four `created_by_user_id` columns on the KEPT institutional spine, which are nulled first) — and the test proves it by running the real delete against the real schema inside a transaction it rolls back, which is why `_delete_rows` is factored out of `execute` without a commit.
+**Handing a deployment over: `python -m app.purge_people`.** The counterpart to the seeds — it empties a deployment of PEOPLE (every account except the Main Admin, every record those accounts produced, every transcript and every recording, and the documents and audio on the volume) while leaving the institution and the catalogues standing: colleges, departments, courses, specializations, batches, job postings, the badge and certification catalogues and the Knowledge Base. It exists because nothing else can do it: `grant_access` creates and updates accounts and cannot remove one, the Main Admin console has no screen at all for deleting a faculty account, and the Ops task menu is a FIXED LIST because free text there is RCE on the cluster. **Every one of the 111 tables carries a written verdict in `VERDICTS`, and a table nobody classified ABORTS THE RUN** — not kept (which leaves a student's records behind) and not emptied (which destroys a catalogue somebody added last week); `tests/test_purge_people.py` fails in CI first, so the next person to add a table is made to decide. **That question is asked of the DATABASE and not of `app/models/`** (`known_tables`), and until `e1c4b7a209d6` it was not: every reader here walked `Base.metadata`, so a table created by a MIGRATION and deliberately given no model was invisible to the coverage check AND to the delete pass. `students_orphaned_cohort_ids` — migration `d5a1c8b30f47`'s rescue table, model-less on purpose (`_PRESERVED_DATA_TABLES` in `migrations/env.py`: it is an operator's receipt, not part of the schema) — sat outside both destructors that way, so a pass whose whole purpose is removing every trace of people left a list of their `students.id`s standing, in the one table nobody thinks to look at because it is not in `app/models/`. It is `EMPTY` in `VERDICTS` and `ALL` in `STUDENT_VERDICTS` now, and reflecting the live database is what makes the refusal cover the NEXT one even if nobody remembers to add it to the tuple. **Files go before rows**, because a row is the last pointer to a student's resume and a named student's recorded voice, and a delete that loses the pointer first leaves bytes nobody can find — `retention._delete_interview_audio`'s reasoning, applied to the five document stores and the S3 recordings. It refuses unless there is EXACTLY ONE ADMIN: zero would lock every human out of the console, and picking between two would be this module choosing which colleague keeps their account. **Dry run is the default**; `--apply` also demands `--i-understand-this-is-permanent`, and the Ops task's `purge-people` demands a typed sentence of its own on top of the menu's `confirm: run`, because that box is muscle memory by the time anyone reaches this task and nothing else on the menu destroys anything. The delete order satisfies 181 real foreign keys — several with no `ON DELETE` at all (`login_days.user_id`, `mentors.user_id`, `students.user_id`, and the four `created_by_user_id` columns on the KEPT institutional spine, which are nulled first) — and the test proves it by running the real delete against the real schema inside a transaction it rolls back, which is why `_delete_rows` is factored out of `execute` without a commit.
 
 **Clearing a demonstration cohort: `python -m app.purge_students`.** The narrow counterpart, and the one that gets run on a deployment that is STAYING IN USE: it deletes every account whose role is STUDENT, everything those accounts produced, and everything staff wrote ABOUT them — while every MENTOR, ALUMNI and ADMIN account, their signatures, their upskilling shelf, their governance grants and their own leave requests stay exactly where they are. `purge_people` cannot express that, because its verdicts are whole-table (`students: EMPTY`, `users: SURVIVOR`): running it to clear a cohort deletes every faculty account on the way through. So here a verdict is THREE values and not two — "delete the student rows" is a different sentence in a table only a student can own (`resumes`) and in one shared with staff (`leave_requests`, `conversations`, `agent_runs`, `login_days`). 47 tables are emptied outright, 40 are untouched, 24 are scoped, and **`STUDENT_VERDICTS`'s key set is checked against `purge_people.VERDICTS`**, so the next person to add a model is stopped by BOTH destructors rather than the one they happened to read. **The doomed set is read ONCE, before anything is deleted**, and held as literal ids: as a live subquery over `users` it would be right only by accident, because the accounts go near the END of the pass and any table ordered after them would match nothing and silently leave its rows behind. `registrations` is the one table scoped by something other than an account — an application that was APPROVED, or that carries a doomed address, goes; the office's PENDING queue survives, because an approved application left behind makes `POST /api/register`'s duplicate guard refuse that address forever with no account left to explain why. The three file stores are `purge_people`'s own functions handed a subset, never a copy. Dry run is the default, the Ops task's `purge-students` demands the typed sentence `DELETE EVERY STUDENT` (deliberately NOT `purge-people`'s, so the words name the act), and `execute` refuses to commit if the number of non-student accounts changed.
 
@@ -138,6 +138,117 @@ Because this makes being signed out a routine event rather than an incident, the
 `/auth/forgot` answers **the same 202 and the same words** whether the address is real, password-less or unknown, with the mail work in a background task so the timing matches too; it **now serves students**, who have a password to forget. `/auth/reset` puts every device out via `token_version`, kills other pending links and signs in nobody. Mail leaves through `app/mail_transport.py`: **Amazon SES** when `SES_FROM_ADDRESS` is set (task-role auth, no key to paste), otherwise a console transport that logs the message and keeps it in a bounded `outbox` — which is how a developer and the test suite read a link. **B3.7 SHIPPED ON 2026-09-15 and the sentences that said it had not are gone** (`config.py`, `leave_mail.py`, `.env.example`, `test_leave_mail.py`): the identity `sast-skills.com` is verified with DKIM, the account holds SES production access in ap-south-1, and the api task carries `no-reply@sast-skills.com`. Read `docs/ses-mail.md` before touching any of it — it is the decision record for **why the college's own `bgscet.ac.in` is NOT the sender** (its identity was left unverified and has been deleted; moving there costs three DKIM CNAMEs from college IT and a stack deploy, neither in this team's hands) and the runbook for `sesManaged`. **`LEAVE_MAIL_ENABLED` is true in production now and `settings.leave_mail_enabled` still defaults to FALSE**, and those are not in tension: the default is for a machine with no transport, where mail switched on writes a `mail_logs` row reading SENT about a message that reached NOBODY. Two things are worth knowing before trusting that row anywhere: SENT means SES ACCEPTED it, never that it arrived, and the bounce stream reaches an inbox and not this application — so an address on SES's account suppression list is delivered nothing while `mail_logs` keeps saying SENT. **That log line was going nowhere until 2026-09-10**: nothing ever called `logging.basicConfig`, so the root logger had no handler and sat at WARNING, and every `log.info` in `app/` was discarded in development AND in production. `app/main.py`'s lifespan configures it now — deliberately WITHOUT `force=True`, which removes handlers somebody else installed (it broke `test_boot_guard`'s caplog assertion while the message was still plainly on stderr). Screens: `/onboard` (three steps), `/activate` and `/reset` (one component, two modes), all outside the shell; `/account/password` inside it; and the login's inline "Forgot password?" form. Full record: `docs/institutional-spine-build-log.md`, round 4.
 
 The endpoint carries a brute-force limiter, and **it is keyed on the account, never on the source address**. Behind the ALB `request.client.host` is one value for the entire internet: an address bucket there is a global outage waiting to happen — ten wrong passwords from anyone locks out every student at once — and raising the limit until that stops hurting makes it stop working. This was written the wrong way first and the suite caught it immediately (24 failures became 134, because every `TestClient` request shares one peer address). Ten failures per email per fifteen minutes, only failures count, a success returns the budget, and the 429 names Google because that door is not gated by this counter — so an attacker who burns a known address's budget costs a real user a redirect, not their access. What no in-process counter can bound behind a proxy is **spraying** (one guess each against a thousand accounts); that control belongs at the edge, as a WAF rate rule.
+
+## Deleting people and colleges from the console (2026-09-16)
+
+The owner asked for a Delete button on Students, Faculty and Colleges, with a
+second factor for the office, and for "delete, but not permanently" to be a
+real choice. Both are `routers/admin_deletion.py`, Main-Admin-only
+(`require_admin`, never a capability: deleting a person is the office's act
+and a capability is a thing the office hands to somebody else), and every one
+of them writes an audit row.
+
+**REMOVE and DELETE are not degrees of one thing, and the dialog draws them as
+a choice.** REMOVE writes `users.deleted_at` / `deleted_by_user_id` /
+`delete_reason` (migration `c7d3e9a1f5b2`): the person leaves every roster,
+picker and queue, cannot sign in by any door, every row they own stays exactly
+where it is, and `POST .../restore` brings them back with nothing lost. It asks
+for a reason in words, disabling's rule. It is a column BESIDE `disabled_at`,
+not a reuse of it: a disabled account is meant to stay listed, greyed with its
+date; a removed one is meant to leave the lists; and an account that was
+disabled and then removed comes back disabled, which two columns can say and
+one cannot. **Every sign-in door reads `User.barred_at`** (`deleted_at or
+disabled_at`) — `refuse_disabled_sign_in`, the Google callback, onboarding,
+reset, activation, the handover grant — and `security.account_state` reads
+both columns in its one query, so a removed account's cookie dies on its next
+request. The lists that hide a removed account: the roster (`?removed=true`
+lists exactly those, for Restore), the faculty list (same), mentor-load,
+unassigned students, a mentor's mentees, and `mentee_count` — so a faculty
+member whose only mentee was removed holds no mentor functions until the
+student is restored; the `students.mentor_id` pointer is never touched, which
+is what makes Restore exact.
+
+**DELETE FOR GOOD is `app/account_deletion.py` over `app/deletion_walk.py`,
+and the walk is the design.** `purge_people` and `purge_students` empty
+TABLES; one person is a ROW and its dependants, and the schema already
+answers "which rows go with it" for 150 of its 181 foreign keys with an ON
+DELETE clause. The walk starts at the account's own rows (`users`,
+`students`, `mentors`, the `registrations` that became or named it, its
+`mail_logs`, its idempotency keys), follows every CASCADE, counts every SET
+NULL as a record that survives without the name, and REFUSES on any column
+with no clause and no entry in `ACCOUNT_POLICY` — the purge modules' "a table
+nobody classified aborts the run", applied per column. The policy decides the
+undeclared ones (`students.user_id`, `mentors.user_id`, `login_days.user_id`,
+the two history tables, the RESTRICT notebook columns — the person's own
+instrument, gone with them; the four `created_by_user_id` columns and
+`students.mentor_id` — cleared) and overrides two SET NULLs the schema
+carries (`import_rows.student_id`, `platform_candidates.user_id`: a line
+holding the student's USN and marks, or their name and address, left behind
+under somebody else's receipt has not deleted the student). Files go before
+rows, through `purge_people`'s own destroyers handed the subset, and the
+manifest is stamped released. On a FACULTY delete the mentees are released
+(counted), and their meeting notes ABOUT students are DELETED — `mentor_notes.mentor_id`
+is CASCADE and NOT NULL, so they cannot survive the group row — which the plan
+says in words and which is the reason REMOVE exists. `tests/test_account_deletion.py`
+runs the real delete against the real schema in a rolled-back transaction, pins
+the policy against every FK in the metadata, and cross-checks the walk against
+`purge_students.STUDENT_VERDICTS`: every table the cohort purge would scope is
+either reached or named in `NOT_PER_ACCOUNT` with a reason.
+
+**THE CODE IS THE SECOND FACTOR.** `POST /api/admin/deletions/code` mails a
+six-digit code (`PURPOSE_DELETE_CODE`, in `CODE_PURPOSES`, so it is hashed
+with its row id and found by `(user, purpose)` like every other code) to the
+office account's OWN address, never one from the request; it lives
+`otp_code_minutes`, is spent by exactly one act through `consume_user_code`'s
+atomic UPDATE, and is consumed AFTER every refusal and BEFORE anything is
+destroyed. A wrong code is a 403 that names nothing about the target. Requests
+are throttled per admin (`DELETE_CODES_PER_HOUR`). The plan endpoints
+(`GET .../delete-plan`) are what the dialog prints before the button — the same
+walk the delete runs, so the sentences and the numbers cannot drift.
+
+**A COLLEGE DELETES ITS STRUCTURE AND REFUSES WHILE ANYBODY IS UNDER IT.**
+`app/college_deletion.py` walks from `colleges` with `COLLEGE_POLICY`:
+departments, courses, specializations, batches and the configuration hung on
+them (the calendar, interview policies, stage rules, badge-course map) go;
+catalogue rows that merely pointed at the college (jobs, tracks, criteria,
+approved certifications, bank questions, import runs) stay and lose the
+pointer, counted; and `students.cohort_id`, `students.department_id` and
+`users.department_id` are `REFUSE_IF_ANY` — a college with a student seated or
+a faculty account filed under it is refused in words, re-checked inside the
+transaction, as is an application still in the review queue. **The bulk form
+is `python -m app.purge_colleges --keep 1MP`**: every college except the one
+named goes, each in its own transaction, dry run by default, `--apply` plus
+`--i-understand-this-is-permanent`, an unknown `--keep` code refused rather
+than read as "everything"; on the Ops task menu as `purge-colleges[-dry-run]`
+with `college_code` naming the SURVIVOR and its own typed sentence.
+
+**Leave is one signature, the Main Admin's (2026-09-16).** The two-signature
+chain (SUBMITTED → FIRST_APPROVED → APPROVED, a mentor or a scoped grantee
+first and a different approver second) deadlocked every staff request on a
+one-admin deployment, and the owner's answer was a single decision by the
+office. `_require_leave_approver` is `require_admin`; `_assert_can_decide` —
+still THE gate the paper, the attachments, the alternate table and the balance
+read import — admits the Main Admin and nobody else with the same flattened
+404; `decide_leave` writes `first_*` and the terminal status in one step and
+completes a legacy FIRST_APPROVED row in the `second_*` slot without rewriting
+the first stamp. `mentor.leave_approve` LEFT the catalogue and
+`MENTOR_FUNCTIONS` (three now), and migration `d8b1f4c2a7e9` revoked every
+live grant of it with the reason written on the row. `LeaveStatus.FIRST_APPROVED`
+and the `second_*` columns stay for the rows that carry them. The faculty
+leave screen no longer has an approver's queue at all; the admin screen's
+"Sanction" is the whole chain.
+
+**The signature image: normalised on the way in, never silent on the way
+out.** `PUT /api/staff/signature` re-encodes what the sniffer accepted as a
+flat, upright RGBA PNG through Pillow (EXIF rotation applied) before it is
+stored, best-effort — a file Pillow cannot read is stored as uploaded with a
+warning, never refused on Pillow's word alone. `leave_paper._image` tries
+ReportLab, then a Pillow re-encode, and LOGS when neither can draw the file;
+it used to swallow the exception, which is how "my signature is not on the
+PDF" reached the office with no line anywhere saying why. The faculty leave
+form now says whether a signature image is on file, with the link to add one
+(`/mentor/signature`, in the account menu for staff and the Main Admin), and
+the admin's Sanction note says the same for the PROGRAM DIRECTOR block.
 
 ### Runbook: the call sounded fine but saved nothing
 
@@ -381,8 +492,10 @@ so (B2.3).** `ROLE_BASELINE["MENTOR"]` used to be every SCOPED key in the
 catalogue, so "is this person staff" and "may this person read a mentee's ledger"
 were one question with one answer. It is now `{mentor.agent, mentor.upskilling}`
 — the assistant and one's own certificate shelf, which belong to the PERSON. The
-four that belong to a GROUP (`mentor.mentees`, `mentor.notebook`,
-`mentor.verifications`, `mentor.leave_approve`) are **derived, not granted**:
+three that belong to a GROUP (`mentor.mentees`, `mentor.notebook`,
+`mentor.verifications`) are **derived, not granted** (`mentor.leave_approve`
+was the fourth until 2026-09-16, when leave approval became the Main Admin's
+alone and the key left the catalogue — see "Leave is one signature" below):
 `app/mentor_functions.py` is a pure function of "do you currently mentor
 anybody". The spec asked for `capability_grants` rows written by
 `ensure_mentor_group` and backfilled by a migration; that was built first and
@@ -458,9 +571,11 @@ disabling is the single console action whose effect is invisible from the consol
 afterwards — the person simply cannot get in — and six months later nobody
 remembers whether it was a resignation, a secondment or a security incident. The
 reason is on the row AND on the trail, and the re-enable window is read against
-it. `enable` and `sign-out-everywhere` sit beside it. **There is still no way to
-DELETE a faculty account from the console**, which is unchanged and deliberate;
-emptying a deployment of people is `python -m app.purge_people`.
+it. `enable` and `sign-out-everywhere` sit beside it. **Deleting a faculty
+account from the console arrived on 2026-09-16** — remove-and-restore and
+delete-for-good behind an emailed code, in `routers/admin_deletion.py`; see
+"Deleting people and colleges from the console" below. Emptying a whole
+deployment of people is still `python -m app.purge_people`.
 
 **GOVERNANCE GREW A SECOND SIGNATURE, AN EXPIRY AND A QUEUE (B2.4–B2.7), AND
 THE MAIN ADMIN IS EXEMPT FROM THE SIGNATURE (2026-09-16).** A capability that
@@ -654,7 +769,10 @@ behind a live "Mark Sanctioned" button. The third door is a SCOPED GRANT of
 Governance with a reason and an audit row. `leave_requests.first_signed_as` /
 `second_signed_as` record the function the signer was ACTING IN, as a plain
 `String` and not an enum, precisely because that vocabulary is the part still
-being argued about and must stay a data change.
+being argued about and must stay a data change. **SUPERSEDED ON 2026-09-16:
+leave is ONE signature, the Main Admin's** — the third door and the second
+signature are gone together; the paragraph stays because the columns it
+explains are still on the row. See "Leave is one signature" below.
 
 **B10.8's "refuse to render" clause is refused.** B10.8 asks that the paper
 print the signer's function, and it does — as a third element on the attestation
@@ -1017,8 +1135,9 @@ silently accepted a request the new validator refuses.
 **Faculty** (any staff role, in the shell's staff nav): **Mentee Log**
 (`/mentor/mentees` — mentees + meeting notes, on the existing
 `/api/mentor/mentees` and `/notes` endpoints, all behind rule 2's gate),
-**Leave Requests** (`/mentor/leave` — submit own + the two-approver queue on
-`/api/leaves/*`), and **Upskilling** (`/mentor/upskilling` — the staff member's
+**Leave Requests** (`/mentor/leave` — submit own, withdraw, the cover one is
+asked for; the approval queue is the Main Admin's alone since 2026-09-16), and
+**Upskilling** (`/mentor/upskilling` — the staff member's
 OWN completed-course certificates, `app/routers/staff_upskilling.py`). The
 upskilling shelf is keyed on `users.id`, not a Student row, goes through the
 same hardened document_store as student uploads, applies its own per-user quota
@@ -1072,7 +1191,7 @@ level, the API derives the rest, and a contradicting shallower value is a 422 �
 never a silent pick. `/api/admin/*` is Main Admin throughout and every
 operation is proven to refuse a STUDENT (`tests/test_admin_institution.py`).
 
-**One Main Admin (2026-09).** The placement office is ONE account, role ADMIN. `python -m app.grant_access` refuses a second ADMIN while an office account exists (the message says how a handover is done: demote the current one to MENTOR first) and refuses DIRECTOR outright — that role held every console screen by baseline, which was a second admin under another name, and it has since been removed entirely. Faculty are MENTOR, and a console screen reaches them ONLY as a grant the Main Admin makes in Governance, which is `require_admin` end to end (API and route guard) — so a granted mentor can use the screen they were given and never hand it on. The login's portal chooser is Student / Mentor / Alumni; the office comes in through the dashed "Main Admin" door. **And a faculty account is not a mentor by existing**: it has no `Mentor` row and sees nobody until the Main Admin assigns it a student on Mentors & Students — `GET /api/admin/mentor-load` lists every MENTOR-role account (`mentor_id` null until then) and `POST /api/admin/students/{id}/mentor` with `mentor_user_id` creates the group on that first assignment. No flag at creation, no second step; `grant_access --with-group` is now optional. **The Main Admin creates faculty accounts on screen**: Faculty & Students → "Add faculty member" → `POST /api/admin/faculty` (`app/routers/admin_faculty.py`, `require_admin`) mints the MENTOR row with the unusable password sentinel and no group, and shows the ACTIVATION LINK to hand over; "Activation link" on a faculty card re-mints it through the existing `POST /api/admin/users/{id}/activation-link`. The Ops task's `grant-access` still works and is the fallback for the very first account, and **it now REFUSES to create an account without `--department-id`**. It was the last door into the roster that placed nobody, and it placed nobody silently: an account filed under no department resolves to no college and no batch, so a student gets no `default_track`, so the assistant's picker stays on "General interview" -- and a general interview has no wrap-up phase and can NEVER be scored. Five interviews on a granted test account, five dashes where the score goes, nothing on any screen saying why (2026-09-15). One level and not two, because `departments.college_id` is NOT NULL: naming a department names a college, and asking for both invites them to disagree. The refusal is at the OPERATOR boundary -- `main()` passes `require_department=True` -- so `seed_roster` and the suite's fixtures, which never reach a screen, are unaffected; `tests/test_grant_access_department.py` pins that line deliberately so the next reader can see it was chosen. Required to CREATE, never to UPDATE: re-running with a different `--role` is the supported promotion path, and demanding a department to do it would make the operator retype a value already on the row -- which is how `--name` renames people who only needed a role change. **The Main Admin EDITS students and cannot mint or erase one (2026-09-10)** (`app/routers/admin_students.py`, capability `admin.students`, screen `/admin/students`): edit (name, address, USN, batch, faculty, stage, semester) and per batch `POST /api/admin/cohorts/{id}/students/bulk` (move / assign faculty / set stage / set semester, the single action repeated) plus `DELETE /api/admin/cohorts/{id}` for an EMPTY batch only. **There is no `POST /admin/students` and no `DELETE /admin/students/{id}`, and no bulk delete** — all three answer 405, never 403, because a capability refusal would mean the endpoint is still there waiting for a grant. A student account is minted by exactly one path, approving a registration, which records an application, a reason and a reviewer and then makes the person prove their mailbox; an admin-side create was a second way onto a roster that IS the access control, with none of that. And a delete erased marks, attendance, uploads, interviews and mentor notes behind a two-click confirm sitting among buttons that only move somebody between batches — emptying a deployment of people is `python -m app.purge_people`, which dry-runs by default and is built for it. Empty a batch by MOVING its students out. The vocabulary on screen is Student / Faculty / Alumni and Main Admin; "mentor" is a stored value, not a label.
+**One Main Admin (2026-09).** The placement office is ONE account, role ADMIN. `python -m app.grant_access` refuses a second ADMIN while an office account exists (the message says how a handover is done: demote the current one to MENTOR first) and refuses DIRECTOR outright — that role held every console screen by baseline, which was a second admin under another name, and it has since been removed entirely. Faculty are MENTOR, and a console screen reaches them ONLY as a grant the Main Admin makes in Governance, which is `require_admin` end to end (API and route guard) — so a granted mentor can use the screen they were given and never hand it on. The login's portal chooser is Student / Mentor / Alumni; the office comes in through the dashed "Main Admin" door. **And a faculty account is not a mentor by existing**: it has no `Mentor` row and sees nobody until the Main Admin assigns it a student on Mentors & Students — `GET /api/admin/mentor-load` lists every MENTOR-role account (`mentor_id` null until then) and `POST /api/admin/students/{id}/mentor` with `mentor_user_id` creates the group on that first assignment. No flag at creation, no second step; `grant_access --with-group` is now optional. **The Main Admin creates faculty accounts on screen**: Faculty & Students → "Add faculty member" → `POST /api/admin/faculty` (`app/routers/admin_faculty.py`, `require_admin`) mints the MENTOR row with the unusable password sentinel and no group, and shows the ACTIVATION LINK to hand over; "Activation link" on a faculty card re-mints it through the existing `POST /api/admin/users/{id}/activation-link`. The Ops task's `grant-access` still works and is the fallback for the very first account, and **it now REFUSES to create an account without `--department-id`**. It was the last door into the roster that placed nobody, and it placed nobody silently: an account filed under no department resolves to no college and no batch, so a student gets no `default_track`, so the assistant's picker stays on "General interview" -- and a general interview has no wrap-up phase and can NEVER be scored. Five interviews on a granted test account, five dashes where the score goes, nothing on any screen saying why (2026-09-15). One level and not two, because `departments.college_id` is NOT NULL: naming a department names a college, and asking for both invites them to disagree. The refusal is at the OPERATOR boundary -- `main()` passes `require_department=True` -- so `seed_roster` and the suite's fixtures, which never reach a screen, are unaffected; `tests/test_grant_access_department.py` pins that line deliberately so the next reader can see it was chosen. Required to CREATE, never to UPDATE: re-running with a different `--role` is the supported promotion path, and demanding a department to do it would make the operator retype a value already on the row -- which is how `--name` renames people who only needed a role change. **The Main Admin EDITS students and cannot mint or erase one (2026-09-10)** (`app/routers/admin_students.py`, capability `admin.students`, screen `/admin/students`): edit (name, address, USN, batch, faculty, stage, semester) and per batch `POST /api/admin/cohorts/{id}/students/bulk` (move / assign faculty / set stage / set semester, the single action repeated) plus `DELETE /api/admin/cohorts/{id}` for an EMPTY batch only. **There is no `POST /admin/students` and no `DELETE /admin/students/{id}`, and no bulk delete** — all three answer 405, never 403, because a capability refusal would mean the endpoint is still there waiting for a grant. A student account is minted by exactly one path, approving a registration, which records an application, a reason and a reviewer and then makes the person prove their mailbox; an admin-side create was a second way onto a roster that IS the access control, with none of that. The 2026-09-10 delete erased marks, attendance, uploads, interviews and mentor notes behind a two-click confirm sitting among buttons that only move somebody between batches, and it went; **what replaced it on 2026-09-16 lives in its own module** (`routers/admin_deletion.py`: remove-and-restore, and delete-for-good behind an emailed code — see "Deleting people and colleges from the console" below), never as a button among the roster edits. Emptying a deployment of people is still `python -m app.purge_people`, which dry-runs by default and is built for it. Empty a batch by MOVING its students out. The vocabulary on screen is Student / Faculty / Alumni and Main Admin; "mentor" is a stored value, not a label.
 
 **DIRECTOR is not a role (2026-09-10).** REEP had two office roles and only ever
 wanted one. DIRECTOR held every console screen *by baseline* while ADMIN held

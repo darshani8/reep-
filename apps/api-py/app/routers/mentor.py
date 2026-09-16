@@ -55,7 +55,13 @@ def mentees(
     # mentees - and grants itself the capability in Governance if it needs to
     # look. Additive over the baseline, so faculty access is unchanged.
     require_capability(db, session, "mentor.mentees")
-    query = select(Student, User.name).join(User, Student.user_id == User.id)
+    # A REMOVED student (users.deleted_at, 2026-09-16) is off every screen,
+    # this one included; the row is kept for Restore.
+    query = (
+        select(Student, User.name)
+        .join(User, Student.user_id == User.id)
+        .where(User.deleted_at.is_(None))
+    )
 
     if session["role"] == "MENTOR":
         mentor_id = session.get("mentorId")

@@ -225,7 +225,7 @@ def grant_handover_read(
     # would refuse it on the read side anyway; refusing here keeps the
     # Governance screen from listing a grant that can never be used.
     faculty = db.get(User, faculty_user_id)
-    if faculty is None or faculty.disabled_at is not None:
+    if faculty is None or faculty.barred_at is not None:
         return None
 
     now = _now()

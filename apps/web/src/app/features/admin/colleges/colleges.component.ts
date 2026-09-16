@@ -21,6 +21,16 @@
  * which also makes it possible for a college that already exists rather than
  * only at the moment of creation.
  *
+ * DELETE IS HERE (2026-09-16). "Delete college…" on each card opens the
+ * shared Delete dialog against `GET/POST /api/admin/colleges/{id}/delete-plan`
+ * and `/delete`: the structure (departments, courses, specializations,
+ * batches and the configuration hung on them) goes for good, behind the code
+ * emailed to the office. The server REFUSES while anybody is filed under the
+ * college — students, faculty, open applications — and the dialog shows that
+ * refusal in the server's words with the button off. Main Admin only, like
+ * every delete. The bulk form ("every college except this one") is
+ * `python -m app.purge_colleges --keep <code>`, on the Ops task menu.
+ *
  * `PATCH /api/admin/colleges/{id}` exists and NOTHING here reaches it: renaming
  * a college and archiving one are API-only from this screen. The DOMAINS are
  * edited on `features/admin/institution`, on the college it has picked,
@@ -56,6 +66,11 @@ import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
+import {
+  AdminDeleteDialogComponent,
+  type DeleteOutcome,
+  type DeleteTarget,
+} from '../../../shared/admin-delete-dialog/admin-delete-dialog.component';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
 /** `CollegeOut` in `app/routers/admin.py`, snake_case exactly as it arrives. */
@@ -145,7 +160,7 @@ interface AdminSummary {
 @Component({
   selector: 'app-admin-colleges',
   standalone: true,
-  imports: [RouterLink, PluralPipe],
+  imports: [RouterLink, PluralPipe, AdminDeleteDialogComponent],
   templateUrl: './colleges.component.html',
   styleUrl: './colleges.component.scss',
 })
@@ -184,6 +199,10 @@ export class AdminCollegesComponent implements OnInit {
 
   /** The faculty list behind the admin picker is Main-Admin-only on the API. */
   readonly isMainAdmin = computed(() => this.auth.session()?.role === 'ADMIN');
+
+  /** The college the Delete dialog is open for (2026-09-16), or null. */
+  readonly deletingCollege = signal<DeleteTarget | null>(null);
+  readonly deleteNote = signal<string | null>(null);
 
   /** Whether to ASK for the college-admin data at all. A client-side capability
    *  check is a filter and never a gate — `require_governance` refuses the
@@ -447,6 +466,26 @@ export class AdminCollegesComponent implements OnInit {
     } finally {
       this.appointBusy.set(false);
     }
+  }
+
+  openDeleteDialog(college: CollegeOut): void {
+    this.deletingCollege.set({
+      kind: 'college',
+      id: college.id,
+      name: `${college.code} · ${college.name}`,
+      subLine: this.collegeSubLine(college),
+    });
+  }
+
+  closeDeleteDialog(): void {
+    this.deletingCollege.set(null);
+  }
+
+  /** The server's own sentence, and the list reread so the card is gone. */
+  async onDeleteDone(outcome: DeleteOutcome): Promise<void> {
+    this.deletingCollege.set(null);
+    this.deleteNote.set(outcome.detail);
+    await this.loadColleges();
   }
 
   /** "BGSCET · Bengaluru · 3 departments" — every part of it a stored value. */

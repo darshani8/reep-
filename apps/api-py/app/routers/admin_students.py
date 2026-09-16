@@ -5,8 +5,10 @@
     POST   /admin/cohorts/{id}/students/bulk          move / assign faculty / set stage / set semester - every student in the batch
     DELETE /admin/cohorts/{id}                        remove an EMPTY batch
 
-NO CREATE AND NO DELETE (2026-09-10), and both absences are the design rather
-than an omission. A student account is minted by exactly one path - the public
+NO CREATE (2026-09-10), and the absence is the design rather than an
+omission. DELETE arrived on 2026-09-16 in ITS OWN MODULE, `admin_deletion.py`
+(remove-and-restore, and delete-for-good behind an emailed code), so it is not
+a button among the roster edits below. A student account is minted by exactly one path - the public
 registration form, reviewed and APPROVED by the Main Admin, which provisions
 the row and emails the applicant the setup link they need to prove their
 mailbox and choose a password. An admin-side create was a second way onto the
@@ -114,6 +116,10 @@ class AdminStudentOut(BaseModel):
     current_semester: int
     enrolled_at: datetime
     last_login_at: datetime | None
+    #: REMOVED from the roster (users.deleted_at, 2026-09-16): null on every
+    #: row the default list returns; set on the rows `?removed=true` lists.
+    deleted_at: datetime | None = None
+    delete_reason: str | None = None
 
 
 def _clean_name(v: object) -> str:
@@ -338,6 +344,7 @@ def _rows(db: Session, *where) -> list[AdminStudentOut]:
             mentor_id=mentor_id, mentor_user_id=f_id, mentor_name=f_name,
             current_stage=student.current_stage.value, current_semester=student.current_semester,
             enrolled_at=student.enrolled_at, last_login_at=user.last_login_at,
+            deleted_at=user.deleted_at, delete_reason=user.delete_reason,
         ))
     return out
 
@@ -402,10 +409,15 @@ def list_students(
     cohort_id: str | None = None,
     q: str | None = None,
     unseated: bool = False,
+    removed: bool = False,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[AdminStudentOut]:
     """The roster, narrowed to what this caller's grant reaches (B1.4).
+
+    `?removed=true` (2026-09-16) lists ONLY the students the office has
+    REMOVED (`users.deleted_at`) - off the roster, rows kept - for the Restore
+    button; without it they are not in this list, which is what removal means.
 
     THE ROSTER IS THE ACCESS CONTROL, so this is the list where a scope hole
     costs the most: every row carries a name, an address and a USN, and the
@@ -425,7 +437,10 @@ def list_students(
     scope_header(response, reach)
     if reach.nothing:
         return []
-    where = [Student.id.in_(reach.student_ids())]
+    where = [
+        Student.id.in_(reach.student_ids()),
+        User.deleted_at.is_not(None) if removed else User.deleted_at.is_(None),
+    ]
     if unseated:
         where.append(Student.cohort_id.is_(None))
     elif cohort_id:
@@ -578,20 +593,19 @@ def update_student(
     return _one(db, student.id)
 
 
-# ---------------------------------------------------------- NO delete --
+# ------------------------------------------------- delete lives elsewhere --
 #
-# There is no DELETE /admin/students/{id} and no bulk "delete" action
-# (2026-09-10). Deleting a student erased their marks, attendance, uploads,
-# interview record and mentor notes in one irreversible cascade, from a screen
-# whose other buttons are all routine roster edits — and the only confirmation
-# was a browser dialog. `_delete_student` went with them rather than being left
-# callerless: a delete helper with no caller is the thing the next person wires
-# a button to.
-#
-# Emptying a deployment of people is still possible and still has a tool:
-# `python -m app.purge_people`, which dry-runs by default, demands
-# --i-understand-this-is-permanent, and classifies all 93 tables. That is what
-# a destructive act of this size should look like.
+# There is still no DELETE /admin/students/{id} here and no bulk "delete"
+# action. The 2026-09-10 delete erased marks, attendance, uploads, interviews
+# and mentor notes in one cascade behind a browser confirm, among buttons that
+# only move somebody between batches, and it went. What replaced it
+# (2026-09-16) is `routers/admin_deletion.py`: REMOVE (`users.deleted_at`,
+# off every screen, every row kept, restorable) and DELETE for good, which
+# demands a code emailed to the office account and runs `app/account_deletion.py`
+# - a walk of the real foreign keys with files destroyed before rows, the
+# purge modules' discipline applied to one person. Both are Main-Admin-only
+# and both write an audit row. Emptying a deployment is still
+# `python -m app.purge_people`.
 
 
 # ------------------------------------------------------- the batch level --

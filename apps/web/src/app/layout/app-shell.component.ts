@@ -287,10 +287,10 @@ const STUDENT_NAVIGATION: readonly NavigationGroup[] = [
  * opposite would be true: a faculty account with no mentees would see three
  * links that answer 403.
  *
- * LEAVE REQUESTS IS DELIBERATELY NOT FILTERED. That screen is two things: the
- * approval queue, which `mentor.leave_approve` gates, and the faculty member's
- * OWN leave request, which nothing gates and nobody should ever lose. Hiding it
- * from someone with no mentees would take away their ability to ask for leave.
+ * LEAVE REQUESTS IS DELIBERATELY NOT FILTERED. That screen is the faculty
+ * member's OWN leave request (and the cover they are asked for), which nothing
+ * gates and nobody should ever lose; approving leave is the Main Admin's alone
+ * since 2026-09-16 and lives on the admin console.
  * Upskilling and the Agent are baseline and always held.
  */
 const FACULTY_NAVIGATION: readonly NavigationGroup[] = [

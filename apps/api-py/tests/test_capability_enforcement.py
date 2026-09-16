@@ -14,7 +14,7 @@ This module pins the three decisions B2.1 made, one test each:
   * `mentor.notebook` REPLACED a role gate, because composing it with one that
     admits MENTOR only would have left the Main Admin's grant inert — a key that
     is checked but can never be satisfied is the same lie one layer in;
-  * `mentor.leave_approve` COMPOSED with one, because the approver's queue must
+  * the leave queue behind `require_admin` alone (2026-09-16), because it must
     stay staff-only whatever a grant says, and because the SUBMIT path must keep
     working for a faculty member with no mentees;
   * `mentor.agent` sits behind a ROLE BRANCH, because a student reaches the
@@ -246,17 +246,16 @@ def test_a_granted_admin_can_read_the_notebook_but_never_author_in_a_mentors_nam
 
 
 # --------------------------------------------------------------------------- #
-# mentor.leave_approve — the capability COMPOSED with the role gate
+# the leave queue — the Main Admin's alone since 2026-09-16
 # --------------------------------------------------------------------------- #
 
 @requires_db
 def test_a_faculty_member_with_no_mentees_can_still_ask_for_leave(client, make_user):
     """THE HALF THAT MUST NOT BREAK. Submitting is not an approver's act.
 
-    `mentor.leave_approve` is derived from having mentees (B2.3), so a new
-    lecturer holds none of it. Putting the capability on `POST /api/leaves` —
-    which is one plausible reading of "enforce the key in leave.py" — is how that
-    lecturer discovers they cannot ask for a day off.
+    Approving leave is the Main Admin's (2026-09-16). Putting that gate on
+    `POST /api/leaves` — one plausible reading of "leave is the office's" — is
+    how a new lecturer discovers they cannot ask for a day off.
 
     DELETE THIS and the gate creeps onto the submit path the next time someone
     tidies the four handlers into one dependency.
@@ -336,15 +335,14 @@ def test_the_approver_queue_needs_the_capability_and_refuses_the_same_way_for_ev
 
 
 @requires_db
-def test_the_people_who_actually_sign_leave_are_unaffected(client, login, make_user):
-    """The seeded mentor (who HAS a mentee) and the Main Admin still get the queue.
+def test_only_the_main_admin_gets_the_leave_queue(client, login, make_user):
+    """Leave approval is the Main Admin's alone (2026-09-16). The seeded mentor
+    HAS a mentee and used to get the queue as a derived function; the function
+    and the capability are gone, and the queue answers 403 to every faculty
+    account.
 
-    `mentor.leave_approve` is one of the four functions derived from the mentee
-    count, and the Main Admin holds it by baseline because it is the second of
-    the two signatures — remove it there and sanctioning stops entirely.
-
-    DELETE THIS and B2.1 is free to be "enforced" by refusing everybody, which
-    passes the guard and breaks the approvals screen.
+    DELETE THIS and a faculty approver can come back through whichever gate is
+    loosened first, with every medical `reason` in the queue behind it.
     """
     admin = make_user(f"b21-lvo-adm-{uuid.uuid4().hex[:4]}", Role.ADMIN)
     assert client.get("/api/leaves/pending", headers=admin.headers).status_code == 200
@@ -352,8 +350,8 @@ def test_the_people_who_actually_sign_leave_are_unaffected(client, login, make_u
 
     mentor_h = login("mentor@bgscet.ac.in", "mentor123")
     client.cookies.clear()  # explicit Cookie headers only; the jar would override them
-    assert client.get("/api/leaves/pending", headers=mentor_h).status_code == 200
-    assert client.get("/api/leaves/history", headers=mentor_h).status_code == 200
+    assert client.get("/api/leaves/pending", headers=mentor_h).status_code == 403
+    assert client.get("/api/leaves/history", headers=mentor_h).status_code == 403
 
 
 # --------------------------------------------------------------------------- #

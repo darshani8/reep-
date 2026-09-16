@@ -17,10 +17,12 @@
  * untouched, so the Approved and Rejected tabs still read the same array they
  * always did.
  *
- * TWO DISTINCT APPROVERS, ENFORCED SERVER-SIDE. /leaves/pending already omits a
- * request this user first-approved, and the decision endpoint refuses a second
- * signature from the same person. The confirm step says which signature this
- * one is rather than promising a sanction the server may not yet grant.
+ * ONE SIGNATURE, THE MAIN ADMIN'S (2026-09-16). This queue is the Main Admin's
+ * alone — `GET /leaves/pending`, `/history` and `POST /{id}/decision` are
+ * `require_admin` — and one APPROVE is the sanction. The two-signature chain
+ * this screen used to walk (first signature, then sanction by a different
+ * approver) is gone; a request signed once under it is still listed as
+ * "Sanction pending" and one decision completes it.
  *
  * A REJECTION NEEDS A REASON. The applicant sees the remarks and the status and
  * nothing else, so refusing without words leaves them with a form marked "not
@@ -63,9 +65,9 @@
  * exactly as a quiet Monday does; scope_views.py's own comment is that "may see
  * everything" and "may see nothing" are opposite facts that must never render
  * the same, so the empty state says which one this is. A response carrying NO
- * scope header at all — the MENTOR path, which `_narrow_to_scope` fences by the
- * mentor's own group and never by a reach — makes no claim on this screen
- * rather than a guessed one; an absent header is not the word "none".
+ * scope header at all makes no claim on this screen rather than a guessed
+ * one; an absent header is not the word "none". Since 2026-09-16 the only
+ * caller is the Main Admin and the server always answers `programme`.
  */
 
 import { DatePipe } from '@angular/common';
@@ -438,15 +440,12 @@ export class AdminLeaveApprovalsComponent {
     return this.kindLabel(wanted);
   });
 
-  /** The decision panel's chain, built only from what the row carries. */
+  /** The decision panel's chain, built only from what the row carries: the
+   *  applicant's signature, then the office's ONE decision. */
   readonly chainSteps = computed<ChainStep[]>(() => {
     const request = this.selectedRequest();
     if (request === null) return [];
-    return [
-      this.applicantStep(request),
-      this.firstSignatureStep(request),
-      this.sanctionStep(request),
-    ];
+    return [this.applicantStep(request), this.sanctionStep(request)];
   });
 
   readonly canDecide = computed(() => {
@@ -455,13 +454,8 @@ export class AdminLeaveApprovalsComponent {
     return this.isAwaitingSignature(request);
   });
 
-  /** The button's own words: a first signature is not a sanction. */
-  readonly approveButtonLabel = computed(() => {
-    const request = this.selectedRequest();
-    if (request === null) return 'Sanction';
-    if (request.status === 'FIRST_APPROVED') return 'Sanction';
-    return 'Sign first step';
-  });
+  /** The button's own words: one signature, and it is the sanction. */
+  readonly approveButtonLabel = computed(() => 'Sanction');
 
   readonly confirmApproveLabel = computed(() => `Confirm ${this.approveButtonLabel().toLowerCase()}`);
 
@@ -752,7 +746,7 @@ export class AdminLeaveApprovalsComponent {
       case 'CANCELLED':
         return { label: 'Withdrawn', tone: 'neutral' };
       default:
-        return { label: 'First signature pending', tone: 'warn' };
+        return { label: 'Awaiting your decision', tone: 'warn' };
     }
   }
 
@@ -764,22 +758,22 @@ export class AdminLeaveApprovalsComponent {
       case 'REJECTED':
         return `Refused by ${row.director_name || 'an approver'}`;
       case 'FIRST_APPROVED':
-        return 'One signature recorded → sanction';
+        return 'Signed once under the old chain → your decision completes it';
       case 'CANCELLED':
         return 'Withdrawn by the applicant';
       default:
-        return 'First signature, then sanction';
+        return 'Your one signature sanctions or refuses it';
     }
   }
 
-  /** `director_note` is `second_note or first_note`, so on a FIRST_APPROVED
-   *  request it carries the FIRST approver's remarks — and the second approver,
-   *  the one person who has to act on them, is who this screen was hiding them
-   *  from. Each of the three states is named, because "Sanctioned — remarks"
-   *  over a request that is not yet sanctioned is worse than no heading. */
+  /** `director_note` is `second_note or first_note`; on a row signed once
+   *  under the old chain it carries that earlier signer's remarks, which the
+   *  office needs to read before completing it. Each state is named, because
+   *  "Sanctioned — remarks" over a request that is not yet sanctioned is
+   *  worse than no heading. */
   remarksLabel(row: LeaveRow): string {
     if (row.status === 'REJECTED') return 'Rejected — remarks';
-    if (row.status === 'FIRST_APPROVED') return 'First signature — remarks';
+    if (row.status === 'FIRST_APPROVED') return 'Earlier signature — remarks';
     return 'Sanctioned — remarks';
   }
 
@@ -798,12 +792,14 @@ export class AdminLeaveApprovalsComponent {
     return !!row.director_note && row.status !== 'SUBMITTED';
   }
 
-  /** What the confirm step promises, honestly: which signature this one is. */
+  /** What the confirm step promises, honestly: your one signature is the
+   *  sanction, and it prints — name, time and your signature image, if you
+   *  have uploaded one — in the PROGRAM DIRECTOR block of the paper. */
   signNote(row: LeaveRow): string {
     if (row.status === 'FIRST_APPROVED') {
-      return 'A first signature is already on this form; yours completes the sanction and prints in the PROGRAM DIRECTOR block with the time.';
+      return 'An earlier signature is already on this form from before single-signature approval; yours completes the sanction and prints in the PROGRAM DIRECTOR block with the time.';
     }
-    return 'Records your signature — your name and the time. A second, different approver must also sign before the leave is sanctioned.';
+    return 'Sanctions the leave. Your name, the time and your uploaded signature image print in the PROGRAM DIRECTOR block of the paper (add the image under Signature in the account menu).';
   }
 
   /** GET /api/leaves/{id}/paper.pdf — the sheet as a file, signatures drawn in. */
@@ -886,9 +882,9 @@ export class AdminLeaveApprovalsComponent {
     }
   }
 
-  /** The server decides whether one signature finished it: a first-of-two
-   *  approval leaves the request part-approved rather than sanctioned, and
-   *  saying "sanctioned" here would be this screen guessing. */
+  /** The server's status is the word: one signature sanctions since
+   *  2026-09-16, and the fallback below is kept only for a response this
+   *  screen has not been taught. */
   private decisionFlash(
     row: LeaveRow,
     decision: 'APPROVE' | 'REJECT',
@@ -900,7 +896,7 @@ export class AdminLeaveApprovalsComponent {
     if (updated.status === 'APPROVED') {
       return `Sanctioned and signed for ${row.requester_name}.`;
     }
-    return `Your signature is recorded for ${row.requester_name}. A second approver is still needed.`;
+    return `Your signature is recorded for ${row.requester_name} (status ${updated.status}).`;
   }
 
   /** FastAPI answers a schema refusal with `detail` as a LIST, and rendering
@@ -941,32 +937,6 @@ export class AdminLeaveApprovalsComponent {
     };
   }
 
-  private firstSignatureStep(row: LeaveRow): ChainStep {
-    if (row.status === 'SUBMITTED') {
-      return {
-        label: 'First signature',
-        state: 'active',
-        detail: 'You can sign this step.',
-      };
-    }
-    if (row.status === 'REJECTED') {
-      return {
-        label: 'First signature',
-        state: 'done',
-        detail: 'Recorded, or the form was refused at this step.',
-      };
-    }
-    const asWhat = this.signedAsLabel(row.first_signed_as);
-    const asPhrase = asWhat.length > 0 ? ` · signed as ${asWhat}` : '';
-    return {
-      label: 'First signature',
-      state: 'done',
-      detail: row.director_note
-        ? `Recorded with remarks${asPhrase} — a second, different approver is required.`
-        : `Recorded${asPhrase} — a second, different approver is required.`,
-    };
-  }
-
   private sanctionStep(row: LeaveRow): ChainStep {
     const asWhat = this.signedAsLabel(row.second_signed_as || row.first_signed_as);
     const asPhrase = asWhat.length > 0 ? ` · as ${asWhat}` : '';
@@ -992,9 +962,14 @@ export class AdminLeaveApprovalsComponent {
       };
     }
     if (row.status === 'FIRST_APPROVED') {
-      return { label: 'Sanction', state: 'active', detail: 'You can sign this step.' };
+      const earlier = this.signedAsLabel(row.first_signed_as);
+      return {
+        label: 'Sanction',
+        state: 'active',
+        detail: `Signed once${earlier ? ` as ${earlier}` : ''} before single-signature approval; your decision completes it.`,
+      };
     }
-    return { label: 'Sanction', state: 'pending', detail: 'After the first signature.' };
+    return { label: 'Sanction', state: 'active', detail: 'Your one signature decides it.' };
   }
 
   private stampOf(value: string | null): string {

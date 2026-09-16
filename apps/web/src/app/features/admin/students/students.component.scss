@@ -328,3 +328,9 @@
     color: var(--faint);
   }
 }
+
+/* Pushes the destructive button to the far left of the edit dialog's foot,
+   away from Save. */
+.dialog-foot-gap {
+  flex: 1 1 auto;
+}

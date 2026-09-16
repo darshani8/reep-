@@ -121,19 +121,9 @@ def _submitted(user: User, lr: LeaveRequest) -> tuple[str, str]:
         "Your leave request has been received",
         f"Hello {user.name},\n\n"
         f"REEP has recorded your application for {_kind_phrase(lr)} covering "
-        f"{_span(lr)}. It is now waiting for the first signature.\n\n"
+        f"{_span(lr)}. It is now waiting for the placement office's decision.\n\n"
         f"You can follow it, or withdraw it while it is still unsigned, on your "
         f"Leave Requests screen.\n",
-    )
-
-
-def _first_approved(user: User, lr: LeaveRequest) -> tuple[str, str]:
-    return (
-        "Your leave request has its first signature",
-        f"Hello {user.name},\n\n"
-        f"Your application for {_kind_phrase(lr)} covering {_span(lr)} has been "
-        f"signed once. It still needs a second signature before it is "
-        f"sanctioned.\n",
     )
 
 
@@ -165,7 +155,8 @@ def _rejected(user: User, lr: LeaveRequest) -> tuple[str, str]:
 #: and does not need to be told what they just did.
 _BODIES: dict[LeaveStatus, Callable[[User, LeaveRequest], tuple[str, str]]] = {
     LeaveStatus.SUBMITTED: _submitted,
-    LeaveStatus.FIRST_APPROVED: _first_approved,
+    # FIRST_APPROVED is no longer a transition anything writes (one signature
+    # since 2026-09-16), so there is no message for it.
     LeaveStatus.APPROVED: _approved,
     LeaveStatus.REJECTED: _rejected,
 }

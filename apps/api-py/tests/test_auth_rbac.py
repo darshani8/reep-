@@ -101,9 +101,9 @@ def test_resume_generate_respects_egress_gate(client, login, monkeypatch):
 
 
 @requires_db
-def test_pending_leave_is_scoped_to_the_mentor_group(client, login, make_user):
-    """AGENTS.md rule 2 on the leave queue: a MENTOR with no Mentor group sees
-    NOBODY, and cannot sign for anybody.
+def test_the_leave_queue_is_the_main_admins_alone(client, login, make_user):
+    """The leave queue is the Main Admin's (2026-09-16): a MENTOR sees NOBODY
+    and cannot sign for anybody, whether or not they have a group.
 
     Leave is the surface where getting this wrong hurts most — `reason` is free
     text and is routinely medical or personal — and it is the one place that
@@ -126,22 +126,27 @@ def test_pending_leave_is_scoped_to_the_mentor_group(client, login, make_user):
     leave_id = r.json()["id"]
 
     try:
-        # The seeded mentor DOES have the seeded student in their group.
+        # The seeded mentor DOES have the seeded student in their group, and is
+        # refused anyway: a mentor group is a claim over students' records, not
+        # over their leave, since 2026-09-16.
         grouped_h = login("mentor@bgscet.ac.in", "mentor123")
         client.cookies.clear()
-        rows = client.get("/api/leaves/pending", headers=grouped_h).json()
+        assert client.get("/api/leaves/pending", headers=grouped_h).status_code == 403
+        admin_h = login("admin@bgscet.ac.in", "admin123")
+        client.cookies.clear()
+        rows = client.get("/api/leaves/pending", headers=admin_h).json()
         assert leave_id in [row["id"] for row in rows]
 
         # A MENTOR with no Mentor group: not "the whole programme", not one row.
         #
-        # THE REFUSAL MOVED ONE GATE EARLIER AND THE PROPERTY IS UNCHANGED
-        # (B2.1). This asserted `== []` and a 404, which is what the SQL scope
-        # rule produced: the account was admitted by `require_mentor`, narrowed
-        # to its own (empty) group, and handed an empty queue. The approver's
-        # endpoints now also require `mentor.leave_approve`, which B2.3 derives
-        # from currently mentoring somebody — so this account is refused before
-        # the query runs. "You do not hold Approve leave" is the same outcome
-        # with the true reason attached, where `200 []` said nothing at all.
+        # THE REFUSAL MOVED ONE GATE EARLIER AND THE PROPERTY IS UNCHANGED.
+        # This asserted `== []` and a 404, which is what the SQL scope rule
+        # produced: the account was admitted by `require_mentor`, narrowed to
+        # its own (empty) group, and handed an empty queue. The approver's
+        # endpoints are `require_admin` since 2026-09-16 (leave approval is
+        # the Main Admin's alone), so this account is refused before the
+        # query runs — the same outcome with the true reason attached, where
+        # `200 []` said nothing at all.
         loner = make_user("nogroup", Role.MENTOR)
         assert client.get("/api/leaves/pending", headers=loner.headers).status_code == 403
         # ...and no signature either. The anti-oracle property this line has

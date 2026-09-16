@@ -603,6 +603,22 @@
           <span class="form-hint">Dates and a purpose are needed before this can be signed.</span>
         }
       </div>
+      <!-- The picture above your name on the paper is the one on file under
+           Signature; without it the paper prints your name and the time
+           alone. Said here, before the Sign button, because "my signature is
+           not on the PDF" was the question this line answers. -->
+      @if (signatureOnFile() === false) {
+        <p class="form-hint" role="status">
+          <span class="icon" aria-hidden="true">draw</span>
+          No signature image is on file, so the paper will print your name and the time without a
+          picture. <a routerLink="/mentor/signature">Add your signature image</a>.
+        </p>
+      } @else if (signatureOnFile() === true) {
+        <p class="form-hint" role="status">
+          <span class="icon" aria-hidden="true">check_circle</span>
+          Your signature image is on file and prints above your name on the paper.
+        </p>
+      }
     }
   }
 </div>

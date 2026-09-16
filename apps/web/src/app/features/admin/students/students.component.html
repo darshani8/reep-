@@ -113,6 +113,7 @@
         <option value="" [selected]="statusFilter() === ''">All</option>
         <option value="active" [selected]="statusFilter() === 'active'">Active · has signed in</option>
         <option value="invited" [selected]="statusFilter() === 'invited'">Invited · not signed in yet</option>
+        <option value="removed" [selected]="statusFilter() === 'removed'">Removed · off the roster, record kept</option>
       </select>
     </div>
 
@@ -472,13 +473,34 @@
         </div>
 
         <footer class="dialog-foot">
+          <!-- Remove-or-delete on the left, save on the right (2026-09-16).
+               A removed student's only act here is Restore: editing a row
+               that is off the roster is a question nobody has asked. -->
+          @if (editingRow()?.isRemoved) {
+            <button type="button" class="btn secondary" [disabled]="busy()" (click)="restoreStudent()">
+              <span class="icon" aria-hidden="true">undo</span> Restore to the roster
+            </button>
+          } @else {
+            <button type="button" class="btn danger" [disabled]="busy()" (click)="openDeleteDialog()">
+              <span class="icon" aria-hidden="true">person_remove</span> Remove or delete…
+            </button>
+          }
+          <span class="dialog-foot-gap"></span>
           <button type="button" class="btn secondary" (click)="closeDialog()">Cancel</button>
-          <button type="button" class="btn primary" [disabled]="busy()" (click)="saveEdit()">
+          <button type="button" class="btn primary" [disabled]="busy() || !!editingRow()?.isRemoved" (click)="saveEdit()">
             <span class="icon" aria-hidden="true">save</span> Save
           </button>
         </footer>
       </div>
     </div>
+  }
+
+  @if (deletingStudent(); as target) {
+    <app-admin-delete-dialog
+      [target]="target"
+      (dismissed)="cancelDeleteDialog()"
+      (done)="onDeleteDone($event)"
+    />
   }
 
   @if (openDialog() === 'selection') {

@@ -77,6 +77,10 @@ export interface StudentApiRow {
   current_semester: number;
   enrolled_at: string;
   last_login_at: string | null;
+  /** REMOVED from the roster (2026-09-16): null on every row the default list
+   *  returns; set on the rows `?removed=true` lists, for Restore. */
+  deleted_at: string | null;
+  delete_reason: string | null;
 }
 
 /** `PublicHierarchyOut` in `app/routers/registration.py`. */
@@ -194,7 +198,10 @@ export interface RosterRow {
   statusLabel: string;
   statusTone: string;
   lastLoginAt: string | null;
-  /** Columns the board draws and no endpoint answers yet — see the file note. */
+  /** Off the roster, rows kept (2026-09-16). Only ever true on the Removed list. */
+  isRemoved: boolean;
+  deletedAt: string | null;
+  deleteReason: string | null;
 }
 
 /** The edit form behind the pencil on a row. */
@@ -224,7 +231,7 @@ export const EMPTY_DRAFT: StudentDraft = {
 export type BatchAction = 'move' | 'mentor' | 'stage' | 'semester';
 
 /** Which dialog is open. One at a time, by construction. */
-export type OpenDialog = 'promote' | 'graduate' | 'edit' | 'batch' | 'selection' | null;
+export type OpenDialog = 'promote' | 'graduate' | 'edit' | 'batch' | 'selection' | 'delete' | null;
 
 /** What the selection dialog is about to do to the ticked students. */
 export type SelectionAction = 'mentor' | 'move';

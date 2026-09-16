@@ -70,6 +70,11 @@ import { environment } from '../../../../environments/environment';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { plural } from '../../../shared/text/plural.pipe';
+import {
+  AdminDeleteDialogComponent,
+  type DeleteOutcome,
+  type DeleteTarget,
+} from '../../../shared/admin-delete-dialog/admin-delete-dialog.component';
 import { DisableFacultyDialogComponent } from './disable-faculty-dialog.component';
 import {
   DEFAULT_FACULTY_COLUMN,
@@ -105,7 +110,7 @@ import {
  *  not reported by anything (faculty-grid.ts says where that was checked), and
  *  a filter offering a value no row can ever hold is a filter that answers
  *  "none" forever. */
-type StatusFilter = '' | 'active' | 'disabled';
+type StatusFilter = '' | 'active' | 'disabled' | 'removed';
 
 /** The board's Function filter, over the one function this screen can read.
  *  `GET /api/admin/mentor-load` says who holds a mentor group; HOD, placement
@@ -132,7 +137,7 @@ interface MentorGroupFact {
   // RouterLink is REQUIRED for the "Add faculty" and "Mentor mapping" links: a
   // `routerLink` in a standalone component that does not import it is inert
   // markup — it renders, it looks like a link, and clicking it does nothing.
-  imports: [RouterLink, AgGridAngular, DisableFacultyDialogComponent],
+  imports: [RouterLink, AgGridAngular, DisableFacultyDialogComponent, AdminDeleteDialogComponent],
   templateUrl: './faculty.component.html',
   styleUrl: './faculty.component.scss',
 })
@@ -226,6 +231,7 @@ export class AdminFacultyComponent {
       if (department !== '' && row.departmentId !== department) return false;
       if (accountStatus === 'active' && row.isDisabled) return false;
       if (accountStatus === 'disabled' && !row.isDisabled) return false;
+      // 'removed' is a different list from the server (`?removed=true`).
       // `holdsMentorGroup` is null when the assignment list was refused, and a
       // null passes BOTH of these rather than being read as a false: filtering
       // somebody out on a fact nobody could read is how a roster loses a row
@@ -316,7 +322,19 @@ export class AdminFacultyComponent {
   readonly statusFilterLabel = computed(() => {
     if (this.statusFilter() === 'active') return 'Active';
     if (this.statusFilter() === 'disabled') return 'Disabled';
+    if (this.statusFilter() === 'removed') return 'Removed';
     return 'All';
+  });
+
+  /** The account the Delete dialog is open for (2026-09-16), or null. */
+  readonly deletingUserId = signal<string | null>(null);
+
+  readonly deletingFaculty = computed<DeleteTarget | null>(() => {
+    const userId = this.deletingUserId();
+    if (userId === null) return null;
+    const row = this.allRows().find((candidate) => candidate.userId === userId);
+    if (row === undefined) return null;
+    return { kind: 'faculty', id: row.userId, name: row.name, subLine: identityLineOf(row) };
   });
 
   readonly functionFilterLabel = computed(() => {
@@ -416,7 +434,12 @@ export class AdminFacultyComponent {
    *  later and cannot act on. */
   readonly openFacultyStatusLine = computed(() => {
     const faculty = this.openFaculty();
-    if (faculty === null || !faculty.isDisabled) return '';
+    if (faculty === null) return '';
+    if (faculty.isRemoved) {
+      const on = `Removed from the roster on ${dayLabelOf(faculty.deletedAt)}`;
+      return faculty.deleteReason === null ? `${on}.` : `${on} — ${faculty.deleteReason}`;
+    }
+    if (!faculty.isDisabled) return '';
     const on = `Disabled on ${dayLabelOf(faculty.disabledAt)}`;
     return faculty.disableReason === null ? `${on}.` : `${on} — ${faculty.disableReason}`;
   });
@@ -476,7 +499,8 @@ export class AdminFacultyComponent {
 
   async reloadFaculty(): Promise<void> {
     try {
-      const response = await fetch(`${environment.apiBase}/admin/faculty`, {
+      const removed = this.statusFilter() === 'removed' ? '?removed=true' : '';
+      const response = await fetch(`${environment.apiBase}/admin/faculty${removed}`, {
         credentials: 'include',
       });
       if (!response.ok) throw new Error(await this.detailOf(response));
@@ -551,8 +575,13 @@ export class AdminFacultyComponent {
     this.departmentFilter.set(departmentId);
   }
 
+  /** Two of the values narrow what is drawn; REMOVED is a different list from
+   *  the server (`?removed=true`, `users.deleted_at` set), so crossing into or
+   *  out of it refetches. */
   setStatusFilter(value: string): void {
+    const wasRemoved = this.statusFilter() === 'removed';
     this.statusFilter.set(value as StatusFilter);
+    if (wasRemoved !== (value === 'removed')) void this.reloadFaculty();
   }
 
   setFunctionFilter(value: string): void {
@@ -834,6 +863,45 @@ export class AdminFacultyComponent {
     });
   }
 
+  // ============================================= remove, delete, restore ==
+
+  openDeleteDialog(userId: string): void {
+    this.deletingUserId.set(userId);
+  }
+
+  closeDeleteDialog(): void {
+    this.deletingUserId.set(null);
+  }
+
+  /** The dialog posted it and the server answered; `detail` is the server's
+   *  own sentence. The roster is reread so the row leaves (or is gone). */
+  async onDeleteDone(outcome: DeleteOutcome): Promise<void> {
+    this.deletingUserId.set(null);
+    this.error.set(null);
+    this.closeDrawer();
+    await this.reloadFaculty();
+    this.flash.set(outcome.detail);
+  }
+
+  /** `POST /admin/users/{id}/restore` — back on the list, nothing lost. The
+   *  account comes back DISABLED if it was disabled before it was removed;
+   *  the server's sentence says which. */
+  async restoreAccount(): Promise<void> {
+    const faculty = this.openFaculty();
+    if (faculty === null || !faculty.isRemoved) return;
+    await this.run(async () => {
+      const response = await fetch(`${environment.apiBase}/admin/users/${faculty.userId}/restore`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error(await this.detailOf(response));
+      const state = (await response.json()) as { detail: string };
+      this.closeDrawer();
+      this.flash.set(state.detail);
+      await this.reloadFaculty();
+    });
+  }
+
   // ==================================================== the disable dialog ==
 
   openDisableDialog(userId: string): void {
@@ -914,6 +982,9 @@ export class AdminFacultyComponent {
       // The column IS the state (B3.3): a timestamp means disabled, null means
       // the account signs in as usual. Nothing else on the row is consulted.
       isDisabled: row.disabled_at !== null,
+      isRemoved: row.deleted_at !== null,
+      deletedAt: row.deleted_at,
+      deleteReason: row.delete_reason,
     };
   }
 

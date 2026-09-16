@@ -53,6 +53,15 @@ PURPOSE_RESET = "reset"
 # `consume_user_token`'s hash-only lookup must never be used for one. See
 # account_links.consume_user_code.
 PURPOSE_LOGIN_CODE = "login_code"
+# THE MAIN ADMIN'S SECOND FACTOR FOR A PERMANENT DELETE (2026-09-16). Six
+# digits mailed to the office account's OWN address and spent by exactly one
+# destructive act — a student, a faculty account or a whole college, gone for
+# good. Being signed in is not enough on its own for those: the cookie is on
+# whichever machine the office left open, and the mailbox is not. A code, like
+# the sign-in and change-password ones: hashed with its row id, found by
+# (user, purpose), predecessors deleted on re-issue. See
+# account_links.issue_delete_code and routers/admin_deletion.py.
+PURPOSE_DELETE_CODE = "delete_code"
 
 # --- student onboarding (2026-09-10) ---------------------------------------
 # The three secrets a newly approved student spends, in order. They are three
@@ -90,7 +99,9 @@ PURPOSE_CHANGE_CODE = "change_code"
 #: purpose left out of it would be minted with a bare sha256 and could collide
 #: on `uq_auth_token_hash` with somebody else's identical six digits: a 500 in
 #: the face of a person who typed the right code.
-CODE_PURPOSES = frozenset({PURPOSE_LOGIN_CODE, PURPOSE_ONBOARD_CODE, PURPOSE_CHANGE_CODE})
+CODE_PURPOSES = frozenset(
+    {PURPOSE_LOGIN_CODE, PURPOSE_ONBOARD_CODE, PURPOSE_CHANGE_CODE, PURPOSE_DELETE_CODE}
+)
 
 
 def _uuid() -> str:

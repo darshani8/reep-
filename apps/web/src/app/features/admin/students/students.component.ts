@@ -55,6 +55,7 @@ import type { CellClickedEvent, GetRowIdParams, GridApi, GridReadyEvent } from '
 
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
+import { composeBatchLabel } from '../../../core/batch-label';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
@@ -383,14 +384,20 @@ export class AdminStudentsComponent {
     return `${students} across every batch · semester ${this.semesterLabel()} · ${seated}`;
   });
 
-  /** The batch picker only offers batches inside the chosen department and
-   *  course, so the three selects narrow each other the way the board reads. */
+  /** The batch picker only offers batches inside the chosen department, course
+   *  and specialization, so the four selects narrow each other down the spine
+   *  in the order the row reads: Department → Course → Specialization → Batch.
+   *  Specialization was the rung that was missing — a batch hangs off one by a
+   *  real link, so leaving it out offered batches the specialization filter
+   *  then emptied of every row. */
   readonly batchOptions = computed<BatchOption[]>(() => {
     const department = this.departmentFilter();
     const course = this.courseFilter();
+    const specialization = this.specializationFilter();
     return this.batches().filter((batch) => {
       if (department !== '' && batch.departmentId !== department) return false;
       if (course !== '' && batch.courseId !== course) return false;
+      if (specialization !== '' && batch.specializationId !== specialization) return false;
       return true;
     });
   });
@@ -427,7 +434,11 @@ export class AdminStudentsComponent {
   readonly batchFilterLabel = computed(() => {
     if (this.batchFilter() === 'unseated') return 'No batch yet';
     const chosen = this.selectedBatch();
-    return chosen?.name ?? 'All';
+    // `yearLabel` and not `name`: this is the bold half of the Batch pill, the
+    // one piece of chrome that sits directly over the option the reader picked,
+    // so it has to read back the same words the list offered. `name` would drop
+    // the year off a batch the office named something else.
+    return chosen?.yearLabel ?? 'All';
   });
 
   readonly specializationFilterLabel = computed(() => {
@@ -634,6 +645,11 @@ export class AdminStudentsComponent {
       id: batch.id,
       name: batch.name,
       displayLabel: batch.display_label,
+      // The spineless form, resolved once here rather than in the template:
+      // the option list re-renders on every filter change and this is the same
+      // string every time. Composed rather than read off `name`, because a
+      // batch the office called "Chain Batch" would otherwise lose its year.
+      yearLabel: composeBatchLabel(null, null, batch.name, batch.batch_label),
       batchLabel: batch.batch_label,
       collegeName,
       departmentId: batch.department_id ?? '',
@@ -779,6 +795,11 @@ export class AdminStudentsComponent {
 
   setSpecializationFilter(specializationId: string): void {
     this.specializationFilter.set(specializationId);
+    // The batch list is narrowed by specialization now, so the reason above
+    // reaches this rung too: a batch outside the new specialization would stay
+    // selected while no longer being offered, and the reader would be looking
+    // at a roster the picker no longer admits was chosen.
+    this.setBatchFilter('');
   }
 
   /** Three of the four values narrow what is drawn; REMOVED is a different

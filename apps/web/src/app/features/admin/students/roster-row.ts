@@ -294,3 +294,43 @@ export function trackColourOf(specializationCode: string | null): string {
   if (track === undefined) return UNMAPPED_TRACK_COLOUR;
   return track.colour;
 }
+
+/**
+ * How one Batch option is written in the roster's filter row: the spine rungs
+ * the selects ABOVE it have not already pinned, then the batch itself.
+ *
+ * THE RULE IS NOT "NEVER SHOW THE SPINE", AND THAT DISTINCTION SHIPPED BROKEN
+ * ONCE. Dropping it entirely is right about the duplication — Course and
+ * Specialization are two selects to the left — and wrong about the state the
+ * screen OPENS in. `seed_catalogue.batch_name` returns the label unchanged and
+ * the setup screen's `batchName` is `label.trim()`, so every batch a
+ * deployment writes has `name === batch_label === "2026-28"`. BGSCET's one
+ * department has six leaves, so with Course and Specialization on "All" the
+ * select listed six options reading exactly "2026-28" and picking one was a
+ * guess.
+ *
+ * So a rung is spelled out exactly while the reader has not fixed it. At the
+ * bottom of the cascade both are fixed and the option is the year alone, which
+ * is what the owner asked for and also the only point at which the year alone
+ * identifies anything.
+ *
+ * Pure, and separate from the component, so the case above is a unit test
+ * rather than a thing somebody has to open the screen to see.
+ */
+export function batchPickerLabel(
+  batch: Pick<BatchOption, 'courseName' | 'specializationName' | 'name' | 'batchLabel'>,
+  pinned: { course: boolean; specialization: boolean },
+  compose: (
+    courseName: string | null,
+    specializationName: string | null,
+    name: string,
+    batchLabel: string,
+  ) => string,
+): string {
+  return compose(
+    pinned.course ? null : batch.courseName,
+    pinned.specialization ? null : batch.specializationName,
+    batch.name,
+    batch.batchLabel,
+  );
+}

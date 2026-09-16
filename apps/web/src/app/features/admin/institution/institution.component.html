@@ -735,7 +735,6 @@
                             id="b-end"
                             class="ctrl"
                             formControlName="end_year"
-                            [attr.disabled]="endYearDisabled() ? '' : null"
                             (change)="onEndYearChange()"
                           >
                             <option [ngValue]="null">— Select —</option>
@@ -762,7 +761,6 @@
                           id="b-level"
                           class="ctrl"
                           formControlName="degree_level"
-                          [attr.disabled]="batchMode() === 'edit' ? '' : null"
                         >
                           @for (l of degreeLevels; track l) {
                             <option [value]="l">{{ l }}</option>
@@ -807,7 +805,6 @@
                             [id]="'b-' + lv.key"
                             class="ctrl"
                             [formControlName]="lv.field"
-                            [attr.disabled]="levelDisabled(lv) ? '' : null"
                             [attr.aria-invalid]="
                               levelControl(lv).touched && levelControl(lv).hasError('required')
                                 ? 'true'

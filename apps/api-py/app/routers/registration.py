@@ -597,7 +597,7 @@ def _claim_names(db: Session, rows: Sequence[Registration]) -> dict[str, dict[st
     # where those two disagree. One query, as before: the spine comes down the
     # links (`batch_labels.compose`), never out of `cohorts.name`.
     batches = {
-        b.id: batch_labels.compose(course_name, spec_name, b.name)
+        b.id: batch_labels.compose(course_name, spec_name, b.name, b.batch_label)
         for b, course_name, spec_name in db.execute(
             select(Cohort, AcademicCourse.name, AcademicSpecialization.name)
             .outerjoin(AcademicCourse, AcademicCourse.id == Cohort.course_id)
@@ -1210,7 +1210,9 @@ def hierarchy(db: Session = Depends(get_db)) -> PublicHierarchyOut:
                 department_id=b.department_id, course_id=b.course_id,
                 specialization_id=b.specialization_id,
                 course_name=course_name, specialization_name=spec_name,
-                display_label=batch_labels.compose(course_name, spec_name, b.name),
+                display_label=batch_labels.compose(
+                    course_name, spec_name, b.name, b.batch_label
+                ),
                 degree_level=b.degree_level.value, current=b.end_date >= now,
             )
         )

@@ -410,7 +410,7 @@ def list_swoc(
         # The batch's spine comes down its LINKS, never out of `cohorts.name`,
         # which is the year and nothing else (a4e7c92d1f38).
         select(
-            Student.id, User.name, Student.usn, Cohort.name,
+            Student.id, User.name, Student.usn, Cohort.name, Cohort.batch_label,
             AcademicCourse.name, AcademicSpecialization.name,
         )
         .join(User, User.id == Student.user_id)
@@ -464,12 +464,12 @@ def list_swoc(
         SwocStudentRow(
             student_id=sid, name=name, usn=usn,
             batch=(
-                batch_labels.compose(course_name, spec_name, cohort_name)
+                batch_labels.compose(course_name, spec_name, cohort_name, batch_label)
                 if cohort_name else None
             ),
             entries=by_student.get(sid, []),
         )
-        for sid, name, usn, cohort_name, course_name, spec_name in students
+        for sid, name, usn, cohort_name, batch_label, course_name, spec_name in students
     ]
 
 

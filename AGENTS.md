@@ -1205,13 +1205,21 @@ implementations of one sentence drift the first time somebody edits one.
 `display_label` is now served by `GET /api/register/hierarchy`, `/admin/cohorts`
 and the admin cohort endpoints so no client composes it again.
 
-**THE TAIL IS `name` AND NOT `batch_label`, AND THAT IS WHAT KEEPS SECTIONS.**
-For every batch the seeder or the setup screen writes the two are the same
-string, so it makes no difference there; where it does is the NON-STANDARD batch
-the office types on College structure — a section, "2026-28 Section B". That is
-their own word for this batch and printing `batch_label` would silently drop it,
-so the form's Name field is **optional** now and `saveBatch` sends the label when
-it is blank. Migration `a4e7c92d1f38` repairs the rows already written, and its
+**THE TAIL CARRIES BOTH `name` AND `batch_label`, AND GETTING THAT WRONG COST A
+CI ROUND.** The first version took only `name`, reasoning that the seeder and the
+setup screen now write the year into it so the label would be a duplicate. It is
+— for the batches *those two* write. It is not for a batch the office typed a
+name for, and `test_registration_hierarchy.test_a_batch_pins_its_department_and_college`
+builds exactly one: "Chain Batch" at department level, where composing from the
+name alone printed "Chain Batch" and the SPAN vanished from the reviewer's
+"Approving seats them in …". A batch IS a year; a rendering that can drop the
+year is this same bug arriving from the other side. So the year leads the tail
+and the office's words follow — "2024-26 · Chain Batch" — with **one substring
+test** keeping a section from stuttering: where `name` already contains the span
+("2026-28", "2026-28 Section B", a legacy row renamed by hand) it stands alone,
+because "2026-28 · 2026-28 Section B" is the duplication again. That is also what
+keeps the NON-STANDARD batch the office types on College structure; its Name
+field is **optional** now and `saveBatch` sends the label when it is blank. Migration `a4e7c92d1f38` repairs the rows already written, and its
 predicate is the whole of its safety: it rewrites `name` to `batch_label` only
 where the name is EXACTLY the string those two writers would have manufactured
 from THAT ROW'S OWN links. A name a person typed, or one whose course has since

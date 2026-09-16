@@ -1332,7 +1332,10 @@ def _admin_cohort_out(db: Session, cohort: Cohort) -> AdminCohortOut:
         course_name=course.name if course else None,
         specialization_name=spec.name if spec else None,
         display_label=batch_labels.compose(
-            course.name if course else None, spec.name if spec else None, cohort.name
+            course.name if course else None,
+            spec.name if spec else None,
+            cohort.name,
+            cohort.batch_label,
         ),
         missing_levels=[lv.label for lv in _compliance_gap(cohort)],
         code=cohort.code,

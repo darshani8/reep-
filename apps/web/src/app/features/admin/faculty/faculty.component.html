@@ -41,7 +41,6 @@
     <div class="select">
       <span class="lbl">College</span>
       <span class="val">{{ collegeFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="College" (change)="setCollegeFilter(selectValue($event))">
         <option value="" [selected]="collegeFilter() === ''">All colleges</option>
         @for (college of colleges(); track college.id) {
@@ -53,7 +52,6 @@
     <div class="select">
       <span class="lbl">Department</span>
       <span class="val">{{ departmentFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Department" (change)="setDepartmentFilter(selectValue($event))">
         <option value="" [selected]="departmentFilter() === ''">All departments</option>
         @for (department of departmentOptions(); track department.id) {
@@ -69,7 +67,6 @@
     <div class="select" [class.is-muted]="!mentorGroupsAreReadable()">
       <span class="lbl">Mentor group</span>
       <span class="val">{{ functionFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select
         aria-label="Mentor group"
         [disabled]="!mentorGroupsAreReadable()"
@@ -87,7 +84,6 @@
     <div class="select">
       <span class="lbl">Status</span>
       <span class="val">{{ statusFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Status" (change)="setStatusFilter(selectValue($event))">
         <option value="" [selected]="statusFilter() === ''">All</option>
         <option value="active" [selected]="statusFilter() === 'active'">Active</option>

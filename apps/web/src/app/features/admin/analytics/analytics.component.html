@@ -48,7 +48,6 @@
     <div class="select">
       <span class="lbl">Period</span>
       <span class="val">{{ periodLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select
         aria-label="Period — the window the figures and the weekly chart are taken over"
         (change)="selectPeriod($event)"
@@ -149,7 +148,6 @@
         <div class="select">
           <span class="lbl">Drawn for</span>
           <span class="val">{{ chartSubjectName() }}</span>
-          <span class="icon" aria-hidden="true">expand_more</span>
           <select
             aria-label="Who the weekly chart is drawn for"
             (change)="selectChartSubject($event)"

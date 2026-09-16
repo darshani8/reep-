@@ -2861,7 +2861,9 @@ html.fonts-ready .icon {
   align-items: center;
   gap: 7px;
   height: 34px;
-  padding: 0 30px 0 12px;
+  /* Symmetric now that the `expand_more` chevron is gone: the 30px was
+     the room it sat in, and left behind it reads as a hole. */
+  padding: 0 12px;
   background: var(--surface);
   border: 1px solid var(--hairline-42);
   border-radius: var(--r-control);

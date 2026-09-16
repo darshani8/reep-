@@ -2,7 +2,7 @@
 asked for and threw away.
 
 Revision ID: a3f9c2e17b48
-Revises: d8b1f4c2a7e9
+Revises: a4e7c92d1f38
 Create Date: 2026-09-16
 
 The registration form drew a Personal email box and a LinkedIn box from the
@@ -24,7 +24,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "a3f9c2e17b48"
-down_revision: Union[str, None] = "d8b1f4c2a7e9"
+down_revision: Union[str, None] = "a4e7c92d1f38"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

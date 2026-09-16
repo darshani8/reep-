@@ -250,14 +250,15 @@ def test_a_deputys_grant_of_a_students_records_is_not_live_until_someone_agrees(
 def test_the_person_who_granted_it_cannot_be_the_person_who_agreed(
     client, admin, faculty, deputy, swept
 ):
-    """THE ONE ASSERTION THIS WHOLE FEATURE IS FOR.
+    """THE ONE ASSERTION THIS WHOLE FEATURE IS FOR, and it is about a DEPUTY.
 
     Everything else in B2.4 — the state column, the check constraint, the four
     readers that honour it, the pending badge, the review queue — is bookkeeping
-    around one sentence: the person who decided cannot be the person who agreed.
+    around one sentence: a deputy who decided cannot be the person who agreed.
     Remove this refusal and the flow still works end to end, still writes two
     audit rows, still shows an approver's name on screen, and protects nobody at
-    all: one deputy clicks Grant and then clicks Approve.
+    all: one deputy clicks Grant and then clicks Approve. The Main Admin is the
+    exception, deliberately -- see the test above.
 
     DELETE THIS and four-eyes becomes two-clicks, invisibly — every other test
     in this module still passes.
@@ -285,6 +286,55 @@ def test_the_person_who_granted_it_cannot_be_the_person_who_agreed(
         f"{GOV}/grants/{row['id']}/approve", headers=admin.headers, json={"reason": AGREED}
     )
     assert again.status_code == 409
+
+
+@requires_db
+def test_the_main_admin_may_approve_a_grant_it_made_itself(
+    client, admin, faculty, swept
+):
+    """A row the office granted BEFORE the rule changed is still on the queue,
+    and the office is the one account that can clear it.
+
+    Every `carries_pii` grant the Main Admin made before 2026-09-16 was written
+    `pending_approval`, and the self-approval refusal then applied to the office
+    too -- so on the day the amendment shipped, each of those rows was stuck
+    behind a deputy the office would have had to appoint for the purpose. The
+    office's signature is sufficient on the create path now, so it is
+    sufficient here: Approve, with a reason, finalises the row and writes the
+    audit row that says so.
+
+    DELETE THIS and the refusal below quietly widens back to the office, and
+    the first production deployment to upgrade meets exactly the screen this
+    test was written from: "You granted this, so you cannot also approve it",
+    with nobody else able to.
+    """
+    with SessionLocal() as db:
+        row = CapabilityGrant(
+            capability=PII_KEY, subject_kind=SubjectKind.USER, subject_user_id=faculty.user_id,
+            reason="Granted by the office under the old rule, and left pending.",
+            granted_by_user_id=admin.user_id,
+            approval_state=APPROVAL_PENDING, role_at_grant=Role.MENTOR.value,
+        )
+        db.add(row)
+        db.commit()
+        swept["grants"].append(row.id)
+        grant_id = row.id
+        assert PII_KEY not in granted_capabilities(db, faculty.user_id)
+
+    ok = client.post(
+        f"{GOV}/grants/{grant_id}/approve", headers=admin.headers, json={"reason": AGREED}
+    )
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["approval_state"] == APPROVAL_ACTIVE
+    assert ok.json()["approved_by"], "the trail does not say who agreed"
+    with SessionLocal() as db:
+        assert PII_KEY in granted_capabilities(db, faculty.user_id)
+        trail = db.scalars(
+            select(AuditEvent).where(
+                AuditEvent.entity_id == grant_id, AuditEvent.action == "APPROVED"
+            )
+        ).all()
+        assert len(trail) == 1, "approving wrote no audit row"
 
 
 @requires_db

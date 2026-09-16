@@ -478,7 +478,13 @@ agree with it. `initial_approval_state` in `routers/governance.py` is the ONE
 place that reads who is granting, and BOTH writers of `capability_grants`
 (`create_grants` and `appoint_college_admin`) call it; the readers do not care
 who wrote the row, so a deputy's pending grant is still enforced where access
-is resolved. `tests/test_governance_review.py` pins both halves. Grants carry
+is resolved. **The self-approval refusal on `/approve` is a DEPUTY's**: the
+Main Admin may approve any pending row, its own included, because rows the
+office granted before this date were written pending under the old rule and
+the office is the one account that can clear them — refusing it left every
+such row stuck behind a deputy appointed for the purpose, which is the
+arrangement the amendment removed. `tests/test_governance_review.py` pins all
+three halves. Grants carry
 `review_at`; one with **no** expiry is the grant that most
 needs a date, because nothing else will ever bring it back to anybody's
 attention. `role_at_grant` stops a grant counting when the account becomes

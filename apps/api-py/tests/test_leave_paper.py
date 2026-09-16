@@ -85,17 +85,23 @@ def test_a_staff_member_uploads_one_signature_and_replaces_it_in_place(client, m
     first = _png()
     r = client.put(SIG, headers=faculty.headers, files={"file": ("sig.png", first, "image/png")})
     assert r.status_code == 200, r.text
-    assert r.json()["present"] is True and r.json()["mime_type"] == "image/png" and r.json()["size_bytes"] == len(first)
+    # NORMALISED ON THE WAY IN (2026-09-16): what is stored is a flat RGBA PNG
+    # re-encoded by Pillow, not the bytes as uploaded, so the size is the
+    # stored file's and the served image is a PNG rather than `first` verbatim.
+    assert r.json()["present"] is True and r.json()["mime_type"] == "image/png" and r.json()["size_bytes"] > 0
     img = client.get(f"{SIG}/image", headers=faculty.headers)
-    assert img.status_code == 200 and img.headers["content-type"].startswith("image/png") and img.content == first
+    assert img.status_code == 200 and img.headers["content-type"].startswith("image/png")
+    assert img.content.startswith(b"\x89PNG") and len(img.content) == r.json()["size_bytes"]
+    served_first = img.content
     assert len(list(_tmp_store.iterdir())) == 1
 
     # Replaced in place: one file on disk, the new bytes.
     second = _png(200, 60)
     r = client.put(SIG, headers=faculty.headers, files={"file": ("sig2.png", second, "image/png")})
-    assert r.status_code == 200 and r.json()["size_bytes"] == len(second)
+    assert r.status_code == 200 and r.json()["size_bytes"] > 0
     assert len(list(_tmp_store.iterdir())) == 1
-    assert client.get(f"{SIG}/image", headers=faculty.headers).content == second
+    served_second = client.get(f"{SIG}/image", headers=faculty.headers).content
+    assert served_second.startswith(b"\x89PNG") and served_second != served_first
 
     # Too big is refused before anything is stored.
     r = client.put(SIG, headers=faculty.headers, files={"file": ("big.png", _png(1200, 500, noise=True), "image/png")})
@@ -112,10 +118,9 @@ def test_a_staff_member_uploads_one_signature_and_replaces_it_in_place(client, m
 @requires_db
 def test_the_paper_downloads_for_the_applicant_and_the_office_and_carries_the_signatures(client, make_user, _tmp_store):
     faculty = make_user("lp-fac", Role.MENTOR)
-    other_faculty = make_user("lp-other", Role.MENTOR)  # no group: sees nobody
+    other_faculty = make_user("lp-other", Role.MENTOR)  # faculty: never an approver
     student = make_user("lp-stu")
-    first_approver = make_user("lp-adm", Role.ADMIN)
-    second_approver = make_user("lp-dir", Role.ADMIN)
+    first_approver = make_user("lp-adm", Role.ADMIN)  # the office, whose one signature sanctions
 
     leave = _leave(client, faculty.headers)
     url = f"{LEAVES}/{leave['id']}/paper.pdf"
@@ -137,15 +142,13 @@ def test_the_paper_downloads_for_the_applicant_and_the_office_and_carries_the_si
     with_staff = len(client.get(url, headers=faculty.headers).content)
     assert with_staff > plain, "the image is in the paper"
 
-    # Two distinct approvers sanction it (the form's own endpoints, untouched).
+    # The office sanctions it with ONE signature (the form's own endpoint, untouched).
     assert client.post(f"{LEAVES}/{leave['id']}/decision", headers=first_approver.headers,
-                       json={"decision": "APPROVE", "note": None}).status_code == 200
-    assert client.post(f"{LEAVES}/{leave['id']}/decision", headers=second_approver.headers,
                        json={"decision": "APPROVE", "note": "Sanctioned."}).status_code == 200
     sanctioned = len(client.get(url, headers=faculty.headers).content)
 
     # The sanctioning approver's signature goes into the PROGRAM DIRECTOR block.
-    assert client.put(SIG, headers=second_approver.headers, files={"file": ("dir.png", _png(160, 50), "image/png")}).status_code == 200
+    assert client.put(SIG, headers=first_approver.headers, files={"file": ("dir.png", _png(160, 50), "image/png")}).status_code == 200
     with_director = len(client.get(url, headers=faculty.headers).content)
     assert with_director > sanctioned, "the approver's image is in the paper too"
 

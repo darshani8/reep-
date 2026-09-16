@@ -82,6 +82,14 @@ class User(Base):
             "disabled_at",
             postgresql_where=text("disabled_at IS NOT NULL"),
         ),
+        # The same shape for removal (2026-09-16): every roster read asks
+        # `deleted_at IS NULL` and almost every row answers yes, so the index
+        # is over the handful that do not.
+        Index(
+            "ix_users_deleted_at",
+            "deleted_at",
+            postgresql_where=text("deleted_at IS NOT NULL"),
+        ),
     )
 
 
@@ -121,6 +129,41 @@ class User(Base):
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     disable_reason: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    #: REMOVED FROM THE ROSTER BUT STILL IN THE DATABASE (2026-09-16).
+    #:
+    #: The Main Admin's "delete, but not permanently": the account leaves every
+    #: list the console draws, cannot sign in by any door, and every row it
+    #: owns — marks, uploads, notes, interviews — stays exactly where it is,
+    #: because the row is still here. `POST /api/admin/users/{id}/restore`
+    #: brings it back with nothing lost. The permanent delete
+    #: (`app/account_deletion.py`) is the OTHER answer and needs a code emailed
+    #: to the Main Admin; this one needs a reason in words, like disabling.
+    #:
+    #: SEPARATE FROM `disabled_at`, and it must stay so. Disabling is an
+    #: offboarding the office still wants to SEE — a disabled faculty member is
+    #: listed greyed with the date, because "she vanished from the list" reads
+    #: as a bug. Removal is the opposite promise: the person is gone from the
+    #: screens. One column cannot carry both, and a removed account that was
+    #: disabled beforehand comes back disabled when it is restored, which is
+    #: only expressible with two columns.
+    #:
+    #: EVERY SIGN-IN DOOR READS `barred_at`, never this column or `disabled_at`
+    #: alone. A door that forgot removal would admit a person the office
+    #: believes is gone, on a screen that no longer lists them.
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_by_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    delete_reason: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    @property
+    def barred_at(self) -> datetime | None:
+        """When this account stopped being admitted: disabled OR removed,
+        whichever happened. `None` means it may sign in. The one question every
+        door asks, answered in one place, so a third way of shutting an account
+        is a one-line change here and not a hunt through nine files."""
+        return self.deleted_at or self.disabled_at
 
     #: What REEP may email this account, as a small JSON object (B15).
     #:

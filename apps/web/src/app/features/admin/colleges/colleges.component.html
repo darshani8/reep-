@@ -47,6 +47,13 @@
       </div>
     }
 
+    @if (deleteNote(); as note) {
+      <p class="note-line" role="status">
+        <span class="icon" aria-hidden="true">check_circle</span>
+        {{ note }}
+      </p>
+    }
+
     @if (adminsState() === 'error') {
       <div class="notice accent" role="status">
         <span class="icon" aria-hidden="true">info</span>
@@ -221,6 +228,14 @@
               <span class="icon" aria-hidden="true">add_circle</span> Add departments, courses,
               batches
             </a>
+            <!-- Main Admin only, like every delete. The dialog counts what
+                 goes, shows the server's refusal while anybody is filed
+                 under this college, and asks for the emailed code. -->
+            @if (isMainAdmin()) {
+              <button type="button" class="btn ghost sm college-delete" (click)="openDeleteDialog(college)">
+                <span class="icon" aria-hidden="true">delete</span> Delete college…
+              </button>
+            }
           </div>
         </article>
       } @empty {
@@ -236,5 +251,12 @@
         </div>
       }
     </div>
+  }
+  @if (deletingCollege(); as target) {
+    <app-admin-delete-dialog
+      [target]="target"
+      (dismissed)="closeDeleteDialog()"
+      (done)="onDeleteDone($event)"
+    />
   }
 </div>

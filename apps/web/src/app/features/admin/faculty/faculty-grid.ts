@@ -48,6 +48,13 @@ function renderNotReadable(): string {
 function renderStatusCell(params: ICellRendererParams<FacultyRow>): string {
   const row = params.data;
   if (!row) return '';
+  if (row.isRemoved) {
+    const why = row.deleteReason === null ? '' : ` title="${escapeHtml(row.deleteReason)}"`;
+    return (
+      `<span class="chip risk"${why}>Removed</span>` +
+      `<span style="margin-left: 6px; font-size: 11px; color: var(--faint);">${escapeHtml(dayLabelOf(row.deletedAt))}</span>`
+    );
+  }
   if (!row.isDisabled) return `<span class="chip good">Active</span>`;
   const reason = row.disableReason === null ? '' : ` title="${escapeHtml(row.disableReason)}"`;
   return (
@@ -173,7 +180,8 @@ export const FACULTY_COLUMNS: ColDef<FacultyRow>[] = [
     colId: 'status',
     headerName: 'Status',
     width: 150,
-    valueGetter: (params) => (params.data?.isDisabled ? 'Disabled' : 'Active'),
+    valueGetter: (params) =>
+      params.data?.isRemoved ? 'Removed' : params.data?.isDisabled ? 'Disabled' : 'Active',
     cellRenderer: renderStatusCell,
     headerTooltip: STATUS_UNKNOWN_REASON,
   },

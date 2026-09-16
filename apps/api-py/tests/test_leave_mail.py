@@ -152,16 +152,18 @@ def test_the_logger_is_muted_from_sentry() -> None:
     assert scrub_breadcrumb({"category": "app.leave_mail", "message": REASON}) is None
 
 
-def test_the_notified_statuses_are_the_three_transitions_04_names() -> None:
-    """SUBMITTED, FIRST_APPROVED and a decision. Anything else sends nothing at
-    all, which is what makes "not notified" a decision rather than an omission."""
+def test_the_notified_statuses_are_the_submission_and_the_decision() -> None:
+    """SUBMITTED and a decision. FIRST_APPROVED went with the second signature
+    (2026-09-16) — nothing writes it any more, so nothing should promise a
+    mail for it. Anything else sends nothing at all, which is what makes "not
+    notified" a decision rather than an omission."""
     assert set(leave_mail._BODIES) == {
         LeaveStatus.SUBMITTED,
-        LeaveStatus.FIRST_APPROVED,
         LeaveStatus.APPROVED,
         LeaveStatus.REJECTED,
     }
     assert LeaveStatus.CANCELLED not in leave_mail._BODIES
+    assert LeaveStatus.FIRST_APPROVED not in leave_mail._BODIES
 
 
 # ---------------------------------------------------------------------------
@@ -213,18 +215,14 @@ def test_the_submit_endpoint_sends_the_submission_mail(client, make_user, monkey
 
 
 @requires_db
-def test_both_signatures_send_their_own_mail_and_neither_carries_the_reason(
+def test_the_one_signature_sends_the_sanction_mail_and_it_carries_no_reason(
     client, make_user, monkeypatch
 ):
-    """A first signature and a sanction are different messages under different
-    dedupe keys, so a request that is signed twice produces two."""
+    """The office's one decision is the sanction, so it is one message under
+    one dedupe key — and neither the subject nor the body carries the reason."""
     monkeypatch.setattr(settings, "leave_mail_enabled", True)
     applicant = make_user("mail-wire-app", Role.MENTOR)
-    # Two ADMIN accounts, as `tests/test_leave_paper.py` does it: `decide_leave`
-    # requires two DISTINCT signatures and this test is about the mail, not
-    # about which door each approver came through.
-    first = make_user("mail-wire-one", Role.ADMIN)
-    second = make_user("mail-wire-two", Role.ADMIN)
+    office = make_user("mail-wire-one", Role.ADMIN)
     r = client.post(
         LEAVES,
         headers=applicant.headers,
@@ -241,23 +239,13 @@ def test_both_signatures_send_their_own_mail_and_neither_carries_the_reason(
         mail_transport.outbox.clear()
         one = client.post(
             f"{LEAVES}/{leave_id}/decision",
-            headers=first.headers,
+            headers=office.headers,
             json={"decision": "APPROVE", "note": None},
         )
         assert one.status_code == 200, one.text
-        assert one.json()["status"] == "FIRST_APPROVED"
+        assert one.json()["status"] == "APPROVED"
         assert len(mail_transport.outbox) == 1
-        assert "first signature" in mail_transport.outbox[0].subject.lower()
-
-        two = client.post(
-            f"{LEAVES}/{leave_id}/decision",
-            headers=second.headers,
-            json={"decision": "APPROVE", "note": None},
-        )
-        assert two.status_code == 200, two.text
-        assert two.json()["status"] == "APPROVED"
-        assert len(mail_transport.outbox) == 2
-        assert "sanctioned" in mail_transport.outbox[1].subject.lower()
+        assert "sanctioned" in mail_transport.outbox[0].subject.lower()
 
         for sent in mail_transport.outbox:
             assert REASON not in sent.text and REASON not in sent.subject
@@ -271,10 +259,9 @@ def test_both_signatures_send_their_own_mail_and_neither_carries_the_reason(
             )
         # SUBMITTED is in there too: the submission mail went out before the
         # outbox was cleared, and its `mail_logs` row is exactly the point —
-        # three transitions, three keys, one message each.
+        # two transitions, two keys, one message each.
         assert keys == {
             f"leave:{leave_id}:SUBMITTED",
-            f"leave:{leave_id}:FIRST_APPROVED",
             f"leave:{leave_id}:APPROVED",
         }
     finally:

@@ -52,14 +52,16 @@ from typing import Final
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .models.user import Mentor, Student
+from .models.user import Mentor, Student, User
 
-#: The four a mentee brings. `mentor.agent` and `mentor.upskilling` are NOT here
+#: The three a mentee brings. `mentor.agent` and `mentor.upskilling` are NOT here
 #: and stay in the baseline: the assistant and one's own certificate shelf belong
 #: to the person, not to the group, and taking them away between assignments
-#: would be removing their own things.
+#: would be removing their own things. `mentor.leave_approve` WAS the fourth
+#: until 2026-09-16: leave approval is the Main Admin's alone now
+#: (routers/leave.py) and the key left the catalogue with the door.
 MENTOR_FUNCTIONS: Final[frozenset[str]] = frozenset(
-    {"mentor.mentees", "mentor.notebook", "mentor.verifications", "mentor.leave_approve"}
+    {"mentor.mentees", "mentor.notebook", "mentor.verifications"}
 )
 
 
@@ -75,14 +77,18 @@ def mentee_count(db: Session, user_id: str) -> int:
         db.scalar(
             select(func.count(Student.id))
             .join(Mentor, Student.mentor_id == Mentor.id)
-            .where(Mentor.user_id == user_id)
+            # A REMOVED student (users.deleted_at) is off the roster and does
+            # not keep a faculty member's functions alive; Restore brings
+            # both back, because the pointer is never touched.
+            .join(User, Student.user_id == User.id)
+            .where(Mentor.user_id == user_id, User.deleted_at.is_(None))
         )
         or 0
     )
 
 
 def mentor_functions_for(db: Session, user_id: str) -> frozenset[str]:
-    """The four, if this account mentors anybody. Otherwise nothing."""
+    """The three, if this account mentors anybody. Otherwise nothing."""
     if not user_id:
         return frozenset()
     return MENTOR_FUNCTIONS if mentee_count(db, user_id) > 0 else frozenset()

@@ -633,18 +633,22 @@ def test_the_analytics_tiles_count_only_the_reach(client, make_user, spine, scop
 
 
 @requires_db
-def test_a_faculty_approver_keeps_their_queue(client, make_user, login, spine):
+def test_a_faculty_verifier_keeps_their_evidence_queue(client, make_user, login, spine):
     """A capability held as a FUNCTION is unscoped, and a queue that forgot it
     empties for every faculty member on the deployment.
 
-    `mentor.leave_approve` and `mentor.verifications` are derived from currently
-    mentoring somebody (app/mentor_functions.py), so there is no grant row and
-    `scope_filter` reports `nothing`. Both queues compose the reach with the
+    `mentor.verifications` is derived from currently mentoring somebody
+    (app/mentor_functions.py), so there is no grant row and `scope_filter`
+    reports `nothing`. The evidence queue composes the reach with the
     mentor-group fence instead of replacing it. Delete this and the obvious
-    refactor — "narrow every list by the reach" — silently takes the leave
-    approvals and evidence queues away from every mentor at once, and the
-    failure is a queue that is EMPTY rather than a request that is REFUSED,
-    which is why this asserts on rows and not on a status code.
+    refactor — "narrow every list by the reach" — silently takes the queue away
+    from every mentor at once, and the failure is a queue that is EMPTY rather
+    than a request that is REFUSED, which is why this asserts on rows and not
+    on a status code.
+
+    The LEAVE queue is no longer beside it: leave approval is the Main Admin's
+    alone since 2026-09-16, so a faculty member gets a 403 there whatever they
+    mentor — asserted here so the two queues cannot be "tidied" back together.
 
     Signed in AFTER the group exists, because the session is a signed snapshot:
     `mentorId` is minted at login and rule 2 reads the claim, not the row.
@@ -658,18 +662,13 @@ def test_a_faculty_approver_keeps_their_queue(client, make_user, login, spine):
         db.commit()
     try:
         headers = login(faculty.email, TEST_PASSWORD)
-        pending = client.get("/api/leaves/pending", headers=headers)
-        assert pending.status_code == 200, pending.text
-        assert spine["leave_here"] in {row["id"] for row in pending.json()}, (
-            "the mentor's own mentee's leave vanished — the reach was applied to a function"
-        )
+        assert client.get("/api/leaves/pending", headers=headers).status_code == 403
         evidence = client.get("/api/mentor/badge-evidence/pending", headers=headers)
         assert evidence.status_code == 200, evidence.text
         assert spine["student_here"] in {row["student_id"] for row in evidence.json()}
 
         # And the group fence is still the fence: the other department's mentee
         # is not theirs to see, which is what makes the queue narrow at all.
-        assert spine["leave_there"] not in {row["id"] for row in pending.json()}
         assert spine["student_there"] not in {row["student_id"] for row in evidence.json()}
     finally:
         _undo([spine["student_here"]], [faculty.user_id])
@@ -685,8 +684,8 @@ def test_a_granted_verifier_reads_only_their_scope_of_the_evidence_queue(
     baseline precisely so that looking at a stuck student's evidence is an
     audited grant it makes to itself — and until B1.4 that grant read every
     pending claim on the deployment. This asserts the ADMIN branch narrows;
-    `test_a_faculty_approver_keeps_their_queue` asserts the MENTOR branch does
-    not.
+    `test_a_faculty_verifier_keeps_their_evidence_queue` asserts the MENTOR
+    branch does not.
     """
     admin = make_user(f"sl-ev-{spine['tag']}", Role.ADMIN)
     scoped_grant(admin.user_id, "mentor.verifications", ScopeLevel.DEPARTMENT, spine["here"])

@@ -201,3 +201,10 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+
+/* The destructive action sits last on the card and reads in the risk colour,
+   text and colour together. */
+.college-delete {
+  color: var(--risk);
+  margin-left: auto;
+}

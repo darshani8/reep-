@@ -88,9 +88,11 @@ export class AgentOrbComponent implements OnDestroy {
    * own mark for "a model did this" already — it is on Generate Resume, on the
    * resume preview and on English's AI feedback — so the one button that opens
    * the assistant was the only AI surface in the product wearing a different
-   * icon, and the one it wore was a cartoon robot. The sidebar rows keep
-   * `smart_toy`: they are a labelled list item ("Ask REEP", "REEP Agent"),
-   * where the icon is a locator rather than the whole affordance.
+   * icon, and the one it wore was a cartoon robot. The admin Home's "Ask REEP"
+   * tile keeps `smart_toy`: it is a labelled list item, where the icon is a
+   * locator rather than the whole affordance. (The sidebars carried the same
+   * row until 2026-09-16; this orb is now the one way into the chat from the
+   * shell on every role.)
    */
   readonly glyph = computed(() =>
     this.dock.open() ? 'close' : this.dock.live() ? 'graphic_eq' : 'auto_awesome',

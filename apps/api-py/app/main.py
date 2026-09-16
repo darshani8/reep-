@@ -34,6 +34,7 @@ from .routers import (
     console,
     health,
     interview,
+    admin_deletion,
     admin_faculty,
     admin_imports,
     admin_interview_tracks,
@@ -398,6 +399,11 @@ app.include_router(admin_promotion.router, prefix="/api")
 # and this is a read that touches ten tables and writes nothing.
 app.include_router(admin_student_360.router, prefix="/api")
 app.include_router(admin_faculty.router, prefix="/api")
+# 2026-09-16 - remove / restore / delete-for-good, for students, faculty and
+# colleges, plus the emailed code the permanent ones demand. Its own module
+# for the reason the purge modules are their own: a destructive act should
+# be found by looking for it, not by reading an edit router to the end.
+app.include_router(admin_deletion.router, prefix="/api")
 # B8.1 - spreadsheet imports. Its own module for admin_promotion.py's reason:
 # `console.py` and `admin.py` are ~1700 lines each and this is a new surface,
 # not a variation on an existing one. Today it answers the history; preview,

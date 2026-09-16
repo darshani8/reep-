@@ -21,9 +21,9 @@
         @if (student() !== null) {
           <span
             class="chip dot"
-            [class.good]="!isDisabled() && hasSignedIn()"
-            [class.warn]="!isDisabled() && !hasSignedIn()"
-            [class.risk]="isDisabled()"
+            [class.good]="!isDisabled() && !isRemoved() && hasSignedIn()"
+            [class.warn]="!isDisabled() && !isRemoved() && !hasSignedIn()"
+            [class.risk]="isDisabled() || isRemoved()"
             >{{ accountStatusLabel() }}</span
           >
           <span class="chip accent">{{ stageLabel() }}</span>
@@ -329,6 +329,11 @@
                   <div class="card-sub">An admin never sets a password.</div>
                 </div>
               </div>
+              @if (removedLine(); as line) {
+                <div class="notice warn" role="status">
+                  <span class="icon" aria-hidden="true">person_remove</span><span>{{ line }}</span>
+                </div>
+              }
               @if (disabledLine(); as line) {
                 <div class="notice warn" role="status">
                   <span class="icon" aria-hidden="true">lock</span><span>{{ line }}</span>

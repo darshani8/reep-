@@ -174,7 +174,7 @@ def activate(
                 "to choose a new one."
             ),
         )
-    if holder is not None and holder.disabled_at is not None:
+    if holder is not None and holder.barred_at is not None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail=DISABLED_SIGN_IN_MESSAGE
         )
@@ -244,13 +244,13 @@ def _issue_reset_in_background(email: str) -> None:
         user = db.scalar(select(User).where(User.email == email))
         if user is None:
             return
-        if user.disabled_at is not None:
-            # Offboarded (B3.3). A reset link is a way back in, and there is no
+        if user.barred_at is not None:
+            # Offboarded (B3.3) or removed (2026-09-16). A reset link is a way back in, and there is no
             # way back in. Silently, because /forgot answers the same 202 to
             # every address and must not become "is this account still active".
             # FIRST, before either branch below: a disabled password-less
             # student must not be mailed a setup link either.
-            log.info("forgot-password ignored for %s: the account is disabled", email)
+            log.info("forgot-password ignored for %s: the account is disabled or removed", email)
             return
         # STUDENTS ARE NO LONGER SKIPPED (2026-09-10). Under option B they held
         # no password, so a reset link would have quietly created one; they set
@@ -311,7 +311,7 @@ def reset(body: LinkPasswordIn, db: Session = Depends(get_db)) -> MessageOut:
             detail=account_links.explain_user_token(db, PURPOSE_RESET, token),
         )
     holder = db.get(User, live.user_id)
-    if holder is not None and holder.disabled_at is not None:
+    if holder is not None and holder.barred_at is not None:
         # A link minted the minute before the account was disabled is still
         # live. Refused BEFORE the consume, so the link is not burnt on a
         # decision nothing about this request can change.

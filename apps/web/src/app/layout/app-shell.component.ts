@@ -238,7 +238,6 @@ export const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
         path: '/admin/audit',
         mainAdminOnly: true,
       },
-      { label: 'Ask REEP', icon: 'smart_toy', path: '/admin/agent', mainAdminOnly: true },
     ],
   },
 ];
@@ -287,11 +286,16 @@ const STUDENT_NAVIGATION: readonly NavigationGroup[] = [
  * opposite would be true: a faculty account with no mentees would see three
  * links that answer 403.
  *
- * LEAVE REQUESTS IS DELIBERATELY NOT FILTERED. That screen is two things: the
- * approval queue, which `mentor.leave_approve` gates, and the faculty member's
- * OWN leave request, which nothing gates and nobody should ever lose. Hiding it
- * from someone with no mentees would take away their ability to ask for leave.
- * Upskilling and the Agent are baseline and always held.
+ * LEAVE REQUESTS IS DELIBERATELY NOT FILTERED. That screen is the faculty
+ * member's OWN leave request (and the cover they are asked for), which nothing
+ * gates and nobody should ever lose; approving leave is the Main Admin's alone
+ * since 2026-09-16 and lives on the admin console.
+ * Upskilling is baseline and always held.
+ *
+ * THE REEP AGENT HAS NO SIDEBAR ROW ON ANY ROLE (2026-09-16). The owner
+ * asked for it to leave the navigation bar in every UI: the floating orb on
+ * every screen already opens the same chat (agent-dock.component.ts), so a
+ * sidebar row was the same door drawn twice. The routes stay as deep links.
  */
 const FACULTY_NAVIGATION: readonly NavigationGroup[] = [
   {
@@ -318,10 +322,6 @@ const FACULTY_NAVIGATION: readonly NavigationGroup[] = [
       },
       { label: 'Upskilling', icon: 'workspace_premium', path: '/mentor/upskilling' },
     ],
-  },
-  {
-    title: 'More',
-    items: [{ label: 'REEP Agent', icon: 'smart_toy', path: '/mentor/agent' }],
   },
 ];
 

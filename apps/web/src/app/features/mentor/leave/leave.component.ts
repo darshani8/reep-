@@ -70,6 +70,7 @@
  */
 
 import { DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { Component, computed, inject, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
@@ -191,9 +192,9 @@ function statusChip(status: string): Chip {
     case 'CANCELLED':
       return { tone: 'neutral', icon: 'event_busy', label: 'Cancelled' };
     case 'FIRST_APPROVED':
-      return { tone: 'warn', icon: 'how_to_reg', label: 'One approval in · awaiting Program Director' };
+      return { tone: 'warn', icon: 'how_to_reg', label: 'Signed once · awaiting the Main Admin' };
     default:
-      return { tone: 'warn', icon: 'hourglass_top', label: 'Pending Admin / Program Director' };
+      return { tone: 'warn', icon: 'hourglass_top', label: 'Awaiting the Main Admin' };
   }
 }
 
@@ -215,7 +216,7 @@ function readDraft(): LocalDraft | null {
 @Component({
   selector: 'app-mentor-leave',
   standalone: true,
-  imports: [DatePipe],
+  imports: [DatePipe, RouterLink],
   templateUrl: './leave.component.html',
   styleUrl: './leave.component.scss',
 })
@@ -231,6 +232,13 @@ export class LeaveComponent {
 
   readonly rows = signal<LeaveRow[] | null>(null);
   readonly error = signal<string | null>(null);
+
+  /** `GET /api/staff/signature` — whether a signature IMAGE is on file
+   *  (2026-09-16). Signing the form records a name and a time; the picture
+   *  drawn above them on the paper is the one uploaded under Signature in
+   *  the account menu, and until now nothing on this screen said whether
+   *  there was one. `null` means the question could not be asked. */
+  readonly signatureOnFile = signal<boolean | null>(null);
 
   /// null = the dashboard; a row = reading that form; composing = filling one in.
   readonly viewing = signal<LeaveRow | null>(null);
@@ -299,6 +307,7 @@ export class LeaveComponent {
     void this.load();
     void this.loadCover();
     void this.loadBalances();
+    void this.loadSignatureState();
   }
 
   chip(status: string): Chip {
@@ -657,9 +666,9 @@ export class LeaveComponent {
       case 'CANCELLED':
         return 'Withdrawn — no cover is needed.';
       case 'FIRST_APPROVED':
-        return 'One signature in, awaiting the second.';
+        return 'Signed once, awaiting the Main Admin.';
       default:
-        return 'Awaiting its first signature.';
+        return 'Awaiting the Main Admin’s decision.';
     }
   }
 
@@ -696,6 +705,17 @@ export class LeaveComponent {
     this.fCredit.set('');
     this.fAltName.set('');
     this.fAltRows.set([emptyAltRow(), emptyAltRow(), emptyAltRow()]);
+  }
+
+  private async loadSignatureState(): Promise<void> {
+    try {
+      const res = await fetch(`${environment.apiBase}/staff/signature`, { credentials: 'include' });
+      if (!res.ok) return;
+      const info = (await res.json()) as { present?: boolean };
+      this.signatureOnFile.set(info.present === true);
+    } catch {
+      /* the line stays absent rather than guessing */
+    }
   }
 
   private async load(): Promise<void> {

@@ -32,10 +32,10 @@ or deliberately out of it, and answered for in Governance — all to express
 "the Main Admin", which the role gate already says. Keys are cheap to add and
 permanent to live with.
 
-`mentor.leave_approve` is not asked for either, and that is not an oversight:
-this module's one APPROVER-facing read (`/leaves/{id}/balance`) hangs off a
-LEAVE REQUEST and is therefore gated by `_assert_can_decide` — the same three
-doors, the same flattened 404, the same import that `leave_paper.py` takes.
+This module's one APPROVER-facing read (`/leaves/{id}/balance`) hangs off a
+LEAVE REQUEST and is therefore gated by `_assert_can_decide` — the Main Admin
+and nobody else since 2026-09-16, the same flattened 404, the same import that
+`leave_paper.py` takes.
 
 ==============================================================================
 A BALANCE READ ABOUT SOMEBODY ELSE IS RULE 2, AND THE OBVIOUS FENCE IS A NO-OP
@@ -43,14 +43,11 @@ A BALANCE READ ABOUT SOMEBODY ELSE IS RULE 2, AND THE OBVIOUS FENCE IS A NO-OP
 
 `leave_balances` is keyed on `users` and INCLUDES STUDENTS, so "how many days
 has this person taken" is a fact about a person that rule 2 governs. There is no
-`require_capability(db, session, "mentor.leave_approve", target=...)` in this
-file and there must not be one: that function SHORT-CIRCUITS before it looks at
-a scope for a baseline key and for a capability a MENTOR holds as a derived
-FUNCTION, and `mentor.leave_approve` is exactly such a function for every
-faculty account that currently mentors anybody. Written that way the fence would
-pass for most of the people it fences — `routers/leave.py::_holds_scoped_leave_grant`
-carries the long version of this warning and `tests/test_leave_chain.py` pins
-the difference.
+`require_capability(..., target=...)` in this file and there must not be one:
+that function SHORT-CIRCUITS before it looks at a scope for a baseline key and
+for a capability a MENTOR holds as a derived FUNCTION, so written that way a
+fence passes for most of the people it fences. (Leave approval itself stopped
+being a capability on 2026-09-16 — it is the Main Admin's by role.)
 
 So there are exactly two doors to somebody else's balance, and both already
 exist: the Main Admin (the whole roster, through `require_admin`), and an

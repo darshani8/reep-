@@ -1,54 +1,46 @@
-"""Leave requests — submit and the two-approver decision flow.
+"""Leave requests — submit, and ONE decision by the Main Admin.
 
-Any signed-in user submits. Staff (MENTOR/ADMIN) approve, and two
-DISTINCT approvers are required: the first moves SUBMITTED -> FIRST_APPROVED, a
-different second moves FIRST_APPROVED -> APPROVED. A rejection at either stage
-ends it as REJECTED. You cannot approve your own request or sign twice.
+ONE SIGNATURE, THE OFFICE'S (2026-09-16). Any signed-in account submits.
+The MAIN ADMIN alone decides: APPROVE moves SUBMITTED -> APPROVED, REJECT
+moves it to REJECTED, and that is the whole chain. Nobody else sees the
+approver's queue, nobody else may sign, and the Main Admin cannot decide its
+own request. The owner's instruction, in their words: leave approval is the
+Main Admin's power only, and a single approval — no second step.
 
-Staff scope here is the SAME rule as the mentor area (AGENTS.md rule 2), and it
-is not decoration: `reason` is free text and is routinely medical or personal.
-Gating on `require_mentor` alone — which is what this file did until the 2026-08
-audit — meant a MENTOR with no Mentor group, the account the rule exists to
-exclude, listed every pending request programme-wide with the reason attached and
-could approve or reject any of them. So: a MENTOR sees only requests from
-students in their own group; a MENTOR with NO group sees NOBODY (never the whole
-programme); the Main Admin sees all. The group test itself lives in mentor.py and
-is imported rather than re-implemented — two copies of a scope rule is how one of
-them quietly stops matching the other.
+WHAT IT REPLACES, kept here because the shape of the old rule explains the
+columns that are still on the row. Until this date a request needed TWO
+DISTINCT signatures (SUBMITTED -> FIRST_APPROVED -> APPROVED), the first from a
+MENTOR over their own group or from a faculty member holding a SCOPED GRANT of
+`mentor.leave_approve` (B10.1's "third door"), the second from a different
+approver. On a deployment with one office account and no such grant that
+chain deadlocked every staff request at FIRST_APPROVED with a live "Sanction"
+button, and the owner's answer was not a second signer but a single one. So:
 
-One consequence to know before you "fix" it: a request from a user who is not a
-student (a mentor's own leave) has no group to belong to, so no MENTOR has a
-group claim over it. The alternative — letting group-less mentors keep the staff
-queue — hands the queue straight back to the account this rule is here to keep
-out, and is still refused.
+  * `first_*` are what a decision writes now; `second_*` stay NULL on every
+    new row. The paper and the console read `second or first`, so a request
+    decided under either rule prints its decider. `LeaveStatus.FIRST_APPROVED`
+    and the `second_*` columns stay for the rows that carry them — a Postgres
+    enum value cannot be dropped — and `decide_leave` completes such a row
+    with the office's one decision, whoever signed it first.
+  * `mentor.leave_approve` is GONE from the capability catalogue and from the
+    derived mentor functions; migration `d8b1f4c2a7e9` revokes every live
+    grant of it. A key nothing checks is a promise the API does not keep
+    (B2.1), and a faculty member offered "Approve leave" in Governance would
+    be offered a screen that answers 403.
+  * `_assert_can_decide` still exists and still returns the function the
+    decider acted in, because `leave_paper.py`, `leave_attachments.py`,
+    `leave_alternate.py` and `leave_policy.py` import it as THE gate on
+    reading somebody else's request; it now admits the Main Admin and nobody
+    else, with the same flattened 404 for everybody else.
 
-B10.1 ADDED A THIRD DOOR BESIDE THOSE TWO, BECAUSE THE PAIR OF THEM DEADLOCKED.
-`decide_leave` requires two DISTINCT signatures and `app.grant_access` permits
-exactly ONE ADMIN account, so "decidable by the Main Admin only" meant a staff
-leave request reached FIRST_APPROVED and could never reach APPROVED — on every
-real deployment, silently, with a live "Mark Sanctioned" button. The same
-deadlock caught any student with no `mentor_id`. The third door is a SCOPED
-GRANT of `mentor.leave_approve`, made in Governance at `ScopeLevel.DEPARTMENT`
-or `COLLEGE`, with a reason and an audit row; `_assert_can_decide` documents
-why it is asked of `granted_reaches` and never of `require_capability`, and
-`app/models/leave.py` documents why the vocabulary has no "HOD" in it.
-
-A DEPLOYMENT STILL NEEDS THE OFFICE TO MAKE ONE SUCH GRANT before a second
-signature exists for staff leave. That is not an oversight to be designed
-around: the only alternative this product's shape permits is a rule that admits
-faculty accounts by role rather than by decision, and the rule at the top of
-this docstring is the record of why that was removed.
-
-SINCE B2.1 THE APPROVER'S THREE ENDPOINTS ALSO REQUIRE `mentor.leave_approve`
-(`_require_leave_approver` below). The SUBMIT path does not, and must not: every
-signed-in account applies for its own leave, faculty with no mentees included.
-Neither does `POST /{id}/cancel`, for the same reason: withdrawing your own
-request is not an approver's act.
+RULE 2 ON THE APPLICANT'S SIDE IS UNCHANGED: `/mine`, `POST` and `/cancel` are
+the applicant's own and gate on nothing but the session; `reason` is free
+text and routinely medical, which is why the queues are the office's alone.
 
 WHAT THE APPLICANT SEES AND WHAT A THIRD PARTY SEES ARE DIFFERENT PROJECTIONS
-(B10.7). `_leave_out` carries `reason` and is for the applicant and the people
-who sign; `_leave_brief` carries dates, the printed option, the state and the
-one alternate row addressed to the caller, and is for anybody else with a reason
+(B10.7). `_leave_out` carries `reason` and is for the applicant and the office;
+`_leave_brief` carries dates, the printed option, the state and the one
+alternate row addressed to the caller, and is for anybody else with a reason
 to open the record.
 """
 
@@ -56,36 +48,22 @@ from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field, model_validator
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..governance import (
-    ancestry_of_student,
-    ancestry_of_user,
-    granted_reaches,
-    reaches_target,
-    require_capability,
-)
 from ..identity import get_current_session
 from ..leave_mail import notify_transition
 from ..leave_policy import submit_refusal
-from ..policies import scope_filter
-from ..scope_views import scope_header
+from ..scope_views import SCOPE_HEADER
 from ..models.leave import (
-    SIGNED_AS_DELEGATE,
     SIGNED_AS_MAIN_ADMIN,
-    SIGNED_AS_MENTOR,
     LeaveDecision,
     LeaveRequest,
     LeaveStatus,
 )
-from ..models.user import Student, User
-# _assert_can_access_student is private to mentor.py on purpose, and importing it
-# anyway is the lesser evil: it is the ONE implementation of "a MENTOR only for a
-# student in their own group", and a second copy here would be the copy that
-# stops tracking the first.
-from .mentor import _assert_can_access_student, require_mentor
+from ..models.user import User
+from .mentor import require_admin, require_mentor
 
 router = APIRouter(prefix="/leaves", tags=["leaves"])
 
@@ -278,37 +256,29 @@ def _leave_out(lr: LeaveRequest, db: Session) -> LeaveOut:
 
 
 def _require_leave_approver(db: Session, session: dict) -> None:
-    """The approver's gate: staff, holding `mentor.leave_approve`.
+    """The approver's gate: THE MAIN ADMIN, and nobody else (2026-09-16).
 
-    COMPOSED WITH `require_mentor`, NOT IN PLACE OF IT. The two answer different
-    questions and both have to pass: `require_mentor` says this is a member of
-    staff, the capability says this member of staff is one of the people who
-    sign leave. Dropping the role gate would make a grant the only fence on an
-    endpoint that reads free-text medical reasons, and rule 2's group check
-    (`_assert_can_decide`) still runs after both.
+    `require_admin` is the one console gate (AGENTS.md, "DIRECTOR is not a
+    role"), and it is the whole of this function. It used to be
+    `require_mentor` composed with `mentor.leave_approve`, admitting a
+    mentoring faculty member to their own group's queue and a scoped grantee
+    to a department's; the owner made leave the office's power only and the
+    capability went with the door.
 
-    B2.3 MADE THIS DERIVED, WHICH IS WHY IT CHANGES ANYTHING AT ALL.
-    `mentor.leave_approve` is not in `ROLE_BASELINE["MENTOR"]`; it is one of the
-    four functions a faculty account holds by currently mentoring somebody
-    (app/mentor_functions.py). So a faculty member with no mentees is refused
-    here with a 403 that says why, where before they got a 200 and an empty
-    queue -- the same outcome, told honestly. The Main Admin holds it by
-    baseline, because it is the second of the two signatures and removing it
-    would break sanctioning outright.
-
-    IT IS NOT ON THE SUBMIT PATH, AND THAT IS THE POINT. `POST /api/leaves` and
-    `GET /api/leaves/mine` are open to every signed-in account, including a
-    faculty member with no mentees, because applying for your own leave is not
-    an approver's act. Putting this on the form is how a new lecturer discovers
-    they cannot ask for a day off.
+    IT IS NOT ON THE SUBMIT PATH, AND THAT IS THE POINT. `POST /api/leaves`,
+    `/mine` and `/cancel` are open to every signed-in account, faculty with no
+    mentees included, because applying for your own leave is not an approver's
+    act. Putting this on the form is how a new lecturer discovers they cannot
+    ask for a day off.
 
     CALLED BEFORE ANY id IS LOOKED UP, on the decision path especially. A
     refusal that depended on whether the leave exists would turn this endpoint
     into the membership oracle `_assert_can_decide` flattens its 404s to
     prevent: the answer here is the same for every id, known or invented.
+    `db` is kept in the signature so the four call sites and the tests that
+    patch it need not change.
     """
-    require_mentor(session)
-    require_capability(db, session, "mentor.leave_approve")
+    require_admin(session)
 
 
 @router.post("", response_model=LeaveOut, status_code=status.HTTP_201_CREATED)
@@ -440,207 +410,35 @@ def cancel_leave(
 
 
 def _assert_can_decide(session: dict, lr: LeaveRequest, db: Session) -> str:
-    """Staff only, and only for a requester inside the caller's own scope.
-    RETURNS THE FUNCTION the caller is admitted in — one of
-    `models.leave.SIGNED_AS` — which is what the decision path stamps on the row
-    and the paper prints.
+    """Staff only, and of staff only the Main Admin. RETURNS THE FUNCTION the
+    caller is admitted in — always `SIGNED_AS_MAIN_ADMIN` now — which is what
+    the decision path stamps on the row and the paper prints.
 
-    Resolves the requester back to their Student row and hands the group test to
-    mentor._assert_can_access_student. Doing it here rather than inline keeps the
-    decision endpoint honest about the same rule the list obeys — before this,
-    /pending could be narrowed and the decision path would still have taken any
-    leave id anyone happened to learn.
+    STILL THE ONE GATE ON READING SOMEBODY ELSE'S REQUEST. `leave_paper.py`,
+    `leave_attachments.py`, `leave_alternate.py` and `leave_policy.py` import
+    it, so "who may open this request" is answered in one place and the answer
+    changed here once for all four.
 
-    Every refusal is flattened to the SAME 404 the missing-leave path returns, so
-    a mentor cannot separate "that id exists but is not yours" from "no such
+    Every refusal is flattened to the SAME 404 the missing-leave path returns,
+    so a caller cannot separate "that id exists but is not yours" from "no such
     leave". Left distinguishable, the endpoint is a membership oracle over the
     whole programme: guess ids, read the error, learn who has leave pending.
-
-    ==================================================================
-    B10.1 — THE THIRD DOOR, AND THE DEADLOCK IT EXISTS TO BREAK
-    ==================================================================
-
-    Until Phase 4 this function had two doors: `role == "ADMIN"`, and a MENTOR
-    with the applicant in their own group. Everything else was a 404, INCLUDING
-    every request whose applicant has no `students` row at all. A faculty
-    member's own leave is exactly that, and so is a student nobody has been
-    assigned yet.
-
-    That is a DEADLOCK, not an inconvenience. `decide_leave` requires the second
-    signature from a DIFFERENT user, and `app.grant_access` permits exactly ONE
-    ADMIN account on a deployment. So a staff leave request reached
-    FIRST_APPROVED and could never reach APPROVED: the office signed once and
-    there was nobody alive who could sign again. `tests/test_leave_paper.py`
-    never saw it because it mints two `Role.ADMIN` users through `make_user`,
-    which does not go through `grant_access`.
-
-    THE THIRD DOOR IS A SCOPED GRANT AND NOTHING ELSE. Not "a MENTOR with no
-    group may see staff leave" — that is the account this module's whole scope
-    rule exists to keep out, and re-admitting it here would hand the queue, with
-    every medical `reason` in it, straight back. What is admitted is a faculty
-    account somebody DECIDED should sign leave for these people:
-    `mentor.leave_approve` granted in Governance at `ScopeLevel.DEPARTMENT` or
-    `COLLEGE`, with a reason, on the audit trail, revocable in an hour.
-
-    WHAT IS NOT BUILT, AND WHY. 04 asks for "first signature = mentor or HOD of
-    the requester's department, second = principal function". There is no HOD
-    ACCOUNT in this product — `departments.head` is a free-text String — no
-    `Role.HOD`, and no principal concept anywhere; `app/models/leave.py`'s
-    SIGNED_AS block says it at length. A grant scoped to a department is the
-    same sentence said in the vocabulary this product actually has.
+    `require_mentor` runs first so a STUDENT or an ALUMNI gets the role gate's
+    own 403 — the same answer they get on every staff surface — and `lr` and
+    `db` stay in the signature for the four importers.
     """
     require_mentor(session)
     if session["role"] == "ADMIN":
         return SIGNED_AS_MAIN_ADMIN
-    student = db.scalar(select(Student).where(Student.user_id == lr.requester_user_id))
-    if student is not None:
-        try:
-            _assert_can_access_student(session, student.id, db)
-            return SIGNED_AS_MENTOR
-        except HTTPException:
-            # Not in this mentor's group. That is not the end of the question
-            # any more — it is the end of the MENTOR answer to it.
-            pass
-    if _holds_scoped_leave_grant(db, session, lr, student):
-        return SIGNED_AS_DELEGATE
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Leave request not found.")
 
 
-LEAVE_CAPABILITY = "mentor.leave_approve"
-
-
-def _holds_scoped_leave_grant(
-    db: Session, session: dict, lr: LeaveRequest, student: Student | None
-) -> bool:
-    """Does this caller hold a GRANT of `mentor.leave_approve` that reaches the
-    applicant?
-
-    IT ASKS `granted_reaches` DIRECTLY AND MUST NEVER BE REWRITTEN AS
-    `require_capability(..., target=...)`, WHICH LOOKS IDENTICAL AND IS NOT.
-    That function SHORT-CIRCUITS before it ever looks at a scope, twice: once
-    for a key in the caller's `ROLE_BASELINE`, and once for a key a MENTOR holds
-    as a derived FUNCTION (app/governance.py). `mentor.leave_approve` is exactly
-    such a function for every faculty account that currently mentors anybody
-    (app/mentor_functions.py), so a `require_capability` written here would
-    return `None` for them without reading a grant — and this function would
-    then say "yes" for every faculty member with one mentee, about every staff
-    leave request and every student on the deployment. A fence that is a no-op
-    for most of the people it fences. `mentor_history.holds_handover_for` refuses
-    `reaches_target` for the mirror-image reason and says so in the same words.
-
-    Both walks are here because both kinds of applicant exist on this form:
-    `ancestry_of_student` for a student (it reads BOTH department pointers, so a
-    student in no batch is still reachable through `students.department_id`),
-    `ancestry_of_user` for a member of staff. An UNFILED applicant — no
-    department either way — has an empty ancestry and is reached by no scoped
-    grant at all; that is `reaches_target`'s documented rule and it is right
-    here, because a department-scoped signature over somebody in no department
-    is a signature about nothing.
-
-    A PROGRAMME-WIDE GRANT (`scope_level` and `scope_id` both NULL) reaches
-    everybody, including the unfiled, and that is deliberate: nothing in this
-    product issues one of those for `mentor.leave_approve` by itself — the Main
-    Admin holds the key by BASELINE, not by a grant — so such a row can only
-    have been written by the office in Governance, naming a person, with a
-    reason. It means what it says.
-    """
-    reaches = granted_reaches(db, str(session.get("userId") or ""), LEAVE_CAPABILITY)
-    if not reaches:
-        return False
-    ancestry = (
-        ancestry_of_student(db, student.id)
-        if student is not None
-        else ancestry_of_user(db, lr.requester_user_id)
-    )
-    return reaches_target(reaches, ancestry)
-
-
-def _narrow_to_scope(query, db: Session, session: dict, response: Response):
-    """Narrow an approver's queue to what this session may see. One rule, two
-    halves, and they are composed rather than one replacing the other.
-
-    A MENTOR'S GROUP IS ALWAYS A DOOR, exactly as before, and B10.1 only ever
-    ADDED a second one beside it (see below). That first fence is rule 2's and
-    it is STRICTER than any scope could be — it narrows to
-    this mentor's own students, not to a department's — which is the same
-    argument `governance.require_capability` makes for not scoping a capability
-    held as a mentor FUNCTION. It matters here mechanically as well as in
-    principle: `mentor.leave_approve` is a derived function for a faculty member
-    with mentees (app/mentor_functions.py) and therefore has no grant row, so
-    `scope_filter` reports `nothing` for them. Applying the reach to a MENTOR
-    would empty every faculty approver's queue on the deploy that shipped it.
-    Read that sentence before adding a `reach.nothing` early return here.
-
-    EVERYONE ELSE IS FENCED BY THE REACH (B1.4). Today that is the Main Admin,
-    whose baseline resolves to `everything`, so nothing changes for the office
-    account; it becomes load-bearing the moment `mentor.leave_approve` is
-    granted to a non-mentoring account with a scope, which is what B10.7 asks
-    for and what Governance can already express.
-
-    B10.1 ADDED THE SECOND HALF TO THE MENTOR BRANCH, AS A UNION AND NEVER AS A
-    REPLACEMENT. The group fence above is untouched — deleting it is the mistake
-    `tests/test_scoped_lists.py` names out loud ("the mentor's own mentee's leave
-    vanished — the reach was applied to a function") — but a faculty account that
-    the office has GRANTED `mentor.leave_approve` over a department can now sign
-    that department's requests, and a queue that showed them nothing would make
-    the grant invisible to the only person it was written for. A mentoring
-    account with no grant reaches `nothing` and the union is the group fence
-    exactly, byte for byte.
-
-    Requests from STAFF — a faculty member's own leave — belong to no student,
-    and until B10.1 that meant they hung under no reach at all and stayed the
-    Main Admin's. They hang under `Reach.user_ids()` now, which is the same
-    spine read one rung differently (`governance.ancestry_of_user`: a faculty
-    account is filed under a department and nothing else). That is what makes a
-    staff request decidable by somebody other than the single office account —
-    see `_assert_can_decide` on the deadlock.
-
-    NO `X-Reep-Scope` HEADER ON THE MENTOR BRANCH, deliberately. The three words
-    the header may carry describe a REACH, and a mentor's queue is bounded by
-    their group as well; "narrowed" would be true and useless, and "programme"
-    could never be right. The header stays exactly where it was.
-    """
-    if session["role"] == "MENTOR":
-        clauses = []
-        mentor_id = session.get("mentorId")
-        if mentor_id:
-            # Narrowed in SQL, not filtered in Python afterwards: an out-of-group
-            # `reason` should never be read out of the database in the first place.
-            clauses.append(
-                LeaveRequest.requester_user_id.in_(
-                    select(Student.user_id).where(Student.mentor_id == mentor_id)
-                )
-            )
-        granted = scope_filter(db, session, LEAVE_CAPABILITY)
-        if granted.everything:
-            # A programme-wide grant, written by hand in Governance. A faculty
-            # account never reaches here through a FUNCTION: `scope_filter` reads
-            # ROLE_BASELINE and grants, and neither carries a mentor function.
-            return query
-        if not granted.nothing:
-            clauses.append(
-                LeaveRequest.requester_user_id.in_(
-                    select(Student.user_id).where(Student.id.in_(granted.student_ids()))
-                )
-            )
-            clauses.append(LeaveRequest.requester_user_id.in_(granted.user_ids()))
-        if not clauses:
-            return None  # no Mentor group and no grant => nobody (never the whole programme)
-        return query.where(or_(*clauses))
-    reach = scope_filter(db, session, LEAVE_CAPABILITY)
-    scope_header(response, reach)
-    if reach.everything:
-        return query  # the Main Admin: the whole programme, staff leave included
-    if reach.nothing:
-        return None
-    return query.where(
-        or_(
-            LeaveRequest.requester_user_id.in_(
-                select(Student.user_id).where(Student.id.in_(reach.student_ids()))
-            ),
-            LeaveRequest.requester_user_id.in_(reach.user_ids()),
-        )
-    )
+def _programme_wide(response: Response) -> None:
+    """The scope header the console's college read-out reads (B1.4). The
+    Main Admin is the only caller left and is never narrowed, so the word is
+    always `programme`; stated rather than omitted, so the app bar does not
+    read a missing header as "unknown reach"."""
+    response.headers[SCOPE_HEADER] = "programme"
 
 
 @router.get("/pending", response_model=list[LeaveOut])
@@ -649,7 +447,15 @@ def pending_leaves(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[LeaveOut]:
+    """Everything awaiting the office's decision, oldest first.
+
+    FIRST_APPROVED is still in the filter: a row signed once under the old
+    two-signature chain is a row still waiting for the office, and the one
+    decision `decide_leave` takes now completes it. Own requests are excluded
+    as they always were — the applicant reads those under `/mine`.
+    """
     _require_leave_approver(db, session)
+    _programme_wide(response)
     uid = session["userId"]
     query = (
         select(LeaveRequest)
@@ -659,17 +465,7 @@ def pending_leaves(
         )
         .order_by(LeaveRequest.created_at)
     )
-    query = _narrow_to_scope(query, db, session, response)
-    if query is None:
-        return []
-
-    rows = db.scalars(query).all()
-    # Not decidable by me if I already gave the first signature.
-    return [
-        _leave_out(lr, db)
-        for lr in rows
-        if not (lr.status == LeaveStatus.FIRST_APPROVED and lr.first_approver_user_id == uid)
-    ]
+    return [_leave_out(lr, db) for lr in db.scalars(query).all()]
 
 
 #: What `/history` answers when nobody asks for anything in particular — the
@@ -697,14 +493,10 @@ def decided_leaves(
     db: Session = Depends(get_db),
 ) -> list[LeaveOut]:
     """Requests that are settled — the Approved, Rejected and Cancelled tabs of
-    the approvals screen. SAME SCOPE AS /pending, through the same
-    `_narrow_to_scope` and narrowed in SQL: a MENTOR sees only their own group's
-    (plus anything an explicit grant reaches), a MENTOR with neither sees nobody,
-    a scoped approver sees their reach, the Main Admin sees all. One function
-    rather than the two copies that stood here — the copies were identical when
-    they were written, which is how they stay identical only until one of them is
-    edited. Own requests are excluded as they are from /pending — the applicant
-    reads those under /mine, and the approvals screen is the other chair.
+    the approvals screen. The Main Admin's, like `/pending`, and unnarrowed
+    for the same reason. Own requests are excluded as they are from /pending —
+    the applicant reads those under /mine, and the approvals screen is the
+    other chair.
 
     `?status=` IS ADDITIVE AND THE DEFAULT IS UNCHANGED (B10.4). Omitting it
     returns exactly what this endpoint has always returned, in exactly the same
@@ -716,6 +508,7 @@ def decided_leaves(
     every screen already built against this endpoint.
     """
     _require_leave_approver(db, session)
+    _programme_wide(response)
     if status_filter is None:
         wanted = list(HISTORY_DEFAULT_STATUSES)
     elif status_filter.upper() in HISTORY_STATUSES:
@@ -751,9 +544,6 @@ def decided_leaves(
         )
         .limit(200)
     )
-    query = _narrow_to_scope(query, db, session, response)
-    if query is None:
-        return []
     return [_leave_out(lr, db) for lr in db.scalars(query).all()]
 
 
@@ -769,24 +559,24 @@ def decide_leave(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> LeaveOut:
-    # Role AND capability first, before any DB read: neither refusal may depend
-    # on whether this leave id exists, or the endpoint tells a caller which ids
-    # are real by which error comes back. B2.1 added the capability HERE rather
-    # than inside `_assert_can_decide`, which runs after the row is loaded — and
-    # which `leave_paper.py` imports for the PDF, a read this gate has no
-    # business refusing.
+    """The office's ONE decision: SUBMITTED -> APPROVED or REJECTED.
+
+    Role first, before any DB read: the refusal must not depend on whether
+    this leave id exists, or the endpoint tells a caller which ids are real by
+    which error comes back. Then `_assert_can_decide`, which hands back the
+    FUNCTION it admitted on — stamped beside the signature below and printed
+    on the paper (B10.1/B10.8).
+
+    A ROW ALREADY SIGNED ONCE (FIRST_APPROVED, from before 2026-09-16) is
+    completed by this same decision, written into the `second_*` slot so the
+    first signer's stamp is not rewritten. Whether the first signature was the
+    office's own no longer matters: one signature is the rule, and refusing
+    the office its own second stroke was the deadlock the rule removed.
+    """
     _require_leave_approver(db, session)
     lr = db.get(LeaveRequest, leave_id)
     if lr is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Leave request not found.")
-    # Then scope. Staff was never enough on its own here — a signature on a
-    # student outside your group is a decision you were never entitled to make.
-    #
-    # It hands back the FUNCTION it admitted on (B10.1), which is stamped beside
-    # the signature below. Taken from the gate rather than re-derived afterwards
-    # for the reason two copies of any scope rule in this file are avoided: a
-    # second derivation is a second answer to "how did this person get in", and
-    # the one printed on the college's form would be the one nothing tested.
     signed_as = _assert_can_decide(session, lr, db)
     uid = session["userId"]
     if lr.requester_user_id == uid:
@@ -800,34 +590,23 @@ def decide_leave(
             detail="decision must be APPROVE or REJECT.",
         )
     now = datetime.now(timezone.utc)
+    verdict = LeaveDecision.APPROVED if decision == "APPROVE" else LeaveDecision.REJECTED
+    outcome = LeaveStatus.APPROVED if decision == "APPROVE" else LeaveStatus.REJECTED
 
     if lr.status == LeaveStatus.SUBMITTED:
         lr.first_approver_user_id = uid
         lr.first_decided_at = now
         lr.first_note = body.note
         lr.first_signed_as = signed_as
-        if decision == "APPROVE":
-            lr.first_decision = LeaveDecision.APPROVED
-            lr.status = LeaveStatus.FIRST_APPROVED
-        else:
-            lr.first_decision = LeaveDecision.REJECTED
-            lr.status = LeaveStatus.REJECTED
+        lr.first_decision = verdict
+        lr.status = outcome
     elif lr.status == LeaveStatus.FIRST_APPROVED:
-        if lr.first_approver_user_id == uid:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="You gave the first signature; a different approver must give the second.",
-            )
         lr.second_approver_user_id = uid
         lr.second_decided_at = now
         lr.second_note = body.note
         lr.second_signed_as = signed_as
-        if decision == "APPROVE":
-            lr.second_decision = LeaveDecision.APPROVED
-            lr.status = LeaveStatus.APPROVED
-        else:
-            lr.second_decision = LeaveDecision.REJECTED
-            lr.status = LeaveStatus.REJECTED
+        lr.second_decision = verdict
+        lr.status = outcome
     else:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -836,10 +615,8 @@ def decide_leave(
 
     db.commit()
     db.refresh(lr)
-    # B10.5, off by default, after the commit. See `submit_leave`. A first
-    # signature and a final decision are different messages carrying different
-    # dedupe keys, so signing both steps sends two and retrying either sends
-    # neither again. CANCELLED has no message at all: the applicant withdrew it
-    # themselves and does not need telling what they just did.
+    # B10.5, off by default, after the commit. See `submit_leave`. CANCELLED
+    # has no message at all: the applicant withdrew it themselves and does not
+    # need telling what they just did.
     notify_transition(db, lr)
     return _leave_out(lr, db)

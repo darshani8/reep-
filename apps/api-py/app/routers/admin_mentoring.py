@@ -313,8 +313,15 @@ def mentor_load(
         _page_headers(response, total=0, page=page, page_size=page_size)
         return []
 
-    faculty_where = [User.role == Role.MENTOR, User.id.in_(reach.user_ids())]
-    student_where = [Student.id.in_(reach.student_ids())]
+    # A REMOVED account (users.deleted_at, 2026-09-16) is off this screen on
+    # both sides: a removed faculty member is not offered for assignment and a
+    # removed student is not counted as anybody's mentee. Every query below
+    # that reads `student_where` joins `users`, which is what lets the same
+    # predicate serve both.
+    faculty_where = [
+        User.role == Role.MENTOR, User.id.in_(reach.user_ids()), User.deleted_at.is_(None),
+    ]
+    student_where = [Student.id.in_(reach.student_ids()), User.deleted_at.is_(None)]
     if department_id:
         faculty_where.append(User.department_id == department_id)
         student_where.append(_student_department_expr() == department_id)
@@ -553,7 +560,7 @@ def unassigned_students(
         # as "there is nothing" — `X-Reep-Scope: none` beside it says which.
         _page_headers(response, total=0, page=page, page_size=page_size)
         return []
-    where = [Student.mentor_id.is_(None), Student.id.in_(reach.student_ids())]
+    where = [Student.mentor_id.is_(None), Student.id.in_(reach.student_ids()), User.deleted_at.is_(None)]
     if department_id:
         where.append(_student_department_expr() == department_id)
     if college_id:

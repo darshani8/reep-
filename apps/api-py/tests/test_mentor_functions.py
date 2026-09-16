@@ -40,15 +40,16 @@ def test_the_two_that_belong_to_the_person_stay_in_the_baseline():
     assert MENTOR_FUNCTIONS.isdisjoint(ROLE_BASELINE["MENTOR"])
 
 
-def test_the_four_functions_are_the_ones_that_need_a_mentee():
+def test_the_three_functions_are_the_ones_that_need_a_mentee():
     """Each is about somebody else's record: the log of them, the notebook
-    about them, their evidence, their leave."""
+    about them, their evidence. Leave approval WAS the fourth until 2026-09-16
+    and is the Main Admin's alone now — not a function, not a capability."""
     assert MENTOR_FUNCTIONS == {
         "mentor.mentees",
         "mentor.notebook",
         "mentor.verifications",
-        "mentor.leave_approve",
     }
+    assert "mentor.leave_approve" not in MENTOR_FUNCTIONS
 
 
 @pytest.fixture
@@ -136,7 +137,7 @@ def test_a_mentors_row_alone_brings_none_of_the_four(faculty_with_optional_mente
 
 
 @requires_db
-def test_one_mentee_brings_all_four(faculty_with_optional_mentee):
+def test_one_mentee_brings_all_three(faculty_with_optional_mentee):
     """THE GUARD B2.3 ASKS FOR, second half."""
     made = faculty_with_optional_mentee
     with SessionLocal() as db:

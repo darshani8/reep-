@@ -132,7 +132,10 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     Capability("mentor.mentees", "Mentee log", _S),
     Capability("mentor.notebook", "Mentor notebook", _S),
     Capability("mentor.verifications", "Verify skills & evidence", _S),
-    Capability("mentor.leave_approve", "Approve leave", _S, carries_pii=True),
+    # `mentor.leave_approve` ("Approve leave") WAS HERE until 2026-09-16 and
+    # went when leave approval became the Main Admin's alone (routers/leave.py):
+    # a key nothing checks is a promise the API does not keep, and migration
+    # d8b1f4c2a7e9 revoked every live grant of it.
     Capability("mentor.upskilling", "Own upskilling shelf", _S),
     Capability("mentor.agent", "REEP Agent", _S),
     # -- programme-wide: no group narrows these ------------------------------

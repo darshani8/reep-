@@ -59,6 +59,11 @@ import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 import type { BatchSummary, StageTally } from './batch-summary';
+import {
+  AdminDeleteDialogComponent,
+  type DeleteOutcome,
+  type DeleteTarget,
+} from '../../../shared/admin-delete-dialog/admin-delete-dialog.component';
 import { GraduateBatchDialogComponent } from './graduate-batch-dialog.component';
 import { PromoteBatchDialogComponent } from './promote-batch-dialog.component';
 import {
@@ -146,6 +151,7 @@ const PROMOTION_KIND_LABELS: Record<string, { label: string; tone: 'good' | 'neu
     PluralPipe,
     PromoteBatchDialogComponent,
     GraduateBatchDialogComponent,
+    AdminDeleteDialogComponent,
   ],
   templateUrl: './students.component.html',
   styleUrls: ['./students.component.scss', './batch-dialog.scss'],
@@ -297,6 +303,7 @@ export class AdminStudentsComponent {
       if (specialization !== '' && row.specializationId !== specialization) return false;
       if (status === 'active' && row.lastLoginAt === null) return false;
       if (status === 'invited' && row.lastLoginAt !== null) return false;
+      // 'removed' is narrowed by the server (`?removed=true`), not here.
       return true;
     });
   });
@@ -431,7 +438,31 @@ export class AdminStudentsComponent {
   readonly statusFilterLabel = computed(() => {
     if (this.statusFilter() === 'active') return 'Active';
     if (this.statusFilter() === 'invited') return 'Invited';
+    if (this.statusFilter() === 'removed') return 'Removed';
     return 'All';
+  });
+
+  /** The student the Delete dialog is open for (2026-09-16): the one being
+   *  edited, as a target the shared dialog understands. */
+  readonly deletingStudent = computed<DeleteTarget | null>(() => {
+    if (this.openDialog() !== 'delete') return null;
+    const studentId = this.editingStudentId();
+    if (studentId === null) return null;
+    const row = this.allRows().find((candidate) => candidate.studentId === studentId);
+    if (row === undefined) return null;
+    return {
+      kind: 'student',
+      id: row.studentId,
+      name: row.name,
+      subLine: [row.email, row.usn ?? 'no USN', row.batchName ?? 'no batch'].join(' · '),
+    };
+  });
+
+  /** The row under the edit dialog, for its Restore / Remove footer. */
+  readonly editingRow = computed<RosterRow | null>(() => {
+    const studentId = this.editingStudentId();
+    if (studentId === null) return null;
+    return this.allRows().find((candidate) => candidate.studentId === studentId) ?? null;
   });
 
   /** The header's primary action names the semester it would move the batch to,
@@ -657,6 +688,7 @@ export class AdminStudentsComponent {
     if (this.batchFilter() === 'unseated') query.set('unseated', 'true');
     else if (this.batchFilter() !== '') query.set('cohort_id', this.batchFilter());
     if (this.search().trim() !== '') query.set('q', this.search().trim());
+    if (this.statusFilter() === 'removed') query.set('removed', 'true');
     try {
       const response = await fetch(
         `${environment.apiBase}/admin/students?${query.toString()}`,
@@ -747,8 +779,13 @@ export class AdminStudentsComponent {
     this.specializationFilter.set(specializationId);
   }
 
+  /** Three of the four values narrow what is drawn; REMOVED is a different
+   *  list from the server (`?removed=true`, `users.deleted_at` set), so
+   *  crossing into or out of it refetches. */
   setStatusFilter(status: string): void {
+    const wasRemoved = this.statusFilter() === 'removed';
     this.statusFilter.set(status);
+    if (wasRemoved !== (status === 'removed')) void this.reloadRoster();
   }
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
@@ -917,6 +954,47 @@ export class AdminStudentsComponent {
       await this.patchStudent(studentId, body);
       this.closeDialog();
       this.flash.set('Saved.');
+      await this.reloadRoster();
+    });
+  }
+
+  // ================================================ remove / delete ====
+
+  /** The edit dialog's "Remove or delete…" hands the student to the shared
+   *  Delete dialog (2026-09-16). The edit stays open underneath so Cancel
+   *  lands back on it. */
+  openDeleteDialog(): void {
+    if (this.editingStudentId() === null) return;
+    this.openDialog.set('delete');
+  }
+
+  cancelDeleteDialog(): void {
+    this.openDialog.set('edit');
+  }
+
+  /** The dialog posted it and the server answered; `detail` is the server's
+   *  own sentence. The roster is reread so the row leaves (or, after a
+   *  permanent delete, is gone). */
+  async onDeleteDone(outcome: DeleteOutcome): Promise<void> {
+    this.closeDialog();
+    this.error.set(null);
+    await this.reloadRoster();
+    this.flash.set(outcome.detail);
+  }
+
+  /** `POST /admin/students/{id}/restore` — back on the roster, nothing lost. */
+  async restoreStudent(): Promise<void> {
+    const row = this.editingRow();
+    if (row === null || !row.isRemoved) return;
+    await this.run(async () => {
+      const response = await fetch(`${environment.apiBase}/admin/students/${row.studentId}/restore`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error(await this.detailOf(response));
+      const state = (await response.json()) as { detail: string };
+      this.closeDialog();
+      this.flash.set(state.detail);
       await this.reloadRoster();
     });
   }
@@ -1149,9 +1227,12 @@ export class AdminStudentsComponent {
       stageLabel: stageLabelOf(row.current_stage),
       mentorUserId: row.mentor_user_id,
       mentorName: row.mentor_name,
-      statusLabel: hasSignedIn ? 'Active' : 'Invited',
-      statusTone: hasSignedIn ? 'good' : 'warn',
+      statusLabel: row.deleted_at !== null ? 'Removed' : hasSignedIn ? 'Active' : 'Invited',
+      statusTone: row.deleted_at !== null ? 'risk' : hasSignedIn ? 'good' : 'warn',
       lastLoginAt: row.last_login_at,
+      isRemoved: row.deleted_at !== null,
+      deletedAt: row.deleted_at,
+      deleteReason: row.delete_reason,
     };
   }
 

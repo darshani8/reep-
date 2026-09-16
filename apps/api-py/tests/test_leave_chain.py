@@ -3,25 +3,17 @@ submit path refuses, how an applicant withdraws, and what a non-approver sees.
 
 The five things this module holds down, and what comes back if it is deleted:
 
-1. THE DEADLOCK. `_assert_can_decide` resolved the applicant to a `students`
-   row and 404'd a MENTOR when there wasn't one, so a FACULTY member's own leave
-   was decidable by `role == "ADMIN"` alone — while `app.grant_access` permits
-   exactly ONE ADMIN account and `decide_leave` demands the second signature
-   from a DIFFERENT user. Every staff leave request on every real deployment
-   reached FIRST_APPROVED and stopped there for ever, with a live "Mark
-   Sanctioned" button on the console. `tests/test_leave_paper.py` could not see
-   it because it mints two `Role.ADMIN` users through `make_user`, which does
-   not go through `grant_access`. Both halves are asserted below: the deadlock
-   as it was, and the grant that breaks it.
-2. THE SHORT-CIRCUIT TRAP. `governance.require_capability` returns BEFORE it
-   looks at a scope for a baseline key and for a capability a MENTOR holds as a
-   derived FUNCTION — and `mentor.leave_approve` is such a function for every
-   faculty account that currently mentors anybody. So a scoped check written as
-   `require_capability(..., target=...)` would be a no-op for most of the people
-   it fences, and would hand every mentoring lecturer every staff member's
-   medical `reason` on the deployment that shipped it. The door asks
-   `granted_reaches` directly, and `test_a_mentor_function_is_not_a_grant`
-   asserts the difference between the two in one place.
+1. ONE SIGNATURE, THE OFFICE'S (2026-09-16). The two-signature chain — a
+   MENTOR or a scoped grantee first, a different approver second — deadlocked
+   every staff request on a one-admin deployment at FIRST_APPROVED, and the
+   owner's answer was a single decision by the Main Admin. So: the office's
+   APPROVE is a sanction, a mentoring colleague is refused the queue and the
+   signature outright, and a row signed once under the old chain is completed
+   by the office's one decision. Delete these and "a faculty member with a
+   mentee may sign leave" comes back through whichever gate is loosened first.
+2. THE RETIRED KEY ADMITS NOBODY. `mentor.leave_approve` left the catalogue
+   with the door; a grant row still naming it (migration `d8b1f4c2a7e9`
+   revokes them, but a row can be written by hand) must open nothing.
 3. THE SUBMIT CHECKS ARE SILENT UNTIL THE OFFICE RECORDS AN ALLOWANCE. Delete
    `test_the_submit_checks_sleep_until_a_balance_exists` and a table nobody has
    filled in starts refusing requests the form accepted yesterday — on the
@@ -58,7 +50,9 @@ from app.models.user import Mentor, Role, Student, User
 from app.seed_roster import SSO_ONLY_PASSWORD_HASH
 
 LEAVES = "/api/leaves"
-LEAVE_CAPABILITY = "mentor.leave_approve"
+#: The RETIRED key. Kept as a string so the test that writes a stray grant of
+#: it can prove it opens nothing.
+RETIRED_LEAVE_KEY = "mentor.leave_approve"
 
 
 # ----------------------------------------------------------------- fixtures --
@@ -206,9 +200,9 @@ def _file_under(user_id: str, department_id: str | None) -> None:
 
 
 def _seat(student_id: str, faculty_user_id: str) -> str:
-    """Give a faculty account a mentee, which is what derives the four
-    `mentor.*` FUNCTIONS (app/mentor_functions.py) — including
-    `mentor.leave_approve`. Returns the group id."""
+    """Give a faculty account a mentee, which is what derives the three
+    `mentor.*` FUNCTIONS (app/mentor_functions.py). None of them is leave
+    approval any more. Returns the group id."""
     with SessionLocal() as db:
         group = Mentor(user_id=faculty_user_id)
         db.add(group)
@@ -256,71 +250,52 @@ def _drop(leave_id: str) -> None:
 
 
 @requires_db
-def test_a_staff_leave_request_deadlocked_and_a_scoped_grant_breaks_it(
-    client, make_user, login, chain, scoped_grant
+def test_the_office_sanctions_with_one_signature_and_nobody_else_can(
+    client, make_user, login, chain
 ):
-    """THE BUG, and the fix, in one run.
-
-    A faculty member applies for leave. They have no `students` row, so
-    `_assert_can_decide`'s mentor branch has nothing to test them against and
-    every MENTOR gets a flattened 404 — INCLUDING a faculty member who mentors
-    half the department, because a mentor group is a claim over STUDENTS.
-    `role == "ADMIN"` was therefore the only door, `grant_access` permits one
-    ADMIN account, and `decide_leave` requires the second signature from a
-    different user. One signature, for ever.
-
-    The half that is NOT relaxed is asserted first and asserted again after the
-    grant: the mentoring colleague with no grant is refused throughout. The fix
-    is not "a faculty member may sign staff leave"; it is "the office decided,
-    in Governance, with a reason, that THIS person signs leave for THIS
-    department".
-    """
+    """THE RULE, in one run: the Main Admin's APPROVE is the sanction, and a
+    mentoring colleague — the account the old chain admitted first — is refused
+    the queue and the signature with the same answer an invented id gets."""
     applicant = make_user(f"lc-app-{chain['tag']}", Role.MENTOR)
     colleague = make_user(f"lc-col-{chain['tag']}", Role.MENTOR)
     office = make_user(f"lc-adm-{chain['tag']}", Role.ADMIN)
     _file_under(applicant.user_id, chain["here"])
     _file_under(colleague.user_id, chain["here"])
-    # The colleague mentors somebody, so they hold `mentor.leave_approve` as a
-    # derived FUNCTION and are admitted by `_require_leave_approver`. Signing in
-    # AFTER the group exists: `mentorId` is minted at login.
     group = _seat(chain["student_here"], colleague.user_id)
     leave_id = None
     try:
-        colleague_h = login(colleague.email, TEST_PASSWORD)
+        colleague_h = login(colleague.email, TEST_PASSWORD)  # mentorId is minted at login
         leave_id = _submit(client, applicant.headers)["id"]
-        approve = {"decision": "APPROVE", "note": None}
+        approve = {"decision": "APPROVE", "note": "Sanctioned."}
 
-        # THE DEADLOCK, first half: the mentoring colleague cannot sign at all,
-        # and the refusal is the same 404 an invented id gets.
+        # The colleague mentors somebody and is still refused everything.
+        assert client.get(f"{LEAVES}/pending", headers=colleague_h).status_code == 403
         refused = client.post(f"{LEAVES}/{leave_id}/decision", headers=colleague_h, json=approve)
         invented = client.post(f"{LEAVES}/no-such-leave/decision", headers=colleague_h, json=approve)
-        assert refused.status_code == 404, refused.text
+        assert refused.status_code == 403, refused.text
         assert (invented.status_code, invented.json()) == (refused.status_code, refused.json())
+        # The student's own request in the colleague's group: the same.
+        assert client.post(
+            f"{LEAVES}/{chain['leave_here']}/decision", headers=colleague_h, json=approve
+        ).status_code == 403
 
-        # The office signs once...
-        first = client.post(f"{LEAVES}/{leave_id}/decision", headers=office.headers, json=approve)
-        assert first.status_code == 200, first.text
-        assert first.json()["status"] == "FIRST_APPROVED"
-        assert first.json()["first_signed_as"] == "MAIN_ADMIN"
+        # The office sees it and signs ONCE, and once is the sanction.
+        pending = client.get(f"{LEAVES}/pending", headers=office.headers)
+        assert pending.status_code == 200 and pending.headers["X-Reep-Scope"] == "programme"
+        assert leave_id in {row["id"] for row in pending.json()}
+        done = client.post(f"{LEAVES}/{leave_id}/decision", headers=office.headers, json=approve)
+        assert done.status_code == 200, done.text
+        assert done.json()["status"] == "APPROVED"
+        assert done.json()["first_signed_as"] == "MAIN_ADMIN"
+        assert done.json()["second_signed_as"] is None
+        assert done.json()["director_name"] and done.json()["director_decided_at"]
+        assert done.json()["director_note"] == "Sanctioned."
+        assert _status(leave_id) == "APPROVED"
 
-        # ...and cannot sign again, which is the rule that makes this a deadlock
-        # rather than an inconvenience.
+        # Decided is decided.
         again = client.post(f"{LEAVES}/{leave_id}/decision", headers=office.headers, json=approve)
-        assert again.status_code == 409, again.text
-        assert "different approver" in again.text
-        # THE DEADLOCK, second half: and still nobody else can.
-        stuck = client.post(f"{LEAVES}/{leave_id}/decision", headers=colleague_h, json=approve)
-        assert stuck.status_code == 404, stuck.text
-        assert _status(leave_id) == "FIRST_APPROVED"
-
-        # THE FIX: the office grants the colleague `mentor.leave_approve` over
-        # the department the applicant is filed under.
-        scoped_grant(colleague.user_id, LEAVE_CAPABILITY, ScopeLevel.DEPARTMENT, chain["here"])
-        second = client.post(f"{LEAVES}/{leave_id}/decision", headers=colleague_h, json=approve)
-        assert second.status_code == 200, second.text
-        assert second.json()["status"] == "APPROVED"
-        assert second.json()["second_signed_as"] == "DELEGATE"
-        assert second.json()["first_signed_as"] == "MAIN_ADMIN", "the first stamp is not rewritten"
+        assert again.status_code == 409 and "no decision possible" in again.text
+        assert leave_id not in {row["id"] for row in client.get(f"{LEAVES}/pending", headers=office.headers).json()}
     finally:
         if leave_id:
             _drop(leave_id)
@@ -328,146 +303,65 @@ def test_a_staff_leave_request_deadlocked_and_a_scoped_grant_breaks_it(
 
 
 @requires_db
-def test_a_mentor_function_is_not_a_grant(client, make_user, login, chain):
-    """THE TRAP, asserted where it can be read.
-
-    `require_capability(db, session, key, target=...)` SHORT-CIRCUITS for a
-    capability a MENTOR holds as a derived function: it returns before it reads
-    a single grant, so it says "yes, and in scope" about a department the holder
-    has nothing to do with. `_holds_scoped_leave_grant` asks `granted_reaches`
-    instead and says no.
-
-    Delete this and the obvious tidy-up — "use require_capability, that is what
-    it is for" — turns every faculty member with one mentee into an approver for
-    every staff leave request on the deployment, silently, with no test failing.
-    """
-    from app.governance import ancestry_of_user, granted_reaches, require_capability
-    from app.routers.leave import _holds_scoped_leave_grant
-
-    colleague = make_user(f"lc-trap-{chain['tag']}", Role.MENTOR)
-    applicant = make_user(f"lc-trapapp-{chain['tag']}", Role.MENTOR)
-    _file_under(applicant.user_id, chain["there"])
-    group = _seat(chain["student_here"], colleague.user_id)
-    leave_id = None
+def test_the_office_cannot_sanction_its_own_request(client, make_user, chain):
+    office = make_user(f"lc-own-{chain['tag']}", Role.ADMIN)
+    leave_id = _submit(client, office.headers)["id"]
     try:
-        login(colleague.email, TEST_PASSWORD)  # the group exists before the claim is minted
-        leave_id = _submit(client, applicant.headers)["id"]
-        session = {"role": "MENTOR", "userId": colleague.user_id}
+        r = client.post(f"{LEAVES}/{leave_id}/decision", headers=office.headers, json={"decision": "APPROVE"})
+        assert r.status_code == 400 and "own leave" in r.text
+        assert leave_id not in {row["id"] for row in client.get(f"{LEAVES}/pending", headers=office.headers).json()}
+    finally:
+        _drop(leave_id)
+
+
+@requires_db
+def test_a_row_signed_once_under_the_old_chain_is_completed_by_the_office(
+    client, make_user, chain
+):
+    """A FIRST_APPROVED row from before 2026-09-16 is still in the queue, and
+    the office's one decision finishes it — written into the second slot so
+    the first signer's stamp is not rewritten, whoever that signer was."""
+    applicant = make_user(f"lc-old-{chain['tag']}", Role.MENTOR)
+    signer = make_user(f"lc-oldsig-{chain['tag']}", Role.MENTOR)
+    office = make_user(f"lc-oldadm-{chain['tag']}", Role.ADMIN)
+    leave_id = _submit(client, applicant.headers)["id"]
+    try:
         with SessionLocal() as db:
             lr = db.get(LeaveRequest, leave_id)
-            ancestry = ancestry_of_user(db, applicant.user_id)
-            assert ancestry, "the applicant is filed under a department"
-
-            # The function is held...
-            assert require_capability(db, session, LEAVE_CAPABILITY, target=ancestry) is None, (
-                "require_capability short-circuits on a mentor function — if this "
-                "ever raises, re-read _holds_scoped_leave_grant before celebrating"
-            )
-            # ...and it is not a grant, and the door knows the difference.
-            assert granted_reaches(db, colleague.user_id, LEAVE_CAPABILITY) == []
-            assert _holds_scoped_leave_grant(db, session, lr, None) is False
+            lr.status = LeaveStatus.FIRST_APPROVED
+            lr.first_approver_user_id = signer.user_id
+            lr.first_decided_at = datetime.now(timezone.utc)
+            lr.first_signed_as = "MENTOR"
+            db.commit()
+        assert leave_id in {row["id"] for row in client.get(f"{LEAVES}/pending", headers=office.headers).json()}
+        done = client.post(f"{LEAVES}/{leave_id}/decision", headers=office.headers, json={"decision": "APPROVE"})
+        assert done.status_code == 200, done.text
+        assert done.json()["status"] == "APPROVED"
+        assert done.json()["first_signed_as"] == "MENTOR", "the first stamp is not rewritten"
+        assert done.json()["second_signed_as"] == "MAIN_ADMIN"
     finally:
-        if leave_id:
-            _drop(leave_id)
-        _unseat(chain["student_here"], group)
+        _drop(leave_id)
 
 
 @requires_db
-def test_a_department_scoped_approver_reaches_that_department_and_no_further(
-    client, make_user, chain, scoped_grant
+def test_a_stray_grant_of_the_retired_key_admits_nobody(
+    client, make_user, login, chain, scoped_grant
 ):
-    """The fence the third door hangs on, on a student AND on a staff applicant.
+    """`mentor.leave_approve` is gone from the catalogue. A grant row naming it
+    — the migration revokes them, but a row can be written by hand — opens
+    neither the queue nor the signature, and the function set a mentee
+    derives no longer carries it."""
+    from app.mentor_functions import MENTOR_FUNCTIONS
 
-    A grant scoped to one department reaches its students and its filed staff.
-    It reaches neither of the other department's, and the refusal is the same
-    flattened 404 everything else in this module returns.
-    """
+    assert RETIRED_LEAVE_KEY not in MENTOR_FUNCTIONS
     approver = make_user(f"lc-appr-{chain['tag']}", Role.MENTOR)
-    outsider = make_user(f"lc-out-{chain['tag']}", Role.MENTOR)
     _file_under(approver.user_id, chain["here"])
-    _file_under(outsider.user_id, chain["there"])
-    scoped_grant(approver.user_id, LEAVE_CAPABILITY, ScopeLevel.DEPARTMENT, chain["here"])
-    staff_leave = None
-    try:
-        staff_leave = _submit(client, outsider.headers)["id"]
-        approve = {"decision": "APPROVE", "note": None}
-
-        # The student in reach: signed, and the function is recorded.
-        mine = client.post(
-            f"{LEAVES}/{chain['leave_here']}/decision", headers=approver.headers, json=approve
-        )
-        assert mine.status_code == 200, mine.text
-        assert mine.json()["first_signed_as"] == "DELEGATE"
-
-        # The student out of reach, and the staff member out of reach.
-        for leave_id in (chain["leave_there"], staff_leave):
-            r = client.post(f"{LEAVES}/{leave_id}/decision", headers=approver.headers, json=approve)
-            assert r.status_code == 404, f"{leave_id}: {r.text}"
-
-        # And the queue agrees with the signature, which is the property that
-        # makes the grant visible to the person who was given it.
-        pending = client.get(f"{LEAVES}/pending", headers=approver.headers)
-        assert pending.status_code == 200, pending.text
-        seen = {row["id"] for row in pending.json()}
-        assert chain["leave_there"] not in seen
-        assert staff_leave not in seen
-    finally:
-        if staff_leave:
-            _drop(staff_leave)
-
-
-@requires_db
-def test_a_grant_over_the_college_reaches_its_staff_leave_queue(
-    client, make_user, chain, scoped_grant
-):
-    """The staff half of `_narrow_to_scope`, which hung under nothing before B10.1.
-
-    A faculty member's own leave belongs to no student, so the reach's STUDENT
-    projection can never match it. `Reach.user_ids()` is the same spine read one
-    rung differently, and without it the queue of the person who can now sign a
-    colleague's leave is empty — a capability nobody can find is a capability
-    nobody uses.
-    """
-    approver = make_user(f"lc-coll-{chain['tag']}", Role.MENTOR)
-    applicant = make_user(f"lc-collapp-{chain['tag']}", Role.MENTOR)
-    _file_under(approver.user_id, chain["there"])
-    _file_under(applicant.user_id, chain["here"])
-    scoped_grant(approver.user_id, LEAVE_CAPABILITY, ScopeLevel.COLLEGE, chain["college"])
-    leave_id = None
-    try:
-        leave_id = _submit(client, applicant.headers)["id"]
-        r = client.get(f"{LEAVES}/pending", headers=approver.headers)
-        assert r.status_code == 200, r.text
-        seen = {row["id"] for row in r.json()}
-        assert leave_id in seen, "a college-wide approver cannot see their college's staff leave"
-        assert chain["leave_here"] in seen, "...nor its students'"
-        assert r.headers.get("X-Reep-Scope") is None, (
-            "the MENTOR branch does not stamp a scope header; the word would "
-            "describe the reach and not the group fence beside it"
-        )
-    finally:
-        if leave_id:
-            _drop(leave_id)
-
-
-@requires_db
-def test_a_mentor_with_neither_a_group_nor_a_grant_still_sees_nobody(client, make_user, chain):
-    """The rule the third door must not have relaxed, restated on the queue.
-
-    `test_auth_rbac.py` asserts the 403 before any id lookup; this asserts the
-    other half — that composing a reach INTO the mentor branch did not turn
-    "no group" into "the whole programme" for an account that somehow reaches
-    the query.
-    """
-    from app.policies import scope_filter
-    from app.routers.leave import _narrow_to_scope
-
-    loner = make_user(f"lc-loner-{chain['tag']}", Role.MENTOR)
-    with SessionLocal() as db:
-        session = {"role": "MENTOR", "userId": loner.user_id}
-        assert scope_filter(db, session, LEAVE_CAPABILITY).nothing
-        narrowed = _narrow_to_scope(select(LeaveRequest), db, session, None)
-        assert narrowed is None, "no group and no grant must narrow to nobody, not to everybody"
+    scoped_grant(approver.user_id, RETIRED_LEAVE_KEY, ScopeLevel.DEPARTMENT, chain["here"])
+    approve = {"decision": "APPROVE", "note": None}
+    assert client.get(f"{LEAVES}/pending", headers=approver.headers).status_code == 403
+    r = client.post(f"{LEAVES}/{chain['leave_here']}/decision", headers=approver.headers, json=approve)
+    assert r.status_code == 403, r.text
+    assert _status(chain["leave_here"]) == "SUBMITTED"
 
 
 # ---------------------------------------------------------- B10.4 the withdraw --
@@ -510,15 +404,15 @@ def test_the_applicant_withdraws_their_own_request_and_nobody_else_can(
         # Twice is a 409, not a second cancellation.
         assert client.post(f"{LEAVES}/{plain}/cancel", headers=applicant.headers).status_code == 409
 
-        # FIRST_APPROVED is still the applicant's to withdraw — one signature is
-        # a step, not a sanction.
+        # A SANCTIONED request is terminal: the office's one signature is the
+        # decision, and a day already granted is not taken back by the applicant.
         half = _submit(client, applicant.headers, from_date="2026-11-20", to_date="2026-11-21")["id"]
         ids.append(half)
         assert client.post(
             f"{LEAVES}/{half}/decision", headers=office.headers, json={"decision": "APPROVE"}
         ).status_code == 200
-        assert _status(half) == "FIRST_APPROVED"
-        assert client.post(f"{LEAVES}/{half}/cancel", headers=applicant.headers).status_code == 200
+        assert _status(half) == "APPROVED"
+        assert client.post(f"{LEAVES}/{half}/cancel", headers=applicant.headers).status_code == 409
 
         # A REJECTED request is terminal.
         done = _submit(client, applicant.headers, from_date="2026-11-25", to_date="2026-11-26")["id"]
@@ -558,7 +452,7 @@ def test_a_cancelled_request_is_reachable_only_by_asking_for_it(client, make_use
         ).status_code == 200
         assert client.post(
             f"{LEAVES}/{kept}/decision", headers=office.headers, json={"decision": "APPROVE"}
-        ).status_code == 409, "one account cannot give both signatures"
+        ).status_code == 409, "a decided request takes no second decision"
 
         def ids_at(path: str) -> set[str]:
             r = client.get(path, headers=office.headers)

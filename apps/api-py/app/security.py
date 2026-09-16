@@ -186,7 +186,9 @@ def account_state(user_id: str) -> AccountState:
 
         with SessionLocal() as db:
             row = db.execute(
-                select(User.token_version, User.disabled_at).where(User.id == user_id)
+                select(User.token_version, User.disabled_at, User.deleted_at).where(
+                    User.id == user_id
+                )
             ).first()
     except Exception:
         # OperationalError, InterfaceError, DNS failure and a half-applied
@@ -209,8 +211,14 @@ def account_state(user_id: str) -> AccountState:
     # die is a different decision belonging to the deps that do authorisation,
     # not to a signature check. It is likewise NOT read as disabled: an absent
     # row was never offboarded.
-    version, disabled_at = row if row is not None else (0, None)
-    state = AccountState(version=int(version or 0), disabled=disabled_at is not None)
+    # `deleted_at` (removed from the roster, 2026-09-16) is read through the
+    # same door as `disabled_at` and means the same thing to a cookie: the
+    # person may not act. One query, one cache entry, for the reason above.
+    version, disabled_at, deleted_at = row if row is not None else (0, None, None)
+    state = AccountState(
+        version=int(version or 0),
+        disabled=disabled_at is not None or deleted_at is not None,
+    )
     with _version_lock:
         _version_cache[user_id] = (now + _cache_ttl(), state.version, state.disabled)
     return state

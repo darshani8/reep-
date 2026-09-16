@@ -155,6 +155,10 @@ export interface Login360Out {
   disabled_at: string | null;
   disable_reason: string | null;
   disabled_by_name: string | null;
+  /** 2026-09-16: set when the account is REMOVED from the roster (rows kept),
+   *  with the reason the office typed. Null on a listed student. */
+  deleted_at: string | null;
+  delete_reason: string | null;
   last_login_at: string | null;
   recent_sign_ins: SignIn360Out[];
 }

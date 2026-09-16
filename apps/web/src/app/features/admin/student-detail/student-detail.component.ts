@@ -167,6 +167,9 @@ interface AccountStateOut {
   email: string;
   role: string;
   disabled: boolean;
+  /** 2026-09-16: set when the account is REMOVED from the roster (rows kept). */
+  deleted_at?: string | null;
+  delete_reason?: string | null;
   disabled_at: string | null;
   disable_reason: string | null;
   token_version: number;
@@ -378,11 +381,30 @@ export class AdminStudentDetailComponent {
 
   readonly isDisabled = computed(() => this.record()?.login.disabled === true);
 
+  /** REMOVED from the roster (2026-09-16): the record is reachable by id
+   *  while the account is off every list. Drawn in the risk tone, like
+   *  disabled, and named as itself. */
+  readonly isRemoved = computed(() => (this.record()?.login.deleted_at ?? null) !== null);
+
   readonly accountStatusLabel = computed(() => {
+    if (this.isRemoved()) {
+      return 'Removed';
+    }
     if (this.isDisabled()) {
       return 'Disabled';
     }
     return this.hasSignedIn() ? 'Active' : 'Invited';
+  });
+
+  /** The one sentence a removed account owes the reader, beside the disabled
+   *  one: when and why. Restore lives on the roster's Removed list. */
+  readonly removedLine = computed(() => {
+    const login = this.record()?.login;
+    if (login === undefined || login.deleted_at === null) {
+      return null;
+    }
+    const why = login.delete_reason ?? 'no reason recorded';
+    return `Removed from the roster ${formatMoment(login.deleted_at)} — ${why}. Restore from the Students screen's Removed list.`;
   });
 
   /** The one sentence a disabled account owes the reader: when, by whom and

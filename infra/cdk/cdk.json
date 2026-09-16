@@ -29,6 +29,7 @@
     "leaveMailEnabled": true,
     "backupRetentionDays": 35,
     "archiveRetentionDays": 365,
+    "apiArm64": true,
     "dbMultiAz": true,
     "vaultLockCompliance": false,
     "blueGreen": false,

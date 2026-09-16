@@ -39,6 +39,14 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
 import { composeBatchLabel } from '../../../core/batch-label';
+import {
+  MAX_SPAN_YEARS,
+  endYearOptions,
+  formatYearSpan,
+  parseYearSpan,
+  startYearOptions,
+  type YearSpan,
+} from '../../../core/batch-year';
 import { PluralPipe } from '../../../shared/text/plural.pipe';
 import {
   batchCode,
@@ -137,6 +145,14 @@ export interface BatchPlan {
    *  ("General MBA - Finance · 2026-28"). Shown here rather than `name` alone
    *  so "Create everything" previews the sentence, not the column. */
   readonly display: string;
+  /** The label read back as two years, or null when it is not a span at all.
+   *  That is what the two selects are bound to; null is a real answer and
+   *  leaves them showing nothing rather than a year nobody picked. */
+  readonly span: YearSpan | null;
+  /** What each select offers for THIS leaf — the default window with the row's
+   *  own years folded in, so a span outside it is still selectable. */
+  readonly startYears: readonly number[];
+  readonly endYears: readonly number[];
   readonly entry: string | null;
   readonly completion: string | null;
   readonly include: boolean;
@@ -162,6 +178,12 @@ const LAST_STEP = STEPS.length;
 
 let nextKey = 0;
 const newKey = (): string => `n${++nextKey}`;
+
+/** A programme length the span rules can express: at least a year, at most
+ *  `MAX_SPAN_YEARS`. A course row loaded from the server carries whatever
+ *  `duration_months` says, which is not bounded to either. */
+const clampSpan = (years: number): number =>
+  Math.min(MAX_SPAN_YEARS, Math.max(1, Math.round(years) || 1));
 
 @Component({
   selector: 'app-admin-college-setup',
@@ -205,7 +227,11 @@ export class AdminCollegeSetupComponent {
   readonly specs = signal<SpecRow[]>([]);
 
   // ---- step 5: the batches ---------------------------------------------------
-  readonly startYear = signal(new Date().getFullYear());
+  /** Read once: the dropdowns' window is the year the office opened the screen
+   *  in, and must not move under them if the tab is left open past midnight on
+   *  31 December. */
+  private readonly thisYear = new Date().getFullYear();
+  readonly startYear = signal(this.thisYear);
   /** Label and include-flag overrides, keyed by leaf. */
   private readonly labelOverride = signal<Record<string, string>>({});
   private readonly includeOverride = signal<Record<string, boolean>>({});
@@ -249,6 +275,7 @@ export class AdminCollegeSetupComponent {
     return this.leaves().map((leaf) => {
       const label = labels[leaf.key] ?? batchLabel(this.startYear(), leaf.course.years);
       const dates = batchDates(label);
+      const span = parseYearSpan(label);
       const alreadyThere = cohorts.some((c) =>
         leaf.spec
           ? c.specialization_id !== null && c.specialization_id === leaf.spec.existingId
@@ -273,6 +300,12 @@ export class AdminCollegeSetupComponent {
           batchName(label),
           label,
         ),
+        span,
+        startYears: startYearOptions(this.thisYear, span?.start ?? null),
+        // No readable start means nothing to end: `endYearOptions` answers an
+        // empty list for a start that is not a number, which leaves End with
+        // nothing to offer until a start is picked rather than a guessed range.
+        endYears: endYearOptions(span ? span.start : Number.NaN, span?.end ?? null),
         entry: dates?.entry ?? null,
         completion: dates?.completion ?? null,
         include: includes[leaf.key] ?? !alreadyThere,
@@ -281,6 +314,10 @@ export class AdminCollegeSetupComponent {
       };
     });
   });
+
+  /** The years "Starting year" offers. The year in force is folded in, so the
+   *  select always has an option equal to the value it is showing. */
+  readonly startYearChoices = computed(() => startYearOptions(this.thisYear, this.startYear()));
 
   readonly includedBatches = computed(() => this.batches().filter((b) => b.include));
   readonly newDepartments = computed(() => this.departments().filter((d) => !d.existingId));
@@ -481,6 +518,14 @@ export class AdminCollegeSetupComponent {
   }
 
   // ---- step 5 ------------------------------------------------------------------
+  //
+  // A BATCH IS A YEAR SPAN, SO IT IS PICKED AND NOT TYPED. The two selects are
+  // the whole of what a batch is called; `labelOverride` still stores the LABEL
+  // ("2026-28") because that is what `cohorts.batch_label` takes and what every
+  // derivation below it — the dates, the code, the name, the plan — already
+  // reads. The selects are its two halves, composed by `formatYearSpan` and
+  // read back by `parseYearSpan`, so the malformed span is unrepresentable
+  // rather than merely discouraged (core/batch-year.ts has the long version).
 
   setStartYear(value: string): void {
     const year = Number(value);
@@ -489,7 +534,33 @@ export class AdminCollegeSetupComponent {
       this.labelOverride.set({});
     }
   }
-  setBatchLabel(leafKey: string, value: string): void {
+
+  /** A leaf's own start year. Moving the intake keeps the programme's LENGTH,
+   *  so a two-year MBA moved from 2026 to 2027 becomes 2027-29 and not
+   *  2027-28; a leaf whose label is not a span at all falls back to the
+   *  course's own duration, the number `batchLabel` used for the default. */
+  setBatchStartYear(leafKey: string, value: string): void {
+    const row = this.batches().find((b) => b.leaf.key === leafKey);
+    const start = Number(value);
+    // Only a year this row actually offered — which is also what refuses the
+    // placeholder option a leaf carries while its span is unreadable.
+    if (!row || !row.startYears.includes(start)) return;
+    const wanted = row.span ? row.span.end - row.span.start : row.leaf.course.years;
+    // A course whose stored duration runs longer than a span is allowed to
+    // cannot be written down at all; taking the ceiling leaves the office a
+    // batch they can then correct on the End select, rather than two dropdowns
+    // with no way out of a label nothing can parse.
+    this.setBatchLabel(leafKey, formatYearSpan(start, start + clampSpan(wanted)));
+  }
+
+  setBatchEndYear(leafKey: string, value: string): void {
+    const row = this.batches().find((b) => b.leaf.key === leafKey);
+    const end = Number(value);
+    if (!row?.span || !row.endYears.includes(end)) return;
+    this.setBatchLabel(leafKey, formatYearSpan(row.span.start, end));
+  }
+
+  private setBatchLabel(leafKey: string, value: string): void {
     this.labelOverride.update((m) => ({ ...m, [leafKey]: value }));
   }
   setBatchIncluded(leafKey: string, include: boolean): void {

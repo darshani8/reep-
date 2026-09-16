@@ -1329,6 +1329,16 @@ links. Both tabs are `@defer`red — the room pulls `InterviewService` and the
 visualizer, and the shell is in the initial bundle — and the inactive tab is
 `hidden`, never destroyed, because destroying the room ends the interview.
 Closing the dock over a live one asks first (`AgentDockService.requestClose`).
+**THE MAIN ADMIN GETS THE TAB TOO, AS A REHEARSAL THAT STORES NOTHING
+(2026-09-16).** `_is_rehearsal` in `app/routers/interview.py` admits role
+ADMIN to the socket and the status probe (`rehearsal: true`), and the whole
+mechanism is that `_open_records` is never called: no conversation, no
+`interview_sessions` row, no turns, no report row, no recording, no consent
+row — every hook the engine takes is `None`, which the engines already treat
+as "do not write", and Layer 2's backstop skips a run with no row. The
+cookie, the Origin check, engine readiness and BOTH halves of the concurrency
+limiter still apply (a rehearsal bills an upstream session like any other).
+A MENTOR is still 1008. `tests/test_interview_rehearsal.py` pins it.
 The orb reads the interview's state from that service, which the room mirrors
 into it, and never imports `InterviewService` itself. Drag and tap are one gesture separated by a 4px threshold; the pointer
 listeners go on `document` (a pointer leaving the 58px box mid-drag stops

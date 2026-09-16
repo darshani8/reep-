@@ -327,8 +327,24 @@ export class InterviewRoomComponent implements AfterViewInit, OnDestroy {
   readonly consentBusy = signal(false);
   readonly consentError = signal<string | null>(null);
 
-  /** Mock interviews are a student feature; the backend refuses anyone else. */
+  /** Mock interviews are a student feature; the backend refuses anyone else —
+   *  except the Main Admin's REHEARSAL, below. */
   readonly isStudent = computed(() => this.auth.session()?.role === 'STUDENT');
+
+  /**
+   * THE MAIN ADMIN'S REHEARSAL (2026-09-16). The office can sit the interview
+   * to hear the persona and see the scorecard arrive, and the server stores
+   * NOTHING for it — no conversation, no interview record, no turns, no
+   * report row, no recording, no consent row (`_is_rehearsal` in
+   * app/routers/interview.py is the record of why). So this screen asks for
+   * no consent (there is no row to write one against), shows no "saved to
+   * your past interviews" link (nothing was saved), and says so in one line
+   * above the stage. The socket is the gate; this flag only shapes the copy.
+   */
+  readonly isRehearsal = computed(() => this.auth.session()?.role === 'ADMIN');
+
+  /** Who may press Start at all: a student, or the Main Admin rehearsing. */
+  readonly canSit = computed(() => this.isStudent() || this.isRehearsal());
 
   /** The briefing card: the option selected, or the live one once running. */
   readonly briefing = computed<SpecializationOption>(() => {
@@ -377,7 +393,7 @@ export class InterviewRoomComponent implements AfterViewInit, OnDestroy {
   });
 
   /** Start is offered from every terminal state, and only from a terminal one. */
-  readonly canStart = computed(() => !this.active() && this.isStudent() && this.secureContext);
+  readonly canStart = computed(() => !this.active() && this.canSit() && this.secureContext);
 
   /** Mic level as a 0..100 integer, for the meter's aria-valuenow and width. */
   readonly micPercent = computed(() => Math.round(this.micLevel() * 100));
@@ -512,7 +528,9 @@ export class InterviewRoomComponent implements AfterViewInit, OnDestroy {
       return;
     }
     if (!this.canStart()) return;
-    if (this.consent()) {
+    // A rehearsal has no consent row to write — the server keeps nothing it
+    // could be consented to — so it starts straight away.
+    if (this.consent() || this.isRehearsal()) {
       void this.interview.start(this.selectedSpecialization());
       return;
     }

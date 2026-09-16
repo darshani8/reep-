@@ -2,7 +2,7 @@
   <section
     #panel
     class="dock"
-    [class.dock--room]="mode() === 'interview' && isStudent()"
+    [class.dock--room]="mode() === 'interview' && canInterview()"
     role="dialog"
     aria-label="REEP assistant"
     (keydown.escape)="requestClose()"
@@ -20,7 +20,7 @@
         >
           <span class="icon" aria-hidden="true">chat_bubble</span>Ask REEP
         </button>
-        @if (isStudent()) {
+        @if (canInterview()) {
           <button
             type="button"
             role="tab"
@@ -38,15 +38,17 @@
         }
       </div>
       <div class="dock__actions">
-        <a
-          class="dock__iconbtn"
-          [routerLink]="pageRoute()"
-          aria-label="Open as a page"
-          title="Open as a page"
-          (click)="requestClose()"
-        >
-          <span class="icon" aria-hidden="true">open_in_new</span>
-        </a>
+        @if (pageRoute(); as route) {
+          <a
+            class="dock__iconbtn"
+            [routerLink]="route"
+            aria-label="Open as a page"
+            title="Open as a page"
+            (click)="requestClose()"
+          >
+            <span class="icon" aria-hidden="true">open_in_new</span>
+          </a>
+        }
         <button
           type="button"
           class="dock__iconbtn"
@@ -79,7 +81,7 @@
           <p class="dock__loading">Loading…</p>
         }
       </div>
-      @if (isStudent()) {
+      @if (canInterview()) {
         <div
           id="dock-panel-room"
           class="dock__panel dock__panel--room"

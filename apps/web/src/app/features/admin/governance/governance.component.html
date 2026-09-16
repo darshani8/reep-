@@ -6,7 +6,7 @@
       <div class="dt-sub">Who may open which screen, and until when.</div>
     </div>
     <div class="dt-toolbar">
-      <!-- B2.4's GET /review, live. Two lists — waiting on a second admin, and
+      <!-- B2.4's GET /review, live. Two lists — waiting for approval, and
            running out — and the count is both, because both need somebody. -->
       <button type="button" class="btn secondary" (click)="openReviewQueue()">
         <span class="icon" aria-hidden="true">rate_review</span> Review queue
@@ -65,7 +65,7 @@
           <div class="notice accent gov-note">
             <span class="icon" aria-hidden="true">how_to_reg</span>
             <div>
-              Approving makes it live. You cannot approve a grant you made yourself.
+              Approving makes it live. A deputy cannot approve a grant they made themselves.
             </div>
           </div>
         }
@@ -683,12 +683,12 @@
 
       <section class="gov-review-block" aria-labelledby="gov-review-pending-title">
         <h2 class="gov-card-title" id="gov-review-pending-title">
-          Awaiting a second admin
+          Awaiting approval
           <span class="chip neutral">{{ reviewPendingRows().length | plural: 'grant' }}</span>
         </h2>
         <p class="gov-hint">
-          Written, listed and audited — and holding nothing. Whoever made the grant cannot be the
-          one who agrees to it.
+          Written, listed and audited — and holding nothing. A deputy who made the grant cannot be
+          the one who agrees to it; the Main Admin can approve any of them.
         </p>
         <div class="dt-frame">
           <div class="gov-grid-scroll">
@@ -739,7 +739,7 @@
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="6" class="gov-empty">Nothing is waiting on a second admin.</td>
+                    <td colspan="6" class="gov-empty">Nothing is waiting for approval.</td>
                   </tr>
                 }
               </tbody>

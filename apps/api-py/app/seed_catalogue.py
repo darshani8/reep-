@@ -242,17 +242,34 @@ def batch_dates(label: str) -> tuple[datetime, datetime]:
     return start, end
 
 
-def batch_name(cat: Catalogue, course: Course, spec: Spec | None, label: str) -> str:
-    """What the office reads on the Batches screen.
+def batch_name(label: str) -> str:
+    """What the office reads on the Batches screen: THE YEAR, and only the year.
 
-    The department is NOT prefixed. It is already on the row, and here it reads
-    as a stutter the moment a department and its course share a word -- BGSCET's
-    MBA department contains a course called "General MBA", so prefixing gives
-    "MBA General MBA - Finance 2025-27". The code (`batch_code`) carries the
-    full path for uniqueness; the name is for a person.
+    A BATCH IS A YEAR. "2025-27" is the whole of what this row is -- the span a
+    student who joined a two-year degree belongs to. Which course and which
+    specialization they joined is NOT part of its name: it is the spine this row
+    hangs off, and the row already carries every rung of it as a real foreign
+    key (`department_id`, `course_id`, `specialization_id`, set right below in
+    `cohort_fields`).
+
+    THIS USED TO MANUFACTURE THE COURSE AND THE SPECIALIZATION INTO THE NAME --
+    "General MBA - Finance 2025-27" -- and that was one fact stored twice: once
+    as a foreign key `ancestry_of_student` reads, and once as words inside a
+    string nothing can join on. The two could disagree the moment the office
+    renamed a course on screen, with this row still printing last year's name;
+    and because `batch_label` is its own column, every screen that showed a
+    batch printed the year a second time next to it ("General MBA - Finance
+    2025-27 · 2025-27"). `app/batch_labels.py` is where the spine and the
+    year are now put back together, from the links, at read time.
+
+    The department never belonged here either, for the reason it never did: it
+    is already on the row, and prefixing it stutters the moment a department and
+    its course share a word -- BGSCET's MBA department contains a course called
+    "General MBA", which gave "MBA General MBA - Finance 2025-27".
+    `batch_code` still carries the full path, because that is the column that
+    has to be globally unique; the name is for a person.
     """
-    tail = f" - {spec.name}" if spec is not None else ""
-    return f"{course.name}{tail} {label}"
+    return label
 
 
 def cohort_fields(
@@ -285,7 +302,7 @@ def cohort_fields(
     start, end = batch_dates(label)
     return {
         "code": batch_code(cat, course, spec, label),
-        "name": batch_name(cat, course, spec, label),
+        "name": batch_name(label),
         "batch_label": label,
         "department_id": department_id,
         "course_id": course_id,

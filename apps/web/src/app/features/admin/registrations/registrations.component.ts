@@ -293,8 +293,14 @@ interface SeatingRuleApiRow {
  *  levels this screen names: the college and the batch. */
 interface HierarchyBatch {
   id: string;
+  /** The batch itself: a YEAR, "2026-28". */
   name: string;
   batch_label: string;
+  /** The spine and the year in one sentence, composed by the server from the
+   *  batch's own links: "General MBA - Finance · 2026-28". The queue labels a
+   *  batch with this — `name` alone is the year, and a reviewer deciding where
+   *  an applicant lands cannot act on four options all reading "2026-28". */
+  display_label: string;
 }
 interface HierarchyDepartment {
   batches: HierarchyBatch[];
@@ -1812,7 +1818,7 @@ export class AdminRegistrationsComponent {
       for (const college of body.colleges) {
         for (const department of college.departments) {
           for (const batch of department.batches) {
-            named.set(batch.id, `${batch.name} · ${batch.batch_label}`);
+            named.set(batch.id, batch.display_label);
           }
         }
       }

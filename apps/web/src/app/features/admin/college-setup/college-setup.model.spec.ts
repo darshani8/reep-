@@ -6,6 +6,7 @@ import {
   parseDomains,
   trackFor,
 } from './college-setup.model';
+import { composeBatchLabel } from '../../../core/batch-label';
 
 /**
  * The rules "Set up a college" derives a batch from, pinned to the seeder's:
@@ -38,9 +39,37 @@ describe('a batch derived from the codes the office typed', () => {
     expect(batchCode([' 1mp ', '', 'mba', undefined, '2026-28'])).toBe('1MP-MBA-2026-28');
   });
 
-  it('names the batch for a person, without the department', () => {
-    expect(batchName('General MBA', 'Finance', '2026-28')).toBe('General MBA - Finance 2026-28');
-    expect(batchName('Digital Marketing', null, '2026-28')).toBe('Digital Marketing 2026-28');
+  it('names the batch the year and nothing else', () => {
+    // A BATCH IS A YEAR. The course and the specialization are the links the
+    // five POSTs set, not words inside the name — `composeBatchLabel` puts
+    // them back together at read time, which is the assertion below.
+    expect(batchName('2026-28')).toBe('2026-28');
+    expect(batchName('  2026-28 ')).toBe('2026-28');
+  });
+
+  it('reads back as the spine and the year, from the links', () => {
+    expect(composeBatchLabel('General MBA', 'Finance', batchName('2026-28'), '2026-28')).toBe(
+      'General MBA - Finance \u00b7 2026-28',
+    );
+    // A two-year MBA in Digital Marketing IS the qualification: no
+    // specialization is a real shape, not an omission.
+    expect(composeBatchLabel('Digital Marketing', null, batchName('2026-28'), '2026-28')).toBe(
+      'Digital Marketing \u00b7 2026-28',
+    );
+    // Course is optional (HIERARCHY_LEVELS), so a batch may hang at department
+    // level and read as the year alone.
+    expect(composeBatchLabel(null, null, batchName('2026-28'), '2026-28')).toBe('2026-28');
+  });
+
+  it('keeps the year even when the batch has a name of its own', () => {
+    // A section already says which year, so the label beside it would stutter.
+    expect(composeBatchLabel('General MBA', null, '2026-28 Section B', '2026-28')).toBe(
+      'General MBA \u00b7 2026-28 Section B',
+    );
+    // A name that says nothing about the span must not swallow it.
+    expect(composeBatchLabel(null, null, 'Chain Batch', '2024-26')).toBe(
+      '2024-26 \u00b7 Chain Batch',
+    );
   });
 });
 

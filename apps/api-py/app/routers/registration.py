@@ -47,7 +47,7 @@ from sqlalchemy.orm import Session
 
 from fastapi.responses import RedirectResponse
 
-from .. import account_links
+from .. import account_links, batch_labels
 from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
@@ -590,7 +590,24 @@ def _claim_names(db: Session, rows: Sequence[Registration]) -> dict[str, dict[st
     departments = {d.id: d.name for d in db.scalars(select(Department).where(Department.id.in_(ids("department_id")))).all()} if ids("department_id") else {}
     courses = {c.id: c.name for c in db.scalars(select(AcademicCourse).where(AcademicCourse.id.in_(ids("course_id")))).all()} if ids("course_id") else {}
     specs = {x.id: x.name for x in db.scalars(select(AcademicSpecialization).where(AcademicSpecialization.id.in_(ids("specialization_id")))).all()} if ids("specialization_id") else {}
-    batches = {b.id: f"{b.name} \u00b7 {b.batch_label}" for b in db.scalars(select(Cohort).where(Cohort.id.in_(ids("requested_cohort_id")))).all()} if ids("requested_cohort_id") else {}
+    # THE BATCH'S OWN course and specialization, not the application's. The two
+    # dicts above are keyed on what the APPLICANT named, and a reviewer reading
+    # "Approving seats them in ..." needs the words for the batch they will
+    # actually land in — the check right beside it exists to catch the case
+    # where those two disagree. One query, as before: the spine comes down the
+    # links (`batch_labels.compose`), never out of `cohorts.name`.
+    batches = {
+        b.id: batch_labels.compose(course_name, spec_name, b.name, b.batch_label)
+        for b, course_name, spec_name in db.execute(
+            select(Cohort, AcademicCourse.name, AcademicSpecialization.name)
+            .outerjoin(AcademicCourse, AcademicCourse.id == Cohort.course_id)
+            .outerjoin(
+                AcademicSpecialization,
+                AcademicSpecialization.id == Cohort.specialization_id,
+            )
+            .where(Cohort.id.in_(ids("requested_cohort_id")))
+        ).all()
+    } if ids("requested_cohort_id") else {}
     return {
         r.id: {
             "college_name": colleges.get(r.college_id) if r.college_id else None,
@@ -1089,6 +1106,18 @@ class PublicBatchOut(BaseModel):
     department_id: str | None
     course_id: str | None
     specialization_id: str | None
+    #: The spine, resolved from the links above. A batch is a YEAR (`name`);
+    #: which course and which specialization it belongs to are these pointers,
+    #: and every picker that offers batches has to show them or "2026-28"
+    #: appears four times with nothing to tell them apart.
+    course_name: str | None
+    specialization_name: str | None
+    #: The spine and the year put together by the one rule
+    #: (`batch_labels.compose`): "General MBA - Finance · 2026-28". Served
+    #: rather than composed per screen — six templates were concatenating
+    #: `name · batch_label` themselves, which printed the course twice back
+    #: when the course was manufactured into the name.
+    display_label: str
     degree_level: str
     #: Still running (end date ahead). The form lists current batches first and
     #: greys the rest; it does not hide them - a late applicant to a batch that
@@ -1163,15 +1192,27 @@ def hierarchy(db: Session = Depends(get_db)) -> PublicHierarchyOut:
         courses_by_dept.setdefault(co.department_id, []).append(
             PublicCourseOut(id=co.id, code=co.code, name=co.name, specializations=specs_by_course.get(co.id, []))
         )
+    # The spine a batch hangs off, by id. Both lists are already loaded above
+    # and are ACTIVE-only, so a batch under an archived course resolves to None
+    # and reads as the year alone — which is honest: the picker cannot name a
+    # course this hierarchy no longer serves.
+    course_names = {co.id: co.name for co in courses}
+    spec_names = {sp.id: sp.name for sp in specs}
     batches_by_dept: dict[str, list[PublicBatchOut]] = {}
     for b in batches:
         if b.department_id is None:
             continue  # unseated in the hierarchy; the admin console lists these to fix
+        course_name = course_names.get(b.course_id) if b.course_id else None
+        spec_name = spec_names.get(b.specialization_id) if b.specialization_id else None
         batches_by_dept.setdefault(b.department_id, []).append(
             PublicBatchOut(
                 id=b.id, code=b.code, name=b.name, batch_label=b.batch_label,
                 department_id=b.department_id, course_id=b.course_id,
                 specialization_id=b.specialization_id,
+                course_name=course_name, specialization_name=spec_name,
+                display_label=batch_labels.compose(
+                    course_name, spec_name, b.name, b.batch_label
+                ),
                 degree_level=b.degree_level.value, current=b.end_date >= now,
             )
         )

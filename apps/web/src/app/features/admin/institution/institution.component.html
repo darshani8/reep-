@@ -556,7 +556,7 @@
                           <tr [class.selected]="seatingBatch()?.id === b.id">
                             <td>
                               <div class="b-code">{{ b.code }}</div>
-                              <div class="dt-sub">{{ b.batch_label }} · {{ b.name }}</div>
+                              <div class="dt-sub">{{ b.display_label }}</div>
                               @for (m of b.missing_levels; track m) {
                                 <span class="chip warn"
                                   ><span class="icon" aria-hidden="true">warning</span>Needs
@@ -603,7 +603,7 @@
                     <div class="card-head">
                       <div class="card-title">
                         Students in {{ sb.code }}
-                        <span class="dt-sub">{{ sb.batch_label }} · {{ sb.name }}</span>
+                        <span class="dt-sub">{{ sb.display_label }}</span>
                       </div>
                       <button type="button" class="btn ghost sm" (click)="closeSeating()">
                         <span class="icon" aria-hidden="true">close</span>Close
@@ -705,16 +705,54 @@
                         <label for="b-code">Code</label>
                         <input id="b-code" formControlName="code" placeholder="MBA-2026-B" />
                       </div>
-                      <div class="field">
-                        <label for="b-label">Batch label</label>
-                        <input id="b-label" formControlName="batch_label" placeholder="2024-26" />
-                      </div>
+                      <!-- The batch itself: a year span, picked rather than
+                           typed — except for a stored label that is not one. -->
+                      @if (labelIsFreeText()) {
+                        <div class="field wide">
+                          <label for="b-label">
+                            Batch label <span class="chip neutral">Not a year span</span>
+                          </label>
+                          <input id="b-label" formControlName="batch_label" />
+                        </div>
+                      } @else {
+                        <div class="field">
+                          <label for="b-start">Start year</label>
+                          <select
+                            id="b-start"
+                            class="ctrl"
+                            formControlName="start_year"
+                            (change)="onStartYearChange()"
+                          >
+                            <option [ngValue]="null">— Select —</option>
+                            @for (y of startYearChoices(); track y) {
+                              <option [ngValue]="y">{{ y }}</option>
+                            }
+                          </select>
+                        </div>
+                        <div class="field">
+                          <label for="b-end">End year</label>
+                          <select
+                            id="b-end"
+                            class="ctrl"
+                            formControlName="end_year"
+                            (change)="onEndYearChange()"
+                          >
+                            <option [ngValue]="null">— Select —</option>
+                            @for (y of endYearChoices(); track y) {
+                              <option [ngValue]="y">{{ y }}</option>
+                            }
+                          </select>
+                          @if (endYearDisabled()) {
+                            <span class="dt-sub">Needs a start year first.</span>
+                          }
+                        </div>
+                      }
                       <div class="field wide">
-                        <label for="b-name">Name</label>
+                        <label for="b-name">Name <span class="chip neutral">Optional</span></label>
                         <input
                           id="b-name"
                           formControlName="name"
-                          placeholder="MBA Batch 2024-26 - Section B"
+                          placeholder="2024-26 Section B"
                         />
                       </div>
                       <div class="field">
@@ -723,20 +761,33 @@
                           id="b-level"
                           class="ctrl"
                           formControlName="degree_level"
-                          [attr.disabled]="batchMode() === 'edit' ? '' : null"
                         >
                           @for (l of degreeLevels; track l) {
                             <option [value]="l">{{ l }}</option>
                           }
                         </select>
                       </div>
+                      <!-- Filled in from the span and left editable: `(input)`
+                           fires for a person and never for the span's own
+                           write, so a date somebody types is a date that
+                           stays. -->
                       <div class="field">
                         <label for="b-entry">Entry date</label>
-                        <input id="b-entry" type="date" formControlName="entry_date" />
+                        <input
+                          id="b-entry"
+                          type="date"
+                          formControlName="entry_date"
+                          (input)="markDateEdited('entry')"
+                        />
                       </div>
                       <div class="field">
                         <label for="b-done">Expected completion</label>
-                        <input id="b-done" type="date" formControlName="expected_completion" />
+                        <input
+                          id="b-done"
+                          type="date"
+                          formControlName="expected_completion"
+                          (input)="markDateEdited('completion')"
+                        />
                       </div>
 
                       <!-- One select per served level. Required-ness and label are the server's. -->
@@ -754,7 +805,6 @@
                             [id]="'b-' + lv.key"
                             class="ctrl"
                             [formControlName]="lv.field"
-                            [attr.disabled]="levelDisabled(lv) ? '' : null"
                             [attr.aria-invalid]="
                               levelControl(lv).touched && levelControl(lv).hasError('required')
                                 ? 'true'

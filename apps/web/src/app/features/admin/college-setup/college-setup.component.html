@@ -374,15 +374,11 @@
       <section class="wizard-body" aria-label="Step 5: batches">
         <div class="field tiny">
           <label for="setup-year">Starting year</label>
-          <input
-            id="setup-year"
-            class="ctrl"
-            type="number"
-            min="2000"
-            max="2100"
-            [value]="startYear()"
-            (change)="setStartYear($any($event.target).value)"
-          />
+          <select id="setup-year" class="ctrl" (change)="setStartYear($any($event.target).value)">
+            @for (year of startYearChoices(); track year) {
+              <option [value]="year" [selected]="year === startYear()">{{ year }}</option>
+            }
+          </select>
         </div>
         @for (b of batches(); track b.leaf.key) {
           <div class="leaf" [class.leaf--off]="!b.include">
@@ -401,16 +397,41 @@
             </label>
             <div class="leaf-body">
               <div class="field tiny">
-                <label [for]="'batch-label-' + b.leaf.key">Batch</label>
-                <input
-                  [id]="'batch-label-' + b.leaf.key"
+                <label [for]="'batch-start-' + b.leaf.key">Start year</label>
+                <select
+                  [id]="'batch-start-' + b.leaf.key"
                   class="ctrl"
-                  placeholder="2026-28"
-                  [value]="b.label"
-                  (input)="setBatchLabel(b.leaf.key, $any($event.target).value)"
+                  (change)="setBatchStartYear(b.leaf.key, $any($event.target).value)"
                   [attr.aria-invalid]="b.include && b.entry === null ? 'true' : null"
                   [disabled]="!b.include"
-                />
+                >
+                  <!-- A select with no option marked selected shows its FIRST
+                       one, so a span that cannot be read back would read as a
+                       year the office never picked. This is the state "Runs"
+                       shows as a dash, and it holds Continue. -->
+                  @if (!b.span) {
+                    <option value="" selected>—</option>
+                  }
+                  @for (year of b.startYears; track year) {
+                    <option [value]="year" [selected]="year === b.span?.start">{{ year }}</option>
+                  }
+                </select>
+              </div>
+              <div class="field tiny">
+                <label [for]="'batch-end-' + b.leaf.key">End year</label>
+                <select
+                  [id]="'batch-end-' + b.leaf.key"
+                  class="ctrl"
+                  (change)="setBatchEndYear(b.leaf.key, $any($event.target).value)"
+                  [disabled]="!b.include"
+                >
+                  @if (!b.span) {
+                    <option value="" selected>—</option>
+                  }
+                  @for (year of b.endYears; track year) {
+                    <option [value]="year" [selected]="year === b.span?.end">{{ year }}</option>
+                  }
+                </select>
               </div>
               <dl class="facts leaf-facts">
                 <div>
@@ -418,8 +439,8 @@
                   <dd>{{ b.code }}</dd>
                 </div>
                 <div>
-                  <dt>Name</dt>
-                  <dd>{{ b.name }}</dd>
+                  <dt>Reads as</dt>
+                  <dd>{{ b.display }}</dd>
                 </div>
                 <div>
                   <dt>Runs</dt>
@@ -516,7 +537,7 @@
           @for (b of includedBatches(); track b.leaf.key) {
             <li class="plan-row plan-row--3">
               <span class="icon" aria-hidden="true">groups</span>
-              <span class="plan-what">{{ b.code }} · {{ b.name }}</span>
+              <span class="plan-what">{{ b.code }} · {{ b.display }}</span>
               <ng-container
                 *ngTemplateOutlet="
                   outcomeChip;

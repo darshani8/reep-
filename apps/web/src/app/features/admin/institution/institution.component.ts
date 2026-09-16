@@ -39,6 +39,16 @@
  * in this file — it arrives as `level.label`. Flip the constant on the API and
  * this form follows with no edit.
  *
+ * A BATCH IS A YEAR, AND THE FORM ASKS FOR IT AS TWO. The batch label is a
+ * span — "2026-28" — and the course and the specialization it hangs off are
+ * the selects below it, not part of its name. So the label is picked as a
+ * Start year and an End year (`core/batch-year.ts`, which agrees with
+ * `app/seed_catalogue.py`'s `batch_dates`) and composed on save, and the entry
+ * and completion dates fill themselves in from the span while staying
+ * editable — this screen is where a NON-STANDARD batch with odd dates is
+ * added. A row whose stored label is not a span keeps the text box; see
+ * `setLabelEditor`.
+ *
  * GRANDFATHERED ROWS STAY EDITABLE. A batch created while a level was optional
  * is blank there after the flip. The server lists it under
  * /cohorts/incomplete, flags it in `missing_levels`, and still accepts any
@@ -95,6 +105,14 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
+import {
+  endYearOptions,
+  formatYearSpan,
+  parseYearSpan,
+  spanDates,
+  startYearOptions,
+  type YearSpan,
+} from '../../../core/batch-year';
 import { HierarchyLevel, HierarchySchemaService } from '../../../core/hierarchy-schema.service';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
@@ -164,8 +182,15 @@ interface AdminCohortOut {
   course_id: string | null;
   specialization_id: string | null;
   code: string;
+  /** The batch itself: a YEAR, "2026-28". */
   name: string;
   batch_label: string;
+  course_name: string | null;
+  specialization_name: string | null;
+  /** The spine and the year in one sentence, composed by the server from the
+   *  three links above: "General MBA - Finance · 2026-28". Render this — one
+   *  department's four batches all say "2026-28" on their own. */
+  display_label: string;
   degree_level: string;
   entry_date: string;
   expected_completion: string;
@@ -212,6 +237,13 @@ const LEVEL_OPTIONS: Record<string, 'courses' | 'specializations'> = {
 
 /** The two values PATCH accepts for any level's `status` (_SETTABLE_STATUSES). */
 const COURSE_STATUSES = ['ACTIVE', 'ARCHIVED'];
+
+/** The year the Start dropdown's window is built around, read once at load.
+ *  A console left open across New Year offers one stale year at each end of a
+ *  sixteen-year list, and `startYearOptions`' `include` keeps every batch this
+ *  screen can open selectable regardless — so re-reading the clock per render
+ *  would buy nothing and make the option list change under a mouse. */
+const THIS_YEAR = new Date().getFullYear();
 
 /** SEMESTERS PER YEAR IS NOT A DIFFERENT PHASE, IT IS NOT A FIELD.
  *
@@ -533,7 +565,11 @@ export class AdminInstitutionComponent implements OnDestroy {
     this.specializations().filter((s) => this.rowMatchesFinder(s.code, s.name)),
   );
   readonly visibleBatches = computed(() =>
-    this.batches().filter((b) => this.rowMatchesFinder(b.code, `${b.name} ${b.batch_label}`)),
+    // `display_label` and not `name`: the batch's name is the year, so a finder
+    // over it alone could not answer "Finance" — the course and the
+    // specialization live on the links, and the composed label is where they
+    // are words again.
+    this.batches().filter((b) => this.rowMatchesFinder(b.code, b.display_label)),
   );
 
   // ---- batches ------------------------------------------------------------
@@ -553,6 +589,54 @@ export class AdminInstitutionComponent implements OnDestroy {
   /** Levels required NOW that were blank on the row AS LOADED. See class doc. */
   readonly grandfathered = signal<Set<string>>(new Set());
   readonly batchError = signal<string | null>(null);
+
+  // ---- the batch's year span ---------------------------------------------
+  //
+  // A BATCH IS A YEAR, so the office picks two of them rather than typing the
+  // string. `batch_label` is still the one carrier of what is stored and sent
+  // — the selects write it through `syncSpan` — because the wire format,
+  // `saveBatch` and every reader of the row are unchanged by this; what
+  // changed is only who composes it. `core/batch-year.ts` holds the rules and
+  // agrees with `app/seed_catalogue.py`'s `batch_dates`, so a batch made here
+  // and one made by the seeder are the same row.
+  //
+  // THE SELECTS ARE NOT ALWAYS THE EDITOR. `cohorts.batch_label` is free text
+  // on the wire (`AdminCohortIn` bounds it 1..64 and checks nothing else), and
+  // rows that are not spans are deliberate: "Chain Batch", "2026-28 Section
+  // B". Opening one of those falls back to the text box — see `setLabelEditor`.
+  readonly spanStart = signal<number | null>(null);
+  readonly spanEnd = signal<number | null>(null);
+  /** The span the open row arrived with, or null for a create and for a label
+   *  that is not a span. It is the `include` both option lists take, so a
+   *  batch that started outside the default window still has its own years to
+   *  select. */
+  private readonly loadedSpan = signal<YearSpan | null>(null);
+  /** True while `batch_label` is edited as text rather than as two years. */
+  readonly labelIsFreeText = signal(false);
+  /** Whether a human has typed in each date box. See `markDateEdited`. */
+  private readonly entryDateEdited = signal(false);
+  private readonly completionDateEdited = signal(false);
+
+  readonly startYearChoices = computed(() =>
+    startYearOptions(THIS_YEAR, this.loadedSpan()?.start ?? null),
+  );
+
+  readonly endYearChoices = computed(() => {
+    const start = this.spanStart();
+    if (start === null) return [];
+    // The stored end year is folded in only while the start is still the
+    // stored one. It is there so an existing out-of-window span stays
+    // selectable; once the admin has moved the start it is not this select's
+    // value any more, just a year out of a span that no longer exists.
+    const loaded = this.loadedSpan();
+    return endYearOptions(start, loaded && loaded.start === start ? loaded.end : null);
+  });
+
+  /** The cascade, the specialization select's rule applied to years: an end
+   *  year means nothing without a start, and `endYearOptions` answers an empty
+   *  list for one, so the control would otherwise be an empty box that looks
+   *  broken rather than one that is waiting. */
+  readonly endYearDisabled = computed(() => this.spanStart() === null);
 
   // --- seating: who is in a batch, and who is in none ---------------------
   // The panel for one batch. Opening it loads two lists that must agree with
@@ -592,6 +676,7 @@ export class AdminInstitutionComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.courseFormWatch.unsubscribe();
+    this.batchFormWatch?.unsubscribe();
   }
 
   // =========================================================================
@@ -817,8 +902,18 @@ export class AdminInstitutionComponent implements OnDestroy {
   private buildBatchForm(levels: HierarchyLevel[]): FormGroup {
     const controls: Record<string, FormControl> = {
       code: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-      name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+      // NOT REQUIRED, and that is the point: a batch IS a year. Leave the name
+      // blank and `saveBatch` sends the label, which is what a standard batch
+      // is called. It is there for the one batch that needs more than the span
+      // to be told apart — a section, "2024-26 Section B".
+      name: new FormControl('', { nonNullable: true }),
+      // DERIVED, and still the one carrier. `syncSpan` writes the composed
+      // span here and `saveBatch` reads it in both modes, so the free-text
+      // fallback is this same control with a different editor on it rather
+      // than a second field the save path has to know about.
       batch_label: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+      start_year: new FormControl<number | null>(null, [Validators.required]),
+      end_year: new FormControl<number | null>(null, [Validators.required]),
       degree_level: new FormControl('PG', { nonNullable: true, validators: [Validators.required] }),
       entry_date: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
       expected_completion: new FormControl('', {
@@ -852,11 +947,63 @@ export class AdminInstitutionComponent implements OnDestroy {
     return false;
   }
 
+  /**
+   * Put every conditionally-disabled control of the batch form into the state
+   * its rule says it should be in.
+   *
+   * `[attr.disabled]` DOES NOT WORK ON A CONTROL THAT CARRIES
+   * `formControlName`, and that is not a style preference — it is measured.
+   * `setUpControl` calls `valueAccessor.setDisabledState(control.disabled)` at
+   * directive setup (`callSetDisabledState: 'always'` is the default from
+   * Angular 16), `SelectControlValueAccessor.setDisabledState` sets the
+   * `disabled` PROPERTY, and setting that property to false removes the
+   * content attribute the binding just wrote. A throwaway spec in this repo's
+   * own harness, on this form's exact shape (a `@if` that opens on a later
+   * change-detection cycle), rendered `disabled === false` and
+   * `getAttribute('disabled') === null` with the expression TRUE.
+   *
+   * So three selects on this form looked locked and were not:
+   *   - End year, until a start year is chosen (added with the year selects);
+   *   - Specialization, until a course is chosen — the cascade this file's own
+   *     class docstring calls "CASCADING SELECTS ENFORCE CONTIGUITY", which
+   *     the server then refuses with a 422 from `_resolve_ancestry`;
+   *   - Degree level on an EDIT, where `saveBatch` deliberately never puts
+   *     `degree_level` on the wire — so the admin could change UG to PG, be
+   *     told "Saved", and watch the reload put the old value back.
+   * The reactive form is the one that actually holds, so the rule is applied
+   * here and the bindings are gone from the template.
+   *
+   * `emitEvent: false` throughout: this is bookkeeping about what is
+   * REACHABLE, and a status round-trip per control would fire the form watch
+   * for every one of them on every open.
+   */
+  private syncBatchDisabled(): void {
+    const setEnabled = (name: string, enabled: boolean): void => {
+      const c = this.batchForm.get(name);
+      if (!c) return;
+      if (enabled && c.disabled) c.enable({ emitEvent: false });
+      else if (!enabled && c.enabled) c.disable({ emitEvent: false });
+    };
+    // A year is not an end until something is a start.
+    if (!this.labelIsFreeText()) setEnabled('end_year', this.spanStart() !== null);
+    // The level cascade, from the same rule the template used to ask for.
+    for (const lv of this.levels()) {
+      if (this.levelDisabled(lv)) setEnabled(lv.field, false);
+      else setEnabled(lv.field, true);
+    }
+    // Create-only, and now create-only in the model rather than in a binding
+    // that does nothing. `code` is disabled by `openEditBatch` directly, as it
+    // always was.
+    setEnabled('degree_level', this.batchMode() !== 'edit');
+  }
+
   async onLevelChange(lv: HierarchyLevel): Promise<void> {
     if (lv.key !== 'course') return;
     // Changing the course clears anything under it and reloads its options.
     const courseId = this.batchForm.get('course_id')?.value as string | null;
     this.batchForm.get('specialization_id')?.setValue(null);
+    // Specialization becomes reachable or unreachable with the course above it.
+    this.syncBatchDisabled();
     if (!courseId) {
       this.formSpecializations.set([]);
       return;
@@ -870,27 +1017,158 @@ export class AdminInstitutionComponent implements OnDestroy {
     });
   }
 
+  // ---- the year span ------------------------------------------------------
+
+  /** The Start select moved.
+   *
+   *  The end year is cleared only when it is no longer a legal end for the new
+   *  start. Clearing it unconditionally — the course → specialization
+   *  cascade's rule one field up — would throw away a still-true end every
+   *  time somebody corrected 2025 to 2026 on a two-year batch; leaving an
+   *  illegal one would put a value in the select that is not among its
+   *  options, which renders blank and is the trap `include` exists to avoid. */
+  onStartYearChange(): void {
+    this.spanStart.set(this.numberValue('start_year'));
+    const end = this.numberValue('end_year');
+    if (end !== null && !this.endYearChoices().includes(end)) {
+      this.batchForm.get('end_year')?.setValue(null);
+      this.spanEnd.set(null);
+    }
+    // End year has just become reachable, or stopped being.
+    this.syncBatchDisabled();
+    this.syncSpan();
+  }
+
+  onEndYearChange(): void {
+    this.spanEnd.set(this.numberValue('end_year'));
+    this.syncSpan();
+  }
+
+  /** Compose the label the row is stored under, and fill the dates the span
+   *  implies. A half-chosen span writes an EMPTY label rather than a partial
+   *  one: `batch_label` is required, so the save gate refuses until both years
+   *  are picked, and nothing stale can be sent in the meantime. */
+  private syncSpan(): void {
+    const start = this.spanStart();
+    const end = this.spanEnd();
+    const label = this.batchForm.get('batch_label');
+    if (start === null || end === null) {
+      label?.setValue('');
+      return;
+    }
+    label?.setValue(formatYearSpan(start, end));
+    const dates = spanDates({ start, end });
+    if (!this.entryDateEdited()) this.batchForm.get('entry_date')?.setValue(dates.entry);
+    if (!this.completionDateEdited()) {
+      this.batchForm.get('expected_completion')?.setValue(dates.completion);
+    }
+  }
+
+  /** A human typed in one of the date boxes, so the span stops filling it.
+   *
+   *  `(input)` fires for a person and never for `setValue`, which is exactly
+   *  the distinction needed and is why this is a listener rather than a
+   *  comparison against the derived value: the two are equal for as long as
+   *  the office agrees with the academic year, and a date typed back to 1 July
+   *  is still a date somebody chose. College structure is deliberately the
+   *  screen where a NON-STANDARD batch is added — a section, odd dates — so
+   *  these two fields stay editable and what is typed in them survives a later
+   *  change of span. */
+  markDateEdited(which: 'entry' | 'completion'): void {
+    if (which === 'entry') this.entryDateEdited.set(true);
+    else this.completionDateEdited.set(true);
+  }
+
+  /** Which editor owns `batch_label`: the two year selects, or the text box.
+   *
+   *  DISABLING IS THE MECHANISM, NOT DECORATION. `saveBlocked` walks the
+   *  controls and skips the disabled ones, so whichever editor is not on
+   *  screen cannot hold the save gate on a `required` nobody can reach — and
+   *  `getRawValue()` carries the label out either way. */
+  private setLabelEditor(freeText: boolean): void {
+    this.labelIsFreeText.set(freeText);
+    const label = this.batchForm.get('batch_label');
+    const start = this.batchForm.get('start_year');
+    const end = this.batchForm.get('end_year');
+    if (freeText) {
+      label?.enable({ emitEvent: false });
+      start?.disable({ emitEvent: false });
+      end?.disable({ emitEvent: false });
+    } else {
+      label?.disable({ emitEvent: false });
+      start?.enable({ emitEvent: false });
+      // NOT enabled here — `syncBatchDisabled` owns End's own rule, and
+      // enabling it unconditionally is what would put an End select in front
+      // of somebody who has not picked a Start.
+      end?.disable({ emitEvent: false });
+    }
+    this.syncBatchDisabled();
+  }
+
+  /** A select's value as a number. `[ngValue]` binds the numbers themselves,
+   *  so this narrows rather than parses, and anything else is "not chosen". */
+  private numberValue(name: string): number | null {
+    const v = this.batchForm.get(name)?.value as unknown;
+    return typeof v === 'number' && Number.isFinite(v) ? v : null;
+  }
+
   openCreateBatch(): void {
     this.batchForm = this.buildBatchForm(this.levels());
     this.formSpecializations.set([]);
     this.grandfathered.set(new Set());
+    // A new batch starts with neither year chosen and both dates blank. The
+    // office picks the span deliberately; defaulting to this year would file
+    // next year's intake under this one for anybody who did not look.
+    this.spanStart.set(null);
+    this.spanEnd.set(null);
+    this.loadedSpan.set(null);
+    this.entryDateEdited.set(false);
+    this.completionDateEdited.set(false);
+    this.setLabelEditor(false);
+    this.watchBatchForm();
     this.editingBatchId.set(null);
     this.batchError.set(null);
     this.batchMode.set('create');
+    // LAST, because `batchMode` is one of the rules it reads and it is only
+    // true from the line above. The same reason it is repeated at the foot of
+    // `openEditBatch`, where Degree level's create-only rule depends on it.
+    this.syncBatchDisabled();
   }
 
   async openEditBatch(b: AdminCohortOut): Promise<void> {
     this.batchForm = this.buildBatchForm(this.levels());
+    const span = parseYearSpan(b.batch_label);
     this.batchForm.patchValue({
       code: b.code,
       name: b.name,
       batch_label: b.batch_label,
+      start_year: span?.start ?? null,
+      end_year: span?.end ?? null,
       degree_level: b.degree_level,
       entry_date: b.entry_date,
       expected_completion: b.expected_completion,
       course_id: b.course_id,
       specialization_id: b.specialization_id,
     });
+    this.spanStart.set(span?.start ?? null);
+    this.spanEnd.set(span?.end ?? null);
+    this.loadedSpan.set(span);
+    // WHAT IS STORED IS WHAT IS SHOWN. `parseYearSpan` answering null is a real
+    // answer about a label somebody typed on purpose — "Chain Batch", "2026-28
+    // Section B" — and two year selects cannot represent one. The text box is
+    // what stops Save rewriting that row into a span this form invented, which
+    // would be `app/batch_labels.py`'s "never overwrite what the office wrote"
+    // broken from the console instead of from SQL.
+    this.setLabelEditor(span === null);
+    // A date is the span's to refill only while it still IS the span's. An odd
+    // date on the row was chosen by somebody — this screen is where a batch
+    // with odd dates is added — so it must survive a later change of span, and
+    // a row whose label is not a span has no derived date to compare against
+    // at all.
+    const derived = span ? spanDates(span) : null;
+    this.entryDateEdited.set(!derived || derived.entry !== b.entry_date);
+    this.completionDateEdited.set(!derived || derived.completion !== b.expected_completion);
+    this.watchBatchForm();
     this.batchForm.get('code')?.disable(); // the code is the batch's handle; not edited here
     this.formSpecializations.set([]);
     if (b.course_id) {
@@ -916,6 +1194,10 @@ export class AdminInstitutionComponent implements OnDestroy {
     this.editingBatchId.set(b.id);
     this.batchError.set(null);
     this.batchMode.set('edit');
+    // LAST: `syncBatchDisabled` reads `batchMode` for Degree level's
+    // create-only rule, and `levels()` for the specialization cascade, both of
+    // which are only settled here.
+    this.syncBatchDisabled();
   }
 
   /** The batch's value at one hierarchy level, without naming the level. */
@@ -931,9 +1213,34 @@ export class AdminInstitutionComponent implements OnDestroy {
     this.batchError.set(null);
   }
 
+  /** Bumped whenever the batch form's validity is recalculated.
+   *
+   *  A FORM'S VALIDITY IS NOT A SIGNAL — the same trap `courseFormIsComplete`
+   *  is mirrored out of, one form up this file. `saveBlocked` is a `computed`,
+   *  and the only signals it read were `busy` and `grandfathered`, neither of
+   *  which moves while somebody types: it answered with whatever the form
+   *  looked like the moment it opened, which is EMPTY, therefore invalid,
+   *  therefore Save disabled for as long as the form was open. This counter
+   *  carries no meaning beyond "the form changed"; it exists so the gate is
+   *  recomputed. */
+  private readonly batchFormTick = signal(0);
+  private batchFormWatch?: Subscription;
+
+  /** Re-point that watch at the form `buildBatchForm` has just replaced. The
+   *  old form is thrown away whole on every open, so its subscription goes
+   *  with it rather than accumulating one per edit. */
+  private watchBatchForm(): void {
+    this.batchFormWatch?.unsubscribe();
+    this.batchFormWatch = this.batchForm.statusChanges.subscribe(() =>
+      this.batchFormTick.update((n) => n + 1),
+    );
+    this.batchFormTick.update((n) => n + 1);
+  }
+
   /** A validator TELLS; this gate REFUSES. Grandfathered blanks are excluded
    *  from the gate so a legacy batch is never bricked by the flip. */
   readonly saveBlocked = computed(() => {
+    this.batchFormTick();
     if (this.busy()) return true;
     const form = this.batchForm;
     const grand = this.grandfathered();
@@ -957,9 +1264,18 @@ export class AdminInstitutionComponent implements OnDestroy {
     // Send the DEEPEST level only; the API derives its ancestors. Sending
     // both is also fine — they are checked, not trusted — but sending only
     // the leaf is the contract stated plainly.
+    // A blank name means "just the year", which is what a batch is. The API
+    // needs `name` NOT NULL, so the label stands in for it — never a
+    // manufactured "Course - Specialization 2024-26", which is the duplication
+    // the spine's links already carry (`app/batch_labels.py`).
+    // `batch_label` is composed by `syncSpan` from the two year selects, or
+    // typed for a row whose stored label is not a span; either way it is this
+    // one control, so the wire is exactly what it was before the selects.
+    const label = String(raw['batch_label'] ?? '').trim();
+    const typedName = String(raw['name'] ?? '').trim();
     const body: Record<string, unknown> = {
-      name: raw['name'],
-      batch_label: raw['batch_label'],
+      name: typedName || label,
+      batch_label: label,
       entry_date: raw['entry_date'],
       expected_completion: raw['expected_completion'],
     };

@@ -50,7 +50,7 @@
   @if (hierarchyUnavailable()) {
     <div class="notice warn" role="status">
       <span class="icon" aria-hidden="true">warning</span>
-      The college structure could not be read, so the Department, Course, Batch and Specialization
+      The college structure could not be read, so the Department, Course, Specialization and Batch
       pickers are empty.
     </div>
   }
@@ -81,20 +81,6 @@
       </select>
     </div>
 
-    <div class="select batch-select">
-      <span class="lbl">Batch</span>
-      <span class="val">{{ batchFilterLabel() }}</span>
-      <select aria-label="Batch" (change)="setBatchFilter(selectValue($event))">
-        <option value="" [selected]="batchFilter() === ''">Every student</option>
-        <option value="unseated" [selected]="batchFilter() === 'unseated'">No batch yet</option>
-        @for (batch of batchOptions(); track batch.id) {
-          <option [value]="batch.id" [selected]="batch.id === batchFilter()">
-            {{ batch.name }} · {{ batch.batchLabel }}{{ batch.isRunning ? '' : ' (ended)' }}
-          </option>
-        }
-      </select>
-    </div>
-
     <div class="select">
       <span class="lbl">Specialization</span>
       <span class="val">{{ specializationFilterLabel() }}</span>
@@ -102,6 +88,28 @@
         <option value="">All specializations</option>
         @for (specialization of specializationOptions(); track specialization.id) {
           <option [value]="specialization.id" [selected]="specialization.id === specializationFilter()">{{ specialization.name }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- Batch sits LAST of the four because it is narrowed by all three above
+         it, and a cascade drawn out of order asks the reader to work backwards.
+         An option spells out only what the selects above have NOT pinned, so at
+         the bottom of the cascade it is the year alone and at the top it still
+         says which course — see `batchPickerOptions`, and the six identical
+         "2026-28"s that got it there. The two sentinels are not batches and
+         must stay reachable at every narrowing: "Every student" is how the
+         reader gets back out. -->
+    <div class="select batch-select">
+      <span class="lbl">Batch</span>
+      <span class="val">{{ batchFilterLabel() }}</span>
+      <select aria-label="Batch" (change)="setBatchFilter(selectValue($event))">
+        <option value="" [selected]="batchFilter() === ''">Every student</option>
+        <option value="unseated" [selected]="batchFilter() === 'unseated'">No batch yet</option>
+        @for (option of batchPickerOptions(); track option.batch.id) {
+          <option [value]="option.batch.id" [selected]="option.batch.id === batchFilter()">
+            {{ option.label }}{{ option.batch.isRunning ? '' : ' (ended)' }}
+          </option>
         }
       </select>
     </div>
@@ -260,7 +268,10 @@
       <section class="card rail-card">
         <div class="rail-card__head">
           <h2 class="card-heading">
-            @if (selectedBatch(); as batch) { Batch · {{ batch.name }} } @else { Roster }
+            <!-- `yearLabel`, the same string the picker offered: the Course,
+                 Specialization and Department facts are spelled out directly
+                 below, so a heading carrying the spine said them twice. -->
+            @if (selectedBatch(); as batch) { Batch · {{ batch.yearLabel }} } @else { Roster }
           </h2>
         </div>
 
@@ -430,7 +441,7 @@
               <select class="ctrl" (change)="setDraft('cohortId', selectValue($event))">
                 <option value="">No batch</option>
                 @for (batch of batches(); track batch.id) {
-                  <option [value]="batch.id" [selected]="batch.id === draft().cohortId">{{ batch.name }} · {{ batch.batchLabel }}</option>
+                  <option [value]="batch.id" [selected]="batch.id === draft().cohortId">{{ batch.displayLabel }}</option>
                 }
               </select>
             </label>
@@ -545,7 +556,7 @@
               <select class="ctrl" (change)="moveToBatchId.set(selectValue($event))">
                 <option value="">Choose a batch</option>
                 @for (batch of otherBatches(); track batch.id) {
-                  <option [value]="batch.id" [selected]="batch.id === moveToBatchId()">{{ batch.name }} · {{ batch.batchLabel }}</option>
+                  <option [value]="batch.id" [selected]="batch.id === moveToBatchId()">{{ batch.displayLabel }}</option>
                 }
               </select>
               <span class="help">The destination batch's department travels with the move.</span>
@@ -569,7 +580,7 @@
       <div class="dialog narrow" role="dialog" aria-modal="true" aria-labelledby="batch-actions-title" (click)="$event.stopPropagation()">
         <header class="dialog-head">
           <div>
-            <h2 class="dialog-title" id="batch-actions-title">Batch actions · {{ batch.name }}</h2>
+            <h2 class="dialog-title" id="batch-actions-title">Batch actions · {{ batch.displayLabel }}</h2>
             <p class="dialog-sub">Every action here touches all {{ batchRosterCount() | plural: 'student' }} in this batch — the filters above do not narrow it.</p>
           </div>
           <button type="button" class="btn ghost sm" aria-label="Close this dialog" (click)="closeDialog()">
@@ -584,7 +595,7 @@
               <select class="ctrl" (change)="moveToBatchId.set(selectValue($event))">
                 <option value="">Choose a batch</option>
                 @for (destination of otherBatches(); track destination.id) {
-                  <option [value]="destination.id" [selected]="destination.id === moveToBatchId()">{{ destination.name }} · {{ destination.batchLabel }}</option>
+                  <option [value]="destination.id" [selected]="destination.id === moveToBatchId()">{{ destination.displayLabel }}</option>
                 }
               </select>
             </label>

@@ -98,11 +98,18 @@ export interface HierarchyCourse {
 export interface HierarchyBatch {
   id: string;
   code: string;
+  /** The batch itself: a YEAR, "2026-28". */
   name: string;
   batch_label: string;
   department_id: string | null;
   course_id: string | null;
   specialization_id: string | null;
+  course_name: string | null;
+  specialization_name: string | null;
+  /** The spine and the year in one sentence, composed by the server from the
+   *  links above: "General MBA - Finance · 2026-28". Render this, never
+   *  `name` beside `batch_label` — they are the same string now. */
+  display_label: string;
   degree_level: string;
   current: boolean;
 }
@@ -134,7 +141,26 @@ export interface MentorLoadApiRow {
 
 export interface BatchOption {
   id: string;
+  /** The batch itself: a YEAR. */
   name: string;
+  /** "General MBA - Finance · 2026-28" — the spine composed back on, for the
+   *  places that name a batch with no Course and Specialization select beside
+   *  them: the two student dialogs and the batch-actions title. */
+  displayLabel: string;
+  /**
+   * The same batch with NO spine — "2026-28", "2026-28 Section B", or
+   * "2024-26 · Chain Batch" where the office's own name is not a span.
+   *
+   * What the filter row's Batch select draws, because Course and
+   * Specialization are their own selects two places to its left: printing the
+   * spine here spelled the same two facts twice in one row, and did it in the
+   * one control where the year is the whole of what is being picked.
+   * `composeBatchLabel` with both spine arguments null, so the YEAR IS NEVER
+   * DROPPED — a batch whose name the parser cannot read keeps its label beside
+   * it rather than being reduced to "Chain Batch", and two batches of one
+   * course stay distinguishable.
+   */
+  yearLabel: string;
   batchLabel: string;
   collegeName: string;
   departmentId: string;
@@ -267,4 +293,44 @@ export function trackColourOf(specializationCode: string | null): string {
   const track = TRACK_COLOURS.find((candidate) => code.startsWith(candidate.prefix));
   if (track === undefined) return UNMAPPED_TRACK_COLOUR;
   return track.colour;
+}
+
+/**
+ * How one Batch option is written in the roster's filter row: the spine rungs
+ * the selects ABOVE it have not already pinned, then the batch itself.
+ *
+ * THE RULE IS NOT "NEVER SHOW THE SPINE", AND THAT DISTINCTION SHIPPED BROKEN
+ * ONCE. Dropping it entirely is right about the duplication — Course and
+ * Specialization are two selects to the left — and wrong about the state the
+ * screen OPENS in. `seed_catalogue.batch_name` returns the label unchanged and
+ * the setup screen's `batchName` is `label.trim()`, so every batch a
+ * deployment writes has `name === batch_label === "2026-28"`. BGSCET's one
+ * department has six leaves, so with Course and Specialization on "All" the
+ * select listed six options reading exactly "2026-28" and picking one was a
+ * guess.
+ *
+ * So a rung is spelled out exactly while the reader has not fixed it. At the
+ * bottom of the cascade both are fixed and the option is the year alone, which
+ * is what the owner asked for and also the only point at which the year alone
+ * identifies anything.
+ *
+ * Pure, and separate from the component, so the case above is a unit test
+ * rather than a thing somebody has to open the screen to see.
+ */
+export function batchPickerLabel(
+  batch: Pick<BatchOption, 'courseName' | 'specializationName' | 'name' | 'batchLabel'>,
+  pinned: { course: boolean; specialization: boolean },
+  compose: (
+    courseName: string | null,
+    specializationName: string | null,
+    name: string,
+    batchLabel: string,
+  ) => string,
+): string {
+  return compose(
+    pinned.course ? null : batch.courseName,
+    pinned.specialization ? null : batch.specializationName,
+    batch.name,
+    batch.batchLabel,
+  );
 }

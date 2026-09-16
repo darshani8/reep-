@@ -1,7 +1,7 @@
 """users.deleted_at — removed from the roster, still in the database
 
 Revision ID: c7d3e9a1f5b2
-Revises: e1c4b7a209d6
+Revises: d7e2f9a41c86
 Create Date: 2026-09-16
 
 The Main Admin asked for two ways to delete a student or a faculty account:
@@ -30,7 +30,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "c7d3e9a1f5b2"
-down_revision: Union[str, None] = "e1c4b7a209d6"
+down_revision: Union[str, None] = "d7e2f9a41c86"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

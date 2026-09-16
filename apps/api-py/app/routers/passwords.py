@@ -32,6 +32,20 @@ NEVER SAY WHETHER AN ADDRESS EXISTS. `forgot` answers the same words with the
 same status whether the account is real, Google-only, or unknown, and does the
 mail work in a background task so the response returns at the same moment in
 every case. Otherwise the form is a free tool for discovering who is enrolled.
+
+`forgot` IS ALSO HOW A PASSWORD-LESS STUDENT GETS THEIR FIRST PASSWORD
+(2026-09-16). A student whose account holds the unusable sentinel - every
+account `app.seed_roster` and `app.grant_access` mint, and every student
+provisioned before 2026-09-10 under option B - could sign in with Google and
+reach a password by NO path at all: this endpoint skipped them in silence,
+`change-password` answered 409 and named "the link you were emailed", which
+they never were, and the console has no button for it. From the student's
+side that was "I typed the right address and the code never came". So a
+STUDENT in that state is now mailed the SETUP link (`issue_password_setup`,
+the same `/onboard` walk provisioning sends: address, code, password) rather
+than nothing. The answer on screen is still one sentence for every address.
+STAFF holding the sentinel are still sent nothing here: their first password
+is the activation link their admin holds and can read out on the phone.
 """
 
 from __future__ import annotations
@@ -211,7 +225,16 @@ class MessageOut(BaseModel):
     detail: str
 
 
-_FORGOT_ANSWER = "If that address has a REEP password, we've sent a reset link to it."
+#: ONE sentence for every address, so it has to be true of both mails this
+#: endpoint can send - the reset link a password account gets and the setup
+#: link a password-less student gets - and of the nothing everyone else gets.
+#: The earlier wording ("if that address has a REEP password ...") told a
+#: student who had none that nothing was coming, on the one path that now
+#: sends them something.
+_FORGOT_ANSWER = (
+    "If that address belongs to a REEP account, we've emailed it a link to reset "
+    "your password - or to set one up, if you have not yet."
+)
 
 
 def _issue_reset_in_background(email: str) -> None:
@@ -221,20 +244,40 @@ def _issue_reset_in_background(email: str) -> None:
         user = db.scalar(select(User).where(User.email == email))
         if user is None:
             return
-        # STUDENTS ARE NO LONGER SKIPPED (2026-09-10). Under option B they held
-        # no password, so a reset link would have quietly created one; they set
-        # a password during onboarding now, and a student who forgets it has
-        # the same claim on this flow as anyone else. The sentinel check below
-        # still covers the account that has not finished onboarding.
-        if not user.password_hash.startswith("scrypt:"):
-            # Google-only account: nothing to reset, and mailing a link would
-            # quietly turn it into a password account.
-            return
         if user.barred_at is not None:
             # Offboarded (B3.3) or removed (2026-09-16). A reset link is a way back in, and there is no
             # way back in. Silently, because /forgot answers the same 202 to
             # every address and must not become "is this account still active".
-            log.info("forgot-password ignored for %s: the account is disabled", email)
+            # FIRST, before either branch below: a disabled password-less
+            # student must not be mailed a setup link either.
+            log.info("forgot-password ignored for %s: the account is disabled or removed", email)
+            return
+        # STUDENTS ARE NO LONGER SKIPPED (2026-09-10). Under option B they held
+        # no password, so a reset link would have quietly created one; they set
+        # a password during onboarding now, and a student who forgets it has
+        # the same claim on this flow as anyone else.
+        if not user.password_hash.startswith("scrypt:"):
+            # The unusable sentinel: nothing to RESET. What happens next depends
+            # on who holds it, and the two answers are deliberately different.
+            #
+            # A STUDENT gets the SETUP link (2026-09-16) - the same `/onboard`
+            # walk an approved applicant is sent, which proves the mailbox with
+            # a code before a password is set. "Mailing a link would quietly
+            # turn it into a password account" was the reasoning here under
+            # option B, and option B is over: students are MEANT to hold a
+            # password now, and this account simply never got the mail that
+            # hands one out (seed_roster, grant_access, or provisioned before
+            # the walk existed). Without this branch such a student can sign in
+            # with Google and has no route to a password anywhere in the product.
+            #
+            # STAFF get nothing. Their first password is an ACTIVATION link,
+            # minted by the admin who created the account and re-mintable on the
+            # Faculty screen, where the admin can read it out when mail fails;
+            # that link sets a password by itself, so it is not one this public
+            # form should be able to put in a mailbox on request.
+            if user.role is Role.STUDENT:
+                account_links.issue_password_setup(db, user)
+                log.info("forgot-password sent a SETUP link for %s: student with no password", email)
             return
         account_links.issue_password_reset(db, user)
 
@@ -300,6 +343,18 @@ def reset(body: LinkPasswordIn, db: Session = Depends(get_db)) -> MessageOut:
 # ----------------------------------------------------------------- change --
 
 
+#: The 409 both change-password endpoints answer an account holding the
+#: sentinel. It used to end "finish setting up your account from the link you
+#: were emailed", which named a mail a roster-seeded or option-B student never
+#: received - a dead end dressed as an instruction. It now names the door that
+#: exists: `forgot`, which mails such a student the setup link.
+NO_PASSWORD_YET_MESSAGE = (
+    "This account has no password yet. To set one, use \"Forgot password?\" on "
+    "the sign-in screen: we will email you a setup link, then a code, and you "
+    "choose a password at the end. You can keep signing in with Google meanwhile."
+)
+
+
 class ChangePasswordIn(BaseModel):
     """TWO WAYS TO PROVE IT IS YOU, and exactly one must be supplied.
 
@@ -353,7 +408,7 @@ def change_password_code(
     if not user.password_hash.startswith("scrypt:"):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="This account has no password yet.",
+            detail=NO_PASSWORD_YET_MESSAGE,
         )
     account_links.issue_change_code(db, user)
     log.info("password-change code sent for %s", user.email)
@@ -385,13 +440,7 @@ def change_password(
     # nothing to change and `verify_password` can never match it. Such an
     # account gets in through Google, or finishes onboarding first.
     if not user.password_hash.startswith("scrypt:"):
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=(
-                "This account has no password yet. Sign in with Google, or "
-                "finish setting up your account from the link you were emailed."
-            ),
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=NO_PASSWORD_YET_MESSAGE)
     # THE POLICY IS CHECKED BEFORE THE PROOF IS SPENT, and the order is the
     # whole point. `_authorised_to_change` CONSUMES the one-time code and
     # commits it, so validating afterwards burns a code on a password that was

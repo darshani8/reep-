@@ -30,6 +30,13 @@ retirement. One door, not two.
 
 NEVER SAY WHETHER AN ADDRESS EXISTS, same rule as `forgot` in passwords.py: a
 mismatched address at step 1 answers exactly what a bad link answers.
+
+TWO MAILS LEAD HERE, ONE WALK. Provisioning sends the link the moment an
+application is approved (`account_links.issue_onboarding`); "Forgot password?"
+sends the same purpose of link to a STUDENT whose account holds no password
+(`account_links.issue_password_setup`, 2026-09-16), because roster-seeded and
+option-B students never got the first mail and had no other way to a
+password. Nothing in these three steps knows or cares which mail it was.
 """
 
 from __future__ import annotations
@@ -60,10 +67,14 @@ router = APIRouter(prefix="/auth", tags=["onboarding"])
 #: link, right link and the wrong address. Telling them apart would turn the
 #: invite into an oracle for "is this person enrolled", and the person who
 #: genuinely mistyped their address is helped by the same words.
+#: "The email we sent you", not "your approval email": since 2026-09-16 the
+#: same link also arrives from "Forgot password?" (account_links.
+#: issue_password_setup), and that form - not the placement office, which has
+#: no button for it - is how anybody gets a fresh one.
 _REFUSED = (
     "That setup link is not valid, or the email address does not match it. "
-    "Check the link in your approval email, or ask the placement office to "
-    "send it again."
+    "Check the link in the email we sent you, or ask for a new one with "
+    "\"Forgot password?\" on the sign-in screen."
 )
 
 

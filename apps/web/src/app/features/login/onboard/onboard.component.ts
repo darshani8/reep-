@@ -133,8 +133,8 @@ export class OnboardComponent {
   constructor() {
     if (!this.token) {
       this.fatal.set(
-        'This page needs the setup link from your approval email. Open that link ' +
-          'again, or ask the placement office to send it to you.',
+        'This page needs the setup link from the email we sent you. Open that link ' +
+          'again, or ask for a new one with "Forgot password?" on the sign-in screen.',
       );
     }
   }

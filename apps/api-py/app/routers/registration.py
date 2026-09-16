@@ -353,14 +353,20 @@ CHECK_BLOCKED = "blocked"
 
 #: Every key this endpoint can emit. The set on any one row is NOT fixed —
 #: `usn_pattern` appears only where a matched rule declares a pattern to check
-#: against, because a line saying "no pattern to check" is noise in a panel whose
-#: job is to be read in two seconds. Clients render what they are given and key
-#: off `key`, never off position.
+#: against, and `prior_applications` only where this address has been REJECTED
+#: before, because a line saying "no pattern to check" or "never applied
+#: before" is noise in a panel whose job is to be read in two seconds. Clients
+#: render what they are given and key off `key`, never off position.
 CHECK_RULE = "rule"
 CHECK_DOMAIN = "domain"
 CHECK_DUPLICATE_ACCOUNT = "duplicate_account"
 CHECK_USN_UNIQUE = "usn_unique"
 CHECK_USN_PATTERN = "usn_pattern"
+#: A WARN, never a block: since 2026-09-16 a rejected address may apply again
+#: (see `submit` and `uq_registration_live_email`), and the reviewer deciding
+#: the new application is the one person who needs to know it is not the first
+#: - and what the office said last time. Approve is not refused by it.
+CHECK_PRIOR_APPLICATIONS = "prior_applications"
 
 
 class CheckOut(BaseModel):
@@ -711,6 +717,23 @@ def _checks_for(db: Session, rows: Sequence[Registration]) -> dict[str, list[Che
             if st.usn:
                 student_by_usn[st.usn] = st
 
+    # -- the rejected applications these addresses made before ----------------
+    # Newest decision first, so `prior[0]` is the one the reviewer should read.
+    # Only REJECTED rows can share an address with a live one (the partial
+    # unique index says so), so this is the whole history by construction.
+    prior_by_email: dict[str, list[Registration]] = {}
+    if emails:
+        earlier = db.scalars(
+            select(Registration)
+            .where(
+                Registration.status == RegistrationStatus.REJECTED,
+                func.lower(Registration.email).in_(list(emails)),
+            )
+            .order_by(Registration.reviewed_at.desc().nullslast(), Registration.created_at.desc())
+        ).all()
+        for p in earlier:
+            prior_by_email.setdefault((p.email or "").lower(), []).append(p)
+
     # -- the rules that routed them -------------------------------------------
     rule_ids = {r.matched_rule_id for r in rows if r.matched_rule_id}
     rules_by_id: dict[str, RegistrationRule] = (
@@ -732,6 +755,10 @@ def _checks_for(db: Session, rows: Sequence[Registration]) -> dict[str, list[Che
             student_by_user=student_by_user,
             student_by_usn=student_by_usn,
             rule=rules_by_id.get(r.matched_rule_id) if r.matched_rule_id else None,
+            # Not itself: a row in the Rejected tab is never in `rows` here
+            # (DECIDABLE_STATUSES), but the exclusion costs nothing and keeps
+            # the helper honest if that ever changes.
+            prior=[p for p in prior_by_email.get((r.email or "").strip().lower(), []) if p.id != r.id],
         )
         for r in rows
     }
@@ -745,15 +772,39 @@ def _checks_for_one(
     student_by_user: dict[str, Student],
     student_by_usn: dict[str, Student],
     rule: RegistrationRule | None,
+    prior: Sequence[Registration] = (),
 ) -> list[CheckOut]:
     """One application's checklist, from facts the caller already resolved.
 
     PURE, and takes no Session on purpose: every lookup it could make is one the
     batched caller above has already made for the whole page, and a helper that
     can reach the database is a helper somebody calls in a loop.
+
+    `prior` is this address's REJECTED applications, newest decision first.
     """
     checks: list[CheckOut] = []
     reason = (r.decision_reason or "").strip()
+
+    # ---- applied before? ----------------------------------------------------
+    # First on the list when it applies, because it changes how every line
+    # below should be read: this is the SECOND (or third) time the office is
+    # looking at this person, and what it said last time is the context.
+    if prior:
+        last = prior[0]
+        when = last.reviewed_at.strftime("%d %b %Y") if last.reviewed_at else "an earlier date"
+        note = (last.review_note or "").strip()
+        times = "once" if len(prior) == 1 else f"{len(prior)} times"
+        checks.append(
+            CheckOut(
+                key=CHECK_PRIOR_APPLICATIONS,
+                status=CHECK_WARN,
+                label=f"Applied before - rejected {times}, last on {when}",
+                detail=(
+                    (f"The reason given then: \"{note}\" " if note else "No reason was recorded then. ")
+                    + "This is a fresh application; the earlier one is on the Rejected tab."
+                ),
+            )
+        )
 
     # ---- the rule engine's own verdict --------------------------------------
     if rule is None:
@@ -1240,7 +1291,23 @@ def submit(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="A valid email is required."
         )
-    existing = db.scalar(select(Registration).where(Registration.email == email))
+    # A LIVE application on the address blocks a new one; a REJECTED one does
+    # not (2026-09-16). Until then this read every row, and `registrations.email`
+    # was UNIQUE outright, so an address the office had rejected - for a
+    # mistyped USN, say - could never apply again: the corrected form met the
+    # 409 below, whose words are the same for a live duplicate, and the
+    # rejection mail had sent them to the same office. A rejection is a
+    # decision about ONE application and the row stays as its record; the
+    # address is not spent with it. `uq_registration_live_email` (partial, on
+    # `status <> 'REJECTED'`) is the same rule in the database, so two
+    # submissions racing this read cannot both land. Reviewers see the history:
+    # `_checks_for` puts a `prior_applications` line on the new row.
+    existing = db.scalar(
+        select(Registration).where(
+            Registration.email == email,
+            Registration.status != RegistrationStatus.REJECTED,
+        )
+    )
     if existing is not None:
         # Deliberately does NOT confirm that an application exists for this
         # address. The old wording ("An application with this email already

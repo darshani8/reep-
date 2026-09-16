@@ -300,8 +300,8 @@
               placeholder="you@bgscet.ac.in"
             />
             <p class="field__help">
-              If that address has a REEP password, a reset link goes to it. Students sign in with
-              Google and have no password to reset.
+              If that address belongs to a REEP account, a link goes to it: to reset your password,
+              or to set one up if you have only ever signed in with Google.
             </p>
             <button class="btn-primary" type="submit" [disabled]="forgotBusy() || !forgotEmail().trim()">
               {{ forgotBusy() ? 'Sending…' : 'Send reset link' }}
@@ -312,8 +312,9 @@
 
       <!-- The design's two doors under the card. "New student" is the public
            application; "Already approved" is a student whose application the
-           placement office approved — they hold no password (option B), so their door
-           is Google, which the link brings into focus. -->
+           placement office approved. Their setup link is the way to a password;
+           Google works for them meanwhile, and that is what the link brings into
+           focus. -->
       <div class="doors">
         <a routerLink="/register">New student? Register →</a>
         <button type="button" class="linkish doors__approved" (click)="approvedSignIn()">

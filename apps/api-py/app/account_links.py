@@ -14,12 +14,21 @@ sign-in CODE (`PURPOSE_LOGIN_CODE`) shares the first table and not the rule:
 its hash is bound to its row (`_hash_code`), it is found by user rather than
 by hash (`consume_user_code`), and its dead rows are deleted rather than kept.
 
-WHO THE MAIL GOES TO, BY ROLE — the decision recorded as "option B" in the
-agreed plan: STUDENTS SIGN IN WITH GOOGLE AND NEVER HOLD A PASSWORD, so a
-provisioned student gets an ENROLMENT NOTICE ("your account is ready, sign in
-with your college Google account") and never an activation link. STAFF
-(mentor, admin, alumni) get password accounts through activation.
-`issue_activation` refuses a STUDENT for that reason.
+WHO THE MAIL GOES TO, BY ROLE. STAFF (mentor, admin, alumni) get password
+accounts through an ACTIVATION link, minted by the admin who created them.
+STUDENTS get a SETUP link (`PURPOSE_ONBOARD`) that walks them through an
+emailed code before any password is set, and it is minted by TWO issuers:
+`issue_onboarding`, from provisioning, the moment an application is approved;
+and `issue_password_setup`, from `/auth/forgot`, for a student who holds no
+password and asked for one. The second exists because the first never reached
+every student: `app.seed_roster` and `app.grant_access` mint accounts holding
+the unusable sentinel and send nothing, and every student provisioned before
+2026-09-10 got option B's "sign in with Google" notice instead of a link. Such
+an account could sign in with Google and had NO path to a password at all -
+`forgot` skipped it silently, `change-password` answered 409, and the console
+has no "send setup link" - which read, from the student's side, as "I typed
+the right address and the code never came". `issue_activation` still refuses
+a STUDENT: their walk is the one that proves the mailbox with a code first.
 """
 
 from __future__ import annotations
@@ -490,6 +499,45 @@ def send_onboarding_code(db: Session, user: User, code: str, token_id: str) -> N
     )
 
 
+def send_password_setup(db: Session, user: User, raw: str, token_id: str) -> str:
+    """The setup link a student ASKED for, from "Forgot password?" on the sign-in
+    screen, when their account holds no password to reset.
+
+    Its own words and not `send_onboarding_invite`'s. That mail opens "Your
+    registration has been approved", which is true of nobody reading this one:
+    a roster-seeded student was never an applicant, and a student provisioned
+    under option B was approved months ago. The link is the SAME purpose
+    (`PURPOSE_ONBOARD`), so the `/onboard` walk - address, code, password - is
+    identical from here on; only the sentence that brings them to it differs.
+
+    It says what to do if they did not ask, because a link that can end in a
+    password on an account is a link whose unexpected arrival is worth a
+    sentence - and it says the account is unchanged until the walk is finished,
+    which is true: the link alone sets nothing.
+    """
+    link = f"{settings.web_origin.rstrip('/')}/onboard?token={raw}"
+    subject = "Set a password for your REEP account"
+    text = (
+        f"Hello {user.name},\n\n"
+        f"You asked to set a password for your REEP account. Set it up here:\n\n"
+        f"    {link}\n\n"
+        f"You will be asked to confirm your email address with a one-time code, "
+        f"and then to choose a password. The link expires in "
+        f"{_human_hours(settings.activation_link_hours)}.\n\n"
+        f"If you did not ask for this, ignore this email - nothing changes on "
+        f"your account, and you can carry on signing in with Google.\n"
+    )
+    deliver_once(
+        db,
+        kind="password-setup",
+        recipient=user.email,
+        dedupe_key=f"setup:{user.id}:{token_id}",
+        subject=subject,
+        send=_driver(text),
+    )
+    return link
+
+
 def send_change_code(db: Session, user: User, code: str, token_id: str) -> None:
     """The code that authorises changing the password on a LIVE account.
 
@@ -559,8 +607,10 @@ def send_registration_rejected(db: Session, registration: Registration, reason: 
         f"Hello {registration.name},\n\n"
         f"Your REEP registration could not be accepted.\n\n"
         f"Reason given by the placement office:\n\n    {reason}\n\n"
-        f"If you believe this is a mistake, reply to the placement office with "
-        f"your name and USN.\n"
+        f"If the reason is something you can put right - a mistyped USN, a "
+        f"missing document - you can apply again from the registration page "
+        f"with the corrected details. If you believe this is a mistake, reply "
+        f"to the placement office with your name and USN.\n"
     )
     deliver_once(
         db,
@@ -673,6 +723,38 @@ def issue_onboarding(db: Session, user: User) -> tuple[str, bool]:
     return link, mail_transport.configured()
 
 
+def issue_password_setup(db: Session, user: User) -> tuple[str, bool]:
+    """Mint the setup link for a STUDENT who holds no password and asked for one.
+
+    The same token `issue_onboarding` mints - `PURPOSE_ONBOARD`, the same
+    lifetime, spent by the same three steps in routers/onboarding.py - carried
+    by a mail that says why it arrived. Superseding is `issue_user_token`'s, so
+    a student who still holds an unspent approval invite gets ONE live link and
+    the older one dies; asking twice does not leave two links in the inbox.
+
+    THIS IS THE ONLY WAY A ROSTER-SEEDED STUDENT REACHES A PASSWORD, and it is
+    deliberately self-service rather than a console button. A staff member who
+    says "the email never arrived" is answered by the admin reading out the
+    activation link, because that link alone sets a password; a student's walk
+    needs the mailbox TWICE (the link, then the code), so a link read out on the
+    phone helps nobody whose mail is not arriving, and an admin action minting
+    it would only put the same link in the same inbox. The student is the one
+    person who can tell whether that inbox works, so the door is theirs. It
+    stays behind `forgot`'s per-address throttle.
+
+    Refuses nothing itself: the caller (`passwords._issue_reset_in_background`)
+    has already established the role, the sentinel and that the account is not
+    disabled, and it does so in a background task precisely so that the public
+    endpoint's answer cannot depend on any of them.
+    """
+    raw, row = issue_user_token(
+        db, user, PURPOSE_ONBOARD, timedelta(hours=settings.activation_link_hours)
+    )
+    db.commit()
+    link = send_password_setup(db, user, raw, row.id)
+    return link, mail_transport.configured()
+
+
 def issue_onboarding_code(db: Session, user: User) -> None:
     """Mail the six digits that confirm the address. Minutes, not hours."""
     _, row = issue_user_token(
@@ -736,8 +818,10 @@ def issue_delete_code(db: Session, user: User) -> None:
 
 def issue_password_reset(db: Session, user: User) -> None:
     """Mint a reset link and email it. Only for accounts that HOLD a password —
-    a Google-only account has nothing to reset, and mailing it a link would
-    quietly turn it into a password account."""
+    an account holding the sentinel has nothing to reset. A STUDENT in that
+    state is sent `issue_password_setup`'s link instead, which walks them
+    through the code first; a STAFF account in that state is waiting on the
+    activation link its admin holds, and is sent nothing."""
     raw, row = issue_user_token(
         db, user, PURPOSE_RESET, timedelta(minutes=settings.password_reset_minutes)
     )

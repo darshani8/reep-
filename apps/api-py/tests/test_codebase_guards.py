@@ -1793,6 +1793,21 @@ RETENTION_APP_IMPORTS: frozenset[tuple[str, str]] = frozenset(
         ("models.interview", "InterviewTurn"),
         ("redaction", "REDACTED"),
         ("redaction", "redact_pii"),
+        # Imported LAZILY, inside `purge_expired`, to age the CV and photograph
+        # off applications rejected long enough ago that nobody is undoing the
+        # rejection any more.
+        #
+        # REVIEWED, WHICH IS WHAT ADDING A NAME HERE MEANS. `app/
+        # registration_documents.py` exists so that this import can be made at
+        # all: the helper began life in `app/routers/registration.py`, which
+        # PROVISIONS ACCOUNTS and so imports Role, Student and User, and reaching
+        # it there would have pulled all three into the nightly process while
+        # this guard — which reads only retention.py's own import statements —
+        # went on passing. The module it names now holds `Registration` and
+        # `RegistrationDocument` and nothing that is an account, and a
+        # registration is not one: the row has no foreign key to `Student` and
+        # the applicant has no `users` row until somebody approves them.
+        ("registration_documents", "purge_rejected_documents"),
     }
 )
 

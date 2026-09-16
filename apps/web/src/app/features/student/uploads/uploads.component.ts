@@ -91,7 +91,21 @@ export class UploadsComponent {
   /** true while a file is dragged over the dropzone. */
   readonly dragOver = signal(false);
 
-  /** When set, a successful upload deletes this (old) row — a true replace. */
+  /**
+   * The row the pending Replace points at.
+   *
+   * It is READ AND CLEARED by `onReplacePick`, the change handler of the
+   * replace-only picker, and by nothing else — which is the whole guard. A
+   * cancelled file dialog fires no change event at all, so this used to stay
+   * armed after "Replace" was pressed and abandoned, and the NEXT ordinary
+   * upload (dropzone, drag-and-drop, any file) deleted the abandoned row: a
+   * document the student never touched again, gone with no prompt and no undo,
+   * because DELETE /student/uploads/{id} unlinks the bytes and drops the row.
+   * Two pickers is what makes that unreachable rather than merely unlikely —
+   * the input whose selection can delete something is the input only `replace`
+   * ever opens, so a stale target can only ever be consumed by a Replace press
+   * that has just overwritten it.
+   */
   private readonly replaceTargetId = signal<string | null>(null);
   /** The row currently being removed, so its card can disable + show progress. */
   readonly removingId = signal<string | null>(null);
@@ -174,8 +188,36 @@ export class UploadsComponent {
     input.value = ''; // allow re-picking the same file
   }
 
+  /**
+   * The replace picker's own change event — the ONE file selection allowed to
+   * delete an existing row, and it takes the target away with it before the
+   * upload starts. Read-and-clear, not read-then-clear-on-success: if the
+   * upload fails the student is back on step 1 with nothing armed, which is the
+   * state they can see.
+   */
+  onReplacePick(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    const replacing = this.replaceTargetId();
+    this.replaceTargetId.set(null);
+    if (file) void this.uploadFile(file, replacing);
+    input.value = ''; // allow re-picking the same file
+  }
+
+  /** The dialog was dismissed, so the Replace never happened — disarm it now
+   *  rather than leaving a delete waiting on a document the student has
+   *  stopped thinking about. (The two-picker split above already makes a stale
+   *  target unusable; this is the same fact said where it happens, and it is
+   *  what keeps the screen's state equal to what the student did.) */
+  cancelReplace(): void {
+    this.replaceTargetId.set(null);
+  }
+
   /// POST the file as multipart; the server sniffs the type and stores it.
-  private async uploadFile(file: File): Promise<void> {
+  /// `replacing` is the row this upload supersedes, passed in from the one
+  /// selection event that armed it — never read back off component state,
+  /// which outlives the gesture that set it.
+  private async uploadFile(file: File, replacing: string | null = null): Promise<void> {
     this.uploadError.set(null);
     this.actionError.set(null);
     this.justUploaded.set(null);
@@ -205,11 +247,9 @@ export class UploadsComponent {
       }
       const created = (await res.json()) as UploadRow;
       // A true replace: drop the old document now the new one is safely stored.
-      const oldId = this.replaceTargetId();
-      if (oldId) {
-        await this.deleteUpload(oldId).catch(() => undefined);
-        this.replaceTargetId.set(null);
-      }
+      // In this order, always — a failure here costs the student a duplicate
+      // they can remove, where the other order costs them the document.
+      if (replacing) await this.deleteUpload(replacing).catch(() => undefined);
       this.justUploaded.set(created); // shows step 3 + the preview
       await this.load(); // reflect the new PENDING_REVIEW row
     } catch {
@@ -221,8 +261,13 @@ export class UploadsComponent {
 
   // --- per-row actions -----------------------------------------------------
 
-  /** Replace: re-use the row's kind and open the picker; on success the old
-   * row is deleted so the record shows a single, current document. */
+  /** Replace: re-use the row's kind and open the REPLACE picker; on success the
+   * old row is deleted so the record shows a single, current document. The
+   * picker handed in is `#replacePicker` and never the dropzone's own — see
+   * `replaceTargetId`. Setting the type selector to the row's kind stays
+   * truthful whatever happens next: it is on screen, it is what the dropzone's
+   * hint reads back, and it is what an upload started from anywhere else on
+   * this panel will be filed as. */
   replace(row: UploadRow, picker: HTMLInputElement): void {
     this.kind.set(row.kind);
     this.replaceTargetId.set(row.id);

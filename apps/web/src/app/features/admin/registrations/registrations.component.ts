@@ -38,6 +38,33 @@
  *                                         `admin.registrations` and nothing
  *                                         else — `/api/admin/cohorts` is not,
  *                                         it asks for `admin.analytics`)
+ *   GET  /api/register/{id}/documents/{kind}/file
+ *                                         the CV or the headshot the applicant
+ *                                         attached, `kind` being `cv` or
+ *                                         `photo` — same `admin.registrations`
+ *                                         gate and the same reachability
+ *                                         predicate the queue itself is drawn
+ *                                         from, so a row this account cannot
+ *                                         see is a file it cannot read by id
+ *
+ * THE REVIEWER CAN LOOK AT WHAT WAS ATTACHED, AND COULD NOT BEFORE. The panel
+ * said "CV + photo" in a chip and "CV attached" in a check line, and neither
+ * one opened anything: the Main Admin approved or rejected a person having seen
+ * the WORD "CV" and never the file. Approve moves those exact bytes onto the
+ * new student's own uploads as their first RESUME and PROFILE_PHOTO
+ * (`_move_documents_to_uploads`), so a blank PDF or somebody else's headshot
+ * lands on a real roster row and nothing catches it until the student does.
+ * This decision is the only moment anybody can look.
+ *
+ * They are LINKS AND NOT A PREVIEW, because the endpoint answers
+ * `Content-Disposition: attachment` — `document_store.content_disposition`'s
+ * default, for the reason that module gives: every byte in that store was
+ * uploaded by a stranger, here literally an unauthenticated one, and a PDF
+ * rendered inline runs its embedded JavaScript in this SPA's own origin. So the
+ * browser saves the file rather than drawing it, the glyph is `download`, and
+ * there is no `target="_blank"` to flash a tab that closes itself. The chip and
+ * the check lines stay exactly where they are: "is anything attached" is an
+ * at-a-glance question and a different one from "is this the right file".
  *
  * THE CHECKS ARE THE SERVER'S NOW (B11.1). Every row of `GET /pending` carries
  * `checks[]`: the rule engine's verdict, the college domain fence, whose account
@@ -166,6 +193,25 @@ const EVERY_BATCH = '';
 /** What a field the application never carried reads as. Never a zero and never
  *  a guess: a missing USN and a wrong one are different facts. */
 const NOT_ON_RECORD = 'Not on record';
+
+/** The two things an applicant may attach, and the one place this screen turns
+ *  the kind the payload carries into the path segment the file endpoint takes.
+ *
+ *  THEY ARE TWO VOCABULARIES THAT HAPPEN TO RHYME. `documents[]` carries the
+ *  model's own constants — `DOCUMENT_KIND_CV` / `DOCUMENT_KIND_PHOTO` in
+ *  `app/models/registration.py`, upper case — while `_DOCUMENT_ROUTES` keys the
+ *  route on `cv` / `photo`. Lower-casing the payload would be right today and
+ *  quietly wrong the day a third kind arrives whose two spellings differ by more
+ *  than case, and it would be wrong as a 404 on a button the reviewer can see,
+ *  which reads as a broken console rather than as a mapping nobody updated. A
+ *  table makes adding that kind an edit here.
+ *
+ *  The order is the order the checklist reads them in, so the links and the two
+ *  lines under them agree about which document is which. */
+const OPENABLE_DOCUMENTS: { kind: string; segment: string; label: string }[] = [
+  { kind: 'CV', segment: 'cv', label: 'Open CV' },
+  { kind: 'PHOTO', segment: 'photo', label: 'Open photo' },
+];
 
 // ------------------------------------------------------- the API payloads --
 
@@ -308,6 +354,16 @@ const CHECK_TONES: Record<CheckApiRow['status'], { tone: ApplicationCheck['tone'
   warn: { tone: 'warn', icon: 'warning' },
   blocked: { tone: 'risk', icon: 'block' },
 };
+
+/** One attachment the panel offers to open: the label the reviewer reads and
+ *  the URL behind it, resolved once per reviewed application rather than in a
+ *  template expression that runs on every repaint. `kind` is carried through
+ *  only so `@for` has something stable to track. */
+interface OpenableDocument {
+  kind: string;
+  label: string;
+  href: string;
+}
 
 /** The key of the server check the Email domain column colours itself from. */
 const DOMAIN_CHECK_KEY = 'domain';
@@ -912,6 +968,40 @@ export class AdminRegistrationsComponent {
   readonly blockingChecks = computed<ApplicationCheck[]>(() =>
     this.checks().filter((check) => check.tone === 'risk'),
   );
+
+  /** The attachments this application actually carries, as links.
+   *
+   *  DRAWN FROM `documents[]` AND FROM NOTHING ELSE, which is the same array
+   *  the chip and the two check lines are drawn from — so "Photo only" and an
+   *  "Open CV" button can never appear together, and a link is never offered
+   *  for a file the endpoint would answer 404 for. That matters more than it
+   *  looks: an "Open photo" that 404s reads to the office as a broken screen,
+   *  where an application that simply attached no photo is a fact the check
+   *  line below already states in words.
+   *
+   *  It also means the links disappear on an APPROVED row without a branch
+   *  here. `_move_documents_to_uploads` deletes the `registration_documents`
+   *  row as it hands the bytes to the student's uploads, and `_doc_kinds` reads
+   *  that table live, so the payload stops listing the kind at the same moment
+   *  the endpoint stops serving it. A REJECTED application keeps its documents
+   *  on purpose (`purge_rejected_documents` is what eventually destroys them),
+   *  so they stay openable — which is what the Rejected tab's Undo needs, since
+   *  the reviewer reopening a refusal is the person most likely to want a
+   *  second look at the file. */
+  readonly openableDocuments = computed<OpenableDocument[]>(() => {
+    const reviewed = this.reviewedApplication();
+    if (reviewed === null) return [];
+    const attached = new Set(reviewed.application.documents);
+    return OPENABLE_DOCUMENTS.filter((kind) => attached.has(kind.kind)).map((kind) => ({
+      kind: kind.kind,
+      label: kind.label,
+      // Same-origin, so the httpOnly `reep_session` cookie rides along on the
+      // browser's own navigation with nothing for this component to attach —
+      // the idiom every other file link in this app uses
+      // (`verifications.component.ts`'s `fileUrl`, `uploads.component.ts`'s).
+      href: `${environment.apiBase}/register/${reviewed.registrationId}/documents/${kind.segment}/file`,
+    }));
+  });
 
   private batchCheckFor(application: RegistrationApiRow, batchLabel: string): ApplicationCheck {
     const asked = application.requested_batch;

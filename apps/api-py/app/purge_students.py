@@ -48,8 +48,14 @@ is stopped by BOTH destructors rather than by the one they happened to read.
 SECOND, THE FILES GO BEFORE THE ROWS, for `purge_people`'s reason — a row is
 the last pointer to a student's resume and a named student's recorded voice,
 and a delete that loses the pointer first leaves bytes nobody can find. The
-three stores are destroyed through `purge_people`'s own functions, handed the
-subset of rows this purge is taking, never a copy of the logic.
+four stores are destroyed through `purge_people`'s own functions, handed the
+subset of rows this purge is taking, never a copy of the logic. The fourth is
+the voice platform's dual-channel WAV, which neither module swept until it was
+found missing from both: `platform/<call id>.wav` is not a name
+`interview_audio.track_path` can produce, so the per-speaker sweep passed it by
+while `platform_call_sessions` — the file's only pointer — went with the
+student. Here the ids are scoped to the doomed accounts like every other row,
+so a faculty member's call recording is not touched by a cohort clear-out.
 
 THIRD, IT REFUSES TO TOUCH A NON-STUDENT. The doomed set is `role == STUDENT`
 and nothing else, plus — under `--include-graduates`, and only there — the
@@ -100,6 +106,7 @@ from .purge_people import (
     known_tables,
     destroy_document_files,
     destroy_interview_audio,
+    destroy_platform_call_audio,
     destroy_s3_recordings,
 )
 
@@ -639,6 +646,12 @@ class Plan:
     rows: dict[str, int] = field(default_factory=dict)
     files: int = 0
     audio_sessions: int = 0
+    #: Doomed students' platform calls, whose local stereo recording is swept
+    #: off the volume. A count of CALLS and not of files, `purge_people.Plan`'s
+    #: reading of the same number: what is on the disk is the filesystem's
+    #: answer, not the row's, so the sweep is offered every doomed call and what
+    #: a dry run can honestly promise is how many it will look under.
+    platform_calls: int = 0
     s3_objects: int = 0
 
     @property
@@ -798,6 +811,20 @@ def build_plan(db: Session, *, include_former_students: bool = False) -> Plan:
     plan.audio_sessions = int(db.scalar(select(func.count()).select_from(sessions)) or 0)
 
     calls = Base.metadata.tables["platform_call_sessions"]
+    # Two numbers off one table, `purge_people.build_plan`'s pair: one call can
+    # leave bytes in the bucket (only where the upload happened, hence the
+    # `recording_s3_key` predicate) and on the local volume (written whether or
+    # not a bucket was ever configured). Both are SCOPED — unlike the interview
+    # audio above, a `platform_call_sessions` row can belong to a staff account,
+    # and a cohort clear-out does not touch that person's recording.
+    plan.platform_calls = int(
+        db.scalar(
+            _scoped(
+                select(func.count()).select_from(calls), "platform_call_sessions", doomed
+            )
+        )
+        or 0
+    )
     plan.s3_objects = int(
         db.scalar(
             _scoped(
@@ -815,7 +842,7 @@ def build_plan(db: Session, *, include_former_students: bool = False) -> Plan:
 
 def _destroy_files(db: Session, plan: Plan) -> list[str]:
     """Bytes first, rows after — the subset of each store that belongs to the
-    students going. The three destroyers are `purge_people`'s own."""
+    students going. The four destroyers are `purge_people`'s own."""
     documents: list[tuple[str, str]] = []
     for name, column in FILE_COLUMNS.items():
         if STUDENT_VERDICTS[name] == KEEP:
@@ -828,22 +855,24 @@ def _destroy_files(db: Session, plan: Plan) -> list[str]:
     audio = db.execute(select(sessions.c.id, sessions.c.audio_path)).all()
 
     calls = Base.metadata.tables["platform_call_sessions"]
-    keys = [
-        key
-        for (key,) in db.execute(
-            _scoped(
-                select(calls.c.recording_s3_key).where(
-                    calls.c.recording_s3_key.is_not(None)
-                ),
-                "platform_call_sessions",
-                plan.doomed,
-            )
-        ).all()
-    ]
+    # ONE scoped read, `purge_people._destroy_files`'s: both of a call's
+    # recordings are answered from the same row, and this is the last moment
+    # either can be answered at all — `_delete_rows` takes these rows a few
+    # statements from now, and the id IS the local file's name.
+    call_rows = db.execute(
+        _scoped(
+            select(calls.c.id, calls.c.recording_s3_key),
+            "platform_call_sessions",
+            plan.doomed,
+        )
+    ).all()
+    call_ids = [call_id for call_id, _ in call_rows]
+    keys = [key for _, key in call_rows if key is not None]
 
     failures = (
         destroy_document_files(documents)
         + destroy_interview_audio(audio)
+        + destroy_platform_call_audio(call_ids)
         + destroy_s3_recordings(keys)
     )
     # `purge_people._destroy_files`'s reasoning, applied to the subset: the
@@ -953,6 +982,7 @@ def _stamp(db: Session, plan: Plan) -> None:
                     "tables_touched": sorted(plan.rows),
                     "files_deleted": plan.files,
                     "audio_sessions_swept": plan.audio_sessions,
+                    "platform_calls_swept": plan.platform_calls,
                     "s3_objects_deleted": plan.s3_objects,
                 },
             )
@@ -981,9 +1011,10 @@ def _report(db: Session, plan: Plan, *, applied: bool) -> None:
     log.info("  %-45s %8d row(s)  TOTAL", "", plan.total_rows)
     log.info(
         "Stored files: %d document(s), %d interview session(s) swept for audio, "
-        "%d S3 recording(s).",
+        "%d platform call(s) swept for a local recording, %d S3 recording(s).",
         plan.files,
         plan.audio_sessions,
+        plan.platform_calls,
         plan.s3_objects,
     )
 

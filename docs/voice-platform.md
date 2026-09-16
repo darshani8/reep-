@@ -111,8 +111,21 @@ PG** queue by their `degree_level`, and writes `rejects/<key>.rejects.json`
 naming each rejected row and field. `worker.py` drains a queue into
 `platform_candidates` (upsert on `external_id`; a message that cannot be
 stored is left for the DLQ, never silently acked). The same validator backs
-`POST /api/platform/admin/candidates/bulk`, which queues when a queue is
-configured and stores directly when none is — and says which in `mode`.
+`POST /api/platform/admin/candidates/bulk`, which **stores rows directly by
+default** and says which path it took in `mode`.
+
+That default used to be `auto` — queue when a queue is configured, store when
+none is — and it was changed because **nothing in this repository runs
+`app.voice_platform.queue.worker`**: the ingest Lambda's asset explicitly
+excludes `worker.py`, and there is no compose service, ECS service or schedule
+that starts it. So on a deployed stack `auto` silently turned the dashboard
+upload from "stores rows" into "queues into a void": the response said
+`{"mode": "queued", "accepted": 400}`, `platform_candidates` stayed empty, and
+four days later the messages expired out of SQS without ever being RECEIVED —
+so they never reached the DLQ either, which is the one place an operator was
+told to look. `mode=queue` still works for an operator who asks for it, and the
+result now carries a note saying no consumer is running. Until that worker has
+a trigger, the S3 → Lambda → SQS ingest path has the same dead end.
 
 ## Configuration
 

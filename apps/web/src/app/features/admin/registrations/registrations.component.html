@@ -324,6 +324,38 @@
           </div>
         </dl>
 
+        <!-- OPENING WHAT WAS ATTACHED. The chip above says WHETHER a CV and a
+             photo came with the application; these say what is in them. Approve
+             moves those exact bytes onto the new student's uploads as their
+             RESUME and PROFILE_PHOTO, so this decision is the only moment
+             anybody looks at them: a blank PDF or the wrong headshot otherwise
+             lands on a real roster row and nothing catches it until the student
+             does.
+
+             A link is drawn only for a kind `documents[]` actually lists, so it
+             can never 404 in the reviewer's face, and the check lines below say
+             in words what is missing where one is absent.
+
+             SAVES RATHER THAN PREVIEWS, and the label does not pretend
+             otherwise: the endpoint answers `Content-Disposition: attachment`
+             (a stranger's PDF rendered inline would run its own JavaScript in
+             this SPA's origin), so the glyph is `download` and there is no
+             `target="_blank"` to open a tab the download then leaves empty.
+
+             `.panel-actions` is this panel's existing row-of-buttons rule —
+             flex, 8px, wrapping — reused rather than copied under a second
+             name, which is the duplicate the stylesheet guards ratchet on. -->
+        @if (openableDocuments().length) {
+          <div class="panel-actions">
+            @for (attachment of openableDocuments(); track attachment.kind) {
+              <a class="btn sm" [href]="attachment.href">
+                <span class="icon" aria-hidden="true">download</span>
+                {{ attachment.label }}
+              </a>
+            }
+          </div>
+        }
+
         <!-- THE HOLD NOTE, AND ONLY WHERE THERE IS ONE. It is the whole reason
              HOLD exists as a status: without the words, a held application is a
              pending application with a different tab. `hold_note` is staff-only

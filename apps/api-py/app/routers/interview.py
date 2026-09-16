@@ -66,9 +66,21 @@ recorder is constructed (app.interview_audio.recorder_for), and it hands back
 None unless INTERVIEW_RECORDING_ENABLED is true AND the student holds a live
 `scope_store_audio` grant. Neither is true in a default deployment, so nothing is
 written. When both are true, the five `audio_*` columns written by the Layer 1
-finalizer are the ONLY record that a file exists -- retention deletes recordings
-by reading them -- which is why they are set in the same UPDATE as the terminal
-status and not in a second write that could fail on its own.
+finalizer are the interview record's ONLY account of what was kept -- retention
+deletes recordings by reading them -- which is why they are set in the same
+UPDATE as the terminal status and not in a second write that could fail on its
+own.
+
+AND ONE ROW PER WAV IN `archived_documents`, WHICH ANSWERS A DIFFERENT QUESTION.
+Those five columns say what THIS interview kept, and they are deleted with the
+interview after INTERVIEW_RETENTION_DAYS (and outright by
+`python -m app.purge_people`). The nightly sweep has by then copied the files
+into the Object-Locked archive under their own names and nothing else, so the
+moment the row goes the bucket holds a named student's recorded voice that
+nobody can name. The Layer 1 finalizer writes the manifest row that answers it
+-- see `_record_audio_in_the_manifest`. It is an INDEX and never a second set of
+audio columns: retention still sweeps the store by session id and never by what
+a row believes.
 """
 
 import asyncio
@@ -90,7 +102,12 @@ from ..config import settings
 from ..db import SessionLocal, engine, get_db
 from ..governance import FEATURE_DISABLED_DEFAULT_MESSAGE, FeatureState, feature_state
 from ..identity import get_current_session, get_ws_session
-from ..interview_audio import recorder_for
+from ..interview_audio import (
+    available_tracks,
+    download_name,
+    recorder_for,
+    track_path,
+)
 from .. import tracing
 from ..interview_matrix import Specialization
 # B6.1/B6.4 — the college's policy and the two cap ceilings. A SERVICE MODULE,
@@ -135,6 +152,8 @@ from ..interview_core import (
     ask_all_sessions_to_stop,
 )
 from ..interview_core import InterviewEngine  # the contract both engines satisfy
+from ..document_manifest import record_existing
+from ..models.archived_document import DocumentOwnerKind
 from ..models.interview import (
     InterviewConsent,
     InterviewEvaluation,
@@ -630,6 +649,212 @@ def _make_report_writer(interview_session_id: str):
     return write
 
 
+def _record_audio_in_the_manifest(
+    db: Session, interview_session_id: str, stem: str | None
+) -> None:
+    """One `archived_documents` row per WAV this interview left on disk.
+
+    WHY THE ROW HAS TO EXIST AT ALL. `python -m app.archive_documents` copies
+    every recording into `reep-documents-archive-<account>` -- versioned,
+    Object-Locked, no lifecycle rule -- under the file's own name and nothing
+    else. The only thing that has ever known whose voice that is is the
+    `interview_sessions` row pointing at it, and that row is deleted after
+    INTERVIEW_RETENTION_DAYS and emptied outright by `python -m
+    app.purge_people`. So without this, a pass whose whole purpose is removing
+    every trace of a person leaves their recorded voice in a bucket that cannot
+    delete it, indexed by nothing -- which is precisely the failure
+    `archived_documents` was built to prevent, arriving through the one store
+    that does not go through `document_manifest.save_and_record`.
+    `DocumentOwnerKind.INTERVIEW_AUDIO` has been in the manifest since its first
+    migration with no writer behind it; this is the writer.
+
+    WHY IT IS WRITTEN HERE. Three places could have: the recorder, the sweep,
+    and this finalizer. The recorder runs on the audio hot path, holds no
+    Session and does not know which student it is recording. The sweep "needs no
+    database and deliberately does not open one" -- read its docstring, the
+    argument is that the filesystem is the authority and a sweep driven by rows
+    silently skips every file whose row never landed -- and making it open one
+    would trade that property for this bookkeeping. This function is the only
+    point that holds all three facts at once: a Session, a set of files the
+    relay has already closed and flushed, and the record saying whose interview
+    it was.
+
+    THE ROW ITSELF IS WRITTEN BY `document_manifest.record_existing`, NOT HERE.
+    None of that module's original three entry points could express "record a
+    file that already exists" -- `save_and_record` WRITES BYTES through
+    `document_store.save_bytes`, which accepts PDF/PNG/JPEG by magic number and
+    holds the whole file in memory under a 10 MB ceiling, and a WAV of tens of
+    megabytes written incrementally over eight minutes in a different store is
+    none of that; `release` stamps `released_at`, which would tell every future
+    reader the recording was gone on the day it was made; `reattribute` only
+    edits a row that is already there. So a fourth verb was added beside them
+    rather than this file constructing the model itself. §36 of
+    tests/test_codebase_guards.py pins ONE writer of `archived_documents` by
+    scanning every module for the constructor outside the manifest, and it was
+    right to: the manifest is the only thing that can ever say whose file an
+    object in a bucket with no delete permission was, and a second writer is
+    how one of them quietly stops setting `owner_id`. This function's job is to
+    work out the FACTS -- which files exist, whose interview it was, how big
+    each one is -- and hand them over.
+
+    IT CANNOT FAIL THE INTERVIEW CLOSE. Everything is inside one `except`, the
+    way every other write on this path is: the student's close frame has
+    already gone out, the terminal status has already committed, and an index
+    that could take the record down with it would be worth less than no index.
+    """
+    try:
+        # The stem is the files' name, and `delete_session_audio` takes the
+        # same two candidates in the same order for the same reason: the store
+        # names every file after the `interview_sessions.id` precisely so a row
+        # that never learned its own path can still find them. `available_tracks`
+        # then asks the DISK which of the three exist, so a mixdown that failed
+        # to land is simply not indexed rather than indexed as missing.
+        stem = stem or interview_session_id
+        tracks = available_tracks(stem)
+        if not tracks:
+            # `audio_recorded` is true and there is no file: the interview
+            # believed it kept something that is not there. Nothing to name, and
+            # worth a line, because the two ought never to disagree.
+            log.error(
+                "Interview %s reports audio but the store holds no file under "
+                "%r; nothing was added to the archive manifest",
+                interview_session_id,
+                stem,
+            )
+            return
+
+        # THE OWNER IS `interview_sessions.student_id`, WHICH IS A `students.id`.
+        # The manifest's `owner_id` is a plain String holding "a users.id or a
+        # students.id" and deliberately not a foreign key (the model says why:
+        # an FK would carry the cascade of the column it shadows and be
+        # destroyed at the exact moment it becomes the only record left), so
+        # which id goes in it is a choice that has to be argued. It is the
+        # student's: it is the id the interview record itself carries, the id
+        # rule 2 filters every staff read on, and the id `app.purge_students`
+        # works from -- so "everything this owner ever had", the one question
+        # this table is asked, gives the same answer here as it does for the
+        # student's uploads next door. A `users.id` would be a second
+        # vocabulary for one person inside one column.
+        #
+        # READ OFF THE ROW rather than carried down from the socket, so this
+        # names the owner the RECORD names. A closure holding a student id from
+        # the handshake would keep being right only while nothing between the
+        # two ever disagreed.
+        owner_id = db.scalar(
+            select(InterviewSession.student_id).where(
+                InterviewSession.id == interview_session_id
+            )
+        )
+        if not owner_id:
+            # The interview record is gone (retention, or a purge, between the
+            # UPDATE above and here). A manifest row with no owner names a file
+            # and nobody, which is the state this table exists to avoid.
+            log.error(
+                "Interview %s has no record to take an owner from; its audio "
+                "was NOT added to the archive manifest",
+                interview_session_id,
+            )
+            return
+
+        # THE MANIFEST'S KEY IS THE FILE'S OWN NAME, because the archive's key
+        # is: `archive_documents._key_parts` uploads each file under
+        # `path.name`. So it is taken from the store's own `track_path` rather
+        # than from a format string restated here -- the two spellings have to
+        # produce the same string or this row indexes an object that does not
+        # exist, and one of them is in a bucket where a key, once written,
+        # cannot be moved.
+        paths = {track: track_path(stem, track) for track in tracks}
+
+        # ALREADY-NAMED FILES ARE SKIPPED, NEVER RE-INSERTED -- and that check
+        # lives inside `record_existing` rather than here, because idempotence
+        # belongs with the writer. `stored_name` is UNIQUE, deliberately, so two
+        # rows can never claim one file; three layers finalize one interview,
+        # only Layer 1 reaches this code today, and "only one layer writes this"
+        # is exactly the sentence that stops being true quietly.
+        written = 0
+        for track, path in paths.items():
+            try:
+                # THE REAL SIZE, OFF THE FILE. `outcome.audio_bytes` is the
+                # whole interview's disk footprint -- both source tracks, the
+                # mixdown, and 44 bytes of RIFF header each -- so apportioning
+                # it per file would be an invention. The relay closes and
+                # flushes the recorder BEFORE it composes the outcome, which is
+                # what makes `st_size` here the finished length rather than a
+                # snapshot.
+                #
+                # The one path where it is not: a close that timed out, on
+                # which the engine falls back to `snapshot()` and the writer
+                # thread it could not wait for may still be finishing the
+                # mixdown. The row is written anyway -- every other field on it
+                # is exact, and a size short by a tail is a far smaller loss
+                # than an object in a bucket that nothing can name, which is
+                # the trade `document_manifest.release` makes in the same
+                # words.
+                size_bytes = path.stat().st_size
+            except OSError:
+                # Gone between the listing and here -- retention sweeping this
+                # session, or a volume that has stopped answering. Counted and
+                # carried past rather than fatal, `archive_documents.run`'s
+                # rule: one unreadable file must not cost the other two tracks
+                # the rows that name them.
+                log.exception(
+                    "Could not size %s for the archive manifest; the other "
+                    "track(s) of interview %s are still being named",
+                    path.name,
+                    interview_session_id,
+                )
+                continue
+            if record_existing(
+                db,
+                path.name,
+                kind=DocumentOwnerKind.INTERVIEW_AUDIO,
+                owner_id=owner_id,
+                # What a human sees when this comes back out of the bucket.
+                # `download_name` is the store's own answer to that question
+                # and it "contains no student name" on purpose -- the
+                # association lives in this row, where access control can
+                # reach it, rather than in a filename that syncs, backs up
+                # and gets searched.
+                original_name=download_name(stem, track),
+                # No title: the store has no heading for a recording, and
+                # the manifest's rule is NULL where there is none rather
+                # than a guessed value. The track is already in the name.
+                title=None,
+                mime_type="audio/wav",
+                size_bytes=size_bytes,
+            ):
+                written += 1
+
+        if not written:
+            return
+        # COMMITTED HERE, where `document_manifest` would flush. That rule is
+        # about a router, which has a request transaction to land in; this
+        # function owns its Session and nothing after it will commit. It is its
+        # OWN transaction and it is the last thing this finalizer does, so a
+        # failure of the index can never roll back the terminal status the
+        # whole mechanism exists to write.
+        db.commit()
+        log.info(
+            "Named %d interview-audio file(s) for session %s in the archive "
+            "manifest",
+            written,
+            interview_session_id,
+        )
+    except Exception:
+        # Never fatal, and never allowed to leave a half-built transaction
+        # behind for the `db.close()` in the caller's `finally`.
+        try:
+            db.rollback()
+        except Exception:  # pragma: no cover - a session that is already gone
+            pass
+        log.exception(
+            "Could not name interview %s's audio in the archive manifest. The "
+            "files and the bucket copy are unaffected; what is missing is the "
+            "row that says whose they are.",
+            interview_session_id,
+        )
+
+
 def _make_finalizer(interview_session_id: str):
     """LAYER 1's database half: close the record, and record that no report came.
 
@@ -642,6 +867,10 @@ def _make_finalizer(interview_session_id: str):
     the failure this whole mechanism exists to prevent. The 'unavailable'
     evaluation row is a courtesy to whoever reads the screen afterwards. Sharing
     one transaction would let the courtesy's failure roll back the necessity.
+
+    The summary and the archive manifest commit after those two, each in its own
+    transaction and each for the same reason: an index is worth less than the
+    record it points into, so neither may be in a position to undo it.
     """
 
     def finalize(outcome: _SessionOutcome) -> None:
@@ -734,6 +963,22 @@ def _make_finalizer(interview_session_id: str):
             # forever, which is what all three finalization layers exist to
             # prevent.
             ensure_summary(db, interview_session_id)
+
+            # THE ARCHIVE'S INDEX, LAST, AND ONLY WHEN SOMETHING WAS KEPT.
+            # Branching on `audio_recorded` and never on `audio_path IS NOT
+            # NULL` is the rule the UPDATE above is written to and it is the
+            # rule here: a NULL path collapses four different facts into one,
+            # and the fact this needs is the one `audio_recorded` states --
+            # bytes reached the disk. LAST because it is the only write in this
+            # function nobody reads today: the terminal status, the courtesy
+            # evaluation and the summary all answer somebody looking at this
+            # interview this week, and this one answers whoever is holding a key
+            # out of an Object-Locked bucket in five years, after the row above
+            # has been deleted by retention or by a purge. It cannot raise.
+            if outcome.audio_recorded:
+                _record_audio_in_the_manifest(
+                    db, interview_session_id, outcome.audio_path
+                )
         finally:
             db.close()
 

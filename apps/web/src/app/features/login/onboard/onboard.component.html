@@ -46,12 +46,12 @@
       <!-- ---------------------------------------------------- step 1 --- -->
       @if (step() === 1) {
         <p class="link-sub">
-          Your registration has been approved. Type the college email address you applied
-          with and we will send you a one-time code to confirm it.
+          Type the college email address this link was sent to and we will send you a
+          one-time code to confirm it.
         </p>
         <form (ngSubmit)="sendCode()" novalidate>
           <div class="field">
-            <label for="ob-email">College email</label>
+            <label for="ob-email">Your college email</label>
             <input
               id="ob-email"
               type="email"
@@ -63,7 +63,7 @@
             />
             @if (email.touched && email.invalid) {
               <span class="chip warn">
-                <span class="icon" aria-hidden="true">error</span>Enter the email address you applied with.
+                <span class="icon" aria-hidden="true">error</span>Enter the email address this link was sent to.
               </span>
             }
           </div>

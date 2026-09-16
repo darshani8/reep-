@@ -50,7 +50,7 @@
   @if (hierarchyUnavailable()) {
     <div class="notice warn" role="status">
       <span class="icon" aria-hidden="true">warning</span>
-      The college structure could not be read, so the Department, Course, Batch and Specialization
+      The college structure could not be read, so the Department, Course, Specialization and Batch
       pickers are empty.
     </div>
   }
@@ -81,6 +81,24 @@
       </select>
     </div>
 
+    <div class="select">
+      <span class="lbl">Specialization</span>
+      <span class="val">{{ specializationFilterLabel() }}</span>
+      <select aria-label="Specialization" (change)="setSpecializationFilter(selectValue($event))">
+        <option value="">All specializations</option>
+        @for (specialization of specializationOptions(); track specialization.id) {
+          <option [value]="specialization.id" [selected]="specialization.id === specializationFilter()">{{ specialization.name }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- Batch sits LAST of the four because it is narrowed by all three above
+         it, and a cascade drawn out of order asks the reader to work backwards.
+         The options carry `yearLabel`, the year with no spine on it: the course
+         and the specialization are the two selects immediately to the left, so
+         the full label repeated them, and a batch IS a year. The two sentinels
+         are not batches and must stay reachable at every narrowing — "Every
+         student" is how the reader gets back out. -->
     <div class="select batch-select">
       <span class="lbl">Batch</span>
       <span class="val">{{ batchFilterLabel() }}</span>
@@ -89,19 +107,8 @@
         <option value="unseated" [selected]="batchFilter() === 'unseated'">No batch yet</option>
         @for (batch of batchOptions(); track batch.id) {
           <option [value]="batch.id" [selected]="batch.id === batchFilter()">
-            {{ batch.displayLabel }}{{ batch.isRunning ? '' : ' (ended)' }}
+            {{ batch.yearLabel }}{{ batch.isRunning ? '' : ' (ended)' }}
           </option>
-        }
-      </select>
-    </div>
-
-    <div class="select">
-      <span class="lbl">Specialization</span>
-      <span class="val">{{ specializationFilterLabel() }}</span>
-      <select aria-label="Specialization" (change)="setSpecializationFilter(selectValue($event))">
-        <option value="">All specializations</option>
-        @for (specialization of specializationOptions(); track specialization.id) {
-          <option [value]="specialization.id" [selected]="specialization.id === specializationFilter()">{{ specialization.name }}</option>
         }
       </select>
     </div>
@@ -260,7 +267,10 @@
       <section class="card rail-card">
         <div class="rail-card__head">
           <h2 class="card-heading">
-            @if (selectedBatch(); as batch) { Batch · {{ batch.name }} } @else { Roster }
+            <!-- `yearLabel`, the same string the picker offered: the Course,
+                 Specialization and Department facts are spelled out directly
+                 below, so a heading carrying the spine said them twice. -->
+            @if (selectedBatch(); as batch) { Batch · {{ batch.yearLabel }} } @else { Roster }
           </h2>
         </div>
 

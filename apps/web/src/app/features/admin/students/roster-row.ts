@@ -143,8 +143,24 @@ export interface BatchOption {
   id: string;
   /** The batch itself: a YEAR. */
   name: string;
-  /** "General MBA - Finance · 2026-28" — what every picker shows. */
+  /** "General MBA - Finance · 2026-28" — the spine composed back on, for the
+   *  places that name a batch with no Course and Specialization select beside
+   *  them: the two student dialogs and the batch-actions title. */
   displayLabel: string;
+  /**
+   * The same batch with NO spine — "2026-28", "2026-28 Section B", or
+   * "2024-26 · Chain Batch" where the office's own name is not a span.
+   *
+   * What the filter row's Batch select draws, because Course and
+   * Specialization are their own selects two places to its left: printing the
+   * spine here spelled the same two facts twice in one row, and did it in the
+   * one control where the year is the whole of what is being picked.
+   * `composeBatchLabel` with both spine arguments null, so the YEAR IS NEVER
+   * DROPPED — a batch whose name the parser cannot read keeps its label beside
+   * it rather than being reduced to "Chain Batch", and two batches of one
+   * course stay distinguishable.
+   */
+  yearLabel: string;
   batchLabel: string;
   collegeName: string;
   departmentId: string;

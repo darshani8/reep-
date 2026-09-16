@@ -1,7 +1,7 @@
 <div class="reg-screen">
   <div class="reg-frame">
     <h2>Student registration</h2>
-    <div class="reg-sub">Fill the form yourself, or upload your CV and we'll auto-fill what we can read from it.</div>
+    <div class="reg-sub">Every box marked <span class="req">*</span> is required — everything except Specialization — and so are your CV and your photo.</div>
 
     @if (result(); as r) {
       <!-- decided: surface the rule engine's verdict.
@@ -61,8 +61,17 @@
         </ul>
       }
 
-      <div style="margin-top:20px; display:flex; gap:10px;">
-        <a class="dt-btn primary" routerLink="/login">
+      <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;">
+        @if (attachmentsIncomplete()) {
+          <!-- The application is in; only a file did not land. Retrying posts
+               to the SAME application - "Submit another" would meet the
+               duplicate guard on this address. -->
+          <button type="button" class="dt-btn primary" [disabled]="pending()" (click)="retryAttachments()">
+            <span class="icon" style="font-size:16px" aria-hidden="true">refresh</span>
+            {{ pending() ? 'Attaching…' : 'Try attaching again' }}
+          </button>
+        }
+        <a class="dt-btn" [class.primary]="!attachmentsIncomplete()" routerLink="/login">
           Continue to sign in <span class="icon" style="font-size:16px" aria-hidden="true">arrow_forward</span>
         </a>
         <button type="button" class="dt-btn" (click)="reset()">Submit another</button>
@@ -75,8 +84,9 @@
           @if (cvFile(); as f) {
             <strong>{{ f.name }}</strong> · {{ (f.size / 1024) | number: '1.0-0' }} KB
           } @else {
-            Attach your CV (PDF, up to 10 MB)
+            Attach your CV <span class="req">*</span>
           }
+          <span class="reg-file-hint">PDF only · up to {{ maxUploadMb }} MB</span>
           <!-- `class="reg-file"`, NOT `hidden`. `hidden` is `display:none`,
                which takes the input out of the focus order — and a <label> is
                not tabbable either, so this dropzone was reachable by mouse
@@ -84,45 +94,50 @@
                applicant could not attach their CV at all. The class hides it
                visually while leaving it focusable; the label paints a focus
                ring via :focus-within. -->
-          <input type="file" class="reg-file" accept="application/pdf,.pdf" (change)="onCv($event)">
+          <input type="file" class="reg-file" accept="application/pdf,.pdf" required aria-describedby="reg-cv-error" (change)="onCv($event)">
           <span class="dt-btn dropzone__btn">{{ cvFile() ? 'Change file' : 'Choose file' }}</span>
         </label>
+        @if (cvError(); as problem) {
+          <p class="reg-file-error" id="reg-cv-error" role="alert">
+            <span class="icon" aria-hidden="true">error</span>{{ problem }}
+          </p>
+        }
         <div class="autofill-note">
           <span class="icon" aria-hidden="true">info</span> Your CV goes to the placement office with your application, and becomes your first resume upload once you are admitted. The form below is still yours to fill.
         </div>
 
         <div class="reg-grid">
           <div class="field">
-            <label for="reg-name">Full name</label>
-            <input id="reg-name" name="fullName" [(ngModel)]="fullName" placeholder="Your full name" autocomplete="name">
+            <label for="reg-name">Full name <span class="req">*</span></label>
+            <input id="reg-name" name="fullName" [(ngModel)]="fullName" placeholder="Your full name" autocomplete="name" required>
           </div>
           <div class="field">
-            <label for="reg-usn">USN</label>
-            <input id="reg-usn" name="usn" [(ngModel)]="usn" placeholder="e.g. 1BG24MBA014">
+            <label for="reg-usn">USN <span class="req">*</span></label>
+            <input id="reg-usn" name="usn" [(ngModel)]="usn" placeholder="e.g. 1BG24MBA014" required>
           </div>
           <div class="field">
-            <label for="reg-college-email">College email</label>
-            <input id="reg-college-email" name="collegeEmail" type="email" [(ngModel)]="collegeEmail" placeholder="you@bgscet.ac.in" autocomplete="email">
+            <label for="reg-college-email">College email <span class="req">*</span></label>
+            <input id="reg-college-email" name="collegeEmail" type="email" [(ngModel)]="collegeEmail" placeholder="you@bgscet.ac.in" autocomplete="email" required>
           </div>
           <div class="field">
-            <label for="reg-personal-email">Personal email</label>
-            <input id="reg-personal-email" name="personalEmail" type="email" [(ngModel)]="personalEmail" placeholder="optional">
+            <label for="reg-personal-email">Personal email <span class="req">*</span></label>
+            <input id="reg-personal-email" name="personalEmail" type="email" [(ngModel)]="personalEmail" placeholder="you@gmail.com" required>
           </div>
           <div class="field">
-            <label for="reg-phone">Phone</label>
-            <input id="reg-phone" name="phone" [(ngModel)]="phone" placeholder="+91 …" autocomplete="tel">
+            <label for="reg-phone">Phone <span class="req">*</span></label>
+            <input id="reg-phone" name="phone" type="tel" [(ngModel)]="phone" placeholder="+91 …" autocomplete="tel" required>
           </div>
           <div class="field">
-            <label for="reg-linkedin">LinkedIn profile</label>
-            <input id="reg-linkedin" name="linkedin" [(ngModel)]="linkedin" placeholder="linkedin.com/in/…">
+            <label for="reg-linkedin">LinkedIn profile <span class="req">*</span></label>
+            <input id="reg-linkedin" name="linkedin" [(ngModel)]="linkedin" placeholder="linkedin.com/in/your-name" autocomplete="url" required>
           </div>
         </div>
 
         <div class="reg-section">Where you belong</div>
         <div class="reg-grid">
           <div class="field">
-            <label for="reg-college">College @if (required().has('college')) { <span class="req">*</span> }</label>
-            <select id="reg-college" name="college" [value]="collegeId()" (change)="setCollege($any($event.target).value)">
+            <label for="reg-college">College <span class="req">*</span></label>
+            <select id="reg-college" name="college" [value]="collegeId()" required (change)="setCollege($any($event.target).value)">
               <option value="">Choose your college</option>
               @for (c of hier()?.colleges ?? []; track c.id) {
                 <option [value]="c.id">{{ c.name }}</option>
@@ -130,8 +145,8 @@
             </select>
           </div>
           <div class="field">
-            <label for="reg-dept">Department @if (required().has('department')) { <span class="req">*</span> }</label>
-            <select id="reg-dept" name="department" [value]="departmentId()" [disabled]="!collegeId()" (change)="setDepartment($any($event.target).value)">
+            <label for="reg-dept">Department <span class="req">*</span></label>
+            <select id="reg-dept" name="department" [value]="departmentId()" [disabled]="!collegeId()" required (change)="setDepartment($any($event.target).value)">
               <option value="">{{ collegeId() ? 'Choose your department' : 'Choose a college first' }}</option>
               @for (d of departments(); track d.id) {
                 <option [value]="d.id">{{ d.name }}</option>
@@ -139,8 +154,8 @@
             </select>
           </div>
           <div class="field">
-            <label for="reg-course">Course @if (required().has('course')) { <span class="req">*</span> }</label>
-            <select id="reg-course" name="course" [value]="courseId()" [disabled]="!departmentId() || !courses().length" (change)="setCourse($any($event.target).value)">
+            <label for="reg-course">Course @if (required().has('course') || courses().length) { <span class="req">*</span> }</label>
+            <select id="reg-course" name="course" [value]="courseId()" [disabled]="!departmentId() || !courses().length" [required]="courses().length > 0" (change)="setCourse($any($event.target).value)">
               <option value="">{{ !departmentId() ? 'Choose a department first' : (courses().length ? 'Choose your course' : 'No courses listed') }}</option>
               @for (c of courses(); track c.id) {
                 <option [value]="c.id">{{ c.code }} · {{ c.name }}</option>
@@ -157,9 +172,9 @@
             </select>
           </div>
           <div class="field">
-            <label for="reg-batch">Batch</label>
-            <select id="reg-batch" name="batch" [value]="batchId()" [disabled]="!departmentId() || !batches().length" (change)="setBatch($any($event.target).value)">
-              <option value="">{{ !departmentId() ? 'Choose a department first' : (batches().length ? 'Choose your batch (optional)' : 'No batches listed') }}</option>
+            <label for="reg-batch">Batch @if (batches().length) { <span class="req">*</span> }</label>
+            <select id="reg-batch" name="batch" [value]="batchId()" [disabled]="!departmentId() || !batches().length" [required]="batches().length > 0" (change)="setBatch($any($event.target).value)">
+              <option value="">{{ !departmentId() ? 'Choose a department first' : (batches().length ? 'Choose your batch' : 'No batches listed') }}</option>
               @for (b of batches(); track b.id) {
                 <option [value]="b.id">{{ b.display_label }}{{ b.current ? '' : ' (ended)' }}</option>
               }
@@ -168,25 +183,31 @@
         </div>
 
         <div class="field">
-          <label for="reg-degree">Degree level</label>
-          <select id="reg-degree" name="degreeLevel" [(ngModel)]="degreeLevel">
+          <label for="reg-degree">Degree level <span class="req">*</span></label>
+          <select id="reg-degree" name="degreeLevel" [(ngModel)]="degreeLevel" required>
             <option value="PG">Post Graduate (PG)</option>
             <option value="UG">Undergraduate (UG)</option>
           </select>
         </div>
 
         <div class="field">
-          <label>Professional photo</label>
+          <label>Professional photo <span class="req">*</span></label>
           <label class="dropzone dropzone--live" style="padding:16px;">
             <span class="icon" style="font-size:20px; margin-bottom:0" aria-hidden="true">photo_camera</span>
             @if (photoFile(); as f) {
-              <strong>{{ f.name }}</strong>
+              <strong>{{ f.name }}</strong> · {{ (f.size / 1024) | number: '1.0-0' }} KB
             } @else {
-              Upload a headshot (PNG or JPG)
+              Upload a headshot
             }
+            <span class="reg-file-hint">PNG or JPG · up to {{ maxUploadMb }} MB</span>
             <!-- focusable, like the CV picker above -->
-            <input type="file" class="reg-file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" (change)="onPhoto($event)">
+            <input type="file" class="reg-file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" required aria-describedby="reg-photo-error" (change)="onPhoto($event)">
           </label>
+          @if (photoError(); as problem) {
+            <p class="reg-file-error" id="reg-photo-error" role="alert">
+              <span class="icon" aria-hidden="true">error</span>{{ problem }}
+            </p>
+          }
         </div>
 
         @if (error(); as e) {

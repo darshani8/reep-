@@ -155,6 +155,13 @@ class Registration(Base):
     email: Mapped[str] = mapped_column(String)
     usn: Mapped[str | None] = mapped_column(String, nullable=True)
     phone: Mapped[str | None] = mapped_column(String, nullable=True)
+    # A second address and the LinkedIn profile, both REQUIRED by the form and
+    # by `RegisterIn` since 2026-09-16 and NULLABLE here on purpose: the rule
+    # is about new applications, the column is a promise about the rows
+    # already written. `phone` and `usn` above are the same shape for the same
+    # reason. Copied onto the student's profile at approval.
+    personal_email: Mapped[str | None] = mapped_column(String, nullable=True)
+    linkedin_url: Mapped[str | None] = mapped_column(String, nullable=True)
 
     degree_level: Mapped[DegreeLevel] = mapped_column(
         _DEGREE_LEVEL, default=DegreeLevel.PG, server_default="PG"

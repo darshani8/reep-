@@ -78,9 +78,12 @@ jobs:
       # Tagged with the commit AND latest: `latest` is what the task definition
       # references (so the migration task below picks up this build), and the
       # sha tag is what makes "which commit is live" answerable afterwards.
-      # MULTI-ARCH, and the arm64 half is what makes `-c apiArm64=true` possible
-      # (reep_core/stack.py, docs/cost-review-2026-09.md): Graviton Fargate is
-      # ~20% cheaper for the same vCPU and the same memory.
+      # MULTI-ARCH, and the arm64 half is NOT optional any more. `cdk.json`
+      # carries `apiArm64: true`, so the api task definition asks for ARM64
+      # unconditionally (reep_core/stack.py, docs/cost-review-2026-09.md):
+      # Graviton Fargate is ~20% cheaper for the same vCPU and the same memory.
+      # An amd64-only image pushed to `latest` is therefore a service that
+      # cannot start, not merely a flag somebody must remember not to set.
       #
       # BOTH architectures, never arm64 alone. The manifest is what makes the
       # switch reversible: rolling back is the CDK flag on its own, with no
@@ -126,6 +129,13 @@ jobs:
       # A manifest that lost an architecture is a task that cannot start, and
       # the failure lands at PULL time on the next roll rather than here. Assert
       # it while the evidence is still in front of us.
+      #
+      # THIS CHECK IS LOAD-BEARING, not belt-and-braces. Since `apiArm64: true`
+      # moved into cdk.json the running service is ARM64 with no flag to unset,
+      # so this assertion is the only thing standing between a routine image
+      # build and every task dying at pull with "Manifest does not contain
+      # descriptor matching platform linux/arm64". Do not remove it, and do not
+      # weaken it to a warning.
       - name: Both architectures are in the manifest
         run: |
           IMAGE="${{ vars.ECR_REPOSITORY || '445363794125.dkr.ecr.ap-south-1.amazonaws.com/reep/api' }}"
@@ -139,7 +149,10 @@ jobs:
           esac
           case "$PLATFORMS" in
             *linux/arm64*) ;;
-            *) echo "::error::linux/arm64 missing — do NOT set apiArm64=true on this image"; exit 1 ;;
+            *) echo "::error::linux/arm64 missing — the service runs ARM64 (cdk.json apiArm64), so this image CANNOT be deployed."
+               echo "::error::Do not work around this by unsetting the flag: that is a full ECS task-definition change."
+               echo "::error::Fix the buildx step so the manifest carries both architectures, then re-run."
+               exit 1 ;;
           esac
 
       # Migrations run on the image just pushed, BEFORE the service rolls, so

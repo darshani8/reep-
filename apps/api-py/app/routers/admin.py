@@ -43,7 +43,7 @@ from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from .. import account_links
+from .. import account_links, batch_labels
 from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
@@ -1228,6 +1228,19 @@ class AdminCohortOut(BaseModel):
     code: str
     name: str
     batch_label: str
+    #: The spine, resolved. A batch is a YEAR (`name`); which course and which
+    #: specialization it belongs to are these links, and the console needs the
+    #: words to draw them. They were manufactured into `name` until
+    #: a4e7c92d1f38 — see `app/batch_labels.py` for why that was one fact
+    #: stored twice. NULL where the batch hangs shallower than that rung.
+    course_name: str | None
+    specialization_name: str | None
+    #: The spine and the year put together, by the ONE rule
+    #: (`batch_labels.compose`): "General MBA - Finance · 2026-28". Served so
+    #: that every screen showing a batch shows the same sentence — the client
+    #: composing it itself is how five endpoints each grew their own copy of
+    #: `name · batch_label`, which printed the course twice.
+    display_label: str
     degree_level: str
     entry_date: date
     expected_completion: date
@@ -1302,11 +1315,25 @@ def _admin_cohort_out(db: Session, cohort: Cohort) -> AdminCohortOut:
     count = db.scalar(
         select(func.count()).select_from(Student).where(Student.cohort_id == cohort.id)
     )
+    # `db.get` and not a join: these lists are per department and the batches in
+    # one share a handful of courses, so the identity map answers every repeat
+    # without a round trip. The count above is already the per-row query here.
+    course = db.get(AcademicCourse, cohort.course_id) if cohort.course_id else None
+    spec = (
+        db.get(AcademicSpecialization, cohort.specialization_id)
+        if cohort.specialization_id
+        else None
+    )
     return AdminCohortOut(
         id=cohort.id,
         department_id=cohort.department_id,
         course_id=cohort.course_id,
         specialization_id=cohort.specialization_id,
+        course_name=course.name if course else None,
+        specialization_name=spec.name if spec else None,
+        display_label=batch_labels.compose(
+            course.name if course else None, spec.name if spec else None, cohort.name
+        ),
         missing_levels=[lv.label for lv in _compliance_gap(cohort)],
         code=cohort.code,
         name=cohort.name,

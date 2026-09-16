@@ -530,6 +530,7 @@ export class AdminStudentsComponent {
     return {
       batchId: batch.id,
       batchName: batch.name,
+      batchDisplayLabel: batch.displayLabel,
       batchLabel: batch.batchLabel,
       departmentName: batch.departmentName,
       courseName: batch.courseName,
@@ -632,6 +633,7 @@ export class AdminStudentsComponent {
     return {
       id: batch.id,
       name: batch.name,
+      displayLabel: batch.display_label,
       batchLabel: batch.batch_label,
       collegeName,
       departmentId: batch.department_id ?? '',

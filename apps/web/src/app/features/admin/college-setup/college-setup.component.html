@@ -418,8 +418,8 @@
                   <dd>{{ b.code }}</dd>
                 </div>
                 <div>
-                  <dt>Name</dt>
-                  <dd>{{ b.name }}</dd>
+                  <dt>Reads as</dt>
+                  <dd>{{ b.display }}</dd>
                 </div>
                 <div>
                   <dt>Runs</dt>
@@ -516,7 +516,7 @@
           @for (b of includedBatches(); track b.leaf.key) {
             <li class="plan-row plan-row--3">
               <span class="icon" aria-hidden="true">groups</span>
-              <span class="plan-what">{{ b.code }} · {{ b.name }}</span>
+              <span class="plan-what">{{ b.code }} · {{ b.display }}</span>
               <ng-container
                 *ngTemplateOutlet="
                   outcomeChip;

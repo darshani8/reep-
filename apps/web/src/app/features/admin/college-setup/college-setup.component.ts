@@ -38,6 +38,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
+import { composeBatchLabel } from '../../../core/batch-label';
 import { PluralPipe } from '../../../shared/text/plural.pipe';
 import {
   batchCode,
@@ -129,7 +130,13 @@ export interface BatchPlan {
   readonly leaf: Leaf;
   readonly label: string;
   readonly code: string;
+  /** What lands in `cohorts.name`: the year, and only the year. */
   readonly name: string;
+  /** What the office will READ on every screen once this batch exists — the
+   *  spine composed back on from the links this leaf carries
+   *  ("General MBA - Finance · 2026-28"). Shown here rather than `name` alone
+   *  so "Create everything" previews the sentence, not the column. */
+  readonly display: string;
   readonly entry: string | null;
   readonly completion: string | null;
   readonly include: boolean;
@@ -259,7 +266,12 @@ export class AdminCollegeSetupComponent {
           leaf.spec?.code,
           label,
         ]),
-        name: batchName(leaf.course.name, leaf.spec?.name ?? null, label),
+        name: batchName(label),
+        display: composeBatchLabel(
+          leaf.course.name,
+          leaf.spec?.name ?? null,
+          batchName(label),
+        ),
         entry: dates?.entry ?? null,
         completion: dates?.completion ?? null,
         include: includes[leaf.key] ?? !alreadyThere,

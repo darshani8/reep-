@@ -98,11 +98,18 @@ export interface HierarchyCourse {
 export interface HierarchyBatch {
   id: string;
   code: string;
+  /** The batch itself: a YEAR, "2026-28". */
   name: string;
   batch_label: string;
   department_id: string | null;
   course_id: string | null;
   specialization_id: string | null;
+  course_name: string | null;
+  specialization_name: string | null;
+  /** The spine and the year in one sentence, composed by the server from the
+   *  links above: "General MBA - Finance · 2026-28". Render this, never
+   *  `name` beside `batch_label` — they are the same string now. */
+  display_label: string;
   degree_level: string;
   current: boolean;
 }
@@ -134,7 +141,10 @@ export interface MentorLoadApiRow {
 
 export interface BatchOption {
   id: string;
+  /** The batch itself: a YEAR. */
   name: string;
+  /** "General MBA - Finance · 2026-28" — what every picker shows. */
+  displayLabel: string;
   batchLabel: string;
   collegeName: string;
   departmentId: string;

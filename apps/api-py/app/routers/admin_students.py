@@ -42,6 +42,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session, aliased
 
+from .. import batch_labels
 from ..architecture_events import record_change
 from ..config import settings
 from ..db import get_db
@@ -49,7 +50,7 @@ from ..governance import ancestry_of_student, ancestry_of_user, require_capabili
 from ..institution_domains import college_id_for_cohort, domain_of, provisionable_domains_for
 from ..identity import get_current_session
 from ..models.cohort import Cohort
-from ..models.institution import Department
+from ..models.institution import AcademicCourse, AcademicSpecialization, Department
 from ..models.student_profile import StudentProfile
 from ..models.user import Mentor, Role, Stage, Student, User
 from ..student_placement import (
@@ -317,14 +318,21 @@ def _rows(db: Session, *where) -> list[AdminStudentOut]:
     # student's own pointer; the batch's still wins where both resolve, which
     # is the same precedence `resolve_student_department` writes with.
     own_dept = aliased(Department)
+    # THE BATCH'S SPINE COMES DOWN THE LINKS. `cohorts.name` is the YEAR and
+    # nothing else (a4e7c92d1f38); which course and specialization the batch
+    # belongs to are its own foreign keys, so the roster joins them rather than
+    # reading words out of a name. Two outer joins on a query that already has
+    # six, against tables with a handful of rows each.
     stmt = (
         select(
-            Student, User, Cohort.name, Cohort.batch_label,
+            Student, User, Cohort.name, AcademicCourse.name, AcademicSpecialization.name,
             Department.name, Department.id, own_dept.name, own_dept.id,
             Mentor.id, faculty.id, faculty.name,
         )
         .join(User, Student.user_id == User.id)
         .outerjoin(Cohort, Cohort.id == Student.cohort_id)
+        .outerjoin(AcademicCourse, AcademicCourse.id == Cohort.course_id)
+        .outerjoin(AcademicSpecialization, AcademicSpecialization.id == Cohort.specialization_id)
         .outerjoin(Department, Department.id == Cohort.department_id)
         .outerjoin(own_dept, own_dept.id == Student.department_id)
         .outerjoin(Mentor, Mentor.id == Student.mentor_id)
@@ -333,12 +341,15 @@ def _rows(db: Session, *where) -> list[AdminStudentOut]:
         .order_by(User.name, Student.usn)
     )
     out: list[AdminStudentOut] = []
-    for (student, user, cohort_name, batch_label, dept_name, dept_id,
+    for (student, user, cohort_name, course_name, spec_name, dept_name, dept_id,
          own_name, own_id, mentor_id, f_id, f_name) in db.execute(stmt):
         out.append(AdminStudentOut(
             student_id=student.id, user_id=user.id, name=user.name, email=user.email, usn=student.usn,
             cohort_id=student.cohort_id,
-            batch=f"{cohort_name} · {batch_label}" if cohort_name else None,
+            batch=(
+                batch_labels.compose(course_name, spec_name, cohort_name)
+                if cohort_name else None
+            ),
             department=dept_name or own_name,
             department_id=dept_id or own_id,
             mentor_id=mentor_id, mentor_user_id=f_id, mentor_name=f_name,

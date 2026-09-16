@@ -173,6 +173,10 @@ interface CohortOption {
   code: string;
   name: string;
   batch_label: string;
+  /** The spine and the year in one sentence, composed by the server from the
+   *  batch's own links: "General MBA - Finance · 2026-28". `name` is the YEAR
+   *  alone, so it cannot tell two batches of one department apart. */
+  display_label: string;
   degree_level: string;
   student_count: number;
 }
@@ -868,7 +872,7 @@ export class InterviewRecordsComponent implements OnDestroy {
     const chosen = this.cohortFilter();
     if (chosen === 'all') return 'All batches';
     const batch = (this.cohorts() ?? []).find((cohort) => cohort.id === chosen);
-    return batch ? `${batch.code} · ${batch.batch_label}` : 'One batch';
+    return batch ? batch.display_label : 'One batch';
   });
 
   readonly statusFilterLabel = computed<string>(() => {

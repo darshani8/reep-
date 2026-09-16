@@ -556,7 +556,7 @@
                           <tr [class.selected]="seatingBatch()?.id === b.id">
                             <td>
                               <div class="b-code">{{ b.code }}</div>
-                              <div class="dt-sub">{{ b.batch_label }} · {{ b.name }}</div>
+                              <div class="dt-sub">{{ b.display_label }}</div>
                               @for (m of b.missing_levels; track m) {
                                 <span class="chip warn"
                                   ><span class="icon" aria-hidden="true">warning</span>Needs
@@ -603,7 +603,7 @@
                     <div class="card-head">
                       <div class="card-title">
                         Students in {{ sb.code }}
-                        <span class="dt-sub">{{ sb.batch_label }} · {{ sb.name }}</span>
+                        <span class="dt-sub">{{ sb.display_label }}</span>
                       </div>
                       <button type="button" class="btn ghost sm" (click)="closeSeating()">
                         <span class="icon" aria-hidden="true">close</span>Close
@@ -710,11 +710,11 @@
                         <input id="b-label" formControlName="batch_label" placeholder="2024-26" />
                       </div>
                       <div class="field wide">
-                        <label for="b-name">Name</label>
+                        <label for="b-name">Name <span class="chip neutral">Optional</span></label>
                         <input
                           id="b-name"
                           formControlName="name"
-                          placeholder="MBA Batch 2024-26 - Section B"
+                          placeholder="2024-26 Section B"
                         />
                       </div>
                       <div class="field">

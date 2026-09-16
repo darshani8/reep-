@@ -20,8 +20,12 @@ export interface StageTally {
 
 export interface BatchSummary {
   batchId: string;
-  /** The batch's own name, as the office wrote it: "MBA Batch 2025-27". */
+  /** The batch's own name, as the office wrote it: the year, "2025-27", plus
+   *  anything they added to tell two sections of it apart. */
   batchName: string;
+  /** That name with its spine composed back on from the links —
+   *  "General MBA - Finance · 2025-27". What a heading shows. */
+  batchDisplayLabel: string;
   /** The academic year label beside it: "2025-27". */
   batchLabel: string;
   departmentName: string;

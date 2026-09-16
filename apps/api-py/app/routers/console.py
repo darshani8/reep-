@@ -11,6 +11,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy import true as sa_true
 from sqlalchemy.orm import Session
 
+from .. import batch_labels
 from ..db import get_db
 from ..identity import get_current_session
 
@@ -117,6 +118,14 @@ class CohortOut(BaseModel):
     code: str
     name: str
     batch_label: str
+    #: The spine and the year put together by the one rule
+    #: (`batch_labels.compose`): "General MBA - Finance · 2026-28". A batch
+    #: is a YEAR (`name`); the course and specialization it belongs to are its
+    #: links, so the three pickers this endpoint feeds cannot tell four batches
+    #: apart without it — `name · batch_label`, which they used to build
+    #: themselves, reads "2026-28 · 2026-28" now that the spine has left
+    #: the name (a4e7c92d1f38).
+    display_label: str
     degree_level: str
     student_count: int
 
@@ -129,17 +138,23 @@ def cohorts(
     counts = dict(
         db.execute(select(Student.cohort_id, func.count()).group_by(Student.cohort_id)).all()
     )
-    rows = db.scalars(select(Cohort).order_by(Cohort.code)).all()
+    rows = db.execute(
+        select(Cohort, AcademicCourse.name, AcademicSpecialization.name)
+        .outerjoin(AcademicCourse, AcademicCourse.id == Cohort.course_id)
+        .outerjoin(AcademicSpecialization, AcademicSpecialization.id == Cohort.specialization_id)
+        .order_by(Cohort.code)
+    ).all()
     return [
         CohortOut(
             id=c.id,
             code=c.code,
             name=c.name,
             batch_label=c.batch_label,
+            display_label=batch_labels.compose(course_name, spec_name, c.name),
             degree_level=c.degree_level.value,
             student_count=counts.get(c.id, 0),
         )
-        for c in rows
+        for c, course_name, spec_name in rows
     ]
 
 

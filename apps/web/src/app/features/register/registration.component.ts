@@ -30,8 +30,13 @@ type DegreeLevel = 'UG' | 'PG';
 interface HierSpec { id: string; code: string; name: string }
 interface HierCourse { id: string; code: string; name: string; specializations: HierSpec[] }
 interface HierBatch {
-  id: string; code: string; name: string; batch_label: string;
+  // `name` is the batch itself: a YEAR. `display_label` is that with its spine
+  // composed back on from the links ("General MBA - Finance · 2026-28"), which
+  // is the only form an applicant can pick from — every batch a department
+  // runs this year is called "2026-28".
+  id: string; code: string; name: string; batch_label: string; display_label: string;
   department_id: string | null; course_id: string | null; specialization_id: string | null;
+  course_name: string | null; specialization_name: string | null;
   degree_level: string; current: boolean;
 }
 interface HierDept { id: string; code: string; name: string; courses: HierCourse[]; batches: HierBatch[] }

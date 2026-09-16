@@ -138,6 +138,10 @@ interface CohortOption {
   code: string;
   name: string;
   batch_label: string;
+  /** The spine and the year in one sentence, composed by the server from the
+   *  batch's own links: "General MBA - Finance · 2026-28". `name` is the YEAR
+   *  alone, so it cannot tell two batches of one department apart. */
+  display_label: string;
   degree_level: string;
   student_count: number;
 }
@@ -208,7 +212,7 @@ export class AlertRulesDialogComponent {
   readonly batchLabel = computed<string>(() => {
     const chosen = (this.batches() ?? []).find((batch) => batch.id === this.batchId());
     if (!chosen) return 'Choose a batch';
-    return `${chosen.name} · ${chosen.batch_label}`;
+    return chosen.display_label;
   });
 
   readonly chosenBatch = computed<CohortOption | null>(

@@ -164,8 +164,15 @@ interface AdminCohortOut {
   course_id: string | null;
   specialization_id: string | null;
   code: string;
+  /** The batch itself: a YEAR, "2026-28". */
   name: string;
   batch_label: string;
+  course_name: string | null;
+  specialization_name: string | null;
+  /** The spine and the year in one sentence, composed by the server from the
+   *  three links above: "General MBA - Finance · 2026-28". Render this — one
+   *  department's four batches all say "2026-28" on their own. */
+  display_label: string;
   degree_level: string;
   entry_date: string;
   expected_completion: string;
@@ -533,7 +540,11 @@ export class AdminInstitutionComponent implements OnDestroy {
     this.specializations().filter((s) => this.rowMatchesFinder(s.code, s.name)),
   );
   readonly visibleBatches = computed(() =>
-    this.batches().filter((b) => this.rowMatchesFinder(b.code, `${b.name} ${b.batch_label}`)),
+    // `display_label` and not `name`: the batch's name is the year, so a finder
+    // over it alone could not answer "Finance" — the course and the
+    // specialization live on the links, and the composed label is where they
+    // are words again.
+    this.batches().filter((b) => this.rowMatchesFinder(b.code, b.display_label)),
   );
 
   // ---- batches ------------------------------------------------------------
@@ -817,7 +828,11 @@ export class AdminInstitutionComponent implements OnDestroy {
   private buildBatchForm(levels: HierarchyLevel[]): FormGroup {
     const controls: Record<string, FormControl> = {
       code: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-      name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+      // NOT REQUIRED, and that is the point: a batch IS a year. Leave the name
+      // blank and `saveBatch` sends the label, which is what a standard batch
+      // is called. It is there for the one batch that needs more than the span
+      // to be told apart — a section, "2024-26 Section B".
+      name: new FormControl('', { nonNullable: true }),
       batch_label: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
       degree_level: new FormControl('PG', { nonNullable: true, validators: [Validators.required] }),
       entry_date: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -957,9 +972,15 @@ export class AdminInstitutionComponent implements OnDestroy {
     // Send the DEEPEST level only; the API derives its ancestors. Sending
     // both is also fine — they are checked, not trusted — but sending only
     // the leaf is the contract stated plainly.
+    // A blank name means "just the year", which is what a batch is. The API
+    // needs `name` NOT NULL, so the label stands in for it — never a
+    // manufactured "Course - Specialization 2024-26", which is the duplication
+    // the spine's links already carry (`app/batch_labels.py`).
+    const label = String(raw['batch_label'] ?? '').trim();
+    const typedName = String(raw['name'] ?? '').trim();
     const body: Record<string, unknown> = {
-      name: raw['name'],
-      batch_label: raw['batch_label'],
+      name: typedName || label,
+      batch_label: label,
       entry_date: raw['entry_date'],
       expected_completion: raw['expected_completion'],
     };

@@ -50,6 +50,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from .. import batch_labels
 from ..architecture_events import record_change
 from ..db import get_db
 from ..governance import ancestry_of_student, require_capability
@@ -57,6 +58,7 @@ from ..identity import get_current_session
 from ..policies import scope_filter
 from ..scope_views import scope_header
 from ..models.cohort import Cohort
+from ..models.institution import AcademicCourse, AcademicSpecialization
 from ..models.job import Job
 from ..models.interview import InterviewSession
 from ..models.skill import StudentSkill
@@ -405,9 +407,16 @@ def list_swoc(
         where.append(or_(func.lower(User.name).like(needle), func.lower(Student.usn).like(needle)))
 
     student_query = (
-        select(Student.id, User.name, Student.usn, Cohort.name, Cohort.batch_label)
+        # The batch's spine comes down its LINKS, never out of `cohorts.name`,
+        # which is the year and nothing else (a4e7c92d1f38).
+        select(
+            Student.id, User.name, Student.usn, Cohort.name,
+            AcademicCourse.name, AcademicSpecialization.name,
+        )
         .join(User, User.id == Student.user_id)
         .outerjoin(Cohort, Cohort.id == Student.cohort_id)
+        .outerjoin(AcademicCourse, AcademicCourse.id == Cohort.course_id)
+        .outerjoin(AcademicSpecialization, AcademicSpecialization.id == Cohort.specialization_id)
         .where(*where)
         # NAME **AND USN**. A page is a window over a sort and `users.name` is
         # not unique; an unstable sort drops one row off page 2 and repeats
@@ -454,10 +463,13 @@ def list_swoc(
     return [
         SwocStudentRow(
             student_id=sid, name=name, usn=usn,
-            batch=f"{cohort_name} · {batch_label}" if cohort_name else None,
+            batch=(
+                batch_labels.compose(course_name, spec_name, cohort_name)
+                if cohort_name else None
+            ),
             entries=by_student.get(sid, []),
         )
-        for sid, name, usn, cohort_name, batch_label in students
+        for sid, name, usn, cohort_name, course_name, spec_name in students
     ]
 
 

@@ -1143,7 +1143,7 @@ html.fonts-ready .icon {
   padding: 3px 10px;
   font-size: 11.5px;
   font-weight: 700;
-  background: var(--tint-2);
+  background: transparent;
   color: var(--ink-soft);
   border: 1px solid transparent;
   white-space: nowrap;
@@ -1153,15 +1153,15 @@ html.fonts-ready .icon {
   font-size: 14px;
 }
 .chip.good {
-  background: var(--good-bg);
+  background: transparent;
   color: var(--good);
 }
 .chip.warn {
-  background: var(--warn-bg);
+  background: transparent;
   color: var(--warn);
 }
 .chip.risk {
-  background: var(--risk-bg);
+  background: transparent;
   color: var(--risk);
 }
 /* Tint-2 on ink-soft, per 01-design-system.md §4. Declared twice before —
@@ -1169,12 +1169,12 @@ html.fonts-ready .icon {
    everywhere because it loads last, so neither of the written values was the
    one on screen. */
 .chip.neutral {
-  background: var(--tint-2);
+  background: transparent;
   color: var(--ink-soft);
 }
 .tag.lock,
 .tag.evi {
-  background: var(--tint-1);
+  background: transparent;
   color: var(--muted);
 }
 
@@ -2784,12 +2784,14 @@ html.fonts-ready .icon {
    the solid one for a count on a dark or busy row. .chip.dot puts a 7px dot
    before the label so a status is shape AND text, never colour alone. */
 .chip.accent {
-  background: var(--tint-1);
+  background: transparent;
   color: var(--brand-purple);
 }
 .chip.navy {
-  background: var(--brand-purple);
-  color: #fff;
+  /* Recoloured rather than blanked: this one was solid purple with
+     WHITE text, so dropping the fill alone would be white on white. */
+  background: transparent;
+  color: var(--brand-purple);
 }
 .chip.dot::before {
   content: '';
@@ -2859,7 +2861,9 @@ html.fonts-ready .icon {
   align-items: center;
   gap: 7px;
   height: 34px;
-  padding: 0 30px 0 12px;
+  /* Symmetric now that the `expand_more` chevron is gone: the 30px was
+     the room it sat in, and left behind it reads as a hole. */
+  padding: 0 12px;
   background: var(--surface);
   border: 1px solid var(--hairline-42);
   border-radius: var(--r-control);

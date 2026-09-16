@@ -41,7 +41,6 @@
     <div class="select">
       <span class="lbl">File contains</span>
       <span class="val">{{ datasetLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Dataset to import" (change)="chooseDataset(selectValue($event))">
         @for (dataset of datasets; track dataset.kind) {
           <option [value]="dataset.kind" [selected]="dataset.kind === datasetKind()">
@@ -54,7 +53,6 @@
     <div class="select">
       <span class="lbl">Course</span>
       <span class="val">{{ courseLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Course" (change)="chooseCourse(selectValue($event))">
         <option value="" [selected]="courseId() === ''">All courses</option>
         @for (course of courses(); track course.id) {
@@ -66,7 +64,6 @@
     <div class="select batch-select">
       <span class="lbl">Batch</span>
       <span class="val">{{ batchLabel() || 'Choose a batch' }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Batch" (change)="chooseBatch(selectValue($event))">
         <option value="" [selected]="batchId() === ''">Choose a batch</option>
         @for (batch of batchOptions(); track batch.id) {
@@ -80,7 +77,6 @@
     <div class="select semester-select">
       <span class="lbl">Semester</span>
       <span class="val">{{ semesterLabel() || '—' }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Semester" (change)="chooseSemester(selectValue($event))">
         <option value="" [selected]="semester() === null">Choose a semester</option>
         @for (number of semesters; track number) {

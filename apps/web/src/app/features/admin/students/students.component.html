@@ -62,7 +62,6 @@
     <div class="select">
       <span class="lbl">Department</span>
       <span class="val">{{ departmentFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Department" (change)="setDepartmentFilter(selectValue($event))">
         <option value="">All departments</option>
         @for (department of departments(); track department.id) {
@@ -74,7 +73,6 @@
     <div class="select">
       <span class="lbl">Course</span>
       <span class="val">{{ courseFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Course" (change)="setCourseFilter(selectValue($event))">
         <option value="">All courses</option>
         @for (course of courseOptions(); track course.id) {
@@ -86,7 +84,6 @@
     <div class="select batch-select">
       <span class="lbl">Batch</span>
       <span class="val">{{ batchFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Batch" (change)="setBatchFilter(selectValue($event))">
         <option value="" [selected]="batchFilter() === ''">Every student</option>
         <option value="unseated" [selected]="batchFilter() === 'unseated'">No batch yet</option>
@@ -101,7 +98,6 @@
     <div class="select">
       <span class="lbl">Specialization</span>
       <span class="val">{{ specializationFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Specialization" (change)="setSpecializationFilter(selectValue($event))">
         <option value="">All specializations</option>
         @for (specialization of specializationOptions(); track specialization.id) {
@@ -113,7 +109,6 @@
     <div class="select">
       <span class="lbl">Status</span>
       <span class="val">{{ statusFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Status" (change)="setStatusFilter(selectValue($event))">
         <option value="" [selected]="statusFilter() === ''">All</option>
         <option value="active" [selected]="statusFilter() === 'active'">Active · has signed in</option>

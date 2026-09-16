@@ -58,7 +58,6 @@
     <div class="select" [class.filter-pending]="cohortFilterDisabledReason() !== null">
       <span class="lbl">Batch</span>
       <span class="val">{{ cohortFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select
         aria-label="Batch — narrows every figure on this screen"
         [disabled]="cohortFilterDisabledReason() !== null"
@@ -77,7 +76,6 @@
     <div class="select" [class.filter-pending]="yearFilterDisabledReason() !== null">
       <span class="lbl">Period</span>
       <span class="val">{{ yearFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select
         aria-label="Period — narrows the offer figures to one calendar year, over the students on the roll today"
         [disabled]="yearFilterDisabledReason() !== null"

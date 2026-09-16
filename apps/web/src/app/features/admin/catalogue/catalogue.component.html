@@ -111,7 +111,6 @@
     <span class="select cat-select">
       <span class="lbl">College</span>
       <span class="val">{{ collegeFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select
         aria-label="Scope the catalogue to a college"
         [value]="collegeFilter()"
@@ -128,7 +127,6 @@
     <span class="select cat-select">
       <span class="lbl">Course</span>
       <span class="val">{{ courseFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select
         aria-label="Scope the catalogue to a course"
         [value]="courseFilter()"
@@ -146,7 +144,6 @@
       <span class="select cat-select">
         <span class="lbl">Skill area</span>
         <span class="val">{{ skillAreaLabel() }}</span>
-        <span class="icon" aria-hidden="true">expand_more</span>
         <select
           aria-label="Filter badges by skill area"
           [value]="skillArea()"
@@ -175,7 +172,6 @@
             }
           }
         </span>
-        <span class="icon" aria-hidden="true">expand_more</span>
         <select
           aria-label="Filter badges by whether certifications are mapped to them"
           [value]="mapping()"

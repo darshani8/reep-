@@ -48,7 +48,6 @@
       <div class="select">
         <span class="lbl">Batch</span>
         <span class="val">{{ cohortFilterLabel() }}</span>
-        <span class="icon" aria-hidden="true">expand_more</span>
         <select aria-label="Batch" [value]="cohortFilter()" (change)="setCohortFilter($event)">
           <option value="all">All batches</option>
           @for (batch of cohorts() ?? []; track batch.id) {
@@ -63,7 +62,6 @@
     <div class="select">
       <span class="lbl">Track</span>
       <span class="val">{{ trackFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Track" [value]="trackFilter()" (change)="setTrackFilter($event)">
         <option value="all">All tracks</option>
         @for (track of trackOptions(); track track.code) {
@@ -78,7 +76,6 @@
     <div class="select">
       <span class="lbl">Status</span>
       <span class="val">{{ statusFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Status" [value]="statusFilter()" (change)="setStatusFilter($event)">
         <option value="all">All</option>
         <option value="completed">Completed</option>
@@ -91,7 +88,6 @@
     <div class="select">
       <span class="lbl">Recording</span>
       <span class="val">{{ recordingFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select
         aria-label="Recording"
         [value]="recordingFilter()"
@@ -105,7 +101,6 @@
     <div class="select">
       <span class="lbl">Date</span>
       <span class="val">{{ dateFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Date" [value]="dateFilter()" (change)="setDateFilter($event)">
         <option value="all">Whole record</option>
         <option value="7">Last 7 days</option>
@@ -213,7 +208,6 @@
             [disabled]="loadingMore()"
             (click)="loadMore()"
           >
-            <span class="icon" aria-hidden="true">expand_more</span>
             {{ loadingMore() ? 'Loading…' : 'Load more' }}
           </button>
         }

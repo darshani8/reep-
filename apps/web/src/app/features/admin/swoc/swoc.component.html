@@ -26,7 +26,6 @@
     <div class="select">
       <span class="lbl">Batch</span>
       <span class="val">{{ batchFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Batch" (change)="batchFilter.set(selectValue($event))">
         <option value="" [selected]="batchFilter() === ''">All batches</option>
         @for (batch of batches(); track batch) {
@@ -39,7 +38,6 @@
       <div class="select">
         <span class="lbl">Semester</span>
         <span class="val">{{ semesterFilterLabel() }}</span>
-        <span class="icon" aria-hidden="true">expand_more</span>
         <select aria-label="Semester" (change)="setSemesterFilter(selectValue($event))">
           <option [value]="allSemesters" [selected]="semesterFilter() === allSemesters">
             All semesters

@@ -69,7 +69,6 @@
     <div class="select">
       <span class="lbl">Department</span>
       <span class="val">{{ departmentFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select
         aria-label="Department — narrows the requests shown"
         (change)="setDepartmentFilter(selectValue($event))"
@@ -93,7 +92,6 @@
     <div class="select">
       <span class="lbl">Type</span>
       <span class="val">{{ kindFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Leave type" (change)="setKindFilter(selectValue($event))">
         <option [value]="everyKind" [selected]="kindFilter() === everyKind">All</option>
         @for (kind of kinds; track kind.id) {

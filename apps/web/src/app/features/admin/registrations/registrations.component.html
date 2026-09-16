@@ -48,7 +48,6 @@
     <div class="select">
       <span class="lbl">College</span>
       <span class="val">{{ collegeFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="College" (change)="setCollegeFilter(selectValue($event))">
         <option [value]="everyCollege" [selected]="collegeFilter() === everyCollege">All colleges</option>
         @for (college of collegeOptions(); track college) {
@@ -60,7 +59,6 @@
     <div class="select batch-select">
       <span class="lbl">Batch</span>
       <span class="val">{{ batchFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Batch" (change)="setBatchFilter(selectValue($event))">
         <option [value]="everyBatch" [selected]="batchFilter() === everyBatch">All batches</option>
         @for (batch of batchOptions(); track batch) {
@@ -75,7 +73,6 @@
     <div class="select">
       <span class="lbl">Domain check</span>
       <span class="val">{{ domainFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Domain check" (change)="setDomainFilter(selectValue($event))">
         @for (option of domainFilters; track option.key) {
           <option [value]="option.key" [selected]="option.key === domainFilter()">{{ option.label }}</option>
@@ -86,7 +83,6 @@
     <div class="select">
       <span class="lbl">Submitted</span>
       <span class="val">{{ submittedFilterLabel() }}</span>
-      <span class="icon" aria-hidden="true">expand_more</span>
       <select aria-label="Submitted" (change)="setSubmittedFilter(selectValue($event))">
         @for (window of submittedWindows; track window.key) {
           <option [value]="window.key" [selected]="window.key === submittedFilter()">{{ window.label }}</option>

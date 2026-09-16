@@ -17,7 +17,18 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Index, Integer, String, func, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..db import Base
@@ -105,11 +116,43 @@ class RegistrationRule(Base):
 
 class Registration(Base):
     __tablename__ = "registrations"
-    __table_args__ = (Index("ix_registration_status_created", "status", "created_at"),)
+    __table_args__ = (
+        Index("ix_registration_status_created", "status", "created_at"),
+        # ONE LIVE APPLICATION PER ADDRESS, AND A REJECTION IS NOT LIVE
+        # (migration d7e2f9a41c86, 2026-09-16). `email` was `unique=True`
+        # outright, so an address the office had REJECTED could never apply
+        # again: the second submission met the duplicate guard's deliberately
+        # opaque 409 ("could not be accepted ... contact the placement office"),
+        # and the rejection mail had told the applicant to reply to that same
+        # office - so a student who had mistyped a USN was refused forever, by
+        # the same words, with nothing on either side saying why. A rejection
+        # is a decision about ONE application, and the row stays as the record
+        # of it; the address is free to be applied with again.
+        #
+        # PARTIAL, on `status <> 'REJECTED'`, rather than dropping uniqueness:
+        # every other status is either waiting on a decision (PENDING_REVIEW,
+        # HOLD) or already an account (AUTO_APPROVED, APPROVED), and a second
+        # row beside any of those is the duplicate the guard exists to refuse.
+        # The database enforces it so that two submissions racing past the
+        # guard's read-then-write cannot both land - the same reason
+        # `uq_mentor_assignment_one_open_spell` is a constraint and not a
+        # sentence. Declared here AND in the migration, per AGENTS.md: an index
+        # that lives only in a migration is one `alembic check` asks to drop
+        # every run, and the `postgresql_where` is part of the declaration.
+        Index(
+            "uq_registration_live_email",
+            "email",
+            unique=True,
+            postgresql_where=text("status <> 'REJECTED'"),
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     name: Mapped[str] = mapped_column(String)
-    email: Mapped[str] = mapped_column(String, unique=True)
+    # Not `unique=True` - see `uq_registration_live_email` above. The guard in
+    # `routers/registration.py::submit` reads the same rule: an existing row
+    # blocks a new one unless it is REJECTED.
+    email: Mapped[str] = mapped_column(String)
     usn: Mapped[str | None] = mapped_column(String, nullable=True)
     phone: Mapped[str | None] = mapped_column(String, nullable=True)
 

@@ -166,6 +166,37 @@
   --sh-well: inset 0 1px 2px rgba(58, 31, 82, 0.12);
   --sh-voice: 0 10px 24px rgba(12, 4, 22, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 
+  /* THE FLOATING ORB'S ELEVATION IS FOUR LAYERS AND NOT ONE
+     (layout/agent-orb.component.ts). A 1px contact shadow anchors the disc to
+     the page, then near, mid and ambient widen the blur while the opacity
+     falls. One blurred drop at one radius is what an undesigned float looks
+     like -- the falloff is what reads as HEIGHT, and it is the whole reason
+     the orb no longer needs the 4px opaque-white ring it used to wear to
+     separate itself from the wash. The ring was a cut-out line rather than
+     anything light does, and it was the single thing making the orb read as a
+     sticker pasted on the screen. */
+  --sh-orb: 0 1px 1px rgba(30, 12, 48, 0.12), 0 4px 8px rgba(58, 31, 82, 0.14),
+    0 12px 24px rgba(58, 31, 82, 0.18), 0 22px 44px rgba(58, 31, 82, 0.16);
+  --sh-orb-hover: 0 1px 1px rgba(30, 12, 48, 0.14), 0 6px 12px rgba(58, 31, 82, 0.18),
+    0 16px 32px rgba(58, 31, 82, 0.22), 0 30px 60px rgba(58, 31, 82, 0.2);
+  /* The rim, and it is a separate token because it does not move on hover
+     while the four above all do: a hairline all round, a lit top edge and a
+     shaded bottom one, so the silhouette has a material thickness where it
+     meets the page instead of a cut edge. */
+  --sh-orb-rim: inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.32), inset 0 -3px 8px rgba(24, 8, 40, 0.18);
+
+  /* --- motion ----------------------------------------------------------- */
+  /* TWO CURVES, AND NEITHER IS `ease`. A control answering a press should
+     leave fast and arrive slow (--ease-out); one springing back from a press
+     should overshoot a little and settle (--ease-spring). The browser default
+     eases IN as well as out, which on a 160ms transition spends the first
+     third of it going nowhere and reads as lag. Both are here rather than
+     written at the call site so a second animated control cannot pick a
+     third curve. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
   /* --- type ------------------------------------------------------------- */
   /* Plus Jakarta Sans carries the display role and Inter the UI/data role.
      Orbitron's wide techno letterforms were hurting the dense data screens —
@@ -2267,8 +2298,28 @@ html.fonts-ready .icon {
 /* The floating REEP orb (layout/agent-orb.component.ts) and the dock it opens
    (layout/agent-dock.component.ts). The wrap is what is dragged, so the live
    pill above the button moves with it. While the dock is open the orb is its
-   Close control; while an interview runs it pulses and carries the clock —
-   text and colour together, never the pulse alone. */
+   Close control; while an interview runs it pulses and carries the clock --
+   text and colour together, never the pulse alone.
+
+   THE ORB IS LIT, NOT PAINTED (2026-09-16). It was one flat --primary-gradient
+   disc inside a 4px opaque-white ring with a single soft shadow, and the three
+   things wrong with that are worth naming because each comes back on its own:
+
+     1. A FLAT GRADIENT IS A SHAPE, NOT AN OBJECT. The two radial layers below
+        sit OVER the gradient -- a specular off the upper left, where this
+        design's light comes from, and a floor darkening at the bottom -- and
+        they are what give the disc a curve. Neither is a colour: the brand
+        gradient is still `var(--primary-gradient)` and nothing else, because
+        tools/ci/check_brand_magenta.py refuses a second magenta stop anywhere
+        and rebuilding the gradient out of its stops is exactly what that check
+        exists to stop.
+     2. THE WHITE RING WAS DOING THE SHADOW'S JOB. It was there to hold the orb
+        off the lilac wash, which --sh-orb's four-step falloff now does
+        properly, over the wash and over a white card alike.
+     3. EVERY STATE MOVED THE SHADOW. The old live pulse animated box-shadow,
+        which is a paint on every frame and which fought the hover transition
+        for the same property. Live is a `::after` ring now and hover is a
+        transform, so both composite and neither can contend with the other. */
 .agent-orb-wrap {
   position: fixed;
   right: 22px;
@@ -2279,72 +2330,160 @@ html.fonts-ready .icon {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 8px;
+  gap: 10px;
   touch-action: none;
 }
 .agent-orb {
+  position: relative;
   width: 58px;
   height: 58px;
+  padding: 0;
   border-radius: var(--r-pill);
   border: 0;
-  background: var(--primary-gradient);
+  /* Read bottom up: the brand gradient, a floor shade, then the specular. */
+  background:
+    radial-gradient(66% 56% at 32% 24%, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 64%),
+    radial-gradient(100% 76% at 50% 118%, rgba(24, 8, 40, 0.26), rgba(24, 8, 40, 0) 56%),
+    var(--primary-gradient);
   color: #fff;
   display: grid;
   place-items: center;
-  box-shadow: var(--sh-primary), 0 0 0 4px rgba(255, 255, 255, 0.55);
   cursor: pointer;
   touch-action: none;
-  transition: box-shadow 160ms ease, transform 160ms ease;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: var(--sh-orb), var(--sh-orb-rim);
+  transition:
+    box-shadow 240ms var(--ease-out),
+    transform 240ms var(--ease-spring);
 }
 .agent-orb:hover {
-  box-shadow: var(--sh-primary-hover), 0 0 0 4px rgba(255, 255, 255, 0.7);
+  /* The orb rises and its shadow spreads together -- a lift where only the
+     shadow changes reads as the light moving rather than the object. */
+  transform: translateY(-2px);
+  box-shadow: var(--sh-orb-hover), var(--sh-orb-rim);
+}
+.agent-orb:active {
+  /* Faster than the release on purpose: a press should answer immediately and
+     spring back at leisure, which is what the two curves are for. */
+  transform: translateY(0) scale(0.94);
+  transition-duration: 90ms;
 }
 .agent-orb:focus-visible {
   outline: 2px solid var(--brand-purple);
   outline-offset: 5px;
 }
 .agent-orb .icon {
-  font-size: 26px;
+  font-size: 24px;
+  /* FILLED, and heavier than body icons. An outlined glyph on a saturated
+     gradient loses its counters at 24px and reads as noise; the fill is what
+     makes the mark legible against the brightest stop. */
+  font-variation-settings:
+    'opsz' 24,
+    'wght' 500,
+    'FILL' 1,
+    'GRAD' 0;
+  transition: transform 260ms var(--ease-spring);
+}
+/* The close glyph turns in rather than cutting to it, so opening and closing
+   are one control changing state and not two buttons swapping places. */
+.agent-orb--open .icon {
+  transform: rotate(90deg);
 }
 .agent-orb--open {
-  background: var(--ink);
-  box-shadow: var(--sh-ctrl), 0 0 0 4px rgba(255, 255, 255, 0.55);
+  background:
+    radial-gradient(70% 60% at 30% 20%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%),
+    linear-gradient(180deg, var(--ink-soft), var(--ink));
 }
-.agent-orb--live {
-  animation: agent-orb-pulse 1.8s ease-in-out infinite;
+/* LIVE IS A RING, NOT A GLOW. It expands from the orb's own edge and fades,
+   which is a transform and an opacity -- both composited, neither repainting
+   the four-layer shadow underneath. It is also deliberately slow: this runs
+   for the length of an interview, and a 1.8s pulse in the corner of every
+   screen for eight minutes is an irritation rather than a status. */
+.agent-orb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid rgba(85, 44, 126, 0.5);
+  opacity: 0;
+  pointer-events: none;
 }
-@keyframes agent-orb-pulse {
-  0%,
-  100% {
-    box-shadow: var(--sh-primary), 0 0 0 4px rgba(255, 255, 255, 0.55);
+.agent-orb--live::after {
+  animation: agent-orb-ping 2.6s var(--ease-out) infinite;
+}
+@keyframes agent-orb-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
   }
-  50% {
-    box-shadow: var(--sh-primary-hover), 0 0 0 10px rgba(122, 47, 158, 0.18);
+  70%,
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
   }
 }
 .agent-orb__live {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: 7px;
+  padding: 5px 11px 5px 9px;
   border-radius: var(--r-pill);
   background: var(--ink);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   color: #fff;
-  font-size: 0.72rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  box-shadow: var(--sh-ctrl);
+  box-shadow: 0 2px 6px rgba(30, 12, 48, 0.18), 0 10px 22px rgba(58, 31, 82, 0.16);
   white-space: nowrap;
+}
+/* TWO TYPE ROLES, NOT ONE STRING. "Live" is a micro-label -- uppercase,
+   tracked, dimmed -- and the clock is the DATUM, set brighter and in tabular
+   figures so the digits do not shuffle sideways as the seconds tick. Set as
+   one run at one size, a status and a number compete and the eye reads
+   neither first. */
+.agent-orb__live-word {
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+.agent-orb__live-clock {
+  font-size: 0.74rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
 }
 .agent-orb__live::before {
   content: '';
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: #7fe0a8;
+  animation: agent-orb-dot 2.6s var(--ease-out) infinite;
 }
+@keyframes agent-orb-dot {
+  0% {
+    box-shadow: 0 0 0 0 rgba(127, 224, 168, 0.5);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 6px rgba(127, 224, 168, 0);
+  }
+}
+/* The status must survive without the motion: the dot, the word and the
+   running clock all say "live" on their own, which is why nothing here is
+   carried by the animation alone. */
 @media (prefers-reduced-motion: reduce) {
-  .agent-orb--live {
+  .agent-orb,
+  .agent-orb .icon {
+    transition: none;
+  }
+  .agent-orb:hover,
+  .agent-orb:active {
+    transform: none;
+  }
+  .agent-orb--live::after,
+  .agent-orb__live::before {
     animation: none;
   }
 }

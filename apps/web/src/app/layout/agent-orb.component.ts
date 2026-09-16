@@ -49,7 +49,10 @@ const EDGE_MARGIN = 110;
   template: `
     <div class="agent-orb-wrap" [style.transform]="translate()">
       @if (dock.live() && dock.liveClock(); as clock) {
-        <span class="agent-orb__live" role="status">Live · {{ clock }}</span>
+        <span class="agent-orb__live" role="status">
+          <span class="agent-orb__live-word">Live</span>
+          <span class="agent-orb__live-clock">{{ clock }}</span>
+        </span>
       }
       <button
         type="button"
@@ -78,9 +81,19 @@ export class AgentOrbComponent implements OnDestroy {
   readonly label = computed(() =>
     this.dock.open() ? 'Close the REEP assistant' : 'Open the REEP assistant',
   );
-  /** All three are in the icon subset (tools/fonts/icon-names.txt). */
+  /**
+   * All three are in the icon subset (tools/fonts/icon-names.txt).
+   *
+   * THE RESTING GLYPH IS `auto_awesome`, NOT `smart_toy`. This is the app's
+   * own mark for "a model did this" already — it is on Generate Resume, on the
+   * resume preview and on English's AI feedback — so the one button that opens
+   * the assistant was the only AI surface in the product wearing a different
+   * icon, and the one it wore was a cartoon robot. The sidebar rows keep
+   * `smart_toy`: they are a labelled list item ("Ask REEP", "REEP Agent"),
+   * where the icon is a locator rather than the whole affordance.
+   */
   readonly glyph = computed(() =>
-    this.dock.open() ? 'close' : this.dock.live() ? 'graphic_eq' : 'smart_toy',
+    this.dock.open() ? 'close' : this.dock.live() ? 'graphic_eq' : 'auto_awesome',
   );
 
   private startX = 0;

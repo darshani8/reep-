@@ -7,10 +7,14 @@ WHAT THESE PIN, and why each one is a test and not a sentence in a docstring:
   * A bad password does NOT burn the link. Policy is checked before the token
     is spent, or a typo costs the person a second email from an admin.
   * "Forgot" answers identically whether the address is real, Google-only or
-    unknown, and mails only accounts that actually hold a password.
+    unknown. It mails a RESET link to an account that holds a password, a
+    SETUP link to a STUDENT that holds none (2026-09-16 - roster-seeded and
+    option-B students had no other way to a password), and nothing to a staff
+    account that holds none or to any disabled account.
   * A reset signs out every device and kills every other pending link; a
     change keeps THIS device and drops the rest. Both through `token_version`.
-  * Students never get a password link (option B). Activation refuses them.
+  * Activation refuses a student: their first-password walk is onboarding,
+    which proves the mailbox with a code first.
   * An application is not decided until its address is confirmed, and an
     auto-approve that provisioning refuses lands in the queue, not the bin.
   * No raw token is ever stored — every hash in both tables is sha256 hex.
@@ -272,13 +276,20 @@ def test_a_spent_link_still_says_it_was_used_rather_than_the_new_refusal(client,
 
 
 @requires_db
-def test_forgot_answers_identically_and_only_mails_password_accounts(client, make_user):
+def test_forgot_answers_identically_and_mails_each_account_what_it_can_use(client, make_user):
     with_password = make_user("pw-has", Role.MENTOR)
     google_only = make_user("pw-google", Role.MENTOR)
     _make_google_only(google_only.user_id)
+    student_no_password = make_user("pw-student-none", Role.STUDENT)
+    _make_google_only(student_no_password.user_id)
 
     answers = set()
-    for email in ("nobody-" + with_password.email, google_only.email, with_password.email):
+    for email in (
+        "nobody-" + with_password.email,
+        google_only.email,
+        with_password.email,
+        student_no_password.email,
+    ):
         r = client.post("/api/auth/forgot", json={"email": email})
         assert r.status_code == 202, r.text
         answers.add(r.json()["detail"])
@@ -288,6 +299,78 @@ def test_forgot_answers_identically_and_only_mails_password_accounts(client, mak
     assert [e.to for e in resets] == [with_password.email], (
         "only the account that HOLDS a password gets a reset link"
     )
+    setups = [e for e in mail_transport.outbox if "Set a password" in e.subject]
+    assert [e.to for e in setups] == [student_no_password.email], (
+        "a STUDENT holding no password gets the setup link; a staff account "
+        "holding none gets nothing (its first password is the admin's activation link)"
+    )
+    assert not [e for e in mail_transport.outbox if e.to == google_only.email]
+
+
+@requires_db
+def test_forgot_walks_a_password_less_student_to_a_first_password(client, make_user):
+    """THE REPORT: a student who could sign in with Google and not with a
+    password, who typed the right address and was sent nothing. Roster-seeded
+    and option-B accounts hold the sentinel and were never mailed a setup link;
+    `forgot` skipped them, `change-password` answered 409, and the console has
+    no button. Now `forgot` mails the same `/onboard` walk approval sends."""
+    student = make_user("pw-roster", Role.STUDENT)
+    _make_google_only(student.user_id)
+    mail_transport.outbox.clear()
+
+    r = client.post("/api/auth/forgot", json={"email": student.email})
+    assert r.status_code == 202, r.text
+    setup = _mail_to(student.email, "Set a password")
+    assert "/onboard?token=" in setup.text
+    assert "approved" not in setup.text.lower(), (
+        "this student was never an applicant; the mail must not say their "
+        "registration was approved"
+    )
+    token = _token_from(setup)
+
+    started = client.post("/api/auth/onboard/start", json={"token": token, "email": student.email})
+    assert started.status_code == 200, started.text
+    code = re.search(r"\b(\d{6})\b", _mail_to(student.email, "verification code").text).group(1)
+    ok = client.post("/api/auth/onboard/verify", json={"token": token, "code": code})
+    assert ok.status_code == 200, ok.text
+    done = client.post(
+        "/api/auth/onboard/password", json={"ticket": ok.json()["ticket"], "password": GOOD}
+    )
+    assert done.status_code == 200, done.text
+
+    signed_in = client.post("/api/auth/login", json={"email": student.email, "password": GOOD})
+    assert signed_in.status_code == 200, signed_in.text
+    # And the link is spent: the walk cannot be run twice off one mail.
+    again = client.post("/api/auth/onboard/start", json={"token": token, "email": student.email})
+    assert again.status_code == 410
+
+
+@requires_db
+def test_forgot_sends_a_disabled_password_less_student_nothing(client, make_user):
+    """Offboarded is offboarded (B3.3): the setup branch must sit BEHIND the
+    disabled check, or disabling a roster account leaves it a way back in."""
+    student = make_user("pw-roster-off", Role.STUDENT)
+    _make_google_only(student.user_id)
+    with SessionLocal() as db:
+        db.get(User, student.user_id).disabled_at = datetime.now(timezone.utc)
+        db.commit()
+    mail_transport.outbox.clear()
+
+    r = client.post("/api/auth/forgot", json={"email": student.email})
+    assert r.status_code == 202, r.text
+    assert not [e for e in mail_transport.outbox if e.to == student.email]
+
+
+@requires_db
+def test_a_password_less_student_is_pointed_at_forgot_by_change_password(client, make_user, login):
+    """The 409 used to name "the link you were emailed", which a roster-seeded
+    student never was. It must name the door that exists."""
+    student = make_user("pw-student-409", Role.STUDENT)
+    headers = login(student.email, TEST_PASSWORD)
+    _make_google_only(student.user_id)
+    r = client.post("/api/auth/change-password/code", headers=headers)
+    assert r.status_code == 409, r.text
+    assert "Forgot password" in r.json()["detail"]
 
 
 @requires_db

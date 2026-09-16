@@ -19,7 +19,12 @@
  *
  * An account holding no password at all (the unusable sentinel — Google-only,
  * or onboarding unfinished) gets a 409 and a sentence, not a form that cannot
- * succeed.
+ * succeed — and, since 2026-09-16, a button. `POST /auth/forgot` mails a
+ * password-less STUDENT the setup link (the same `/onboard` walk approval
+ * sends), so "Email me a setup link" posts that endpoint with the address on
+ * the session. The address is the server's own idea of this account, read
+ * from the session rather than typed, and the endpoint answers the same words
+ * whatever it did, so nothing here can learn anything from it.
  */
 
 import { Component, inject, signal } from '@angular/core';
@@ -62,6 +67,11 @@ export class ChangePasswordComponent {
   readonly note = signal<string | null>(null);
   /** 409 from the API: this account has no password to change. */
   readonly noPassword = signal(false);
+  /** The setup-link request's outcome — the server's one sentence, or a
+   *  transport failure. Non-null hides the button: asking again supersedes the
+   *  link server-side, but a second press here is a second mail. */
+  readonly setupNote = signal<string | null>(null);
+  readonly setupBusy = signal(false);
   /** The code has been sent, so the form is worth showing. */
   readonly codeSent = signal(false);
   readonly minLength = MIN_LENGTH;
@@ -113,6 +123,34 @@ export class ChangePasswordComponent {
       this.error.set('Could not reach the server. Try again in a moment.');
     } finally {
       this.sending.set(false);
+    }
+  }
+
+  /** Ask for the setup link on this account's own address. Same endpoint the
+   *  login screen's "Forgot password?" form calls; same throttle. */
+  async emailSetupLink(): Promise<void> {
+    const email = this.auth.session()?.email?.trim().toLowerCase();
+    if (!email || this.setupBusy()) return;
+    this.setupBusy.set(true);
+    try {
+      const res = await fetch(`${environment.apiBase}/auth/forgot`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { detail?: unknown };
+      this.setupNote.set(
+        typeof body.detail === 'string'
+          ? body.detail
+          : res.ok
+            ? `We have emailed ${email} a setup link.`
+            : `Could not send the link just now (${res.status}). Try again in a moment.`,
+      );
+    } catch {
+      this.setupNote.set('Could not reach the server. Try again in a moment.');
+    } finally {
+      this.setupBusy.set(false);
     }
   }
 

@@ -394,9 +394,9 @@ export class LoginComponent {
     queueMicrotask(() => document.querySelector<HTMLInputElement>('input[name="id"]')?.focus());
   }
 
-  /** "Already approved? Sign in": an approved student holds no password, so
-   *  their door is Google. Select the Student portal and bring that button into
-   *  view and focus. */
+  /** "Already approved? Sign in": an approved student may not have set a
+   *  password yet, and Google works for them either way. Select the Student
+   *  portal and bring that button into view and focus. */
   approvedSignIn(): void {
     this.selectPortal('student');
     queueMicrotask(() => {
@@ -533,7 +533,7 @@ export class LoginComponent {
         typeof body.detail === 'string'
           ? body.detail
           : res.ok
-            ? 'If that address has a REEP password, a reset link has been sent.'
+            ? 'If that address belongs to a REEP account, a link has been sent to it.'
             : 'Could not send a reset link just now. Try again in a moment.',
       );
     } catch {

@@ -319,23 +319,7 @@ button {
   }
 }
 
-/* Material Symbols Rounded, at the weight the handoff specifies.
-
-   HIDDEN, ON REQUEST, AND THE FONT IS WHY. Material Symbols renders from
-   LIGATURES -- the template writes the word `expand_more` and the font
-   substitutes the glyph. The subset shipped in
-   apps/web/public/fonts/material-symbols-rounded-300-600-all.woff2 has no
-   `liga` feature in its GSUB table at all (only `rclt` and `rlig`; its glyphs
-   are reachable by codepoint alone), so NO ligature resolves and every one of
-   the ~990 `.icon` spans in this app painted its literal name instead -- on
-   every screen, for every role. That is what the `font-feature-settings:
-   'liga'` two lines below is asking for and not getting.
-
-   `display: none` here is the one place that covers all four UIs at once
-   without touching 38 templates. It is deliberately a one-line switch: regenerate
-   the subset WITH the liga feature (tools/fonts/fetch-fonts.sh) and put
-   `inline-block` back, and all 990 icons return as glyphs. Do not delete the
-   spans -- they are the icon names, and they are what the rebuild needs. */
+/* Material Symbols Rounded, at the weight the handoff specifies. */
 .icon {
   font-family: 'Material Symbols Rounded';
   font-weight: normal;
@@ -344,7 +328,7 @@ button {
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;
-  display: none;
+  display: inline-block;
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;

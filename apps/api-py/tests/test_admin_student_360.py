@@ -275,11 +275,12 @@ def grant():
     """Write a capability grant straight onto the row, and take it away after.
 
     Through the row rather than `POST /admin/governance/grants` because
-    `admin.students` is `carries_pii`, so the endpoint writes it
-    `pending_approval` and it HOLDS NOTHING until a second `admin.governance`
-    holder approves it (B2.4). That is correct behaviour and it is tested where
-    it belongs, in test_governance.py; here it would mean every scope assertion
-    passed for the wrong reason.
+    `admin.students` is `carries_pii`, so the endpoint writes a DEPUTY's grant
+    `pending_approval` — it HOLDS NOTHING until a different `admin.governance`
+    holder approves it (B2.4) — and the Main Admin's live at once. That is
+    correct behaviour and it is tested where it belongs, in
+    test_governance_review.py; a fixture that depended on who granted would
+    make every scope assertion here about the approval rule instead.
     """
     made: list[str] = []
 

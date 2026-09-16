@@ -112,10 +112,11 @@ def scoped_grant():
     """Give an account `admin.exports` scoped to one rung of the spine.
 
     Written as a row rather than through the Governance endpoint because
-    `admin.exports` is flagged `carries_pii`, so a grant made through the API
-    lands `pending_approval` (B2.4) and holds nothing until a second Main Admin
-    approves it — which is a different test's subject, and would make this one
-    pass for the wrong reason.
+    `admin.exports` is flagged `carries_pii`, so a deputy's grant made through
+    the API lands `pending_approval` (B2.4) and holds nothing until a different
+    `admin.governance` holder approves it, while the Main Admin's is live at
+    once — that difference is a different test's subject, and a fixture that
+    turned on it would make this one pass for the wrong reason.
     """
     made: list[str] = []
 

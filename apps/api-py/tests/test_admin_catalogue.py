@@ -182,9 +182,10 @@ def scoped_grant():
     """One capability, scoped to one rung, written as a row and taken back.
 
     A row rather than `POST /api/admin/governance/grants` for the reason
-    test_scoped_lists.py gives: an API-made grant of a `carries_pii` key lands
-    `pending_approval` (B2.4). `admin.catalogue` is not one, but the two tests
-    should not differ in how they arrange the same thing.
+    test_scoped_lists.py gives: a deputy's API-made grant of a `carries_pii`
+    key lands `pending_approval` (B2.4) while the Main Admin's is live at once.
+    `admin.catalogue` is not one, but the two tests should not differ in how
+    they arrange the same thing.
     """
     made: list[str] = []
 

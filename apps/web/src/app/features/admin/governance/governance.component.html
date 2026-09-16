@@ -631,7 +631,7 @@
             </div>
           }
 
-          @if (chosenFunctionCarriesPersonalData()) {
+          @if (chosenGrantNeedsApproval()) {
             <div class="notice warn gov-note">
               <span class="icon" aria-hidden="true">shield_person</span>
               <div>
@@ -643,11 +643,12 @@
           <div class="gov-actions">
             <button type="button" class="btn ghost" (click)="clearGrantForm()">Cancel</button>
             <!-- ONE SUBMIT. "Send for approval" is not a second endpoint: POST
-                 /grants writes a carries_pii grant pending by itself, so the
-                 button says which of the two acts it is about to perform. -->
+                 /grants writes a deputy's carries_pii grant pending by itself
+                 (the Main Admin's is live at once), so the button says which
+                 of the two acts it is about to perform. -->
             <button type="button" class="btn primary" [disabled]="!canGrant()" (click)="grant()">
               <span class="icon" aria-hidden="true">
-                {{ chosenFunctionCarriesPersonalData() ? 'how_to_reg' : 'key' }}
+                {{ chosenGrantNeedsApproval() ? 'how_to_reg' : 'key' }}
               </span>
               {{ grantButtonLabel() }}
             </button>

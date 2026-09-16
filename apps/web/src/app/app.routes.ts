@@ -469,7 +469,8 @@ export const routes: Routes = [
       // since B8.1 (Phase 4b) — it stood on `admin.institution` while the
       // endpoints did not exist, which admitted anyone who could edit a batch
       // to a screen that reads every student's marks. The key `carries_pii`,
-      // so a grant of it needs a second Main Admin's signature (B2.4).
+      // so a deputy's grant of it needs a second signature (B2.4); the Main
+      // Admin's is live at once.
       //
       // THE GUARD IS A FILTER AND NOT THE FENCE. `require_capability` in
       // app/routers/admin_imports.py is what refuses the request; this only

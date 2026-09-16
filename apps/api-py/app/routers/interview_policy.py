@@ -23,11 +23,12 @@ call IN ONE COMMIT, because a name in that tuple with no catalogue entry is a
 KeyError thrown in front of whoever is appointing a college admin. The three
 calls below are the third of those three.
 
-IT CARRIES PII, so a GRANT of it lands `pending_approval` and holds nothing
-until a second `admin.governance` holder approves it (B2.4). The Main Admin
-holds it by baseline and is unaffected; a college admin on a one-admin
-deployment will find these endpoints 403 until a deputy exists, which is the
-honest consequence the Colleges screen already reports as "N awaiting approval".
+IT CARRIES PII, so a DEPUTY's grant of it lands `pending_approval` and holds
+nothing until a different `admin.governance` holder approves it (B2.4). The
+Main Admin holds it by baseline, and the Main Admin's own grants of it are live
+at once (`initial_approval_state`, 2026-09-16); a college admin appointed by a
+deputy will find these endpoints 403 until the office approves, which is the
+honest consequence the Colleges screen reports as "N awaiting approval".
 
 THE SCOPE FENCE IS THE REACH, and it is the same shape `console.set_criteria`
 uses: a college-scoped holder writes their OWN college's policy and not

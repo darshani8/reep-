@@ -1750,9 +1750,10 @@ def student_interview_audio(
 #
 # The key is in the catalogue as `_P` (programme) and `carries_pii=True`: these
 # rows name students and carry scores. `carries_pii` means B2.4's second
-# signature applies to GRANTING it — on a one-admin deployment a grant stays
-# `pending_approval` and holds nothing, which is a real consequence and the
-# Governance screen reports it rather than pretending.
+# signature applies to a DEPUTY granting it — such a grant stays
+# `pending_approval` and holds nothing until the Main Admin or another deputy
+# approves it, which the Governance screen reports rather than pretending. The
+# Main Admin's own grant is live at once (`initial_approval_state`).
 # ---------------------------------------------------------------------------
 
 CAPABILITY = "admin.interviews"

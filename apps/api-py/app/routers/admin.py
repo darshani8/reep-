@@ -63,8 +63,6 @@ from ..models.user import Role, Student, User
 from ..architecture_events import record_change
 from ..governance import require_capability
 from ..models.governance import (
-    APPROVAL_ACTIVE,
-    APPROVAL_PENDING,
     CAPABILITIES_BY_KEY,
     REVIEW_AFTER_DAYS,
     CapabilityGrant,
@@ -80,7 +78,7 @@ from ..institution_domains import normalise_domain
 # exist to prevent. (`.governance` here is app/routers/governance.py; the
 # module `..governance` two lines above is the resolver. The collision is
 # pre-existing and deliberate in this codebase.)
-from .governance import _reason, require_governance
+from .governance import _reason, initial_approval_state, require_governance
 from .mentor import require_admin
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -339,16 +337,19 @@ def update_college(
 # college admin. The key, its first `require_capability` call site
 # (`app/routers/interview_policy.py`) and this line landed in ONE commit, the
 # same rule `admin.imports` was held to. It carries PII, so it is one of the
-# keys that lands `pending_approval`. `admin.interview_questions` is the other
+# keys that lands `pending_approval` when a DEPUTY appoints (the Main Admin's
+# appointment is live at once). `admin.interview_questions` is the other
 # interview key and stays: the two are different decisions — who may edit the
 # questions the interviewer asks, and who may set the college's policy and read
 # the records. The appointment endpoint is idempotent, so re-running it on an
 # existing college admin fills in whatever is missing.
 #
 # `admin.imports` (B8.1) IS in the set, by the owner's decision, and it carries
-# PII — so it is one of the seven of thirteen that land `pending_approval` and hold
-# nothing until a second `admin.governance` holder approves them. That is the
-# state `CollegeAdminGrantOut.approval_state` reports per key, for exactly this
+# PII — so when a DEPUTY appoints, it is one of the seven of thirteen that land
+# `pending_approval` and hold nothing until a different `admin.governance`
+# holder approves them; appointed by the Main Admin, every one of the thirteen
+# is live at once (`initial_approval_state`, 2026-09-16). That is the state
+# `CollegeAdminGrantOut.approval_state` reports per key, for exactly this
 # reason.
 
 #: The functions that make up "runs this college". Ordered as the console's
@@ -374,11 +375,12 @@ COLLEGE_ADMIN_CAPABILITIES: tuple[str, ...] = (
 class CollegeAdminGrantOut(BaseModel):
     capability: str
     label: str
-    #: `active` or `pending_approval`. A `carries_pii` capability needs a second
-    #: Main Admin before it does anything (B2.4) and seven of the thirteen carry
-    #: it, so a freshly appointed college admin is normally PART live. Reporting
-    #: the state per key rather than one boolean for the set is the difference
-    #: between "approve these five" and "why does half my console 403".
+    #: `active` or `pending_approval`. Appointed by the Main Admin every key is
+    #: live at once; appointed by a DEPUTY, the seven of thirteen that carry PII
+    #: wait for a second signature (B2.4), so that college admin is PART live.
+    #: Reporting the state per key rather than one boolean for the set is the
+    #: difference between "approve these seven" and "why does half my console
+    #: 403".
     approval_state: str
     grant_id: str
 
@@ -495,18 +497,21 @@ def appoint_college_admin(
     again. Two live rows for one pair make revocation a question of which one —
     and here it would also be a question of which reason was the real one.
 
-    THE SECOND-APPROVAL RULE IS NOT BYPASSED. Seven of the thirteen are
-    `carries_pii`, so those rows are written `pending_approval` and hold nothing
-    until a different holder of `admin.governance` approves each in Governance
-    (B2.4). That is the point of appointing somebody through grants rather than
-    through a role: a role would have handed over the roster the moment it was
-    typed.
+    THE SECOND-APPROVAL RULE IS NOT BYPASSED, AND IT IS THE SAME RULE AS
+    `POST /governance/grants`'S. `initial_approval_state` decides every row:
+    appointed by the Main Admin, all thirteen are live at once (2026-09-16);
+    appointed by a deputy, the seven that are `carries_pii` are written
+    `pending_approval` and hold nothing until a different holder of
+    `admin.governance` approves each in Governance (B2.4). That is the point of
+    appointing somebody through grants rather than through a role: a role would
+    have handed over the roster the moment it was typed, whoever typed it.
 
     THIS IS THE SECOND WRITER OF `capability_grants` AND THAT IS A REAL COST.
     `POST /api/admin/governance/grants` is the first, and it cannot be reused
     because `GrantIn` has no scope field — it writes programme-wide rows only.
-    The two are kept in step by sharing every constant that decides a row
-    (`APPROVAL_*`, `REVIEW_AFTER_DAYS`, `_reason`, `role_at_grant`); the change
+    The two are kept in step by sharing everything that decides a row
+    (`initial_approval_state`, `REVIEW_AFTER_DAYS`, `_reason`, `role_at_grant`);
+    the change
     that would delete this duplication outright is a `scope` on `GrantIn`, at
     which point this endpoint becomes a loop over that one.
     """
@@ -533,14 +538,14 @@ def appoint_college_admin(
         A `pending_approval` ROW COUNTS, and this is the one place it was easy
         to get wrong. The obvious implementation asks `granted_reaches`, which
         is the reader `require_capability` uses — and that reader filters on
-        `approval_state == active`, precisely so a grant awaiting a second Main
-        Admin holds nothing. Five of these eleven carry PII and are therefore
-        written pending, so a second appointment of the same person wrote five
-        DUPLICATE rows, each awaiting its own approval, and the approver then
-        had to pick one. Exactly the ambiguity `create_grants.already_live`
-        documents, reached through the one door that does not yet grant
-        anything. This asks the table instead: live means not revoked and not
-        expired, whatever it is waiting for.
+        `approval_state == active`, precisely so a grant awaiting a second
+        signature holds nothing. Appointed by a deputy, seven of these thirteen
+        carry PII and are written pending, so a second appointment of the same
+        person wrote seven DUPLICATE rows, each awaiting its own approval, and
+        the approver then had to pick one. Exactly the ambiguity
+        `create_grants.already_live` documents, reached through the one door
+        that does not yet grant anything. This asks the table instead: live
+        means not revoked and not expired, whatever it is waiting for.
         """
         return db.scalar(
             select(CapabilityGrant.id).where(
@@ -576,7 +581,7 @@ def appoint_college_admin(
                 scope_id=college.id,
                 reason=reason,
                 granted_by_user_id=session["userId"],
-                approval_state=APPROVAL_PENDING if cap.carries_pii else APPROVAL_ACTIVE,
+                approval_state=initial_approval_state(cap, session),
                 review_at=review_at,
                 role_at_grant=user.role.value,
             )

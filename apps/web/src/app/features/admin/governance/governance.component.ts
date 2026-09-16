@@ -33,11 +33,15 @@
  * telling an admin they fenced something they did not.
  *
  * A PENDING GRANT HOLDS NOTHING, and the row says so in as many words. A
- * `carries_pii` capability is written `pending_approval` and is ignored by
- * `granted_capabilities` and `granted_reaches` until a DIFFERENT holder of
- * Governance approves it (B2.4). Painting it like a live grant would be an
- * admin believing they handed over access that does not exist — so the status
- * chip reads "Awaiting approval — holds nothing", in the risk tone, and the row
+ * `carries_pii` capability granted by a DEPUTY is written `pending_approval`
+ * and is ignored by `granted_capabilities` and `granted_reaches` until a
+ * DIFFERENT holder of Governance approves it (B2.4). The Main Admin's own
+ * grants are live the moment they are written (2026-09-16): the office is the
+ * one authority here and does not wait for a deputy it appointed to agree, so
+ * the office never sees its own rows in this state — a deputy's it does, and
+ * approves. Painting a pending row like a live grant would be an admin
+ * believing they handed over access that does not exist — so the status chip
+ * reads "Awaiting approval — holds nothing", in the risk tone, and the row
  * offers Approve rather than nothing at all.
  *
  * WHAT THIS SCREEN STILL CANNOT ANSWER, AND SAYS SO. Two things, both honest
@@ -68,6 +72,7 @@ import { Component, ElementRef, computed, inject, signal, viewChild } from '@ang
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
+import { AuthService } from '../../../core/auth.service';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
 // ---- exact snake_case shapes of the governance router's Out models ---------
@@ -316,6 +321,15 @@ export class GovernanceComponent {
    *  unrecognised value leaves the default standing rather than blanking the
    *  screen — a bad query string is somebody's stale bookmark, not an error. */
   private readonly openedAt = inject(ActivatedRoute).snapshot.queryParamMap.get('tab');
+
+  /** WHO is granting decides whether a `carries_pii` grant waits: the Main
+   *  Admin's grants are live at once, a deputy's wait for a second holder of
+   *  Governance (B2.4, amended 2026-09-16). The SERVER decides
+   *  (`initial_approval_state` in routers/governance.py); this only lets the
+   *  button and the note say which act is about to happen, and `grantFlash`
+   *  still reads the answer the server actually gave. */
+  private readonly session = inject(AuthService).session;
+  readonly isMainAdmin = computed(() => this.session()?.role === 'ADMIN');
 
   // ---- server data --------------------------------------------------------
   readonly capabilities = signal<CapabilityOut[]>([]);
@@ -832,6 +846,12 @@ export class GovernanceComponent {
     return !!chosen && chosen.carries_pii;
   });
 
+  /** Whether THIS session's grant of the chosen function will wait for a
+   *  second holder of Governance — a deputy's does, the Main Admin's never. */
+  readonly chosenGrantNeedsApproval = computed(
+    () => this.chosenFunctionCarriesPersonalData() && !this.isMainAdmin(),
+  );
+
   /** THE BLAST RADIUS, recomputed on every change and counted in students.
    *  "86 students" is the sentence that makes a PII grant's cost visible; "AI &
    *  ML" is a name that costs nothing to read past. */
@@ -882,13 +902,14 @@ export class GovernanceComponent {
   });
 
   /** ONE SUBMIT, TWO WORDS FOR IT. A `carries_pii` grant is not a different
-   *  request — `POST /grants` writes it `pending_approval` by itself — so the
-   *  board's separate "Send for approval" button would have been a second
-   *  control for one act, and the honest version is the button saying which
-   *  act it is about to perform. */
+   *  request — `POST /grants` writes a deputy's `pending_approval` by itself —
+   *  so the board's separate "Send for approval" button would have been a
+   *  second control for one act, and the honest version is the button saying
+   *  which act it is about to perform. For the Main Admin it is always "Give
+   *  access": the office's grants are live at once. */
   readonly grantButtonLabel = computed(() => {
     const count = this.pickedCount();
-    if (this.chosenFunctionCarriesPersonalData()) {
+    if (this.chosenGrantNeedsApproval()) {
       return count > 1 ? `Send for approval · ${count}` : 'Send for approval';
     }
     if (count > 1) {

@@ -138,7 +138,7 @@
               <option value="" [selected]="formBatchId() === ''">No batch (unseated)</option>
               @for (batch of batches(); track batch.id) {
                 <option [value]="batch.id" [selected]="batch.id === formBatchId()">
-                  {{ batch.name }} · {{ batch.batch_label }}
+                  {{ batch.display_label }}
                 </option>
               }
             </select>

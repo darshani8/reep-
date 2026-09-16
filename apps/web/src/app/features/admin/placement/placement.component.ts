@@ -184,6 +184,10 @@ interface CohortOption {
   code: string;
   name: string;
   batch_label: string;
+  /** The spine and the year in one sentence, composed by the server from the
+   *  batch's own links: "General MBA - Finance · 2026-28". `name` is the YEAR
+   *  alone, so it cannot tell two batches of one department apart. */
+  display_label: string;
   student_count: number;
 }
 

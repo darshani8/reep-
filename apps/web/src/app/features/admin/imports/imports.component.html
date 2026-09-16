@@ -68,7 +68,7 @@
         <option value="" [selected]="batchId() === ''">Choose a batch</option>
         @for (batch of batchOptions(); track batch.id) {
           <option [value]="batch.id" [selected]="batch.id === batchId()">
-            {{ batch.name }} · {{ batch.batchLabel }}{{ batch.isRunning ? '' : ' (ended)' }}
+            {{ batch.displayLabel }}{{ batch.isRunning ? '' : ' (ended)' }}
           </option>
         }
       </select>

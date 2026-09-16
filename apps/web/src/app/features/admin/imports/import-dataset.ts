@@ -85,7 +85,10 @@ export interface CourseOption {
 
 export interface BatchOption {
   readonly id: string;
+  /** The batch itself: a YEAR. */
   readonly name: string;
+  /** "General MBA - Finance · 2026-28" — what the picker shows. */
+  readonly displayLabel: string;
   readonly batchLabel: string;
   readonly courseId: string | null;
   /** The batch is still running — its end date is ahead. Ended batches are
@@ -105,9 +108,13 @@ export interface HierarchyCourse {
 export interface HierarchyBatch {
   id: string;
   code: string;
+  /** The batch itself: a YEAR, "2026-28". */
   name: string;
   batch_label: string;
   course_id: string | null;
+  /** The spine and the year in one sentence, composed by the server from the
+   *  batch's links: "General MBA - Finance · 2026-28". */
+  display_label: string;
   current: boolean;
 }
 

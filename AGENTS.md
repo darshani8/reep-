@@ -411,8 +411,10 @@ re-runnable**, `app.seed_catalogue`'s rule: a 409 is answered by looking the
 row up by its code and using it ("Already there"), a row whose parent failed
 is "Skipped" with the reason, and pressing the button again resumes from what
 landed. The batch conventions are the seeder's, in `college-setup.model.ts`
-and pinned by its spec: code `COLLEGE-DEPT-COURSE[-SPEC]-LABEL`, name "Course
-- Specialization 2026-28", July to the last day of June, and the mock-interview
+and pinned by its spec: code `COLLEGE-DEPT-COURSE[-SPEC]-LABEL`, name the YEAR
+alone ("2026-28" — a batch is a year, and its course and specialization are the
+links the same five POSTs set; see "A BATCH IS A YEAR" below), July to the last
+day of June, and the mock-interview
 chip per leaf is the same case-folded code match `_default_track` applies —
 "Mock interview: general" is a fact the office sees before the first student
 does, not a surprise on the day. Nothing on the screen explains itself.
@@ -1181,6 +1183,52 @@ it onto `students`: that is the backfill this shape exists to avoid.
 `AcademicCourse` is prefixed because `Course` (app/models/course.py) is a taught
 subject; `Specialization` is already three other things. The UI says "Course",
 "Specialization" and "Batch".
+
+**A BATCH IS A YEAR, AND THE SPINE IS ITS LINKS (2026-09-16).** A student who
+joined a two-year MBA in 2026 is in batch **2026-28** — that span is the whole
+of what a `cohorts` row is. WHICH college, department, course and
+specialization they joined is the spine the row hangs off, and the row already
+carries every rung of it as a real foreign key. Until this date both writers of
+the spine MANUFACTURED the spine into the name as well — `seed_catalogue.batch_name`
+and "Set up a college" agreed on "General MBA - Finance 2026-28" — so one fact
+was stored twice: once as a foreign key `ancestry_of_student` reads, once as
+words inside a string nothing can join on, free to disagree the moment the
+office renamed a course on screen. And because `batch_label` is its own column,
+**five endpoints each carried their own copy of `f"{cohort.name} · {cohort.batch_label}"`**
+(`admin_students`, `swoc`, `registration`, `governance`, `admin_promotion`) and
+six templates carried a sixth, so the year printed twice on every screen that
+showed a batch. `app/batch_labels.py` is the one place the two are put back
+together — `compose(course_name, specialization_name, name)` → "General MBA -
+Finance · 2026-28" — with `apps/web/src/app/core/batch-label.ts` as its twin and
+`tests/test_batch_labels.py` comparing the two separators as text, because two
+implementations of one sentence drift the first time somebody edits one.
+`display_label` is now served by `GET /api/register/hierarchy`, `/admin/cohorts`
+and the admin cohort endpoints so no client composes it again.
+
+**THE TAIL CARRIES BOTH `name` AND `batch_label`, AND GETTING THAT WRONG COST A
+CI ROUND.** The first version took only `name`, reasoning that the seeder and the
+setup screen now write the year into it so the label would be a duplicate. It is
+— for the batches *those two* write. It is not for a batch the office typed a
+name for, and `test_registration_hierarchy.test_a_batch_pins_its_department_and_college`
+builds exactly one: "Chain Batch" at department level, where composing from the
+name alone printed "Chain Batch" and the SPAN vanished from the reviewer's
+"Approving seats them in …". A batch IS a year; a rendering that can drop the
+year is this same bug arriving from the other side. So the year leads the tail
+and the office's words follow — "2024-26 · Chain Batch" — with **one substring
+test** keeping a section from stuttering: where `name` already contains the span
+("2026-28", "2026-28 Section B", a legacy row renamed by hand) it stands alone,
+because "2026-28 · 2026-28 Section B" is the duplication again. That is also what
+keeps the NON-STANDARD batch the office types on College structure; its Name
+field is **optional** now and `saveBatch` sends the label when it is blank. Migration `a4e7c92d1f38` repairs the rows already written, and its
+predicate is the whole of its safety: it rewrites `name` to `batch_label` only
+where the name is EXACTLY the string those two writers would have manufactured
+from THAT ROW'S OWN links. A name a person typed, or one whose course has since
+been renamed, no longer matches and is left alone — the seeder's own rule
+("divergence is REPORTED, never corrected") applied to a one-time repair, which
+is the difference between fixing what this codebase wrote and overwriting what
+the office wrote. The downgrade is written rather than raising because the
+manufactured string is a pure function of the links and the label, so going back
+is exact.
 
 **Course and Specialization are OPTIONAL, and the switch is one line.**
 `HIERARCHY_LEVELS` in `app/models/institution.py` says which must be named on a

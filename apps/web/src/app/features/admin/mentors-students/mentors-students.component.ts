@@ -147,8 +147,12 @@ interface MentorLoad {
 interface CohortRow {
   id: string;
   code: string;
+  /** The batch itself: a YEAR, "2026-28". */
   name: string;
   batch_label: string;
+  /** The spine and the year in one sentence, composed by the server from the
+   *  batch's own links: "General MBA - Finance · 2026-28". */
+  display_label: string;
   degree_level: string;
   student_count: number;
 }
@@ -527,9 +531,12 @@ export class AdminMentorsStudentsComponent {
     await this.refilter();
   }
 
-  /** "MBA 2024-26 · 32 students" — the batch as both controls print it. */
+  /** "General MBA - Finance · 2024-26" — the batch as both controls print it.
+   *  The spine comes down the batch's LINKS and is composed by the server;
+   *  `name` on its own is the year, which cannot tell a department's four
+   *  batches apart. */
   batchLabel(batch: CohortRow): string {
-    return `${batch.name} · ${batch.batch_label}`;
+    return batch.display_label;
   }
 
   /** "Associate Professor · Management Studies", or what the roster holds. */

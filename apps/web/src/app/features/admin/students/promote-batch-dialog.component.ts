@@ -155,9 +155,9 @@ export class PromoteBatchDialogComponent implements OnInit {
   readonly headline = computed(() => {
     const batch = this.batch();
     if (batch.nextSemester === null) {
-      return `Promote ${batch.batchName}`;
+      return `Promote ${batch.batchDisplayLabel}`;
     }
-    return `Promote ${batch.batchName} to semester ${batch.nextSemester}`;
+    return `Promote ${batch.batchDisplayLabel} to semester ${batch.nextSemester}`;
   });
 
   readonly subLine = computed(() => {

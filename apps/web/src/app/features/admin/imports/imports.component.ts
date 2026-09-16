@@ -266,7 +266,7 @@ export class AdminImportsComponent {
   readonly batchLabel = computed(() => {
     const chosen = this.batches().find((batch) => batch.id === this.batchId());
     if (!chosen) return '';
-    return `${chosen.name} · ${chosen.batchLabel}`;
+    return chosen.displayLabel;
   });
 
   readonly semesterLabel = computed(() => {
@@ -522,6 +522,7 @@ export class AdminImportsComponent {
           batches.push({
             id: batch.id,
             name: batch.name,
+            displayLabel: batch.display_label,
             batchLabel: batch.batch_label,
             courseId: batch.course_id,
             isRunning: batch.current,

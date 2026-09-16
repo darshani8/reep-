@@ -62,7 +62,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from .. import policies
+from .. import batch_labels, policies
 from ..architecture_events import record_change
 from ..db import get_db
 from ..governance import capabilities_for, granted_capabilities, require_capability
@@ -298,20 +298,39 @@ def hierarchy(
     for d in departments:
         out.append(HierarchyNode(scope="DEPARTMENT", id=d.id, label=d.name,
                                  parent_id=d.college_id, students=by_dept.get(d.id, 0)))
-    for co in db.scalars(select(AcademicCourse).order_by(AcademicCourse.name)).all():
+    # Held rather than iterated straight into `out`: a cohort's label names the
+    # course and specialization it hangs under, and these are the same two
+    # reads. See the label below.
+    course_rows = db.scalars(select(AcademicCourse).order_by(AcademicCourse.name)).all()
+    spec_rows = db.scalars(
+        select(AcademicSpecialization).order_by(AcademicSpecialization.name)
+    ).all()
+    for co in course_rows:
         out.append(HierarchyNode(scope="COURSE", id=co.id, label=co.name,
                                  parent_id=co.department_id, students=by_course.get(co.id, 0)))
-    for sp in db.scalars(select(AcademicSpecialization).order_by(AcademicSpecialization.name)).all():
+    for sp in spec_rows:
         out.append(HierarchyNode(scope="SPECIALIZATION", id=sp.id, label=sp.name,
                                  parent_id=sp.course_id, students=by_spec.get(sp.id, 0)))
+    course_names = {co.id: co.name for co in course_rows}
+    spec_names = {sp.id: sp.name for sp in spec_rows}
     for ch in db.scalars(select(Cohort).order_by(Cohort.name)).all():
         # A cohort attaches at whichever depth it was created with — the levels
         # are individually optional — so its parent is the deepest pointer it
         # actually carries. `_resolve_ancestry` in admin.py is what guarantees
         # the shallower ones agree.
         parent = ch.specialization_id or ch.course_id or ch.department_id
+        # The label is the spine plus the year, composed from those pointers
+        # (`batch_labels.compose`). `cohorts.name` is the YEAR alone since
+        # a4e7c92d1f38, so the old `name — batch_label` would have offered the
+        # office four scope targets all reading "2026-28".
         out.append(HierarchyNode(scope="COHORT", id=ch.id,
-                                 label=f"{ch.name} — {ch.batch_label}",
+                                 label=batch_labels.compose(
+                                     course_names.get(ch.course_id) if ch.course_id else None,
+                                     spec_names.get(ch.specialization_id)
+                                     if ch.specialization_id else None,
+                                     ch.name,
+                                     ch.batch_label,
+                                 ),
                                  parent_id=parent, students=by_cohort.get(ch.id, 0)))
     return out
 

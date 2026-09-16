@@ -123,7 +123,10 @@ describe('Set up a college · Create everything', () => {
     expect(posts[2].body).toEqual({ code: 'MBA', name: 'General MBA', duration_months: 24 });
     expect(posts[4].body).toEqual({
       code: '1MP-MBA-MBA-FA-2026-28',
-      name: 'General MBA - Financial Analytics 2026-28',
+      // THE NAME IS THE YEAR. The course and the specialization go down
+      // `course_id` / `specialization_id` below, which is the same fact
+      // stored once instead of twice; the screens compose them back on.
+      name: '2026-28',
       batch_label: '2026-28',
       degree_level: 'PG',
       entry_date: '2026-07-01',

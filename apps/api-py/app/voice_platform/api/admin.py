@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, Final
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel, Field
@@ -62,6 +62,27 @@ def _admin(session: dict = Depends(get_current_session)) -> dict:
 
 def _422(exc: Exception) -> HTTPException:
     return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc))
+
+
+#: Said on the result of every queued upload and on `/status` whenever a stream
+#: is configured, because the queue path in this deployment has no other end.
+#:
+#: `app/voice_platform/queue/worker.py` is a complete SQS consumer with NO
+#: TRIGGER: no compose service, no ECS service, no schedule, and the CDK ingest
+#: Lambda excludes `worker.py` from its asset outright
+#: (`infra/cdk/reep_voice_platform/stack.py`). So a queued candidate is not
+#: waiting to be processed, it is waiting to expire. It is one sentence in two
+#: places on purpose — the operator who reads `/status` before an upload and
+#: the one who reads the upload's own response must not be told two different
+#: things about the same dead end.
+_NO_QUEUE_CONSUMER_NOTE: Final[str] = (
+    "Nothing in this deployment drains the candidate queues, so a queued row never "
+    "reaches platform_candidates: 'python -m app.voice_platform.queue.worker' has no "
+    "trigger (the CDK ingest Lambda excludes worker.py from its asset). The queue's "
+    "four-day retention expires the message, and expiry is not a failed receive, so it "
+    "never reaches the dead-letter queue either. Upload without mode=queue — the default "
+    "stores — or give the worker a trigger."
+)
 
 
 # ---------------------------------------------------------------------------
@@ -223,11 +244,18 @@ class BulkResult(BaseModel):
     accepted: int
     rejected: int
     #: "queued" = pushed onto the SQS streams (the Lambda path, from the API);
-    #: "stored" = written straight into Postgres because no queue is configured.
+    #: "stored" = written straight into Postgres. "stored" is what an upload
+    #: from the dashboard does now — see `bulk_candidates` for why that flipped.
     mode: str
     pushed: dict[str, int]
     stored: int
     rejects: list[dict[str, Any]]
+    #: What is true about the RUN rather than about a row — `StatusOut.notes`
+    #: and `CloseOut.notes`' channel, reused rather than reinvented. `rejects`
+    #: could not carry this: a queued candidate was not rejected, it was
+    #: accepted and handed to a stream nobody reads, which is a different fact
+    #: and belongs in a different field.
+    notes: list[str]
 
 
 class LinkIn(BaseModel):
@@ -392,7 +420,13 @@ def platform_status(_: dict = Depends(_admin)) -> StatusOut:
         notes.append("The Nova Sonic engine is not ready (INTERVIEW_ENGINE/NOVA_SONIC_REGION); the media bridge closes 4001.")
     queues = {d: bool(settings.platform_queue_url(d)) for d in DEGREE_LEVELS}
     if not any(queues.values()):
-        notes.append("No SQS queue configured; bulk uploads are stored straight into Postgres.")
+        notes.append("No SQS queue configured; a bulk upload asking for mode=queue is refused with 503.")
+    else:
+        # A configured stream reads on this screen as a working projection and
+        # it is only half of one — the ingest Lambda fills it and nothing empties
+        # it. This is the screen an operator checks BEFORE uploading four hundred
+        # candidates, so it is the earliest place the dead end can be said.
+        notes.append(_NO_QUEUE_CONSUMER_NOTE)
     if not settings.platform_recordings_bucket.strip():
         notes.append("No PLATFORM_RECORDINGS_BUCKET; recordings stay on the local audio volume.")
     dynamo = {d: bool(settings.platform_dynamo_table(d)) for d in DEGREE_LEVELS}
@@ -696,13 +730,43 @@ def link_candidate(
 @handler_span("admin.bulk_candidates")
 async def bulk_candidates(
     file: UploadFile = File(...),
-    mode: str = Query(default="auto", pattern="^(auto|queue|store)$"),
+    mode: str = Query(default="store", pattern="^(auto|queue|store)$"),
     _: dict = Depends(_admin),
     db: Session = Depends(get_db),
 ) -> BulkResult:
-    """Upload a CSV/JSON of candidates from the dashboard. `auto` pushes to the
-    SQS streams when they are configured (the same path the S3 trigger takes)
-    and stores directly when they are not — and the response says which."""
+    """Upload a CSV/JSON of candidates from the dashboard.
+
+    `store` (the default) writes the accepted rows into `platform_candidates`
+    now. `queue` pushes them onto the SQS stream for their degree level and is
+    503 when none is configured. `auto` is `queue` where a stream exists and
+    `store` where none does. The response says which in `mode`, and the queue
+    path additionally says what a queued row's fate actually is, in `notes`.
+
+    THE DEFAULT WAS `auto` AND FLIPPING IT IS THE WHOLE FIX. On a deployed
+    stack a stream is always configured, so `auto` always meant `queue`, and
+    nothing in this repository drains those streams — `queue/worker.py` has no
+    trigger anywhere and the CDK ingest Lambda excludes it from its asset. The
+    failure that produced was the silent kind this subsystem is otherwise
+    careful about: the dashboard uploaded four hundred candidates, got `200
+    {"mode": "queued", "accepted": 400}` — which reads as success in every
+    sense the operator has available — and `platform_candidates` stayed empty
+    forever. Nothing on any screen said so, and nothing ever would have. The
+    queue's retention is FOUR DAYS and its DLQ is keyed on `max_receive_count`,
+    so a message nobody ever RECEIVES is expired rather than failed: it is
+    deleted by SQS on day four without ever reaching the dead-letter queue,
+    which is the one place `docs/voice-platform.md` tells an operator to look
+    for a candidate that did not arrive. The office would have been hunting an
+    empty DLQ for rows that were never going to be in it.
+
+    So the default is the projection that is actually wired end to end, which
+    is this subsystem's stated rule — every AWS projection is optional and
+    honest, nothing pretends. `queue` is untouched for the operator who is
+    running a worker and asks for it by name, and `auto` survives as an
+    explicit opt-in that still prefers the stream; both are now a choice
+    somebody typed rather than a default nobody saw. None of this builds or
+    schedules the worker: giving it a trigger, or deleting it and the queues
+    with it, is an infrastructure decision and belongs in `infra/cdk/`.
+    """
     payload = await file.read()
     if len(payload) > 10 * 1024 * 1024:
         raise _422(ValueError("upload is larger than 10 MB"))
@@ -717,8 +781,15 @@ async def bulk_candidates(
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "No SQS queue is configured (PLATFORM_UG_QUEUE_URL / PLATFORM_PG_QUEUE_URL).")
     pushed: dict[str, int] = {}
     stored = 0
+    notes: list[str] = []
     source_ref = f"admin-upload:{file.filename}"
     if use_queue and queue is not None:
+        # Attached to the PATH and not to the push count, and on purpose. A run
+        # that queued nothing because every row was rejected still went down a
+        # road with no other end, and the operator is about to fix those rows
+        # and press the button again — telling them now is what stops the
+        # second attempt from succeeding into the same silence.
+        notes.append(_NO_QUEUE_CONSUMER_NOTE)
         by_degree: dict[str, list[dict[str, Any]]] = {}
         for candidate in accepted:
             by_degree.setdefault(candidate.degree_level, []).append(
@@ -746,6 +817,7 @@ async def bulk_candidates(
         mode="queued" if use_queue else "stored",
         pushed=pushed,
         stored=stored,
+        notes=notes,
         rejects=rejects[:200],
     )
 

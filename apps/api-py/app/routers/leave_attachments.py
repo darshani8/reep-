@@ -24,9 +24,21 @@ other door.
 Every refusal is flattened to the same `Leave request not found.` a missing id
 gets, for `_assert_can_decide`'s reason: told apart, these endpoints are a
 membership oracle over the whole programme (guess ids, read the error, learn who
-has leave pending and what they attached). The one refusal that is NOT flattened
-is the role gate inside `_assert_can_decide`, which answers 403 before any id is
-looked at — identical for a real and an invented id, so it leaks nothing.
+has leave pending and what they attached).
+
+THAT INCLUDES THE ROLE GATE, AND THIS MODULE CANNOT BORROW `routers/leave.py`'S
+EXEMPTION FOR IT. On the approver's own endpoints `require_mentor` runs before
+any id is looked up, so its 403 is the same answer for a real id and an invented
+one and leaks nothing — which is why that module is allowed to leave it
+unflattened. Here it cannot run first. The applicant is the OTHER door, and a
+STUDENT reading the certificate on their own request is the ordinary case, so
+the row has to be loaded and its requester compared before the caller's role is
+asked about at all. Left as a 403, that ordering made every path in this module
+the exact oracle the flattening exists to close: an invented id answered 404 and
+a named colleague's real one answered 403, which is "yes, that person has leave
+on file" told to anybody holding a session. So `_readable_request` catches EVERY
+refusal `_assert_can_decide` raises, the role gate included, and answers the one
+404.
 
 ==============================================================================
 THE STORE'S LIMITS ARE THE STORE'S, AND THEY ARE NOT RESTATED HERE
@@ -159,10 +171,22 @@ def _readable_request(db: Session, session: dict, leave_id: str) -> LeaveRequest
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=NOT_FOUND)
     if lr.requester_user_id != session.get("userId"):
         # Not mine: then only the staff who could decide it, with the same 404
-        # for everyone else. `_assert_can_decide` raises 403 for a non-staff
-        # caller BEFORE it looks at the row, which is the one refusal that is
-        # allowed to be different — it is identical for every id.
-        _assert_can_decide(session, lr, db)
+        # for everyone else — INCLUDING the 403 `require_mentor` raises inside
+        # `_assert_can_decide` for a STUDENT or an ALUMNI caller. That refusal
+        # is allowed to stand on `routers/leave.py`'s own endpoints because it
+        # runs there before any id is read; it cannot stand here, because the
+        # applicant's door had to be tried first and the row is therefore
+        # already known to exist by the time the role is asked about. A 403 only
+        # a REAL id can reach, beside a 404 for an invented one, answers "does
+        # this person have leave on file" for every id somebody cares to try.
+        # Flattened exactly as `badge_verification.py` flattens
+        # `_assert_can_access_student`.
+        try:
+            _assert_can_decide(session, lr, db)
+        except HTTPException:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=NOT_FOUND
+            ) from None
     return lr
 
 

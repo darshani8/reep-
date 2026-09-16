@@ -193,10 +193,53 @@ export class RbBasicComponent {
         this.photoError.set(d?.detail ?? 'Photo upload failed — use a PNG or JPEG under 10 MB.');
         return;
       }
+      const previousId = this.m.photo_upload_id;
       const id = (await res.json()).id as string;
       this.m.photo_upload_id = id;
       this.photoId.set(id);
-      this.push(); // persist the pointer in the resume profile
+      this.push(); // the pointer, into the in-memory profile
+
+      // "Replace photo" has to RETIRE the headshot it replaced, and until now
+      // it only ever added another one. Each press left a second, third,
+      // fourth PROFILE_PHOTO sitting PENDING_REVIEW on /student/uploads with
+      // nothing on any screen saying which of them this resume points at; it
+      // spent one of the student's 40 upload slots and up to 10 MB of their
+      // 200 MB allowance every time, so a student who fiddles with their
+      // headshot can meet a 409 on the marksheet they actually have to file;
+      // and because document_store.save_bytes archives every write, each one
+      // is a further permanent copy of the student's face in the Object-Locked
+      // bucket, which nothing in the product can ever delete.
+      //
+      // AFTER THE POINTER IS ACTUALLY ON THE SERVER, and `push()` is not that.
+      // `patch()` mutates the in-memory signal and arms a 1500 ms DEBOUNCED
+      // autosave — so deleting here on the strength of `push()` destroys the
+      // old headshot while the only record of its replacement is in this tab.
+      // A student who closes it, refreshes, or loses the network inside that
+      // window comes back to `photo_upload_id` still naming the file we just
+      // unlinked: a broken image on their own resume, with the new upload
+      // sitting unreferenced beside it. That is the same "student with no
+      // photo" this ordering exists to prevent, reached from the other end,
+      // and before this cleanup existed the identical race was harmless.
+      //
+      // So the save is AWAITED and its outcome is the condition. `save()`
+      // reports through `error()` rather than throwing (it swallows both the
+      // non-ok response and the network failure), so that signal is what has
+      // to be read.
+      await this.svc.save();
+      if (this.svc.error() !== null) return;
+
+      // BEST-EFFORT FROM HERE, by contract: the pointer is durable, so a
+      // cleanup that 404s, 403s or cannot reach the server must not turn an
+      // upload the student successfully made into an error message. The
+      // response is not read and a rejected fetch is swallowed; the stale row
+      // is then exactly what it was before this fix — one more card on
+      // /student/uploads, removable by the student.
+      if (previousId && previousId !== id) {
+        await fetch(`${environment.apiBase}/student/uploads/${previousId}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        }).catch(() => undefined);
+      }
     } catch {
       this.photoError.set('Could not reach the server.');
     } finally {

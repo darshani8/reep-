@@ -450,7 +450,16 @@ async def preview_import(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=refusal
             )
 
-    payload = await file.read()
+    # read(MAX + 1), never read(), and the ORDER is the whole point: the check
+    # below compares `len(payload)`, so an unbounded read has already spent the
+    # memory the cap exists to protect by the time the comparison runs — the
+    # refusal arrives after the damage it was written to prevent. One byte past
+    # the ceiling is all the comparison needs. Nothing sits in front of uvicorn
+    # on the AWS deployment to bound a request body for us (no nginx
+    # `client_max_body_size`), so this process's own read is the only bound
+    # there is. `routers/student.py::create_upload` says the same sentence and
+    # every document-store writer follows it.
+    payload = await file.read(MAX_UPLOAD_BYTES + 1)
     filename = (file.filename or "upload")[:255]
     if len(payload) > MAX_UPLOAD_BYTES:
         # Refused BEFORE a run row is written: an upload this size is a wrong

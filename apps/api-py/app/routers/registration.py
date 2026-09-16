@@ -88,9 +88,16 @@ from ..scope_views import (
     scope_header,
 )
 from ..architecture_events import record_change
-from ..document_manifest import DocumentFacts, release, save_and_record
+from ..document_manifest import DocumentFacts, reattribute, release, save_and_record
 from ..models.archived_document import DocumentOwnerKind
-from ..document_store import MAX_BYTES, QuotaRejected, VolumeQuota, sniff
+from ..document_store import (
+    MAX_BYTES,
+    QuotaRejected,
+    VolumeQuota,
+    content_disposition,
+    read_bytes,
+    sniff,
+)
 from ..document_store import delete as delete_stored
 from ..models.upload import Upload, UploadKind
 
@@ -514,6 +521,16 @@ def _move_documents_to_uploads(db: Session, reg: Registration, student: Student)
     are never duplicated and the RegistrationDocument row is simply deleted
     (rows only: the file now belongs to the Upload). `uploads.stored_name` is
     unique, and so is ours, so a name can never end up owned twice.
+
+    THE MANIFEST ROW MOVES WITH THE FILE. It was written when an applicant with
+    no account posted the bytes, so it says REGISTRATION_DOCUMENT and owns
+    nobody; the file is a named student's resume from this line onwards, and a
+    manifest that still says otherwise is an index entry that cannot answer the
+    only question it exists for once the live row is gone. `reattribute`
+    explains why that is an UPDATE rather than a release and a second record -
+    the short version is that `stored_name` is unique, so there is no second row
+    to write, and releasing would claim the student's resume was deleted on the
+    day they were admitted.
     """
     docs = db.scalars(
         select(RegistrationDocument).where(RegistrationDocument.registration_id == reg.id)
@@ -531,6 +548,16 @@ def _move_documents_to_uploads(db: Session, reg: Registration, student: Student)
                 mime_type=d.mime_type,
                 size_bytes=d.size_bytes,
             )
+        )
+        # `students.id`, matching every other STUDENT_UPLOAD row the manifest
+        # holds (routers/student.py writes the same column), so "everything this
+        # student ever had" finds the file it did not find a moment ago.
+        reattribute(
+            db,
+            d.stored_name,
+            kind=DocumentOwnerKind.STUDENT_UPLOAD,
+            owner_id=student.id,
+            reason="application approved; document moved to the student's uploads",
         )
         db.delete(d)
     db.flush()
@@ -1951,7 +1978,17 @@ async def attach_document(
             detail="This application has already been decided; documents can no longer be added.",
         )
 
-    content = await file.read()
+    # read(MAX+1), never read(): the per-file cap is enforced on `len(content)`
+    # below, so reading one byte past it is enough to trip the refusal -- while
+    # an unbounded read loads a body only nginx's client_max_body_size bounds
+    # into RAM, and that bound does not exist when uvicorn is exposed directly
+    # (the documented dev setup, or a different ingress). Verbatim the rule
+    # routers/student.py states over its own upload, and it matters MORE here
+    # than there: this is the one upload in the product with no cookie in front
+    # of it, so the body that gets buffered is a body an anonymous caller chose
+    # the size of. The size check has to come after the read either way; what
+    # this decides is how much of the file the process ever holds.
+    content = await file.read(MAX_BYTES + 1)
     if len(content) > MAX_BYTES:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
@@ -2045,6 +2082,90 @@ async def attach_document(
     db.commit()
     db.refresh(reg)
     return _public_out_one(db, reg)
+
+
+@router.get("/{registration_id}/documents/{kind}/file")
+def download_document(
+    registration_id: str,
+    kind: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> Response:
+    """Hand the reviewer the CV or the photograph the applicant attached.
+
+    THE QUEUE HAS ALWAYS SAID A CV EXISTS AND NEVER LET ANYBODY READ IT.
+    `_doc_kinds` puts the kinds on every row of `pending` so the console can
+    draw its document chips, and the checks beside them are there so the
+    decision is made on evidence - but the evidence itself had no route out of
+    this server at all. The reviewer was asked to approve or refuse an
+    application whose one attachment they could not open, which is
+    `mentor.download_student_upload`'s bug ("the queue was asking people to
+    verify evidence they could not open") sitting on the other queue, unnoticed
+    because this one never had a download to begin with.
+
+    GATED EXACTLY LIKE THE DECISION IT FEEDS: `admin.registrations`, then
+    `_assert_reachable`. That pairing is the point - a reviewer who cannot see
+    an application in the queue must not be able to read its files by id, and
+    writing the gate as the queue's own predicate re-selected is what makes the
+    two the same rule rather than two readings of it.
+
+    SO AN UNREACHABLE APPLICATION IS 403 HERE, NOT 404, and that is deliberate
+    rather than an oversight. `_assert_reachable` argues the case in full: the
+    caller is a known reviewer and the id came off a screen, so "this one is not
+    yours" is true, safe and actionable, and the membership-oracle argument that
+    makes rule 2 flatten its refusals applies to students and not to
+    applications a reviewer was shown a list of. Flattening it here would put
+    one endpoint's refusal out of step with every other verb on the same row.
+    404 is kept for the three facts that really are absences: no such
+    application, no such kind, no document of that kind attached.
+
+    ATTACHMENT, NEVER INLINE. `content_disposition`'s default, for the reason it
+    states: everything in this store is a file a stranger uploaded - here
+    literally an unauthenticated stranger - and a PDF rendered inline runs its
+    embedded JavaScript in the SPA's own origin. The magic-byte sniff cannot
+    help, because the payload IS a valid PDF.
+
+    A FILE MISSING FROM THE VOLUME IS A 404. `read_bytes` raises
+    FileNotFoundError for a name nothing is behind, and the honest answer to
+    "open this document" when the bytes are gone is that there is nothing to
+    open - not a 500 that reads to the office as a broken console. The row
+    naming it stays exactly where it is; this endpoint reads and repairs
+    nothing.
+    """
+    require_capability(db, session, "admin.registrations")
+    route = _DOCUMENT_ROUTES.get(kind)
+    if route is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown document kind.")
+    doc_kind = route[0]
+    reg = db.get(Registration, registration_id)
+    if reg is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
+    _assert_reachable(db, session, reg)
+    doc = db.scalar(
+        select(RegistrationDocument).where(
+            RegistrationDocument.registration_id == reg.id,
+            RegistrationDocument.kind == doc_kind,
+        )
+    )
+    if doc is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="This application has no " + kind + " attached.",
+        )
+    try:
+        content = read_bytes(doc.stored_name)
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Stored file is missing."
+        )
+    return Response(
+        content=content,
+        media_type=doc.mime_type,
+        # RFC 6266, same as every other download here: an applicant's own
+        # filename interpolated raw raises inside Response.__init__ the moment
+        # it leaves latin-1, which at this college is a matter of course.
+        headers={"Content-Disposition": content_disposition(doc.original_name)},
+    )
 
 
 class HoldIn(BaseModel):

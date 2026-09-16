@@ -290,6 +290,124 @@ class TestTheArc:
         assert browser.of_type("reep.phase")[0]["phase"] == "probing"
         assert any("Probe" in note for note in upstream.notes)
 
+    def test_a_phase_tick_while_the_interviewer_is_speaking_holds_the_note(self):
+        """THE TICK IS IMMEDIATE, THE NOTE WAITS. Injecting mid-turn is a barge-in.
+
+        `_inject` is a USER text input, and Nova answers a new user input by
+        abandoning what it is saying. Sent while a response is open it therefore
+        cuts the interviewer off mid-sentence and replaces the question the
+        student was listening to -- and the interruption marker that follows
+        flushes the browser's queued PCM, so the audio does not tail off, it
+        disappears. Reported from a real interview: "it starts asking a question
+        in the middle, breaks the voice and changes the question."
+
+        The arc must NOT be delayed with it: the phase ticks and is announced on
+        the answer, exactly as before. Only the note is held.
+        """
+        session, upstream, browser = make_session("hr")
+
+        async def scenario():
+            await interviewer_turn(session, "a1")
+            before = len(upstream.notes)
+
+            # Nova has begun its reply -- this is the ordering the engine's own
+            # docstring describes, the model owns the turn -- and the ASR
+            # transcript of the answer lands underneath it.
+            await session._on_upstream_event(
+                {
+                    "event": {
+                        "contentStart": {
+                            "contentId": "a2",
+                            "type": "AUDIO",
+                            "role": "ASSISTANT",
+                        }
+                    }
+                }
+            )
+            assert session._response_open is True
+            await student_says(session, "u1", _GOOD_ANSWER)
+
+            # The arc moved, and the student's screen was told.
+            assert session._machine.phase is InterviewPhase.PROBING
+            assert browser.of_type("reep.phase")[-1]["phase"] == "probing"
+            # But nothing was said to the model while it was still speaking.
+            assert len(upstream.notes) == before, (
+                "a directive went upstream mid-turn: that is the barge-in that "
+                "cuts the interviewer off and drops the audio"
+            )
+            assert len(session._pending_notes) == 1
+
+            # The turn ends -- now it goes, in the gap between turns.
+            await session._on_upstream_event(
+                {
+                    "event": {
+                        "contentEnd": {
+                            "contentId": "a2",
+                            "type": "AUDIO",
+                            "stopReason": "END_TURN",
+                        }
+                    }
+                }
+            )
+            await session._on_upstream_event(
+                {"event": {"completionEnd": {"stopReason": "END_TURN"}}}
+            )
+            assert session._pending_notes == []
+            assert any("Probe" in note for note in upstream.notes[before:])
+
+        run(scenario())
+
+    def test_a_held_verdict_does_not_let_the_scorecard_be_asked_for_early(self):
+        """The drain runs BEFORE the report check, and suppresses it for that beat.
+
+        The scorecard is requested when a turn completes and the verdict has
+        been asked for. If the verdict note is released on that same completion,
+        the next turn IS the verdict -- so requesting the report there asks for
+        it before the student has heard a word of it, which is the "one turn
+        early" mistake `_on_completion_end` exists to prevent.
+        """
+        session, upstream, _browser = make_session("hr")
+        session._awaiting_candidate_questions = True
+
+        async def scenario():
+            await session._on_upstream_event(
+                {
+                    "event": {
+                        "contentStart": {
+                            "contentId": "a9",
+                            "type": "AUDIO",
+                            "role": "ASSISTANT",
+                        }
+                    }
+                }
+            )
+            await student_says(session, "u9", "No questions, thank you.")
+            assert session._verdict_requested is True
+            assert len(session._pending_notes) == 1
+
+            await session._on_upstream_event(
+                {
+                    "event": {
+                        "contentEnd": {
+                            "contentId": "a9",
+                            "type": "AUDIO",
+                            "stopReason": "END_TURN",
+                        }
+                    }
+                }
+            )
+            await session._on_upstream_event(
+                {"event": {"completionEnd": {"stopReason": "END_TURN"}}}
+            )
+            # The verdict went; the scorecard was NOT asked for on the same beat.
+            assert session._report_requested is False
+
+            # The verdict is spoken, and its completion is what asks for it.
+            await interviewer_turn(session, "a10", said="Overall, a solid round.")
+            assert session._report_requested is True
+
+        run(scenario())
+
     def test_a_transcript_split_across_events_is_still_one_answer(self):
         """The arc must not race to the wrap-up because ASR arrived in pieces.
 

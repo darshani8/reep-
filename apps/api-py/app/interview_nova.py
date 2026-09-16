@@ -48,19 +48,34 @@ rather than driven:
   * the phase machine still ticks on ACCEPTED answers only, judged by the same
     deterministic `classify_answer` word gate as the local engine, so a
     student's scorecard is comparable whichever engine ran the interview;
-  * a phase change reaches the model as a CONTROL NOTE — a cross-modal text
-    input, the documented way to put text into a live Nova voice session —
-    carrying only what changed, because Nova's system prompt is set once at the
-    handshake and there is no `session.update` to replace it;
+  * the QUESTION phases (probing, deep dive) are BRIEFED ONCE at the handshake
+    — `build_arc_briefing`, appended to the system prompt, stating the same
+    counting rule the word gate applies — and the model moves through them on
+    its own. They used to arrive as a CONTROL NOTE (a cross-modal text input,
+    the documented way to put text into a live Nova session) sent the moment
+    the student's transcript landed, and that was the bug reported as "it
+    cuts itself off mid-sentence and changes the question": Nova's ASR
+    transcript is the FIRST block of the completion in which Nova is already
+    composing its reply, so a note sent on it is a user turn that barges in
+    on that reply, and one held until the reply has finished provokes a
+    second question on top of the one the student was just asked. A note can
+    steer the NEXT turn or interrupt THIS one; it cannot shape the reply in
+    flight. A briefing can, because it is there before the answer is;
   * the two beats that must happen at a fixed point regardless of what the
-    model would do next — "any questions for us?" and the closing verdict — are
-    injected the same way;
+    model would do next — "any questions for us?" and the closing verdict —
+    and the clock's forced verdict are control notes, HELD while a reply is
+    in flight (`_steer`) and sent in the gap between turns, with the directive
+    telling the model to set aside any question it has just asked. Those
+    three are engine-driven on purpose: a model that decided for itself when
+    the questioning was over could decide it one answer before the engine
+    does and then wait for a verdict note that never comes;
   * a clarification is NOT injected. An engine that holds the turn can ask a
     too-short answer for more detail — the relay did, and the local engine still
     does; here the model has already started replying, and a second directive
-    would produce a second question.
-    The turn is still RECORDED as `too_short`/`filler`, which is the fact a
-    mentor reads, and it still does not advance the arc.
+    would produce a second question. The briefing tells the model to ask for
+    more on its own instead. The turn is still RECORDED as `too_short`/
+    `filler`, which is the fact a mentor reads, and it still does not advance
+    the arc.
 
 THE SCORECARD IS A TOOL CALL. Nova speaks everything it generates, so the
 relay's trick — one extra text-only response after the verdict — would have read
@@ -112,6 +127,7 @@ from .interview_matrix import (
     InterviewPhase,
     InterviewStateMachine,
     Specialization,
+    build_arc_briefing,
     build_instructions,
     classify_answer,
     nova_voice_for,
@@ -726,7 +742,7 @@ class NovaSonicSession:
         # in half an interview. Closing the block is the unambiguous signal.
         self._user_text: dict[str, list[str]] = {}
         self._response_open = False
-        # Steering notes that arrived while the interviewer was still speaking.
+        # Steering notes that arrived while a model turn was in flight.
         # `_inject` is a USER text input, and Nova treats that as a barge-in: it
         # stops generating and answers the new input. So a directive sent during
         # an open response cuts the interviewer off mid-sentence and replaces
@@ -735,6 +751,16 @@ class NovaSonicSession:
         # queue, so the voice does not tail off, it vanishes. Held here and sent
         # in the gap between turns instead, which is the same deferral
         # `_request_report` has always relied on for exactly this reason.
+        #
+        # `_response_open` is raised at completionStart, NOT at the first audio
+        # block. The order Bedrock documents for one completion is
+        # completionStart, the ASR transcript of the student's answer, the
+        # speculative text, the audio -- so the transcript that triggers a beat
+        # is always delivered INSIDE a completion the model is already
+        # composing. A flag raised by the audio block was still False when the
+        # transcript arrived, and the note went out onto the reply anyway;
+        # that is how the first fix for this symptom shipped with a passing
+        # test and the bug intact.
         self._pending_notes: list[str] = []
         # The model's FINAL sentence-level transcript of what it actually said,
         # which is what gets recorded. The SPECULATIVE text is streamed to the
@@ -975,18 +1001,22 @@ class NovaSonicSession:
         """The system prompt, composed ONCE for the whole session.
 
         Nova has no `session.update`, so unlike the relay's this cannot be
-        replaced when the phase changes — which is exactly why the phase
-        directive is injected as a control note later instead. The persona
-        arrives first and verbatim, carrying the conduct rules and the rule-1
-        disclosure, and nothing a student said or a record holds is composed in.
+        replaced when the phase changes — which is exactly why the whole arc
+        is briefed here, up front (`build_arc_briefing`), rather than steered
+        with a note per phase: a note is a user turn, and the module docstring
+        says what one does to the reply in flight. The persona arrives first
+        and verbatim, carrying the conduct rules and the rule-1 disclosure,
+        and nothing a student said or a record holds is composed in.
         """
         spec = self._machine.specialization
-        base = (
-            _INTERVIEWER_PERSONA
-            if spec is None
-            else build_instructions(spec, _INTERVIEWER_PERSONA, InterviewPhase.OPENING)
+        if spec is None:
+            return _INTERVIEWER_PERSONA + _CONTROL_CHANNEL_NOTE
+        return (
+            build_instructions(spec, _INTERVIEWER_PERSONA, InterviewPhase.OPENING)
+            + "\n\n"
+            + build_arc_briefing(spec)
+            + _CONTROL_CHANNEL_NOTE
         )
-        return base + _CONTROL_CHANNEL_NOTE
 
     async def _handshake(self) -> None:
         """sessionStart, promptStart, the system prompt, the open microphone.
@@ -1273,7 +1303,14 @@ class NovaSonicSession:
                 _CLOSE_UPSTREAM_UNAVAILABLE, "Interviewer service unavailable"
             )
 
-        if name == "contentStart":
+        if name == "completionStart":
+            # THE FIRST EVENT OF A MODEL TURN, before the ASR transcript, the
+            # speculative text and the audio. It is what makes `_steer` hold a
+            # note: by the time the student's transcript arrives the model is
+            # already composing its reply, and this is the only event that
+            # says so before the audio does.
+            await self._begin_response()
+        elif name == "contentStart":
             await self._on_content_start(payload)
         elif name == "textOutput":
             await self._on_text_output(payload)
@@ -1285,9 +1322,9 @@ class NovaSonicSession:
             await self._on_content_end(payload)
         elif name == "completionEnd":
             await self._on_completion_end()
-        # completionStart and usageEvent carry nothing this engine acts on.
-        # Ignored deliberately rather than logged: at ~one usageEvent per turn
-        # they would bury everything else in the log.
+        # usageEvent carries nothing this engine acts on. Ignored deliberately
+        # rather than logged: at ~one per turn it would bury everything else
+        # in the log.
 
     async def _on_content_start(self, payload: dict[str, Any]) -> None:
         """Remember what an incoming content block IS before its content lands.
@@ -1446,9 +1483,14 @@ class NovaSonicSession:
         """One student answer: recorded, judged, and (maybe) a beat of the arc.
 
         Nova has already begun composing its reply by the time this arrives —
-        it owns the turn — so nothing here waits for anything, and the only
-        thing injected is what CHANGES the interview: a phase directive, the
-        invitation to ask questions, or the verdict.
+        it owns the turn, and this transcript is a block INSIDE the completion
+        it is composing — so nothing here waits for anything, and nothing
+        here reaches the model directly. The phase tick is recorded and
+        announced to the browser; the model was briefed on the question
+        phases at the handshake and moves on the same rule. The two beats
+        that must land at a fixed point — the invitation to ask questions and
+        the verdict — go through `_steer`, which holds them until this reply
+        has finished.
         """
         transcript = text.strip()
         await self._send_control({"type": "input_audio_buffer.speech_stopped"})
@@ -1503,13 +1545,21 @@ class NovaSonicSession:
         if self._machine.phase is InterviewPhase.WRAP_UP:
             self._awaiting_candidate_questions = True
             await self._steer(turn_directive("invite_questions"))
-            return
-        await self._steer(phase_directive(spec, self._machine.phase))
+        # PROBING and DEEP_DIVE send nothing. The model was briefed on both at
+        # the handshake (`build_arc_briefing`) and moves on the rule this
+        # machine just applied; a note here would either barge in on the reply
+        # in flight or, held, ask a second question after it.
 
     # -- the interviewer's turn --------------------------------------------
 
     async def _begin_response(self) -> None:
-        """One interviewer turn opens. The browser starts a fresh PCM stream.
+        """One model turn opens. The browser starts a fresh PCM stream.
+
+        Reached from completionStart, which precedes everything else in the
+        turn, and again from the first ASSISTANT audio block as a fallback for
+        a stream that never sent one; the guard makes the second a no-op.
+        Between here and `_end_response` a control note must not go upstream
+        -- see `_steer`.
 
         `response.created` is what makes the client drop any odd-byte carry left
         from the previous response: prepending a stranded byte to a new stream
@@ -1556,11 +1606,15 @@ class NovaSonicSession:
     # -- steering ----------------------------------------------------------
 
     async def _steer(self, body: str) -> None:
-        """One control note, held back while the interviewer is mid-sentence.
+        """One control note, held back while a model turn is in flight.
 
-        The arc is unchanged -- the directive still governs the next question --
-        it simply arrives between turns rather than on top of one. See
-        `_pending_notes` for what injecting mid-turn actually does to the audio.
+        "In flight" is completionStart to completionEnd, which spans the ASR
+        transcript of the answer that provoked the turn as well as the audio,
+        so a beat decided on that transcript always waits. The directive still
+        governs what happens next; it simply arrives between turns rather than
+        on top of one. See `_pending_notes` for what injecting mid-turn does
+        to the audio, and note every directive sent this way says what to do
+        with a question the model has just asked and not had answered.
         """
         if self._response_open:
             self._pending_notes.append(body)
@@ -1646,6 +1700,12 @@ class NovaSonicSession:
         and skips the "any questions for us?" beat: a real interviewer who is
         out of time closes, and asking a question there is only ever answered
         by the socket shutting.
+
+        Held, like every other note, while a reply is in flight: an interviewer
+        who is out of time finishes the sentence and then closes, rather than
+        cutting itself off mid-word and having the browser's queue flushed
+        under it. The wait is bounded by one reply, and _WRAP_UP_RESERVE_S is
+        sized for the verdict and the scorecard on top of that.
         """
         spec = self._machine.specialization
         if spec is None or self._verdict_requested:
@@ -1655,7 +1715,7 @@ class NovaSonicSession:
             await self._announce_phase()
         self._verdict_requested = True
         self._log.info("Forcing the wrap-up: the session cap is close")
-        await self._inject(turn_directive("verdict"))
+        await self._steer(turn_directive("verdict"))
 
     # -- the scorecard -----------------------------------------------------
 

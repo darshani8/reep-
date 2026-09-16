@@ -19,10 +19,17 @@ _INTERVIEWER_PERSONA was a fixed string before. No marks, USN, attendance or
 resume text enters them, and the base persona's "you cannot see the dashboard"
 disclosure is included verbatim in every composition.
 
-A phase change reaches the model as steering that carries only what changed --
-an instructions-only update on an engine that has one, a control note on one
-that does not (app/interview_nova.py). The voice is never part of it: it is
-frozen at the handshake and cannot be changed once audio has started.
+A phase change reaches the model in whichever way the engine can carry it. An
+engine with an instructions-only update (the local engine) is re-sent the
+composition for the new phase. Nova 2 Sonic has no such update AND owns the
+turn, so it is BRIEFED ON THE WHOLE ARC ONCE at the handshake
+(`build_arc_briefing`), with the same rule the word gate applies, and steers
+itself from answer to answer; only the beats that must land at a fixed point
+(the invitation to ask questions, the verdict) reach it as control notes, held
+until the reply in flight has finished. The reason is in app/interview_nova.py:
+a text input is a user turn, and one sent onto a reply Nova is composing
+barges in on it. The voice is never part of any of this: it is frozen at the
+handshake and cannot be changed once audio has started.
 
 Two more things live here under Interview Engine v3, and both are here rather
 than in the relay ON PURPOSE:
@@ -550,16 +557,20 @@ _TURN_DIRECTIVES: Final[dict[str, str]] = {
     ),
     "verdict": (
         "Stop the interview here, regardless of how many questions have been "
-        "asked, and deliver the closing verdict now: two genuine strengths, "
-        "one priority improvement, and one concrete drill to practise. Then "
-        "thank the student and close. Ask no further questions."
+        "asked. If you have just asked a question the student has not "
+        "answered yet, set it aside in one short sentence rather than waiting "
+        "for the answer. Then deliver the closing verdict now: two genuine "
+        "strengths, one priority improvement, and one concrete drill to "
+        "practise. Then thank the student and close. Ask no further questions."
     ),
     "invite_questions": (
-        "The questioning part of the interview is done. Before you give your "
-        "verdict, hand the floor to the student the way a real interview ends: "
-        "ask whether they have any questions for you about the role or the "
-        "company. If they do, answer briefly and honestly in character, then "
-        "wait. Do not deliver the verdict yet."
+        "The questioning part of the interview is done. If you have just asked "
+        "a question the student has not answered yet, set it aside in one "
+        "short sentence rather than waiting for the answer. Before you give "
+        "your verdict, hand the floor to the student the way a real interview "
+        "ends: ask whether they have any questions for you about the role or "
+        "the company. If they do, answer briefly and honestly in character, "
+        "then wait. Do not deliver the verdict yet."
     ),
 }
 
@@ -718,4 +729,59 @@ def build_instructions(
         "\n"
         f"## Current phase: {phase.value}\n"
         f"{_phase_directive(spec, phase)}"
+    )
+
+
+def build_arc_briefing(spec: Specialization) -> str:
+    """The question phases of the arc, briefed ONCE, for an engine that owns the turn.
+
+    app/interview_nova.py appends this to the handshake instructions and never
+    sends a phase directive during the interview. It cannot: Nova answers the
+    student on its own the moment they stop speaking, and the only way to put
+    text in front of it mid-session is a USER turn, which barges in on the
+    reply it is composing -- and one held until that reply has finished
+    provokes a second question on top of the one the student has just been
+    asked. So the model is told, up front, what changes after the first and
+    the third answer that counts, and steers itself; the engine's phase
+    machine ticks on the same rule for the RECORD and the browser's stepper.
+
+    The rule is `classify_answer`'s, stated in words, so that the model and
+    the record agree on which answers count as closely as a model can be made
+    to agree with a word count. The two beats that must land at a fixed point
+    -- the invitation to ask questions and the verdict -- are deliberately
+    NOT here: the interview system sends those, between turns, because a model
+    that decides for itself when the questioning is over can decide it one
+    answer before the engine does and then wait for a verdict directive the
+    engine will never send.
+
+    The directives are `_phase_directive`'s own strings, quoted rather than
+    paraphrased, so every engine steers a student with the same words.
+    """
+    floor = settings.interview_min_answer_words
+    counting_rule = (
+        "every answer counts, however short"
+        if floor <= 0
+        else (
+            f"an answer counts when it is a real answer of at least {floor} "
+            'words and not just filler such as "yes", "okay", "hmm" or '
+            '"thanks"; a cough, a one-word acknowledgement or silence does not '
+            "count, and on those you simply ask, briefly, for more"
+        )
+    )
+    return (
+        "## How this interview unfolds\n"
+        "You are in the opening phase now. The interview system counts the "
+        f"student's answers, and {counting_rule}.\n"
+        "After the student's FIRST answer that counts, move to the probing "
+        "phase and stay in it. In the probing phase: "
+        f"{_phase_directive(spec, InterviewPhase.PROBING)}\n"
+        "After the student's THIRD answer that counts, move to the deep-dive "
+        "phase and stay in it. In the deep-dive phase: "
+        f"{_phase_directive(spec, InterviewPhase.DEEP_DIVE)}\n"
+        "Move through these phases in this order only, and never use a later "
+        "phase's material before its phase. Keep asking one question at a "
+        "time until the interview system tells you otherwise: it will tell "
+        "you when the questioning is over, when to invite the student's own "
+        "questions and when to deliver your verdict. Never end the interview "
+        "or give a verdict on your own."
     )

@@ -298,7 +298,10 @@ def _batch_label(db: Session, cohort: Cohort) -> str:
         else None
     )
     return batch_labels.compose(
-        course.name if course else None, spec.name if spec else None, cohort.name
+        course.name if course else None,
+        spec.name if spec else None,
+        cohort.name,
+        cohort.batch_label,
     )
 
 

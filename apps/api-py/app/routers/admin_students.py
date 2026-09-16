@@ -325,7 +325,8 @@ def _rows(db: Session, *where) -> list[AdminStudentOut]:
     # six, against tables with a handful of rows each.
     stmt = (
         select(
-            Student, User, Cohort.name, AcademicCourse.name, AcademicSpecialization.name,
+            Student, User, Cohort.name, Cohort.batch_label,
+            AcademicCourse.name, AcademicSpecialization.name,
             Department.name, Department.id, own_dept.name, own_dept.id,
             Mentor.id, faculty.id, faculty.name,
         )
@@ -341,13 +342,13 @@ def _rows(db: Session, *where) -> list[AdminStudentOut]:
         .order_by(User.name, Student.usn)
     )
     out: list[AdminStudentOut] = []
-    for (student, user, cohort_name, course_name, spec_name, dept_name, dept_id,
+    for (student, user, cohort_name, batch_label, course_name, spec_name, dept_name, dept_id,
          own_name, own_id, mentor_id, f_id, f_name) in db.execute(stmt):
         out.append(AdminStudentOut(
             student_id=student.id, user_id=user.id, name=user.name, email=user.email, usn=student.usn,
             cohort_id=student.cohort_id,
             batch=(
-                batch_labels.compose(course_name, spec_name, cohort_name)
+                batch_labels.compose(course_name, spec_name, cohort_name, batch_label)
                 if cohort_name else None
             ),
             department=dept_name or own_name,

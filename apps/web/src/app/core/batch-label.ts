@@ -26,20 +26,30 @@ export const LABEL_JOIN = ' · ';
  * `"General MBA - Finance · 2026-28"` — the spine, then the batch.
  *
  * Each missing part is a real shape, not an error: no specialization (a
- * two-year MBA in Digital Marketing IS the qualification), no course (a batch
- * may hang at department level, because Course is optional), or a name the
- * office typed itself, which is printed verbatim because they are their words.
+ * two-year MBA in Digital Marketing IS the qualification) or no course (a batch
+ * may hang at department level, because Course is optional).
+ *
+ * THE YEAR IS ALWAYS THERE. Where the batch's own `name` already carries the
+ * span — "2026-28" itself, or the section "2026-28 Section B" — it stands
+ * alone, because printing the label beside it would stutter. Where the name
+ * says something else ("Chain Batch"), the two are different facts and both
+ * print, year first: "2024-26 · Chain Batch". Composing from the name alone
+ * dropped the year on exactly that shape, which is what
+ * `test_registration_hierarchy` caught on the first attempt.
  */
 export function composeBatchLabel(
   courseName: string | null | undefined,
   specializationName: string | null | undefined,
   name: string,
+  batchLabel: string,
 ): string {
   const spine = [courseName, specializationName]
     .filter((part): part is string => !!part && part.trim().length > 0)
     .map((part) => part.trim())
     .join(SPINE_JOIN);
-  const tail = (name ?? '').trim();
+  const own = (name ?? '').trim();
+  const label = (batchLabel ?? '').trim();
+  const tail = own && label && !own.includes(label) ? `${label}${LABEL_JOIN}${own}` : own || label;
   if (!spine) return tail;
   if (!tail) return spine;
   return `${spine}${LABEL_JOIN}${tail}`;

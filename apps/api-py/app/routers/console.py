@@ -150,7 +150,9 @@ def cohorts(
             code=c.code,
             name=c.name,
             batch_label=c.batch_label,
-            display_label=batch_labels.compose(course_name, spec_name, c.name),
+            display_label=batch_labels.compose(
+                course_name, spec_name, c.name, c.batch_label
+            ),
             degree_level=c.degree_level.value,
             student_count=counts.get(c.id, 0),
         )

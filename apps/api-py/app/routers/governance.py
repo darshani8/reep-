@@ -329,6 +329,7 @@ def hierarchy(
                                      spec_names.get(ch.specialization_id)
                                      if ch.specialization_id else None,
                                      ch.name,
+                                     ch.batch_label,
                                  ),
                                  parent_id=parent, students=by_cohort.get(ch.id, 0)))
     return out

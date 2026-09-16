@@ -271,6 +271,7 @@ export class AdminCollegeSetupComponent {
           leaf.course.name,
           leaf.spec?.name ?? null,
           batchName(label),
+          label,
         ),
         entry: dates?.entry ?? null,
         completion: dates?.completion ?? null,

@@ -241,6 +241,11 @@ interface RegistrationApiRow {
   name: string;
   email: string;
   usn: string | null;
+  /** How to reach the applicant (2026-09-16): required by the form, so null
+   *  only on an application older than the rule. Staff-only on the server. */
+  phone: string | null;
+  personal_email: string | null;
+  linkedin_url: string | null;
   degree_level: string;
   status: string;
   cohort_id: string | null;

@@ -129,6 +129,30 @@ Because this makes being signed out a routine event rather than an incident, the
 
 **The whole student path is: apply → a human decides → three steps → sign in.** `POST /api/register` applies the rule engine at submit time and the application lands in the review queue **immediately, with no email in between**. The Main Admin approves or rejects. APPROVE provisions the account and emails a setup link; REJECT **requires a reason** (422 without one) and emails it, because a rejected applicant is not a user and that mail is the only channel the product has to them. The link opens `/onboard?token=`, which is **three steps on one URL** (`app/routers/onboarding.py`): `/auth/onboard/start` takes the token plus the address typed back and mails a six-digit code; `/auth/onboard/verify` spends the code and returns a 15-minute **ticket**; `/auth/onboard/password` takes the ticket — **never the link** — and sets the password. Three purposes, three different proofs: the link proves somebody opened mail sent there, which a FORWARDED link also proves; the code proves the mailbox is readable *now*; the ticket is the only thing the password step accepts, so the code can never be skipped by holding the link. It **signs nobody in** — the flow ends at `/login`, so the new password is typed once at the ordinary front door, which applies the ordinary brute-force limiter, revocation and single-device retirement. One door, not two.
 
+**EVERY BOX ON THE FORM IS COMPULSORY EXCEPT SPECIALIZATION (2026-09-16), and
+the CV and the photo with them.** The owner's rule for `/register`. The typed
+half is held at the schema — `RegisterIn` requires USN, phone, a personal
+email and a LinkedIn profile, stripped and refused blank, and the two new
+columns (`registrations.personal_email` / `linkedin_url`, migration
+`a3f9c2e17b48`) are NULLABLE because the rule is about new applications and
+the column is a promise about the rows already written; approval copies phone
+and LinkedIn onto `student_profiles`, where the placement record already asks
+for both. The two files CANNOT be required there: they are posted to
+`attach_document` after the 201, keyed on the id `submit` mints. So the form
+refuses to submit without both, checks each file's TYPE AND SIZE before the
+application is created (a 413 or 415 after the 201 would leave an application
+in the queue with no way for the applicant to retry), states the accepted
+format and the cap on the dropzone itself (PDF, and PNG or JPG, each up to
+`document_store.MAX_BYTES`), and a file that still fails to land is retried
+from the result card against the SAME application — "Submit another" would
+meet the duplicate guard. The reviewer's checklist gained `CHECK_DOCUMENTS`, a
+WARN and never a block, naming whichever file is missing on a row that
+arrived without it. Course and Batch are required on the form WHENEVER THE
+OFFICE HAS LISTED ANY under the chosen department, and not otherwise: a box
+that cannot be filled cannot be compulsory, and a half-set-up college must not
+refuse every applicant. `tests/test_registration_required.py` pins the API
+half.
+
 **Why the confirmation link moved.** It used to run BEFORE the rule engine: `POST /register` wrote `PENDING_VERIFICATION` and waited. The reasoning was sound (approval mints a `users` row, so no address should auto-approve itself onto the roster) and the mail is the half that fails. On a deployment whose SES account is still sandboxed nothing can reach a student address at all, so **every** applicant sat invisible — the student saw a 201, the admin saw an empty queue, and the retry hit the duplicate guard's deliberately opaque 409, which reads as a broken form. Verified on production 2026-09-10: not one `GET /api/register/verify` in 30 days. A gate nobody can pass is not a gate, it is an outage. Migration `9b2d47f0ce15` moved the stuck rows into the queue; `/api/register/verify`, `EmailVerification`'s three helpers and `retention.sweep_unverified_registrations` are gone with the status that fed them.
 
 **Changing a password later is the same idiom**: `POST /auth/change-password/code` mails a code to the address ON THE ACCOUNT (never one from the request), and `/auth/change-password` takes **one proof, never two** — `code` or `current_password`, and supplying both is refused, so a guessed code cannot ride a known password. Staff keep the current-password path; it is the door that still works when mail does not.

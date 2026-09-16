@@ -38,6 +38,7 @@ from test_interview_nova import (  # noqa: E402
     interviewer_turn,
     make_session,
     run,
+    spoken_reply,
     student_says,
 )
 from app import interview_nova as nova
@@ -132,31 +133,65 @@ def test_a_complete_specialized_interview(spec_key):
 
     async def scenario():
         # -- the handshake: session, prompt, system prompt, mic, kick-off -----
+        # NOTHING GOES UPSTREAM ONTO A REPLY IN FLIGHT. This is the invariant the
+        # whole simulation exists to hold: a note sent between completionStart
+        # and completionEnd is a user turn that barges in on the interviewer,
+        # and the browser hears the voice vanish mid-word.
+        original_inject = session._inject
+
+        async def guarded_inject(body: str) -> None:
+            assert session._response_open is False, (
+                "a control note went upstream while the model was composing a "
+                "reply: that is the barge-in that cuts the interviewer off"
+            )
+            await original_inject(body)
+
+        session._inject = guarded_inject  # type: ignore[method-assign]
+
+        async def turn_opens(cid: str) -> None:
+            await session._on_upstream_event(
+                {"event": {"completionStart": {"completionId": f"c-{cid}"}}}
+            )
+
         await session._handshake()
         await interviewer_turn(session, "a0", "Hello, and welcome. Tell me about yourself.")
 
+        # Every answer below lands THE WAY BEDROCK DELIVERS IT: inside the
+        # completion of the reply it provoked, after completionStart and before
+        # the audio -- so every beat the engine decides on a transcript is
+        # decided while the model is already speaking.
+
         # -- answer 1: the self-intro, arriving in two pieces -----------------
+        await turn_opens("a1")
         await _split_answer(
             session,
             "I am a final-year student and",
             "I have always enjoyed working with people",
             "u1",
         )
-        await interviewer_turn(session, "a1")
+        await spoken_reply(session, "a1")
 
         # -- answer 2: too short, and the arc does NOT move -------------------
+        await turn_opens("a2")
         await student_says(session, "u2", "I think so")
-        await interviewer_turn(session, "a2")
+        await spoken_reply(session, "a2")
 
         # -- answers 2..5 proper -----------------------------------------------
         for index in range(3, 7):
+            await turn_opens(f"a{index}")
             await student_says(session, f"u{index}", _GOOD_ANSWER)
-            await interviewer_turn(session, f"a{index}")
+            await spoken_reply(session, f"a{index}")
+        # The fifth accepted answer ticked WRAP_UP during a6's reply; the
+        # invitation was held and released the moment that reply finished.
 
-        # -- the candidate-questions beat, then the verdict -------------------
+        # -- the candidate's question, then the verdict -----------------------
+        await turn_opens("a-final")
         await student_says(
             session, "u-final", "Yes, what does the first year in this role look like?"
         )
+        await spoken_reply(session, "a-final", "Mostly learning the ropes, honestly.")
+        # The verdict was held during that answer and released after it; the
+        # model speaks it as its own next turn.
         await interviewer_turn(session, "verdict", "You structured your answers well. Good luck.")
 
         # -- the scorecard, then close ----------------------------------------
@@ -183,24 +218,32 @@ def test_a_complete_specialized_interview(spec_key):
     opening = _system_prompt(upstream)
     assert spec.persona in opening
     assert "introduce themselves" in opening
-    assert spec.sample_question not in opening
+    # The probing and deep-dive directives are BRIEFED in the system prompt,
+    # scoped to their phases, rather than sent as notes mid-interview; the
+    # opening section itself still holds the sample question back.
+    head, briefing = opening.split("## How this interview unfolds")
+    assert spec.sample_question not in head
+    assert spec.sample_question in briefing
+    assert "Raise the difficulty" in briefing
 
     # THE ARC: five accepted answers, and the phase reached WRAP_UP.
     assert session._machine.answers == 5
     assert session._machine.phase is InterviewPhase.WRAP_UP
 
     # THE STEERING, in order and once each. The kick-off note is the OPENING
-    # directive; then one note per phase change, then the two closing beats and
-    # the report request. A note per ANSWER would mean the engine was talking
-    # over the model it is supposed to be steering.
+    # directive; then NOTHING until the questioning is over (the question
+    # phases were briefed up front, and a note per phase change would be a
+    # second question on top of the reply that already moved on); then the
+    # two closing beats and the report request, each released only once the
+    # reply it arrived under had finished. A note per ANSWER would mean the
+    # engine was talking over the model it is supposed to be steering.
     notes = _notes(upstream)[1:]  # the system prompt is not a control note
-    assert len(notes) == 6
+    assert len(notes) == 4
     assert "introduce themselves" in notes[0]          # kick-off / OPENING
-    assert "Probe" in notes[1]                          # -> PROBING
-    assert "Raise the difficulty" in notes[2]           # -> DEEP_DIVE
-    assert "any questions for you" in notes[3]          # WRAP_UP: the invite
-    assert "closing verdict" in notes[4]                # the verdict
-    assert nova._SCORECARD_TOOL_NAME in notes[5]        # the scorecard
+    assert "any questions for you" in notes[1]          # WRAP_UP: the invite
+    assert "closing verdict" in notes[2]                # the verdict
+    assert nova._SCORECARD_TOOL_NAME in notes[3]        # the scorecard
+    assert not any("Probe" in note or "Raise the difficulty" in note for note in notes)
 
     # The too-short answer was RECORDED and did not advance the arc, and it
     # earned no note of its own: the model was already replying, and a second

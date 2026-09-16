@@ -321,16 +321,26 @@ const ECHO_REF_CEILING = 0.03;
 const NOISE_FLOOR_RISE = 0.002;
 const NOISE_FLOOR_CEILING = 0.02;
 
-/** After a LOCAL barge-in, interviewer audio still arriving is DISCARDED until
- *  the relay confirms with `reep.audio.flush`. This is load-bearing and easy to
- *  miss: flushing the player alone is undone within one frame, because the relay
- *  keeps streaming and onMessage re-enqueues. The stream only stops at source
- *  when the model itself notices the interruption, which it can only do from the
- *  audio we have just resumed sending. 700 ms = one generous round trip plus the
- *  model's own endpointing plus integration. Expiring unconfirmed means
- *  the detection was a false positive: playback simply resumes, so the cost of a
- *  false positive is bounded at 700 ms of skipped interviewer audio, and it is
- *  counted rather than silent. */
+/** After a LOCAL barge-in, interviewer audio still arriving is HELD, unplayed,
+ *  until the relay confirms with `reep.audio.flush`. This is load-bearing and
+ *  easy to miss: silencing the player alone is undone within one frame, because
+ *  the relay keeps streaming and onMessage re-enqueues. The stream only stops at
+ *  source when the model itself notices the interruption, which it can only do
+ *  from the audio we have just resumed sending. 700 ms = one generous round trip
+ *  plus the model's own endpointing plus integration.
+ *
+ *  Expiring unconfirmed means the detection was a false positive — echo, a
+ *  chair, a cough — and the interviewer was mid-sentence. Everything held is
+ *  then put back on the scheduler in order: the unplayed remainder of what was
+ *  stopped, then every frame that arrived meanwhile. So the cost of a false
+ *  positive is a pause of this length, and it is counted rather than silent.
+ *
+ *  It used to be DISCARDED, on the reasoning that the cost was "bounded at
+ *  700 ms of skipped audio". That was true of a relay streaming near realtime
+ *  and false of an engine that delivers a whole sentence in a burst: the flush
+ *  destroyed everything already scheduled — typically the rest of the question
+ *  — and the 700 ms of arrivals on top, so one false positive on laptop
+ *  speakers was a question that vanished mid-word and never came back. */
 const LOCAL_BARGE_IN_HOLD_MS = 700;
 
 /** The relay's idle watchdog advances its last-audio clock ONLY on an inbound
@@ -1079,8 +1089,9 @@ class PcmPlayer {
   readonly out: GainNode;
 
   private gain: GainNode;
-  /** node -> its scheduled start time on the ctx clock. */
-  private readonly live = new Map<AudioBufferSourceNode, number>();
+  /** node -> its scheduled start time on the ctx clock, and the buffer it
+   *  carries, so suspend() can hand back what has not sounded yet. */
+  private readonly live = new Map<AudioBufferSourceNode, { startAt: number; buffer: AudioBuffer }>();
   private cursor = 0;
   private scheduledSec = 0;
   private remainder: Uint8Array | null = null;
@@ -1109,10 +1120,24 @@ class PcmPlayer {
 
   /** @param pcm raw PCM16 LE mono @ 24 kHz */
   enqueue(pcm: ArrayBuffer | Uint8Array): void {
-    if (this.closed) return;
-    const buffer = this.toAudioBuffer(pcm);
-    if (!buffer) return;
+    const buffer = this.decode(pcm);
+    if (buffer) this.schedule(buffer);
+  }
 
+  /**
+   * Decode one frame WITHOUT scheduling it. The odd-byte carry is consumed and
+   * refilled here exactly as it is for a frame that is scheduled at once, which
+   * is what lets a frame held during a local barge-in be decoded on arrival —
+   * in stream order, so the carry stays right — and scheduled later.
+   */
+  decode(pcm: ArrayBuffer | Uint8Array): AudioBuffer | null {
+    if (this.closed) return null;
+    return this.toAudioBuffer(pcm);
+  }
+
+  /** Put one decoded buffer on the clock, gaplessly after whatever is scheduled. */
+  schedule(buffer: AudioBuffer): void {
+    if (this.closed) return;
     const now = this.ctx.currentTime;
     if (this.cursor < now + 0.005) {
       // First buffer of a response, or we fell behind. Never schedule in the
@@ -1139,22 +1164,60 @@ class PcmPlayer {
       src.disconnect();
     };
     src.start(startAt);
-    this.live.set(src, startAt);
+    this.live.set(src, { startAt, buffer });
 
     this.cursor += buffer.duration;
     this.scheduledSec += buffer.duration;
   }
 
   /**
-   * Barge-in. The relay sends audio faster than realtime, so at the moment the
-   * student starts speaking most of the response is SCHEDULED but not played;
-   * setting gain to zero would leave those nodes to talk over the student when
-   * gain came back. They have to be stopped explicitly.
+   * A barge-in CONFIRMED by the relay, or teardown. The relay sends audio faster
+   * than realtime, so at the moment the student starts speaking most of the
+   * response is SCHEDULED but not played; setting gain to zero would leave those
+   * nodes to talk over the student when gain came back. They have to be stopped
+   * explicitly, and what they carried is gone for good. For the LOCAL, not yet
+   * confirmed case see suspend().
    */
   flush(): void {
+    this.stopAll();
+  }
+
+  /**
+   * Barge-in detected LOCALLY, not yet confirmed. Stops exactly as flush() does
+   * — the student is talking, and every millisecond still scheduled is audible
+   * — but hands back what had not yet sounded, in scheduling order, so that an
+   * unconfirmed detection can put it back rather than lose it. The node that
+   * was sounding is cut at the instant of the call; the FLUSH_RAMP_S fade after
+   * that instant therefore plays twice on a resume, which no ear can hear,
+   * rather than once too few.
+   */
+  suspend(): AudioBuffer[] {
+    const cut = this.ctx.currentTime;
+    const held: AudioBuffer[] = [];
+    for (const { startAt, buffer } of this.stopAll()) {
+      if (startAt >= cut) {
+        held.push(buffer);
+        continue;
+      }
+      const played = Math.floor((cut - startAt) * SAMPLE_RATE);
+      const remaining = buffer.length - played;
+      if (remaining <= 0) continue;
+      const rest = this.ctx.createBuffer(1, remaining, SAMPLE_RATE);
+      rest.copyToChannel(buffer.getChannelData(0).subarray(played), 0);
+      held.push(rest);
+    }
+    return held;
+  }
+
+  /**
+   * Stop and retire every scheduled node, on the audio clock, and reset the
+   * cursor. Returns what the nodes carried, in scheduling order; the caller
+   * decides whether that audio is worth anything.
+   */
+  private stopAll(): Array<{ startAt: number; buffer: AudioBuffer }> {
     if (this.live.size === 0) {
       this.resetCursor();
-      return;
+      return [];
     }
     const t = this.ctx.currentTime;
     const stopAt = t + FLUSH_RAMP_S;
@@ -1177,7 +1240,7 @@ class PcmPlayer {
       if (--pending <= 0) dying.disconnect();
     };
 
-    for (const [node, startAt] of nodes) {
+    for (const [node, { startAt }] of nodes) {
       node.onended = () => {
         node.onended = null;
         node.disconnect();
@@ -1206,6 +1269,7 @@ class PcmPlayer {
     }, 1000);
 
     this.resetCursor();
+    return nodes.map(([, entry]) => entry);
   }
 
   /**
@@ -1586,9 +1650,17 @@ export class InterviewService {
   private lastPlaybackAt = 0;
   /** Send unconditionally until this instant — the student is mid-sentence. */
   private gateHangoverUntil = 0;
-  /** Discard arriving interviewer audio until this instant, or until the relay
+  /** Hold arriving interviewer audio until this instant, or until the relay
    *  confirms the barge-in. See LOCAL_BARGE_IN_HOLD_MS. */
   private localBargeInHoldUntil = 0;
+  /** What is being held: the unplayed remainder of what suspend() stopped, then
+   *  every frame that arrived while holding, in order. Dropped on confirmation,
+   *  put back on the scheduler on expiry. */
+  private heldPlayback: AudioBuffer[] = [];
+  /** Expires the hold even when no further frame arrives to trip the check in
+   *  onMessage — the relay may already have sent the whole sentence, which on a
+   *  burst-delivering engine is the usual case. */
+  private holdTimer: ReturnType<typeof setTimeout> | null = null;
   /** performance.now() of the last byte actually put on the wire, real or
    *  keepalive. Drives ECHO_GATE_KEEPALIVE_MS. */
   private lastUplinkAt = 0;
@@ -1616,12 +1688,13 @@ export class InterviewService {
   private suppressedChunks = 0;
   /** Zeroed chunks sent purely to keep the relay's idle watchdog alive. */
   private keepaliveChunks = 0;
-  /** Times local energy opened the gate and flushed the player. */
+  /** Times local energy opened the gate and suspended the player. */
   private localBargeIns = 0;
   /** Of those, the ones the relay then agreed with. localBargeIns minus this is
    *  the false-positive count, and the number that tunes ECHO_GATE_MARGIN. */
   private confirmedBargeIns = 0;
-  /** Interviewer frames dropped inside a local barge-in hold window. */
+  /** Interviewer frames held inside a local barge-in hold window — replayed if
+   *  the relay never confirmed, dropped if it did. */
   private heldPlaybackFrames = 0;
   /** Chunks the gate has seen at all — counted whether or not suppression is
    *  armed, so `mode=off` in the summary is a reachable, meaningful line rather
@@ -1933,7 +2006,9 @@ export class InterviewService {
     if (!on) {
       this.hotChunks = 0;
       this.echoWindowChunks = 0;
-      this.localBargeInHoldUntil = 0;
+      // Full duplex from here; whatever the gate was holding is the interviewer
+      // mid-sentence, so it is played, not stranded.
+      this.releaseHold();
       // Withheld audio from the suppressed period is stale the moment full
       // duplex resumes; replaying it later would inject an old syllable into the
       // middle of a live sentence.
@@ -2069,12 +2144,18 @@ export class InterviewService {
   /**
    * Local barge-in: three consecutive chunks well above the measured echo.
    *
-   * Flush FIRST - the student is already talking over the interviewer and every
-   * millisecond of unflushed queue is audible - then hold arriving audio until
-   * the relay confirms. The flush alone is not enough: the relay keeps streaming
-   * and onMessage re-enqueues within one frame. Only the relay's own
-   * response.cancel stops it at source, and that cannot happen until the audio
-   * this method unblocks has reached the server's VAD.
+   * Suspend FIRST - the student is already talking over the interviewer and
+   * every millisecond still scheduled is audible - then hold arriving audio
+   * until the relay confirms. Silencing alone is not enough: the relay keeps
+   * streaming and onMessage re-enqueues within one frame. Only the model
+   * noticing the interruption stops it at source, and that cannot happen until
+   * the audio this method unblocks has reached it.
+   *
+   * SUSPEND, NOT FLUSH. Nothing on this side can tell a real barge-in from echo
+   * or a cough; the relay's confirmation is the only arbiter, and on this
+   * engine it arrives only when the model itself hears the student. So what is
+   * stopped here is kept, and a hold that expires unconfirmed puts it back —
+   * see LOCAL_BARGE_IN_HOLD_MS for what discarding it used to cost.
    */
   private openGateForBargeIn(now: number): void {
     this.hotChunks = 0;
@@ -2083,7 +2164,8 @@ export class InterviewService {
     this.localBargeInHoldUntil = now + LOCAL_BARGE_IN_HOLD_MS;
     this.localBargeIns++;
     this.setGate(true);
-    this.player?.flush();
+    this.heldPlayback = this.player?.suspend() ?? [];
+    this.armHoldTimer();
     // flush() clears the scheduled set synchronously, so the echo window is over
     // as of this instant; leaving the timestamp behind would keep the tail
     // running against audio that has already been stopped.
@@ -2093,14 +2175,49 @@ export class InterviewService {
 
   /**
    * The relay agreed: whatever opened the gate was real speech, and the response
-   * has been cancelled at source. Stop holding and let the (now finite) stream
-   * end naturally. An UNCONFIRMED hold needs no timer - it is a timestamp, so it
-   * simply expires and playback resumes on the next frame.
+   * has been cancelled at source. Stop holding, and drop what was held — it is
+   * the audio the student talked over, and the (now finite) stream ends
+   * naturally without it.
    */
   private confirmBargeIn(): void {
     if (this.localBargeInHoldUntil === 0) return;
     this.confirmedBargeIns++;
     this.localBargeInHoldUntil = 0;
+    this.heldPlayback = [];
+    this.clearHoldTimer();
+  }
+
+  /**
+   * The hold expired with no confirmation: the detection was a false positive
+   * and the interviewer was still mid-sentence. Put everything held back on the
+   * scheduler, in order, so the sentence resumes where it stopped instead of
+   * the rest of it being lost. It stays counted as an unconfirmed local
+   * barge-in in the summary line, which is the number that tunes
+   * ECHO_GATE_MARGIN. Reached from the timer, from the next arriving frame
+   * (whichever is first) and from suppression being switched off mid-hold;
+   * idempotent, so the order does not matter.
+   */
+  private releaseHold(): void {
+    this.clearHoldTimer();
+    if (this.localBargeInHoldUntil === 0) return;
+    this.localBargeInHoldUntil = 0;
+    const held = this.heldPlayback;
+    this.heldPlayback = [];
+    const player = this.player;
+    if (!player) return;
+    for (const buffer of held) player.schedule(buffer);
+  }
+
+  private armHoldTimer(): void {
+    this.clearHoldTimer();
+    this.holdTimer = setTimeout(() => this.releaseHold(), LOCAL_BARGE_IN_HOLD_MS);
+  }
+
+  private clearHoldTimer(): void {
+    if (this.holdTimer !== null) {
+      clearTimeout(this.holdTimer);
+      this.holdTimer = null;
+    }
   }
 
   /** Gate state, mirrored to the signal and announced to the relay - on
@@ -2190,6 +2307,8 @@ export class InterviewService {
     this.lastPlaybackAt = 0;
     this.gateHangoverUntil = 0;
     this.localBargeInHoldUntil = 0;
+    this.clearHoldTimer();
+    this.heldPlayback = [];
     // NOT zero: a fresh session has just sent nothing, and `now - 0` is already
     // past the keepalive interval on any page open longer than ten seconds,
     // which would fire a pointless silent chunk before the first real one.
@@ -2219,8 +2338,9 @@ export class InterviewService {
    *                      the threshold is too low and the gate is firing on echo
    *                      or room noise: raise ECHO_GATE_MARGIN. n at m with a
    *                      large m is simply a talkative student.
-   *   heldFrames         interviewer frames discarded during a hold. Large with
-   *                      a poor confirm rate is the same diagnosis.
+   *   heldFrames         interviewer frames held during a hold (replayed when
+   *                      unconfirmed). Large with a poor confirm rate is the
+   *                      same diagnosis.
    *   replay             onset chunks replayed on gate open. Zero with a
    *                      non-zero bargeIn denominator means the primer is not
    *                      firing and word onsets are being lost.
@@ -2299,19 +2419,24 @@ export class InterviewService {
     // Binary frame = raw PCM from the relay, already decoded server-side so the
     // browser does not base64-decode 48 kB/s.
     if (event.data instanceof ArrayBuffer) {
-      // A local barge-in has flushed the queue and is waiting for the relay to
-      // cancel the response at source. Everything arriving in that window is
-      // audio the student has already talked over, and enqueuing it would undo
-      // the flush within one frame. Bounded by LOCAL_BARGE_IN_HOLD_MS and
-      // counted - never a silent discard.
+      // A local barge-in has suspended the player and is waiting for the relay
+      // to cancel the response at source. Everything arriving in that window
+      // is HELD, not played: playing it would undo the suspend within one
+      // frame, and discarding it — as this used to — lost the rest of the
+      // question on every false positive. Bounded by LOCAL_BARGE_IN_HOLD_MS
+      // and counted. Decoded now rather than at release, because the odd-byte
+      // carry has to be consumed in arrival order.
       if (this.localBargeInHoldUntil > 0) {
         if (performance.now() < this.localBargeInHoldUntil) {
+          const buffer = this.player?.decode(event.data);
+          if (buffer) this.heldPlayback.push(buffer);
           this.heldPlaybackFrames++;
           return;
         }
-        // Expired unconfirmed: the detection was a false positive. Resume, and
-        // let the summary's bargeIn ratio say so.
-        this.localBargeInHoldUntil = 0;
+        // Expired unconfirmed: the detection was a false positive. Put the held
+        // audio back first, so this frame lands after it, and let the summary's
+        // bargeIn ratio say so.
+        this.releaseHold();
       }
       this.player?.enqueue(event.data);
       if (this._state() !== 'speaking') this.setState('speaking');

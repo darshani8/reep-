@@ -123,18 +123,39 @@ four tables, consent, the recorder, and every close code.
 * **Nova owns the turn.** The v3 relay set `turn_detection.create_response:
   false` and issued exactly one `response.create` from one call site. Nova 2
   Sonic has no equivalent switch — its own endpointing and barge-in *are* the
-  product — so the engine steers the arc instead of driving it: the phase
-  machine still ticks on accepted answers only, and what changed reaches the
-  model as a **control note**, a cross-modal text input prefixed
-  `[INTERVIEW CONTROL]` and carrying a fixed directive from
-  `interview_matrix.py`. The system prompt is set once at the handshake because
-  Nova has no `session.update`.
+  product — so the engine steers the arc instead of driving it. The phase
+  machine still ticks on accepted answers only, for the record and the
+  browser's stepper, and the model is steered in two ways. The **question
+  phases are briefed once at the handshake** (`build_arc_briefing` in
+  `interview_matrix.py`, appended to the system prompt with `classify_answer`'s
+  counting rule in words), because the system prompt is set once — Nova has
+  no `session.update` — and because a note cannot shape the reply in flight.
+  The beats that must land at a fixed point (the invitation to ask questions,
+  the verdict, the clock's forced verdict, the scorecard request) travel as a
+  **control note**, a cross-modal text input prefixed `[INTERVIEW CONTROL]`
+  carrying a fixed directive from `interview_matrix.py`, and are **held while
+  a model turn is in flight** (`completionStart` to `completionEnd`) and sent
+  in the gap between turns.
+* **A note is a user turn — the reason for all of the above.** Bedrock
+  delivers the student's ASR transcript as the *first* block of the completion
+  in which Nova is already composing its reply. A note sent when that
+  transcript lands barges in on the reply: Nova abandons it, emits its
+  interruption marker, the engine forwards `reep.audio.flush`, and the browser
+  throws away the queued audio — the voice vanishes mid-word and a different
+  question follows. A note held until the reply has finished provokes a second
+  question on top of the one just asked. So the phase directives are briefed
+  instead of sent, and the stop beats are held and worded to set aside a
+  dangling question. The invariant is pinned end to end in
+  `tests/test_interview_simulation.py`: nothing goes upstream between
+  `completionStart` and `completionEnd`. Nova has no client-owned-turn mode and
+  documents non-interactive text for the system prompt and pre-audio history
+  only, so there is no AWS-side setting that changes this.
 * **No clarification turn.** An engine that holds the turn can ask a too-short
   answer for more detail — the relay did, and the local engine still does; here
   the model has already begun replying, and a second directive would produce a
-  second question. The turn is
-  still recorded as `too_short` / `filler`, and it still does not advance the
-  arc.
+  second question. The briefing tells the model to ask for more on its own;
+  the turn is still recorded as `too_short` / `filler`, and it still does not
+  advance the arc.
 * **The scorecard is a tool call.** Nova speaks everything it generates, so the
   relay's text-only second response would have read the JSON aloud.
   The session declares one tool, `submit_scorecard`; the closing control note

@@ -33,6 +33,7 @@ from app.interview_matrix import (
     InterviewPhase,
     build_instructions,
     nova_voice_for,
+    phase_directive,
 )
 from app.interview_core import _CLOSE_OK, _INTERVIEWER_PERSONA, _SessionEnded
 from app.interview_local import LocalSession
@@ -123,7 +124,26 @@ _GOOD_ANSWER = "I led the campus fintech club and grew it to eighty members"
 
 
 async def interviewer_turn(session, cid: str = "a1", said: str = "Tell me about yourself.") -> None:
-    """One complete model turn: audio opens, speaks, transcribes, completes."""
+    """One complete model turn: the completion opens, audio speaks, transcribes, completes."""
+    await session._on_upstream_event({"event": {"completionStart": {"completionId": f"c-{cid}"}}})
+    await spoken_reply(session, cid, said)
+
+
+async def exchange(session, index: int, transcript: str = _GOOD_ANSWER) -> None:
+    """One answered turn IN THE ORDER BEDROCK DOCUMENTS for a completion:
+    completionStart, then the ASR transcript of the student's answer (role
+    USER), then the interviewer's reply, then completionEnd. The transcript
+    that ticks the arc is delivered inside the completion it provoked -- which
+    is the whole reason a note decided on it cannot be sent when it arrives."""
+    await session._on_upstream_event({"event": {"completionStart": {"completionId": f"c{index}"}}})
+    await student_says(session, f"u{index}", transcript)
+    await spoken_reply(session, f"a{index}")
+
+
+async def spoken_reply(session, cid: str, said: str = "Tell me about yourself.") -> None:
+    """The spoken half of a model turn: audio opens, speaks, transcribes, the
+    completion ends. Without the completionStart, so a test can put the
+    student's transcript between the two the way the service does."""
     await session._on_upstream_event(
         {"event": {"contentStart": {"contentId": cid, "type": "AUDIO", "role": "ASSISTANT"}}}
     )
@@ -273,36 +293,73 @@ class TestRuleOne:
 
 
 class TestTheArc:
-    def test_an_accepted_answer_advances_the_phase_and_steers_the_model(self):
-        """The tick AND the note. Either alone is a broken interview.
+    def test_an_accepted_answer_advances_the_phase_and_the_briefing_steers_the_model(self):
+        """The tick AND the steering. Either alone is a broken interview.
 
-        The tick alone records a phase the model was never told about; the note
-        alone steers a model whose record says it is still in the opening.
+        The tick alone records a phase the model was never told about; steering
+        alone drives a model whose record says it is still in the opening. On
+        this engine the steering for the question phases is the BRIEFING sent
+        at the handshake, not a note sent on the answer -- see the next test
+        for why a note cannot be made harmless.
         """
         session, upstream, browser = make_session("hr")
 
         async def scenario():
             await interviewer_turn(session, "a1")
-            await student_says(session, "u1", _GOOD_ANSWER)
+            await exchange(session, 1)
 
         run(scenario())
         assert session._machine.phase is InterviewPhase.PROBING
         assert browser.of_type("reep.phase")[0]["phase"] == "probing"
-        assert any("Probe" in note for note in upstream.notes)
+        assert not any("Probe" in note for note in upstream.notes), (
+            "a probing note went upstream: the briefing already carries it, and "
+            "a note is a user turn the model answers with a second question"
+        )
+        assert phase_directive(SPECIALIZATIONS["hr"], InterviewPhase.PROBING) in session._instructions()
 
-    def test_a_phase_tick_while_the_interviewer_is_speaking_holds_the_note(self):
-        """THE TICK IS IMMEDIATE, THE NOTE WAITS. Injecting mid-turn is a barge-in.
+    def test_the_question_phases_are_briefed_once_at_the_handshake(self):
+        """What the model is told up front, and what it is deliberately not.
 
-        `_inject` is a USER text input, and Nova answers a new user input by
-        abandoning what it is saying. Sent while a response is open it therefore
-        cuts the interviewer off mid-sentence and replaces the question the
-        student was listening to -- and the interruption marker that follows
-        flushes the browser's queued PCM, so the audio does not tail off, it
-        disappears. Reported from a real interview: "it starts asking a question
-        in the middle, breaks the voice and changes the question."
+        Probing and deep dive are in the system prompt with the word gate's own
+        counting rule, so the model's reply to the answer that ticks the phase
+        is already the right phase's question. The two stop beats are NOT
+        there: a model that decided for itself when the questioning was over
+        could decide it one answer before the engine does and then wait for a
+        verdict note the engine would never send.
+        """
+        session, _upstream, _browser = make_session("hr")
+        spec = SPECIALIZATIONS["hr"]
+        composed = session._instructions()
 
-        The arc must NOT be delayed with it: the phase ticks and is announced on
-        the answer, exactly as before. Only the note is held.
+        assert composed.startswith(_INTERVIEWER_PERSONA)
+        assert phase_directive(spec, InterviewPhase.PROBING) in composed
+        assert phase_directive(spec, InterviewPhase.DEEP_DIVE) in composed
+        assert f"at least {settings.interview_min_answer_words} words" in composed
+        assert "any questions for you" not in composed
+        assert "closing verdict" not in composed
+        assert composed.endswith(nova._CONTROL_CHANNEL_NOTE)
+
+        generic, _upstream, _browser = make_session(None)
+        assert "How this interview unfolds" not in generic._instructions()
+
+    def test_a_beat_decided_on_the_transcript_never_goes_onto_the_reply_in_flight(self):
+        """THE ORDER BEDROCK DOCUMENTS, and the bug the first fix for this missed.
+
+        One completion is: completionStart, the ASR transcript of the student's
+        answer (role USER), the speculative text, the audio, the final text,
+        completionEnd. The transcript that ticks the arc is therefore always
+        delivered INSIDE a completion the model is already composing. The
+        first fix for "it cuts itself off mid-sentence and changes the
+        question" held the note while `_response_open` was True -- and raised
+        that flag on the AUDIO block, which arrives AFTER the transcript. Its
+        test fed the audio block first, so it passed with the bug intact: on a
+        real stream the note went out onto the reply every time, Nova
+        abandoned the reply to answer it, and the interruption marker flushed
+        the browser's queue. Reported from real interviews twice.
+
+        Two things are pinned here. completionStart is what opens the turn.
+        And a phase tick sends NOTHING, before or after the reply: a note on
+        the reply barges in on it, and a note after it is a second question.
         """
         session, upstream, browser = make_session("hr")
 
@@ -310,50 +367,69 @@ class TestTheArc:
             await interviewer_turn(session, "a1")
             before = len(upstream.notes)
 
-            # Nova has begun its reply -- this is the ordering the engine's own
-            # docstring describes, the model owns the turn -- and the ASR
-            # transcript of the answer lands underneath it.
             await session._on_upstream_event(
-                {
-                    "event": {
-                        "contentStart": {
-                            "contentId": "a2",
-                            "type": "AUDIO",
-                            "role": "ASSISTANT",
-                        }
-                    }
-                }
+                {"event": {"completionStart": {"completionId": "c2"}}}
             )
-            assert session._response_open is True
+            assert session._response_open is True, "completionStart opens the turn"
             await student_says(session, "u1", _GOOD_ANSWER)
 
             # The arc moved, and the student's screen was told.
             assert session._machine.phase is InterviewPhase.PROBING
             assert browser.of_type("reep.phase")[-1]["phase"] == "probing"
-            # But nothing was said to the model while it was still speaking.
+            # Nothing was said to the model while it was composing its reply.
             assert len(upstream.notes) == before, (
                 "a directive went upstream mid-turn: that is the barge-in that "
                 "cuts the interviewer off and drops the audio"
             )
-            assert len(session._pending_notes) == 1
-
-            # The turn ends -- now it goes, in the gap between turns.
-            await session._on_upstream_event(
-                {
-                    "event": {
-                        "contentEnd": {
-                            "contentId": "a2",
-                            "type": "AUDIO",
-                            "stopReason": "END_TURN",
-                        }
-                    }
-                }
-            )
-            await session._on_upstream_event(
-                {"event": {"completionEnd": {"stopReason": "END_TURN"}}}
-            )
             assert session._pending_notes == []
-            assert any("Probe" in note for note in upstream.notes[before:])
+
+            await spoken_reply(session, "a2")
+            assert session._response_open is False
+            assert len(upstream.notes) == before, (
+                "a phase note after the reply is a second question on top of "
+                "the one the student was just asked"
+            )
+
+        run(scenario())
+
+    def test_the_invitation_is_held_until_the_reply_in_flight_has_finished(self):
+        """The stop beats still travel as notes, and a note waits for the gap.
+
+        The fifth accepted answer arrives inside the completion in which the
+        model is already asking its own next question. The invitation must not
+        land on that reply (barge-in) and must land straight after it, telling
+        the model to set that question aside. The arc is NOT delayed with it:
+        the phase ticks and is announced on the answer, exactly as before.
+        """
+        session, upstream, browser = make_session("hr")
+
+        async def scenario():
+            for index in range(4):
+                await exchange(session, index)
+            assert session._machine.phase is InterviewPhase.DEEP_DIVE
+            before = len(upstream.notes)
+
+            await session._on_upstream_event(
+                {"event": {"completionStart": {"completionId": "c5"}}}
+            )
+            await student_says(session, "u4", _GOOD_ANSWER)
+            assert session._machine.phase is InterviewPhase.WRAP_UP
+            assert browser.of_type("reep.phase")[-1]["phase"] == "wrap_up"
+            assert session._awaiting_candidate_questions is True
+            assert len(upstream.notes) == before
+            assert len(session._pending_notes) == 1
+            assert "any questions for you" in session._pending_notes[0]
+
+            await spoken_reply(session, "a5")
+            assert session._pending_notes == []
+            sent = upstream.notes[before:]
+            assert any("any questions for you" in note for note in sent)
+            assert any("set it aside" in note for note in sent), (
+                "the note lands after the model has asked a question of its "
+                "own; it must say what to do with it"
+            )
+            # Releasing a held note is not the moment to ask for the scorecard.
+            assert session._report_requested is False
 
         run(scenario())
 
@@ -1033,6 +1109,40 @@ class TestTheConnectionWall:
 
         run(scenario())
         assert sum("closing verdict" in note for note in upstream.notes) == 1
+
+    def test_forcing_the_wrap_up_lets_the_sentence_in_flight_finish(self):
+        """Out of time is not a reason to cut the interviewer off mid-word.
+
+        The clock fires once a second and does not know whether the model is
+        speaking. Injecting the verdict onto a reply in flight is the same
+        barge-in as a phase note: the reply is abandoned, the interruption
+        marker flushes the browser's queue, and the verdict opens on a
+        half-word. Held, the verdict follows the sentence; the reserve is
+        sized for that. The watchdog's re-entry must not queue it twice.
+        """
+        session, upstream, _browser = make_session("hr")
+
+        async def scenario():
+            await session._on_upstream_event(
+                {"event": {"completionStart": {"completionId": "c1"}}}
+            )
+            before = len(upstream.notes)
+            await session._force_wrap_up()
+            await session._force_wrap_up()
+            assert session._verdict_requested is True
+            assert session._machine.phase is InterviewPhase.WRAP_UP
+            assert len(upstream.notes) == before
+            assert sum("closing verdict" in note for note in session._pending_notes) == 1
+
+            await spoken_reply(session, "a1")
+            assert sum("closing verdict" in note for note in upstream.notes[before:]) == 1
+            # The verdict has only just been asked for; the scorecard waits for
+            # it to be SPOKEN, which is the next completion.
+            assert session._report_requested is False
+            await interviewer_turn(session, "verdict", "Two strengths, one drill.")
+            assert session._report_requested is True
+
+        run(scenario())
 
 
 # ---------------------------------------------------------------------------

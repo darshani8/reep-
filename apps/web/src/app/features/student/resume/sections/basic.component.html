@@ -34,8 +34,19 @@
           hidden
           (change)="onPhotoFile($event)"
         />
+        <!-- role="alert" because @if INSERTS this after load: without a live
+             region the student presses the photo button, the upload is refused
+             (wrong format, over 10 MB, server unreachable) and a screen reader
+             announces nothing at all — the button simply stops saying
+             "Uploading…" and the resume keeps the old headshot. Every other
+             upload error in this app is already a live region — the register
+             form's, /mentor/signature's, all three on /student/uploads — and
+             this was the holdout. No aria-invalid to go with it: the control
+             here is a button opening a hidden picker, and ARIA does not carry
+             that state on a button; the screens that set it set it on text
+             inputs and selects. -->
         @if (photoError()) {
-          <small class="photo-err">{{ photoError() }}</small>
+          <small class="photo-err" role="alert">{{ photoError() }}</small>
         }
       </div>
     </div>

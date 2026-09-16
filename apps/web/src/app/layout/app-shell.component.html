@@ -135,15 +135,26 @@
             Password
           </a>
 
-          <a
-            class="account__item"
-            role="menuitem"
-            routerLink="/mentor/signature"
-            (click)="closeAccountMenu()"
-          >
-            <span class="icon" aria-hidden="true">draw</span>
-            Signature
-          </a>
+          <!-- Signature is for the people who SIGN a leave paper: a faculty
+               member on the request they apply on, the Main Admin on the one
+               they sanction. The route is roleGuard('MENTOR', 'ADMIN') and this
+               menu is everything that is not a student, so ALUMNI were being
+               offered it too — an alumnus has no leave paper to sign, and
+               clicking it bounced them to their home screen with no
+               explanation, which reads as a broken app rather than as a screen
+               that is not theirs. The two kinds named here are the two roles
+               the guard admits; one fact, not a second mechanism. -->
+          @if (navKind() === 'staff' || navKind() === 'admin') {
+            <a
+              class="account__item"
+              role="menuitem"
+              routerLink="/mentor/signature"
+              (click)="closeAccountMenu()"
+            >
+              <span class="icon" aria-hidden="true">draw</span>
+              Signature
+            </a>
+          }
 
           <button type="button" class="account__item" role="menuitem" (click)="signOut()">
             <span class="icon" aria-hidden="true">logout</span>

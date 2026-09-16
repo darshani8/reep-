@@ -110,9 +110,19 @@ def test_the_applicant_and_the_approver_read_it_and_everybody_else_gets_one_404(
     invented = client.get(f"{LEAVES}/does-not-exist/attachments", headers=stranger.headers)
     assert invented.status_code == 404 and invented.json() == refused.json()
 
-    # A student is refused by the ROLE gate, before any id is looked at — the one
-    # refusal that is allowed to be different, because it is the same for every id.
-    assert client.get(url, headers=student.headers).status_code == 403
+    # A STUDENT GETS THE SAME 404, and this used to assert 403 on the reasoning
+    # that the role gate "runs before any id is looked at". That is true of
+    # `routers/leave.py`, where `require_mentor` is a dependency on the route —
+    # and false here, because this module has two doors and the APPLICANT's has
+    # to be tried first: `_readable_request` loads the row, compares
+    # `requester_user_id`, and only then calls `_assert_can_decide`. So the 403
+    # was reachable ONLY with a real id while an invented one answered 404,
+    # which is the membership oracle the flattening exists to close, told to
+    # anybody holding a session. Byte-identical to the invented id, like the
+    # staff refusal above.
+    student_refused = client.get(url, headers=student.headers)
+    assert student_refused.status_code == 404
+    assert student_refused.json() == invented.json()
 
 
 @requires_db

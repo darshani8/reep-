@@ -111,6 +111,22 @@
     hidden
     (change)="onPick($event)"
   />
+  <!-- A SECOND picker, opened only by a Replace button, because only a
+       selection made through this one may delete an existing document. The two
+       shared one input, so a Replace that was pressed and then cancelled — no
+       change event, nothing cleared — left the delete armed for whatever file
+       the student picked next, and an unrelated upload silently destroyed the
+       document they had abandoned. `(cancel)` disarms it the moment the dialog
+       is dismissed; the separate input is what makes the mistake unreachable
+       even where that event never arrives. -->
+  <input
+    #replacePicker
+    type="file"
+    accept="application/pdf,image/png,image/jpeg"
+    hidden
+    (change)="onReplacePick($event)"
+    (cancel)="cancelReplace()"
+  />
 
   <!-- ERROR feedback (server rejects by magic bytes — message surfaced) -->
   @if (uploadError()) {
@@ -210,7 +226,7 @@
                 type="button"
                 class="dt-btn"
                 [disabled]="uploading() || removingId() === u.id"
-                (click)="replace(u, picker)"
+                (click)="replace(u, replacePicker)"
               >
                 <span class="icon" aria-hidden="true">sync</span>Replace
               </button>

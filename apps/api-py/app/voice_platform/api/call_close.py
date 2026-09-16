@@ -11,6 +11,21 @@ predicate and by the buffer's own once-only render.
 NOTHING HERE RAISES INTO THE CALLER. The socket is already closed; the only
 thing a failure here can do is lose a recording, and it must lose it loudly —
 every step logs and lands in `recording_meta` / the sync flags.
+
+THIS MODULE IS THE WRITER OF THE PLATFORM'S LOCAL RECORDING, SO IT IS ALSO
+WHERE THE DESTRUCTORS ASK FOR IT. `platform_audio_dir`, `platform_call_audio_paths`
+and `delete_platform_call_audio` below are the store's public face for
+`app.purge_people` and `app.purge_students`; nothing outside this file builds a
+path into `platform/` for itself, because the name written here and the name
+deleted there have to be one fact in one place. That is affordable only because
+this module imports no FastAPI at all — no router, no `Depends`, no request
+machinery: `api/__init__.py` is a docstring, the two modules that DO declare
+routes (`calls.py`, `media_bridge.py`) import this one and never the other way
+round, and everything here reaches the database through `SessionLocal` directly.
+A destructor can therefore `from .voice_platform.api.call_close import
+delete_platform_call_audio` without mounting an application. Keep it that way:
+the first `from fastapi import ...` in this file puts a web framework in the
+import path of a command that has to run on a console with a broken app.
 """
 
 from __future__ import annotations
@@ -26,7 +41,12 @@ from sqlalchemy import select
 
 from ...config import settings
 from ...db import SessionLocal
-from ...interview_audio import _store_root
+# `_safe_stem` beside `_store_root`, and both private on purpose: the platform's
+# recordings live INSIDE the interview-audio root (see `platform_audio_dir`), so
+# they inherit that store's naming rule rather than growing a second one that
+# would have to be kept in step with it. A stem this store will not resolve is
+# refused there, with `AudioStoreError`, exactly as it is for a per-speaker WAV.
+from ...interview_audio import _safe_stem, _store_root
 from ...models.interview import InterviewTurn
 from ..monitoring import sentry
 from ..monitoring.cloudwatch import get_logger, put_metric
@@ -67,6 +87,89 @@ def platform_audio_dir() -> Path:
     `platform/` folder beside the per-speaker interview WAVs, on the same
     volume the recording headroom check watches."""
     return _store_root() / "platform"
+
+
+#: The stereo render, and the optional mono mixdown a `mixed`/`both` recording
+#: policy asks for. `_persist_close` composes its write paths from these two
+#: rather than from its own literals, so the name this module WRITES and the
+#: name the destructors DELETE are one fact and cannot drift apart.
+_CALL_AUDIO_STEREO = ".wav"
+_CALL_AUDIO_MONO = "-mono.wav"
+
+#: Every name `_persist_close` can leave in `platform_audio_dir()` for ONE call.
+#: The third is not written here: an `mp3` recording policy sends the stereo WAV
+#: through `mixer.encode_mp3`, which renders `<id>.mp3` BESIDE it
+#: (`wav_path.with_suffix(".mp3")`) and unlinks nothing — so after an mp3 call
+#: BOTH files are on the volume, and a sweep that knew only the format the
+#: policy asked for would leave the other one there forever. Adding an artefact
+#: to the writer above means adding its name here, because this tuple is the
+#: whole of what `delete_platform_call_audio` looks for.
+_CALL_AUDIO_SUFFIXES: tuple[str, ...] = (_CALL_AUDIO_STEREO, _CALL_AUDIO_MONO, ".mp3")
+
+
+def platform_call_audio_paths(session_id: str) -> list[Path]:
+    """Every path this module can write for one call, whether or not it exists.
+
+    The ONLY place a `platform_call_sessions.id` becomes a filesystem path.
+    `_safe_stem` runs first for `interview_audio.track_path`'s reason: a caller
+    that builds its own path "just this once" is a caller that has dropped the
+    traversal guard, and here the callers are two destructors running as root
+    on a production volume.
+
+    Resolving a name creates nothing — `_store_root`'s rule, and it matters on
+    exactly this path: `purge_people` calls the delete below for EVERY call
+    session on the deployment, and most deployments have never had
+    `PLATFORM_RECORDINGS_BUCKET` set, let alone written a byte. A dry run that
+    conjured an empty `platform/` directory would be a destructor with a side
+    effect, and on an unmounted volume it would raise where the honest answer
+    is "there is nothing of this student's on that disk".
+    """
+    directory = platform_audio_dir()
+    stem = _safe_stem(session_id)
+    return [directory / f"{stem}{suffix}" for suffix in _CALL_AUDIO_SUFFIXES]
+
+
+def delete_platform_call_audio(session_id: str) -> int:
+    """Remove this call's LOCAL recording. Returns how many FILES actually went
+    — 0 on most calls, because most deployments record nothing at all.
+
+    `interview_audio.delete_session_audio`'s contract, for the store that module
+    cannot see: a platform recording is `platform/<call id>.wav`, which
+    `track_path` can never produce, so the per-speaker sweep walks straight past
+    it. It is deleted here, by the module that wrote it.
+
+    IDEMPOTENT — a file that is already gone is success, so a second pass over a
+    half-finished purge does not start raising.
+
+    A NO-OP FOR A CALL THAT NEVER RECORDED, including one whose store directory
+    does not exist. `unlink` on a missing file and `unlink` under a missing
+    directory both surface as `FileNotFoundError` and both mean the same thing.
+
+    RAISES ONLY WHEN BYTES MAY STILL BE ON DISK — an id this store will not
+    resolve (`AudioStoreError`, from `_safe_stem`), a permission error, a device
+    that has gone away. The callers report those per call and keep going, and
+    the operator is told which calls they were: a stereo recording of a named
+    student whose row has just been deleted is bytes nobody can name again,
+    which is the one outcome a purge cannot repair afterwards.
+
+    WHAT THIS DOES NOT TOUCH, deliberately: the object in the recordings bucket
+    (that is `purge_people.destroy_s3_recordings`, from `recording_s3_key`) and
+    the copy `app.archive_documents` has taken into the Object-Locked archive,
+    which no destructor in this product may delete.
+    """
+    removed = 0
+    for path in platform_call_audio_paths(session_id):
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            # The common answer, and success. Caught rather than
+            # `missing_ok=True` so the returned count means "files destroyed"
+            # and not "paths tried": a sweep over a deployment that has never
+            # recorded anything has to be able to say honestly that it removed
+            # nothing, which is `delete_session_audio`'s reasoning next door.
+            continue
+        removed += 1
+    return removed
 
 
 def _transcript(db: Any, interview_session_id: str | None) -> tuple[str, int]:
@@ -159,7 +262,11 @@ def _persist_close(
             report.channels = keep
             local_dir = platform_audio_dir()
             local_dir.mkdir(parents=True, exist_ok=True)
-            stereo_path = mix.path or (local_dir / f"{report.session_id}.wav")
+            # `mix.path` is the same name under the same directory, written by
+            # `DualChannelBuffer.finalize` when the media bridge handed it this
+            # `local_dir` — so both spellings of "the stereo file" are covered
+            # by `_CALL_AUDIO_STEREO` and by the sweep that reads it.
+            stereo_path = mix.path or (local_dir / f"{report.session_id}{_CALL_AUDIO_STEREO}")
             if mix.path is None:
                 stereo_path.write_bytes(mix.stereo_wav)
             report.local_path = str(stereo_path)
@@ -175,7 +282,7 @@ def _persist_close(
                         report.notes.append("mp3 requested but ffmpeg is unavailable; stored WAV")
                 artefacts.append(primary)
             if keep in ("mixed", "both") and mix.mono_wav:
-                mono_path = local_dir / f"{report.session_id}-mono.wav"
+                mono_path = local_dir / f"{report.session_id}{_CALL_AUDIO_MONO}"
                 mono_path.write_bytes(mix.mono_wav)
                 artefacts.append((mono_path, "wav", mix.mono_wav))
             report.size_bytes = sum(p.stat().st_size for p, _, _ in artefacts if p.exists())

@@ -40,6 +40,17 @@ store in `FILE_COLUMNS` (six of them since B10.3's leave attachments), and it is
 why `_destroy_files` runs first and why anything it could not destroy is
 reported rather than swallowed.
 
+THE VOICE PLATFORM'S STEREO RECORDING IS THE FOURTH STORE, and it was missed for
+as long as it has existed. `voice_platform/api/call_close.py` writes a
+dual-channel WAV of a named student's interview to `platform/<call id>.wav` on
+the same volume — a path `interview_audio.track_path` can never produce, so the
+per-speaker sweep walked past it — while this module deleted the
+`platform_call_sessions` row that was the file's only pointer. That is the exact
+outcome the paragraph above forbids, produced by the paragraph above being
+applied to three stores out of four: after a purge the volume held a complete
+recording of a student's voice and nothing left in the system could say whose.
+`destroy_platform_call_audio` closes it, from the ids read before the rows go.
+
 THIRD, IT REFUSES TO LEAVE NOBODY BEHIND. The survivor is found by role, and
 the run aborts unless there is EXACTLY ONE ADMIN. Zero means this deployment
 has no Main Admin and the purge would lock every human out of the console
@@ -392,6 +403,13 @@ class Plan:
     rows: dict[str, int] = field(default_factory=dict)
     files: int = 0
     audio_sessions: int = 0
+    #: Platform calls whose local stereo recording is swept off the volume. A
+    #: COUNT OF CALLS and not of files, the same reading as `audio_sessions`
+    #: above and for the same reason: the filesystem is the authority on which
+    #: files exist, so the sweep is offered every call rather than only the ones
+    #: whose row admits to a recording, and what a dry run can honestly promise
+    #: is how many calls it will look under.
+    platform_calls: int = 0
     s3_objects: int = 0
 
     @property
@@ -531,17 +549,31 @@ def build_plan(db: Session) -> Plan:
         db.scalar(select(func.count()).select_from(Base.metadata.tables["interview_sessions"])) or 0
     )
     calls = Base.metadata.tables["platform_call_sessions"]
+    # Two numbers off one table, because one call can leave bytes in two places
+    # and an operator has to see both BEFORE the rows that point at them go: the
+    # object in the recordings bucket (only where the upload happened, hence the
+    # `recording_s3_key` predicate) and the stereo WAV on the local volume,
+    # which is written whether or not a bucket was ever configured.
+    plan.platform_calls = int(db.scalar(select(func.count()).select_from(calls)) or 0)
     plan.s3_objects = int(
         db.scalar(select(func.count()).select_from(calls).where(calls.c.recording_s3_key.is_not(None))) or 0
     )
     return plan
 
 
-# The three file stores, each as a function over the rows it is handed rather
+# The four file stores, each as a function over the rows it is handed rather
 # than over the whole database. `app.purge_students` destroys a SUBSET of the
 # same files and calls exactly these — copying them would leave two versions of
 # the one step in a purge that cannot be rolled back, and the copy would be the
 # one that stopped getting the fix.
+#
+# None of the four knows how to do another one's work, and that is a property of
+# the stores rather than a style: a document's name is resolved inside the
+# uploads root, a per-speaker WAV through `interview_audio.track_path`, and a
+# platform call's stereo recording inside `platform/` — three different roots
+# with three different naming rules, and the fourth is a bucket. Each delete
+# therefore goes through the module that WROTE the bytes, and this file only
+# hands each one the set of rows that is going.
 
 
 def destroy_document_files(rows: Iterable[tuple[str, str]]) -> list[str]:
@@ -579,6 +611,55 @@ def destroy_interview_audio(sessions: Iterable[tuple[str, str | None]]) -> list[
         except Exception as exc:  # noqa: BLE001
             log.error("Could not delete interview audio for %s: %s", sid, exc)
             failures.append(f"interview_audio:{sid}")
+    return failures
+
+
+def destroy_platform_call_audio(session_ids: Iterable[str]) -> list[str]:
+    """The voice platform's dual-channel recordings, off the local volume.
+
+    A SEPARATE STORE FROM `destroy_interview_audio` ABOVE, and it has to be one.
+    `voice_platform/api/call_close.py` writes `platform/<call id>.wav` (plus the
+    mono mixdown and the mp3 a recording policy may ask for) under the
+    interview-audio root, and `interview_audio.track_path` — the only path
+    `delete_session_audio` will build — cannot produce a name in a subdirectory.
+    So the per-speaker sweep ran to completion over these files and reported
+    success, while `platform_call_sessions` went in the row pass immediately
+    afterwards and took the last pointer to them with it.
+
+    Handed every call the caller is taking and not only the ones whose row
+    admits to a recording — `destroy_interview_audio`'s reason, and the same
+    one: `recording_s3_key` records what reached the BUCKET, nothing on the row
+    records what is on the DISK, and the filesystem is the authority on that. A
+    call that never recorded costs three `unlink`s answering FileNotFoundError.
+
+    This deletes the LIVE copy only. The archive sweep has taken these same
+    files into the Object-Locked bucket (`app.archive_documents` recurses into
+    `platform/`), which no destructor in this product may reach — the website's
+    delete and the archive's permanence are promises about different copies.
+
+    NO MANIFEST ROW IS RELEASED HERE, and that is not an omission. A row in
+    `archived_documents` is written by `document_manifest.save_and_record`, the
+    one choke point the six DOCUMENT stores pass through; this file is written
+    by the media bridge and uploaded by the nightly sweep, which reads the disk
+    and not that table, so there is no row naming it and `release` would be a
+    no-op on a name it does not know. The manifest is KEEP in both destructors
+    either way — see `VERDICTS["archived_documents"]` — so a row that did exist
+    would keep saying whose file it was, which is the whole point of it.
+    """
+    try:
+        from .voice_platform.api.call_close import (
+            delete_platform_call_audio as delete_call_audio,
+        )
+    except ImportError:  # a slim image without the voice platform
+        return []
+
+    failures: list[str] = []
+    for session_id in session_ids:
+        try:
+            delete_call_audio(session_id)
+        except Exception as exc:  # noqa: BLE001 — reported, never fatal
+            log.error("Could not delete platform call audio for %s: %s", session_id, exc)
+            failures.append(f"platform_audio:{session_id}")
     return failures
 
 
@@ -630,16 +711,18 @@ def _destroy_files(db: Session, plan: Plan) -> list[str]:
     audio = db.execute(select(sessions.c.id, sessions.c.audio_path)).all()
 
     calls = Base.metadata.tables["platform_call_sessions"]
-    keys = [
-        key
-        for (key,) in db.execute(
-            select(calls.c.recording_s3_key).where(calls.c.recording_s3_key.is_not(None))
-        ).all()
-    ]
+    # ONE read of the call rows, because both of a call's recordings are
+    # answered from the same row and this is the last moment either can be
+    # answered at all: `_delete_rows` empties `platform_call_sessions` a few
+    # statements from now, and the id IS the local file's name.
+    call_rows = db.execute(select(calls.c.id, calls.c.recording_s3_key)).all()
+    call_ids = [call_id for call_id, _ in call_rows]
+    keys = [key for _, key in call_rows if key is not None]
 
     failures = (
         destroy_document_files(documents)
         + destroy_interview_audio(audio)
+        + destroy_platform_call_audio(call_ids)
         + destroy_s3_recordings(keys)
     )
     # The manifest SURVIVES this run (`VERDICTS["archived_documents"] is KEEP`),
@@ -722,6 +805,7 @@ def _stamp(db: Session, plan: Plan) -> None:
                     "tables_emptied": sorted(plan.rows),
                     "files_deleted": plan.files,
                     "audio_sessions_swept": plan.audio_sessions,
+                    "platform_calls_swept": plan.platform_calls,
                     "s3_objects_deleted": plan.s3_objects,
                 },
             )
@@ -743,9 +827,10 @@ def _report(plan: Plan, *, applied: bool) -> None:
     log.info("  %-45s %8d row(s)  TOTAL", "", plan.total_rows)
     log.info(
         "Stored files: %d document(s), %d interview session(s) swept for audio, "
-        "%d S3 recording(s).",
+        "%d platform call(s) swept for a local recording, %d S3 recording(s).",
         plan.files,
         plan.audio_sessions,
+        plan.platform_calls,
         plan.s3_objects,
     )
     kept = sorted(n for n, v in VERDICTS.items() if v == KEEP)

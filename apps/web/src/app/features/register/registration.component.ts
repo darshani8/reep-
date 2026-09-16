@@ -10,9 +10,16 @@
  * global `.reg-approval` ok / flag banner and, on success, offer a link to
  * `/login`.
  *
- * Only the fields the endpoint accepts are sent (name, email, usn, phone,
- * degree_level). Personal email, LinkedIn and the CV / photo dropzones are on the
- * form for completeness but are placeholders the backend does not yet take.
+ * EVERY BOX IS COMPULSORY EXCEPT SPECIALIZATION (2026-09-16), the owner's rule
+ * for this form, and the CV and the photo with them. The API holds the same
+ * rule for the typed fields (`RegisterIn` refuses a blank USN, phone, personal
+ * email or LinkedIn); the two files are posted after the 201, so the form is
+ * what refuses to submit without them, and it checks each file's type and
+ * size BEFORE the application is created — a 413 or 415 after the 201 would
+ * leave an application in the queue with no way for the applicant to retry.
+ * Course and Batch are required whenever the office has listed any under the
+ * chosen department: a box that cannot be filled cannot be compulsory, and a
+ * half-set-up college must not refuse every applicant.
  */
 
 import { Component, computed, signal } from '@angular/core';
@@ -23,6 +30,21 @@ import { RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 
 type DegreeLevel = 'UG' | 'PG';
+
+/** The server's per-file cap (`document_store.MAX_BYTES`), stated on the form. */
+export const MAX_UPLOAD_MB = 10;
+const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
+/** What each upload may be — the same table `attach_document` sniffs against. */
+const CV_TYPES: ReadonlySet<string> = new Set(['application/pdf']);
+const PHOTO_TYPES: ReadonlySet<string> = new Set(['image/png', 'image/jpeg']);
+
+/** `true` when the browser's type OR the extension says the file is allowed —
+ *  some browsers report an empty `type` for a drag-and-dropped file. */
+function fileIsOneOf(file: File, types: ReadonlySet<string>, extensions: readonly string[]): boolean {
+  if (file.type && types.has(file.type)) return true;
+  const name = file.name.toLowerCase();
+  return extensions.some((ext) => name.endsWith(ext));
+}
 
 /** Snake_case exactly as `RegistrationOut` returns it. */
 /// The hierarchy the admin built, as the public form may see it: names and
@@ -102,6 +124,14 @@ export class RegistrationComponent {
   /// the 201 — so a picked file is held here until then.
   readonly cvFile = signal<File | null>(null);
   readonly photoFile = signal<File | null>(null);
+  /// Why the last picked file was refused, per picker; cleared on a good pick.
+  readonly cvError = signal<string | null>(null);
+  readonly photoError = signal<string | null>(null);
+  /// The application the last submission created, kept so a failed
+  /// attachment can be retried against the same id rather than the
+  /// applicant meeting the duplicate guard on "Submit another".
+  private createdId: string | null = null;
+  readonly maxUploadMb = MAX_UPLOAD_MB;
   /// What happened to each attachment, shown on the result card. The
   /// application itself is already in; a failed attachment is a warning, not a
   /// reason to make the applicant start over.
@@ -198,11 +228,53 @@ export class RegistrationComponent {
   }
 
   onCv(ev: Event): void {
-    this.cvFile.set((ev.target as HTMLInputElement).files?.[0] ?? null);
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    const problem = file ? this.fileProblem(file, CV_TYPES, ['.pdf'], 'a PDF') : null;
+    this.cvError.set(problem);
+    this.cvFile.set(problem ? null : file);
+    if (problem) input.value = '';
   }
 
   onPhoto(ev: Event): void {
-    this.photoFile.set((ev.target as HTMLInputElement).files?.[0] ?? null);
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    const problem = file ? this.fileProblem(file, PHOTO_TYPES, ['.png', '.jpg', '.jpeg'], 'a PNG or JPG') : null;
+    this.photoError.set(problem);
+    this.photoFile.set(problem ? null : file);
+    if (problem) input.value = '';
+  }
+
+  /// The two checks the server would make after the 201, made before it.
+  private fileProblem(file: File, types: ReadonlySet<string>, extensions: readonly string[], wanted: string): string | null {
+    if (!fileIsOneOf(file, types, extensions)) {
+      return `${file.name} is not ${wanted}. Choose ${wanted}.`;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      const mb = (file.size / (1024 * 1024)).toFixed(1);
+      return `${file.name} is ${mb} MB; the limit is ${MAX_UPLOAD_MB} MB.`;
+    }
+    return null;
+  }
+
+  /// Everything the form still needs before it may be submitted, in the
+  /// order the boxes appear. Empty means submit.
+  missing(): string[] {
+    const out: string[] = [];
+    if (!this.cvFile()) out.push('your CV (PDF)');
+    if (!this.fullName.trim()) out.push('your full name');
+    if (!this.usn.trim()) out.push('your USN');
+    if (!this.collegeEmail.trim()) out.push('your college email');
+    if (!this.personalEmail.trim()) out.push('your personal email');
+    if (!this.phone.trim()) out.push('your phone number');
+    if (!this.linkedin.trim()) out.push('your LinkedIn profile');
+    if (!this.collegeId()) out.push('your college');
+    if (!this.departmentId()) out.push('your department');
+    if (!this.courseId() && this.courses().length) out.push('your course');
+    if (this.required().has('specialization') && !this.specializationId()) out.push('your specialization');
+    if (!this.batchId() && this.batches().length) out.push('your batch');
+    if (!this.photoFile()) out.push('your photo (PNG or JPG)');
+    return out;
   }
 
   /// Auto-approved is the only branch a seating rule decided without a human;
@@ -219,12 +291,13 @@ export class RegistrationComponent {
     if (this.pending()) return;
 
     this.error.set(null);
-    if (!this.fullName.trim() || !this.collegeEmail.trim()) {
-      this.error.set('Your full name and college email are both required.');
-      return;
-    }
-    if (!this.hierarchyOk()) {
-      this.error.set('Choose your college and department (and any level marked required).');
+    const missing = this.missing();
+    if (missing.length) {
+      this.error.set(
+        missing.length === 1
+          ? `Please add ${missing[0]}.`
+          : `Please add ${missing.slice(0, -1).join(', ')} and ${missing[missing.length - 1]}.`,
+      );
       return;
     }
 
@@ -237,8 +310,10 @@ export class RegistrationComponent {
         body: JSON.stringify({
           name: this.fullName.trim(),
           email: this.collegeEmail.trim(),
-          usn: this.usn.trim() || null,
-          phone: this.phone.trim() || null,
+          usn: this.usn.trim(),
+          phone: this.phone.trim(),
+          personal_email: this.personalEmail.trim(),
+          linkedin_url: this.linkedin.trim(),
           degree_level: this.degreeLevel,
           college_id: this.collegeId() || null,
           department_id: this.departmentId() || null,
@@ -252,33 +327,62 @@ export class RegistrationComponent {
         return;
       }
       const created = (await res.json()) as RegistrationResult;
-      // Attach what was picked, one request per file, each reporting for
-      // itself. The application is already created whatever happens here.
-      const notes: string[] = [];
-      for (const [kind, file, label] of [
-        ['cv', this.cvFile(), 'CV'],
-        ['photo', this.photoFile(), 'photo'],
-      ] as const) {
-        if (!file) continue;
-        const fd = new FormData();
-        fd.append('file', file, file.name);
-        const up = await fetch(`${environment.apiBase}/register/${created.id}/documents/${kind}`, {
-          method: 'POST',
-          credentials: 'include',
-          body: fd,
-        });
-        if (up.ok) {
-          const updated = (await up.json()) as RegistrationResult;
-          created.documents = updated.documents;
-          notes.push(`${label} attached.`);
-        } else {
-          notes.push(`${label} could not be attached: ${await this.detailOf(up)}`);
-        }
-      }
-      this.docNotes.set(notes);
+      this.createdId = created.id;
+      await this.attachDocuments(created);
       this.result.set(created);
     } catch {
       this.error.set('Could not reach the registration service. Is the API running on :3300?');
+    } finally {
+      this.pending.set(false);
+    }
+  }
+
+  /// Attach both files, one request per file, each reporting for itself. The
+  /// application is already created whatever happens here; a file that fails
+  /// is retried from the result card against the same application, never by
+  /// submitting again (which meets the duplicate guard).
+  private async attachDocuments(created: RegistrationResult): Promise<void> {
+    const notes: string[] = [];
+    for (const [kind, file, label, stored] of [
+      ['cv', this.cvFile(), 'CV', 'CV'],
+      ['photo', this.photoFile(), 'photo', 'PHOTO'],
+    ] as const) {
+      if (!file) continue;
+      if (created.documents.includes(stored)) {
+        notes.push(`${label} attached.`);
+        continue;
+      }
+      const fd = new FormData();
+      fd.append('file', file, file.name);
+      const up = await fetch(`${environment.apiBase}/register/${created.id}/documents/${kind}`, {
+        method: 'POST',
+        credentials: 'include',
+        body: fd,
+      });
+      if (up.ok) {
+        const updated = (await up.json()) as RegistrationResult;
+        created.documents = updated.documents;
+        notes.push(`${label} attached.`);
+      } else {
+        notes.push(`${label} could not be attached: ${await this.detailOf(up)}`);
+      }
+    }
+    this.docNotes.set(notes);
+  }
+
+  /// True while a note on the result card says a file did not land.
+  readonly attachmentsIncomplete = computed(() => this.docNotes().some((n) => n.includes('could not')));
+
+  async retryAttachments(): Promise<void> {
+    const current = this.result();
+    if (!current || !this.createdId || this.pending()) return;
+    this.pending.set(true);
+    try {
+      const copy = { ...current, documents: [...current.documents] };
+      await this.attachDocuments(copy);
+      this.result.set(copy);
+    } catch {
+      this.docNotes.set([...this.docNotes(), 'Could not reach the registration service to retry.']);
     } finally {
       this.pending.set(false);
     }
@@ -313,8 +417,11 @@ export class RegistrationComponent {
   /// Start over after a hold so a mistyped email can be corrected in place.
   reset(): void {
     this.result.set(null);
+    this.createdId = null;
     this.cvFile.set(null);
     this.photoFile.set(null);
+    this.cvError.set(null);
+    this.photoError.set(null);
     this.docNotes.set([]);
     this.setCollege('');
     this.error.set(null);

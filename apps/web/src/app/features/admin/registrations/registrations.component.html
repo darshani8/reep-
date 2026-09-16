@@ -315,6 +315,24 @@
             <dd>{{ reviewed.usn ?? 'Not on record' }}</dd>
           </div>
           <div>
+            <dt>Phone</dt>
+            <dd>{{ reviewed.application.phone ?? 'Not on record' }}</dd>
+          </div>
+          <div>
+            <dt>Personal email</dt>
+            <dd>{{ reviewed.application.personal_email ?? 'Not on record' }}</dd>
+          </div>
+          <div>
+            <dt>LinkedIn</dt>
+            <dd>
+              @if (reviewed.application.linkedin_url; as url) {
+                <a [href]="url" target="_blank" rel="noopener noreferrer">{{ url }}</a>
+              } @else {
+                Not on record
+              }
+            </dd>
+          </div>
+          <div>
             <dt>Documents</dt>
             <dd><span class="chip dot {{ reviewed.documentsTone }}">{{ reviewed.documentsLabel }}</span></dd>
           </div>

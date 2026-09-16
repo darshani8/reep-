@@ -406,8 +406,9 @@ def test_approving_an_application_is_on_the_trail(client, make_user, trail):
 
     created = client.post(
         "/api/register",
-        json={"name": "Audit Applicant", "email": email, "usn": None, "phone": None,
-              "degree_level": "PG"},
+        json={"name": "Audit Applicant", "email": email, "usn": f"1BG26AUD{uuid.uuid4().hex[:3].upper()}",
+              "phone": "+91 90000 00000", "personal_email": f"personal.{uuid.uuid4().hex[:8]}@gmail.com",
+              "linkedin_url": "https://www.linkedin.com/in/audit-applicant", "degree_level": "PG"},
     )
     assert created.status_code == 201, created.text
     reg_id = created.json()["id"]

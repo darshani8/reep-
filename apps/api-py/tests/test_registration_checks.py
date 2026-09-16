@@ -347,7 +347,15 @@ def test_the_applicant_never_sees_the_reviewers_checklist(client):
     try:
         r = client.post(
             "/api/register",
-            json={"name": "Public Applicant", "email": email, "degree_level": "PG"},
+            json={
+                "name": "Public Applicant",
+                "email": email,
+                "usn": f"1BG26PUB{uuid.uuid4().hex[:3].upper()}",
+                "phone": "+91 90000 00000",
+                "personal_email": f"personal.{uuid.uuid4().hex[:8]}@gmail.com",
+                "linkedin_url": "https://www.linkedin.com/in/public-applicant",
+                "degree_level": "PG",
+            },
         )
         assert r.status_code == 201, r.text
         assert "checks" not in r.json(), (

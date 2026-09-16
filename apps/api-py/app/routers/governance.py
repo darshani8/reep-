@@ -734,18 +734,30 @@ def approve_grant(
 ) -> GrantOut:
     """The second pair of eyes on a DEPUTY'S `carries_pii` grant (B2.4).
 
-    Only a deputy's row ever arrives here pending: the Main Admin's grants are
-    written live (`initial_approval_state`), so the office's own decisions never
-    queue and the 409 below is what an approve on one of them answers.
+    Only a deputy's row arrives here pending NOW: the Main Admin's grants are
+    written live (`initial_approval_state`), so the office's own decisions no
+    longer queue and the 409 below is what an approve on one of them answers.
+    Rows the office granted BEFORE 2026-09-16 were written pending under the
+    old rule and are still on the queue -- and the office is the one account
+    that can clear them, below.
 
-    THE SELF-APPROVAL REFUSAL IS THE WHOLE FEATURE. Everything else here —
-    the state column, the check constraint, the four readers that honour it — is
-    bookkeeping around one sentence: the person who decided cannot be the person
-    who agreed. Drop that one check and the flow still works end to end, still
-    writes two audit rows, still paints a pending badge and still shows an
-    approver's name, and protects nobody at all. `tests/test_governance_review.py`
-    asserts it in both directions, because an implementation that refuses the
-    granter but admits anybody else is no better.
+    THE SELF-APPROVAL REFUSAL IS THE WHOLE FEATURE, AND IT IS A DEPUTY'S.
+    Everything else here — the state column, the check constraint, the four
+    readers that honour it — is bookkeeping around one sentence: a deputy who
+    decided cannot be the person who agreed. Drop that one check and the flow
+    still works end to end, still writes two audit rows, still paints a pending
+    badge and still shows an approver's name, and protects nobody at all.
+    `tests/test_governance_review.py` asserts it in both directions, because an
+    implementation that refuses the granter but admits anybody else is no better.
+
+    THE MAIN ADMIN IS NOT REFUSED ON ITS OWN ROW. The office's signature is
+    sufficient on any grant (that is what `initial_approval_state` says on the
+    create path), so a pending row the office granted itself -- one written
+    before the rule changed, or written while the office's session carried
+    another role -- is finalised by the office pressing Approve with a reason,
+    which is an audit row saying so. Refusing it, as this did for a day, left
+    every such row stuck behind a deputy the office would have had to appoint
+    for the purpose: exactly the arrangement the amendment removed.
 
     It is the GRANTER that is refused, not the SUBJECT. A Main Admin approving a
     grant made to themselves by a deputy is fine and is the ordinary shape of
@@ -766,7 +778,11 @@ def approve_grant(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="That grant is already active."
         )
-    if g.granted_by_user_id and g.granted_by_user_id == session.get("userId"):
+    if (
+        g.granted_by_user_id
+        and g.granted_by_user_id == session.get("userId")
+        and session.get("role") != Role.ADMIN.value
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(

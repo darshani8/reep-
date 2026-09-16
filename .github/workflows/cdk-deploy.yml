@@ -55,7 +55,7 @@ on:
         #
         # `all` stays absent: it would sweep reep-core into a voice-platform
         # deploy, which is the bare deploy again wearing a different label.
-        options: [voice-platform, edge-waf, dr-vault, core-9a, core-9b, core-arm64, core-nat-instance, core-nat-retire]
+        options: [voice-platform, edge-waf, dr-vault, core-9a, core-9b, core-nat-instance, core-nat-retire]
       action:
         description: "What to do"
         type: choice
@@ -190,15 +190,30 @@ jobs:
             core-9a)        echo "stacks=reep-core" >> "$GITHUB_OUTPUT"
                             echo "context=-c hardenEcs=false" >> "$GITHUB_OUTPUT" ;;
             core-9b)        echo "stacks=reep-core" >> "$GITHUB_OUTPUT" ;;
-            # Graviton. ONLY after a Deploy has published a MULTI-ARCH image:
-            # flipping this against an amd64-only `:latest` gives "Manifest does
-            # not contain descriptor matching platform linux/arm64" and every
-            # task dies at pull, before a health check, with the circuit breaker
-            # rolling it back. deploy.yml asserts both architectures are in the
-            # manifest before its job may pass, which is the gate that makes
-            # this option safe to offer at all.
-            core-arm64)     echo "stacks=reep-core" >> "$GITHUB_OUTPUT"
-                            echo "context=-c apiArm64=true" >> "$GITHUB_OUTPUT" ;;
+            # THERE IS NO `core-arm64` OPTION, AND THERE MUST NOT BE ONE AGAIN.
+            # Graviton was first deployed from here as `-c apiArm64=true` on a
+            # bare reep-core. That worked once and was wrong twice. The flag
+            # was not written down, so the deployed template carried ARM64
+            # while `main` rendered nothing -- the repo-vs-AWS divergence
+            # infra-drift.yml exists to catch -- and because every other
+            # `core-*` option passes only its OWN flag, the next deploy of any
+            # of them would have rolled the api back to x86 at twice the price
+            # with nothing saying so. `apiArm64: true` lives in cdk.json now,
+            # pinned by test_cdk_json_carries_the_arm64_the_deployment_is_
+            # actually_running, so every option below renders ARM64 and the
+            # flags compose. An option that re-asserts it would be a second
+            # source of truth for one setting, which is how they disagree.
+            #
+            # What made that deploy safe in the first place still applies to
+            # the IMAGE: the api may only run on ARM64 while `:latest` is a
+            # MULTI-ARCH manifest. Against an amd64-only image every task dies
+            # at pull with "Manifest does not contain descriptor matching
+            # platform linux/arm64", before a health check, and the circuit
+            # breaker rolls it back. deploy.yml asserts both architectures are
+            # in the manifest before its job may pass; that assertion is now
+            # the only thing standing between cdk.json and a stopped service,
+            # so it must not be removed.
+            #
             # The NAT swap, split for the reason 9a/9b is split: the first step
             # is reversible because it LEAVES THE GATEWAY STANDING, the second
             # is the one that removes it. Both flags are set here, beside the

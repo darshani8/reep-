@@ -217,7 +217,51 @@ Taking Single-AZ as well gets to **~$96**. Against $606 today, that is an
 **80–84% reduction**, and the only thing given up is the NAT layer and
 (optionally) database failover.
 
-### 3a. Graviton — built, flag OFF, and the ORDER is the whole risk
+### 3a. Graviton — **LIVE, 2026-09-16**, and the way it was first shipped was the defect
+
+**Deployed and verified**: `reep-api:7`, both tasks reporting `cpuArch: arm64`,
+`rolloutState: COMPLETED`, **0 failed tasks**. The multi-arch build took ~9
+minutes under QEMU and the manifest assertion passed
+(`application/vnd.oci.image.index.v1+json`, `["linux/amd64","linux/arm64"]`).
+Same vCPU, same memory, ~20% less money.
+
+**And then it sat in AWS without being in `main`, which is this review's own
+lesson arriving from the other direction.** The deploy was run by passing
+`-c apiArm64=true` on the command line from a `core-arm64` dropdown option, and
+that flag was **not written into `cdk.json`**. That is wrong twice over:
+
+* The deployed template carried `RuntimePlatform: ARM64` while `main` rendered
+  none — the repo-vs-AWS divergence `infra-drift.yml` exists to catch. It would
+  have opened an issue and gone red at 08:00 IST the next morning, **correctly**,
+  and a check that is red for a known-good reason is a check people learn to
+  ignore. The OpenSearch failure was *merged and never deployed*; this is
+  *deployed and never merged*. One workflow catches both because it asks the
+  question in both directions.
+* Every other `core-*` option passes only its **own** context flag. So the next
+  deploy of `core-9a`, `core-9b` or either NAT option would have rendered no
+  `RuntimePlatform` and **quietly rolled the api back to x86 at twice the
+  price**, with CI green, the diff unremarkable and nothing on any screen
+  saying so.
+
+The fix is one line — `"apiArm64": true` in `infra/cdk/cdk.json` — and it needed
+**no deploy at all**: the repository catches up to AWS, and `cdk diff` goes
+quiet. It is pinned by
+`test_cdk_json_carries_the_arm64_the_deployment_is_actually_running`, which was
+mutation-tested by deleting the key and confirming the guard fails.
+
+`core-arm64` has been **removed from the `cdk-deploy.yml` dropdown**. With the
+flag in `cdk.json` it would be a second source of truth for one setting, and it
+was in any case a bare `reep-core` deploy gated only by the word `deploy`.
+
+> **A context flag set at deploy time and not persisted is not configuration.
+> It is a thing somebody has to remember.** `cdk.json` is the file that
+> remembers, and every `-c` flag in a deploy button is a flag that will one day
+> be left off.
+
+The rest of this section is the original reasoning, which still holds.
+
+---
+
 
 `-c apiArm64=true` on `reep-core` puts `RuntimePlatform: {ARM64, LINUX}` on the
 api task definition. Nothing else moves: the synth guard
@@ -226,18 +270,24 @@ property by property and asserts `Cpu`, `Memory` and the whole container
 definition are identical. Same vCPU, same memory, ~20% less money — which is why
 this is the only row on the menu above with no trade written beside it.
 
-**It ships OFF, and merging it changes nothing.** The flag defaults to false and
-false renders *no* `RuntimePlatform` property at all — not an explicit `X86_64`,
+**The flag's CODE default is still false, and false renders *no*
+`RuntimePlatform` property at all** — not an explicit `X86_64`,
 which would be a diff against the import mirror and would fail
 `test_the_database_half_does_not_touch_the_ecs_trio` on a change that alters
 nothing about how the api runs.
 
-**Do these in this order. Reversing them is an outage:**
+**The order this was done in, which is the only safe one:**
 
-1. **Merge, then run Deploy once.** `deploy.yml` now builds a MULTI-ARCH
-   manifest (`linux/amd64,linux/arm64`) and asserts both are present before the
-   job can pass. Until that has run, the newest image is amd64-only.
-2. **Then** flip the flag: CDK deploy, `core-9b`, with `-c apiArm64=true`.
+1. **Merge, then run Deploy once.** `deploy.yml` builds a MULTI-ARCH manifest
+   (`linux/amd64,linux/arm64`) and asserts both are present before the job can
+   pass. Until that has run, the newest image is amd64-only. *(Run 72,
+   2026-09-16 — build ~9 min under QEMU, assertion passed.)*
+2. **Then** the flag. *(Done the same day.)*
+
+That assertion in `deploy.yml` is now load-bearing in a way it was not when it
+was written. With `apiArm64: true` in `cdk.json` the api runs ARM64
+unconditionally, so the manifest check is the only thing standing between a
+routine image build and a service that cannot pull. **Do not remove it.**
 
 Flipping first gives `image Manifest does not contain descriptor matching
 platform linux/arm64` — every task dies at pull, before any health check, and
@@ -266,11 +316,11 @@ is faster and a fine swap later, but it is a label whose availability depends on
 the plan, and a deploy path that fails with "no runner matching labels" on the
 evening somebody needs to ship is the worse trade.
 
-**What is NOT proven here: the arm64 image has never been built.** There is no
-Docker daemon in the environment this review was written in, so the wheel
-evidence above is from PyPI's index, not from a build. The first
-`docker buildx build` is the real test, and the manifest assertion is what
-stops a half-built image reaching the flag.
+**That caveat is now discharged.** When this was written the arm64 image had
+never been built — there was no Docker daemon in the environment, so the wheel
+evidence above was from PyPI's index rather than from a build. Run 72 built it:
+both architectures in the manifest, the service rolled onto `reep-api:7`, and
+**zero failed tasks**. Nothing compiled from source, as predicted.
 
 
 ### 3b. The NAT gateway — built as an instance swap, both flags OFF

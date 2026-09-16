@@ -1609,19 +1609,55 @@ def test_an_existing_oidc_provider_is_referenced_not_redeclared() -> None:
     t.resource_count_is("AWS::IAM::OIDCProvider", 0)
 
 
-def test_graviton_is_off_by_default_and_renders_nothing(hardened: Template) -> None:
-    """The api task definition carries NO RuntimePlatform unless asked.
+def test_graviton_off_renders_nothing_rather_than_an_explicit_x86() -> None:
+    """With the flag OFF the task definition carries NO RuntimePlatform at all.
 
-    Not tidiness — the live task definition has no such property, so rendering
-    one (even `X86_64`, which is what ECS defaults to anyway) is a diff against
-    the import mirror, and `test_the_database_half_does_not_touch_the_ecs_trio`
-    would fail on a change that alters nothing about how the api runs. CDK
-    renders the property only when `runtime_platform` is not None, which is why
-    the flag passes None rather than an explicit X86_64.
+    Not tidiness. Rendering one — even `X86_64`, which is what ECS defaults to
+    anyway — is a diff against a live task definition that has no such
+    property, so a change altering nothing about how the api runs would show up
+    as an ECS change. CDK renders the property only when `runtime_platform` is
+    not None, which is why the flag passes None rather than an explicit
+    X86_64. Asserted with the flag set explicitly false, because cdk.json now
+    turns it ON (see the test below) and the bare fixture would no longer be
+    testing the off path.
     """
-    for td in hardened.find_resources("AWS::ECS::TaskDefinition").values():
+    t = _core(
+        "harden",
+        apiArm64="false",
+        drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr",
+    )
+    for td in t.find_resources("AWS::ECS::TaskDefinition").values():
         assert "RuntimePlatform" not in td["Properties"], (
-            "a RuntimePlatform appeared with apiArm64 unset — the import mirror has none"
+            "a RuntimePlatform appeared with apiArm64=false — an unasked-for ECS diff"
+        )
+
+
+def test_cdk_json_carries_the_arm64_the_deployment_is_actually_running(hardened: Template) -> None:
+    """cdk.json must hold `apiArm64: true`, because the deployed service does.
+
+    WHY THIS TEST EXISTS. Graviton was first deployed by passing
+    `-c apiArm64=true` on the command line and NOT writing it down. That works
+    once and is wrong twice over. The deployed template then carried ARM64
+    while `main` rendered nothing, which is precisely the repo-vs-AWS
+    divergence `infra-drift.yml` was built to catch — it would have gone red
+    the next morning, correctly, and a daily red check is one nobody reads. And
+    every other `core-*` option in cdk-deploy.yml passes only its OWN flag, so
+    the next deploy of ANY of them (9a, 9b, a NAT option) would have rendered
+    no RuntimePlatform and quietly rolled the api back to x86 at twice the
+    price, with nothing on any screen saying so.
+
+    A context flag that is set at deploy time and not persisted is not
+    configuration, it is a thing somebody has to remember. This is the file
+    that remembers.
+    """
+    assert CDK_JSON_CONTEXT.get("apiArm64") is True, (
+        "cdk.json lost apiArm64 — main would render no RuntimePlatform while the "
+        "service runs ARM64, and the next core-* deploy would revert it to x86"
+    )
+    for lid, td in hardened.find_resources("AWS::ECS::TaskDefinition").items():
+        rp = td["Properties"].get("RuntimePlatform")
+        assert rp is not None and rp.get("CpuArchitecture") == "ARM64", (
+            f"{lid} does not render ARM64 from cdk.json alone: {rp}"
         )
 
 
@@ -1655,7 +1691,10 @@ def test_graviton_changes_nothing_but_the_platform() -> None:
     were ever to alter a sizing property as well, that claim stops being true
     and nothing else would notice.
     """
-    base = _core("harden", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    # apiArm64 is spelled out on BOTH sides. cdk.json turns it on, so a bare
+    # `base` would be ARM64 too and this test would compare ARM to ARM and
+    # prove nothing at all — passing for the rest of its life.
+    base = _core("harden", apiArm64="false", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
     arm = _core("harden", apiArm64="true", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
     b = next(iter(base.find_resources("AWS::ECS::TaskDefinition").values()))["Properties"]
     a = next(iter(arm.find_resources("AWS::ECS::TaskDefinition").values()))["Properties"]

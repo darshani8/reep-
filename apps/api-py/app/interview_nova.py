@@ -75,7 +75,28 @@ rather than driven:
     would produce a second question. The briefing tells the model to ask for
     more on its own instead. The turn is still RECORDED as `too_short`/
     `filler`, which is the fact a mentor reads, and it still does not advance
-    the arc.
+    the arc;
+  * AN INTERRUPTION THAT WAS NOT AN ANSWER GETS THE QUESTION BACK (2026-09-17).
+    Nova stops speaking the moment it hears the student — that is barge-in,
+    and it is right for a student who has started answering. It is wrong for
+    a cough, a chair, a "hmm", or the interviewer's own voice coming back
+    through the student's speakers, and Nova cannot tell those apart: it
+    abandons the question, emits its interruption marker (the browser's queue
+    is flushed, so the voice does not tail off, it vanishes), and then answers
+    whatever it heard — which for a cough is "Sorry?" and for an echo is the
+    question it was asking, put to itself. Reported from real interviews as
+    "the voice drops and it goes to the next question". So when the transcript
+    that provoked an interruption turns out to be `empty`, `filler` or
+    `too_short`, a `resume` directive is steered — HELD, like every note,
+    until the reply in flight has finished, so the recovery lands in the gap
+    rather than as a second barge-in — and the model finishes the question it
+    was asking. A transcript that is the interviewer's OWN last sentence
+    (`_looks_like_echo`) is recorded as `echo`, counts for nothing, and gets
+    the same recovery whether or not a marker was seen. A real answer given
+    over the interviewer is still a real answer and moves the arc as before.
+    And a student who says "next question" is recorded as `skipped` and gets
+    nothing steered at all: the model heard them, and the briefing already
+    tells it to move on without pressing.
 
 THE SCORECARD IS A TOOL CALL. Nova speaks everything it generates, so the
 relay's trick — one extra text-only response after the verdict — would have read
@@ -111,6 +132,7 @@ import asyncio
 import base64
 import json
 import logging
+import re
 import time
 from collections.abc import Callable
 from typing import Any, Final
@@ -124,6 +146,7 @@ from .interview_audio import TRACK_INTERVIEWER, TRACK_STUDENT
 from .tracing import span
 from .interview_matrix import (
     REPORT_DIRECTIVE,
+    SKIP_RULE,
     InterviewPhase,
     InterviewStateMachine,
     Specialization,
@@ -383,6 +406,86 @@ def _control_note(body: str) -> str:
     instruction the next editor puts a resume in it.
     """
     return f"{_CONTROL_PREFIX} {body}"
+
+
+# How the interviewer should behave around the turn, briefed once at the
+# handshake beside the control-channel note (both branches of `_instructions`,
+# the generic interview included -- a generic interview is interrupted by a
+# cough exactly as a specialized one is). Nova decides WHEN the student has
+# stopped (`nova_sonic_endpointing`); this decides what the model does with a
+# turn that was not an answer, which no endpointing setting can. Fixed text,
+# nothing about the student in it.
+_TURN_TAKING_NOTE: Final[str] = (
+    "\n\n## Turn-taking\n"
+    "Let the student finish. A pause of a few seconds is the student "
+    "thinking, not the end of their answer; never rush them and never answer "
+    "for them. If you are cut off by a sound, a single word or a filler "
+    '("hmm", "okay", "yes", "sorry"), that was not an answer: do not react '
+    "to it, pick up the question you were asking, briefly, and wait for the "
+    "student. If what you hear is your own question repeated back, that is an "
+    "echo from the student's speakers, not the student: ignore it and ask the "
+    "question again, briefly. "
+    f"{SKIP_RULE}"
+)
+
+# A transcript that arrives this soon after Nova's interruption marker is the
+# utterance that caused the interruption: Nova takes the turn ~2 s after the
+# speaker stops (the LOW endpointing pause) and transcribes within a couple of
+# seconds more. Generous rather than tight, because a late transcript wrongly
+# read as "not the interruption" costs the recovery, while an early one wrongly
+# read as "the interruption" costs at most one restated question.
+_INTERRUPTION_ANSWER_WINDOW_S: Final[float] = 20.0
+
+# Echo: the interviewer's own sentence coming back through the student's
+# speakers and being transcribed as the student's answer. Judged on the
+# LONGEST RUN of consecutive words the transcript shares with what the
+# interviewer last said -- a run, not a bag of words, because a real answer
+# reuses the question's words ("the role of the manager is to lead the team")
+# without repeating its sentence. Both bounds are needed: a run of at least
+# this many words, covering at least this share of the transcript.
+_ECHO_MIN_RUN_WORDS: Final[int] = 6
+_ECHO_MIN_COVERAGE: Final[float] = 0.8
+_ECHO_WORD_RE: Final[re.Pattern[str]] = re.compile(r"[a-z0-9']+")
+
+
+def _longest_common_run(a: list[str], b: list[str]) -> int:
+    """Length of the longest run of consecutive words `a` and `b` share.
+
+    Plain dynamic programming over two short lists; a transcript and one
+    interviewer turn are a few dozen words each, so this is microseconds on
+    the hot path and needs no cleverness.
+    """
+    if not a or not b:
+        return 0
+    best = 0
+    previous = [0] * (len(b) + 1)
+    for word in a:
+        current = [0] * (len(b) + 1)
+        for j, other in enumerate(b, start=1):
+            if word == other:
+                current[j] = previous[j - 1] + 1
+                if current[j] > best:
+                    best = current[j]
+        previous = current
+    return best
+
+
+def _looks_like_echo(transcript: str, interviewer_said: str) -> bool:
+    """Is this "student answer" the interviewer's own last sentence?
+
+    True when a run of at least _ECHO_MIN_RUN_WORDS consecutive words of the
+    transcript appears, in order, in what the interviewer last said, and that
+    run covers at least _ECHO_MIN_COVERAGE of the transcript. A student who
+    parrots the question and then answers it is not an echo -- the answer
+    drags the coverage under the bar -- and a five-word fragment is judged by
+    the word gate, not here.
+    """
+    heard = _ECHO_WORD_RE.findall(transcript.casefold())
+    said = _ECHO_WORD_RE.findall(interviewer_said.casefold())
+    if len(heard) < _ECHO_MIN_RUN_WORDS or not said:
+        return False
+    run = _longest_common_run(heard, said)
+    return run >= _ECHO_MIN_RUN_WORDS and run >= _ECHO_MIN_COVERAGE * len(heard)
 
 
 def _resample(pcm: bytes, src_hz: int, dst_hz: int) -> bytes:
@@ -769,6 +872,14 @@ class NovaSonicSession:
         # say, and on a barge-in the two differ.
         self._assistant_final: list[str] = []
         self._assistant_spoke = False
+        # What the interviewer last finished saying -- `_end_response`'s joined
+        # FINAL text -- which is what an echo through the student's speakers
+        # comes back as. Only ever compared against, never sent anywhere.
+        self._last_interviewer_text = ""
+        # When Nova last reported a barge-in, so the transcript that follows
+        # can be judged as "the thing that interrupted" rather than as an
+        # answer. None until the first marker; consumed by the next transcript.
+        self._interrupted_at: float | None = None
 
         # The two-beat close, mirroring the relay: the tick into WRAP_UP asks
         # "any questions for us?" and the student's reply — any reply, never
@@ -1010,11 +1121,12 @@ class NovaSonicSession:
         """
         spec = self._machine.specialization
         if spec is None:
-            return _INTERVIEWER_PERSONA + _CONTROL_CHANNEL_NOTE
+            return _INTERVIEWER_PERSONA + _TURN_TAKING_NOTE + _CONTROL_CHANNEL_NOTE
         return (
             build_instructions(spec, _INTERVIEWER_PERSONA, InterviewPhase.OPENING)
             + "\n\n"
             + build_arc_briefing(spec)
+            + _TURN_TAKING_NOTE
             + _CONTROL_CHANNEL_NOTE
         )
 
@@ -1372,6 +1484,7 @@ class NovaSonicSession:
             # student is talking over. `reep.audio.flush` is the client's
             # existing handler for exactly this.
             self._interruptions += 1
+            self._interrupted_at = time.monotonic()
             await self._send_control({"type": "reep.audio.flush"})
             return
 
@@ -1507,8 +1620,12 @@ class NovaSonicSession:
         if self._awaiting_candidate_questions:
             # The reply to "any questions for us?" — deliberately NOT put
             # through classify_answer: "no, I'm good, thanks" is filler to the
-            # gate and must not earn a clarification on the final turn.
+            # gate and must not earn a clarification on the final turn. The
+            # interruption stamp is spent here too, so a "no thanks" said over
+            # the invitation cannot make the NEXT short transcript (a thank-you
+            # during the verdict) look like a barge-in that needs resuming.
             self._awaiting_candidate_questions = False
+            self._took_interruption()
             self._emit_turn(
                 _SENDER_STUDENT, transcript, turn_id, status=status, quality=None
             )
@@ -1516,7 +1633,16 @@ class NovaSonicSession:
             await self._steer(turn_directive("verdict"))
             return
 
+        interrupted = self._took_interruption()
         quality = classify_answer(transcript)
+        if quality == "accepted" and _looks_like_echo(
+            transcript, self._last_interviewer_text
+        ):
+            # Long enough to pass the word gate, because it is the
+            # interviewer's own sentence: the student's speakers played the
+            # question into their microphone. Counting it would advance the
+            # arc on an answer nobody gave.
+            quality = "echo"
         counted = quality == "accepted"
         self._emit_turn(
             _SENDER_STUDENT,
@@ -1531,6 +1657,27 @@ class NovaSonicSession:
             # from the relay: the model is already answering, so a second
             # directive would produce a second question. The turn is recorded
             # as what it was and the arc does not move on it.
+            #
+            # ONE EXCEPTION, held like every note: the question that this
+            # non-answer INTERRUPTED. Nova abandoned it and the browser
+            # flushed it, so unless somebody asks, it is gone -- the student
+            # is left facing whatever the model made of a cough. `resume`
+            # tells the model to finish the question it was asking, and it
+            # goes upstream in the gap after the reply in flight. A skip is
+            # deliberately not resumed: the student asked for the next
+            # question and the briefing has the model giving them one.
+            if self._report_requested:
+                # The interview is over and the student can no longer hear:
+                # the only turn left is the scorecard tool call, and a resume
+                # note here would put a spoken turn in front of it.
+                return
+            if quality == "echo" or (interrupted and quality != "skipped"):
+                self._log.info(
+                    "Interruption was not an answer (%s); asking the model to "
+                    "resume the question",
+                    quality,
+                )
+                await self._steer(turn_directive("resume"))
             return
 
         self._answers_accepted += 1
@@ -1549,6 +1696,21 @@ class NovaSonicSession:
         # the handshake (`build_arc_briefing`) and moves on the rule this
         # machine just applied; a note here would either barge in on the reply
         # in flight or, held, ask a second question after it.
+
+    def _took_interruption(self) -> bool:
+        """Was the transcript being handled the one that interrupted the model?
+
+        Consumes the stamp: a marker is answered by exactly one transcript, and
+        a stale stamp must not make a later, unrelated short answer look like
+        a barge-in. Bounded by _INTERRUPTION_ANSWER_WINDOW_S so a marker whose
+        transcript never arrived (Nova heard noise and transcribed nothing at
+        all) cannot outlive the turn it belonged to.
+        """
+        stamped = self._interrupted_at
+        self._interrupted_at = None
+        if stamped is None:
+            return False
+        return time.monotonic() - stamped <= _INTERRUPTION_ANSWER_WINDOW_S
 
     # -- the interviewer's turn --------------------------------------------
 
@@ -1583,6 +1745,8 @@ class NovaSonicSession:
         was_open = self._response_open
         self._response_open = False
         self._assistant_final = []
+        if spoken:
+            self._last_interviewer_text = spoken
         if was_open and (spoken or self._assistant_spoke):
             self._emit_turn(
                 _SENDER_INTERVIEWER,

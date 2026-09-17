@@ -46,19 +46,21 @@ class LeaveDecision(str, enum.Enum):
 # word here would put a job title on the college's own signed form that nothing
 # in the database can substantiate, which is worse than the NULL it replaces.
 #
-# What the product does have is a GRANT: `mentor.leave_approve` handed to a
-# faculty account in Governance, scoped to a department or a college, with a
-# reason and an audit row. That is a function in every sense that matters here —
-# somebody decided this person signs leave for these people — and it is what
-# DELEGATE names.
+# What the product does have is a GRANT: `admin.leave_approvals` handed to a
+# faculty account in Governance, with a reason and an audit row (it was a
+# scoped grant of `mentor.leave_approve` until 2026-09-16, and nothing at all
+# for the day between that key's retirement and this one's arrival). That is a
+# function in every sense that matters here — somebody decided this person
+# signs leave — and it is what DELEGATE names.
 #
 # A plain str, not an enum: see the column comments. Adding a fourth value is a
 # data change and a label in `app/leave_paper.py::SIGNED_AS_LABELS`, which
 # `tests/test_leave_chain.py` pins against this tuple so the paper can never
 # meet a function it has no word for.
 SIGNED_AS_MENTOR = "MENTOR"
-#: Admitted by a SCOPED GRANT of `mentor.leave_approve`, not by mentoring the
-#: applicant and not by being the office.
+#: Admitted by a GRANT of `admin.leave_approvals` (2026-09-17; a scoped grant
+#: of `mentor.leave_approve` before 2026-09-16), not by mentoring the applicant
+#: and not by being the office.
 SIGNED_AS_DELEGATE = "DELEGATE"
 SIGNED_AS_MAIN_ADMIN = "MAIN_ADMIN"
 SIGNED_AS: tuple[str, ...] = (SIGNED_AS_MENTOR, SIGNED_AS_DELEGATE, SIGNED_AS_MAIN_ADMIN)

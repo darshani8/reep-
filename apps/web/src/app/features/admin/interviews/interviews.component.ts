@@ -133,6 +133,10 @@ interface InterviewRecord {
   specialization: string | null;
   status: string;
   audio_recorded: boolean;
+  /** Why `audio_recorded` is false — `app/interview_audio.py`'s SKIP_* words,
+   *  written by the finalizer — or null on a recorded interview and on every
+   *  row older than the column. See AUDIO_SKIP_REASONS. */
+  audio_skipped_reason: string | null;
   started_at: string;
   ended_at: string | null;
   /** Nullable, and a null is a real "not scored" — never a zero. */
@@ -227,6 +231,12 @@ interface PolicySheet {
   default: InterviewPolicy | null;
   courses: InterviewPolicy[];
   effective_default: EffectivePolicy;
+  /** The OPERATOR's switch, INTERVIEW_RECORDING_ENABLED. "Allow voice
+   *  recording" below is one of three gates and this is another; the card
+   *  says so when it is off, rather than let the office tick a box that can
+   *  do nothing. Optional so a sheet from an older API reads as "unknown",
+   *  which draws no warning. */
+  recording_enabled_on_server?: boolean;
 }
 
 /** One interview as `GET /api/mentor/students/{id}/interviews` returns it —
@@ -287,6 +297,13 @@ interface InterviewRecordRow {
   /** null until the student behind this row is opened — see the file header. */
   overallScore: number | null;
   audioRecorded: boolean;
+  /** The sentence for a row with no recording: which switch was off, or, for a
+   *  row the server has no word for, only that nothing was kept. Null when a
+   *  recording exists. */
+  audioReason: string | null;
+  /** True when the reason is the college's own policy — the one case this
+   *  screen can fix, on the policy card below. */
+  audioFixableHere: boolean;
   statusLabel: string;
   statusTone: 'good' | 'warn' | 'risk' | 'neutral';
 }
@@ -433,6 +450,33 @@ function formatStartedAt(iso: string): string {
 const FAINT_TEXT = 'color:var(--faint);font-size:11px';
 const MONO_TEXT = 'font-variant-numeric:tabular-nums';
 
+/** `app/interview_audio.py`'s SKIP_* vocabulary as sentences. Each names the
+ *  gate that closed and, where this office can open it, where. A word this map
+ *  does not know renders as the generic line rather than as nothing: a new
+ *  reason on the server must not turn into a blank on the screen. */
+const AUDIO_SKIP_REASONS: Record<string, string> = {
+  operator_off:
+    'Voice recording is switched off on this server (INTERVIEW_RECORDING_ENABLED), so no college can record until the operator turns it on.',
+  policy_off:
+    'This college’s interview policy did not allow voice recording when this interview ran. Tick “Allow voice recording” on the policy card below and the next interview is recorded.',
+  no_consent:
+    'The student had not acknowledged the current interview terms with recording on when this interview started. They are shown the terms again at their next Start.',
+  store_full:
+    'The recording store was out of disk space when this interview started, so capture was declined. The interview itself ran normally.',
+  open_failed:
+    'The recording store could not be opened for this interview; the API log has the cause. The interview itself ran normally.',
+  nothing_captured:
+    'Recording was allowed, but the session closed with nothing captured; the API log has the cause.',
+};
+const AUDIO_NOT_KEPT = 'No recording was kept for this interview.';
+
+function audioReasonOf(record: InterviewRecord): string | null {
+  if (record.audio_recorded) return null;
+  const word = record.audio_skipped_reason;
+  if (word === null) return AUDIO_NOT_KEPT;
+  return AUDIO_SKIP_REASONS[word] ?? AUDIO_NOT_KEPT;
+}
+
 function renderUsnCell(params: ICellRendererParams<InterviewRecordRow>): string {
   const row = params.data;
   if (!row) return '';
@@ -464,7 +508,21 @@ function renderAudioCell(params: ICellRendererParams<InterviewRecordRow>): strin
   const row = params.data;
   if (!row) return '';
   if (row.audioRecorded) return '<span class="chip dot good">Audio stored</span>';
-  return '<span class="chip dot neutral">No audio</span>';
+  // The reason is on the chip's title and spelled out on the open record; the
+  // column itself stays one word so the grid reads at a glance.
+  const title = escapeAttribute(row.audioReason ?? AUDIO_NOT_KEPT);
+  return `<span class="chip dot neutral" title="${title}">No audio</span>`;
+}
+
+/** The reason is server-authored text from a fixed vocabulary, but it goes into
+ *  an attribute of an HTML string, and the habit of escaping is worth more than
+ *  the argument that this particular string is safe. */
+function escapeAttribute(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 function renderStatusCell(params: ICellRendererParams<InterviewRecordRow>): string {
@@ -718,6 +776,8 @@ export class InterviewRecordsComponent implements OnDestroy {
         durationSeconds: durationSecondsOf(record.started_at, record.ended_at),
         overallScore: record.overall_score,
         audioRecorded: record.audio_recorded,
+        audioReason: audioReasonOf(record),
+        audioFixableHere: !record.audio_recorded && record.audio_skipped_reason === 'policy_off',
         statusLabel: status.label,
         statusTone: status.tone,
       };
@@ -772,7 +832,7 @@ export class InterviewRecordsComponent implements OnDestroy {
       minWidth: 140,
       cellRenderer: renderAudioCell,
       headerTooltip:
-        'Whether a recording was stored — the audio consent scope as it was enforced',
+        'Whether a recording was stored. Hover a "No audio" chip, or open the record, for which switch was off',
     },
     {
       field: 'statusLabel',
@@ -1256,6 +1316,14 @@ export class InterviewRecordsComponent implements OnDestroy {
     this.panelLoading.set(false);
   }
 
+  /** From an unrecorded record to the card that fixes it. A plain scroll: the
+   *  card is on this screen, and the college picker on it is what the office
+   *  has to touch. */
+  goToPolicyCard(): void {
+    document.getElementById('policy-college')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('policy-college')?.focus();
+  }
+
   // --- the downloads ---------------------------------------------------------
 
   /** One recording, as an attachment saved to the local machine. A plain GET
@@ -1393,6 +1461,11 @@ export class InterviewRecordsComponent implements OnDestroy {
   });
 
   readonly policyIsConfigured = computed(() => this.policyRow() !== null);
+  /** True only when the server SAID recording is off; an older sheet without
+   *  the field draws nothing. */
+  readonly recordingOffOnServer = computed(
+    () => this.policySheet()?.recording_enabled_on_server === false,
+  );
 
   readonly policyEffective = computed<EffectivePolicy | null>(
     () => this.policySheet()?.effective_default ?? null,

@@ -537,7 +537,17 @@ class LocalSession:
         self._emit_turn(_SENDER_STUDENT, transcript, status, quality, counted=counted)
 
         if not counted:
-            await self._speak_turn(kind="unheard" if quality == "empty" else "clarify")
+            # A skip is neither unheard nor too brief: the student asked for the
+            # next question, and the directive says to give them one without
+            # pressing. Clarifying a skip would be the interviewer refusing to
+            # take "next question" for an answer.
+            if quality == "empty":
+                kind = "unheard"
+            elif quality == "skipped":
+                kind = "skip"
+            else:
+                kind = "clarify"
+            await self._speak_turn(kind=kind)
             return
 
         phase_changed = self._machine.student_answered()

@@ -1256,13 +1256,55 @@ def audio_consent_granted(user_id: str) -> bool:
         return False
 
 
+# WHY NOTHING WAS RECORDED, as a word the row can carry (2026-09-17). The four
+# gates in `recorder_or_reason` used to answer None for four different reasons
+# and log INFO lines nobody reading the console could see, so the Interview
+# records screen showed "No audio" beside a grey "Download recording" button
+# for every interview on a deployment where the operator's switch was ON and
+# the college had simply never ticked "Allow voice recording" -- and the office
+# asked why the recording feature was broken. Each value names the gate that
+# closed, and the finalizer writes it to `interview_sessions.audio_skipped_reason`
+# so the screen can say which switch to flip. Fixed vocabulary; the client maps
+# each to a sentence.
+SKIP_OPERATOR_OFF: Final[str] = "operator_off"
+SKIP_POLICY_OFF: Final[str] = "policy_off"
+SKIP_NO_CONSENT: Final[str] = "no_consent"
+SKIP_STORE_FULL: Final[str] = "store_full"
+SKIP_OPEN_FAILED: Final[str] = "open_failed"
+#: A recorder WAS built and the session still closed with nothing kept: the
+#: write failed, or the session produced no audio at all. Written by the
+#: finalizer, not here, because only it knows what the recorder returned.
+SKIP_NOTHING_CAPTURED: Final[str] = "nothing_captured"
+SKIP_REASONS: Final[tuple[str, ...]] = (
+    SKIP_OPERATOR_OFF,
+    SKIP_POLICY_OFF,
+    SKIP_NO_CONSENT,
+    SKIP_STORE_FULL,
+    SKIP_OPEN_FAILED,
+    SKIP_NOTHING_CAPTURED,
+)
+
+
 def recorder_for(
     interview_session_id: str,
     user_id: str,
     *,
     policy_allows_audio: bool = True,
 ) -> InterviewRecorder | None:
-    """A recorder, or None — and None is the answer in every deployment today.
+    """A recorder, or None. The reason for a None is thrown away here; callers
+    that can record it (the socket router) use `recorder_or_reason`."""
+    return recorder_or_reason(
+        interview_session_id, user_id, policy_allows_audio=policy_allows_audio
+    )[0]
+
+
+def recorder_or_reason(
+    interview_session_id: str,
+    user_id: str,
+    *,
+    policy_allows_audio: bool = True,
+) -> tuple[InterviewRecorder | None, str | None]:
+    """A recorder and None, or None and the SKIP_* reason nothing will be kept.
 
     THE ONLY CONSTRUCTOR CALLERS SHOULD USE. Every gate lives here so that "when
     does REEP record a student's voice?" has one answer in one function, rather
@@ -1294,7 +1336,7 @@ def recorder_for(
     by default) never touches the database for this at all.
     """
     if not settings.interview_recording_enabled:
-        return None
+        return None, SKIP_OPERATOR_OFF
     if not policy_allows_audio:
         # INFO for the same reason the consent branch below is: this is the
         # expected state of a college that has not turned recording on, not a
@@ -1305,7 +1347,7 @@ def recorder_for(
             "Interview audio recording is enabled but this college's policy "
             "does not store audio; nothing will be captured."
         )
-        return None
+        return None, SKIP_POLICY_OFF
     if not audio_consent_granted(user_id):
         # INFO, not a warning: a student who has not agreed to be recorded is
         # the expected case, not a fault. It is logged at all because "recording
@@ -1314,7 +1356,7 @@ def recorder_for(
             "Interview audio recording is enabled but this student has no live "
             "scope_store_audio grant; nothing will be captured."
         )
-        return None
+        return None, SKIP_NO_CONSENT
     if not _store_has_headroom():
         # The interview PROCEEDS — only new capture is declined. Recording is
         # wall-clock-padded at 96,000 B/s per session, so a deadline week can
@@ -1330,9 +1372,9 @@ def recorder_for(
             settings.interview_audio_min_free_bytes,
             interview_session_id,
         )
-        return None
+        return None, SKIP_STORE_FULL
     try:
-        return InterviewRecorder(
+        recorder = InterviewRecorder(
             interview_session_id, settings.interview_recording_max_bytes
         )
     except Exception:
@@ -1342,4 +1384,5 @@ def recorder_for(
             "the interview continues without a recording.",
             interview_session_id,
         )
-        return None
+        return None, SKIP_OPEN_FAILED
+    return recorder, None

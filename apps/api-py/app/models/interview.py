@@ -281,6 +281,17 @@ class InterviewSession(Base):
     audio_truncated: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default="false"
     )
+    # WHY `audio_recorded` IS FALSE, when it is (2026-09-17): one of
+    # `app/interview_audio.py`'s SKIP_* words -- the operator's switch, the
+    # college's policy, the student's acknowledgement, a full store, a store
+    # that would not open, or a recorder that closed with nothing. NULL on a
+    # recorded interview and on every row that predates the column, which is
+    # the same fact for both ("nothing to explain" and "nobody wrote it down"
+    # look alike, and the screen says "no recording" for both rather than
+    # guessing). It exists because a bare "No audio" chip beside a grey
+    # Download button was read by the office as a broken feature, on a
+    # deployment where the only thing missing was a tick on the policy card.
+    audio_skipped_reason: Mapped[str | None] = mapped_column(String, nullable=True)
 
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, server_default=func.now()
@@ -390,9 +401,12 @@ class InterviewTurn(Base):
     transcription_status: Mapped[str] = mapped_column(
         String, default="ok", server_default="ok"
     )
-    # 'accepted' | 'empty' | 'filler' | 'too_short' — classify_answer's verdict.
-    # NULL on interviewer turns and on unheard turns: there was no answer to
-    # judge, which is a different fact from "the answer was empty".
+    # 'accepted' | 'empty' | 'filler' | 'too_short' | 'skipped' —
+    # classify_answer's verdict — or 'echo', which the Nova engine writes when
+    # the "answer" was the interviewer's own words picked up by the student's
+    # microphone (app/interview_nova.py::_looks_like_echo). NULL on interviewer
+    # turns and on unheard turns: there was no answer to judge, which is a
+    # different fact from "the answer was empty".
     answer_quality: Mapped[str | None] = mapped_column(String, nullable=True)
     # Whether this turn ticked the state machine. Together with `phase` above,
     # this is what lets someone reconstruct why the interview reached wrap_up

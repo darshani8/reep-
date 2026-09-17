@@ -46,7 +46,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from sqlalchemy import delete, select
+from sqlalchemy import delete, update, select
 
 from conftest import requires_db
 
@@ -983,6 +983,38 @@ def test_the_routers_are_mounted_at_the_documented_paths():
 # --------------------------------------------------------------------------- #
 
 @requires_db
+def test_staff_are_told_why_an_interview_has_no_recording(api, world):
+    """`audio_skipped_reason` rides every staff read of a record (2026-09-17).
+
+    A row whose `audio_recorded` is false used to say "No audio" and nothing
+    else, and the office read a policy that was never ticked as a broken
+    feature. The word the finalizer wrote is served on the per-student detail,
+    the per-student list and the grid, and it is null -- never guessed -- on a
+    row written before the column existed.
+    """
+    from app.interview_audio import SKIP_POLICY_OFF
+
+    with SessionLocal() as db:
+        db.execute(
+            update(InterviewSession)
+            .where(InterviewSession.id == world.interview_id)
+            .values(audio_skipped_reason=SKIP_POLICY_OFF)
+        )
+        db.commit()
+    base, detail, _transcript, _report = _staff_paths(world)
+    r = api.get(detail, headers=world.as_director)
+    assert r.status_code == 200, r.text
+    assert r.json()["audio_recorded"] is False
+    assert r.json()["audio_skipped_reason"] == SKIP_POLICY_OFF
+    listed = {row["id"]: row for row in api.get(base, headers=world.as_director).json()}
+    assert listed[world.interview_id]["audio_skipped_reason"] == SKIP_POLICY_OFF
+    grid = {row["session_id"]: row for row in api.get("/api/mentor/interviews", headers=world.as_director).json()}
+    assert grid[world.interview_id]["audio_skipped_reason"] == SKIP_POLICY_OFF
+    # The other interview predates the column, as far as the row knows.
+    assert grid[world.other_interview_id]["audio_skipped_reason"] is None
+
+
+@requires_db
 def test_the_records_grid_applies_rule_2_in_sql(api, world):
     """Every interview WITH the student named — and scoped exactly like the
     mentees list. A director sees both groups' interviews; a mentor in group A
@@ -1010,6 +1042,45 @@ def test_the_records_grid_applies_rule_2_in_sql(api, world):
 
     r = api.get("/api/mentor/interviews", headers=world.as_student)
     assert r.status_code in (401, 403), r.text
+
+
+@requires_db
+def test_a_mentor_granted_interview_audio_gets_past_the_capability_gate(api, world):
+    """The Main Admin can hand `admin.interview_audio` to a faculty member
+    (2026-09-17 made the screen reachable; the key always was grantable).
+    With the grant, a mentor IN THE STUDENT'S GROUP is no longer refused by
+    the capability: the answer becomes rule 2's and the file's — here 404 "no
+    recording", because the world's interview has none — never 403. The
+    group gate is untouched: the same grant does nothing for a mentor whose
+    group the student is not in."""
+    from app.models.governance import CapabilityGrant, SubjectKind
+
+    audio = f"/api/mentor/students/{world.student_id}/interviews/{world.interview_id}/audio"
+    assert api.get(audio, headers=world.as_mentor_in_group).status_code == 403
+    with SessionLocal() as db:
+        rows = [
+            CapabilityGrant(
+                capability="admin.interview_audio",
+                subject_kind=SubjectKind.USER,
+                subject_user_id=user_id,
+                reason="the interview-access tests grant the audio key programme-wide",
+            )
+            for user_id in (world.mentor_a_user_id, world.mentor_b_user_id)
+        ]
+        db.add_all(rows)
+        db.commit()
+        grant_ids = [row.id for row in rows]
+    try:
+        r = api.get(audio, headers=world.as_mentor_in_group)
+        assert r.status_code == 404, r.text
+        assert "No recording" in r.text
+        r = api.get(audio, headers=world.as_mentor_other_group)
+        assert r.status_code == 404, r.text
+        assert "No recording" not in r.text, "rule 2 still fences the other group"
+    finally:
+        with SessionLocal() as db:
+            db.execute(delete(CapabilityGrant).where(CapabilityGrant.id.in_(grant_ids)))
+            db.commit()
 
 
 @requires_db

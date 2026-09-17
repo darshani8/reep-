@@ -11,9 +11,15 @@ The five things this module holds down, and what comes back if it is deleted:
    signature outright, and a row signed once under the old chain is completed
    by the office's one decision. Delete these and "a faculty member with a
    mentee may sign leave" comes back through whichever gate is loosened first.
+   AND THE OFFICE MAY DELEGATE IT (2026-09-17): a faculty member granted
+   `admin.leave_approvals` in Governance sees the office's queue and signs
+   the one signature as DELEGATE — the grant, never a mentee, is what admits
+   them.
 2. THE RETIRED KEY ADMITS NOBODY. `mentor.leave_approve` left the catalogue
    with the door; a grant row still naming it (migration `d8b1f4c2a7e9`
-   revokes them, but a row can be written by hand) must open nothing.
+   revokes them, but a row can be written by hand) must open nothing — and
+   its successor is a different key so that such a row cannot come back to
+   life under a rule it was never made under.
 3. THE SUBMIT CHECKS ARE SILENT UNTIL THE OFFICE RECORDS AN ALLOWANCE. Delete
    `test_the_submit_checks_sleep_until_a_balance_exists` and a table nobody has
    filled in starts refusing requests the form accepted yesterday — on the
@@ -300,6 +306,61 @@ def test_the_office_sanctions_with_one_signature_and_nobody_else_can(
         if leave_id:
             _drop(leave_id)
         _unseat(chain["student_here"], group)
+
+
+@requires_db
+def test_a_faculty_member_granted_the_key_signs_as_the_office_s_delegate(
+    client, make_user, login, chain, scoped_grant
+):
+    """`admin.leave_approvals` is what admits a colleague (2026-09-17): with
+    the grant they see the office's whole queue, sign the ONE signature as
+    DELEGATE, read the paper, and are still refused their own request; without
+    it (the test above) they are refused everything. The grant is programme-
+    wide because a leave request hangs on no rung this router narrows by."""
+    applicant = make_user(f"lc-dapp-{chain['tag']}", Role.MENTOR)
+    delegate = make_user(f"lc-dele-{chain['tag']}", Role.MENTOR)
+    _file_under(applicant.user_id, chain["here"])
+    _file_under(delegate.user_id, chain["there"])
+    scoped_grant(delegate.user_id, "admin.leave_approvals", None, None)
+    leave_id = None
+    own_id = None
+    try:
+        delegate_h = login(delegate.email, TEST_PASSWORD)
+        leave_id = _submit(client, applicant.headers)["id"]
+        # `delegate_h`, not `delegate.headers`: the login above retired the
+        # make_user cookie (one device at a time), as every sign-in does.
+        own_id = _submit(client, delegate_h, from_date="2026-12-01", to_date="2026-12-02")["id"]
+        approve = {"decision": "APPROVE", "note": "Sanctioned by the delegate."}
+
+        pending = client.get(f"{LEAVES}/pending", headers=delegate_h)
+        assert pending.status_code == 200, pending.text
+        assert pending.headers["X-Reep-Scope"] == "programme"
+        ids = {row["id"] for row in pending.json()}
+        assert leave_id in ids, "the delegate sees the office's queue"
+        assert own_id not in ids, "nobody sees their own request in the queue"
+        # The student's request in the OTHER department is there too: the
+        # reach is the programme, not the department the delegate is filed in.
+        assert chain["leave_here"] in ids
+
+        # Their own request: refused with the same sentence the office gets.
+        own = client.post(f"{LEAVES}/{own_id}/decision", headers=delegate_h, json=approve)
+        assert own.status_code == 400 and "own leave" in own.text
+
+        done = client.post(f"{LEAVES}/{leave_id}/decision", headers=delegate_h, json=approve)
+        assert done.status_code == 200, done.text
+        assert done.json()["status"] == "APPROVED"
+        assert done.json()["first_signed_as"] == "DELEGATE"
+        assert done.json()["second_signed_as"] is None
+        assert done.json()["director_note"] == "Sanctioned by the delegate."
+        assert _status(leave_id) == "APPROVED"
+        # The paper is the decider's to read, and it prints the function.
+        paper = client.get(f"{LEAVES}/{leave_id}/paper.pdf", headers=delegate_h)
+        assert paper.status_code == 200, paper.text
+        assert paper.headers["content-type"].startswith("application/pdf")
+    finally:
+        for lid in (leave_id, own_id):
+            if lid:
+                _drop(lid)
 
 
 @requires_db

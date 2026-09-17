@@ -334,8 +334,11 @@ export const routes: Routes = [
           ),
       },
       {
+        // A capability, not a role (2026-09-17): the Main Admin holds
+        // admin.leave_approvals by baseline and can grant it to a faculty
+        // member, who then reaches this queue under "Granted access".
         path: 'admin/leave-approvals',
-        canActivate: [roleGuard('ADMIN')],
+        canActivate: [capabilityGuard('admin.leave_approvals')],
         loadComponent: () =>
           import('./features/admin/leave-approvals/leave-approvals.component').then(
             (m) => m.AdminLeaveApprovalsComponent,

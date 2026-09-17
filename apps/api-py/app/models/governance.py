@@ -135,7 +135,10 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     # `mentor.leave_approve` ("Approve leave") WAS HERE until 2026-09-16 and
     # went when leave approval became the Main Admin's alone (routers/leave.py):
     # a key nothing checks is a promise the API does not keep, and migration
-    # d8b1f4c2a7e9 revoked every live grant of it.
+    # d8b1f4c2a7e9 revoked every live grant of it. Its successor is
+    # `admin.leave_approvals` below, in the PROGRAMME section, and deliberately
+    # not this name: a grant row that survived the revocation must not come
+    # back to life under a rule it was never made under.
     Capability("mentor.upskilling", "Own upskilling shelf", _S),
     Capability("mentor.agent", "REEP Agent", _S),
     # -- programme-wide: no group narrows these ------------------------------
@@ -147,6 +150,19 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     Capability("admin.jobs", "Jobs sheet", _P),
     Capability("admin.placement", "Placement", _P),
     Capability("admin.mentors", "Mentors & students", _P, carries_pii=True),
+    # Leave approval (2026-09-17): the Main Admin's by baseline, and GRANTABLE
+    # to any faculty member. Leave became the office's one signature on
+    # 2026-09-16 and `mentor.leave_approve` -- a SCOPED key derived from
+    # mentoring somebody, which admitted a colleague to their own group's
+    # queue -- left with the two-signature chain. The owner then asked for the
+    # office to be able to hand the queue to a named faculty member, which is
+    # a different thing from the key that went: PROGRAMME, because a leave
+    # request hangs on no mentor group (staff apply for leave too), decided
+    # by a grant in Governance with a reason, and never derived. `carries_pii`
+    # because a leave reason is free text and routinely medical, so a DEPUTY's
+    # grant of it waits for a second signature (B2.4); the Main Admin's is live
+    # at once. `routers/leave.py::_require_leave_approver` is the call site.
+    Capability("admin.leave_approvals", "Approve leave", _P, carries_pii=True),
     Capability("admin.interview_audio", "Interview audio", _P, carries_pii=True),
     # The admin-authored question bank the free-style interviewer weaves in
     # (app/interview_bank.py). PROGRAMME: a question is asked of every student on

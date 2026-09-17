@@ -620,12 +620,19 @@ class Settings(BaseSettings):
     # log rather than failing the session.
     nova_sonic_voice: str = "matthew"
     # HIGH | MEDIUM | LOW: how fast Nova decides the student has stopped
-    # speaking. MEDIUM is AWS's recommended default and the right one HERE for a
-    # reason of its own — an interview answer contains thinking pauses that a
-    # HIGH setting reads as the end of the turn, and being cut off mid-answer is
-    # the single most damaging thing a mock interviewer can do to a nervous
-    # student.
-    nova_sonic_endpointing: str = "MEDIUM"
+    # speaking. AWS documents the three as the pause Nova waits for before it
+    # takes the turn — HIGH 1.5 s, MEDIUM 1.75 s, LOW ~2 s — and describes LOW
+    # as "maximum patience ... minimizing interruptions of users who pause
+    # while thinking ... best for thoughtful conversations". An interview
+    # answer IS that conversation: a student gathering a STAR example stops for
+    # a breath, and every setting faster than LOW read that breath as the end
+    # of the answer, so the next question landed on top of the second half
+    # (reported as the interviewer "recording the answer very rigidly", and it
+    # was). Being cut off mid-answer is the single most damaging thing a mock
+    # interviewer can do to a nervous student; a quarter of a second of extra
+    # latency on every turn is what it costs to stop doing it. This shipped as
+    # MEDIUM ("AWS's recommended default") until 2026-09-17.
+    nova_sonic_endpointing: str = "LOW"
     # What the uplink is resampled to. The browser captures at 24 kHz (the
     # client link is unchanged from the OpenAI relay) and Nova accepts 8/16/24
     # kHz; 16 kHz is what every AWS sample streams and what the model is

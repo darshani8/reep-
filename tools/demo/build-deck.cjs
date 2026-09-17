@@ -240,7 +240,7 @@ async function build() {
     }))), { x: 0.55, y: 1.35, w: 12.2, colW: [2.1, 8.9, 1.2], rowH: 0.55, border: { type: 'solid', color: C.line, pt: 0.5 } });
     s.addText([
       { text: 'Every video is a real recording of the product: ', options: { bold: true } },
-      { text: 'the typing, the clicks and the data are live, and a caption bar explains each screen as it opens. Play them in this order; tools/demo/render.sh also produces reep-full-walkthrough.mp4, all six back to back. The slides that follow use the same screenshots so the deck can be read without the videos.' },
+      { text: 'the typing, the clicks and the data are live, a narrator reads every caption aloud, and the camera moves in on each box as it is typed into. Play them in this order; tools/demo/render.sh also produces reep-full-walkthrough.mp4, all six back to back. The slides that follow use the same screenshots so the deck can be read without the videos.' },
     ], { x: 0.55, y: 5.55, w: 12.2, h: 1.1, fontFace: FONT, fontSize: 13, color: C.body, margin: 0, valign: 'top', isTextBox: true });
     s.addNotes('Six videos, one deck. The videos were recorded by a script that drives the real portal in a browser, so nothing is mocked. Play the role videos in order, then the two workflow videos.');
   }

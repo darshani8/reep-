@@ -33,6 +33,7 @@ from ..resume_pdf import EvidenceProof, append_evidence, render_resume_pdf
 from ..models.academic_history import AcademicGap, AcademicQualification
 from ..models.academics import SemesterResult
 from ..models.attendance import AttendanceRecord
+from ..models.badge import StudentBadge, StudentBadgeStatus
 from ..models.certification import CertificationProgress
 from ..models.cohort import Cohort
 from ..models.institution import AcademicCourse, AcademicSpecialization, College, Department
@@ -2656,12 +2657,27 @@ def _initials(name: str) -> str:
     return (parts[0][0] + parts[-1][0]).upper()
 
 
+def _plural(n: int, noun: str) -> str:
+    return f"{n} {noun}" if n == 1 else f"{n} {noun}s"
+
+
 def _board_values(db: Session, board: str, roster: list[tuple[str, str]]) -> dict[str, tuple[float, str]]:
     """student_id -> (value, label) for the chosen board, over the cohort roster
-    (list of (student_id, user_id)). Students with no activity score 0."""
+    (list of (student_id, user_id)).
+
+    A STUDENT WITH NOTHING RECORDED ON A BOARD IS ABSENT FROM THE RESULT, and
+    `_ranked_board` reads that absence as "not ranked" (2026-09-17). Every
+    roster student used to come back scoring 0 and was then ranked with the
+    rest, so a batch of thirty with one verified skill between them drew
+    "Rank 2 of 30 -- top 7%" under a student holding nothing, in whatever order
+    Postgres returned the roster that minute. On the VTU board the same rule
+    printed "CGPA 0.00" against a student whose results were never recorded --
+    the confident zero the English-baseline and attendance screens already
+    refuse to draw. The client has carried a "You're not ranked here yet" state
+    for exactly this since the UX audit, and nothing could reach it.
+    """
     sids = [sid for sid, _ in roster]
     uid_by_sid = {sid: uid for sid, uid in roster}
-    out: dict[str, tuple[float, str]] = {sid: (0.0, "") for sid in sids}
 
     if board == "certificates":
         rows = db.execute(
@@ -2672,17 +2688,32 @@ def _board_values(db: Session, board: str, roster: list[tuple[str, str]]) -> dic
             )
             .group_by(CertificationProgress.student_id)
         ).all()
-        counts = {sid: n for sid, n in rows}
-        return {sid: (float(counts.get(sid, 0)), f"{counts.get(sid, 0)} certs") for sid in sids}
+        return {sid: (float(n), _plural(n, "cert")) for sid, n in rows if n}
 
     if board == "skills":
+        # WHAT THE SKILLING SCREEN VERIFIES, NOT `student_skills` (2026-09-17).
+        # `/student/skilling` files a certificate as badge evidence, the mentor
+        # APPROVES it on `/mentor/verifications`, and `_award` mints the EARNED
+        # `student_badges` row that screen draws as "Verified and acquired" and
+        # counts as "N skills currently illuminated". This board counted rows of
+        # `student_skills` instead -- a table written only by the legacy
+        # skill-claim review (`/mentor/skill-claims/{id}/review`, which no
+        # client has posted to since the Skilling screen replaced the per-skill
+        # claim form) and by the dev seed -- and counted them verified or not.
+        # So on a live deployment a student whose skills the mentor had just
+        # verified saw "0 skills" beside classmates showing the same, and the
+        # office reported the ranking as never done. One record, one count: the
+        # board agrees with the screen the student verifies on, which is B6.3's
+        # rule for the mocks board below.
         rows = db.execute(
-            select(StudentSkill.student_id, func.count())
-            .where(StudentSkill.student_id.in_(sids))
-            .group_by(StudentSkill.student_id)
+            select(StudentBadge.student_id, func.count())
+            .where(
+                StudentBadge.student_id.in_(sids),
+                StudentBadge.status == StudentBadgeStatus.EARNED,
+            )
+            .group_by(StudentBadge.student_id)
         ).all()
-        counts = {sid: n for sid, n in rows}
-        return {sid: (float(counts.get(sid, 0)), f"{counts.get(sid, 0)} skills") for sid in sids}
+        return {sid: (float(n), _plural(n, "skill")) for sid, n in rows if n}
 
     if board == "mocks":
         # B6.3 — BOTH SOURCES, and in the same commit as `my_mocks`. This board
@@ -2690,43 +2721,47 @@ def _board_values(db: Session, board: str, roster: list[tuple[str, str]]) -> dic
         # ("mocks"), so a board counting only the staff-logged rehearsals would
         # tell a student they had sat 2 while their own home screen showed 9,
         # with nothing on either screen to explain the gap. Completed interviews
-        # only, which is exactly what `my_mocks` charts.
-        rows = db.execute(
+        # only, which is exactly what `my_mocks` charts: an interview closed
+        # before its verdict is `abandoned`, has no score, and counts nowhere.
+        counts: dict[str, int] = {}
+        for sid, n in db.execute(
             select(MockAttempt.student_id, func.count())
             .where(MockAttempt.student_id.in_(sids))
             .group_by(MockAttempt.student_id)
-        ).all()
-        counts = {sid: n for sid, n in rows}
-        interview_rows = db.execute(
+        ).all():
+            counts[sid] = counts.get(sid, 0) + n
+        for sid, n in db.execute(
             select(InterviewScoreSummary.student_id, func.count())
             .where(
                 InterviewScoreSummary.student_id.in_(sids),
                 InterviewScoreSummary.status == "completed",
             )
             .group_by(InterviewScoreSummary.student_id)
-        ).all()
-        for sid, n in interview_rows:
+        ).all():
             counts[sid] = counts.get(sid, 0) + n
-        return {sid: (float(counts.get(sid, 0)), f"{counts.get(sid, 0)} mocks") for sid in sids}
+        return {sid: (float(n), _plural(n, "mock")) for sid, n in counts.items() if n}
 
     if board == "vtu":
-        # Latest semester's CGPA per student, decided by Postgres. This used to
+        # Latest recorded CGPA per student, decided by Postgres. This used to
         # fetch EVERY SemesterResult row for the cohort and keep the first per
         # student in Python — ~30,000 hydrated rows per call at a 5,000-student
         # cohort (2026-08 audit). DISTINCT ON with the matching ORDER BY is the
         # same "first row per student is the highest semester" idea, executed
-        # where the rows live, returning one row per student.
+        # where the rows live, returning one row per student. A semester filed
+        # without a CGPA is skipped in the WHERE, so the latest semester that
+        # HAS one is the number, and a student with none is absent rather than
+        # "CGPA 0.00" (or, before this, a TypeError on float(None)).
         rows = db.execute(
             select(SemesterResult.student_id, SemesterResult.cgpa)
-            .where(SemesterResult.student_id.in_(sids))
+            .where(SemesterResult.student_id.in_(sids), SemesterResult.cgpa.is_not(None))
             .distinct(SemesterResult.student_id)
             .order_by(SemesterResult.student_id, SemesterResult.semester.desc())
         ).all()
-        latest = {sid: float(cgpa) for sid, cgpa in rows}
-        return {sid: (latest.get(sid, 0.0), f"CGPA {latest.get(sid, 0.0):.2f}") for sid in sids}
+        return {sid: (float(cgpa), f"CGPA {float(cgpa):.2f}") for sid, cgpa in rows}
 
     if board == "streak":
-        # Active-day count (LoginDay is keyed by user_id).
+        # Active-day count (LoginDay is keyed by user_id, and every sign-in door
+        # writes one through auth._record_login).
         uids = list(uid_by_sid.values())
         rows = db.execute(
             select(LoginDay.user_id, func.count())
@@ -2735,11 +2770,12 @@ def _board_values(db: Session, board: str, roster: list[tuple[str, str]]) -> dic
         ).all()
         by_uid = {uid: n for uid, n in rows}
         return {
-            sid: (float(by_uid.get(uid_by_sid[sid], 0)), f"{by_uid.get(uid_by_sid[sid], 0)} active days")
-            for sid in sids
+            sid: (float(by_uid[uid]), _plural(by_uid[uid], "active day"))
+            for sid, uid in uid_by_sid.items()
+            if by_uid.get(uid)
         }
 
-    return out
+    return {}
 
 
 class LeaderRow(BaseModel):
@@ -2813,11 +2849,25 @@ def _ranked_board(
     roster = [(sid, uid, name) for sid, uid, name in roster_rows if sid not in opted_out]
 
     values = _board_values(db, board, [(sid, uid) for sid, uid, _ in roster])
-    ranked = sorted(roster, key=lambda r: values[r[0]][0], reverse=True)
-    entries = [
-        (i + 1, sid, name, values[sid][0], values[sid][1])
-        for i, (sid, _uid, name) in enumerate(ranked)
-    ]
+    # Only a student with a record on this board is on it (see _board_values).
+    # Equal totals share a rank and the next rank skips -- 1, 2, 2, 4 -- because
+    # two students holding the same three verified skills are level, and
+    # `enumerate` over a sort made one of them second by whichever row Postgres
+    # happened to return first, a different one after every cache refresh. The
+    # name and then the id order the DISPLAY of a tie only, so the board is the
+    # same list every time it is drawn.
+    ordered = sorted(
+        ((sid, name) for sid, _uid, name in roster if sid in values),
+        key=lambda r: (-values[r[0]][0], r[1].casefold(), r[0]),
+    )
+    entries: list[tuple[int, str, str, float, str]] = []
+    rank = 0
+    previous: float | None = None
+    for position, (sid, name) in enumerate(ordered, start=1):
+        value, label = values[sid]
+        if value != previous:
+            rank, previous = position, value
+        entries.append((rank, sid, name, value, label))
     with _leaderboard_cache_lock:
         _leaderboard_cache[key] = (now, entries)
     return entries

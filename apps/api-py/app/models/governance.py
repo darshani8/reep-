@@ -289,16 +289,18 @@ FEATURES: Final[tuple[Feature, ...]] = (
     Feature("student.uploads", "Document uploads", enforced=True),
     Feature("student.time_log", "Time allocation ledger", enforced=True),
     Feature("student.skilling", "Skilling & badges", enforced=True),
-    Feature("student.certifications", "Certifications", enforced=True),
     # ADDED BY B2.2, and the spec is why it was missing. 04-backend-changes.md
     # names the ten features to gate as "jobs, leaderboards, mock interview,
     # resume generate, agent, uploads, english, skilling, time-log, mentor-log"
-    # — but the catalogue it was describing has no `student.mentor_log`, and has
-    # `student.certifications`, which that sentence never mentions. Both screens
-    # are real and a student reaches both, so both are switches now: dropping
-    # the mentor log would have left the spec's own list one short, and dropping
-    # certifications would have left a catalogue row that gates nothing, which
-    # is the exact state B2.2 exists to end.
+    # — but the catalogue it was describing had no `student.mentor_log`. The
+    # screen is real and a student reaches it, so it is a switch: dropping it
+    # would have left the spec's own list one short.
+    #
+    # `student.certifications` sat here until 2026-09-17, when the Certification
+    # Tracker (`GET /student/certifications`) was removed at the owner's
+    # request. A row that gates nothing is the state B2.2 exists to end, so the
+    # row went with the endpoint; a stored override naming the old key is
+    # skipped by the resolver and listed under its bare key by the console.
     Feature("student.mentor_log", "Mentor meeting log", enforced=True),
 )
 

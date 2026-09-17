@@ -195,12 +195,13 @@ const CONNECT_TIMEOUT_MS = 30_000;
 
    THE TRADE-OFF, NAMED. Gating the uplink delays the moment server VAD can see
    the student, because the server cannot detect speech in audio we never sent.
-   That cost is BARGE_IN_CONSECUTIVE_CHUNKS x CHUNK_MS = 120 ms. Against it, the
+   That cost is BARGE_IN_CONSECUTIVE_CHUNKS x CHUNK_MS = 200 ms. Against it, the
    design REMOVES a larger delay: today a barge-in costs uplink -> server VAD
    integration -> `reep.audio.flush` back down, i.e. a full round trip, typically
-   250-450 ms. The gate detects speech LOCALLY in 120 ms and flushes the player
-   itself. Net: barge-in gets FASTER, and the counters below are the instrument
-   that proves it rather than the claim that asserts it.
+   250-450 ms. The gate detects speech LOCALLY in 200 ms and flushes the player
+   itself. Net: barge-in is no slower than the round trip it sits inside, and
+   the counters below are the instrument that proves it rather than the claim
+   that asserts it.
 
    WHAT IS DELIBERATELY NOT DONE. The microphone is never muted, the track is
    never disabled, the worklet never stops. Gating capture would destroy the very
@@ -210,7 +211,7 @@ const CONNECT_TIMEOUT_MS = 30_000;
 
 /** Master switch, and the default. ON, because the failure it prevents (an
  *  interviewer interviewing itself) is total, while its cost on headphones is
- *  120 ms of barge-in latency. On headphones there is no acoustic path from the
+ *  200 ms of barge-in latency. On headphones there is no acoustic path from the
  *  speaker back to the microphone, so a student wearing them should turn it off:
  *  see setEchoSuppression(). */
 const ECHO_SUPPRESSION_DEFAULT = true;
@@ -247,10 +248,16 @@ const NOISE_FLOOR_MARGIN = 4.0;
 const GATE_ABSOLUTE_MIN_RMS = 0.008;
 
 /** Consecutive over-threshold chunks required before the gate opens. One chunk
- *  (40 ms) is a cough, a keystroke or a chair; three (120 ms) is a syllable.
- *  This IS the latency the gate adds to barge-in detection, and it is still well
- *  inside the round trip it replaces. */
-const BARGE_IN_CONSECUTIVE_CHUNKS = 3;
+ *  (40 ms) is a keystroke or a chair; three (120 ms) is a syllable -- and it is
+ *  also a cough, a sniff or a chair scraping for a beat, which is what this
+ *  shipped at and what the interviews reported as "the voice keeps dropping":
+ *  every one of those opened the gate, suspended the interviewer for the
+ *  LOCAL_BARGE_IN_HOLD_MS hold, and forwarded the noise upstream, where Nova's
+ *  own detector sometimes agreed and abandoned the question for good. Five
+ *  (200 ms) is longer than any of those transients and shorter than the first
+ *  word of an answer. This IS the latency the gate adds to barge-in detection,
+ *  and it is still inside the round trip it sits in front of. */
+const BARGE_IN_CONSECUTIVE_CHUNKS = 5;
 
 /** Withheld chunks held while the gate is still deciding, and replayed the
  *  instant it opens. These are the chunks ALREADY above threshold while the gate
@@ -1432,7 +1439,7 @@ export class InterviewService {
    *
    * On laptop SPEAKERS it is what stops the interviewer interviewing itself. On
    * HEADPHONES there is no acoustic path from the speaker back to the
-   * microphone, so it protects against nothing and costs 120 ms of barge-in
+   * microphone, so it protects against nothing and costs 200 ms of barge-in
    * latency - which is the entire reason it is a switch and not a constant.
    */
   readonly echoSuppression = this._echoSuppression.asReadonly();
@@ -1992,7 +1999,7 @@ export class InterviewService {
    *
    * Takes effect on the GATE immediately - it is read from the signal on every
    * chunk - so a student who plugs headphones in mid-interview stops paying the
-   * 120 ms and gets full-duplex sending back at once. The microphone's own AGC
+   * 200 ms and gets full-duplex sending back at once. The microphone's own AGC
    * constraint is negotiated at getUserMedia time and therefore waits for the
    * next Start; re-negotiating a live track to flip one boolean is a bigger risk
    * than the mismatch it would fix.

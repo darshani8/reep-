@@ -233,20 +233,18 @@
         <div class="record-chips">
           <span class="chip dot {{ record.statusTone }}">{{ record.statusLabel }}</span>
           <!-- Read from `audio_recorded`, never from a path: the flag is the
-               audio consent scope as it was ENFORCED for this interview. -->
+               audio consent scope as it was ENFORCED for this interview. The
+               Download button exists only when there is something to download:
+               a grey button beside "No audio" was the first thing the office
+               pressed, and the sentence below is what it was pressing for. -->
           @if (record.audioRecorded) {
             <span class="chip dot good">Audio stored</span>
+            <button type="button" class="btn secondary sm" (click)="downloadOpenRecording()">
+              <span class="icon" aria-hidden="true">download</span> Download recording
+            </button>
           } @else {
             <span class="chip dot neutral">No audio</span>
           }
-          <button
-            type="button"
-            class="btn secondary sm"
-            [disabled]="!record.audioRecorded"
-            (click)="downloadOpenRecording()"
-          >
-            <span class="icon" aria-hidden="true">download</span> Download recording
-          </button>
           <button
             type="button"
             class="btn ghost sm"
@@ -257,6 +255,17 @@
           </button>
         </div>
       </div>
+      @if (!record.audioRecorded && record.audioReason; as reason) {
+        <p class="record-audio-reason" role="status">
+          <span class="icon" aria-hidden="true">mic</span>
+          <span>{{ reason }}</span>
+          @if (record.audioFixableHere) {
+            <button type="button" class="btn ghost sm" (click)="goToPolicyCard()">
+              Open the policy card
+            </button>
+          }
+        </p>
+      }
 
       <div class="record-body">
         <div class="record-main">
@@ -476,6 +485,17 @@
           <span>deployment defaults</span>
         }
       </p>
+
+      @if (recordingOffOnServer()) {
+        <!-- One of the three gates on a recording is the operator's, and it is
+             not on this screen. Said here so "Allow voice recording" is not a
+             box the office ticks and then waits on. -->
+        <p class="notice" role="status">
+          <span class="icon" aria-hidden="true">mic</span>
+          Voice recording is switched off on this server (INTERVIEW_RECORDING_ENABLED). “Allow
+          voice recording” below records nothing until the operator turns it on.
+        </p>
+      }
 
       <div class="policy-checks">
         <label class="check">

@@ -11,6 +11,15 @@ attempt into a caught conflict instead of a delivery.
 `kind` is free text, not an enum, on purpose: the catalogue of messages grows
 with the product, and a new template should not need a migration to be sent.
 `mail_status` is new to the Python schema, so autogenerate creates it cleanly.
+
+A ROW READING `SENT` MEANS THE PROVIDER ACCEPTED IT, NEVER THAT IT ARRIVED, and
+this table can never say more than that: it is written at the moment of the
+send and the delivery outcome happens afterwards, somewhere else. Whether an
+address can receive anything AT ALL is asked of SES on demand
+(`mail_transport.suppression_for`) rather than stored here, because the answer
+changes in both directions without REEP being involved and a copy of it would
+be stale exactly when somebody needed it. What this table is for is the other
+half of the question: did we try, when, and did the send itself fail.
 """
 
 import enum
@@ -39,8 +48,11 @@ class MailLog(Base):
     __table_args__ = (
         Index("ix_maillog_kind_sent", "kind", "sent_at"),
         Index("ix_maillog_recipient_sent", "recipient", "sent_at"),
-        # The ops mail screen with NO `kind` filter: ORDER BY sent_at DESC
-        # LIMIT 100 over the whole table. Neither composite above can serve it
+        # The office's Email delivery screen with NO `kind` filter
+        # (`routers/admin_mail.py`, `/admin/mail`): ORDER BY sent_at DESC
+        # LIMIT 100 over the whole table. That screen was named here before it
+        # was built and arrived on 2026-09-17; this index is why it is a fetch
+        # and not a table scan. Neither composite above can serve it
         # — `sent_at` is their SECOND column, and Postgres will only walk an
         # index in sort order from the first — so the unfiltered view was a
         # sequential scan plus a sort of every row ever mailed, to show a

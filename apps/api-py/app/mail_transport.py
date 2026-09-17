@@ -44,6 +44,20 @@ reads it out of `outbox`. It is bounded and only ever filled when no real
 transport exists, so it never becomes a copy of student mail sitting in a
 production process.
 
+AND IT ASKS WHETHER THE ADDRESS CAN RECEIVE ANYTHING (2026-09-17). Accepting a
+message is not delivering it. A hard bounce or a complaint puts an address on
+SES's ACCOUNT SUPPRESSION LIST, and from then on SES takes every send for it,
+returns a message id, and delivers nothing — so `deliver_once` writes SENT and
+every screen in the product tells that student "we have emailed you a code",
+for ever. It was reported from production as a student who could sign in with
+Google and never received a code by any route, and nothing here could see it,
+because there was no failure to see. `suppression_for` is the question, asked
+immediately before the send; `SuppressedRecipient` is what a suppressed address
+raises INSTEAD of being sent, which turns the one silent failure in this module
+into the FAILED row, the `error` sentence and the CloudWatch line that every
+other mail failure already produced. The office reads those on `/admin/mail`
+and lifts the suppression from there.
+
 RULE 1 (student data must not leave the machine unbidden) is not engaged: an
 activation or reset email carries a name and a link, never a mark, a USN or a
 transcript. Keep it that way — do not put a student's record in an email.
@@ -90,11 +104,123 @@ def _region() -> str:
     )
 
 
+class SuppressedRecipient(RuntimeError):
+    """SES holds this address on its ACCOUNT SUPPRESSION LIST and will not deliver.
+
+    Raised INSTEAD of sending, so `mailer.deliver_once` records FAILED with this
+    sentence in `error` and logs the line the CloudWatch metric filter matches.
+    Everything downstream of a failed send already exists; this only stops the
+    one case that never reached it.
+
+    THE MESSAGE MUST NOT NAME THE RECIPIENT. `deliver_once` puts `str(exc)` into
+    a log line that is shipped to CloudWatch and scrubbed for Sentry, and that
+    line deliberately carries no address. The row keeps the recipient for
+    whoever is entitled to read it; this string carries only the reason and the
+    date.
+    """
+
+
+@dataclass(frozen=True, slots=True)
+class Suppression:
+    """What SES says about one address, or None from `suppression_for`."""
+
+    reason: str
+    since: str
+
+
+def _ask_provider(to: str) -> tuple[bool, Suppression | None]:
+    """(could we ask, what it said). The one place that talks to the list.
+
+    Separating "we asked and it is clean" from "we could not ask" is the whole
+    reason this returns a pair. `suppression_for` collapses both to None
+    because a send must proceed when the check cannot answer; the office screen
+    must NOT, because telling somebody an address is fine when nobody looked is
+    the same shape of lie this module exists to stop.
+    """
+    import boto3
+    from botocore.exceptions import ClientError
+
+    try:
+        answer = boto3.client("sesv2", region_name=_region()).get_suppressed_destination(
+            EmailAddress=to
+        )
+    except ClientError as exc:
+        if exc.response.get("Error", {}).get("Code") == "NotFoundException":
+            return True, None  # asked, and the address is clean
+        log.warning("Could not read the SES suppression list: %s", exc.response.get("Error", {}))
+        return False, None
+    except Exception as exc:  # credentials, region, network — never fatal here
+        log.warning("Could not read the SES suppression list: %s", exc)
+        return False, None
+
+    entry = answer.get("SuppressedDestination", {})
+    return True, Suppression(
+        reason=str(entry.get("Reason") or "UNKNOWN"),
+        since=str(entry.get("LastUpdateTime") or "")[:10] or "an unknown date",
+    )
+
+
+def suppression_for(to: str) -> Suppression | None:
+    """Is this address on SES's account suppression list? None = no, or unknown.
+
+    THIS IS THE ANSWER TO "THE CODE NEVER CAME", and nothing in the product
+    could ask it before. A hard bounce or a complaint puts an address on this
+    list, and SES then accepts every later send for it and delivers NOTHING —
+    `send_email` returns a message id, `deliver_once` writes SENT, every screen
+    says "we have emailed you", and the student is told that forever. A bounce
+    during the sandbox period suppresses an address that has been perfectly fine
+    ever since. The list is where a durable delivery failure comes to rest, for
+    bounces and complaints alike, which is why this is a question about the
+    ADDRESS rather than a stream of events to subscribe to and store.
+
+    IT FAILS OPEN, AND THAT DIRECTION IS DELIBERATE. Any error other than "not
+    on the list" — no `ses:GetSuppressedDestination` grant, a throttle, a region
+    that cannot be reached — returns None and lets the send proceed. A check
+    that cannot answer must never be the reason a student's link is not sent;
+    the cost of being wrong here is one undeliverable message, and the cost of
+    failing closed is every message. It is logged where it happens, without the
+    address. `suppression_probe` is the same question for a caller that needs
+    the two Nones told apart.
+    """
+    return _ask_provider(to)[1]
+
+
+def suppression_probe(to: str) -> tuple[bool, bool]:
+    """(checked, suppressed), for the office screen. Never fails open."""
+    checked, found = _ask_provider(to)
+    return checked, found is not None
+
+
+def lift_suppression(to: str) -> bool:
+    """Remove this address from the account suppression list. True on success.
+
+    The remedy, and the reason the office screen is not just a read: a
+    suppressed address stays suppressed until somebody deletes it, and the only
+    other door to that is the AWS console, which the placement office does not
+    have and should not need for a student whose mailbox is now working.
+    """
+    import boto3
+
+    try:
+        boto3.client("sesv2", region_name=_region()).delete_suppressed_destination(
+            EmailAddress=to
+        )
+        return True
+    except Exception as exc:
+        # Deliberately without the address, like every other line here.
+        log.error("Could not lift an SES suppression: %s", exc)
+        return False
+
+
 def send(to: str, subject: str, text: str) -> None:
     """Deliver one plain-text message, or record it if there is no transport.
 
     Raises on an SES failure so `mailer.deliver_once` records FAILED — that
     row is how an operator learns a student never got their link.
+
+    IT ASKS WHETHER THE ADDRESS IS DELIVERABLE BEFORE IT SENDS. See
+    `suppression_for`: without this, a suppressed address is the one failure in
+    this module that looks exactly like success, on every path a student has.
     """
     if not configured():
         outbox.append(OutboxEntry(to=to, subject=subject, text=text))
@@ -124,4 +250,15 @@ def send(to: str, subject: str, text: str) -> None:
     configuration_set = settings.ses_configuration_set.strip()
     if configuration_set:
         request["ConfigurationSetName"] = configuration_set
+
+    # LAST, immediately before the send: a suppressed address is refused here
+    # rather than accepted by SES and dropped. `deliver_once` turns this into a
+    # FAILED row, the `error` the office screen prints, and the CloudWatch line
+    # the mail alarm already watches for.
+    suppressed = suppression_for(to)
+    if suppressed is not None:
+        raise SuppressedRecipient(
+            f"the provider is suppressing this address ({suppressed.reason} on "
+            f"{suppressed.since}) and will deliver nothing to it until it is lifted"
+        )
     client.send_email(**request)

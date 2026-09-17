@@ -564,7 +564,11 @@ def test_the_task_role_may_also_send_under_the_configuration_set(hardened: Templ
     send_mail = next(p for p in role["Properties"]["Policies"] if p["PolicyName"] == "send-mail")
     by_sid = {s.get("Sid"): s for s in send_mail["PolicyDocument"]["Statement"]}
 
-    assert set(by_sid) == {"SendFromVerifiedIdentity", "SendUnderConfigurationSet"}, (
+    assert set(by_sid) == {
+        "SendFromVerifiedIdentity",
+        "SendUnderConfigurationSet",
+        "ReadAndLiftOneSuppression",
+    }, (
         "the send-mail policy must name the identity AND the configuration set; a send that names a "
         "set is authorised against both"
     )
@@ -579,6 +583,49 @@ def test_the_task_role_may_also_send_under_the_configuration_set(hardened: Templ
     assert "Condition" not in configuration_set, (
         "ses:FromAddress is not in context when SES evaluates the configuration set, so a condition "
         "on it denies every send -- this is the 2026-09-15 outage rewritten as a passing-looking policy"
+    )
+
+
+def test_the_task_can_ask_about_one_suppression_and_never_list_them_all() -> None:
+    """`ses:GetSuppressedDestination` YES, `ses:ListSuppressedDestinations` NO.
+
+    An address SES has suppressed after a bounce or a complaint is accepted on
+    every later send and delivered nowhere, so without the Get the product
+    cannot tell "we emailed them" from "nothing we send can reach them" -- the
+    2026-09-17 report, where a student signed in with Google and no code ever
+    arrived on any path. The Delete is the remedy, on the office's say-so and
+    audited, so a fixed mailbox does not need somebody with an AWS console.
+
+    List is refused because the suppression list is a roster of people by
+    another name: every address the deployment has ever bounced, which a
+    compromised task could read out in one call. Nothing here needs it --
+    `mail_transport` only ever asks about an address it is already holding.
+
+    Both are account-level in SESv2 and take no resource-level permission, so
+    `*` is the only resource that authorises them; the fence is the ACTION list
+    and this test is what keeps List off it.
+    """
+    role = next(
+        r for r in _core("harden", sesFromAddress="reep@bgscet.ac.in",
+                         sesIdentityDomain="bgscet.ac.in").to_json()["Resources"].values()
+        if r["Type"] == "AWS::IAM::Role" and r["Properties"].get("RoleName") == "reep-api-task"
+    )
+    send_mail = next(p for p in role["Properties"]["Policies"] if p["PolicyName"] == "send-mail")
+    granted = {
+        action
+        for statement in send_mail["PolicyDocument"]["Statement"]
+        for action in (
+            statement["Action"] if isinstance(statement["Action"], list) else [statement["Action"]]
+        )
+    }
+    assert "ses:GetSuppressedDestination" in granted, (
+        "without this the suppression check fails open on every send and the feature is inert in "
+        "production while every test passes"
+    )
+    assert "ses:DeleteSuppressedDestination" in granted
+    assert not any(a.startswith("ses:List") for a in granted), (
+        "listing the suppression list hands a compromised task every address the deployment has "
+        "ever bounced; the product only ever asks about one it already holds"
     )
 
 

@@ -96,15 +96,42 @@ export class OnboardComponent {
 
   private ticket = '';
 
-  readonly email = new FormControl('', {
-    nonNullable: true,
-    validators: [Validators.required, Validators.email],
+  /**
+   * EVERY FORM ON THIS SCREEN CARRIES A `[formGroup]`, AND STEPS 1 AND 2 DID
+   * NOT UNTIL 2026-09-17. `(ngSubmit)` is an output of `FormGroupDirective`
+   * (ReactiveFormsModule) or of `NgForm` (FormsModule); this component imports
+   * only the first, so on a bare `<form>` neither directive matched and
+   * `(ngSubmit)` compiled to a DOM listener for an event nothing dispatches.
+   * The handler never ran, nothing called `preventDefault`, and the submit
+   * button did what a submit button does with no JavaScript in the way: a
+   * native GET to the current URL, whose query string is REPLACED by the
+   * form's named fields — of which there are none.
+   *
+   * So pressing "Send me a code" navigated to `/onboard?`, the token was gone,
+   * and the student met "This page needs the setup link from the email we sent
+   * you" one keystroke after the link had worked perfectly. It looked to the
+   * office like the approval mail was broken; it was the first button.
+   *
+   * A single control does not need a group to work — `[formControl]` binds
+   * fine on its own — which is exactly why this was invisible. The group is
+   * here for the `<form>`, not for the control: it is what makes `(ngSubmit)`
+   * a real output and the default prevented. Do not "simplify" it back.
+   */
+  readonly emailForm = new FormGroup({
+    email: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.email],
+    }),
   });
+  readonly email = this.emailForm.controls.email;
 
-  readonly code = new FormControl('', {
-    nonNullable: true,
-    validators: [Validators.required, Validators.pattern(/^\d{6}$/)],
+  readonly codeForm = new FormGroup({
+    code: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.pattern(/^\d{6}$/)],
+    }),
   });
+  readonly code = this.codeForm.controls.code;
 
   readonly passwordForm = new FormGroup(
     {

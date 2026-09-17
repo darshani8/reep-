@@ -24,7 +24,10 @@ const clips = path.join(outDir, 'narration', 'clips');
 
 const probe = (file) => Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file]).toString().trim());
 const videoSeconds = probe(video);
-const VIDEO = ['-c:v', 'libx264', '-preset', 'medium', '-crf', '25', '-pix_fmt', 'yuv420p', '-r', '25', '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2'];
+// CRF 28 keeps 1080p UI text crisp at roughly 60% of the size CRF 25 makes;
+// DEMO_CRF overrides it (lower = larger and sharper).
+const CRF = String(process.env.DEMO_CRF ?? 28);
+const VIDEO = ['-c:v', 'libx264', '-preset', 'slow', '-crf', CRF, '-pix_fmt', 'yuv420p', '-r', '25', '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2'];
 const AUDIO = ['-c:a', 'aac', '-b:a', '96k', '-ar', '48000', '-ac', '1'];
 
 let items = [];

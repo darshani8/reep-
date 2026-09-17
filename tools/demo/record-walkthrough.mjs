@@ -465,7 +465,7 @@ async function segStudent(page) {
   await step(page, 'home', async () => {
     await say(page, 'Home', 'Readiness score, the Reboot → Excel → Elevate stages, recommendations, and the SWOC lines faculty and the office wrote for this student.');
     await shot(page, 'student-home');
-    await scroll(page, 520); await scroll(page, 520); await shot(page, 'student-home-swoc'); await scroll(page, 600); await scroll(page, -1700, 700);
+    await scroll(page, 380); await shot(page, 'student-home-swoc'); await scroll(page, 600); await scroll(page, 600); await scroll(page, -1600, 700);
   });
   await step(page, 'jobs', async () => {
     await nav(page, 'Jobs');
@@ -888,15 +888,17 @@ async function segInterlinked(page) {
   await signIn(page, STUDENT, 'Step 4 — back to the STUDENT.');
   await step(page, 'student sees', async () => {
     await say(page, '4 · Student', 'Home carries the new SWOC line from the office.');
-    await scroll(page, 520); await scroll(page, 520);
+    await scroll(page, 380);
     await shot(page, 'flow-4-home');
     await page.waitForTimeout(1200);
     await nav(page, 'Skilling');
     await say(page, '4 · Student', 'The verified badge is lit on the board with the mentor\'s blue tick.');
+    await scroll(page, 700); await scroll(page, 700);
     await shot(page, 'flow-4-badge');
     await page.waitForTimeout(1500);
     await nav(page, 'Faculty / TPO Log');
     await say(page, '4 · Student', 'The mentor\'s meeting note is on the log, under the request that asked for it.');
+    await scroll(page, 650); await scroll(page, 400);
     await shot(page, 'flow-4-log');
     await page.waitForTimeout(1500);
     await nav(page, 'Jobs');

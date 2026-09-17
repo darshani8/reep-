@@ -720,7 +720,6 @@ def require_feature(db: Session, student_id: str | None, feature: str) -> None:
                               POST /student/badges/{code}/{start,evidence}
         student.time_log      GET + PUT /student/ledger,
                               POST /student/ledger/{copy-yesterday,submit}
-        student.certifications  GET /student/certifications
         student.mentor_log    GET /student/mentor-meetings,
                               POST /student/mentor-meetings/request
 

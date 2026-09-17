@@ -113,14 +113,6 @@ export const routes: Routes = [
           import('./features/student/home/home.component').then((m) => m.StudentHomeComponent),
       },
       {
-        path: 'student/certifications',
-        canActivate: [roleGuard('STUDENT')],
-        loadComponent: () =>
-          import('./features/student/certifications/certifications.component').then(
-            (m) => m.CertificationsComponent,
-          ),
-      },
-      {
         path: 'student/skilling',
         canActivate: [roleGuard('STUDENT')],
         loadComponent: () =>

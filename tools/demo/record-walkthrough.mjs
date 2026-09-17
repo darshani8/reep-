@@ -42,7 +42,7 @@ const WEB = (process.env.REEP_WEB ?? 'http://127.0.0.1:4200').replace(/\/$/, '')
 const API_LOG = process.env.REEP_API_LOG ?? '';
 const OUT = path.resolve(process.env.DEMO_OUT ?? path.join(HERE, 'out'));
 const ASSETS = path.resolve(process.env.DEMO_ASSETS ?? path.join(HERE, 'assets'));
-const TYPE_DELAY = Number(process.env.TYPE_DELAY ?? 45);
+const TYPE_DELAY = Number(process.env.TYPE_DELAY ?? 55);
 const SIZE = { width: 1280, height: 720 };
 
 const STUDENT = { portal: 'Student', email: 'student@bgscet.ac.in', password: 'student123', home: /\/student(\?|$)/ };
@@ -145,7 +145,7 @@ async function card(page, title, sub, ms = 2800) {
   await page.waitForTimeout(500);
 }
 
-async function settle(page, ms = 2000) {
+async function settle(page, ms = 2600) {
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(ms);
 }
@@ -183,12 +183,12 @@ async function pick(page, loc, option) {
   await page.waitForTimeout(600);
 }
 
-async function scroll(page, dy, ms = 1300) {
+async function scroll(page, dy, ms = 1500) {
   await page.mouse.wheel(0, dy);
   await page.waitForTimeout(ms);
 }
 
-async function go(page, route, ms = 2000) {
+async function go(page, route, ms = 2600) {
   await page.goto(WEB + route, { waitUntil: 'domcontentloaded' });
   await settle(page, ms);
 }
@@ -198,7 +198,7 @@ async function nav(page, label) {
   const exact = page.getByRole('link', { name: label, exact: true });
   const loc = (await exact.count()) ? exact : page.locator('a', { hasText: label });
   await clickAt(page, loc);
-  await settle(page, 2000);
+  await settle(page, 2600);
 }
 
 const shots = new Set();
@@ -411,6 +411,7 @@ async function grantFunction(page, { person, access, fallbackAccess = 'Analytics
   await type(page, page.locator('#gov-reason'), reason);
   await clickAt(page, page.locator('.btn.primary', { hasText: /give access|grant/i }).first());
   await settle(page, 1600);
+  await scroll(page, -1200, 800);
 }
 
 async function approveApplication(page, name) {
@@ -804,7 +805,7 @@ async function segAlumni(page) {
     await type(page, page.locator('input[placeholder="e.g. Business Analyst"]'), 'Senior Analyst');
     await fillDate(page, page.locator('input[type="date"]').first(), '2025-07-14');
     await type(page, page.locator('input[placeholder="e.g. 2025"]'), '2025');
-    await attach(page, page.locator('.dt-btn', { hasText: /choose|resume|upload|pdf/i }).first(), page.locator('input[type="file"]'), asset('cv-priya-menon.pdf'));
+    await attach(page, page.locator('.dt-btn', { hasText: /choose|resume|upload|pdf/i }).first(), page.locator('input[type="file"]'), asset('resume-test-alumnus.pdf'));
     await clickAt(page, page.getByRole('button', { name: /create my profile|save/i }).first());
     await settle(page, 1600);
     await shot(page, 'alumni-profile');

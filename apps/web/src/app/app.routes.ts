@@ -530,6 +530,16 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/admin/audit/audit.component').then((m) => m.AdminAuditLogComponent),
       },
+      // Email delivery: the mail log, and whether the provider will deliver to
+      // an address at all. Main Admin alone — `mail_logs.recipient` is every
+      // address the deployment has ever written to, which is a roster of
+      // people by another name (see routers/admin_mail.py).
+      {
+        path: 'admin/mail',
+        canActivate: [roleGuard('ADMIN')],
+        loadComponent: () =>
+          import('./features/admin/mail/mail.component').then((m) => m.AdminMailComponent),
+      },
       // Courses and certifications are ONE screen: a certification only means
       // anything against the course it certifies, so they are read together.
       // Both paths resolve to it rather than leaving one a dead placeholder.

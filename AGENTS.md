@@ -194,9 +194,64 @@ half.
 
 **STAFF still activate, and that refusal is not vestigial.** `python -m app.grant_access` prints an activation link for any staff account created without `--password-hash`, and `POST /api/admin/users/{id}/activation-link` (Main Admin) mints or re-mints it on screen — **the on-screen link is permanent, not a stopgap**, because "the email never arrived" is a support call the admin should be able to close by reading out a link. `issue_activation` still refuses a STUDENT: a student's equivalent is the onboarding walk, which proves the mailbox with a code first. Links are rows in `auth_tokens` (`app/models/auth_token.py`): stored as **sha256, never raw**; consumed by **one atomic `UPDATE … WHERE consumed_at IS NULL`** whose row count is the arbiter; issuing a new one **supersedes** every older live one; activation lives 7 days, reset 1 hour. Six-digit CODES bend two of those rules and the set that says which is `CODE_PURPOSES` — hashed WITH their row id (six digits are not unique across users, and `uq_auth_token_hash` is global), found by (user, purpose) and never by hash, predecessors DELETED rather than kept. A code purpose left out of that set would be minted with a bare sha256 and could collide with somebody else's identical six digits: a 500 in the face of a person who typed the right code.
 
-`/auth/forgot` answers **the same 202 and the same words** whether the address is real, password-less or unknown, with the mail work in a background task so the timing matches too; it **now serves students**, who have a password to forget. `/auth/reset` puts every device out via `token_version`, kills other pending links and signs in nobody. Mail leaves through `app/mail_transport.py`: **Amazon SES** when `SES_FROM_ADDRESS` is set (task-role auth, no key to paste), otherwise a console transport that logs the message and keeps it in a bounded `outbox` — which is how a developer and the test suite read a link. **B3.7 SHIPPED ON 2026-09-15 and the sentences that said it had not are gone** (`config.py`, `leave_mail.py`, `.env.example`, `test_leave_mail.py`): the identity `sast-skills.com` is verified with DKIM, the account holds SES production access in ap-south-1, and the api task carries `no-reply@sast-skills.com`. Read `docs/ses-mail.md` before touching any of it — it is the decision record for **why the college's own `bgscet.ac.in` is NOT the sender** (its identity was left unverified and has been deleted; moving there costs three DKIM CNAMEs from college IT and a stack deploy, neither in this team's hands) and the runbook for `sesManaged`. **`LEAVE_MAIL_ENABLED` is true in production now and `settings.leave_mail_enabled` still defaults to FALSE**, and those are not in tension: the default is for a machine with no transport, where mail switched on writes a `mail_logs` row reading SENT about a message that reached NOBODY. Two things are worth knowing before trusting that row anywhere: SENT means SES ACCEPTED it, never that it arrived, and the bounce stream reaches an inbox and not this application — so an address on SES's account suppression list is delivered nothing while `mail_logs` keeps saying SENT. **That log line was going nowhere until 2026-09-10**: nothing ever called `logging.basicConfig`, so the root logger had no handler and sat at WARNING, and every `log.info` in `app/` was discarded in development AND in production. `app/main.py`'s lifespan configures it now — deliberately WITHOUT `force=True`, which removes handlers somebody else installed (it broke `test_boot_guard`'s caplog assertion while the message was still plainly on stderr). Screens: `/onboard` (three steps), `/activate` and `/reset` (one component, two modes), all outside the shell; `/account/password` inside it; and the login's inline "Forgot password?" form. Full record: `docs/institutional-spine-build-log.md`, round 4.
+`/auth/forgot` answers **the same 202 and the same words** whether the address is real, password-less or unknown, with the mail work in a background task so the timing matches too; it **now serves students**, who have a password to forget. `/auth/reset` puts every device out via `token_version`, kills other pending links and signs in nobody. Mail leaves through `app/mail_transport.py`: **Amazon SES** when `SES_FROM_ADDRESS` is set (task-role auth, no key to paste), otherwise a console transport that logs the message and keeps it in a bounded `outbox` — which is how a developer and the test suite read a link. **B3.7 SHIPPED ON 2026-09-15 and the sentences that said it had not are gone** (`config.py`, `leave_mail.py`, `.env.example`, `test_leave_mail.py`): the identity `sast-skills.com` is verified with DKIM, the account holds SES production access in ap-south-1, and the api task carries `no-reply@sast-skills.com`. Read `docs/ses-mail.md` before touching any of it — it is the decision record for **why the college's own `bgscet.ac.in` is NOT the sender** (its identity was left unverified and has been deleted; moving there costs three DKIM CNAMEs from college IT and a stack deploy, neither in this team's hands) and the runbook for `sesManaged`. **`LEAVE_MAIL_ENABLED` is true in production now and `settings.leave_mail_enabled` still defaults to FALSE**, and those are not in tension: the default is for a machine with no transport, where mail switched on writes a `mail_logs` row reading SENT about a message that reached NOBODY. One thing is still worth knowing before trusting that row anywhere: SENT means SES ACCEPTED it, never that it arrived. The sentence that used to follow it — that an address on SES's account suppression list is delivered nothing while `mail_logs` keeps saying SENT — is answered below, and it was answered because it happened. **That log line was going nowhere until 2026-09-10**: nothing ever called `logging.basicConfig`, so the root logger had no handler and sat at WARNING, and every `log.info` in `app/` was discarded in development AND in production. `app/main.py`'s lifespan configures it now — deliberately WITHOUT `force=True`, which removes handlers somebody else installed (it broke `test_boot_guard`'s caplog assertion while the message was still plainly on stderr). Screens: `/onboard` (three steps), `/activate` and `/reset` (one component, two modes), all outside the shell; `/account/password` inside it; and the login's inline "Forgot password?" form. Full record: `docs/institutional-spine-build-log.md`, round 4.
 
 **AND IT IS HOW A PASSWORD-LESS STUDENT GETS THEIR FIRST ONE (2026-09-16).** Every account `app.seed_roster` and `app.grant_access` mint, and every student provisioned before 2026-09-10, holds the `google-only` sentinel and was never sent a setup link — so such a student could sign in with Google and reach a password by NO path: `forgot` skipped the sentinel in silence (option B's reasoning, "mailing a link would quietly turn it into a password account", which is now the intended outcome), `change-password` answered 409 naming "the link you were emailed", and the console has no button for it. From the student's side that read as "I typed the right address and the code never came". A STUDENT holding the sentinel is now mailed the SETUP link (`account_links.issue_password_setup`, the same `PURPOSE_ONBOARD` token and the same three-step walk provisioning sends, with a mail that says why it arrived rather than "your registration has been approved"); the signed-in `/account/password` screen offers an "Email me a setup link" button that posts the same endpoint with the session's own address. STAFF holding the sentinel are still sent nothing there: their first password is the activation link the admin holds and can read out, and that link sets a password by itself. It is deliberately self-service rather than a console button, because a student's walk needs the mailbox TWICE (link, then code) — a link read out on the phone helps nobody whose mail is not arriving, and the student is the one person who can tell whether that inbox works. `tests/test_passwords.py` walks a sentinel student from `forgot` to a working password.
+
+**AN ADDRESS THE PROVIDER HAS GIVEN UP ON IS THE ONE MAIL FAILURE THAT LOOKS
+EXACTLY LIKE SUCCESS (2026-09-17).** Reported from production: a student could
+sign in with "Continue with Google" and no code ever arrived, on any path. The
+password code was not the bug — that chain is correct end to end, and the
+2026-09-16 setup-link branch above was already doing its job. What was wrong is
+that **a hard bounce or a complaint puts an address on SES's ACCOUNT SUPPRESSION
+LIST**, and SES then ACCEPTS every later send for it — a message id comes back,
+`deliver_once` writes SENT — and delivers nothing, for ever. A single bounce
+during the sandbox period suppresses an address that has been fine ever since.
+So the onboarding walk, "Forgot password?", `/account/password` and the
+setup-link button all told that student "we have emailed you a code", every
+time, truthfully as far as REEP could tell, and Google sign-in kept working
+because no mail is involved. **There was no error anywhere**: not a failed
+request, not a FAILED row, not a log line, not an alarm. A failure whose only
+symptom is that nothing happens will never be found by watching for errors.
+
+`mail_transport.suppression_for` asks SES about the recipient immediately
+before the send, and a suppressed address raises `SuppressedRecipient`
+**instead of being sent** — which routes it into the FAILED row, the `error`
+sentence and the `Mail send failed` CloudWatch line that every other mail
+failure has produced since 2026-09-15. Nothing new had to be built downstream;
+the case simply never reached what was already there. **The check FAILS OPEN**
+(no grant, a throttle, an unreachable region → send anyway): failing closed
+would turn one missing IAM permission into every student's link, which is a far
+worse outage than the one it guards, and the exception message deliberately
+carries the reason and the date but **never the recipient**, because
+`deliver_once` puts it in a log line that carries no address by design.
+
+**AND THE OFFICE CAN NOW SEE ANY OF THIS AT ALL.** `mail_logs` had been written
+on every send since the Prisma days and **read by nothing** — no endpoint, no
+screen, no script; `ix_maillog_sent_at` was added for "the ops mail screen" and
+that screen was never built. So "the code never came" could not be answered
+even at the first question, which is whether REEP tried. `routers/admin_mail.py`
+and `/admin/mail` ("Email delivery") are the reader: the log, filtered; a live
+**per-address** question to SES; and the lift, audited, because a suppressed
+address otherwise needs somebody with an AWS console. It is `require_admin` and
+**not a capability** — `mail_logs.recipient` is every address the deployment has
+ever written to, which is a roster of people by another name. The suppression
+answer is **asked, never stored**: it changes in both directions without REEP
+being involved, so a column would be stale exactly when it mattered — and
+`checked: false` renders as its own state, because "we asked and it is fine" and
+"we could not ask" are opposite facts (`X-Reep-Scope`'s rule, again).
+`ses:GetSuppressedDestination` and `ses:DeleteSuppressedDestination` are granted
+on the api task role; **`ses:ListSuppressedDestinations` is deliberately not**,
+and a synth guard keeps it off — the product only ever asks about an address it
+already holds, and List would hand a compromised task every address the
+deployment has ever bounced.
+
+**What this still does not see**, said plainly rather than left to be
+discovered: a transient bounce that does not suppress, and a message that was
+accepted and delivered to a spam folder. The suppression list is where a
+DURABLE delivery failure comes to rest, which is the one that produces "no code,
+ever, on every path"; a message that bounced once and will arrive next time is
+not that failure.
 
 **A REJECTED APPLICANT MAY APPLY AGAIN (2026-09-16).** `registrations.email` was UNIQUE outright and `submit`'s duplicate guard read every row, so an address the office had rejected — for a mistyped USN, say — met the deliberately opaque 409 on its corrected second attempt, and the rejection mail had sent them to the same office; neither side could see why. Migration `d7e2f9a41c86` replaces the constraint with `uq_registration_live_email`, a PARTIAL unique on `email WHERE status <> 'REJECTED'` (the `uq_mentor_assignment_one_open_spell` shape: one LIVE row, enforced by the database so two submissions racing the guard cannot both land), declared on the model with the same predicate. The guard reads the same rule, the REJECTED row stays as the record of that decision, and the reviewer's checklist on the new row carries `prior_applications` — a WARN naming the reason given last time, never a block. `tests/test_registration_reapply.py` pins all of it, including the index against the real schema.
 

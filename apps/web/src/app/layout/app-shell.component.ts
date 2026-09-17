@@ -238,6 +238,12 @@ export const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
         path: '/admin/audit',
         mainAdminOnly: true,
       },
+      {
+        label: 'Email delivery',
+        icon: 'mail',
+        path: '/admin/mail',
+        mainAdminOnly: true,
+      },
     ],
   },
 ];

@@ -255,6 +255,9 @@
           </button>
         </div>
       </div>
+      @if (openSessionFacts(); as facts) {
+        <p class="record-facts">{{ facts }}</p>
+      }
       @if (!record.audioRecorded && record.audioReason; as reason) {
         <p class="record-audio-reason" role="status">
           <span class="icon" aria-hidden="true">mic</span>

@@ -249,6 +249,11 @@ interface StudentInterviewSession {
   terminal_reason: string | null;
   final_phase: string | null;
   answers_accepted: number;
+  /** AGENTS.md's runbook pair: every turn the engine saw, and the rows that
+   *  landed. Both 0 on a row older than the counters; an older API omits them,
+   *  which the facts line reads as absent rather than as zero. */
+  turns_emitted?: number;
+  turns_persisted?: number;
   audio_recorded: boolean;
   started_at: string;
   ended_at: string | null;
@@ -1031,6 +1036,34 @@ export class InterviewRecordsComponent implements OnDestroy {
     return formatStartedAt(record.startedAt);
   });
 
+  /** The open interview's own session row, once the student's list has been
+   *  read for the trend chart — the same read, no second request. */
+  readonly openSession = computed<StudentInterviewSession | null>(() => {
+    const record = this.openRecord();
+    if (record === null) return null;
+    const sessions = this.sessionsByStudent()[record.studentId];
+    return sessions?.find((session) => session.id === record.sessionId) ?? null;
+  });
+
+  /** How the interview ended and what the engine kept, as facts on one line
+   *  (2026-09-17). A transcript with student turns and no interviewer turns
+   *  is either an interviewer that never spoke or a write path that dropped
+   *  its rows, and "N turns, M saved" is the one number that tells the office
+   *  which — the AGENTS.md runbook signal, on the screen instead of in a
+   *  database client. The close reason is the engine's own sentence. */
+  readonly openSessionFacts = computed<string | null>(() => {
+    const session = this.openSession();
+    if (session === null) return null;
+    const parts: string[] = [];
+    parts.push(session.terminal_reason ? `Ended: ${session.terminal_reason}` : 'Still running');
+    if (session.final_phase) parts.push(`stopped in ${session.final_phase.replace('_', ' ')}`);
+    parts.push(`${session.answers_accepted} answer${session.answers_accepted === 1 ? '' : 's'} counted`);
+    if (typeof session.turns_emitted === 'number' && typeof session.turns_persisted === 'number') {
+      parts.push(`${session.turns_emitted} turns, ${session.turns_persisted} saved`);
+    }
+    return parts.join(' · ');
+  });
+
   /** The selected student's interviews, oldest first — the trend the board
    *  draws beside the grid. */
   readonly scoreTrend = computed<ScoreTrendPoint[]>(() => {
@@ -1500,7 +1533,17 @@ export class InterviewRecordsComponent implements OnDestroy {
         this.colleges.set([]);
         return;
       }
-      this.colleges.set((await response.json()) as CollegeOption[]);
+      const colleges = (await response.json()) as CollegeOption[];
+      this.colleges.set(colleges);
+      if (colleges.length === 1 && this.policyCollege() === '') {
+        // One college on the deployment is one answer to "which college", so
+        // the card opens on it rather than on "Choose…" with the one option
+        // underneath. The office reached this card to tick a box and found a
+        // picker first; with more than one college the picker is a real
+        // question and stays.
+        this.policyCollege.set(colleges[0].id);
+        await this.loadPolicySheet();
+      }
     } catch {
       this.collegesBlocked.set('The list of colleges could not be read.');
       this.colleges.set([]);

@@ -767,7 +767,18 @@ that fake the upstream cannot see this, which is why two in
 **Connects, transcribes, plays no sound** — the client matches a *set* of audio
 event names for exactly this reason, so a name change upstream cannot mute the
 interviewer silently. Check the engine is emitting `response.audio.done` and that
-`audioOutput` frames are arriving in the API log.
+`audioOutput` frames are arriving in the API log. Open the record on the
+Interview records screen first: its facts line reads "N turns, M saved". N equal
+to the student turns alone means the model produced no reply the engine could
+record (no audio and no final text); N larger than M means the write path
+dropped rows, and the cause is logged as `Dropped interview turn`.
+
+**The transcript is in Hindi (or any language but English)** — Nova 2 Sonic
+auto-detects the language and switches, and `kiara`/`arjun` are its Hindi voices
+as well as its Indian-English ones. There is no language parameter; the prompt's
+"Language and turn-taking" note pins English and tells the model to ask for
+English. If a transcript still arrives in another script the word gate reads it
+word for word (`words_of`) rather than as empty, and "अगला प्रश्न" is a skip.
 
 **The interviewer asks two questions in a row at a phase boundary** — a control
 note landed after the model had begun its reply. This is the known trade in

@@ -80,13 +80,18 @@ describe('Interview records · the policy card', () => {
     globalThis.fetch = realFetch;
   });
 
-  it('reads the colleges when the screen opens, and an unconfigured college as the defaults', async () => {
+  it('reads the colleges when the screen opens, opens the only one, and reads an unconfigured college as the defaults', async () => {
     const fixture = TestBed.createComponent(InterviewRecordsComponent);
     const c = fixture.componentInstance;
     await until(() => c.colleges() !== null && !c.loading());
     expect(calls).toContain('GET /admin/colleges');
     expect(c.collegesBlocked()).toBeNull();
-    expect(c.policySheet()).toBeNull();
+    // ONE college on the deployment: the card opens on it rather than on
+    // "Choose…", because the office came here to tick a box, not to answer a
+    // question with one possible answer.
+    await until(() => c.policySheet() !== null);
+    expect(c.policyCollege()).toBe('c1');
+    expect(calls).toContain('GET /admin/interview-policies/c1');
 
     const pick = { target: { value: 'c1' } } as unknown as Event;
     await c.setPolicyCollege(pick);

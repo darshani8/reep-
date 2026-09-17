@@ -132,7 +132,6 @@ import asyncio
 import base64
 import json
 import logging
-import re
 import time
 from collections.abc import Callable
 from typing import Any, Final
@@ -156,6 +155,7 @@ from .interview_matrix import (
     nova_voice_for,
     phase_directive,
     turn_directive,
+    words_of,
 )
 
 # The payload records, the persona and the close codes are IMPORTED, never
@@ -415,16 +415,36 @@ def _control_note(body: str) -> str:
 # stopped (`nova_sonic_endpointing`); this decides what the model does with a
 # turn that was not an answer, which no endpointing setting can. Fixed text,
 # nothing about the student in it.
+#
+# THE LANGUAGE IS PINNED HERE, AND IT HAS TO BE (2026-09-17). Nova 2 Sonic
+# "supports multilingual with automatic language detection and switching",
+# and `kiara` and `arjun` -- the HR and BA voices -- are its en-IN AND its
+# hi-IN voices. There is no language parameter on the session; the only
+# lever is the prompt. Left unpinned, an Indian-accented "hello, hi, I'm
+# Darshan" was transcribed in Devanagari and the model followed the student
+# into Hindi, on an interview whose persona, question bank and scorecard are
+# all English.
+#
+# AND IT SAYS TO ALWAYS ANSWER OUT LOUD. The first draft of this note said
+# "wait for the student" and "never answer for them", which a model can read
+# as permission to say nothing; an interviewer that says nothing is a student
+# saying "next question" into silence until they give up.
 _TURN_TAKING_NOTE: Final[str] = (
-    "\n\n## Turn-taking\n"
-    "Let the student finish. A pause of a few seconds is the student "
-    "thinking, not the end of their answer; never rush them and never answer "
-    "for them. If you are cut off by a sound, a single word or a filler "
-    '("hmm", "okay", "yes", "sorry"), that was not an answer: do not react '
-    "to it, pick up the question you were asking, briefly, and wait for the "
-    "student. If what you hear is your own question repeated back, that is an "
-    "echo from the student's speakers, not the student: ignore it and ask the "
-    "question again, briefly. "
+    "\n\n## Language and turn-taking\n"
+    "This interview is conducted in English, whatever the student's accent. "
+    "Speak only English, and understand and transcribe the student's speech "
+    "as English. If the student answers in another language, ask them "
+    "politely, in English, to continue in English, and carry on.\n"
+    "Always reply out loud when the student's turn ends -- the one-sentence "
+    "micro-feedback and your next question -- and never answer with silence. "
+    "Let the student finish an answer: a pause of a few seconds is the "
+    "student thinking, not the end of it, so do not rush them. If you are "
+    'cut off by a sound, a single word or a filler ("hmm", "okay", "yes", '
+    '"sorry"), that was not an answer: do not treat it as one -- pick up the '
+    "question you were asking, briefly, and let the student answer it. If "
+    "what you hear is your own question repeated back, that is an echo from "
+    "the student's speakers, not the student: ask the question again, "
+    "briefly. "
     f"{SKIP_RULE}"
 )
 
@@ -445,7 +465,6 @@ _INTERRUPTION_ANSWER_WINDOW_S: Final[float] = 20.0
 # this many words, covering at least this share of the transcript.
 _ECHO_MIN_RUN_WORDS: Final[int] = 6
 _ECHO_MIN_COVERAGE: Final[float] = 0.8
-_ECHO_WORD_RE: Final[re.Pattern[str]] = re.compile(r"[a-z0-9']+")
 
 
 def _longest_common_run(a: list[str], b: list[str]) -> int:
@@ -480,8 +499,10 @@ def _looks_like_echo(transcript: str, interviewer_said: str) -> bool:
     drags the coverage under the bar -- and a five-word fragment is judged by
     the word gate, not here.
     """
-    heard = _ECHO_WORD_RE.findall(transcript.casefold())
-    said = _ECHO_WORD_RE.findall(interviewer_said.casefold())
+    # `words_of`, the gate's own tokeniser, so a transcript in any script is
+    # compared word for word rather than read as having no words at all.
+    heard = words_of(transcript)
+    said = words_of(interviewer_said)
     if len(heard) < _ECHO_MIN_RUN_WORDS or not said:
         return False
     run = _longest_common_run(heard, said)

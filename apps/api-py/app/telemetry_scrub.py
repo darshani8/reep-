@@ -83,7 +83,7 @@ QUERY_ALLOW = frozenset(
 #: routinely medical. The module deliberately keeps that field out of every
 #: message it builds, and the mute is the layer that holds when somebody adds a
 #: debug line while chasing "why did this mail not go".
-MUTED_LOGGERS = frozenset({"app.mail_transport", "app.leave_mail"})
+MUTED_LOGGERS = frozenset({"app.mail_transport", "app.leave_mail", "app.badge_mail"})
 
 #: Header names the SDK already substitutes under send_default_pii=False. They
 #: are removed here as well so the invariant holds if that flag is ever changed

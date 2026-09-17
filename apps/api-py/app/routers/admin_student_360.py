@@ -17,11 +17,30 @@ the console performs, and a trail that logs every read buries the writes it
 exists to show. Nothing here mutates a row, and nothing here calls a model, so
 rule 1's egress gate is not on this path.
 
+ITS KEY IS `admin.student_records` (2026-09-17), NOT THE ROSTER'S. The roster
+key, `admin.students`, is the WRITE -- it edits and moves rows -- and this read
+used to hang on it, so the office could not hand "look at this candidate's
+complete details" to a faculty member without also handing them the editor.
+The split is the reason the View button exists on the roster and the "Full
+record" link on the Mentee Log: the Main Admin holds both keys by baseline and
+sees no difference; a faculty member holds whichever the office granted.
+
+WHAT "COMPLETE" MEANS HERE, and the two panels that were missing from it. The
+read carried identity, login, every semester, readiness, open items, the mentor
+and the trail, and it named the profile fields the office still needed WITHOUT
+showing the ones already filled in: the phone number, the contact email, the
+LinkedIn profile, the city, the career summary. And the student's DOCUMENTS
+had no by-id read anywhere -- the Uploads tab on the screen was disabled with
+that reason on it. Both are on the payload now (`profile`, `documents`), and
+the file behind a document is streamed by `GET /mentor/uploads/{id}/file`,
+which is rule 2's gate applied to a file: the Main Admin reaches every one, a
+granted MENTOR their own mentees'.
+
 BOTH FENCES, SEPARATELY (AGENTS.md, "Phase 3 added a THIRD fence beside that
 one"). This endpoint names a student in the path, which is the exact shape rule
 2 governs, so:
 
-  * `require_capability(db, session, "admin.students", target=ancestry_of_student(...))`
+  * `require_capability(db, session, CAPABILITY, target=ancestry_of_student(...))`
     asks may-you-at-all AND may-you-HERE — B1.2's question, the same pair
     `admin_students.update_student` asks before an edit; and
   * `_assert_can_access_student` asks rule 2's question, which is stricter on a
@@ -83,12 +102,17 @@ from ..semester_bounds import course_for_cohort
 # B9.1's history, composed ONCE and read here through this module's own two
 # fences. See `compose_mentor_history` for why it is not a second query.
 from .admin_mentoring import MentorAssignmentOut, compose_mentor_history
-from .admin_students import CAPABILITY as STUDENTS_CAPABILITY
 from .admin_students import AdminStudentOut, _one, _student_or_404
 from .mentor import _assert_can_access_student
 from .student import compose_placement_readiness, PlacementReadinessOut
 
 router = APIRouter(prefix="/admin", tags=["admin-students"])
+
+#: The read side of the roster, split off `admin.students` on 2026-09-17 -- see
+#: the module docstring and the catalogue entry in models/governance.py. A
+#: plain module constant so `tools/ci/check_capability_enforcement.py` resolves
+#: the name at the two call sites below.
+CAPABILITY = "admin.student_records"
 
 #: How many sign-ins and audit rows the panel carries. Both are "the recent
 #: ones" on a detail screen, not a log viewer: the whole trail for a student is
@@ -288,9 +312,56 @@ class AuditRow360Out(BaseModel):
     route: str | None
 
 
+class Profile360Out(BaseModel):
+    """The contact and profile details the student filled in, as they stand.
+
+    `on_record` is False when the student has never saved a profile at all --
+    every field is then null, and the screen says "no profile yet" rather than
+    printing eight dashes that read as eight blanks the student left. `skills`
+    is whatever the student typed on their profile, verbatim; the VERIFIED
+    skills are a different list (`GET /mentor/students/{id}/badges`).
+    """
+
+    on_record: bool
+    phone: str | None
+    contact_email: str | None
+    linkedin_url: str | None
+    github_url: str | None
+    portfolio_url: str | None
+    city: str | None
+    career_summary: str | None
+    placement_eligible: bool | None
+    interested_in_jobs: bool | None
+    interested_in_internships: bool | None
+    skills: list[str]
+    education_entries: int
+    experience_entries: int
+    project_entries: int
+    achievement_entries: int
+    updated_at: datetime | None
+
+
+class Document360Out(BaseModel):
+    """One row of `uploads`, with its verdict. The bytes are behind
+    `GET /mentor/uploads/{id}/file`, rule 2's gate applied to a file."""
+
+    id: str
+    kind: str
+    title: str
+    original_name: str
+    mime_type: str
+    size_bytes: int
+    status: str
+    review_note: str | None
+    reviewed_at: datetime | None
+    uploaded_at: datetime
+
+
 class Student360Out(BaseModel):
     identity: AdminStudentOut
     login: Login360Out
+    profile: Profile360Out
+    documents: list[Document360Out]
     #: The course's semester count when the course names one (B4.1), so the
     #: screen can say "semester 3 of 8". Null on a batch whose course has not
     #: been given a shape, and the client must not fall back to 8.
@@ -405,6 +476,77 @@ def _login_panel(db: Session, user: User) -> Login360Out:
             for e in events
         ],
     )
+
+
+def _names(values: list | None) -> list[str]:
+    """A profile's `skills` JSON as a list of words. The column is untyped --
+    a student's profile stores whatever the profile form sent -- so a string is
+    kept, a dict is read for the name-like key it carries, and anything else is
+    dropped rather than rendered as `[object Object]`."""
+    out: list[str] = []
+    for value in values or []:
+        if isinstance(value, str):
+            text = value.strip()
+        elif isinstance(value, dict):
+            text = str(value.get("name") or value.get("skill") or value.get("title") or "").strip()
+        else:
+            text = ""
+        if text:
+            out.append(text)
+    return out
+
+
+def _profile_panel(db: Session, student: Student) -> Profile360Out:
+    profile = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student.id))
+    if profile is None:
+        return Profile360Out(
+            on_record=False,
+            phone=None, contact_email=None, linkedin_url=None, github_url=None,
+            portfolio_url=None, city=None, career_summary=None,
+            placement_eligible=None, interested_in_jobs=None, interested_in_internships=None,
+            skills=[], education_entries=0, experience_entries=0, project_entries=0,
+            achievement_entries=0, updated_at=None,
+        )
+    return Profile360Out(
+        on_record=True,
+        phone=profile.phone or None,
+        contact_email=profile.email or None,
+        linkedin_url=profile.linkedin_url or None,
+        github_url=profile.github_url or None,
+        portfolio_url=profile.portfolio_url or None,
+        city=profile.city or None,
+        career_summary=profile.career_summary or None,
+        placement_eligible=profile.placement_eligible,
+        interested_in_jobs=profile.interested_in_jobs,
+        interested_in_internships=profile.interested_in_internships,
+        skills=_names(profile.skills),
+        education_entries=len(profile.education or []),
+        experience_entries=len(profile.experience or []),
+        project_entries=len(profile.projects or []),
+        achievement_entries=len(profile.achievements or []),
+        updated_at=profile.updated_at,
+    )
+
+
+def _documents_panel(db: Session, student: Student) -> list[Document360Out]:
+    rows = db.scalars(
+        select(Upload).where(Upload.student_id == student.id).order_by(Upload.uploaded_at.desc())
+    ).all()
+    return [
+        Document360Out(
+            id=u.id,
+            kind=u.kind.value,
+            title=u.title,
+            original_name=u.original_name,
+            mime_type=u.mime_type,
+            size_bytes=u.size_bytes,
+            status=u.status.value,
+            review_note=u.review_note,
+            reviewed_at=u.reviewed_at,
+            uploaded_at=u.uploaded_at,
+        )
+        for u in rows
+    ]
 
 
 def _open_items(db: Session, student: Student) -> OpenItems360Out:
@@ -643,16 +785,14 @@ def student_360(
     db: Session = Depends(get_db),
 ) -> Student360Out:
     """Everything the office opens a student's record to see, in one read."""
-    require_capability(db, session, STUDENTS_CAPABILITY)
+    require_capability(db, session, CAPABILITY)
     student, user = _student_or_404(db, student_id)
     # B1.2: may you do it HERE. Asked after the row is loaded because the
     # ancestry is a property of the student, and asked BEFORE anything is read
-    # off them. A holder of `admin.students` scoped to another department gets
-    # the same 403 they get on an edit — the list being narrowed is decoration
-    # if the detail behind it is not.
-    require_capability(
-        db, session, STUDENTS_CAPABILITY, target=ancestry_of_student(db, student.id)
-    )
+    # off them. A holder of `admin.student_records` scoped to another
+    # department gets the same 403 they would get on an edit — the list being
+    # narrowed is decoration if the detail behind it is not.
+    require_capability(db, session, CAPABILITY, target=ancestry_of_student(db, student.id))
     # Rule 2, separately and always. A MENTOR holding this capability still sees
     # only their own group, and a MENTOR with no group sees nobody — never the
     # whole programme. A capability can never relax the student filter.
@@ -688,6 +828,8 @@ def student_360(
     return Student360Out(
         identity=_one(db, student.id),
         login=_login_panel(db, user),
+        profile=_profile_panel(db, student),
+        documents=_documents_panel(db, student),
         total_semesters=total_semesters,
         semesters=semesters,
         semester_history=[

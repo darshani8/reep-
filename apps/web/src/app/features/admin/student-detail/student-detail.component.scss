@@ -348,3 +348,11 @@
   padding-top: 10px;
   border-top: 1px solid var(--hairline-26);
 }
+
+/* The skills a student typed on their profile, as chips on the contact card. */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 10px;
+}

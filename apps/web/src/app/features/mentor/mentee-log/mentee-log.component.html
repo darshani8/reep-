@@ -54,7 +54,18 @@
       <div class="ml-main">
         @if (selected(); as s) {
           <div class="card ml-compose">
-            <div class="ml-card-title">Log a meeting with {{ s.name }}</div>
+            <div class="ml-card-title ml-card-title--row">
+              <span>Log a meeting with {{ s.name }}</span>
+              <!-- Drawn only for a holder of "View student records" (a grant
+                   the Main Admin makes in Governance): the mentee's complete
+                   record — contact details, results, attendance, documents,
+                   badges, interviews. -->
+              @if (canOpenRecord()) {
+                <a class="btn ghost sm" [routerLink]="['/admin/students', s.student_id]">
+                  <span class="icon" aria-hidden="true">visibility</span> Full record
+                </a>
+              }
+            </div>
             <div class="ml-grid">
               <label class="ml-field">
                 Heading <span class="ml-opt">(optional)</span>

@@ -18,6 +18,7 @@ from ..governance import require_capability
 from ..document_store import content_disposition, read_bytes
 from ..identity import get_current_session
 from ..models.alert import Alert
+from ..models.badge import BadgeEvidence, EvidenceStatus
 from ..models.lab import LabSession
 from ..models.mentor_note import MentorAction, MentorNote
 from ..models.offer import OfferStatus, PlacementOffer
@@ -567,13 +568,29 @@ def pending_uploads(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[UploadOut]:
     """Documents awaiting review — profile photos, certificate proofs, offer
-    letters — scoped to the mentor's own group (the Main Admin sees all)."""
+    letters — scoped to the mentor's own group (the Main Admin sees all).
+
+    A CERTIFICATE THAT BACKS A PENDING BADGE CLAIM IS NOT LISTED HERE
+    (2026-09-17). The Skilling claim form stores the certificate through
+    `POST /student/uploads` and then files `badge_evidence` against it, so the
+    same file used to sit in this queue AND in the claim queue on the same
+    screen, and the two could be decided differently — the document verified,
+    the claim rejected. Reviewing the claim now decides the certificate with
+    it (`badge_verification.review_evidence`), so while the claim is pending
+    the file is the claim's and appears once, on the claim card. A document no
+    claim stands on — a photo, an offer letter, a report — is reviewed here
+    exactly as before.
+    """
     require_mentor(session)
+    claimed = select(BadgeEvidence.upload_id).where(
+        BadgeEvidence.status == EvidenceStatus.PENDING_VERIFICATION,
+        BadgeEvidence.upload_id.is_not(None),
+    )
     query = (
         select(Upload, User.name)
         .join(Student, Upload.student_id == Student.id)
         .join(User, Student.user_id == User.id)
-        .where(Upload.status == UploadStatus.PENDING_REVIEW)
+        .where(Upload.status == UploadStatus.PENDING_REVIEW, Upload.id.not_in(claimed))
     )
     if session["role"] == "MENTOR":
         mentor_id = session.get("mentorId")

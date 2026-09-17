@@ -177,6 +177,23 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     # time (app/routers/admin_students.py). PROGRAMME and personal: it creates,
     # edits and deletes roster rows - the access control itself.
     Capability("admin.students", "Students", _P, carries_pii=True),
+    # ONE STUDENT'S WHOLE RECORD (2026-09-17): `GET /admin/students/{id}/360`,
+    # the screen behind the View button on the roster and the "Full record"
+    # link on a faculty member's Mentee Log. Its own key, split off
+    # `admin.students`, because the roster key is the WRITE -- it edits and
+    # moves roster rows -- and reading a candidate's complete details (contact
+    # details, every semester's results, attendance, the documents they
+    # uploaded and each one's verdict, badges, interviews, the trail) is a
+    # decision the office should be able to hand to a faculty member without
+    # also handing them the roster editor. PROGRAMME, narrowed by B1.2's scope
+    # on the student's ancestry, and rule 2 still runs underneath: a MENTOR
+    # granted it opens their OWN mentees' records and nobody else's.
+    # `carries_pii` for the obvious reason -- it is the most complete view of a
+    # student the console has -- so a DEPUTY's grant waits for a second
+    # signature and the Main Admin's is live at once. The Main Admin holds it
+    # by baseline through `_ALL`, which is what puts "candidate complete
+    # details" in front of the office with no grant to make.
+    Capability("admin.student_records", "View student records", _P, carries_pii=True),
     # B8.1's spreadsheet imports (app/routers/admin_imports.py). PROGRAMME,
     # because an import is FOR A BATCH and no mentor group narrows a batch - the
     # rung it hangs on is the college or the batch itself, which is a B1.2 scope

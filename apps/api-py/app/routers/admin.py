@@ -359,6 +359,11 @@ COLLEGE_ADMIN_CAPABILITIES: tuple[str, ...] = (
     "admin.analytics",
     "admin.registrations",
     "admin.students",
+    # The roster's read side (2026-09-17): a college admin who may edit a row
+    # may open the record behind it. Granted beside `admin.students` rather
+    # than folded into it, so the office can still hand ONLY the read to a
+    # faculty member in Governance.
+    "admin.student_records",
     "admin.mentors",
     "admin.institution",
     "admin.catalogue",

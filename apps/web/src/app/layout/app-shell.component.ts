@@ -341,6 +341,14 @@ const ALUMNI_NAVIGATION: readonly NavigationGroup[] = [
  * capability with no row here is a grant that changes nothing on screen, so
  * this list and the catalogue in app/models/governance.py are kept in step.
  *
+ * ONE KEY HAS NO ROW ON PURPOSE: `admin.student_records` (2026-09-17) opens a
+ * PER-STUDENT screen, /admin/students/:id, and there is no list to put in a
+ * sidebar. It is reached from the roster's View button (a holder of
+ * `admin.students`) and from the "Full record" link on a faculty member's own
+ * Mentee Log (a holder of `mentor.mentees`) — the two places a person who
+ * may read a record already meets the student, and rule 2 narrows a faculty
+ * holder to their own mentees on the way through.
+ *
  * THE REDESIGNED SCREENS ARE HERE TOO. Left out, a faculty member granted
  * `admin.institution` would pass /admin/colleges' route guard with no row
  * anywhere offering it — reachable only by typing the URL, which is the exact

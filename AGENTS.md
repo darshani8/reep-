@@ -1182,6 +1182,93 @@ cohort CSV at `/api/admin/badges/export.csv`). Staff reads reuse
 screen. Rule 1 untouched (nothing here calls a model); rule 2 via
 `_assert_can_access_student`, with the pending queue narrowed in SQL.
 
+### The claim-to-verification walk, and the day every upload was refused at the edge (2026-09-17)
+
+**EVERY FILE UPLOAD IN THE PRODUCT WAS ANSWERED 403 BY THE WAF, AND THE SCREEN
+SAID THE FILE WAS THE WRONG KIND.** `infra/cdk/reep_core/edge.py` applies
+`AWSManagedRulesCommonRuleSet` to the CloudFront distribution, and that group's
+`SizeRestrictions_BODY` rule blocks any request body over 8 KB. A certificate
+on Skilling, the CV and photo `/register` requires, a leave attachment, a
+faculty signature, an alumni resume, an upskilling certificate — every one is a
+multipart POST far past 8 KB, refused before CloudFront, the ALB or the API saw
+it, with a body that is not JSON. The Skilling client read no `detail` and
+printed its fallback, "Certificate upload failed (PDF or JPEG, up to 5 MB)", so
+a student attaching a 2 MB JPEG was told their JPEG was the wrong file, and the
+one fact that pointed at the edge — the status code — was the one thing the
+message left out. Nothing in the API could catch it and nothing in the suite:
+the WAF exists only in front of the deployment. The rule is COUNTED now
+(`COMMON_RULE_SET_COUNTED`, harden phase only, so the import mirror stays
+byte-identical), pinned by `test_the_common_rule_set_counts_the_body_size_rule_
+so_uploads_reach_the_api`, and **it takes a deploy of the `edge-waf` option in
+`cdk-deploy.yml` to take effect** — a merged infra fix that is never deployed
+costs exactly as much as never writing it. The API bounds every body itself
+(`document_store.MAX_BYTES`, the per-handler `read(MAX + 1)`), which is why the
+edge rule is counted and not scoped down to a hand-kept list of upload paths.
+Every upload client now prints the server's sentence or the STATUS
+(`detailOf`, the verifications screen's helper copied where it was missing), so
+the next refusal at the edge reads "(403)" and not a sentence about JPEGs.
+
+**THE CLAIM FORM FILED INTO A QUEUE THE MENTOR'S SCREEN NEVER OPENED.**
+`/student/skilling` stores the certificate through `POST /student/uploads` and
+files `badge_evidence` against it (`POST /student/badges/{code}/evidence`);
+`/mentor/verifications` read `GET /mentor/skill-claims/pending` — the legacy
+`skill_claims` table, which no client has written to since the Skilling screen
+replaced the per-skill claim form. Every claim a student filed went into a
+queue nobody's screen listed, and the mentor saw "Nothing waiting for your
+review" over a growing list of real claims. The screen reads
+`/mentor/badge-evidence/{pending,reviewed}` now, with the file name on each
+row, and the `skill-claims` endpoints stay only for the resume builder's read.
+Three decisions: APPROVE lights the badge, MORE_INFO sends it back, REJECT
+refuses it — **and the last two are 422 without a note**, because the note is
+the whole of what the student is told, on screen and by mail. **One decision
+writes both rows**: the certificate behind a claim was PENDING_REVIEW in the
+Documents queue on the same screen, decidable in the opposite direction, so
+`review_evidence` now writes the claim's verdict onto the upload too (VERIFIED /
+NEEDS_CHANGES / REJECTED, same reviewer, same note — never over a verdict the
+document already carries), and `pending_uploads` leaves out a file a pending
+claim stands on. The board draws the mentor's approval as a BLUE `verified`
+tick on an EARNED tile and nothing else: an unclaimed badge is unmarked, a
+claim in review wears a clock, and the tap-to-preview lights the hexagon
+without the tick, because a preview that wore it would be indistinguishable
+from a verified badge. `tests/test_skill_claim_flow.py` walks all of it.
+
+**MAIL: THE MENTOR HEARS OF THE CLAIM, THE STUDENT OF THE DECISION, AND THE
+SWITCH IS DERIVED.** `app/badge_mail.py`, through `mailer.deliver_once` — keys
+`badge-claim:{id}` (one message per claim, however often it is retried) and
+`badge-decision:{id}:{status}` (stable per transition, different per
+transition). Both run AFTER the commit and never raise. The student's mail
+carries the reviewer's note: unlike a leave approver's note, which is written
+for the office's file and stays out of the mail, this one is written TO the
+student and the API refuses a rejection without it. Nothing from the record
+travels — no USN, no marks, no certificate. `settings.badge_mail_active` is
+`password_login`'s three-state idiom and deliberately NOT `leave_mail_enabled`'s
+boolean: `BADGE_MAIL_ENABLED=true` forces on (the console outbox), `false`
+forces off, and blank DERIVES the answer from `mail_configured`. That protects
+the machine `leave_mail_enabled`'s false default protects — no transport, no
+SENT row about a message nobody received — and turns the notifications on for
+the production task, which already carries `SES_FROM_ADDRESS`, with no second
+variable in a task definition to remember. `app.badge_mail` is muted from
+Sentry beside `app.leave_mail`.
+
+**A CANDIDATE'S COMPLETE DETAILS ARE THE OFFICE'S, AND THE OFFICE MAY HAND THE
+READ TO A FACULTY MEMBER.** `admin.student_records` ("View student records",
+PROGRAMME, `carries_pii`) is the read side of the roster, split off
+`admin.students`, which is the EDITOR. `GET /admin/students/{id}/360` and the
+route `/admin/students/:id` hang on it; the Main Admin holds both keys by
+baseline and sees no difference, a faculty member holds whichever Governance
+granted, and rule 2 still runs underneath — a granted MENTOR opens their OWN
+mentees' records and nobody else's. Two panels were missing from "complete":
+the profile as FILLED IN (the open-items card named only the gaps) and the
+student's DOCUMENTS, which had no by-id read anywhere; both are on the
+composite read now (`profile`, `documents`), the Documents tab is real, and
+the bytes stream through `GET /mentor/uploads/{id}/file` — rule 2's gate
+applied to a file. The way in: a **View** eye beside the pencil in the
+roster's pinned actions column (the Student column's link was the only route
+to a record and that column can be hidden — the office had), and a **Full
+record** link on the Mentee Log for a faculty holder. The key has NO sidebar
+row on purpose — it opens a per-student screen, and `GRANTABLE_ADMIN_SCREENS`
+says so where the next reader will look for it.
+
 ## Reachability and keyboard access — what a full browser audit found (2026-09-10)
 
 All 38 routes were driven in a real browser as all four roles. **The business

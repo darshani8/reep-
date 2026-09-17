@@ -71,6 +71,7 @@ import {
   DEFAULT_ROSTER_COLUMN,
   ROSTER_COLUMNS,
   type RosterGridContext,
+  type RosterRowAction,
   ROSTER_ROW_SELECTION,
   ROSTER_SELECTION_COLUMN,
   TOGGLEABLE_ROSTER_COLUMNS,
@@ -167,19 +168,19 @@ export class AdminStudentsComponent {
    *
    * `canOpenDetail` is a CONVENIENCE AND NOT A PERMISSION — /admin/students/:id
    * decides for itself, and so does every endpoint behind it. What it buys is
-   * that the roster does not draw a link the guard would refuse.
+   * that the roster does not draw a link or a View button the guard would
+   * refuse.
    *
-   * It read `ui.console_v2` until Phase 5, because Student 360 was one of the
-   * redesigned screens and carried the preview switch as well as this screen's
-   * key. With the switch deleted the two routes name the SAME capability, so
-   * this is true for everyone who got as far as reading the roster. It is kept
-   * reading the key rather than hard-coded to `true` deliberately: it is a
-   * MIRROR of /admin/students/:id's route guard, and a mirror that stops
-   * tracking its subject is worse than no mirror. Change that guard and change
-   * this line in the same edit.
+   * It is a MIRROR of /admin/students/:id's route guard, which checks
+   * `admin.student_records` (2026-09-17) — the read side of the roster, split
+   * off this screen's own `admin.students` so the office can grant a faculty
+   * member the record without the editor. The Main Admin holds both; a
+   * granted faculty member may hold either, so the two keys are read
+   * separately here. A mirror that stops tracking its subject is worse than
+   * no mirror: change that guard and change this line in the same edit.
    */
   readonly gridContext = computed<RosterGridContext>(() => ({
-    canOpenDetail: (this.auth.session()?.capabilities ?? []).includes('admin.students'),
+    canOpenDetail: (this.auth.session()?.capabilities ?? []).includes('admin.student_records'),
   }));
 
   readonly stages = STAGES;
@@ -949,7 +950,11 @@ export class AdminStudentsComponent {
     this.gridApi?.setColumnsVisible([columnId], !wasVisible);
   }
 
-  /** The Student column's link, and the pencil, both arrive here. */
+  /** The Student column's link, the View eye and the Edit pencil all arrive
+   *  here. The actions cell holds two buttons, so the one that was pressed is
+   *  read off its `data-action`; a click on the cell's padding does nothing,
+   *  because a whole-cell click that opened the editor was one stray tap away
+   *  from a form nobody asked for. */
   onCellClicked(event: CellClickedEvent<RosterRow>): void {
     const row = event.data;
     if (!row) return;
@@ -958,13 +963,24 @@ export class AdminStudentsComponent {
       event.event?.preventDefault();
       // Same condition the renderer drew the anchor on: without it the cell is
       // plain text and a click here would navigate to a guard that bounces.
-      if (this.gridContext().canOpenDetail) {
-        void this.router.navigate(['/admin/students', row.studentId]);
-      }
+      this.openRecord(row);
       return;
     }
     if (columnId === 'actions') {
-      this.startEdit(row);
+      const target = event.event?.target as HTMLElement | null;
+      const action = target?.closest<HTMLElement>('[data-action]')?.dataset['action'] as
+        | RosterRowAction
+        | undefined;
+      if (action === 'view') this.openRecord(row);
+      else if (action === 'edit') this.startEdit(row);
+    }
+  }
+
+  /** Student 360 for this row — only when the reader holds its key, the same
+   *  condition the renderer drew the link and the View button on. */
+  openRecord(row: RosterRow): void {
+    if (this.gridContext().canOpenDetail) {
+      void this.router.navigate(['/admin/students', row.studentId]);
     }
   }
 

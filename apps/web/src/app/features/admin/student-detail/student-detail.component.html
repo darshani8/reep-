@@ -489,6 +489,58 @@
           </div>
 
           <div class="column">
+            <!-- Contact & profile (2026-09-17): the values, where the open-items
+                 card lists only the gaps. Read off the composite record. -->
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h2 class="card-title">Contact &amp; profile</h2>
+                  <div class="card-sub">As the student filled it in.</div>
+                </div>
+              </div>
+              @if (profile(); as profile) {
+                @if (profile.on_record) {
+                  <dl class="facts">
+                    @for (fact of profileFacts(); track fact.label) {
+                      <div class="fact">
+                        <dt>{{ fact.label }}</dt>
+                        <dd>
+                          @if (fact.href) {
+                            <a [href]="fact.href" target="_blank" rel="noopener">{{ fact.value }}</a>
+                          } @else {
+                            {{ fact.value }}
+                          }
+                        </dd>
+                      </div>
+                    }
+                  </dl>
+                  @if (profile.career_summary) {
+                    <h3 class="soft sub-heading">Career summary</h3>
+                    <p class="readiness-summary">{{ profile.career_summary }}</p>
+                  }
+                  @if (profile.skills.length > 0) {
+                    <h3 class="soft sub-heading">Skills listed on the profile</h3>
+                    <div class="chip-row">
+                      @for (skill of profile.skills; track skill) {
+                        <span class="chip neutral">{{ skill }}</span>
+                      }
+                    </div>
+                  }
+                  <div class="soft">{{ profilePreferences() }}</div>
+                  <div class="soft">{{ profileSections() }}</div>
+                } @else {
+                  <div class="empty">
+                    <span class="icon" aria-hidden="true">person</span>No profile yet — the student
+                    has not saved one.
+                  </div>
+                }
+              } @else {
+                <div class="empty">
+                  <span class="icon" aria-hidden="true">person</span>{{ notReadable }}
+                </div>
+              }
+            </div>
+
             <div class="card">
               <div class="card-head">
                 <div><h2 class="card-title">Mentor</h2></div>
@@ -899,6 +951,78 @@
       }
 
       <!-- =============================================== INTERVIEWS ===== -->
+      <!-- ================================================ DOCUMENTS ===== -->
+      @case ('documents') {
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Documents</h2>
+              <div class="card-sub">
+                Every file this student has uploaded, with the reviewer's verdict.
+              </div>
+            </div>
+            @if (pendingDocumentCount() > 0) {
+              <div class="card-actions">
+                <span class="chip warn">{{ pendingDocumentCount() }} pending review</span>
+              </div>
+            }
+          </div>
+          @if (documents().length > 0) {
+            <div class="table-scroll">
+              <table class="dt-table">
+                <caption class="sr-only">Documents uploaded by {{ studentName() }}</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Document</th>
+                    <th scope="col">Kind</th>
+                    <th scope="col">Uploaded</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Reviewer's note</th>
+                    <th scope="col"><span class="sr-only">Open</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (document of documents(); track document.id) {
+                    @let verdict = documentChip(document.status);
+                    <tr>
+                      <td>
+                        <b>{{ document.title }}</b>
+                        <div class="soft">
+                          {{ document.original_name }} · {{ documentSize(document.size_bytes) }}
+                        </div>
+                      </td>
+                      <td>{{ documentKind(document.kind) }}</td>
+                      <td>{{ formatMoment(document.uploaded_at) }}</td>
+                      <td>
+                        <span class="chip {{ verdict.tone }}">{{ verdict.label }}</span>
+                        @if (document.reviewed_at) {
+                          <div class="soft">{{ formatMoment(document.reviewed_at) }}</div>
+                        }
+                      </td>
+                      <td>{{ document.review_note || notReadable }}</td>
+                      <td>
+                        <a
+                          class="btn ghost sm"
+                          [href]="documentFileUrl(document.id)"
+                          target="_blank"
+                          rel="noopener"
+                        >
+                          <span class="icon" aria-hidden="true">open_in_new</span> Open
+                        </a>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="empty">
+              <span class="icon" aria-hidden="true">folder_open</span>No documents uploaded yet.
+            </div>
+          }
+        </div>
+      }
+
       @case ('interviews') {
         <div class="card">
           <div class="card-head">

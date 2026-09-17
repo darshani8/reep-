@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Turn the recorder's .webm captures into MP4s (H.264, plays everywhere —
-# PowerPoint, phones, browsers) and one combined walkthrough.
+# PowerPoint, phones, browsers) at their capture size, and one combined walkthrough.
 #
 #   bash tools/demo/render.sh [out-dir]        (default tools/demo/out)
 #
@@ -18,9 +18,11 @@ encode() {
   local name="$1"
   [ -f "$name.webm" ] || { echo "skip $name (no $name.webm)"; return; }
   echo "encoding $name.mp4"
+  # Encoded at the capture's own size (1920x1080 by default); only even
+  # dimensions are forced, which yuv420p needs.
   ffmpeg -hide_banner -loglevel error -y -i "$name.webm" \
-    -c:v libx264 -preset medium -crf 24 -pix_fmt yuv420p -r 25 \
-    -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" \
+    -c:v libx264 -preset medium -crf 25 -pix_fmt yuv420p -r 25 \
+    -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" \
     -movflags +faststart -an "$name.mp4"
 }
 

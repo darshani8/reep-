@@ -2,7 +2,7 @@
 
 A recorded walkthrough of the running product for the four portals — Student,
 Faculty (mentor), Main Admin and Alumni — and of the workflows that link them.
-Every video is a real screen recording of the portal in a browser: the typing
+Every video is a real Full HD (1920 x 1080) screen recording of the portal in a browser: the typing
 is live, the clicks are real, the data is the seeded dev database, and a
 caption bar explains each screen as it opens. Nothing is a mock-up.
 

@@ -26,9 +26,10 @@
  *                 segment reads the setup link and the six-digit code
  *   DEMO_OUT      output directory         (default tools/demo/out)
  *   DEMO_ASSETS   sample files directory   (default tools/demo/assets)
- *   TYPE_DELAY    ms between keystrokes    (default 45)
+ *   TYPE_DELAY    ms between keystrokes    (default 55)
+ *   DEMO_WIDTH / DEMO_HEIGHT   the viewport and video size (default 1920 x 1080)
  *
- * Output: <DEMO_OUT>/<segment>.webm (VP8, 1280x720) and <DEMO_OUT>/shots/*.png.
+ * Output: <DEMO_OUT>/<segment>.webm (VP8, at the viewport size) and <DEMO_OUT>/shots/*.png.
  * tools/demo/render.sh turns the .webm files into MP4s with title cards.
  */
 import fs from 'node:fs';
@@ -43,7 +44,8 @@ const API_LOG = process.env.REEP_API_LOG ?? '';
 const OUT = path.resolve(process.env.DEMO_OUT ?? path.join(HERE, 'out'));
 const ASSETS = path.resolve(process.env.DEMO_ASSETS ?? path.join(HERE, 'assets'));
 const TYPE_DELAY = Number(process.env.TYPE_DELAY ?? 55);
-const SIZE = { width: 1280, height: 720 };
+// Full HD: the console's grids and the wider screens are cut off at 1280x720.
+const SIZE = { width: Number(process.env.DEMO_WIDTH ?? 1920), height: Number(process.env.DEMO_HEIGHT ?? 1080) };
 
 const STUDENT = { portal: 'Student', email: 'student@bgscet.ac.in', password: 'student123', home: /\/student(\?|$)/ };
 const FACULTY = { portal: 'Faculty', email: 'mentor@bgscet.ac.in', password: 'mentor123', home: /\/mentor\// };
@@ -76,23 +78,23 @@ const OVERLAY = `(() => {
     if (document.getElementById('reep-demo-caption')) return;
     const style = document.createElement('style');
     style.textContent = \`
-      #reep-demo-caption{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:1140px;z-index:2147483646;
-        background:rgba(24,12,48,.92);color:#fff;font:500 18px/1.35 Inter,"Plus Jakarta Sans",system-ui,sans-serif;
-        padding:12px 20px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.35);pointer-events:none;opacity:0;transition:opacity .25s;
+      #reep-demo-caption{position:fixed;left:50%;bottom:34px;transform:translateX(-50%);max-width:1560px;z-index:2147483646;
+        background:rgba(24,12,48,.92);color:#fff;font:500 25px/1.35 Inter,"Plus Jakarta Sans",system-ui,sans-serif;
+        padding:16px 26px;border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.35);pointer-events:none;opacity:0;transition:opacity .25s;
         display:flex;gap:14px;align-items:center}
       #reep-demo-caption.on{opacity:1}
-      #reep-demo-caption .k{flex:none;background:linear-gradient(135deg,#7c3aed,#db2777);border-radius:999px;padding:4px 12px;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+      #reep-demo-caption .k{flex:none;background:linear-gradient(135deg,#7c3aed,#db2777);border-radius:999px;padding:6px 16px;font-size:17px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
       #reep-demo-card{position:fixed;inset:0;z-index:2147483647;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
         background:linear-gradient(135deg,#2a0f55,#6d28d9 55%,#be185d);color:#fff;font-family:"Plus Jakarta Sans",Inter,system-ui,sans-serif;
         opacity:0;transition:opacity .35s;pointer-events:none;padding:40px;text-align:center}
       #reep-demo-card.on{opacity:1}
-      #reep-demo-card .t{font-size:56px;font-weight:800;letter-spacing:-.02em;max-width:1050px;line-height:1.1}
-      #reep-demo-card .s{font-size:24px;opacity:.92;max-width:950px;line-height:1.35}
-      #reep-demo-card .b{margin-top:26px;font-size:15px;opacity:.75;letter-spacing:.14em;text-transform:uppercase}
-      #reep-demo-cursor{position:fixed;left:0;top:0;width:22px;height:22px;z-index:2147483645;pointer-events:none;transition:transform .04s linear}
+      #reep-demo-card .t{font-size:80px;font-weight:800;letter-spacing:-.02em;max-width:1500px;line-height:1.1}
+      #reep-demo-card .s{font-size:34px;opacity:.92;max-width:1400px;line-height:1.35}
+      #reep-demo-card .b{margin-top:34px;font-size:20px;opacity:.75;letter-spacing:.14em;text-transform:uppercase}
+      #reep-demo-cursor{position:fixed;left:0;top:0;width:30px;height:30px;z-index:2147483645;pointer-events:none;transition:transform .04s linear}
       #reep-demo-cursor svg{display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
-      #reep-demo-cursor.click::after{content:"";position:absolute;left:-16px;top:-16px;width:52px;height:52px;border-radius:50%;
-        border:3px solid #db2777;animation:reepPulse .5s ease-out forwards}
+      #reep-demo-cursor.click::after{content:"";position:absolute;left:-18px;top:-18px;width:66px;height:66px;border-radius:50%;
+        border:4px solid #db2777;animation:reepPulse .5s ease-out forwards}
       @keyframes reepPulse{from{transform:scale(.25);opacity:1}to{transform:scale(1.25);opacity:0}}
     \`;
     document.documentElement.appendChild(style);
@@ -102,7 +104,7 @@ const OVERLAY = `(() => {
     document.documentElement.appendChild(cap);
     const cur = document.createElement('div');
     cur.id = 'reep-demo-cursor';
-    cur.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24"><path d="M4 2l16 8.5-7 1.6L9.5 20z" fill="#fff" stroke="#1e1338" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+    cur.innerHTML = '<svg width="30" height="30" viewBox="0 0 24 24"><path d="M4 2l16 8.5-7 1.6L9.5 20z" fill="#fff" stroke="#1e1338" stroke-width="1.6" stroke-linejoin="round"/></svg>';
     document.documentElement.appendChild(cur);
     document.addEventListener('mousemove', (e) => { cur.style.transform = 'translate(' + e.clientX + 'px,' + e.clientY + 'px)'; }, true);
     document.addEventListener('mousedown', () => { cur.classList.remove('click'); void cur.offsetWidth; cur.classList.add('click'); }, true);

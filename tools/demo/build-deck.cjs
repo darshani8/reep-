@@ -47,10 +47,14 @@ async function framed(name, radius = 26) {
   const src = path.join(SHOTS, `${name}.png`);
   let out = null;
   if (fs.existsSync(src)) {
-    const img = sharp(src);
-    const { width, height } = await img.metadata();
+    // Full HD captures are bounded to 1600 px wide here: sharper than the slide
+    // needs and a deck that stays a sane size.
+    const meta = await sharp(src).metadata();
+    const width = Math.min(meta.width, 1600);
+    const height = Math.round((meta.height * width) / meta.width);
+    const img = sharp(src).resize(width, height);
     const mask = Buffer.from(`<svg width="${width}" height="${height}"><rect width="${width}" height="${height}" rx="${radius}" ry="${radius}" fill="#fff"/></svg>`);
-    const buf = await img.composite([{ input: mask, blend: 'dest-in' }]).png().toBuffer();
+    const buf = await img.composite([{ input: mask, blend: 'dest-in' }]).png({ compressionLevel: 9 }).toBuffer();
     out = 'image/png;base64,' + buf.toString('base64');
   } else {
     missing.push(name);

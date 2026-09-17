@@ -42,7 +42,7 @@ REEP_API_LOG=/tmp/reep-api.log node record-walkthrough.mjs student admin
 bash render.sh
 ```
 
-Output lands in `tools/demo/out/` (gitignored): `<segment>.webm` from the
+Output lands in `tools/demo/out/` (gitignored): `<segment>.webm` (1920 x 1080; `DEMO_WIDTH` / `DEMO_HEIGHT` change it) from the
 recorder, `<segment>.mp4` and `reep-full-walkthrough.mp4` from `render.sh`, and
 `shots/*.png`. `reset-dev-db.sh` drops and re-seeds the dev database so a
 recording always starts from the same state — a second run on the same data

@@ -463,14 +463,18 @@ check_web() {
     }
   fi
 
-  # The three design-system guards, first: each takes about a second, and each
-  # guards a rule that is invisible at the call site.
+  # The four static guards, first: each takes about a second, and each guards a
+  # rule that is invisible at the call site. The last is not a design rule -
+  # it proves something owns every <form>'s submit, because a bare
+  # `(ngSubmit)` never fires and the unprevented native submit reloads the page
+  # and drops the query string.
   if command -v python3 >/dev/null 2>&1; then
     ( cd "$REPO_ROOT" && run python3 tools/ci/check_brand_magenta.py ) || rc=1
     ( cd "$REPO_ROOT" && run python3 tools/ci/check_style_duplicates.py ) || rc=1
     ( cd "$REPO_ROOT" && run python3 tools/ci/check_theme_tokens.py ) || rc=1
+    ( cd "$REPO_ROOT" && run python3 tools/ci/check_form_submit.py ) || rc=1
     if [ "$rc" -ne 0 ]; then
-      record "$name" FAIL $(( $(now) - t0 )) "a design-system guard failed"; return
+      record "$name" FAIL $(( $(now) - t0 )) "a static guard over apps/web/src failed"; return
     fi
   fi
 

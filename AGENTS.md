@@ -96,16 +96,51 @@ compares them against the ruleset, against `REQUIRED_CHECKS` and against
 and said nothing about the committed ruleset, which is how that stale entry
 survived.
 
-The `web` job also runs three static checks over `apps/web/src` before the slow
+The `web` job also runs four static checks over `apps/web/src` before the slow
 steps, each guarding a rule that is invisible at the call site:
 `check_brand_magenta.py` (magenta is reserved for `--primary-gradient`, and had
 leaked to 21 sites, two of them chart colours in TypeScript that a stylesheet
 grep would never have found), `check_style_duplicates.py` (one owner per global
 class — see the two-stylesheets note below; it ratchets in both directions, so a
-merged duplicate must be struck off `KNOWN_DUPLICATES` too) and
+merged duplicate must be struck off `KNOWN_DUPLICATES` too),
 `check_theme_tokens.py` (the grid and chart themes copy tokens as literals,
 because neither library reads CSS custom properties — the duplication is forced,
-the drift is not).
+the drift is not) and `check_form_submit.py`, below.
+
+**SOMETHING MUST OWN EVERY `<form>`'s SUBMIT, AND `(ngSubmit)` ON ITS OWN IS
+NOT SOMETHING (2026-09-17).** `ngSubmit` is an `@Output` of exactly two
+directives — `FormGroupDirective` (`[formGroup]`, ReactiveFormsModule) and
+`NgForm` (`form:not([ngNoForm]):not([formGroup])`, **FormsModule and nothing
+else**). A component that imports only `ReactiveFormsModule` and writes a bare
+`<form (ngSubmit)="save()">` matches neither, and Angular does not complain: an
+event binding naming no directive output is legal, because custom DOM events
+are legal, so it compiles to `addEventListener('ngSubmit', …)` for an event
+nothing dispatches. The handler never runs — and because no directive is
+listening for the native `submit` either, nothing calls `preventDefault()`, so
+the button does what a submit button does with no JavaScript in the way: a
+full-page GET to the current URL **whose query string is REPLACED** by the
+form's named fields, of which a reactive form has none.
+
+That is how an approved student lost their setup token. `/onboard?token=…`
+rendered correctly, they typed their college address, pressed "Send me a code",
+and the browser navigated to `/onboard?` — so the screen drew "This page needs
+the setup link from the email we sent you" one keystroke after the link had
+worked. The approval mail was fine and the API was never called; the only
+evidence on screen was about the link, so it was reported to the office as a
+broken link. **Steps 1 and 2 of the onboarding walk had never worked**, on
+every deploy since the screen was written, and `ng build` passed on all of
+them. `tsc` cannot see it, the template type-checker cannot see it, and no test
+that does not press the button can see it — which is why the rule is a check
+and not a convention. The same defect was sitting on College structure's
+"Add domain" form, found by writing the check rather than by anybody's reading.
+
+A `<form>` must carry `[formGroup]`, or bind `(submit)` and prevent the default
+itself (the login screen's "Forgot password?" spelling, for a form whose inputs
+are signal-driven and have no group to bind), or `ngNoForm` — or its component
+must import `FormsModule`, which the login screen legitimately does for its
+`[ngModel]` code form. That last allowance is why the check reads the component
+and not just the template: strip that import and the check goes red rather than
+the button going quiet.
 
 **Routes are lazy.** `app.routes.ts` uses `loadComponent`, never a static `component:` reference. Every route was once eagerly imported, which put the whole app — mentor and admin screens, the resume builder, the realtime assistant — into a single 1.23 MB `main` chunk that a student on a phone downloaded before the login form could paint. It is ~142 kB initial now, and the production bundle budget is set close enough to that number that one re-eager-ed route fails `ng build` in CI.
 

@@ -185,7 +185,13 @@
                        Colleges card. -->
                   <span class="domain-summary">Deployment list</span>
                 }
-                <form class="domain-add" (ngSubmit)="addDomain()">
+                <!-- (submit) AND NOT (ngSubmit): this form holds a signal-driven
+                     input rather than a reactive group, so no `[formGroup]` owns
+                     it and `(ngSubmit)` would be a listener for an event nothing
+                     dispatches — leaving the native submit unprevented, which
+                     reloads the SPA and drops `?college=`. Same spelling as the
+                     login screen's "Forgot password?" form. -->
+                <form class="domain-add" (submit)="$event.preventDefault(); addDomain()">
                   <label class="sr-only" for="college-domain">Add an email domain</label>
                   <input
                     id="college-domain"

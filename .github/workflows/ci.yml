@@ -176,7 +176,7 @@ jobs:
         with:
           python-version: "3.14"
 
-      # Three static checks over the web sources, before the slow steps: each
+      # Four static checks over the web sources, before the slow steps: each
       # takes seconds and each guards a rule that is invisible at the call site
       # and so comes back on its own.
       #
@@ -193,11 +193,20 @@ jobs:
       # THE GRID AND CHART THEMES copy tokens as literals, because neither
       # library reads CSS custom properties. The duplication is forced; the
       # drift is not.
-      - name: Design system guards
+      # NOTHING OWNS THIS FORM'S SUBMIT. `(ngSubmit)` is an output of
+      # [formGroup] or of NgForm, and a bare <form> in a component that imports
+      # only ReactiveFormsModule matches neither — so it compiles to a listener
+      # for an event nothing dispatches, the handler never runs, and the
+      # unprevented native submit reloads the page and REPLACES the query
+      # string. That is how a student pressing "Send me a code" on
+      # /onboard?token=… landed on /onboard? and was told their setup link was
+      # missing. `ng build` passes on all of it; only this can see it.
+      - name: Static guards over apps/web/src
         run: |
           python tools/ci/check_brand_magenta.py
           python tools/ci/check_style_duplicates.py
           python tools/ci/check_theme_tokens.py
+          python tools/ci/check_form_submit.py
 
       - name: Install
         working-directory: apps/web

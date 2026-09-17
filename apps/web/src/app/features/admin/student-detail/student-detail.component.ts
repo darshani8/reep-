@@ -54,11 +54,13 @@
  * consent` is the caller's own and there is no admin read of somebody else's).
  * Their interview COUNT has no read at all — the cap reset reports it, so this
  * screen knows it only after one has been made. SWOC is a board across every
- * student a grant reaches, LEAVE is a queue, and UPLOADS has only a
- * programme-wide pending list: none of the three has a by-id read, and this
- * screen does not widen to a roster to fake one. Those three tabs are disabled
- * with that reason on the control — plain `disabled`, no phase number, because
- * no task is coming to fill them.
+ * student a grant reaches and LEAVE is a queue: neither has a by-id read, and
+ * this screen does not widen to a roster to fake one, so neither is drawn as a
+ * tab. UPLOADS was the third of those until 2026-09-17, when the composite
+ * read grew `documents` (every upload with its verdict) and `profile` (the
+ * contact details as filled in) — the two halves of "the candidate's complete
+ * details" the office could not see — so Documents is a real tab now and the
+ * contact card sits on the Overview.
  *
  * "NOTHING IS REWRITTEN ON PROMOTION" is the board's own headline on the
  * timeline and it is still true of the schema: promotion increments
@@ -87,11 +89,13 @@ import {
   type CapUsageOut,
   type CohortOut,
   DEFAULT_HIGHEST_SEMESTER,
+  type Document360Out,
   type EnglishBaselineOut,
   type InterviewSessionOut,
   type LedgerSummaryOut,
   type MentorSpell,
   NOT_READABLE,
+  type Profile360Out,
   type ReadinessFactorOut,
   STAGES,
   type Semester360Out,
@@ -117,10 +121,11 @@ const LEDGER_WINDOW_DAYS = 14;
 /** Activity lines the card shows before it stops. The board draws five. */
 const RECENT_ACTIVITY_LINES = 5;
 
-/** The six views this screen can answer, each on an endpoint that names this
- *  student. The board drew three more (SWOC, Leave, Uploads); none has a
- *  by-id read, and a tab that can never open is not drawn — the boards those
- *  three belong to are SWOC notes, Leave requests and the pending queue. */
+/** The seven views this screen can answer, each on an endpoint that names
+ *  this student. The board drew two more (SWOC, Leave); neither has a by-id
+ *  read, and a tab that can never open is not drawn — the boards those two
+ *  belong to are SWOC notes and Leave requests. Documents arrived on the
+ *  composite read on 2026-09-17, which is what made its tab honest. */
 interface TabSpec {
   key: string;
   label: string;
@@ -131,9 +136,33 @@ const TABS: TabSpec[] = [
   { key: 'results', label: 'Results' },
   { key: 'attendance', label: 'Attendance' },
   { key: 'timesheet', label: 'Time sheet' },
+  { key: 'documents', label: 'Documents' },
   { key: 'interviews', label: 'Interviews' },
   { key: 'audit', label: 'Audit' },
 ];
+
+/** A document's verdict as text AND colour, never colour alone — the same
+ *  words the student reads on their own Uploads screen. */
+const DOCUMENT_CHIP: Record<string, { tone: string; label: string }> = {
+  PENDING_REVIEW: { tone: 'warn', label: 'Pending review' },
+  VERIFIED: { tone: 'good', label: 'Verified' },
+  NEEDS_CHANGES: { tone: 'warn', label: 'Needs changes' },
+  REJECTED: { tone: 'risk', label: 'Rejected' },
+};
+
+/** Upload.kind -> the words on the row. */
+const DOCUMENT_KIND: Record<string, string> = {
+  CERTIFICATE_PROOF: 'Certificate',
+  DOCUMENT: 'Document',
+  RESUME: 'Resume',
+  PROFILE_PHOTO: 'Photo',
+};
+
+function formatBytes(size: number): string {
+  if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  if (size >= 1024) return `${Math.round(size / 1024)} KB`;
+  return `${size} B`;
+}
 
 /** One read's outcome: the body, or the server's own sentence for refusing. */
 interface ReadResult<T> {
@@ -737,6 +766,86 @@ export class AdminStudentDetailComponent {
   readonly recentActivity = computed<ActivityEntry[]>(() =>
     interviewActivityOf(this.interviews(), RECENT_ACTIVITY_LINES),
   );
+
+  // --- contact & profile, documents (on the composite read since 2026-09-17) --
+
+  readonly profile = computed<Profile360Out | null>(() => this.record()?.profile ?? null);
+
+  /** The contact facts as label/value pairs. A value the student left blank
+   *  reads as "Not filled in" — an answer about the profile, not a dash that
+   *  could mean the read failed. */
+  readonly profileFacts = computed<{ label: string; value: string; href: string | null }[]>(
+    () => {
+      const profile = this.profile();
+      if (profile === null || !profile.on_record) return [];
+      const blank = 'Not filled in';
+      const link = (url: string | null) => (url ? { value: url, href: url } : { value: blank, href: null });
+      return [
+        { label: 'Phone', value: profile.phone ?? blank, href: profile.phone ? `tel:${profile.phone}` : null },
+        {
+          label: 'Contact email',
+          value: profile.contact_email ?? blank,
+          href: profile.contact_email ? `mailto:${profile.contact_email}` : null,
+        },
+        { label: 'LinkedIn', ...link(profile.linkedin_url) },
+        { label: 'GitHub', ...link(profile.github_url) },
+        { label: 'Portfolio', ...link(profile.portfolio_url) },
+        { label: 'City', value: profile.city ?? blank, href: null },
+      ];
+    },
+  );
+
+  /** "Eligible for placement · wants jobs · wants internships" — the three
+   *  flags the placement office reads before a drive, in words. */
+  readonly profilePreferences = computed<string>(() => {
+    const profile = this.profile();
+    if (profile === null || !profile.on_record) return '';
+    const parts = [
+      profile.placement_eligible ? 'Eligible for placement' : 'Not eligible for placement',
+      profile.interested_in_jobs ? 'Interested in jobs' : 'Not looking for jobs',
+      profile.interested_in_internships ? 'Interested in internships' : 'Not looking for internships',
+    ];
+    return parts.join(' · ');
+  });
+
+  /** "3 education entries · 2 projects" — what the resume sections hold,
+   *  counted rather than reproduced: the resume builder is the place to read
+   *  them, and a count says whether there is anything there to read. */
+  readonly profileSections = computed<string>(() => {
+    const profile = this.profile();
+    if (profile === null || !profile.on_record) return '';
+    return [
+      plural(profile.education_entries, 'education entry', 'education entries'),
+      plural(profile.experience_entries, 'experience entry', 'experience entries'),
+      plural(profile.project_entries, 'project'),
+      plural(profile.achievement_entries, 'achievement'),
+    ].join(' · ');
+  });
+
+  readonly documents = computed<Document360Out[]>(() => this.record()?.documents ?? []);
+
+  readonly pendingDocumentCount = computed(
+    () => this.documents().filter((d) => d.status === 'PENDING_REVIEW').length,
+  );
+
+  documentChip(status: string): { tone: string; label: string } {
+    return DOCUMENT_CHIP[status] ?? { tone: 'neutral', label: status };
+  }
+
+  documentKind(kind: string): string {
+    return DOCUMENT_KIND[kind] ?? 'File';
+  }
+
+  documentSize(size: number): string {
+    return formatBytes(size);
+  }
+
+  /** The bytes, through rule 2's file route: `require_mentor` admits the Main
+   *  Admin and `_assert_can_access_student` narrows a faculty holder to their
+   *  own mentees — the same fence the composite read applied to get here. */
+  documentFileUrl(documentId: string): string {
+    return `${environment.apiBase}/mentor/uploads/${documentId}/file`;
+  }
 
   // --- the tabbed panels --------------------------------------------------
 

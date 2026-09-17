@@ -222,9 +222,12 @@
   <!-- The badge board -->
   <div class="card board">
     <div class="board-legend">
-      <span class="legend-item"><span class="dot dot-open"></span>Skill available</span>
+      <span class="legend-item"><span class="dot dot-open"></span>Not claimed</span>
+      <span class="legend-item">
+        <span class="icon legend-wait" aria-hidden="true">schedule</span>Claim with your mentor
+      </span>
       <span class="legend-item legend-item--lit">
-        <span class="dot dot-lit"></span>Skill verified &amp; acquired
+        <span class="icon legend-tick" aria-hidden="true">verified</span>Verified by your mentor
       </span>
       <span class="legend-hint">Tap badges to preview the earned state.</span>
     </div>
@@ -248,10 +251,20 @@
           </div>
           <div class="board-badges">
             @for (b of cat.badges; track b.code) {
+              <!-- THE BLUE TICK IS THE MENTOR'S, AND ONLY THEIRS. It is drawn on
+                   a badge held EARNED and on nothing else: a badge nobody has
+                   claimed is unmarked, a claim in review wears a small clock,
+                   and a tapped preview lights the hexagon without the tick —
+                   a preview that wore it would be indistinguishable from a
+                   verified badge, which is the one thing this board must
+                   never blur. The state is said in words under the name as
+                   well, so it is never colour alone. -->
               <button
                 type="button"
                 class="badge-tile"
                 [class.badge-tile--lit]="b.acquired || b.previewed"
+                [class.badge-tile--verified]="b.acquired"
+                [class.badge-tile--pending]="b.pending && !b.previewed"
                 [class.badge-tile--preview]="b.previewed"
                 [attr.title]="b.previewed ? 'Preview — tap again to clear' : b.hint"
                 [attr.aria-pressed]="b.acquired ? null : b.previewed"
@@ -260,18 +273,22 @@
                 <span class="emblem" aria-hidden="true">
                   <span class="hex"></span>
                   <span class="icon">{{ categoryIcon(cat.key) }}</span>
-                  @if (b.acquired || b.previewed) {
-                    <span class="seal"><span class="icon">check</span></span>
+                  @if (b.acquired) {
+                    <span class="tick"><span class="icon">verified</span></span>
+                  } @else if (b.pending && !b.previewed) {
+                    <span class="wait"><span class="icon">schedule</span></span>
                   }
                 </span>
                 <span class="badge-tile__name">{{ b.name }}</span>
                 <span class="badge-tile__status">
                   @if (b.acquired) {
-                    <span class="icon" aria-hidden="true">check</span>Verified
+                    <span class="icon" aria-hidden="true">verified</span>Verified
                   } @else if (b.previewed) {
                     Preview
+                  } @else if (b.pending) {
+                    <span class="icon" aria-hidden="true">schedule</span>With your mentor
                   } @else {
-                    Available
+                    Not claimed
                   }
                 </span>
               </button>
@@ -284,7 +301,7 @@
         <div>
           <b>{{ litCount() }}</b> skills currently illuminated
         </div>
-        <div class="board-foot-hint">Outline → acquire &amp; verify → glow</div>
+        <div class="board-foot-hint">Unmarked → claimed &amp; with your mentor → blue tick</div>
       </div>
     }
   </div>

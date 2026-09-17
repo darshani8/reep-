@@ -19,10 +19,12 @@
  * Markup reuses the global reep-v2 classes; the scss only lays out the split.
  */
 
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 
+import { AuthService } from '../../../core/auth.service';
 import { environment } from '../../../../environments/environment';
 
 interface Mentee {
@@ -54,12 +56,28 @@ const ACTION_LABEL: Record<string, string> = {
 @Component({
   selector: 'app-mentee-log',
   standalone: true,
-  imports: [DatePipe, FormsModule],
+  // RouterLink: the "Full record" link below. Without it the `routerLink`
+  // attribute is inert markup that renders and does nothing.
+  imports: [DatePipe, FormsModule, RouterLink],
   templateUrl: './mentee-log.component.html',
   styleUrl: './mentee-log.component.scss',
 })
 export class MenteeLogComponent {
   private readonly apiBase = environment.apiBase;
+  private readonly auth = inject(AuthService);
+
+  /**
+   * Whether this faculty member may open a mentee's complete record
+   * (/admin/students/:id). A FILTER, never a gate: the route guard and the
+   * endpoint behind it check `admin.student_records` for themselves, and rule
+   * 2 narrows a MENTOR to their own mentees on the way through — which is why
+   * the link belongs on THIS screen, where every student listed is one of
+   * theirs. Granted by the Main Admin in Governance ("View student records");
+   * without the grant no link is drawn, and nothing on screen explains itself.
+   */
+  readonly canOpenRecord = computed(() =>
+    (this.auth.session()?.capabilities ?? []).includes('admin.student_records'),
+  );
 
   readonly mentees = signal<Mentee[] | null>(null);
   readonly error = signal<string | null>(null);

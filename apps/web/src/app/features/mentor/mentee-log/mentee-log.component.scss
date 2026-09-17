@@ -219,3 +219,13 @@
   color: var(--muted);
   font-size: 13px;
 }
+
+/* The compose card's title with the "Full record" link beside it, drawn only
+   for a holder of the record key. */
+.ml-card-title--row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}

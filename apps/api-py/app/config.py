@@ -176,6 +176,28 @@ class Settings(BaseSettings):
     # that killed PENDING_VERIFICATION. No screen may say "the applicant has
     # been emailed" while this is false.
     leave_mail_enabled: bool = False
+    # Skill-claim notifications (2026-09-17): the mentor is mailed when one of
+    # their mentees files a badge claim, and the student is mailed when it is
+    # decided (app/badge_mail.py). THREE STATES, `password_login`'s idiom, and
+    # NOT `leave_mail_enabled`'s plain boolean, on purpose:
+    #
+    #   "true"          on, whatever the transport -- a developer reading the
+    #                   outbox, and the test suite;
+    #   "false"         off, whatever the transport -- the incident switch;
+    #   anything else   DERIVED: on exactly when a real transport exists
+    #                   (`mail_configured`, i.e. SES_FROM_ADDRESS is set).
+    #
+    # `leave_mail_enabled`'s own comment says what its false default protects:
+    # a machine with NO transport, where a notification switched on writes a
+    # `mail_logs` row reading SENT about a message that reached nobody. On such
+    # a machine the derived answer here is off, so the same machine is
+    # protected -- and on the production task, which already carries
+    # SES_FROM_ADDRESS, the notifications are on without a second variable
+    # that has to be remembered in a task definition. That is the password
+    # door's argument ("two sources of truth for one door is how a login form
+    # ends up 403ing over keys in circulation") applied to mail: the act that
+    # gives this deployment a transport is the decision to use it.
+    badge_mail_enabled: str = ""
     # Link lifetimes, from the agreed plan: activation 7 days (a new staff
     # member may not check mail today); reset 1 hour (the account exists and
     # may already be under attack); an application's confirmation 24 hours.
@@ -1089,6 +1111,25 @@ class Settings(BaseSettings):
     def mail_configured(self) -> bool:
         """Is there a real outbound transport? Blank means log-and-keep."""
         return bool(self.ses_from_address.strip())
+
+    @property
+    def badge_mail_active(self) -> bool:
+        """Whether skill-claim notifications go out (app/badge_mail.py).
+
+        Only the exact words count, as with `password_login_forced`: "true"
+        forces them on over whatever transport exists (the console outbox on a
+        development machine), "false" forces them off even with SES configured,
+        and anything else -- blank, absent, a typo -- derives the answer from
+        `mail_configured`. A typo therefore degrades to the derived default,
+        which on a machine with no transport is OFF: never to a SENT row about
+        a message nobody received.
+        """
+        text = self.badge_mail_enabled.strip().lower()
+        if text == "true":
+            return True
+        if text == "false":
+            return False
+        return self.mail_configured
 
     @property
     def provisionable_email_domains(self) -> frozenset[str]:

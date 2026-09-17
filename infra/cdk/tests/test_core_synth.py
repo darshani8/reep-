@@ -18,6 +18,7 @@ import pytest
 from aws_cdk.assertions import Match, Template
 
 from reep_core import DEREGISTRATION_DELAY_SECONDS, STOP_TIMEOUT_SECONDS, CoreStack, DrVaultStack, EdgeWafStack
+from reep_core.edge import COMMON_RULE_SET_COUNTED
 
 TF_DIR = Path(__file__).resolve().parents[2] / "aws"
 
@@ -1391,6 +1392,42 @@ def test_edge_waf_has_the_three_terraform_rules() -> None:
     # Priorities are what WAF evaluates by; the live ACL lists them in a
     # different array order and that is not a difference.
     assert sorted((r["Priority"], r["Name"]) for r in rules) == [(1, "aws-common"), (2, "aws-bad-inputs"), (3, "rate-limit")]
+
+
+def _common_rule_set(phase: str) -> dict:
+    app = cdk.App(context={"phase": phase})
+    t = Template.from_stack(EdgeWafStack(app, "test-edge", env=cdk.Environment(account="123456789012", region="us-east-1")))
+    rules = next(r for r in t.to_json()["Resources"].values() if r["Type"] == "AWS::WAFv2::WebACL")["Properties"]["Rules"]
+    return next(r for r in rules if r["Name"] == "aws-common")["Statement"]["ManagedRuleGroupStatement"]
+
+
+def test_the_common_rule_set_counts_the_body_size_rule_so_uploads_reach_the_api() -> None:
+    """INCIDENT (2026-09-17): every file upload in the product was answered 403
+    at the edge. AWSManagedRulesCommonRuleSet's SizeRestrictions_BODY blocks a
+    body over 8 KB, and a certificate, a CV, a photo, a signature or a leave
+    attachment is a multipart POST well past that. The API never saw the
+    request, the client saw a non-JSON body and printed its fallback, and the
+    student was told their JPEG was the wrong kind of file.
+
+    The rule is COUNTED in the harden phase -- still measured, never blocking
+    -- and the tuple that says so is read here rather than the string retyped,
+    so a second rule added to it is covered by this test the day it lands.
+    """
+    assert "SizeRestrictions_BODY" in COMMON_RULE_SET_COUNTED
+    statement = _common_rule_set("harden")
+    overrides = {o["Name"]: o["ActionToUse"] for o in statement["RuleActionOverrides"]}
+    for rule in COMMON_RULE_SET_COUNTED:
+        assert overrides[rule] == {"Count": {}}, f"{rule} must be counted, not blocked"
+    # The rest of the group still blocks: only the named rules are overridden.
+    assert set(overrides) == set(COMMON_RULE_SET_COUNTED)
+
+
+def test_the_import_phase_mirror_carries_no_rule_override() -> None:
+    """The import phase is a byte-identical mirror of the adopted ACL, and the
+    rehearsal's whole value is that its diff shows nothing. The override is a
+    harden-phase change, like ManagedBy=cdk, and must not leak backwards."""
+    statement = _common_rule_set("import")
+    assert "RuleActionOverrides" not in statement
 
 
 def test_no_stack_level_tags_in_any_phase() -> None:

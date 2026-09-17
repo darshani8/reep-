@@ -275,7 +275,7 @@ def grant():
     """Write a capability grant straight onto the row, and take it away after.
 
     Through the row rather than `POST /admin/governance/grants` because
-    `admin.students` is `carries_pii`, so the endpoint writes a DEPUTY's grant
+    `admin.student_records` is `carries_pii`, so the endpoint writes a DEPUTY's grant
     `pending_approval` — it HOLDS NOTHING until a different `admin.governance`
     holder approves it (B2.4) — and the Main Admin's live at once. That is
     correct behaviour and it is tested where it belongs, in
@@ -305,6 +305,11 @@ def grant():
 
 # ------------------------------------------------------------- the gates --
 
+#: The read's own key (2026-09-17). It was `admin.students` -- the roster
+#: editor's key -- until the office asked to hand "view this candidate's
+#: complete details" to a faculty member without handing them the editor.
+KEY = "admin.student_records"
+
 
 @requires_db
 def test_the_capability_is_the_gate(client, make_user, login, subject):
@@ -316,16 +321,29 @@ def test_the_capability_is_the_gate(client, make_user, login, subject):
     assert client.get(_url(subject["student"]), headers=student_headers).status_code == 403
     refused = client.get(_url(subject["student"]), headers=faculty_headers)
     assert refused.status_code == 403
-    assert "Students" in refused.text, "the 403 names the capability to ask for"
+    assert "View student records" in refused.text, "the 403 names the capability to ask for"
 
     assert client.get(_url(subject["student"]), headers=admin.headers).status_code == 200
     assert client.get(_url("no-such-student"), headers=admin.headers).status_code == 404
 
 
 @requires_db
+def test_the_roster_key_alone_does_not_open_the_record(client, login, subject, grant):
+    """The split is the point: `admin.students` edits rows, `admin.student_records`
+    reads the record behind one, and holding the first is not holding the
+    second. A faculty member granted only the roster editor is refused here
+    with the read key named, so the office knows which grant to make."""
+    grant(subject["faculty_user"], "admin.students")
+    headers = login(subject["faculty_email"], TEST_PASSWORD)
+    refused = client.get(_url(subject["student"]), headers=headers)
+    assert refused.status_code == 403
+    assert "View student records" in refused.text
+
+
+@requires_db
 def test_rule_2_is_not_relaxed_by_the_capability(client, login, subject, grant):
-    """A faculty member holding `admin.students` PROGRAMME-WIDE still sees only
-    their own group.
+    """A faculty member holding `admin.student_records` PROGRAMME-WIDE still
+    sees only their own group.
 
     The grant is as wide as a grant gets — no scope level, no scope id, which
     B1.2 reads as programme-wide — and it is still not a way past rule 2. The
@@ -333,7 +351,7 @@ def test_rule_2_is_not_relaxed_by_the_capability(client, login, subject, grant):
     `app/governance.py` says it in one line, "a capability can never relax the
     student filter", and this is that line as a request.
     """
-    grant(subject["stranger_user"], "admin.students")
+    grant(subject["stranger_user"], KEY)
     stranger = login(subject["stranger_email"], TEST_PASSWORD)
 
     refused = client.get(_url(subject["student"]), headers=stranger)
@@ -343,7 +361,7 @@ def test_rule_2_is_not_relaxed_by_the_capability(client, login, subject, grant):
     # And the same key, granted to the faculty member who DOES mentor this
     # student, reaches them — so the refusal above is scope and not a broken
     # endpoint.
-    grant(subject["faculty_user"], "admin.students")
+    grant(subject["faculty_user"], KEY)
     granted_mentor = login(subject["faculty_email"], TEST_PASSWORD)
     assert client.get(_url(subject["student"]), headers=granted_mentor).status_code == 200
 
@@ -357,14 +375,61 @@ def test_a_grant_that_reaches_somewhere_else_is_refused_here(client, login, subj
     decoration: a scoped holder who cannot see a student in the grid could open
     their entire record by typing the id.
     """
-    grant(subject["faculty_user"], "admin.students", ScopeLevel.DEPARTMENT, subject["other"])
+    grant(subject["faculty_user"], KEY, ScopeLevel.DEPARTMENT, subject["other"])
     headers = login(subject["faculty_email"], TEST_PASSWORD)
 
     refused = client.get(_url(subject["student"]), headers=headers)
     assert refused.status_code == 403, "a grant held somewhere else is a 403, not a 404"
 
-    grant(subject["faculty_user"], "admin.students", ScopeLevel.DEPARTMENT, subject["home"])
+    grant(subject["faculty_user"], KEY, ScopeLevel.DEPARTMENT, subject["home"])
     assert client.get(_url(subject["student"]), headers=headers).status_code == 200
+
+
+# ---------------------------------------------- the two panels added 2026-09-17 --
+
+
+@requires_db
+def test_the_record_carries_the_profile_as_filled_in_and_every_document(
+    client, make_user, subject
+):
+    """"Complete details" means the values, not only the names of the gaps.
+
+    The open-items panel already said which profile fields were MISSING; the
+    phone number the student typed was on no panel at all, and their documents
+    had no by-id read anywhere. Both are on the payload now, and the document
+    row carries its verdict so the office reads the same word the student does.
+    """
+    admin = make_user("t360-panels", Role.ADMIN)
+    body = client.get(_url(subject["student"]), headers=admin.headers).json()
+
+    profile = body["profile"]
+    assert profile["on_record"] is True
+    assert profile["phone"] == "9000000000"
+    assert profile["contact_email"] == subject["student_email"]
+    assert isinstance(profile["skills"], list)
+
+    documents = body["documents"]
+    assert [d["title"] for d in documents] == ["Internship report"]
+    assert documents[0]["status"] == "PENDING_REVIEW"
+    assert documents[0]["kind"] == "DOCUMENT"
+    assert documents[0]["review_note"] is None
+    # The bytes are reached through rule 2's file route, never inlined here.
+    assert "content" not in documents[0] and "stored_name" not in documents[0]
+
+
+@requires_db
+def test_a_student_with_no_profile_reads_as_no_profile_and_not_as_blanks(client, make_user):
+    """`on_record` is the flag the screen branches on; a student who never
+    saved a profile is eight nulls under it, not eight blanks they left."""
+    admin = make_user("t360-noprof-admin", Role.ADMIN)
+    fresh = make_user("t360-noprof", Role.STUDENT)
+    with SessionLocal() as db:
+        student_id = db.scalar(select(Student.id).where(Student.user_id == fresh.user_id))
+    body = client.get(_url(student_id), headers=admin.headers).json()
+    assert body["profile"]["on_record"] is False
+    assert body["profile"]["phone"] is None
+    assert body["profile"]["placement_eligible"] is None
+    assert body["documents"] == []
 
 
 # ---------------------------------------------------------- the timeline --

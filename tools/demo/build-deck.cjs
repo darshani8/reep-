@@ -442,8 +442,8 @@ async function build() {
     notes: 'The field that matters on a leaf is its code: it preselects the interview track by exact match, and a student on a batch with no track meets the general interview, which cannot be scored.',
   });
   await gridSlide({
-    role: 'Main Admin', heading: 'Who can do what, What changed, Charts & numbers',
-    intro: 'Access is a decision with a reach, a reason and an expiry; the audit trail records every write; analytics aggregate on the server. Placement, Download reports and Upload spreadsheets complete the every-day group.',
+    role: 'Main Admin', heading: 'Access, the audit trail and the numbers',
+    intro: 'Access is a decision with a reach, a reason and an expiry; the audit trail records every write; analytics aggregate on the server.',
     shots: [
       { name: 'admin-granted', caption: 'Who can do what — a screen granted to a faculty member' },
       { name: 'admin-audit', caption: 'What changed — the audit trail' },

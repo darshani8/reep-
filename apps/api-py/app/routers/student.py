@@ -33,7 +33,7 @@ from ..resume_pdf import EvidenceProof, append_evidence, render_resume_pdf
 from ..models.academic_history import AcademicGap, AcademicQualification
 from ..models.academics import SemesterResult
 from ..models.attendance import AttendanceRecord
-from ..models.certification import Certification, CertificationProgress
+from ..models.certification import CertificationProgress
 from ..models.cohort import Cohort
 from ..models.institution import AcademicCourse, AcademicSpecialization, College, Department
 from ..models.course import Course, Enrollment, ProgressStatus
@@ -2137,84 +2137,6 @@ def my_courses(
     return out
 
 
-class CertProgressOut(BaseModel):
-    code: str
-    name: str
-    provider: str
-    status: str
-    progress_pct: float
-    hours_logged: float
-    required_hours: float
-    due_date: datetime
-    self_reported: bool
-    # --- Progress-plan fields (rule-based; no LLM) ---
-    est_hours_remaining: float
-    days_until_due: int | None
-    next_task: str
-    unlocks: str
-
-
-def _cert_next_task(status: str, self_reported: bool, est_hours_remaining: float) -> str:
-    """The single next action for a certification, derived from its status."""
-    if status == "NOT_STARTED":
-        return "Start the course"
-    if status == "IN_PROGRESS":
-        return f"Log about {est_hours_remaining:.0f} more hours, then take the assessment"
-    if status == "COMPLETED":
-        if self_reported:
-            return "Upload your certificate for verification"
-        return "Done — verified"
-    if status == "OVERDUE":
-        return "Catch up — you're behind the pace to finish in time"
-    return "Start the course"
-
-
-@router.get("/certifications", response_model=list[CertProgressOut])
-def my_certifications(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
-) -> list[CertProgressOut]:
-    student_id = _require_student(session)
-    require_feature(db, student_id, "student.certifications")
-    rows = db.execute(
-        select(CertificationProgress, Certification)
-        .join(Certification, CertificationProgress.cert_code == Certification.code)
-        .where(CertificationProgress.student_id == student_id)
-        .order_by(CertificationProgress.due_date)
-    ).all()
-    now = datetime.now(timezone.utc)
-    out: list[CertProgressOut] = []
-    for prog, cert in rows:
-        est_hours_remaining = max(0.0, cert.required_hours - prog.hours_logged)
-        due = prog.due_date
-        if due is None:
-            days_until_due = None
-        else:
-            # Tolerate a naive due_date (some backends drop tzinfo) by assuming UTC.
-            if due.tzinfo is None:
-                due = due.replace(tzinfo=timezone.utc)
-            days_until_due = (due - now).days
-        out.append(
-            CertProgressOut(
-                code=cert.code,
-                name=cert.name,
-                provider=cert.provider,
-                status=prog.status.value,
-                progress_pct=prog.progress_pct,
-                hours_logged=prog.hours_logged,
-                required_hours=cert.required_hours,
-                due_date=prog.due_date,
-                self_reported=prog.self_reported,
-                est_hours_remaining=round(est_hours_remaining, 1),
-                days_until_due=days_until_due,
-                next_task=_cert_next_task(
-                    prog.status.value, prog.self_reported, est_hours_remaining
-                ),
-                unlocks="Raises your placement readiness (certification completion)",
-            )
-        )
-    return out
-
-
 class CheckInIn(BaseModel):
     course_code: str
     module: str
@@ -3207,45 +3129,15 @@ def next_actions(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> NextActionsOut:
     """The student's 'what to do next' list — the top 5 candidate actions drawn
-    from their real certification, course, profile, resume and skilling state,
-    sorted by urgency (lower priority = more urgent). Rule-based; no model."""
+    from their real course, profile, resume and skilling state, sorted by
+    urgency (lower priority = more urgent). Rule-based; no model.
+
+    Certification rows used to lead this list ("Finish X", routed to the
+    Certification Tracker). That screen and its endpoint were removed on
+    2026-09-17, so an action pointing at it would be a button to nowhere.
+    """
     student_id = _require_student(session)
     actions: list[NextActionOut] = []
-
-    # Certifications (join for the display name), split by status.
-    cert_rows = db.execute(
-        select(CertificationProgress, Certification)
-        .join(Certification, CertificationProgress.cert_code == Certification.code)
-        .where(CertificationProgress.student_id == student_id)
-        .order_by(CertificationProgress.due_date)
-    ).all()
-    for prog, cert in cert_rows:
-        if prog.status == ProgressStatus.OVERDUE:
-            actions.append(
-                NextActionOut(
-                    id=f"cert-overdue-{cert.code}",
-                    title=f"Finish {cert.name}",
-                    reason="Overdue — behind the pace to complete in time",
-                    cta_label="Continue",
-                    cta_route="/student/certifications",
-                    status="Overdue",
-                    deadline=prog.due_date,
-                    priority=1,
-                )
-            )
-        elif prog.status == ProgressStatus.IN_PROGRESS:
-            actions.append(
-                NextActionOut(
-                    id=f"cert-progress-{cert.code}",
-                    title=f"Finish {cert.name}",
-                    reason=f"In progress ({round(prog.progress_pct)}%)",
-                    cta_label="Continue",
-                    cta_route="/student/certifications",
-                    status="In progress",
-                    deadline=prog.due_date,
-                    priority=3,
-                )
-            )
 
     # In-progress courses.
     course_rows = db.execute(
@@ -4051,33 +3943,11 @@ def recommendations(
         )
 
     # Holds every catalogue skill (or the catalogue is empty): fall back to
-    # finishing an in-progress certification, then completing the resume profile.
+    # completing the resume profile. This used to suggest finishing an
+    # in-progress certification first, routed to the Certification Tracker —
+    # removed with that screen on 2026-09-17.
     if not items:
-        in_prog = db.execute(
-            select(Certification.name)
-            .join(
-                CertificationProgress,
-                CertificationProgress.cert_code == Certification.code,
-            )
-            .where(
-                CertificationProgress.student_id == student_id,
-                CertificationProgress.status.in_(
-                    (ProgressStatus.IN_PROGRESS, ProgressStatus.OVERDUE)
-                ),
-            )
-            .order_by(CertificationProgress.due_date)
-            .limit(3)
-        ).all()
-        for (cert_name,) in in_prog:
-            items.append(
-                RecommendationOut(
-                    title=f"Finish {cert_name}",
-                    why="You have every catalogue skill — completing this certification is your next win",
-                    cta_label="Continue",
-                    cta_route="/student/certifications",
-                )
-            )
-        if len(items) < 3 and _resume_pct(db, student_id) < 100:
+        if _resume_pct(db, student_id) < 100:
             items.append(
                 RecommendationOut(
                     title="Complete your resume profile",

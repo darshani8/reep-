@@ -4,15 +4,22 @@
  * Top to bottom: the greeting and login-streak chip; the three programme stage
  * cards (Reboot · Excel · Elevate) with the status legend; attendance by course
  * beside the VTU marks line chart; the Academic History section (10th / 12th /
- * UG cards and the declared education gaps); placement readiness beside the
- * recommendations; and the stat strip (stage donut, skill badges, mocks taken,
- * login streak). Every card carries its own empty state, exactly as the design
+ * UG cards and the declared education gaps); and placement readiness beside the
+ * recommendations. Every card carries its own empty state, exactly as the design
  * writes them, so a fresh student sees the same page shape as a senior one.
+ *
+ * THE STAT STRIP IS GONE (2026-09-17). The stage donut, the skill-badge row, the
+ * "Mocks taken" bar chart and the "Login streak" card were removed from the
+ * landing at the owner's request. The overview payload still carries `mocks`
+ * and `skills` — the leaderboards and Skilling screens read the same records
+ * through their own endpoints — but nothing on this screen reads them, so the
+ * interface below no longer declares them. `streak` stays: the header chip
+ * still reads it.
  *
  * TWO READS, NOT TWELVE. `GET /student/overview` is the aggregate the API
  * composes in one DB session for exactly this screen (dashboard, attendance,
- * results, streak, mocks, skills, readiness, recommendations — and now the
- * academic history); `GET /student/programme` is the stage catalogue with this
+ * results, streak, readiness, recommendations — and now the academic
+ * history); `GET /student/programme` is the stage catalogue with this
  * student's status per item. Only the overview decides the page's state: the
  * programme failing degrades the three cards, not the whole landing.
  *
@@ -92,23 +99,6 @@ interface Streak {
   last_active: string | null;
 }
 
-interface MockAttempt {
-  type: string;
-  taken_on: string;
-  score: number | null;
-  max_score: number | null;
-  percent: number | null;
-  notes: string | null;
-}
-
-interface StudentSkill {
-  slug: string;
-  name: string;
-  category: string;
-  level: number;
-  verified: boolean;
-}
-
 interface ReadinessFactor {
   label: string;
   met: boolean;
@@ -168,8 +158,6 @@ interface Overview {
   attendance: AttendanceSummary | null;
   results: SemesterResult[] | null;
   streak: Streak | null;
-  mocks: MockAttempt[] | null;
-  skills: StudentSkill[] | null;
   placement_readiness: PlacementReadiness | null;
   recommendations: { items: Recommendation[] } | null;
   swoc: SwocBoard | null;
@@ -253,21 +241,8 @@ interface QualificationCard {
   location: string | null;
 }
 
-interface Bar {
-  label: string;
-  caption: string;
-  heightPct: number;
-}
-
-interface Badge {
-  name: string;
-  icon: string;
-  locked: boolean;
-  title: string;
-}
-
-/** The programme's stage names, in order — the donut's caption and the header's
- *  "Excel-Adv stage" both read from here. */
+/** The programme's stage names, in order — the header's "Excel-Adv stage"
+ *  reads from here. */
 const STAGES: { key: string; label: string }[] = [
   { key: 'REBOOT', label: 'Reboot' },
   { key: 'EXCEL', label: 'Excel' },
@@ -292,13 +267,6 @@ const GAP_LABEL: [keyof AcademicGap, string][] = [
   ['diploma_to_grad_mo', 'Diploma → graduation'],
   ['grad_to_pg_mo', 'Graduation → PG'],
   ['other_mo', 'Other'],
-];
-
-type MockKind = 'GD' | 'INTERVIEW' | 'APTITUDE';
-const MOCK_TYPES: { key: MockKind; label: string }[] = [
-  { key: 'GD', label: 'GD' },
-  { key: 'INTERVIEW', label: 'Interview' },
-  { key: 'APTITUDE', label: 'Aptitude' },
 ];
 
 /** An MBA is four semesters; the chart always draws at least that many so the
@@ -485,89 +453,6 @@ export class StudentHomeComponent {
   readonly recommendations = computed<Recommendation[] | null>(() => {
     const r = this.overview()?.recommendations;
     return r ? r.items : null;
-  });
-
-  // ---- stage donut -----------------------------------------------------------------
-
-  readonly stagePct = computed(() => {
-    const key = this.overview()?.dashboard.current_stage;
-    const idx = STAGES.findIndex((s) => s.key === key);
-    if (idx < 0) return 0;
-    return Math.round(((idx + 1) / STAGES.length) * 100);
-  });
-
-  readonly donutStyle = computed(() => {
-    const p = this.stagePct();
-    return `conic-gradient(var(--purple-mid) 0% ${p}%, var(--hairline) ${p}% 100%)`;
-  });
-
-  // ---- skill badges ---------------------------------------------------------------
-
-  readonly badges = computed<Badge[] | null>(() => {
-    const rows = this.overview()?.skills;
-    if (!rows) return null;
-    // Verified (unlocked) first, then the locked ones, capped for the row.
-    const ordered = [...rows].sort((a, b) => Number(b.verified) - Number(a.verified));
-    return ordered.slice(0, 8).map((s) => ({
-      name: s.name,
-      icon: s.verified ? this.skillIcon(s) : 'lock',
-      locked: !s.verified,
-      title: s.verified
-        ? `${s.name} — verified`
-        : `Verify a ${s.category} skill to unlock this badge`,
-    }));
-  });
-
-  private skillIcon(s: StudentSkill): string {
-    const hay = `${s.slug} ${s.name} ${s.category}`.toLowerCase();
-    if (/comm|present|english|speak|writing/.test(hay)) return 'groups';
-    if (/analy|data|insight|statist|power ?bi|tableau|excel|spreadsheet/.test(hay)) return 'insights';
-    if (/sql|database|python|java|code|program|develop/.test(hay)) return 'keyboard';
-    if (/lead|manage|strateg/.test(hay)) return 'workspace_premium';
-    return 'verified';
-  }
-
-  // ---- mocks -----------------------------------------------------------------------
-
-  readonly mockCounts = computed(() => {
-    const rows = this.overview()?.mocks;
-    if (!rows) return null;
-    const counts: Record<MockKind, number> = { GD: 0, INTERVIEW: 0, APTITUDE: 0 };
-    for (const m of rows) {
-      if (m.type === 'GD' || m.type === 'INTERVIEW' || m.type === 'APTITUDE') counts[m.type] += 1;
-    }
-    return counts;
-  });
-
-  readonly hasMocks = computed(() => {
-    const c = this.mockCounts();
-    return !!c && c.GD + c.INTERVIEW + c.APTITUDE > 0;
-  });
-
-  readonly mockSummary = computed(() => {
-    const c = this.mockCounts();
-    return c ? `GD: ${c.GD} · Interview: ${c.INTERVIEW} · Aptitude: ${c.APTITUDE}` : '';
-  });
-
-  readonly mockBars = computed<Bar[]>(() => {
-    const c = this.mockCounts();
-    if (!c) return [];
-    const max = Math.max(c.GD, c.INTERVIEW, c.APTITUDE, 1);
-    return MOCK_TYPES.map((t) => {
-      const n = c[t.key];
-      return {
-        label: t.label,
-        caption: `${n}`,
-        heightPct: n > 0 ? Math.max(Math.round((n / max) * 100), 10) : 3,
-      };
-    });
-  });
-
-  // ---- streak ------------------------------------------------------------------------
-
-  readonly streakCells = computed<boolean[]>(() => {
-    const on = Math.min(this.streak()?.current ?? 0, 7);
-    return Array.from({ length: 7 }, (_, i) => i < on);
   });
 
   // ---- loading -------------------------------------------------------------------------

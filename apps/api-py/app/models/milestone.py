@@ -104,7 +104,11 @@ STAGES: Final[tuple[Stage, ...]] = (
         "Elevate",
         (
             Milestone("hippo", "Hippo"),
-            Milestone("spec_cert", "Specialization Cert", route="/student/certifications"),
+            # "Specialization Cert" (`spec_cert`, routed to the Certification
+            # Tracker at /student/certifications) was removed on 2026-09-17 at
+            # the owner's request, screen and endpoint with it. Stale
+            # `student_milestones` rows for that key are inert, as the class
+            # docstring below promises.
             Milestone("mock_gds", "Mock GDS"),
             Milestone("mock_interview", "Mock Interview", route="/student/assistant"),
             Milestone("aptitude", "Aptitude training"),

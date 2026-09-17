@@ -54,7 +54,6 @@ SCREEN_OF = {
     "student.english": ("GET", "/api/student/english-baseline"),
     "student.time_log": ("GET", "/api/student/ledger"),
     "student.skilling": ("GET", "/api/student/badges"),
-    "student.certifications": ("GET", "/api/student/certifications"),
     "student.mentor_log": ("GET", "/api/student/mentor-meetings"),
     "student.agent": ("POST", "/api/agent/ask"),
     "student.resume": ("POST", "/api/student/resume/generate"),
@@ -559,7 +558,7 @@ def test_the_console_writes_the_message_the_student_reads(client, make_user, stu
         f"{GOV}/features",
         headers=admin.headers,
         json={
-            "feature": "student.certifications", "scope": "STUDENT",
+            "feature": "student.time_log", "scope": "STUDENT",
             "target_id": student.student_id, "enabled": False,
             "reason": REASON, "student_message": words,
         },
@@ -569,16 +568,14 @@ def test_the_console_writes_the_message_the_student_reads(client, make_user, stu
     assert r.json()["student_message"] == words
     assert r.json()["feature_enforced"] is True
     try:
-        refusal = client.get("/api/student/certifications", headers=student.headers)
+        refusal = client.get("/api/student/ledger", headers=student.headers)
         assert refusal.status_code == 403
         assert refusal.json()["detail"] == words
     finally:
         client.delete(f"{GOV}/features/{override_id}", headers=admin.headers)
 
     # And clearing the rule gives the screen back, so an admin can undo.
-    assert client.get(
-        "/api/student/certifications", headers=student.headers
-    ).status_code == 200
+    assert client.get("/api/student/ledger", headers=student.headers).status_code == 200
 
 
 # --------------------------------------------------------------------------- #

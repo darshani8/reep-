@@ -1081,6 +1081,40 @@ report.
 `python -m app.seed` seeds all four, including a ledger deliberately 0.5 h short
 so the "0.5 h to reconcile" state is the one you see on a fresh database.
 
+**THE LANDING LOST ITS STAT STRIP AND ITS "SPECIALIZATION CERT" ROW
+(2026-09-17).** At the owner's request the four cards under the readiness /
+recommendations row — the stage donut, the skill-badge row, "Mocks taken" and
+the "Login streak" card — are gone from `features/student/home`, and the
+Elevate card's "Specialization Cert" item (`spec_cert`) went with the whole
+screen behind it: `features/student/certifications/` (the "Certification
+Tracker"), its route, `GET /api/student/certifications`, and the
+`student.certifications` feature switch — a row that gates nothing is the state
+B2.2 exists to end, so the switch left with the endpoint. The two
+"Finish <certification>" nudges that routed there (`/student/next-actions`
+and the landing's recommendations fallback) went too, because a button to a
+route that no longer resolves is worse than no button. **Deliberately NOT
+removed:** the `certifications` / `certification_progress` tables, their seed
+rows, the admin Catalogue screen that maintains them, and the readiness check
+and analytics that read them — the "Certification completion" factor on the
+student's readiness card still counts the same rows. That is the institution's
+catalogue, not the student screen that was asked for, and the readiness score
+would change on every deployment if it went. No migration: a stale
+`student_milestones` row for `spec_cert` and a stale `feature_overrides` row
+for the old key are both inert by construction (the milestone reader ignores
+unknown keys; the override resolver skips them and the console lists them
+under the bare key). The header's login-streak chip stays; only the card went.
+The global `.donut`, `.bar-chart`, `.bar-labels` and `.streak-*` classes had
+no other consumer and left `reep-v2.scss` with it. **The assistant read that
+endpoint too**: `assistant_tools.deadlines` projected the tracker's due-dates
+and `_deadlines` in the orchestrator read them out with a "View certifications"
+action — found by the golden-set gate in CI, not by `api-imports`, because a
+deleted function reached through a module attribute is a crash at call time
+and not at import. The DEADLINES intent answers the courses' next tasks now
+(`/student/courses`), and the readiness "Certification completion" factor's
+`_FACTOR_ACTION` points at Uploads, where the tracker's own "Continue" button
+already sent the student — `test_readiness_is_deterministic_with_score_and_weakest_factor`
+indexes that map directly, so every measurable factor must name a live route.
+
 **Staff read these through rule 2's gate**, in `app/routers/mentee_records.py`:
 `GET /api/mentor/students/{id}/ledger`, `.../ledger/summary` and
 `.../english-baseline`. Every one names a student in the PATH, so every one goes

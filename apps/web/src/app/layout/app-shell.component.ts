@@ -246,10 +246,10 @@ export const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
  * The student's items, unchanged from what the sidebar lists today — the
  * redesign restyles this console, it does not re-navigate it.
  *
- * Shorter than the route table on purpose: English Baseline, Certifications,
- * Courses, Records, Uploads and Profile are each reached from the screen that
- * owns the work, or from the identity card. Their routes are kept, so a
- * bookmark and a deep link still resolve.
+ * Shorter than the route table on purpose: English Baseline, Courses, Records,
+ * Uploads and Profile are each reached from the screen that owns the work, or
+ * from the identity card. Their routes are kept, so a bookmark and a deep link
+ * still resolve.
  */
 const STUDENT_NAVIGATION: readonly NavigationGroup[] = [
   {

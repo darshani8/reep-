@@ -183,7 +183,10 @@ async function pick(page, loc, option) {
   await page.waitForTimeout(600);
 }
 
+/** Wheel-scroll the CONTENT: the wheel goes to whatever is under the cursor, and after a sidebar click that is the sidebar. */
 async function scroll(page, dy, ms = 1500) {
+  await page.mouse.move(SIZE.width * 0.62, SIZE.height * 0.55, { steps: 10 });
+  await page.waitForTimeout(120);
   await page.mouse.wheel(0, dy);
   await page.waitForTimeout(ms);
 }

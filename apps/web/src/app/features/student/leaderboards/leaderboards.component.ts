@@ -1,7 +1,7 @@
 /**
  * Student leaderboards — the "Leaderboards" panel (mockup data-p="leaderboards").
  *
- * Five cohort boards (Certificates / Skills / VTU results / Streak / Mocks taken)
+ * Four cohort boards (Skills / VTU results / Streak / Mocks taken)
  * as a .tabs-row, each rendering the .lb-row ranking visual — rank pill, initials
  * avatar, name, and the metric total, with the viewer's own row highlighted (.me).
  *
@@ -16,6 +16,13 @@
  * Wired to GET /student/leaderboards?board=<key>, which ranks the caller's cohort
  * and honours the leaderboard opt-out in both directions (an opted-out student
  * sees no ranks, and appears on none).
+ *
+ * ONLY A CLASSMATE WITH A RECORD ON A BOARD IS ON IT, AND EQUAL TOTALS SHARE A
+ * RANK (2026-09-17). The server used to rank the whole roster at zero, so the
+ * "not ranked here yet" card below was unreachable and "Rank 2 of 30" sat under
+ * a student holding nothing. Rows are tracked by `student_id` because two rows
+ * can now carry the same rank, and `cohort_size` is the number of students
+ * ranked on this board — which the column header and the explainer now say.
  */
 
 import { Component, computed, signal } from '@angular/core';
@@ -25,6 +32,7 @@ import { environment } from '../../../../environments/environment';
 /** One ranked cohort peer — matches the FastAPI LeaderRow. */
 interface LbEntry {
   rank: number;
+  student_id: string;
   initials: string;
   name: string;
   is_me: boolean;
@@ -45,6 +53,8 @@ interface Tab {
   label: string;
   /** How this board is scored — shown in the explainer note. */
   scored: string;
+  /** What puts a student on this board — the "not ranked yet" card's sentence. */
+  first: string;
 }
 
 @Component({
@@ -58,10 +68,30 @@ export class LeaderboardsComponent {
   // skill rather than an achievement of its own, and the Skills board already
   // ranks on what those certificates were verified into.
   readonly tabs: Tab[] = [
-    { key: 'skills', label: 'Skills', scored: 'verified and held skills' },
-    { key: 'vtu', label: 'VTU results', scored: 'your latest-semester CGPA' },
-    { key: 'streak', label: 'Streak', scored: 'active-day count' },
-    { key: 'mocks', label: 'Mocks taken', scored: 'mock attempts taken' },
+    {
+      key: 'skills',
+      label: 'Skills',
+      scored: 'skills verified on Skilling',
+      first: 'Get a skill verified on Skilling and you’ll appear on this board.',
+    },
+    {
+      key: 'vtu',
+      label: 'VTU results',
+      scored: 'your latest recorded CGPA',
+      first: 'You’ll appear here once a semester result is recorded for you.',
+    },
+    {
+      key: 'streak',
+      label: 'Streak',
+      scored: 'active-day count',
+      first: 'Your sign-ins are counted from today — you’ll appear here shortly.',
+    },
+    {
+      key: 'mocks',
+      label: 'Mocks taken',
+      scored: 'mocks completed',
+      first: 'Finish a mock interview through to its verdict and you’ll appear on this board.',
+    },
   ];
 
   readonly active = signal<string>('skills');
@@ -95,7 +125,7 @@ export class LeaderboardsComponent {
       return {
         ranked: false,
         headline: 'You’re not ranked here yet',
-        encouragement: `Add your first ${this.activeTab().scored.replace(/^your /, '')} and you’ll appear on this board.`,
+        encouragement: this.activeTab().first,
       };
     }
     const headline = `You’re Rank ${me.rank} of ${n}`;
@@ -104,7 +134,8 @@ export class LeaderboardsComponent {
 
   /** The scoring + refresh explainer for the active board. */
   readonly explainer = computed(
-    () => `Ranked by ${this.activeTab().scored}. Updates as records change.`,
+    () =>
+      `Ranked by ${this.activeTab().scored}. Only classmates with a record here are ranked; equal totals share a rank. Updates as records change.`,
   );
 
   constructor() {

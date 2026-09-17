@@ -2732,6 +2732,37 @@ class CoreStack(Stack):
                             actions=["cloudfront:CreateInvalidation", "cloudfront:GetInvalidation"],
                             resources=[f"arn:aws:cloudfront::{self.account}:distribution/{distribution.distribution_id}"],
                         ),
+                        # infra-drift.yml's third check, and the ONLY one of its
+                        # three that this role should be given.
+                        #
+                        # It reads GROSS spend under RECORD_TYPE=Usage, which is
+                        # the view that would have shown the OpenSearch
+                        # collection billing $11.87/day while promotional
+                        # credits made it read $0.00 everywhere a human looks.
+                        # Until it is granted the step warns and the run files
+                        # "Gross spend was NOT measured this run — blank, not
+                        # clean", which is honest and is not a measurement.
+                        #
+                        # COST EXPLORER HAS NO RESOURCE-LEVEL PERMISSIONS, so
+                        # `*` here is the only spelling that exists, not a
+                        # widening somebody skipped scoping. What it grants is
+                        # an aggregate billing read: no resource is named, no
+                        # resource is reached, and nothing can be changed.
+                        #
+                        # The drift-detection half of that workflow is
+                        # deliberately NOT granted here. CloudFormation reads
+                        # every live resource with the CALLER's credentials, so
+                        # making `detect-stack-drift` actually answer (rather
+                        # than return NOT_CHECKED for most of the stack) needs
+                        # read access across EC2, ECS, RDS, ELB, S3, IAM,
+                        # Scheduler, Backup and WAF — effectively
+                        # ReadOnlyAccess on a role every GitHub Actions run can
+                        # assume. That is a far larger grant than the question
+                        # it answers is worth, and it would break this role's
+                        # stated "no CloudFormation right" boundary. If that
+                        # check is wanted, it belongs to a SEPARATE role this
+                        # workflow assumes, not to the role that ships code.
+                        iam.PolicyStatement(sid="ReadGrossSpend", actions=["ce:GetCostAndUsage"], resources=["*"]),
                     ]
                 )
             },

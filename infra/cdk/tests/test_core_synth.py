@@ -1786,3 +1786,59 @@ def test_the_money_only_stops_when_the_gateway_goes() -> None:
     t.resource_count_is("AWS::EC2::Instance", 1)
     route = t.to_json()["Resources"]["PrivateDefaultRoute"]["Properties"]
     assert "InstanceId" in route
+
+
+def test_the_deploy_role_still_has_no_codedeploy_cloudformation_or_rds(hardened: Template) -> None:
+    """`reep-github-deploy` ships code. It must not be able to deploy STACKS.
+
+    THIS GUARD DID NOT EXIST UNTIL 2026-09-17, and the comment above the role
+    in reep_core/stack.py had been naming it — by this exact function name —
+    for as long as the role has. A stated invariant nothing checks is a
+    comment, and this one is the reason `cdk import` stays human-attended:
+    the role assumes the account's CDK bootstrap roles and CloudFormation acts
+    under the bootstrap's own execution role, so a compromised workflow run
+    cannot reach RDS, rewrite IAM, or run the cutover from a browser.
+
+    It was written the day infra-drift.yml asked for `cloudformation:*` on
+    this role so its drift-detection step could answer. That grant was
+    refused: CloudFormation reads every live resource with the CALLER's
+    credentials, so a drift check that actually works needs read access across
+    most of the account. `ce:GetCostAndUsage` was granted instead — Cost
+    Explorer names no resource and reaches none — and `ce:` is therefore the
+    one allowance below.
+
+    If a future change needs one of these prefixes here, that is a decision
+    about who may deploy infrastructure from a pull request, not a test to
+    relax quietly.
+    """
+    forbidden = ("codedeploy:", "cloudformation:", "rds:", "backup:", "secretsmanager:", "sts:AssumeRole")
+    roles = hardened.find_resources("AWS::IAM::Role")
+    deploy = [
+        r for r in roles.values()
+        if r["Properties"].get("RoleName") == "reep-github-deploy"
+    ]
+    assert len(deploy) == 1, f"expected exactly one reep-github-deploy role, found {len(deploy)}"
+
+    actions: list[str] = []
+    for doc in deploy[0]["Properties"].get("Policies", []):
+        for stmt in doc["PolicyDocument"]["Statement"]:
+            a = stmt.get("Action", [])
+            actions.extend([a] if isinstance(a, str) else a)
+    assert actions, "the deploy role rendered no actions at all — this guard would pass vacuously"
+
+    for action in actions:
+        if not isinstance(action, str):
+            continue  # an Fn::If or similar; the literal prefixes are what this pins
+        for bad in forbidden:
+            assert not action.lower().startswith(bad.lower()), (
+                f"reep-github-deploy gained {action!r}. That role ships code; it must not be able to "
+                f"deploy stacks, read the database or rewrite IAM. See the docstring."
+            )
+
+    # The positive half: the one grant that WAS added for infra-drift.yml is
+    # billing-only, so a future edit cannot quietly swap it for something that
+    # reaches a resource.
+    ce = [a for a in actions if isinstance(a, str) and a.startswith("ce:")]
+    assert ce == ["ce:GetCostAndUsage"], (
+        f"the deploy role's Cost Explorer grant changed to {ce!r}; only ce:GetCostAndUsage is intended"
+    )

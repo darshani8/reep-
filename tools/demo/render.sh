@@ -8,22 +8,20 @@
 # encode H.264 or concatenate, which is why this is not done by the recorder.
 set -euo pipefail
 
-OUT="${1:-$(dirname "$0")/out}"
+OUT="$(cd "${1:-$(dirname "$0")/out}" && pwd)"
 cd "$OUT"
 
 # Presentation order — the same order as the slide deck.
 ORDER=(student faculty admin interlinked onboarding alumni)
 
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 encode() {
   local name="$1"
-  [ -f "$name.webm" ] || { echo "skip $name (no $name.webm)"; return; }
+  [ -f "$OUT/$name.webm" ] || { echo "skip $name (no $name.webm)"; return; }
   echo "encoding $name.mp4"
-  # Encoded at the capture's own size (1920x1080 by default); only even
-  # dimensions are forced, which yuv420p needs.
-  ffmpeg -hide_banner -loglevel error -y -i "$name.webm" \
-    -c:v libx264 -preset medium -crf 25 -pix_fmt yuv420p -r 25 \
-    -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" \
-    -movflags +faststart -an "$name.mp4"
+  # H.264 at the capture's own size, with the narration laid on at the times
+  # the recorder logged (a silent track when a segment has none).
+  node "$HERE/mix-narration.mjs" "$OUT" "$name"
 }
 
 for name in "${ORDER[@]}"; do encode "$name"; done

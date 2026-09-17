@@ -61,3 +61,4 @@ tools/coder/.orc/
 
 # tools/demo/record-walkthrough.mjs output: videos, screenshots, state
 tools/demo/out/
+tools/demo/voices/

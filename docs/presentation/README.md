@@ -25,9 +25,10 @@ every screenshot the deck uses, named by screen.
 
 Play the role videos in the order above, then the two workflow videos. Each
 segment opens with a chapter card; the caption bar at the bottom says what the
-screen is for and what is being typed. The videos have no audio track — the
-captions are the narration, and the deck's speaker notes carry the longer
-version.
+screen is for, and a narrator reads every caption aloud (a synthesized voice,
+Piper's `en_US-lessac-medium`). While a box is being typed into, the camera
+moves in on it and back out before the next click. The deck's speaker notes
+carry the longer version of the narration.
 
 ## Logins used
 

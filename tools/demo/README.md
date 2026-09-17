@@ -38,19 +38,39 @@ cd tools/demo && npm install
 REEP_API_LOG=/tmp/reep-api.log node record-walkthrough.mjs
 REEP_API_LOG=/tmp/reep-api.log node record-walkthrough.mjs student admin
 
-# 4. MP4s (H.264) per segment plus one combined file, from a full ffmpeg
+# 4. MP4s (H.264, narration laid on) per segment plus one combined file, from a full ffmpeg
 bash render.sh
 ```
 
 Output lands in `tools/demo/out/` (gitignored): `<segment>.webm` (1920 x 1080; `DEMO_WIDTH` / `DEMO_HEIGHT` change it) from the
-recorder, `<segment>.mp4` and `reep-full-walkthrough.mp4` from `render.sh`, and
-`shots/*.png`. `reset-dev-db.sh` drops and re-seeds the dev database so a
+recorder, `narration/` (the spoken lines and their timings), `<segment>.mp4` and
+`reep-full-walkthrough.mp4` from `render.sh`, and `shots/*.png`. `reset-dev-db.sh` drops and re-seeds the dev database so a
 recording always starts from the same state — a second run on the same data
 finds the ledger day already submitted and the claims already verified.
 
 Environment variables: `REEP_WEB` (default `http://127.0.0.1:4200`),
 `REEP_API_LOG`, `DEMO_OUT`, `DEMO_ASSETS`, `TYPE_DELAY` (ms per keystroke,
-default 45).
+default 55), `DEMO_WIDTH` / `DEMO_HEIGHT` (1920 x 1080), `DEMO_ZOOM` (the
+camera move while typing, default 1.55; 1 turns it off), `DEMO_TTS_CMD` and
+`PIPER` (narration, below).
+
+## Narration
+
+Every caption and chapter card is spoken. The recorder logs the moment each
+one appears (milliseconds into the video), synthesizes the words in the
+background, and holds the next caption until the current line would have
+finished; `render.sh` (through `mix-narration.mjs`) lays the clips onto the
+video at those times, speeding a clip up by at most 1.3x when the next one
+would otherwise talk over it. Symbols and initialisms are turned into words
+first (`→` becomes "to", `SWOC` is spelt out).
+
+The voice is Piper's `en_US-lessac-medium`, offline and MIT-licensed:
+`pip install piper-tts` (Python 3.11 or 3.12), `bash fetch-voice.sh` to put
+the model under `voices/` (gitignored), and `PIPER=/path/to/piper` if the
+binary is not on `PATH`. Any other engine works through `DEMO_TTS_CMD`, a
+shell command that reads the text on stdin and writes a WAV to `{out}`. A
+blank `DEMO_TTS_CMD` records without narration and the MP4s get a silent
+track, so the combined file still concatenates.
 
 ## How it is built
 

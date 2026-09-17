@@ -29,6 +29,11 @@
  *   TYPE_DELAY    ms between keystrokes    (default 55)
  *   DEMO_WIDTH / DEMO_HEIGHT   the viewport and video size (default 1920 x 1080)
  *   DEMO_ZOOM     how far the camera moves in while typing (default 1.55; 1 = off)
+ *   DEMO_TTS_CMD  the text-to-speech command that narrates every caption: text on
+ *                 stdin, a WAV at {out}. Default: Piper with the voice under
+ *                 tools/demo/voices/ (fetch-voice.sh); blank disables narration.
+ *                 The clips and their timings land in <DEMO_OUT>/narration/ and
+ *                 render.sh lays them onto the video.
  *
  * Output: <DEMO_OUT>/<segment>.webm (VP8, at the viewport size) and <DEMO_OUT>/shots/*.png.
  * tools/demo/render.sh turns the .webm files into MP4s with title cards.
@@ -36,6 +41,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { chromium } from 'playwright';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -49,6 +56,12 @@ const TYPE_DELAY = Number(process.env.TYPE_DELAY ?? 55);
 // it (a smooth CSS transform on <body>, panned from field to field) and scaled
 // back before anything is clicked, scrolled or screenshotted. 1 turns it off.
 const ZOOM = Number(process.env.DEMO_ZOOM ?? 1.55);
+// Narration: every caption and chapter card is spoken. The recorder logs WHEN
+// each one appeared (ms into the video) and synthesizes the words in the
+// background; render.sh lays the clips onto the video at those times.
+const VOICE = process.env.PIPER_VOICE ?? path.join(HERE, 'voices', 'en_US-lessac-medium.onnx');
+const TTS_CMD = process.env.DEMO_TTS_CMD ?? (fs.existsSync(VOICE) ? `${process.env.PIPER ?? 'piper'} --model ${JSON.stringify(VOICE)} --length_scale 1.08 --output_file {out}` : '');
+const WORDS_PER_SECOND = 2.7; // the pace the default voice speaks at; sets how long the next caption waits
 // Full HD: the console's grids and the wider screens are cut off at 1280x720.
 const SIZE = { width: Number(process.env.DEMO_WIDTH ?? 1920), height: Number(process.env.DEMO_HEIGHT ?? 1080) };
 
@@ -178,13 +191,67 @@ const OVERLAY = `(() => {
 // Driving helpers. Every visible action goes through these so the recording
 // shows a cursor gliding to the control, a click pulse and real keystrokes.
 // ---------------------------------------------------------------------------
-const say = (page, k, m) => page.evaluate(([k, m]) => window.__reepSay?.(k, m), [k, m]).catch(() => {});
-const hush = (page) => say(page, '', '');
+/** What a caption should sound like: symbols become words, initialisms are spelt out. */
+function speakable(text) {
+  return String(text)
+    .replace(/→/g, ' to ').replace(/←/g, ' from ').replace(/↔/g, ' and ')
+    .replace(/\s·\s/g, ', ').replace(/·/g, ', ').replace(/×/g, ' by ').replace(/%/g, ' percent')
+    .replace(/\s\/\s/g, ' or ').replace(/&/g, ' and ').replace(/—/g, ', ').replace(/–/g, ' to ')
+    .replace(/\b1:1s?\b/g, 'one-to-one').replace(/\b(\d+):(\d{2})\b/g, '$1 $2')
+    .replace(/\bSWOC\b/g, 'S W O C').replace(/\bUSN\b/g, 'U S N').replace(/\bTPO\b/g, 'T P O')
+    .replace(/\bCGPA\b/g, 'C G P A').replace(/\bMBA\b/g, 'M B A').replace(/\bPDF\b/g, 'P D F')
+    .replace(/\bCSV\b/g, 'C S V').replace(/\bBGSCET\b/g, 'B G S C E T').replace(/\bGD\b/g, 'G D')
+    .replace(/\bHR\b/g, 'H R').replace(/\bVTU\b/g, 'V T U').replace(/\bAI\b/g, 'A I').replace(/\bREEP\b/g, 'REEP')
+    .replace(/@/g, ' at ').replace(/\.ac\.in\b/g, ' dot a c dot in').replace(/\.mp4\b/g, '')
+    .replace(/\b(\d)BG(\d\d)MDM(\d+)\b/g, 'U S N $1 B G $2 M D M $3')
+    .replace(/[“”]/g, '"').replace(/\s+/g, ' ').trim();
+}
+
+const narration = { items: [], pending: [], videoStart: 0, endsAt: 0, segment: '' };
+const clipDir = () => path.join(OUT, 'narration', 'clips');
+
+function synthesize(text) {
+  if (!TTS_CMD) return null;
+  const spoken = speakable(text);
+  const file = path.join(clipDir(), createHash('sha1').update(spoken).digest('hex').slice(0, 16) + '.wav');
+  if (!fs.existsSync(file)) {
+    fs.mkdirSync(clipDir(), { recursive: true });
+    const cmd = TTS_CMD.replace('{out}', JSON.stringify(file));
+    const job = new Promise((resolve) => {
+      const child = spawn('sh', ['-c', cmd], { stdio: ['pipe', 'ignore', 'inherit'] });
+      child.on('exit', (code) => { if (code !== 0) console.log(`  narration failed (${code}): ${spoken.slice(0, 60)}`); resolve(); });
+      child.on('error', () => resolve());
+      child.stdin.end(spoken + '\n');
+    });
+    narration.pending.push(job);
+  }
+  return { file, spoken };
+}
+
+/** Log a spoken line at this moment of the video, and hold the next one until this one would have finished. */
+async function narrate(page, text, { hold = true } = {}) {
+  if (!TTS_CMD || !text) return 0;
+  const now = Date.now();
+  if (hold && now < narration.endsAt) await page.waitForTimeout(narration.endsAt - now + 200);
+  const clip = synthesize(text);
+  const words = clip.spoken.split(/\s+/).length;
+  const seconds = 0.5 + words / WORDS_PER_SECOND;
+  narration.items.push({ at: Date.now() - narration.videoStart, text: clip.spoken, file: path.basename(clip.file), estimate: seconds });
+  narration.endsAt = Date.now() + seconds * 1000;
+  return seconds;
+}
+
+async function say(page, k, m) {
+  if (m) await narrate(page, m);
+  await page.evaluate(([k, m]) => window.__reepSay?.(k, m), [k, m]).catch(() => {});
+}
+const hush = (page) => page.evaluate(() => window.__reepSay?.('', '')).catch(() => {});
 
 async function card(page, title, sub, ms = 2800) {
   await zoomOut(page);
+  const seconds = await narrate(page, `${title}. ${sub}`);
   await page.evaluate(([t, s]) => window.__reepCard?.(t, s, 'REEP · placement-readiness platform · live portal walkthrough'), [title, sub]).catch(() => {});
-  await page.waitForTimeout(ms);
+  await page.waitForTimeout(Math.max(ms, seconds * 1000 + 400));
   await page.evaluate(() => window.__reepCardOff?.()).catch(() => {});
   await page.waitForTimeout(500);
 }
@@ -1095,6 +1162,8 @@ async function record(name, fn) {
     timezoneId: 'Asia/Kolkata',
   });
   await context.addInitScript(OVERLAY);
+  narration.items = []; narration.pending = []; narration.endsAt = 0; narration.segment = name;
+  narration.videoStart = Date.now();
   const page = await context.newPage();
   page.on('pageerror', (e) => console.log('  page error:', String(e).slice(0, 160)));
   const started = Date.now();
@@ -1105,9 +1174,17 @@ async function record(name, fn) {
     console.log(`  ABORTED ${name}: ${err.message}`);
     await shot(page, `${name}-aborted`).catch(() => {});
   }
-  await page.waitForTimeout(1200);
+  // Let the last spoken line finish before the video ends.
+  const tail = narration.endsAt - Date.now();
+  await page.waitForTimeout(Math.max(1200, tail + 600));
   const video = page.video();
   await context.close();
+  if (TTS_CMD) {
+    await Promise.all(narration.pending);
+    fs.mkdirSync(path.join(OUT, 'narration'), { recursive: true });
+    fs.writeFileSync(path.join(OUT, 'narration', `${name}.json`), JSON.stringify({ segment: name, items: narration.items }, null, 2));
+    console.log(`  narration: ${narration.items.length} lines`);
+  }
   await browser.close();
   const raw = await video.path();
   const dest = path.join(OUT, `${name}.webm`);

@@ -51,6 +51,7 @@ than in the relay ON PURPOSE:
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Final
@@ -497,9 +498,37 @@ _FILLER_WORDS: Final[frozenset[str]] = frozenset(
     }
 )
 
-# Apostrophes are kept so "don't" is ONE word, not two: the floor measures how
+# WORDS IN ANY SCRIPT (2026-09-17). This was `[a-z0-9']+`, which is not a
+# word pattern, it is an ENGLISH word pattern: a transcript in Devanagari --
+# which is what Nova 2 Sonic wrote for an Indian-accented "hello, hi, I'm
+# Darshan", because it auto-detects the language and the HR voice is also its
+# Hindi voice -- matched nothing at all, so every answer was recorded `empty`
+# ("the transcriber returned nothing"), a false fact about an interview that
+# had five audible answers in it, and `is_skip_request` could not hear "अगला
+# प्रश्न" ("next question"). A regex over `\w` is not the fix either: Python's
+# `\w` excludes combining marks, and Hindi vowel signs and the virama are
+# marks, so it shatters "प्रश्न" into four fragments. Words are runs of
+# letters, digits and marks by Unicode category, with an apostrophe kept
+# INSIDE a word so "don't" is one word and not two -- the floor measures how
 # much the student said, and splitting contractions inflates it.
-_WORD_RE: Final[re.Pattern[str]] = re.compile(r"[a-z0-9']+")
+_WORD_CATEGORIES: Final[frozenset[str]] = frozenset({"L", "N", "M"})
+
+
+def words_of(text: str) -> list[str]:
+    """The words of a transcript, casefolded, in any script. Pure."""
+    words: list[str] = []
+    current: list[str] = []
+    for char in text.casefold():
+        if unicodedata.category(char)[0] in _WORD_CATEGORIES:
+            current.append(char)
+        elif char == "'" and current:
+            current.append(char)
+        elif current:
+            words.append("".join(current).rstrip("'"))
+            current = []
+    if current:
+        words.append("".join(current).rstrip("'"))
+    return [word for word in words if word]
 
 # WHAT A STUDENT SAYS WHEN THEY WANT TO MOVE ON RATHER THAN ANSWER (2026-09-17).
 # "Next question" used to be two words -- `too_short` -- and was recorded as a
@@ -535,6 +564,12 @@ _SKIP_PHRASES: Final[tuple[str, ...]] = (
     "i pass",
     "pass on this",
     "pass",
+    # Hindi, because that is what the transcriber wrote for the first student
+    # who tried it: "next question" and "next question (सवाल)". The interview
+    # is briefed to run in English, but the record must still be true when a
+    # student says it in Hindi.
+    "अगला प्रश्न",
+    "अगला सवाल",
 )
 # A skip is a sentence or two, never a paragraph. Above this many words the
 # student is answering, whatever words the answer happens to contain.
@@ -547,7 +582,7 @@ def is_skip_request(transcript: str) -> bool:
     Pure and deterministic, like the rest of the gate. Exposed on its own so the
     briefing, the local engine and the tests all read the same rule.
     """
-    words = _WORD_RE.findall(transcript.casefold())
+    words = words_of(transcript)
     if not words or len(words) > _SKIP_MAX_WORDS:
         return False
     padded = f" {' '.join(words)} "
@@ -573,7 +608,7 @@ def classify_answer(transcript: str) -> str:
     operator's word count is, and an engine that counted it would shorten the
     interview by one question every time somebody said it.
     """
-    words = _WORD_RE.findall(transcript.casefold())
+    words = words_of(transcript)
     if not words:
         return "empty"
     if is_skip_request(transcript):

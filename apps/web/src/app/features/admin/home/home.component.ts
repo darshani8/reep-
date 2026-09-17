@@ -301,6 +301,15 @@ export const HOME_GROUPS: readonly TaskGroup[] = [
         words: 'audit log activity history',
       },
       {
+        // "the code never came" starts here. The words are the ones somebody
+        // types when a student says it, not the ones this screen is called.
+        label: 'Check email delivery',
+        icon: 'mail',
+        path: '/admin/mail',
+        mainAdminOnly: true,
+        words: 'mail email code link not received never arrived bounced delivery sent',
+      },
+      {
         label: 'Ask REEP',
         icon: 'smart_toy',
         path: '/admin/agent',

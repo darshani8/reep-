@@ -28,6 +28,7 @@
  *   DEMO_ASSETS   sample files directory   (default tools/demo/assets)
  *   TYPE_DELAY    ms between keystrokes    (default 55)
  *   DEMO_WIDTH / DEMO_HEIGHT   the viewport and video size (default 1920 x 1080)
+ *   DEMO_ZOOM     how far the camera moves in while typing (default 1.55; 1 = off)
  *
  * Output: <DEMO_OUT>/<segment>.webm (VP8, at the viewport size) and <DEMO_OUT>/shots/*.png.
  * tools/demo/render.sh turns the .webm files into MP4s with title cards.
@@ -44,6 +45,10 @@ const API_LOG = process.env.REEP_API_LOG ?? '';
 const OUT = path.resolve(process.env.DEMO_OUT ?? path.join(HERE, 'out'));
 const ASSETS = path.resolve(process.env.DEMO_ASSETS ?? path.join(HERE, 'assets'));
 const TYPE_DELAY = Number(process.env.TYPE_DELAY ?? 55);
+// The camera move: while a box is being typed into, the page is scaled up around
+// it (a smooth CSS transform on <body>, panned from field to field) and scaled
+// back before anything is clicked, scrolled or screenshotted. 1 turns it off.
+const ZOOM = Number(process.env.DEMO_ZOOM ?? 1.55);
 // Full HD: the console's grids and the wider screens are cut off at 1280x720.
 const SIZE = { width: Number(process.env.DEMO_WIDTH ?? 1920), height: Number(process.env.DEMO_HEIGHT ?? 1080) };
 
@@ -130,6 +135,42 @@ const OVERLAY = `(() => {
     const c = document.getElementById('reep-demo-card');
     if (c) { c.classList.remove('on'); setTimeout(() => c.remove(), 420); }
   };
+  // The camera: scale <body> around a target and pan so the target sits near the
+  // middle of the frame, keeping the scaled page covering the viewport. The
+  // overlay lives outside <body>, so captions and the cursor stay unscaled.
+  window.__reepZoomTo = (el, S) => {
+    const b = document.body;
+    if (!b || !el) return;
+    const cur = b.dataset.reepZoom ? JSON.parse(b.dataset.reepZoom) : { tx: 0, ty: 0, s: 1 };
+    const br = b.getBoundingClientRect();
+    const r0 = { left: br.left - cur.tx, top: br.top - cur.ty, width: br.width / cur.s, height: br.height / cur.s };
+    const er = el.getBoundingClientRect();
+    const px = (er.left + er.width / 2 - br.left) / cur.s;
+    const py = (er.top + er.height / 2 - br.top) / cur.s;
+    const W = innerWidth, H = innerHeight;
+    let tx = W / 2 - r0.left - S * px;
+    let ty = H / 2 - r0.top - S * py;
+    const bw = Math.max(r0.width, W), bh = Math.max(r0.height, H);
+    tx = Math.min(-r0.left, Math.max(W - r0.left - S * bw, tx));
+    ty = Math.min(-r0.top, Math.max(H - r0.top - S * bh, ty));
+    b.style.transition = 'transform .85s cubic-bezier(.3,.05,.2,1)';
+    b.style.transformOrigin = '0 0';
+    b.style.willChange = 'transform';
+    b.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + S + ')';
+    b.dataset.reepZoom = JSON.stringify({ tx, ty, s: S });
+  };
+  window.__reepZoomOut = () => {
+    const b = document.body;
+    if (!b || !b.dataset.reepZoom) return false;
+    b.style.transform = 'translate(0px,0px) scale(1)';
+    delete b.dataset.reepZoom;
+    return true;
+  };
+  window.__reepZoomed = () => !!(document.body && document.body.dataset.reepZoom);
+  window.__reepInView = (el) => {
+    const r = el.getBoundingClientRect();
+    return r.left >= 8 && r.top >= 8 && r.right <= innerWidth - 8 && r.bottom <= innerHeight - 8;
+  };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ensure); else ensure();
 })();`;
 
@@ -141,6 +182,7 @@ const say = (page, k, m) => page.evaluate(([k, m]) => window.__reepSay?.(k, m), 
 const hush = (page) => say(page, '', '');
 
 async function card(page, title, sub, ms = 2800) {
+  await zoomOut(page);
   await page.evaluate(([t, s]) => window.__reepCard?.(t, s, 'REEP · placement-readiness platform · live portal walkthrough'), [title, sub]).catch(() => {});
   await page.waitForTimeout(ms);
   await page.evaluate(() => window.__reepCardOff?.()).catch(() => {});
@@ -152,10 +194,28 @@ async function settle(page, ms = 2600) {
   await page.waitForTimeout(ms);
 }
 
-async function clickAt(page, loc, { pauseAfter = 650, timeout = 15000 } = {}) {
+const ZOOM_MS = 950;
+async function zoomTo(page, loc) {
+  if (!(ZOOM > 1)) return;
+  const el = loc.first();
+  await el.evaluate((node, S) => window.__reepZoomTo?.(node, S), ZOOM).catch(() => {});
+  await page.waitForTimeout(ZOOM_MS);
+}
+async function zoomOut(page) {
+  const was = await page.evaluate(() => window.__reepZoomOut?.()).catch(() => false);
+  if (was) await page.waitForTimeout(ZOOM_MS);
+}
+const isZoomed = (page) => page.evaluate(() => window.__reepZoomed?.()).catch(() => false);
+
+/** Glide to a control and click it. Zooms back out first unless `keepZoom` and the control is inside the zoomed frame. */
+async function clickAt(page, loc, { pauseAfter = 650, timeout = 15000, keepZoom = false } = {}) {
   const el = loc.first();
   await el.waitFor({ state: 'visible', timeout });
-  await el.scrollIntoViewIfNeeded();
+  if (await isZoomed(page)) {
+    const inside = keepZoom && (await el.evaluate((node) => window.__reepInView?.(node)).catch(() => false));
+    if (!inside) await zoomOut(page);
+  }
+  if (!(await isZoomed(page))) await el.scrollIntoViewIfNeeded();
   await page.waitForTimeout(120);
   const box = await el.boundingBox();
   if (box) {
@@ -166,27 +226,31 @@ async function clickAt(page, loc, { pauseAfter = 650, timeout = 15000 } = {}) {
   await page.waitForTimeout(pauseAfter);
 }
 
-async function type(page, loc, text, { clear = false } = {}) {
-  await clickAt(page, loc, { pauseAfter: 160 });
+async function type(page, loc, text, { clear = false, delay = TYPE_DELAY } = {}) {
+  await clickAt(page, loc, { pauseAfter: 160, keepZoom: true });
+  await zoomTo(page, loc);
   if (clear) await loc.first().fill('');
-  await loc.first().pressSequentially(text, { delay: TYPE_DELAY });
-  await page.waitForTimeout(380);
+  await loc.first().pressSequentially(text, { delay });
+  await page.waitForTimeout(420);
 }
 
 async function fillDate(page, loc, iso) {
-  await clickAt(page, loc, { pauseAfter: 160 });
+  await clickAt(page, loc, { pauseAfter: 160, keepZoom: true });
+  await zoomTo(page, loc);
   await loc.first().fill(iso);
-  await page.waitForTimeout(450);
+  await page.waitForTimeout(500);
 }
 
 async function pick(page, loc, option) {
-  await clickAt(page, loc, { pauseAfter: 200 });
+  await clickAt(page, loc, { pauseAfter: 200, keepZoom: true });
+  await zoomTo(page, loc);
   await loc.first().selectOption(option);
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(650);
 }
 
 /** Wheel-scroll the CONTENT: the wheel goes to whatever is under the cursor, and after a sidebar click that is the sidebar. */
 async function scroll(page, dy, ms = 1500) {
+  await zoomOut(page);
   await page.mouse.move(SIZE.width * 0.62, SIZE.height * 0.55, { steps: 10 });
   await page.waitForTimeout(120);
   await page.mouse.wheel(0, dy);
@@ -194,6 +258,7 @@ async function scroll(page, dy, ms = 1500) {
 }
 
 async function go(page, route, ms = 2600) {
+  await zoomOut(page);
   await page.goto(WEB + route, { waitUntil: 'domcontentloaded' });
   await settle(page, ms);
 }
@@ -208,6 +273,7 @@ async function nav(page, label) {
 
 const shots = new Set();
 async function shot(page, name) {
+  await zoomOut(page);
   fs.mkdirSync(path.join(OUT, 'shots'), { recursive: true });
   await page.screenshot({ path: path.join(OUT, 'shots', `${name}.png`) });
   shots.add(name);
@@ -504,10 +570,8 @@ async function segStudent(page) {
       const cell = open.locator('input[type="number"]').first();
       const current = Number((await cell.inputValue()) || 0);
       await say(page, 'Reconcile the day', 'Half an hour is unaccounted for. Type it into the open slot, save the draft, then submit — a submitted day is read-only.');
-      await clickAt(page, cell, { pauseAfter: 150 });
-      await cell.fill('');
-      await cell.pressSequentially(String(current + 0.5), { delay: 120 });
-      await page.waitForTimeout(700);
+      await type(page, cell, String(current + 0.5), { clear: true, delay: 120 });
+      await page.waitForTimeout(400);
       await clickAt(page, page.getByRole('button', { name: /save draft/i }));
       await settle(page, 1200);
       await clickAt(page, page.getByRole('button', { name: /submit day/i }));

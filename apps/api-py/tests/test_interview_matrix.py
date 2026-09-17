@@ -31,6 +31,7 @@ from app.interview_matrix import (
     classify_answer,
     get_specialization,
     is_skip_request,
+    words_of,
 )
 from app.interview_core import _INTERVIEWER_PERSONA
 
@@ -304,6 +305,30 @@ class TestAnswerClassification:
         # its own verdict, does not count, and is not a failed answer.
         assert is_skip_request(text) is True
         assert classify_answer(text) == "skipped"
+
+    @pytest.mark.parametrize(
+        "text, verdict",
+        [
+            # What Nova 2 Sonic wrote, in Devanagari, for the first student who
+            # tried the interview with an Indian accent. The gate used to
+            # match `[a-z0-9']+`, so every one of these was `empty` -- "the
+            # transcriber returned nothing" about five audible answers.
+            ("हेलो हाई मैं दर्शन हूँ।", "accepted"),  # hello, hi, I'm Darshan: 5 words
+            ("हाँ।", "too_short"),  # yes: one word, and not on the English filler list
+            ("ओके, अगला प्रश्न।", "skipped"),  # ok, next question
+            ("अगला प्रश्न, कृपया।", "skipped"),  # next question, please
+            ("अगला सवाल", "skipped"),
+        ],
+    )
+    def test_a_transcript_in_another_script_is_read_word_for_word(self, text, verdict):
+        assert classify_answer(text) == verdict
+
+    def test_words_are_runs_of_letters_digits_and_marks_in_any_script(self):
+        # Python's \w excludes combining marks, and Hindi vowel signs and the
+        # virama ARE marks, so a \w-based pattern shatters one word into four.
+        assert words_of("अगला प्रश्न, कृपया।") == ["अगला", "प्रश्न", "कृपया"]
+        assert words_of("I don't know... really!") == ["i", "don't", "know", "really"]
+        assert words_of("'tis 'quoted'") == ["tis", "quoted"]
 
     @pytest.mark.parametrize(
         "text",

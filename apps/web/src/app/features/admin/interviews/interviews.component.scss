@@ -82,6 +82,12 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+.record-facts {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
 .record-audio-reason {
   display: flex;
   align-items: center;

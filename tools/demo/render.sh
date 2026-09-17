@@ -8,13 +8,13 @@
 # encode H.264 or concatenate, which is why this is not done by the recorder.
 set -euo pipefail
 
-OUT="$(cd "${1:-$(dirname "$0")/out}" && pwd)"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OUT="$(cd "${1:-$HERE/out}" && pwd)"
 cd "$OUT"
 
 # Presentation order — the same order as the slide deck.
 ORDER=(student faculty admin interlinked onboarding alumni)
 
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 encode() {
   local name="$1"
   [ -f "$OUT/$name.webm" ] || { echo "skip $name (no $name.webm)"; return; }

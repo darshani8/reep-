@@ -154,6 +154,14 @@ class PolicySheetOut(BaseModel):
     #: What a student at this college gets TODAY if nothing above applies. The
     #: screen renders it as "not configured — these numbers are in force".
     effective_default: "EffectivePolicyOut"
+    #: The OPERATOR's switch, `INTERVIEW_RECORDING_ENABLED` (2026-09-17). The
+    #: policy's "Allow voice recording" is one of THREE gates on a recording
+    #: (`app/interview_audio.py::recorder_or_reason`), and this one is set on
+    #: the server, not on this screen: a college that ticks the box on a
+    #: deployment where it is off records nothing and has no way to know why.
+    #: Served so the card can say so beside the box rather than let the office
+    #: tick it and wait.
+    recording_enabled_on_server: bool = False
 
 
 class TrackOut(BaseModel):
@@ -538,6 +546,7 @@ def read_policies(
         effective_default=_effective_out(
             resolve_policy(db, college_id=college_id, course_id=None)
         ),
+        recording_enabled_on_server=bool(settings.interview_recording_enabled),
     )
 
 

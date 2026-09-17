@@ -150,6 +150,8 @@ const ANSWER_QUALITY: Record<string, string> = {
   empty: 'Nothing was transcribed, so the interviewer asked again.',
   filler: 'Read as a filler word, so the interviewer asked again.',
   too_short: 'Too short to score, so the interviewer asked again.',
+  skipped: 'You asked to move on, so this question was skipped and not scored.',
+  echo: 'This was the interviewer’s own voice picked up by your microphone, so it was not counted.',
 };
 
 @Component({

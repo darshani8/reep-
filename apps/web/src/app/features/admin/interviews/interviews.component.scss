@@ -82,6 +82,15 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+.record-audio-reason {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
 .record-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;

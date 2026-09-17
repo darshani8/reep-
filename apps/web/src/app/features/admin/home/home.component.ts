@@ -95,7 +95,7 @@ export const HOME_QUEUES: readonly QueueSpec[] = [
     path: '/admin/leave-approvals',
     url: '/leaves/pending',
     read: arrayLength,
-    mainAdminOnly: true,
+    capability: 'admin.leave_approvals',
   },
   {
     key: 'unassigned',
@@ -186,7 +186,7 @@ export const HOME_GROUPS: readonly TaskGroup[] = [
         label: 'Approve leave',
         icon: 'event_available',
         path: '/admin/leave-approvals',
-        mainAdminOnly: true,
+        capability: 'admin.leave_approvals',
         words: 'leave requests holiday sanction policy calendar',
       },
     ],

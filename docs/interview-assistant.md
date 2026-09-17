@@ -587,25 +587,48 @@ that a real grant authorised.
 answerable years later — after the grant has been revoked and re-given twice.
 Revoking stamps `revoked_at` and never deletes the row.
 
-## Audio — off by default, and "off" is two independent switches
+## Audio — off by default, and "off" is three independent switches
 
 This section replaces an earlier flat *"audio is not recorded"*. Capture now
 exists (`app/interview_audio.py`), and a doc that denies a feature that exists is
 as much of a trap as a setting that exists and does nothing.
 
-**Nothing is captured unless BOTH of these are true**, and neither is true in a
-default deployment:
+**Nothing is captured unless ALL THREE of these are true**, and none of them is
+true in a default deployment:
 
-1. `INTERVIEW_RECORDING_ENABLED=true` in `apps/api-py/.env` (default `false`);
-2. the student holds a live consent grant of the current version whose
-   `scope_store_audio` is `true` — a separate, **unticked** checkbox whose copy
-   says plainly that staff can listen.
+1. `INTERVIEW_RECORDING_ENABLED=true` in `apps/api-py/.env` (default `false`;
+   the CDK stack sets it `true` on the AWS deployment) — the **operator's**;
+2. the college's `interview_policies.store_audio` is `true` — the **college's**,
+   the "Allow voice recording" box on the Interview records screen's policy
+   card, and **unticked until somebody ticks it** (no policy row is seeded, and
+   the absence of one is the default);
+3. the student holds a live consent grant of the current version whose
+   `scope_store_audio` is `true` — the **student's** acknowledgement, which
+   since B6.1 is a copy of the college's decision taken at Start, shown to them
+   in words that say plainly that staff can listen.
 
-Both gates live inside `recorder_for()` so that *"when does REEP record a
+All three gates live inside `recorder_or_reason()` (`recorder_for()` is the
+same decision with the reason thrown away) so that *"when does REEP record a
 student's voice?"* has one answer in one function. It **fails closed** — an
 unreachable database means "do not record", never "record anyway" — and it is
 called from `routers/interview.py`, because the engines import no ORM model and
 a recording feature is not what that containment gets spent on.
+
+**WHICH GATE CLOSED IS WRITTEN DOWN (2026-09-17).** The four Nones used to be
+told apart only by INFO lines in the API log, so the Interview records screen
+drew "No audio" beside a grey "Download recording" button for every interview
+on a deployment whose operator switch was on and whose college had simply never
+ticked the box — and the office reported the recording feature as broken. The
+finalizer now writes `interview_sessions.audio_skipped_reason` (`operator_off`,
+`policy_off`, `no_consent`, `store_full`, `open_failed`, or `nothing_captured`
+for a recorder that closed with nothing), the records API serves it, and the
+open record spells it out with a button to the policy card when the fix is the
+college's own tick. The Download button is drawn only when there is a file to
+download. NULL on a recorded interview and on every row older than the column,
+which the screen renders as "no recording was kept" and nothing more — the
+gate that closed a year ago is not a thing to guess. The policy card also says
+when the operator's switch is off, so "Allow voice recording" is not a box the
+office ticks and then waits on.
 
 | | |
 |---|---|
@@ -651,7 +674,7 @@ Nova's own settings, all optional except the region:
 | `NOVA_SONIC_MODEL` | `amazon.nova-2-sonic-v1:0` | the model id. **Not** an inference profile — the bidirectional API takes the bare id, which is why this is separate from `BEDROCK_MODEL` |
 | `NOVA_SONIC_REGION` | *(unset)* | falls back to `BEDROCK_REGION`, then `AWS_REGION` / `AWS_DEFAULT_REGION`. The endpoint is composed from it here, so blank is "not configured" rather than "let the SDK decide" |
 | `NOVA_SONIC_VOICE` | `matthew` | the voice for the GENERIC interview only; each matrix row casts its own |
-| `NOVA_SONIC_ENDPOINTING` | `MEDIUM` | `HIGH`/`MEDIUM`/`LOW` — how fast Nova decides the student has stopped. `HIGH` reads a thinking pause as the end of a turn, and being cut off mid-answer is the most damaging thing a mock interviewer can do |
+| `NOVA_SONIC_ENDPOINTING` | `LOW` | `HIGH`/`MEDIUM`/`LOW` — the pause Nova waits for before it takes the turn (AWS documents 1.5 s / 1.75 s / ~2 s). `LOW` since 2026-09-17: a student gathering an example stops for a breath, `MEDIUM` read that breath as the end of the answer and asked the next question over its second half, and being cut off mid-answer is the most damaging thing a mock interviewer can do |
 | `NOVA_SONIC_INPUT_RATE_HZ` | 16000 | the uplink rate. The browser captures 24 kHz and the engine resamples; Nova accepts 8/16/24 kHz and 16 is the documented path |
 | `NOVA_SONIC_CONNECTION_SECONDS` | 480 | Bedrock's 8-minute stream limit, as the engine understands it. Lower it if a deployment sees streams cut sooner |
 

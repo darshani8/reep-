@@ -1,11 +1,21 @@
-"""Leave requests — submit, and ONE decision by the Main Admin.
+"""Leave requests — submit, and ONE decision by the office or its delegate.
 
 ONE SIGNATURE, THE OFFICE'S (2026-09-16). Any signed-in account submits.
-The MAIN ADMIN alone decides: APPROVE moves SUBMITTED -> APPROVED, REJECT
-moves it to REJECTED, and that is the whole chain. Nobody else sees the
-approver's queue, nobody else may sign, and the Main Admin cannot decide its
-own request. The owner's instruction, in their words: leave approval is the
-Main Admin's power only, and a single approval — no second step.
+The MAIN ADMIN decides: APPROVE moves SUBMITTED -> APPROVED, REJECT moves it
+to REJECTED, and that is the whole chain — a single approval, no second step.
+Nobody decides their own request.
+
+AND THE OFFICE MAY HAND THE QUEUE TO A FACULTY MEMBER (2026-09-17). The gate
+is the `admin.leave_approvals` capability: the Main Admin holds it by baseline
+and nothing about the office's own path changed, and a faculty account holds
+it only by a GRANT the Main Admin makes in Governance, with a reason, on the
+audit trail, revocable the same hour. A holder sees the same programme-wide
+queue the office sees (minus their own requests) and signs as DELEGATE, which
+the paper prints beside the name. This is NOT the retired `mentor.leave_approve`
+coming back: that key was DERIVED from mentoring somebody and reached one
+group's queue, and it deadlocked with the second signature it was part of.
+This one is a decision the office makes about a named person, and it carries
+the one signature the office would otherwise give.
 
 WHAT IT REPLACES, kept here because the shape of the old rule explains the
 columns that are still on the row. Until this date a request needed TWO
@@ -25,13 +35,14 @@ button, and the owner's answer was not a second signer but a single one. So:
   * `mentor.leave_approve` is GONE from the capability catalogue and from the
     derived mentor functions; migration `d8b1f4c2a7e9` revokes every live
     grant of it. A key nothing checks is a promise the API does not keep
-    (B2.1), and a faculty member offered "Approve leave" in Governance would
-    be offered a screen that answers 403.
+    (B2.1), and a stray row naming it still opens nothing — the successor is
+    a different key on purpose.
   * `_assert_can_decide` still exists and still returns the function the
     decider acted in, because `leave_paper.py`, `leave_attachments.py`,
     `leave_alternate.py` and `leave_policy.py` import it as THE gate on
-    reading somebody else's request; it now admits the Main Admin and nobody
-    else, with the same flattened 404 for everybody else.
+    reading somebody else's request; it admits the Main Admin
+    (`SIGNED_AS_MAIN_ADMIN`) and a holder of `admin.leave_approvals`
+    (`SIGNED_AS_DELEGATE`), with the same flattened 404 for everybody else.
 
 RULE 2 ON THE APPLICANT'S SIDE IS UNCHANGED: `/mine`, `POST` and `/cancel` are
 the applicant's own and gate on nothing but the session; `reason` is free
@@ -52,20 +63,29 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..governance import has_capability, require_capability
 from ..identity import get_current_session
 from ..leave_mail import notify_transition
 from ..leave_policy import submit_refusal
 from ..scope_views import SCOPE_HEADER
 from ..models.leave import (
+    SIGNED_AS_DELEGATE,
     SIGNED_AS_MAIN_ADMIN,
     LeaveDecision,
     LeaveRequest,
     LeaveStatus,
 )
 from ..models.user import User
-from .mentor import require_admin, require_mentor
+from .mentor import require_mentor
 
 router = APIRouter(prefix="/leaves", tags=["leaves"])
+
+#: The approver's key. ADMIN holds it by baseline (`ROLE_BASELINE` is `_ALL`
+#: minus the faculty instruments), so the office's path is exactly what it was;
+#: a MENTOR holds it only by a grant. Named once, because
+#: `tools/ci/check_capability_enforcement.py` resolves module constants and a
+#: literal repeated at three call sites is three places to mistype it.
+LEAVE_APPROVAL_CAPABILITY = "admin.leave_approvals"
 
 
 class AltRow(BaseModel):
@@ -256,14 +276,17 @@ def _leave_out(lr: LeaveRequest, db: Session) -> LeaveOut:
 
 
 def _require_leave_approver(db: Session, session: dict) -> None:
-    """The approver's gate: THE MAIN ADMIN, and nobody else (2026-09-16).
+    """The approver's gate: the Main Admin, or a faculty member the Main Admin
+    granted `admin.leave_approvals` (2026-09-17).
 
-    `require_admin` is the one console gate (AGENTS.md, "DIRECTOR is not a
-    role"), and it is the whole of this function. It used to be
-    `require_mentor` composed with `mentor.leave_approve`, admitting a
-    mentoring faculty member to their own group's queue and a scoped grantee
-    to a department's; the owner made leave the office's power only and the
-    capability went with the door.
+    `require_mentor` first, so a STUDENT or an ALUMNI meets the role gate's own
+    403 — the answer they get on every staff surface — and then the capability.
+    The Main Admin passes on its baseline and never touches the grants table;
+    a MENTOR passes on a live grant and nothing else: not on mentoring
+    somebody (that was the retired `mentor.leave_approve`, derived and
+    group-scoped, and it deadlocked with the second signature it belonged
+    to), and not on a stray row still naming the retired key. From 2026-09-16
+    to this date the function was `require_admin` alone.
 
     IT IS NOT ON THE SUBMIT PATH, AND THAT IS THE POINT. `POST /api/leaves`,
     `/mine` and `/cancel` are open to every signed-in account, faculty with no
@@ -275,10 +298,15 @@ def _require_leave_approver(db: Session, session: dict) -> None:
     refusal that depended on whether the leave exists would turn this endpoint
     into the membership oracle `_assert_can_decide` flattens its 404s to
     prevent: the answer here is the same for every id, known or invented.
-    `db` is kept in the signature so the four call sites and the tests that
-    patch it need not change.
+
+    THE REACH IS THE PROGRAMME. A leave request hangs on no rung of the spine
+    that this router reads (the requester is a person, not a batch), so a
+    grant is honoured wherever it was made and the queue a holder sees is the
+    office's own; `_programme_wide` says so in the scope header rather than
+    leaving it blank.
     """
-    require_admin(session)
+    require_mentor(session)
+    require_capability(db, session, LEAVE_APPROVAL_CAPABILITY)
 
 
 @router.post("", response_model=LeaveOut, status_code=status.HTTP_201_CREATED)
@@ -410,9 +438,11 @@ def cancel_leave(
 
 
 def _assert_can_decide(session: dict, lr: LeaveRequest, db: Session) -> str:
-    """Staff only, and of staff only the Main Admin. RETURNS THE FUNCTION the
-    caller is admitted in — always `SIGNED_AS_MAIN_ADMIN` now — which is what
-    the decision path stamps on the row and the paper prints.
+    """Staff only, and of staff only the Main Admin or a holder of
+    `admin.leave_approvals`. RETURNS THE FUNCTION the caller is admitted in —
+    `SIGNED_AS_MAIN_ADMIN` for the office, `SIGNED_AS_DELEGATE` for a granted
+    faculty member — which is what the decision path stamps on the row and the
+    paper prints beside the name.
 
     STILL THE ONE GATE ON READING SOMEBODY ELSE'S REQUEST. `leave_paper.py`,
     `leave_attachments.py`, `leave_alternate.py` and `leave_policy.py` import
@@ -430,14 +460,20 @@ def _assert_can_decide(session: dict, lr: LeaveRequest, db: Session) -> str:
     require_mentor(session)
     if session["role"] == "ADMIN":
         return SIGNED_AS_MAIN_ADMIN
+    # `has_capability`, not `require_capability`: a refusal here must be the
+    # flattened 404 every other non-approver gets, never a 403 that names the
+    # key and confirms the id exists.
+    if has_capability(db, session, LEAVE_APPROVAL_CAPABILITY):
+        return SIGNED_AS_DELEGATE
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Leave request not found.")
 
 
 def _programme_wide(response: Response) -> None:
     """The scope header the console's college read-out reads (B1.4). The
-    Main Admin is the only caller left and is never narrowed, so the word is
-    always `programme`; stated rather than omitted, so the app bar does not
-    read a missing header as "unknown reach"."""
+    Main Admin and a granted delegate both see the whole queue — a leave
+    request hangs on no rung this router narrows by — so the word is always
+    `programme`; stated rather than omitted, so the app bar does not read a
+    missing header as "unknown reach"."""
     response.headers[SCOPE_HEADER] = "programme"
 
 

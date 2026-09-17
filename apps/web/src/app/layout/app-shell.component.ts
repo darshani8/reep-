@@ -153,7 +153,7 @@ export const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
         label: 'Leave requests',
         icon: 'event_available',
         path: '/admin/leave-approvals',
-        mainAdminOnly: true,
+        capability: 'admin.leave_approvals',
       },
       {
         label: 'Upload spreadsheets',
@@ -364,6 +364,26 @@ export const GRANTABLE_ADMIN_SCREENS: readonly (NavigationItem & {
     icon: 'pending_actions',
   },
   { capability: 'admin.mentors', path: '/admin/mentors', label: 'Assign faculty', icon: 'group' },
+  // Leave approval became grantable on 2026-09-17: a faculty member the office
+  // hands the queue to signs as a delegate on the same screen the office uses.
+  {
+    capability: 'admin.leave_approvals',
+    path: '/admin/leave-approvals',
+    label: 'Leave requests',
+    icon: 'event_available',
+  },
+  // Interview records were grantable (admin.interviews) before this row was:
+  // a granted faculty member passed the route guard with no row anywhere
+  // offering the screen, which is the defect this list exists to prevent.
+  // The grid is still rule 2's -- a faculty member sees their own mentees'
+  // interviews -- and "Download recording" on it needs admin.interview_audio
+  // as well, granted separately and on purpose.
+  {
+    capability: 'admin.interviews',
+    path: '/admin/interviews',
+    label: 'Interview records',
+    icon: 'mic',
+  },
   {
     capability: 'admin.students',
     path: '/admin/students',

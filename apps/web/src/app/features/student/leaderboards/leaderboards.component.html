@@ -115,12 +115,12 @@
             <tr>
               <th class="lb-col-rank">Rank</th>
               <th>Student</th>
-              <th class="lb-col-of">Cohort</th>
+              <th class="lb-col-of">Ranked</th>
               <th class="lb-col-val">Total</th>
             </tr>
           </thead>
           <tbody>
-            @for (row of rows(); track row.rank) {
+            @for (row of rows(); track row.student_id) {
               <tr [class.me]="row.is_me">
                 <td class="lb-col-rank"><span class="lb-rank">{{ row.rank }}</span></td>
                 <td>

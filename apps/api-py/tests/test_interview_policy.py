@@ -1002,6 +1002,23 @@ class TestTheStudentCard:
         # specialization no track is mapped to — and the picker stays.
         assert {t["code"] for t in body["tracks"]} >= {"hr", "dm", "ba", "fa"}
 
+    def test_it_says_whether_this_server_can_record_at_all(
+        self, client, login, monkeypatch
+    ):
+        """The room's "recording on/off" reads the policy AND the operator's
+        switch, never the student's own consent row — a row is a copy of the
+        policy on the day they agreed, and it said "on" over an interview the
+        recorder refused. The switch is the server's, so the card carries it."""
+        headers = login("student@bgscet.ac.in", "student123")
+        monkeypatch.setattr(settings, "interview_recording_enabled", False)
+        assert client.get("/api/interview/policy", headers=headers).json()[
+            "recording_enabled_on_server"
+        ] is False
+        monkeypatch.setattr(settings, "interview_recording_enabled", True)
+        assert client.get("/api/interview/policy", headers=headers).json()[
+            "recording_enabled_on_server"
+        ] is True
+
     def test_a_disabled_track_is_not_offered(self, client, login):
         """`resolve_specialization` refuses a code whose row is DISABLED — the
         switch has to actually stop the interview — so the card must not offer

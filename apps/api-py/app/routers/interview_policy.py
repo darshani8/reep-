@@ -214,6 +214,14 @@ class StudentPolicyOut(BaseModel):
     #: still post — the endpoint is idempotent — but this is what lets the
     #: screen avoid a round trip it does not need.
     acknowledged: bool
+    #: The OPERATOR's `INTERVIEW_RECORDING_ENABLED` (2026-09-17), the first of
+    #: the three gates in `recorder_or_reason`. The room's "recording on/off"
+    #: line used to read the student's OWN consent row, a copy of the policy
+    #: taken on the day they agreed: it said "on" over an interview the
+    #: recorder had refused. The label reads the policy and this flag now, so
+    #: a college that ticked the box on a server that cannot record does not
+    #: tell its students they are being recorded.
+    recording_enabled_on_server: bool = False
     #: B5.3: the track this student's batch implies, or null when the batch
     #: names no specialization (or names one no track is mapped to). NULL is a
     #: real answer and the picker stays — it must not be filled with a guess.
@@ -887,6 +895,7 @@ def my_interview_policy(
         policy=_effective_out(policy),
         usage=_usage_for(db, student_id, now, policy),
         acknowledged=acknowledged,
+        recording_enabled_on_server=bool(settings.interview_recording_enabled),
         default_track=_default_track(db, student_id, tracks),
         tracks=tracks,
     )

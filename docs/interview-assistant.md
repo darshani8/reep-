@@ -630,6 +630,23 @@ gate that closed a year ago is not a thing to guess. The policy card also says
 when the operator's switch is off, so "Allow voice recording" is not a box the
 office ticks and then waits on.
 
+**THE ROOM RE-ASKS WHEN THE POLICY CHANGED (2026-09-17, the same evening).** A
+consent row is a copy of the policy taken when the student pressed "I agree",
+and the room used to start straight away whenever it held one — so the Start
+line's "recording on/off", read off that row, could disagree with what the
+recorder was about to do in BOTH directions: "on" over an interview refused
+`policy_off`, and, after the office ticked the box, "off" with `no_consent` on
+every existing student while the record claimed they would be shown the terms
+again. `shared/interview-room/consent-sync.ts` holds the two decisions as pure
+functions with a spec: Start proceeds on the standing row only while the
+policy's two storage scopes still equal the row's (the server's `acknowledged`
+comparison, made on the client), otherwise the terms are shown again and "I
+agree" posts the acknowledgement the server supersedes; and the label reads the
+policy and `recording_enabled_on_server` (now on `GET /api/interview/policy`
+too), not the row. Judged on the card already loaded, never on a fetch —
+`start()` must run inside the click's gesture — and the card is re-read in the
+background after each Start.
+
 | | |
 |---|---|
 | **Format** | PCM16 LE mono 24 kHz wrapped in a RIFF/WAVE header by the stdlib `wave` module — the bytes already crossing the relay, so no encoder, no transcode and no new dependency |

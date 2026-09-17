@@ -86,7 +86,10 @@ _FACTOR_ACTION: dict[str, tuple[str, str]] = {
     "CGPA": ("/student/academics", "Review your academics"),
     "Live backlogs": ("/student/academics", "Clear your live backlogs"),
     "Attendance": ("/student/academics", "Check your attendance"),
-    "Certification completion": ("/student/certifications", "Continue your certifications"),
+    # Uploads, not the Certification Tracker: that screen went on 2026-09-17,
+    # and its own "Continue" button already sent the student here — a
+    # certification counts as complete once its proof is uploaded and verified.
+    "Certification completion": ("/student/uploads", "Upload a certificate"),
     "Placement profile": ("/student/profile", "Complete your placement profile"),
     "Resume profile": ("/student/resume", "Complete your resume profile"),
 }
@@ -435,29 +438,29 @@ def _profile(db: Session, student_id: str) -> dict[str, Any]:
 
 
 def _deadlines(db: Session, student_id: str) -> dict[str, Any]:
-    data = tools.deadlines(db, student_id)
-    certs = [c for c in data.get("certifications", []) if c.get("due_date")]
-    certs.sort(key=lambda c: (c.get("days_until_due") is None, c.get("days_until_due")))
+    """What is due next, per in-flight course.
 
-    if certs:
-        lines = []
-        for c in certs[:5]:
-            d = c.get("days_until_due")
-            when = (
-                f"in {d} day(s)" if isinstance(d, int) and d >= 0
-                else f"{abs(d)} day(s) overdue" if isinstance(d, int)
-                else f"due {c['due_date']}"
-            )
-            lines.append(f"{c['name']} — {when} ({c['status']})")
-        answer = "Your upcoming certification deadlines:\n" + "\n".join(lines)
+    This used to list certification due-dates and point at the Certification
+    Tracker; both went on 2026-09-17 (see `tools.deadlines`). A completed course
+    has nothing due, so it is left off the list.
+    """
+    data = tools.deadlines(db, student_id)
+    courses = [
+        c for c in data.get("courses", [])
+        if c.get("next_task") and c["next_task"] != "Completed"
+    ]
+
+    if courses:
+        lines = [f"{c['name']} — {c['next_task']}" for c in courses[:5]]
+        answer = "What is due next on your courses:\n" + "\n".join(lines)
     else:
-        answer = "You have no upcoming certification deadlines on record."
+        answer = "You have no course tasks due on record."
 
     actions = [
         {
-            "label": "View certifications",
-            "route": "/student/certifications",
-            "reason": "See due dates and pick up where you left off.",
+            "label": "View courses",
+            "route": "/student/courses",
+            "reason": "See each course's next task and check in.",
         }
     ]
     return _finalize(

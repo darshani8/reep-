@@ -114,20 +114,16 @@ def eligible_jobs(db: Session, student_id: str) -> list[dict]:
 
 
 def deadlines(db: Session, student_id: str) -> dict:
-    """Upcoming certification due-dates and the next task per in-flight course —
-    projected from GET /student/certifications and GET /student/courses."""
-    cert_models = student_ep.my_certifications(session=_session(student_id), db=db)
+    """The next task per in-flight course — projected from GET /student/courses.
+
+    Until 2026-09-17 this also carried the certification due-dates from
+    GET /student/certifications. The Certification Tracker and that endpoint
+    were removed with the Elevate card's "Specialization Cert" row, and the
+    assistant must not go on reading out a screen the student can no longer
+    open — so the deadlines answer is the courses' next tasks now.
+    """
     course_models = student_ep.my_courses(session=_session(student_id), db=db)
     return {
-        "certifications": [
-            {
-                "name": c.name,
-                "due_date": c.due_date.isoformat() if c.due_date else None,
-                "days_until_due": c.days_until_due,
-                "status": c.status,
-            }
-            for c in cert_models
-        ],
         "courses": [
             {"name": c.name, "next_task": c.next_task} for c in course_models
         ],

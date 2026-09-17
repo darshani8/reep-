@@ -1079,7 +1079,16 @@ for the old key are both inert by construction (the milestone reader ignores
 unknown keys; the override resolver skips them and the console lists them
 under the bare key). The header's login-streak chip stays; only the card went.
 The global `.donut`, `.bar-chart`, `.bar-labels` and `.streak-*` classes had
-no other consumer and left `reep-v2.scss` with it.
+no other consumer and left `reep-v2.scss` with it. **The assistant read that
+endpoint too**: `assistant_tools.deadlines` projected the tracker's due-dates
+and `_deadlines` in the orchestrator read them out with a "View certifications"
+action — found by the golden-set gate in CI, not by `api-imports`, because a
+deleted function reached through a module attribute is a crash at call time
+and not at import. The DEADLINES intent answers the courses' next tasks now
+(`/student/courses`), and the readiness "Certification completion" factor's
+`_FACTOR_ACTION` points at Uploads, where the tracker's own "Continue" button
+already sent the student — `test_readiness_is_deterministic_with_score_and_weakest_factor`
+indexes that map directly, so every measurable factor must name a live route.
 
 **Staff read these through rule 2's gate**, in `app/routers/mentee_records.py`:
 `GET /api/mentor/students/{id}/ledger`, `.../ledger/summary` and

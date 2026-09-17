@@ -49,7 +49,7 @@
           Type the college email address this link was sent to and we will send you a
           one-time code to confirm it.
         </p>
-        <form (ngSubmit)="sendCode()" novalidate>
+        <form [formGroup]="emailForm" (ngSubmit)="sendCode()" novalidate>
           <div class="field">
             <label for="ob-email">Your college email</label>
             <input
@@ -57,7 +57,7 @@
               type="email"
               inputmode="email"
               autocomplete="email"
-              [formControl]="email"
+              formControlName="email"
               placeholder="1bg26mba001&#64;bgscet.ac.in"
               [attr.aria-invalid]="email.touched && email.invalid"
             />
@@ -78,7 +78,7 @@
         @if (note(); as msg) {
           <p class="link-sub" role="status">{{ msg }}</p>
         }
-        <form (ngSubmit)="checkCode()" novalidate>
+        <form [formGroup]="codeForm" (ngSubmit)="checkCode()" novalidate>
           <div class="field">
             <label for="ob-code">Six-digit code</label>
             <input
@@ -88,7 +88,7 @@
               autocomplete="one-time-code"
               maxlength="6"
               class="code-input"
-              [formControl]="code"
+              formControlName="code"
               [attr.aria-invalid]="code.touched && code.invalid"
             />
             @if (code.touched && code.invalid) {

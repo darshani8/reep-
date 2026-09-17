@@ -71,6 +71,7 @@ import {
   ReportCardView,
 } from '../../features/student/interviews/interview-report-card.component';
 import { MockAudioStreamController, VisualizerState, VoiceVisualizer } from '../voice-visualizer';
+import { grantMatchesPolicy, recordingLabel } from './consent-sync';
 
 /** One consent grant, verbatim from ConsentOut in
  *  apps/api-py/app/routers/interview_records.py. */
@@ -112,6 +113,10 @@ interface InterviewPolicyCard {
     reset_applied: boolean;
   };
   acknowledged: boolean;
+  /** The operator's `INTERVIEW_RECORDING_ENABLED` — the first of the three
+   *  gates on a recording. Optional because a server older than the field
+   *  omits it, and absent must read as "unknown", never as "off". */
+  recording_enabled_on_server?: boolean;
   /** B5.3: the track this student's batch implies, or null. NULL is a real
    *  answer and the picker stays — it must never be filled with a guess. */
   default_track: string | null;
@@ -429,6 +434,11 @@ export class InterviewRoomComponent implements AfterViewInit, OnDestroy {
     };
   });
 
+  /** The word after "recording" on the Start line: what the NEXT interview
+   *  will do, read from the policy and the operator's switch, never from the
+   *  consent row alone (consent-sync.ts says why). */
+  readonly recordingLabel = computed(() => recordingLabel(this.consent(), this.policy()));
+
   /** "12 Aug 2026" for the live grant, or null. */
   readonly consentGrantedLabel = computed(() => {
     const row = this.consent();
@@ -530,12 +540,28 @@ export class InterviewRoomComponent implements AfterViewInit, OnDestroy {
     if (!this.canStart()) return;
     // A rehearsal has no consent row to write — the server keeps nothing it
     // could be consented to — so it starts straight away.
-    if (this.consent() || this.isRehearsal()) {
+    if (this.isRehearsal()) {
       void this.interview.start(this.selectedSpecialization());
       return;
     }
-    // No live grant for the current terms — show the disclosure before touching
-    // the microphone. This also covers "the terms changed since last time".
+    // A standing grant is a COPY of the college's policy on the day it was
+    // made, and the policy can have changed since (consent-sync.ts). Start on
+    // it only while the policy still says what it says; otherwise the terms
+    // are shown again, and "I agree" posts the acknowledgement the server then
+    // supersedes. Judged on the card already loaded — nothing is fetched here,
+    // because start() must run inside the click's user gesture — and the card
+    // is re-read in the background so the NEXT press judges fresh data. With
+    // no card at all (the fetch failed) the row is the only fact there is,
+    // and the server enforces the policy regardless.
+    const grant = this.consent();
+    const card = this.policy();
+    if (grant && (card === null || grantMatchesPolicy(grant, card.policy))) {
+      void this.interview.start(this.selectedSpecialization());
+      void this.loadPolicy();
+      return;
+    }
+    // No live grant for the current terms, or one that no longer matches the
+    // policy — show the disclosure before touching the microphone.
     this.openConsent();
   }
 

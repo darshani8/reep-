@@ -187,6 +187,15 @@ class InterviewSessionOut(BaseModel):
     # renders as "no recording" and nothing more, because guessing which gate
     # closed a year ago would be inventing a fact.
     audio_skipped_reason: str | None = None
+    # AGENTS.md's runbook pair, served rather than left in the database
+    # (2026-09-17): a transcript with five student turns and no interviewer
+    # turns is either an interviewer that never spoke or a write path that
+    # dropped its turns, and only these two numbers tell the office which
+    # without a database client. Emitted counts every turn the engine saw;
+    # persisted counts the rows that landed. Zero on both for a row that
+    # predates the counters.
+    turns_emitted: int = 0
+    turns_persisted: int = 0
     started_at: datetime
     ended_at: datetime | None
     # From the evaluation row, via one LEFT JOIN, so a history list does not
@@ -404,6 +413,8 @@ def _session_out(
         close_code=row.close_code,
         audio_recorded=row.audio_recorded,
         audio_skipped_reason=row.audio_skipped_reason,
+        turns_emitted=row.turns_emitted or 0,
+        turns_persisted=row.turns_persisted or 0,
         started_at=row.started_at,
         ended_at=row.ended_at,
         report_status=report_status,

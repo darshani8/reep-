@@ -1452,9 +1452,17 @@ class TestAnInterruptionThatWasNotAnAnswer:
         for spec in ("hr", None):
             session, _upstream, _browser = make_session(spec)
             composed = session._instructions()
-            assert "## Turn-taking" in composed
+            assert "## Language and turn-taking" in composed
             assert "pick up the question you were asking" in composed
             assert "next question" in composed and "skip" in composed
+            # Nova auto-detects the language and kiara/arjun are also its Hindi
+            # voices: an Indian-accented greeting was transcribed in Devanagari
+            # and the interview followed the student into Hindi. The prompt is
+            # the only lever, so it pins English.
+            assert "conducted in English" in composed
+            assert "Speak only English" in composed
+            # And it can never be read as permission to say nothing.
+            assert "never answer with silence" in composed
             assert composed.endswith(nova._CONTROL_CHANNEL_NOTE)
             assert composed.startswith(_INTERVIEWER_PERSONA)
 

@@ -1006,6 +1006,9 @@ def test_staff_are_told_why_an_interview_has_no_recording(api, world):
     assert r.status_code == 200, r.text
     assert r.json()["audio_recorded"] is False
     assert r.json()["audio_skipped_reason"] == SKIP_POLICY_OFF
+    # The runbook pair rides the same payload, so "turns emitted, turns saved"
+    # is readable from the screen and not only from a database client.
+    assert (r.json()["turns_emitted"], r.json()["turns_persisted"]) == (11, 11)
     listed = {row["id"]: row for row in api.get(base, headers=world.as_director).json()}
     assert listed[world.interview_id]["audio_skipped_reason"] == SKIP_POLICY_OFF
     grid = {row["session_id"]: row for row in api.get("/api/mentor/interviews", headers=world.as_director).json()}

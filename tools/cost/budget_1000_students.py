@@ -1,4 +1,4 @@
-"""Budget model for the board: 1,000 students, two 8-minute mock interviews a day.
+"""Budget model for the board: 1,000 students, seven 8-minute mock interviews a month each.
 
 Every unit price below is one of two things. Either it is what THIS account
 (445363794125) was billed per unit on 2026-09-16, read from Cost Explorer with
@@ -59,7 +59,9 @@ TODAY = {
 today_month = sum(TODAY.values()) * 30.4
 
 # --- the load and the interview ---------------------------------------------
-STUDENTS, PER_DAY, MINUTES = 1000, 2, 8.0
+STUDENTS, PER_DAY, MINUTES = 1000, 2, 8.0   # PER_DAY = the ceiling the board first asked about
+PER_STUDENT_PER_MONTH = 7                     # the volume the board is planning for (2026-09-18)
+HEADLINE = STUDENTS * PER_STUDENT_PER_MONTH  # 7,000 interviews a month
 SECONDS = MINUTES * 60
 TOKENS_PER_S = 25                       # AWS: Nova Sonic audio is 25 tokens per second
 # Talk-time shares of an 8-minute session, and text tokens per SESSION.
@@ -123,7 +125,10 @@ def scenario(interviews_per_month, days_per_month=22, case="central", recording=
     lines = {}
     lines["Today's platform (measured, list price)"] = today_month
     lines["Database step-up to db.t4g.small Multi-AZ"] = (RDS_SMALL_MAZ_H - RDS_MICRO_MAZ_H) * HOURS
-    lines["API scale-out during interview hours (avg +3 tasks x 12 h)"] = 3 * 12 * days_per_month * TASK_H
+    # Extra api task-hours scale with the interviews: 3 tasks x 12 h x 22 days at
+    # 44,000 a month is 0.018 task-hours per interview; at 7,000 a month the two
+    # always-on tasks carry the load and this rounds to nothing.
+    lines["API scale-out during interview hours (0.018 task-hours per interview)"] = n * 0.018 * TASK_H
     lines["Database storage growth (+1.2 GB/month, incl. backups)"] = 5.0
     lines["Nova 2 Sonic interviews"] = n * nova_each
     down_gb_month = n * 48_000 * s * CASES[case]["interviewer"] / 1e9
@@ -178,7 +183,11 @@ if __name__ == "__main__":
           f" (tester spoke ~{m['speech_in'] / TOKENS_PER_S:.0f} s, interviewer ~{m['speech_out'] / TOKENS_PER_S:.0f} s)")
     for k, v in network_per_interview("central").items():
         print(f"  {k:<64} ${v:.5f}")
-    show("A. Working days (22), 2 a day, central", scenario(44_000, 22))
+    show("H. THE PLAN: 7 a month per student, central", scenario(HEADLINE, 22))
+    show("H-low. 7 a month per student, low case", scenario(HEADLINE, 22, case="low"))
+    show("H-high. 7 a month per student, high case", scenario(HEADLINE, 22, case="high"))
+    show("H-rec. 7 a month per student, recording ON", scenario(HEADLINE, 22, recording=True))
+    show("A. Ceiling: working days (22), 2 a day, central", scenario(44_000, 22))
     show("B. Every day (30), 2 a day, central", scenario(60_000, 30))
     show("A-low. Working days, low case", scenario(44_000, 22, case="low"))
     show("A-high. Working days, high case (both sides talkative)", scenario(44_000, 22, case="high"))
@@ -189,6 +198,7 @@ if __name__ == "__main__":
     show("E. Working days, 6-minute interviews", scenario(44_000, 22, minutes=6))
     print("\nScaling table (central case, Tokyo prices):")
     for per_month, what in ((2_000, "pilot: 100 students, 1 a day"), (4_300, "1,000 students, 1 a week"),
+                            (HEADLINE, "THE PLAN: 1,000 students, 7 a month"),
                             (8_600, "1,000 students, 2 a week"), (22_000, "1,000 students, 1 a day, working days"),
                             (44_000, "1,000 students, 2 a day, working days"), (60_000, "1,000 students, 2 a day, every day")):
         s = scenario(per_month, 22 if per_month < 60_000 else 30)
@@ -204,6 +214,11 @@ if __name__ == "__main__":
               f" = {n / STUDENTS / 4.3:.2f} per student per week")
     print(f"  (fixed platform + agent + mail = ${fixed:,.0f}/mo; one interview = ${unit:.4f})")
     print("\nConcurrency the quota must cover:")
-    for window_h in (10, 12, 14):
+    per_day = HEADLINE / 22
+    for share, hours in ((1.0, 12), (0.6, 3)):
+        conc = per_day * share * MINUTES / (hours * 60)
+        print(f"  the plan: {per_day:.0f} interviews a working day; {share:.0%} of them inside {hours} h"
+              f" -> {conc:.1f} simultaneous on average, 2x burst {2 * conc:.0f}")
+    for window_h in (12,):
         avg = STUDENTS * PER_DAY * MINUTES / (window_h * 60)
-        print(f"  {window_h} h interview window: average {avg:.0f} simultaneous interviews, 3x peak {3 * avg:.0f}")
+        print(f"  the ceiling (2 a day): {avg:.0f} simultaneous on average in a {window_h} h window, 3x peak {3 * avg:.0f}")

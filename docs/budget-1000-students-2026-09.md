@@ -1,52 +1,51 @@
-# Budget: 1,000 students, two mock interviews a day (2026-09-18, rechecked)
+# Budget: 1,000 students, seven mock interviews a month each (2026-09-18)
 
 Prepared for the board. Every number here is one of two things: read from the
 live AWS account `445363794125` on 2026-09-18 (Cost Explorer with credits
 excluded, CloudWatch, Service Quotas, the API's own log, the running ECS/RDS
 resources), or computed by `tools/cost/budget_1000_students.py` from unit
 prices that account was **actually billed** on 2026-09-16. Rupee figures use
-₹96 per US dollar (95.96 on 18 Sep 2026) and include 18% GST. What changed
-when this document was rechecked, and the one measurement still worth making
-before the budget is approved, are in §7.
+₹96 per US dollar (95.96 on 18 Sep 2026) and include 18% GST. The plan the
+board is pricing is **7 interviews per student per month**, 7,000 a month;
+the "two a day" figures the question started from are kept in §6 as the
+ceiling. What changed on recheck, and the one measurement still worth making,
+are in §7.
 
 ## 1. The answer
 
-| | 2 a day on working days (22 a month) | 2 a day, every day (30 a month) |
-|---|---:|---:|
-| Interviews a month | 44,000 | 60,000 |
-| AWS bill before GST | $4,167 | $5,589 |
-| With 18% GST | $4,917 | $6,595 |
-| **Per month** | **₹4.7 lakh** | **₹6.3 lakh** |
-| **Per year** | **₹57 lakh** | **₹76 lakh** |
-| Per student, per month | ₹472 | ₹633 |
-| Range, low to high case (§5) | ₹3.9 – ₹5.9 lakh a month | ₹5.2 – ₹7.9 lakh a month |
+| The plan: 1,000 students × 7 interviews a month | |
+|---|---:|
+| Interviews a month | 7,000 |
+| AWS bill before GST | $879 |
+| With 18% GST | $1,037 |
+| **Per month** | **₹1.0 lakh** |
+| **Per year** | **₹12 lakh** |
+| **Per student** | **₹100 a month, ₹1,200 a year** |
+| Range, low to high case (§5) | ₹0.86 – ₹1.18 lakh a month |
 
 Four things to take away.
 
-1. **The platform is cheap.** Web, API, database, backups, security and
-   monitoring bill about **$180 a month** at list price today, and need only
-   about **$50 a month** more to carry 1,000 students (a bigger database
-   instance and a few extra API tasks during interview hours).
-2. **The interviews are the cost.** One 8-minute interview costs about
-   **₹8.5** (₹6.9 to ₹10.8 depending on how much each side talks), and 91% of
-   that is the Amazon Nova 2 Sonic speech model. The one test session on this
-   account that ran the full 8 minutes billed ₹5.5, with the tester speaking
-   for only a minute. Two a day for 1,000 students on working days is 44,000
-   interviews a month; that is where the ₹4.7 lakh comes from, and the bill
-   moves in a straight line with the count.
-3. **₹50,000 to ₹70,000 a month is a real budget for a smaller programme, not
-   for two a day.** After the fixed platform and GST it buys about **2,000 to
-   4,000 interviews a month** — roughly one interview per student every week or
-   two (§6 has the table). Two a day for everyone cannot be bought for that at
-   any measured price. If the same figure was meant in US dollars a year, both
-   scenarios land inside it: $50,000 a year on working days, $67,000 every day,
-   before GST.
-4. **Money is not the only gate; a quota is.** AWS currently allows this
-   account **2 simultaneous Nova 2 Sonic interviews** in Tokyo, where the model
-   runs (AWS's own default is 20; this account was issued a reduced
-   allocation, re-read on 18 Sep, with no increase request on file). The plan
-   needs 60–100 simultaneous interviews at peak. The increase request should go
-   in this week, and the ramp it implies is in §8.
+1. **A quarter of the bill is the platform, two thirds is the interviews.**
+   Web, API, database, backups, security and monitoring bill about **$180 a
+   month** at list price today and need about **$40 a month** more for 1,000
+   students; the 7,000 interviews cost about **$620 a month** on top, of which
+   $567 is the Amazon Nova 2 Sonic speech model.
+2. **One 8-minute interview costs about ₹8.5** (₹6.9 to ₹10.8 depending on how
+   much each side talks), built on the one session this account has billed at
+   full length (₹5.5 with the tester barely speaking). Seven a month is
+   ₹60 a student; the other ₹40 is their share of the platform.
+3. **₹50,000 to ₹70,000 a month buys 2 to 4 interviews a student a month, not
+   7.** At these prices ₹70,000 buys about 4,100 interviews a month with the
+   platform included; 7 a month is ₹1.0 lakh. The gap is ₹30,000 a month of
+   speech-model time, and §6 shows every level between one a week and two a
+   day so the board can choose.
+4. **The plan still needs a quota increase.** 318 interviews a working day
+   means 3 to 4 running at once on average and **bursts of 15 to 20** in a busy
+   evening hour. AWS currently allows this account **2 simultaneous Nova 2
+   Sonic interviews** (its own default is 20; no increase request is on file).
+   Two streams could serve 318 a day only by running back to back for 21
+   hours. The request should ask for 20 now; §8 has the ramp and the interim
+   options.
 
 ## 2. What is deployed today
 
@@ -112,25 +111,24 @@ Admin's rehearsals, one of which ran to the 8-minute cap.
 
 ## 4. The load
 
-| | |
-|---|---:|
-| Students | 1,000 |
-| Interviews per student per day | 2 |
-| Length of an interview | 8 minutes (Bedrock closes the stream at 8:00; the engine forces the wrap-up 90 s before) |
-| Interview-minutes per day | 16,000 |
-| Interviews per month | 44,000 on 22 working days; 60,000 every day |
-| Average simultaneous interviews, 12-hour window | 22 |
-| Peak simultaneous interviews (3× average) | 60–80 |
+| | The plan | The ceiling the question started from |
+|---|---:|---:|
+| Students | 1,000 | 1,000 |
+| Interviews per student | 7 a month | 2 a day |
+| Interviews a month | 7,000 | 44,000 on working days; 60,000 every day |
+| Length of an interview | 8 minutes (Bedrock closes the stream at 8:00; the engine forces the wrap-up 90 s before) | same |
+| Interviews per working day | 318 | 2,000 |
+| Running at once, average over 12 hours | 3–4 | 22 |
+| Running at once, busy evening (60% of the day inside 3 hours) | 8–9, bursts of 15–20 | 60–80 |
 
-"Two a day for every student" is a ceiling, not a forecast: it assumes every
-student uses both slots every day. The product already caps a student at 8
-completed interviews and 20 attempts in a rolling 24 hours
-(`interview_max_per_student_per_day`,
+The product already caps a student at 8 completed interviews and 20 attempts
+in a rolling 24 hours (`interview_max_per_student_per_day`,
 `interview_max_attempts_per_student_per_day`), and a college can set its own
-`daily_cap` per course on the Interview records screen. Setting that to the
-number the board approves is how a budget becomes a ceiling the software
-enforces rather than a hope; §6 prices the levels between one a week and two a
-day.
+`daily_cap` per course on the Interview records screen. Seven a month is not a
+daily figure, so it is enforced by the monthly count on the Interview records
+screen rather than by that cap; until a monthly cap exists in the product, a
+`daily_cap` of 1 keeps the ceiling at 22 a month per student. §6 prices every
+level between one a week and two a day.
 
 ## 5. What one interview costs
 
@@ -171,56 +169,58 @@ a month even at 60,000 interviews, so it is not a line.
 Output of `python tools/cost/budget_1000_students.py`, central case, before
 GST, per month.
 
-| Line | A. 2 a day, working days | B. 2 a day, every day |
-|---|---:|---:|
-| Today's platform (measured) | $180 | $180 |
-| Database step-up to `db.t4g.small` Multi-AZ | $31 | $31 |
-| API scale-out in interview hours (avg +3 tasks × 12 h) | $12 | $16 |
-| Database storage growth | $5 | $5 |
-| **Nova 2 Sonic interviews** | **$3,561** | **$4,856** |
-| Network and logs for interviews | $338 | $461 |
-| REEP Agent (Nova Pro, 10 questions per student a month) | $39 | $39 |
-| Mail | $2 | $2 |
-| **Total before GST** | **$4,167** | **$5,589** |
-| GST 18% | $750 | $1,006 |
-| **Per month, INR** | **₹4.72 lakh** | **₹6.33 lakh** |
-| **Per year, INR** | **₹57 lakh** | **₹76 lakh** |
+| Line | **The plan: 7 a month** | Ceiling: 2 a day, working days | Ceiling: 2 a day, every day |
+|---|---:|---:|---:|
+| Interviews a month | **7,000** | 44,000 | 60,000 |
+| Today's platform (measured) | $180 | $180 | $180 |
+| Database step-up to `db.t4g.small` Multi-AZ | $31 | $31 | $31 |
+| API scale-out in interview hours | $2 | $12 | $16 |
+| Database storage growth | $5 | $5 | $5 |
+| **Nova 2 Sonic interviews** | **$567** | $3,561 | $4,856 |
+| Network and logs for interviews | $54 | $338 | $461 |
+| REEP Agent (Nova Pro, 10 questions per student a month) | $39 | $39 | $39 |
+| Mail | $2 | $2 | $2 |
+| **Total before GST** | **$879** | $4,167 | $5,589 |
+| GST 18% | $158 | $750 | $1,006 |
+| **Per month, INR** | **₹1.00 lakh** | ₹4.72 lakh | ₹6.33 lakh |
+| **Per year, INR** | **₹12 lakh** | ₹57 lakh | ₹76 lakh |
+| Per student, per month | **₹100** | ₹472 | ₹633 |
 
-Where the money goes in scenario A: Nova 85%, network 8%, the platform 6%.
+Where the plan's money goes: Nova 65%, the platform 25%, network 6%, the REEP
+Agent and mail 5%.
 
 The bill scales with the interview count, not the student count:
 
 | Interviews a month | What it corresponds to | Before GST | Per month incl. GST | Per year, USD |
 |---:|---|---:|---:|---:|
-| 2,000 | a pilot: 100 students, 1 a day | $445 | ₹0.50 lakh | $5.3k |
-| 4,300 | 1,000 students, 1 a week | $649 | ₹0.74 lakh | $7.8k |
-| 8,600 | 1,000 students, 2 a week | $1,030 | ₹1.17 lakh | $12.4k |
-| 22,000 | 1,000 students, 1 a day on working days | $2,218 | ₹2.51 lakh | $26.6k |
+| 2,000 | a pilot: 100 students, 1 a day | $434 | ₹0.49 lakh | $5.2k |
+| 4,300 | 1,000 students, 1 a week | $639 | ₹0.72 lakh | $7.7k |
+| **7,000** | **the plan: 1,000 students, 7 a month** | **$879** | **₹1.00 lakh** | **$10.5k** |
+| 8,600 | 1,000 students, 2 a week | $1,021 | ₹1.16 lakh | $12.2k |
+| 22,000 | 1,000 students, 1 a day on working days | $2,212 | ₹2.51 lakh | $26.5k |
 | 44,000 | 1,000 students, 2 a day on working days | $4,167 | ₹4.72 lakh | $50.0k |
 | 60,000 | 1,000 students, 2 a day, every day | $5,589 | ₹6.33 lakh | $67.1k |
 
 Read the other way, what a monthly budget buys (central case, after the
-$268/month of fixed platform, agent and mail, and after GST):
+$256/month of fixed platform, agent and mail, and after GST):
 
 | Budget a month | Before GST | Interviews a month | Per student |
 |---:|---:|---:|---|
-| ₹50,000 | $441 | 2,000 | 0.5 a week |
-| ₹70,000 | $618 | 3,950 | 0.9 a week |
-| ₹1 lakh | $883 | 6,900 | 1.6 a week |
-| ₹2 lakh | $1,766 | 16,900 | 3.9 a week |
-| ₹5 lakh | $4,414 | 46,800 | 2 a day on working days |
+| ₹50,000 | $441 | 2,100 | 2 a month |
+| ₹70,000 | $618 | 4,100 | 4 a month |
+| **₹1 lakh** | **$883** | **7,100** | **7 a month — the plan** |
+| ₹2 lakh | $1,766 | 17,000 | 17 a month |
+| ₹5 lakh | $4,414 | 46,900 | 2 a day on working days |
 
-Variants, before GST:
+Variants of the plan, before GST:
 
 | Variant | Total | Change |
 |---|---:|---:|
-| A, low case | $3,416 | −$751 |
-| A, high case | $5,210 | +$1,043 |
-| B, low case | $4,566 | −$1,023 |
-| B, high case | $7,011 | +$1,422 |
-| B with **voice recording switched on** (see §8) | $9,558 | +$3,969, and growing every month |
-| A with Nova billed at US-region prices (run the model in N. Virginia) | $3,602 | −$565, at ~120 ms more latency |
-| A with 6-minute interviews instead of 8 | $3,272 | −$895 |
+| Low case (short answers) | $759 | −$120 |
+| High case (both sides talkative) | $1,044 | +$165 |
+| **Voice recording switched on** (see §8) | $1,342 | +$463, and growing by about $8 every month |
+| Nova billed at US-region prices (run the model in N. Virginia) | $787 | −$92, at ~120 ms more latency |
+| 6-minute interviews instead of 8 | $733 | −$146 |
 
 ## 7. How this reconciles with the real bill
 
@@ -235,8 +235,7 @@ are marked "list" in the script.
 
 **The fixed platform reproduces the bill.** The model's $5.91/day against the
 real $6.20 clean day; the difference is the day's interview testing and the
-Cost Explorer calls made for this document. (17 September, the next day, closed
-at $3.39 in Cost Explorer because the day was still settling when it was read.)
+Cost Explorer calls made for this document.
 
 **A full-length session has been billed, and the model is built on it.** The
 API log (`/reep/api`) records every interview's close with its turn count and
@@ -263,22 +262,23 @@ interview") was the cost of a test session in which the tester barely spoke;
 that figure is real, and it is the floor, not the expectation, for a student who
 actually answers.
 
-**What changed on recheck.** The first version of this document put the
-interviewer at 50% of the session and derived text tokens from a ratio measured
-on the short test sessions; the second version counted the prompt once per
-turn. The measured full-length session corrected both: interviewer 30%, prompt
-once per session. The per-interview figure moved from ₹12.7 to ₹8.5 (range
-₹6.9–10.8), the working-day scenario from ₹6.9 lakh to ₹4.7 lakh a month, and
-the every-day scenario from ₹9.3 lakh to ₹6.3 lakh. The unit prices, the quota
-finding and the recording arithmetic did not change. One label was also
-corrected: one interview a day on working days is 22,000 a month, not 20,000.
+**What changed on recheck.** The first version of this document priced the
+"two a day" ceiling as if it were the plan, put the interviewer at 50% of the
+session and derived text tokens from a ratio measured on the short test
+sessions; the second counted the prompt once per turn. The measured full-length
+session corrected the interview to ₹8.5 (range ₹6.9–10.8, from ₹12.7), and the
+board's volume of 7 a month per student replaced the ceiling as the headline:
+₹1.0 lakh a month instead of ₹9.3 lakh. The unit prices, the quota finding and
+the recording arithmetic did not change. One label was also corrected: one
+interview a day on working days is 22,000 a month, not 20,000.
 
 **What is still worth measuring: a student who talks.** The remaining
 assumption is how long a real student speaks. Run 20–30 students through full
 interviews on one day; the next day Cost Explorer shows that day's four
 `APN1-NovaSonic2.0-*` lines; divide by the count. Put the measured split into
 `CASES["central"]` in the script and re-run. If the measured cost lands between
-₹6.9 and ₹10.8 an interview, this document stands as written.
+₹6.9 and ₹10.8 an interview, this document stands as written; at 7,000 a month
+the whole range is ₹0.86–1.18 lakh.
 
 ## 8. What gates the plan
 
@@ -286,15 +286,16 @@ interviews on one day; the next day Cost Explorer shows that day's four
    shows this account's applied value for "On-demand InvokeModel concurrent
    requests for Amazon Nova 2 Sonic" as **2** in Tokyo, N. Virginia and Oregon,
    against an AWS default of **20**; Stockholm shows 20, and the older Nova
-   Sonic (v1) shows 20 in Tokyo. No increase request is on file. Two
-   simultaneous streams is about 15 interviews an hour, roughly 180 a day in a
-   12-hour window; the plan needs 60–100 at peak. The quota is marked "not
-   adjustable" in the console but AWS's documentation says a request can still
-   be made through the limit-increase form, that on-demand model quotas go
-   through the account manager, and that **priority is given to accounts
-   already consuming their allocation**. So the ramp is: file the request now
-   for 100; run the pilot at full utilisation of whatever is granted; ask again
-   with the usage graph attached. Interim capacity if the request stalls:
+   Sonic (v1) shows 20 in Tokyo. No increase request is on file. The plan's
+   318 interviews a working day are 3–4 at once on average and 15–20 in a busy
+   evening burst; two streams would need 21 hours of back-to-back use to serve
+   a day. The quota is marked "not adjustable" in the console but AWS's
+   documentation says a request can still be made through the limit-increase
+   form, that on-demand model quotas go through the account manager, and that
+   **priority is given to accounts already consuming their allocation**. So:
+   file the request now for 20 (the default), run the pilot at full
+   utilisation of whatever is granted, and ask again with the usage graph if
+   the volume grows. Interim capacity if the request stalls:
    `NOVA_SONIC_MODEL=amazon.nova-sonic-v1:0` (quota 20 in Tokyo today, same
    API, same price class) or `NOVA_SONIC_REGION=eu-north-1` (quota 20, roughly
    150 ms more round trip).
@@ -304,46 +305,48 @@ interviews on one day; the next day Cost Explorer shows that day's four
 3. **Recording stays off.** The operator switch is on
    (`INTERVIEW_RECORDING_ENABLED=true` in the task definition) and no college
    policy row has "Allow voice recording" ticked, so nothing is recorded today.
-   Ticking it at 60,000 interviews a month writes 2.8 TB of WAV a month: 180
+   Ticking it at 7,000 interviews a month writes 320 GB of WAV a month: 180
    days on EFS, backed up daily to Mumbai and copied to Singapore, and archived
    to an Object-Locked S3 bucket that never deletes. That is the recording
-   variant in §6: **+₹4.5 lakh a month in year one and rising** by about
-   ₹7,000 a month every month after. It is a policy decision with a price, and
-   the price should be in front of whoever makes it.
+   variant in §6: **+₹52,000 a month in year one**, and about ₹900 a month
+   more every month after. It is a policy decision with a price, and the price
+   should be in front of whoever makes it.
 4. **A budget alarm that can see gross spend.** The only budget on the account
    is AWS's default $1 zero-spend budget, which tracks net-of-credits and could
    not see the $361-a-month collection. `docs/cost-review-2026-09.md` §2 has the
-   one command that creates a gross budget with a forecast alert; set it to the
-   scenario the board approves.
-5. **A load test before the first cohort.** The API relays 24 kHz audio in
-   process; 100 sessions per worker is a cap in `config.py`, not a measured
-   capacity. Autoscaling to 10 tasks (`apiMaxTasks`) is budgeted; whether 60
-   concurrent interviews fit in fewer tasks is a test, not an assumption.
-6. **The cap in policy.** Set `daily_cap` on the college's interview policy to
-   the approved number so it is enforced. The attempt cap (20) still counts
-   every session that opened a Bedrock stream, which is what bounds spend from a
-   student who keeps reconnecting.
+   one command that creates a gross budget with a forecast alert; set it at
+   about $1,000 a month for the plan.
+5. **A cap in policy.** The product caps interviews per day, not per month. A
+   `daily_cap` of 1 on the college's interview policy bounds a student at 22 a
+   month on working days; a true monthly cap of 7 is a small product change
+   (`interview_policies`) if the board wants the number enforced exactly. The
+   attempt cap (20 a day) still counts every session that opened a Bedrock
+   stream, which is what bounds spend from a student who keeps reconnecting.
+6. **A load test is optional at this volume.** Two always-on API tasks carry
+   3–4 simultaneous interviews comfortably; the 60-concurrent test only matters
+   if the board later moves toward the ceiling.
 
 ## 9. Levers the board can pull
 
-| Lever | Effect on scenario A (₹4.7 lakh/month) | Cost of pulling it |
+| Lever | Effect on the plan (₹1.0 lakh/month) | Cost of pulling it |
 |---|---:|---|
-| Two interviews a **week** instead of a day | ₹1.2 lakh/month | Less practice per student |
-| One interview a week | ₹0.75 lakh/month | Roughly the ₹70,000 budget, platform included |
-| 6-minute interviews | −21% | A shorter arc; the wrap-up still needs 90 s |
-| Run Nova at US-region prices | −14% | ~120 ms more latency on every turn; the quota is 2 there too |
-| Negotiate with the AWS account team | unknown | Nova 2 Sonic has no reserved tier; at ~$43k a year of Bedrock spend a private pricing conversation is normal |
-| Trim the fixed platform (NAT instance, Single-AZ database) | −₹4,000/month at most | Not worth it at this scale; the `t4g.nano` NAT instance in the cost review cannot carry 60 concurrent streams (32 Mbps baseline against ~50 Mbps needed) |
+| Four interviews a month instead of seven | ₹0.7 lakh/month | Less practice per student |
+| One interview a week (4.3 a month) | ₹0.72 lakh/month | Same, on a weekly rhythm |
+| 6-minute interviews | −17% | A shorter arc; the wrap-up still needs 90 s |
+| Run Nova at US-region prices | −11% | ~120 ms more latency on every turn; the quota is 2 there too |
+| Swap the NAT gateway for a NAT instance (`docs/cost-review-2026-09.md` §3b) | −4% (≈ ₹4,400/month) | An EC2 box somebody patches; at 3–4 concurrent streams a `t4g.nano` is enough |
+| Single-AZ database | −2% (≈ ₹1,700/month) | Failover becomes a 20–30 minute restore; not recommended |
 
 ## 10. Assumptions and sources
 
-Assumptions, all named in `tools/cost/budget_1000_students.py`: 8-minute
-sessions; a central case of student 50% / interviewer 30% with 4,000 / 1,600
-text tokens a session, a low case (35% / 25%) and a high case (60% / 40%);
-25 audio tokens a second; 3 extra API tasks for 12 hours a day; 0.5 MB of logs
-per interview; 10 REEP Agent questions per student a month; recordings of 46 MB
-per interview (two 24 kHz 16-bit tracks padded to 480 s), 180-day retention,
-EFS Infrequent Access after 30 days; ₹96 per dollar; 18% GST.
+Assumptions, all named in `tools/cost/budget_1000_students.py`: 7 interviews
+per student per month on 22 working days; 8-minute sessions; a central case of
+student 50% / interviewer 30% with 4,000 / 1,600 text tokens a session, a low
+case (35% / 25%) and a high case (60% / 40%); 25 audio tokens a second; extra
+API task-hours in proportion to interviews (0.018 task-hours each); 0.5 MB of
+logs per interview; 10 REEP Agent questions per student a month; recordings of
+46 MB per interview (two 24 kHz 16-bit tracks padded to 480 s), 180-day
+retention, EFS Infrequent Access after 30 days; ₹96 per dollar; 18% GST.
 
 Sources read on 2026-09-18: AWS Cost Explorer (`GetCostAndUsage`, RECORD_TYPE
 Usage/Credit/Tax, by service and by usage type); CloudWatch `AWS/Bedrock`

@@ -10,6 +10,11 @@
  * is sped up a little (never more than 1.3x) rather than cut. A segment with
  * no narration gets a silent track, so every MP4 has the same audio shape and
  * render.sh can concatenate them without re-encoding.
+ *
+ * The mix's timestamps are regenerated (asetpts) before the encoder: with a
+ * sped-up clip in the set, amix can hand the AAC encoder timestamps that step
+ * backwards, and the encoder's answer to that is a silent track with no error
+ * (the admin segment shipped that way once).
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -27,7 +32,9 @@ const videoSeconds = probe(video);
 // CRF 28 keeps 1080p UI text crisp at roughly 60% of the size CRF 25 makes;
 // DEMO_CRF overrides it (lower = larger and sharper).
 const CRF = String(process.env.DEMO_CRF ?? 28);
-const VIDEO = ['-c:v', 'libx264', '-preset', 'slow', '-crf', CRF, '-pix_fmt', 'yuv420p', '-r', '25', '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2'];
+const PRESET = process.env.DEMO_PRESET ?? 'slow';
+const FFLOG = process.env.DEMO_FFLOG ?? 'error';
+const VIDEO = ['-c:v', 'libx264', '-preset', PRESET, '-crf', CRF, '-pix_fmt', 'yuv420p', '-r', '25', '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2'];
 const AUDIO = ['-c:a', 'aac', '-b:a', '96k', '-ar', '48000', '-ac', '1'];
 
 let items = [];
@@ -40,7 +47,7 @@ if (fs.existsSync(log)) {
 
 let args;
 if (items.length === 0) {
-  args = ['-hide_banner', '-loglevel', 'error', '-y', '-i', video, '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=mono',
+  args = ['-hide_banner', '-loglevel', FFLOG, '-y', '-i', video, '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=mono',
     '-map', '0:v', '-map', '1:a', '-shortest', ...VIDEO, ...AUDIO, '-movflags', '+faststart', target];
 } else {
   const inputs = ['-i', video];
@@ -56,8 +63,8 @@ if (items.length === 0) {
     chains.push(`[${i + 1}:a]${tempo > 1 ? `atempo=${tempo.toFixed(3)},` : ''}adelay=${delay}|${delay}[a${i}]`);
     labels.push(`[a${i}]`);
   });
-  const graph = `${chains.join(';')};${labels.join('')}amix=inputs=${items.length}:normalize=0:duration=longest,apad=whole_dur=${videoSeconds.toFixed(3)}[mix]`;
-  args = ['-hide_banner', '-loglevel', 'error', '-y', ...inputs, '-filter_complex', graph, '-map', '0:v', '-map', '[mix]',
+  const graph = `${chains.join(';')};${labels.join('')}amix=inputs=${items.length}:normalize=0:duration=longest,apad=whole_dur=${videoSeconds.toFixed(3)},asetpts=N/SR/TB[mix]`;
+  args = ['-hide_banner', '-loglevel', FFLOG, '-y', ...inputs, '-filter_complex', graph, '-map', '0:v', '-map', '[mix]',
     '-t', videoSeconds.toFixed(3), ...VIDEO, ...AUDIO, '-movflags', '+faststart', target];
 }
 const run = spawnSync('ffmpeg', args, { stdio: 'inherit' });

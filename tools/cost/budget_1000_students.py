@@ -62,17 +62,20 @@ today_month = sum(TODAY.values()) * 30.4
 STUDENTS, PER_DAY, MINUTES = 1000, 2, 8.0
 SECONDS = MINUTES * 60
 TOKENS_PER_S = 25                       # AWS: Nova Sonic audio is 25 tokens per second
-# Talk-time shares of an 8-minute session. The billed September data (short test
-# sessions) shows input speech tokens for roughly a fifth of the streamed time,
-# so silence is NOT billed as input; the "high" case assumes it is, as a ceiling.
-# Turns = model completions; the whole prompt (~1,900 text tokens on 16-17 Sep)
-# is re-counted as text input on every completion.
+# Talk-time shares of an 8-minute session, and text tokens per SESSION.
+# Measured on this deployment (API log + one-minute Bedrock metrics, 17 Sep):
+# the one session that ran to the 8-minute cap streamed 343 s of microphone
+# audio and was billed 1,509 input speech tokens (60 s of speech), 3,252 output
+# speech tokens (130 s, 27% of the session), 2,979 text-input and 1,025
+# text-output tokens -- $0.057. So silence is not billed, and the prompt is
+# counted once per session, not once per turn. The tester barely spoke; a real
+# student answers at length, which is what the cases below vary.
 CASES = {
-    "low":     dict(student=0.40, interviewer=0.25, turns=10, text_out=1200, silence_billed=False),
-    "central": dict(student=0.52, interviewer=0.32, turns=12, text_out=1600, silence_billed=False),
-    "high":    dict(student=0.52, interviewer=0.50, turns=14, text_out=2400, silence_billed=True),
+    "low":      dict(student=0.35, interviewer=0.25, text_in=3000, text_out=1200),
+    "central":  dict(student=0.50, interviewer=0.30, text_in=4000, text_out=1600),
+    "high":     dict(student=0.60, interviewer=0.40, text_in=5000, text_out=2000),
 }
-TEXT_IN_PER_TURN = 1900
+MEASURED_CAPPED_SESSION = dict(speech_in=1509, speech_out=3252, text_in=2979, text_out=1025)
 AGENT_ASKS_PER_STUDENT_MONTH = 10       # REEP Agent questions (Nova Pro), an assumption
 LOG_MB_PER_INTERVIEW = 0.5              # CloudWatch Logs written per interview, an assumption
 
@@ -80,9 +83,9 @@ LOG_MB_PER_INTERVIEW = 0.5              # CloudWatch Logs written per interview,
 def nova_per_interview(case="central", price_in=NOVA_IN, price_out=NOVA_OUT, seconds=None):
     c = CASES[case]
     s = seconds or SECONDS
-    tin = s * TOKENS_PER_S * (1.0 if c["silence_billed"] else c["student"])
+    tin = s * TOKENS_PER_S * c["student"]
     tout = s * TOKENS_PER_S * c["interviewer"]
-    text_in = TEXT_IN_PER_TURN * c["turns"]
+    text_in = c["text_in"]
     text_out = c["text_out"]
     return dict(speech_in=tin * price_in / 1e6, speech_out=tout * price_out / 1e6,
                 text_in=text_in * NOVA_TIN / 1e6, text_out=text_out * NOVA_TOUT / 1e6,
@@ -162,19 +165,24 @@ if __name__ == "__main__":
         nova_each = sum(v for k, v in nova.items() if k != "tokens")
         net_each = sum(network_per_interview(case).values())
         c = CASES[case]
-        print(f"  {case:<8} student {c['student']:.0%}, interviewer {c['interviewer']:.0%}, {c['turns']} turns"
-              f"{', silence billed' if c['silence_billed'] else ''}")
+        print(f"  {case:<8} student {c['student']:.0%}, interviewer {c['interviewer']:.0%},"
+              f" text {c['text_in']:,}/{c['text_out']:,} tokens")
         print(f"           speech in ${nova['speech_in']:.4f}  speech out ${nova['speech_out']:.4f}"
               f"  text in ${nova['text_in']:.4f}  text out ${nova['text_out']:.4f}  network ${net_each:.4f}")
         print(f"           tokens (speech in, speech out, text in, text out) = {nova['tokens']}")
         print(f"           TOTAL ${nova_each + net_each:.4f} = INR {(nova_each + net_each) * FX:.1f}"
               f"  (Nova alone ${nova_each:.4f})")
+    m = MEASURED_CAPPED_SESSION
+    measured = (m["speech_in"] * NOVA_IN + m["speech_out"] * NOVA_OUT + m["text_in"] * NOVA_TIN + m["text_out"] * NOVA_TOUT) / 1e6
+    print(f"  measured: the 17 Sep session that ran to the 8-minute cap billed ${measured:.4f} = INR {measured * FX:.1f}"
+          f" (tester spoke ~{m['speech_in'] / TOKENS_PER_S:.0f} s, interviewer ~{m['speech_out'] / TOKENS_PER_S:.0f} s)")
     for k, v in network_per_interview("central").items():
         print(f"  {k:<64} ${v:.5f}")
     show("A. Working days (22), 2 a day, central", scenario(44_000, 22))
     show("B. Every day (30), 2 a day, central", scenario(60_000, 30))
     show("A-low. Working days, low case", scenario(44_000, 22, case="low"))
-    show("A-high. Working days, high case (silence billed, talkative interviewer)", scenario(44_000, 22, case="high"))
+    show("A-high. Working days, high case (both sides talkative)", scenario(44_000, 22, case="high"))
+    show("B-low. Every day, low case", scenario(60_000, 30, case="low"))
     show("B-high. Every day, high case", scenario(60_000, 30, case="high"))
     show("C. Every day, recording ON (central)", scenario(60_000, 30, recording=True))
     show("D. Working days, Nova at US-region prices", scenario(44_000, 22, price_in=NOVA_US_IN, price_out=NOVA_US_OUT))

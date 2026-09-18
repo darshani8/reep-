@@ -1,0 +1,47 @@
+# REEP — live portal walkthrough (videos + deck)
+
+A recorded walkthrough of the running product for the four portals — Student,
+Faculty (mentor), Main Admin and Alumni — and of the workflows that link them.
+Every video is a real Full HD (1920 x 1080) screen recording of the portal in a browser: the typing
+is live, the clicks are real, the data is the seeded dev database, and a
+caption bar explains each screen as it opens. Nothing is a mock-up.
+
+| file | what it shows | length |
+| --- | --- | --- |
+| `video/student.mp4` | The Student portal, every screen: sign-in, Home (stages, SWOC, readiness), Jobs, Skilling with a certificate claim, Leaderboards, the Time Sheet reconciled and submitted, a meeting request from the Faculty / TPO Log, Resume Builder, Uploads, Profile, Records, English baseline, Interviews, Courses, and the assistant dock (Ask REEP, Mock interview) | 3:59 |
+| `video/faculty.mp4` | The Faculty portal: a notebook entry, the Mentee Log with the student's request and a meeting note, Skill Verifications (Verify), the leave form signed and submitted, Upskilling, the signature, My account | 3:05 |
+| `video/admin.mp4` | The Main Admin console: Home, New applications (approve), Students & batches and the Student 360, Faculty, Assign faculty, Leave requests (sanction), Job postings (publish), Placement, Download reports, Upload spreadsheets, Interview questions and records, SWOC notes (add a line), Set up a college, Colleges, College structure, Catalogue, Who can do what (grant), What changed, Charts & numbers | 5:17 |
+| `video/interlinked.mp4` | **One workflow across three portals.** The student claims a skill and asks for a 1:1 → the mentor verifies the claim, records the meeting and applies for leave → the office writes a SWOC line, publishes a job and sanctions the leave → the student's Home, Skilling, Faculty / TPO Log and Jobs show all of it | 5:39 |
+| `video/onboarding.mp4` | **A new student's journey.** The public registration form → the office approves → the emailed link's three steps (address, code, password) → first sign-in → the office assigns a faculty mentor → the mentor sees the new mentee | 4:35 |
+| `video/alumni.mp4` | The Alumni portal: first-login profile creation with a resume, and the jobs sheet | 0:58 |
+| *(not committed)* `reep-full-walkthrough.mp4` | All six back to back (23:37) — `tools/demo/render.sh` produces it beside the six; it is left out of the repository only for size |
+
+`REEP-portal-walkthrough.pptx` is the deck: one section per portal with the
+same screenshots the videos were cut from, a diagram of how the portals link,
+the new-student journey, and speaker notes on every slide. `screens/` holds
+every screenshot the deck uses, named by screen.
+
+## Watching
+
+Play the role videos in the order above, then the two workflow videos. Each
+segment opens with a chapter card; the caption bar at the bottom says what the
+screen is for, and a narrator reads every caption aloud (a synthesized voice,
+Piper's `en_US-lessac-medium`). While a box is being typed into, the camera
+moves in on it and back out before the next click. The deck's speaker notes
+carry the longer version of the narration.
+
+## Logins used
+
+The seeded dev accounts from AGENTS.md: `student@bgscet.ac.in` (Test Student,
+MBA 2024-26 Section B, mentored by Test Mentor), `mentor@bgscet.ac.in` (Test
+Mentor), `admin@bgscet.ac.in` (the Main Admin) and `alumni@bgscet.ac.in`. The
+new-student video registers **Priya Menon** (`priya.menon@bgscet.ac.in`, USN
+`1BG25MDM014`) — a USN outside the seeded auto-approve rule, so the
+application waits for the office rather than approving itself.
+
+## Re-recording
+
+`tools/demo/README.md` documents the recorder. In short: run the stack as
+AGENTS.md describes with the API's log to a file, `bash tools/demo/reset-dev-db.sh`,
+`node tools/demo/record-walkthrough.mjs`, `bash tools/demo/render.sh`, then
+`node tools/demo/build-deck.cjs` to rebuild the deck from the new screenshots.

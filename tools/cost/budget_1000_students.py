@@ -12,7 +12,7 @@ docs/budget-1000-students-2026-09.md quotes its output verbatim.
 Standard library only. Nothing here talks to AWS.
 """
 
-FX = 96.0          # INR per USD, 2026-09-17
+FX = 96.0          # INR per USD, 2026-09-18 (95.96 on open.er-api.com)
 GST = 0.18         # charged on the net invoice
 HOURS = 730        # billing hours in a month
 
@@ -58,32 +58,44 @@ TODAY = {
 }
 today_month = sum(TODAY.values()) * 30.4
 
-# --- the load -------------------------------------------------------------
+# --- the load and the interview ---------------------------------------------
 STUDENTS, PER_DAY, MINUTES = 1000, 2, 8.0
 SECONDS = MINUTES * 60
 TOKENS_PER_S = 25                       # AWS: Nova Sonic audio is 25 tokens per second
-STUDENT_TALK = 0.45                     # share of the session the student is speaking
-INTERVIEWER_TALK = 0.50                 # share billed as interviewer speech (generated ahead of playback)
-# text tokens per interview scale with speech input, at the ratios measured 1-17 Sep
-TEXT_IN_RATIO, TEXT_OUT_RATIO = 65176 / 24999, 16906 / 24999
+# Talk-time shares of an 8-minute session. The billed September data (short test
+# sessions) shows input speech tokens for roughly a fifth of the streamed time,
+# so silence is NOT billed as input; the "high" case assumes it is, as a ceiling.
+# Turns = model completions; the whole prompt (~1,900 text tokens on 16-17 Sep)
+# is re-counted as text input on every completion.
+CASES = {
+    "low":     dict(student=0.40, interviewer=0.25, turns=10, text_out=1200, silence_billed=False),
+    "central": dict(student=0.52, interviewer=0.32, turns=12, text_out=1600, silence_billed=False),
+    "high":    dict(student=0.52, interviewer=0.50, turns=14, text_out=2400, silence_billed=True),
+}
+TEXT_IN_PER_TURN = 1900
 AGENT_ASKS_PER_STUDENT_MONTH = 10       # REEP Agent questions (Nova Pro), an assumption
 LOG_MB_PER_INTERVIEW = 0.5              # CloudWatch Logs written per interview, an assumption
 
 
-def nova_per_interview(price_in=NOVA_IN, price_out=NOVA_OUT, bill_silence=False, interviewer=INTERVIEWER_TALK):
-    tin = SECONDS * TOKENS_PER_S * (1.0 if bill_silence else STUDENT_TALK)
-    tout = SECONDS * TOKENS_PER_S * interviewer
-    text_in, text_out = tin * TEXT_IN_RATIO, tin * TEXT_OUT_RATIO
+def nova_per_interview(case="central", price_in=NOVA_IN, price_out=NOVA_OUT, seconds=None):
+    c = CASES[case]
+    s = seconds or SECONDS
+    tin = s * TOKENS_PER_S * (1.0 if c["silence_billed"] else c["student"])
+    tout = s * TOKENS_PER_S * c["interviewer"]
+    text_in = TEXT_IN_PER_TURN * c["turns"]
+    text_out = c["text_out"]
     return dict(speech_in=tin * price_in / 1e6, speech_out=tout * price_out / 1e6,
                 text_in=text_in * NOVA_TIN / 1e6, text_out=text_out * NOVA_TOUT / 1e6,
-                tokens=(tin, tout, text_in, text_out))
+                tokens=(int(tin), int(tout), int(text_in), int(text_out)))
 
 
-def network_per_interview(interviewer=INTERVIEWER_TALK):
-    up_client = 48_000 * SECONDS / 1e9              # browser mic, 24 kHz PCM16, GB
-    down_client = 48_000 * SECONDS * interviewer / 1e9
-    up_tokyo = 32_000 * 4 / 3 * SECONDS / 1e9       # 16 kHz PCM16 as base64 JSON events
-    down_tokyo = 48_000 * 4 / 3 * SECONDS * interviewer / 1e9
+def network_per_interview(case="central", seconds=None):
+    s = seconds or SECONDS
+    interviewer = CASES[case]["interviewer"]
+    up_client = 48_000 * s / 1e9                    # browser mic, 24 kHz PCM16, GB
+    down_client = 48_000 * s * interviewer / 1e9
+    up_tokyo = 32_000 * 4 / 3 * s / 1e9             # 16 kHz PCM16 as base64 JSON events
+    down_tokyo = 48_000 * 4 / 3 * s * interviewer / 1e9
     return {
         "CloudFront: mic audio to origin ($0.16/GB India)": up_client * CF_TO_ORIGIN_GB,
         "NAT processing, both directions to Tokyo": (up_tokyo + down_tokyo) * NAT_GB,
@@ -93,23 +105,25 @@ def network_per_interview(interviewer=INTERVIEWER_TALK):
     }
 
 
-def scenario(days_per_month, bill_silence=False, recording=False, price_in=NOVA_IN, price_out=NOVA_OUT,
-             interviewer=INTERVIEWER_TALK, minutes=None):
-    global SECONDS
-    if minutes:
-        SECONDS = minutes * 60
-    n = STUDENTS * PER_DAY * days_per_month
-    nova = nova_per_interview(price_in, price_out, bill_silence, interviewer)
+def per_interview(case="central", price_in=NOVA_IN, price_out=NOVA_OUT, seconds=None):
+    nova = nova_per_interview(case, price_in, price_out, seconds)
     nova_each = sum(v for k, v in nova.items() if k != "tokens")
-    net = network_per_interview(interviewer)
-    net_each = sum(net.values())
+    net_each = sum(network_per_interview(case, seconds).values())
+    return nova_each, net_each
+
+
+def scenario(interviews_per_month, days_per_month=22, case="central", recording=False,
+             price_in=NOVA_IN, price_out=NOVA_OUT, minutes=None):
+    s = (minutes or MINUTES) * 60
+    n = interviews_per_month
+    nova_each, net_each = per_interview(case, price_in, price_out, s)
     lines = {}
     lines["Today's platform (measured, list price)"] = today_month
     lines["Database step-up to db.t4g.small Multi-AZ"] = (RDS_SMALL_MAZ_H - RDS_MICRO_MAZ_H) * HOURS
     lines["API scale-out during interview hours (avg +3 tasks x 12 h)"] = 3 * 12 * days_per_month * TASK_H
     lines["Database storage growth (+1.2 GB/month, incl. backups)"] = 5.0
     lines["Nova 2 Sonic interviews"] = n * nova_each
-    down_gb_month = n * 48_000 * SECONDS * interviewer / 1e9
+    down_gb_month = n * 48_000 * s * CASES[case]["interviewer"] / 1e9
     cf_dto = max(0.0, down_gb_month - CF_FREE_TB * 1000) * CF_DTO_GB
     lines["Network and logs for interviews"] = n * net_each + cf_dto
     lines[f"REEP Agent (Nova Pro, {AGENT_ASKS_PER_STUDENT_MONTH} questions/student/month)"] = (
@@ -125,9 +139,8 @@ def scenario(days_per_month, bill_silence=False, recording=False, price_in=NOVA_
             tb_live * 1000 * (BACKUP_EFS_MUMBAI_GB_MO + BACKUP_EFS_SG_GB_MO) + tb_month * 1000 * BACKUP_XREGION_GB)
         lines["Recording: S3 documents archive (never deleted; year-1 average)"] = tb_month * 6.5 * 1000 * S3_STD_GB_MO
     total = sum(lines.values())
-    SECONDS = MINUTES * 60
-    return dict(n=n, nova=nova, nova_each=nova_each, net=net, net_each=net_each, lines=lines, total=total,
-                gst=total * GST, inr_month=total * (1 + GST) * FX, inr_year=total * (1 + GST) * FX * 12)
+    return dict(n=n, lines=lines, total=total, gst=total * GST,
+                inr_month=total * (1 + GST) * FX, inr_year=total * (1 + GST) * FX * 12)
 
 
 def show(title, s):
@@ -143,29 +156,45 @@ def show(title, s):
 if __name__ == "__main__":
     print(f"Today's platform: ${sum(TODAY.values()):.2f}/day = ${today_month:,.0f}/month at list price;"
           f" one api task-hour ${TASK_H:.4f}")
-    base = nova_per_interview()
-    print("\nPer 8-minute interview (Tokyo prices):")
-    for k, v in base.items():
-        if k != "tokens":
-            print(f"  {k:<12} ${v:.4f}")
-    print(f"  tokens (speech in, speech out, text in, text out): {tuple(int(t) for t in base['tokens'])}")
-    upper = sum(v for k, v in nova_per_interview(bill_silence=True).items() if k != "tokens")
-    print(f"  Nova total ${sum(v for k, v in base.items() if k != 'tokens'):.4f}  | if silence were billed: ${upper:.4f}")
-    net = network_per_interview()
-    for k, v in net.items():
+    print("\nPer 8-minute interview, Tokyo prices (USD | INR):")
+    for case in ("low", "central", "high"):
+        nova = nova_per_interview(case)
+        nova_each = sum(v for k, v in nova.items() if k != "tokens")
+        net_each = sum(network_per_interview(case).values())
+        c = CASES[case]
+        print(f"  {case:<8} student {c['student']:.0%}, interviewer {c['interviewer']:.0%}, {c['turns']} turns"
+              f"{', silence billed' if c['silence_billed'] else ''}")
+        print(f"           speech in ${nova['speech_in']:.4f}  speech out ${nova['speech_out']:.4f}"
+              f"  text in ${nova['text_in']:.4f}  text out ${nova['text_out']:.4f}  network ${net_each:.4f}")
+        print(f"           tokens (speech in, speech out, text in, text out) = {nova['tokens']}")
+        print(f"           TOTAL ${nova_each + net_each:.4f} = INR {(nova_each + net_each) * FX:.1f}"
+              f"  (Nova alone ${nova_each:.4f})")
+    for k, v in network_per_interview("central").items():
         print(f"  {k:<64} ${v:.5f}")
-    print(f"  network + logs total ${sum(net.values()):.4f}")
-    show("A. Every day, recording off", scenario(30))
-    show("B. Working days (22), recording off", scenario(22))
-    show("C. Every day, upper band (silence billed too)", scenario(30, bill_silence=True))
-    show("D. Every day, recording ON", scenario(30, recording=True))
-    show("E. Every day, Nova at US-region prices", scenario(30, price_in=NOVA_US_IN, price_out=NOVA_US_OUT))
-    show("F. Every day, 6-minute interviews", scenario(30, minutes=6))
-    print("\nScaling table (recording off, Tokyo prices):")
-    for per_month in (2000, 8600, 20000, 44000, 60000):
-        s = scenario(per_month / (STUDENTS * PER_DAY))
-        print(f"  {per_month:>7,} interviews/month -> ${s['total']:>8,.0f}/mo before GST,"
-              f" INR {s['inr_month'] / 1e5:>6.2f} lakh/mo incl. GST")
+    show("A. Working days (22), 2 a day, central", scenario(44_000, 22))
+    show("B. Every day (30), 2 a day, central", scenario(60_000, 30))
+    show("A-low. Working days, low case", scenario(44_000, 22, case="low"))
+    show("A-high. Working days, high case (silence billed, talkative interviewer)", scenario(44_000, 22, case="high"))
+    show("B-high. Every day, high case", scenario(60_000, 30, case="high"))
+    show("C. Every day, recording ON (central)", scenario(60_000, 30, recording=True))
+    show("D. Working days, Nova at US-region prices", scenario(44_000, 22, price_in=NOVA_US_IN, price_out=NOVA_US_OUT))
+    show("E. Working days, 6-minute interviews", scenario(44_000, 22, minutes=6))
+    print("\nScaling table (central case, Tokyo prices):")
+    for per_month, what in ((2_000, "pilot: 100 students, 1 a day"), (4_300, "1,000 students, 1 a week"),
+                            (8_600, "1,000 students, 2 a week"), (22_000, "1,000 students, 1 a day, working days"),
+                            (44_000, "1,000 students, 2 a day, working days"), (60_000, "1,000 students, 2 a day, every day")):
+        s = scenario(per_month, 22 if per_month < 60_000 else 30)
+        print(f"  {per_month:>7,}/mo  {what:<42} ${s['total']:>8,.0f} before GST = INR {s['inr_month'] / 1e5:>5.2f} lakh/mo incl. GST"
+              f"  (${s['total'] * 12 / 1000:,.1f}k/yr)")
+    print("\nWhat a monthly budget buys (central case, after the fixed platform and GST):")
+    fixed = scenario(0, 22)["total"]
+    unit = sum(per_interview("central"))
+    for inr in (50_000, 70_000, 100_000, 200_000, 500_000):
+        usd = inr / FX / (1 + GST)
+        n = max(0.0, (usd - fixed) / unit)
+        print(f"  INR {inr / 1e5:>4.1f} lakh/mo -> ${usd:>6,.0f} before GST -> {n:>7,.0f} interviews/mo"
+              f" = {n / STUDENTS / 4.3:.2f} per student per week")
+    print(f"  (fixed platform + agent + mail = ${fixed:,.0f}/mo; one interview = ${unit:.4f})")
     print("\nConcurrency the quota must cover:")
     for window_h in (10, 12, 14):
         avg = STUDENTS * PER_DAY * MINUTES / (window_h * 60)

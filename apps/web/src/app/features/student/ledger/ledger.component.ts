@@ -9,6 +9,21 @@
  * time in TypeScript is how a band ends up disagreeing with the number printed
  * above it — see the note at the top of app/routers/student_programme.py.
  *
+ * THE SERVER OWNS THE CALENDAR TOO (2026-09-22). "Today" is the `today` every
+ * response carries — the programme's day, in the college's zone — and the
+ * first load asks for no day at all so the server picks it. The stepper moves
+ * through `shiftIsoDay`, which never touches local time: the old
+ * `new Date(...T00:00:00)` / `toISOString()` pair parsed local midnight and
+ * printed UTC, so in India "Previous day" went back two days and "Next day"
+ * did not move. That is how a student who had filled Monday in came to report
+ * that their record had vanished — see ledger-days.ts.
+ *
+ * A DAY LOCKS. `editable` / `locked` / `lock_reason` come from the server, the
+ * inputs enable off `editable` alone, and the strip of recent days
+ * (`GET /api/student/ledger/history`) is the record of what was filled in:
+ * submitted, draft, not logged, locked — the screen showed one day at a time
+ * and nothing else, so a fortnight of entries had nowhere to be seen.
+ *
  * EDITS ARE LOCAL UNTIL SAVED. `draft` holds what the student has typed; the
  * server's view is only replaced on a successful write. Re-rendering the whole
  * table from a response on every keystroke would move focus out of the cell
@@ -16,10 +31,11 @@
  * which is a property of the whole day — fire on half-typed numbers.
  */
 
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 
 import { environment } from '../../../../environments/environment';
+import { deviceTodayIso, isoAfter, shiftIsoDay } from './ledger-days';
 
 type Tone = 'good' | 'warn' | 'risk' | 'neutral';
 
@@ -70,8 +86,17 @@ interface Legend {
 
 interface Ledger {
   day: string;
+  /** The programme's calendar day when this was read — the stepper's anchor. */
+  today: string;
   status: 'DRAFT' | 'SUBMITTED';
   submitted_at: string | null;
+  /** Not submitted, not locked, not in the future: the inputs enable off this. */
+  editable: boolean;
+  /** Past its edit window. `lock_reason` says so in a sentence. */
+  locked: boolean;
+  edit_until: string;
+  edit_window_days: number;
+  lock_reason: string | null;
   can_submit: boolean;
   submit_blocked_reason: string | null;
   total_hours: number;
@@ -83,19 +108,40 @@ interface Ledger {
   legend: Legend[];
 }
 
-/** `GET /api/student/timesheet` — the OTHER time table.
+/** One day of `GET /api/student/ledger/history`. */
+interface HistoryDay {
+  day: string;
+  status: 'EMPTY' | 'DRAFT' | 'SUBMITTED';
+  logged_hours: number;
+  editable: boolean;
+  locked: boolean;
+  submitted_at: string | null;
+}
+
+interface History {
+  today: string;
+  window_days: number;
+  edit_window_days: number;
+  days_submitted: number;
+  days_logged: number;
+  /** Most recent first, one entry per calendar day whether or not it was logged. */
+  days: HistoryDay[];
+}
+
+/** `GET /api/student/timesheet` — SKILLING hours this week against the target.
  *
- *  `time_sheet_entries` answers "how many SKILLING hours this week, against the
- *  target", which is a different question from the ledger's "what did the 24
- *  hours of Thursday look like" and is stored in a different table. It used to
- *  have its own screen; carrying a whole route for one number was worse than
- *  showing the number here, beside the day it is accumulated from. */
+ *  Summed by the server from THIS ledger's SKILLING cells (and, for a day with
+ *  no ledger row, from the old free-form time log's table). It used to read
+ *  the old table alone, which nothing writes any more, so this strip sat at
+ *  "0 h" under the very cells it should have been adding up. */
 interface WeeklySkilling {
   skilling_hours: number;
   weekly_hour_target: number;
 }
 
 type State = 'loading' | 'data' | 'error';
+
+const HISTORY_DAYS = 14;
 
 @Component({
   selector: 'app-ledger',
@@ -109,7 +155,13 @@ export class LedgerComponent {
   readonly error = signal<string | null>(null);
   readonly saving = signal(false);
   readonly ledger = signal<Ledger | null>(null);
-  readonly day = signal<string>(todayIso());
+
+  /** The programme's today, as the server last reported it. The device's own
+   *  date stands in only until the first response arrives. */
+  readonly today = signal<string>(deviceTodayIso());
+  readonly day = signal<string>(this.today());
+
+  readonly history = signal<History | null>(null);
 
   /** The semester in the eyebrow — read from the student's record, never typed
    *  into the template. Null until it arrives, and the eyebrow says "Daily log"
@@ -122,6 +174,18 @@ export class LedgerComponent {
   readonly dirty = computed(() => Object.keys(this.draft()).length > 0);
 
   readonly submitted = computed(() => this.ledger()?.status === 'SUBMITTED');
+  readonly locked = computed(() => this.ledger()?.locked === true);
+  readonly editable = computed(() => this.ledger()?.editable === true);
+
+  /** "Each day can be filled in for 2 days after it ends, then it locks." —
+   *  the window the server applies, in one sentence for the history card. */
+  readonly windowSentence = computed(() => {
+    const n = this.history()?.edit_window_days ?? this.ledger()?.edit_window_days;
+    if (n === undefined || n === null) return '';
+    if (n === 0) return 'Each day can be filled in on the day itself, then it locks.';
+    if (n === 1) return 'Each day can be filled in until the end of the next day, then it locks.';
+    return `Each day can be filled in for ${n} days after it ends, then it locks.`;
+  });
 
   readonly weekly = signal<WeeklySkilling | null>(null);
   readonly weeklyPercent = computed(() => {
@@ -131,7 +195,8 @@ export class LedgerComponent {
   });
 
   constructor() {
-    void this.load();
+    void this.load(true);
+    void this.loadHistory();
     void this.loadWeekly();
     void this.loadSemester();
   }
@@ -165,17 +230,39 @@ export class LedgerComponent {
     }
   }
 
-  async load(): Promise<void> {
+  /** The strip of recent days. Same independence as the weekly strip: the
+   *  ledger renders without it. */
+  async loadHistory(): Promise<void> {
+    try {
+      const res = await fetch(
+        `${environment.apiBase}/student/ledger/history?days=${HISTORY_DAYS}`,
+        { credentials: 'include' },
+      );
+      if (!res.ok) return;
+      const body = (await res.json()) as History;
+      this.history.set(body);
+      this.today.set(body.today);
+    } catch {
+      /* no strip */
+    }
+  }
+
+  /** `initial` asks for no day, so the SERVER decides what today is; every
+   *  later load names the day the student stepped to. */
+  async load(initial = false): Promise<void> {
     this.state.set('loading');
     this.error.set(null);
     this.draft.set({});
     try {
-      const res = await fetch(
-        `${environment.apiBase}/student/ledger?day=${encodeURIComponent(this.day())}`,
-        { credentials: 'include' },
-      );
+      const query = initial ? '' : `?day=${encodeURIComponent(this.day())}`;
+      const res = await fetch(`${environment.apiBase}/student/ledger${query}`, {
+        credentials: 'include',
+      });
       if (!res.ok) throw new Error(String(res.status));
-      this.ledger.set((await res.json()) as Ledger);
+      const body = (await res.json()) as Ledger;
+      this.ledger.set(body);
+      this.today.set(body.today);
+      this.day.set(body.day);
       this.state.set('data');
     } catch {
       this.state.set('error');
@@ -183,18 +270,35 @@ export class LedgerComponent {
   }
 
   step(days: number): void {
-    const next = new Date(`${this.day()}T00:00:00`);
-    next.setDate(next.getDate() + days);
-    const iso = next.toISOString().slice(0, 10);
+    const next = shiftIsoDay(this.day(), days);
     // A day that has not happened yet cannot be logged, and the server refuses
     // it — so the control refuses first rather than showing a 422.
-    if (iso > todayIso()) return;
-    this.day.set(iso);
+    if (isoAfter(next, this.today())) return;
+    this.day.set(next);
+    void this.load();
+  }
+
+  /** Jump to a day from the history strip. */
+  open(day: string): void {
+    if (day === this.day()) return;
+    this.day.set(day);
     void this.load();
   }
 
   get atToday(): boolean {
-    return this.day() >= todayIso();
+    return !isoAfter(this.today(), this.day());
+  }
+
+  /** The chip on a history day: what state the student left it in, and
+   *  whether it can still change. Text and tone together, never colour alone. */
+  historyChip(d: HistoryDay): { label: string; tone: Tone } {
+    if (d.status === 'SUBMITTED') return { label: 'Submitted', tone: 'good' };
+    if (d.status === 'DRAFT') {
+      return d.locked
+        ? { label: `${d.logged_hours} h · locked`, tone: 'risk' }
+        : { label: `Draft · ${d.logged_hours} h`, tone: 'warn' };
+    }
+    return d.locked ? { label: 'Locked', tone: 'neutral' } : { label: 'Not logged', tone: 'neutral' };
   }
 
   // --- editing -------------------------------------------------------------
@@ -290,8 +394,14 @@ export class LedgerComponent {
         this.error.set(detail || 'That could not be saved. Please try again.');
         return false;
       }
-      this.ledger.set((await res.json()) as Ledger);
+      const saved = (await res.json()) as Ledger;
+      this.ledger.set(saved);
+      this.today.set(saved.today);
       this.draft.set({});
+      // The strip and the weekly figure are both sums over what was just
+      // written; refresh them rather than let them lag the table.
+      void this.loadHistory();
+      void this.loadWeekly();
       return true;
     } catch {
       this.error.set('Could not reach the server. Please try again.');
@@ -315,10 +425,4 @@ export class LedgerComponent {
   // --- helpers used by the template ---------------------------------------
 
   trackKey = (_: number, item: { key: string }) => item.key;
-}
-
-function todayIso(): string {
-  const now = new Date();
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 10);
 }

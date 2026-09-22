@@ -239,3 +239,78 @@
 .lb-rejoin {
   margin-top: 12px;
 }
+
+/* --- the line under the title: who this ranks against --------------------- */
+.dt-header .dt-sub {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.dt-header .dt-sub .icon {
+  font-size: 17px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--brand-purple);
+}
+/* Unseated is a state the office fixes, so it reads as a notice, not a caption. */
+.lb-scope--unseated {
+  color: var(--warn);
+}
+.lb-scope--unseated .icon {
+  color: var(--warn);
+}
+
+/* --- the rest of the batch: classmates not yet ranked here ------------------ */
+.lb-unranked {
+  margin-top: 14px;
+  padding: 14px 18px;
+}
+.lb-unranked__head {
+  margin-bottom: 10px;
+}
+.lb-unranked__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+.lb-unranked__title .icon {
+  font-size: 18px;
+  color: var(--muted);
+}
+.lb-unranked__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+  gap: 6px 14px;
+}
+.lb-unranked__list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 10px;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+}
+.lb-unranked__list li.me {
+  background: var(--tint-2);
+  color: var(--ink);
+  box-shadow: inset 3px 0 0 var(--brand-purple);
+}
+.lb-unranked__list li .lb-avatar {
+  background: var(--tint-3);
+  color: var(--muted);
+}
+.lb-unranked__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lb-unranked__more {
+  color: var(--muted);
+  font-weight: 600;
+}

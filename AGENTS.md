@@ -1723,6 +1723,109 @@ per line with a comment saying which screen will want it. Put a glyph there when
 you are about to build the screen that uses it; the alternative is discovering
 on the day that the button is blank.
 
+### The phone (2026-09-22)
+
+Three Sentry issues and one request, and they turned out to be one subject: the
+student reaches REEP on a handset and almost nothing here was built for one.
+
+**THE APP DID NOT PAINT AT ALL ON AN OLD PHONE BROWSER.** `Object.hasOwn` is
+ES2022 (Chromium 93) and Angular 22 calls it in the ROUTER and in core's
+`__ngSimpleChanges__` reader during `bootstrapApplication` — so on a Chromium
+fork below that the app dies before its first frame, with no screen left to
+explain itself on and no login form to reach. `src/polyfills.ts` fills it,
+along with `Array/String.prototype.at` and `String.replaceAll`, which sit in
+the same 85–93 band; every entry was chosen by grepping the BUILT bundle, and
+`structuredClone`, `findLast` and `toSorted` are deliberately absent because
+nothing calls them. All four installs go through `define`, which is what makes
+them non-enumerable — a bare `Array.prototype.at = fn` appears in every
+`for...in` over an array in every dependency. **There is deliberately no
+`.browserslistrc`**: one was written (Chrome 87) and removed, because the
+bundle had already PARSED on that browser — syntax was never the gap — and it
+cost ~4 kB of lowering plus an Angular-support warning on every build, which is
+a warning nobody reads by the second week. The spec tests the exported
+implementations against the RUNTIME'S OWN native method as an oracle; that
+caught the first `replaceAll`, which used split/join to avoid misreading `$&`
+and was wrong about the spec (replaceAll runs GetSubstitution exactly as
+replace does). Deleting a native and re-importing to reach the guarded branch
+is what the spec did first, and it took vitest down with it — eleven unrelated
+files failing on `this.executionStack.at is not a function`, because the runner
+shares the realm.
+
+**THE SHELL PUT A FIXED 220px SIDEBAR BESIDE THE CONTENT**, which on a 360px
+handset is two thirds of the screen for navigation. Below 900px it is an
+off-canvas drawer behind a hamburger — the SAME `<nav>` and the same
+`navigation()` groups, because a second mobile menu is a second list to keep in
+step with `ADMIN_NAVIGATION` and its three siblings. Closed is
+`visibility: hidden` and not only a transform, or the drawer stays in the focus
+order and tabbing from the app bar walks every row of an invisible panel first
+— the `hidden` file-input defect from the reachability audit, arriving again.
+`height: 100dvh` sits beside the `100vh` fallback because `vh` is the viewport
+with the URL bar scrolled AWAY, and the frame is `overflow: hidden`, so the
+bottom of every screen was unreachable rather than scrollable.
+
+**TABLES WERE CLIPPED, NOT OVERFLOWING**, which is why no scroll bar ever hinted
+at it: `body` is `overflow-x: hidden` and `.desktop-frame` is
+`overflow: hidden`, so a student at 390px saw the first three columns of their
+marks and had no gesture to reach the rest. Tables inside `.desktop-main`
+scroll now. Jobs, Records and the Ledger already did this properly with their
+own wrappers and are EXCLUDED — `.jobs-table` is `table-layout: fixed` with six
+weighted percentage columns that the block treatment would drop. **The
+exclusion lists WRAPPERS and not tables**, because the two lists fail in
+opposite directions: forget a wrapper and its table merely gets both
+treatments, forget a table and it clips again. It is written as a specificity
+override rather than `:not(.jobs-frame *, …)` — a `:not()` holding COMPLEX
+selectors is Selectors 4, and a parser that cannot read it drops the whole
+rule, putting the clipping back on exactly the browsers `polyfills.ts` exists
+for. And `minmax(Npx, 1fr)` does not collapse below its own minimum: the track
+keeps the Npx and the grid overflows, so six student grids and the global
+`.dense-grid` cap it with `min(Npx, 100%)`.
+
+**IT INSTALLS, AND THE MANIFEST IS THE STUDENT'S.** `public/manifest.webmanifest`
+is "REEP Student" starting at `/student`; `tools/icons/make-app-icons.py`
+redraws the four icons from `--primary-gradient`'s own stops and the app's own
+Plus Jakarta Sans, which is a VARIABLE font whose default instance is 400 — the
+first icons came out at Regular beside an app bar drawing 800, so the axis is
+pinned with `instancer`. `scope` is `/` and CANNOT be narrowed to `/student`:
+scope is what the installed window keeps, and narrowing it opens every
+`/account` and `/login` URL in the browser instead, which signs the student out
+of the app they just installed. The apple-touch-icon is a separate `<link>`
+because iOS ignores the manifest's icons, and the one opaque icon of the four
+because iOS composites transparency against black.
+
+**`ngsw-config.json` HAS NO `dataGroups`, AND THAT ABSENCE IS RULE 1.** A
+dataGroup is how ngsw caches API responses, and every interesting response here
+is marks, attendance, a USN or an interview transcript. Cached, they are
+written to the handset's disk by the BROWSER, outliving the httpOnly
+`reep_session` cookie, surviving sign-out and surviving `_retire_other_sessions`
+— and unreachable from `purge_students` and `purge_people`, which can empty a
+database and cannot touch Cache Storage on a phone in Bengaluru. The file is
+strict JSON and cannot hold that reasoning, so it lives beside
+`provideServiceWorker` in `app.config.ts`. `navigationUrls` excludes `/api/**`
+for the neighbouring reason. The asset groups are split so INSTALL costs 243 kB
+and not 4 MB: prefetching `/*.js` took every admin chunk, ag-grid and echarts
+onto a student's metered connection, which is the bill "Routes are lazy" was
+written to avoid.
+
+**TWO DEPLOY BUGS CAME WITH IT AND BOTH WOULD HAVE BEEN SILENT.** `ngsw.json`
+and `ngsw-worker.js` are fetched at FIXED names and were inside the
+`max-age=31536000,immutable` pass, so an installed student's app would have been
+frozen on its install build for a year — index.html's own bug, but worse,
+because a service worker survives a tab close. They are a third pass with
+`no-cache` now, and in the CloudFront invalidation. And ngsw validates every
+file against a SHA-1 taken at build time, while `sentry-cli sourcemaps inject`
+runs AFTER `ng build`: a file changed in that window makes the worker refuse the
+new version and keep serving the old one forever, with the bucket and CloudFront
+both holding the new build and nothing in any log saying so.
+`tools/ci/check_ngsw_integrity.py` fails the deploy there instead, and also
+refuses a `.map` in the hashTable — deploy deletes maps before upload, so a
+worker expecting one could never install.
+
+**Regenerating the icon subset for `menu` found `refresh` missing**, which
+`/register` had been rendering as a blank space. `collect-icon-names.py` reads
+templates, so an icon is only ever as discoverable as its markup; `running` was
+a state value it mistook for a glyph inside an interpolation and is denylisted
+beside `draft` and `completed`.
+
 The floating **agent orb** and the **dock** it opens live in the SHELL
 (`layout/agent-orb.component.ts`, `layout/agent-dock.component.ts`), not in a
 route, because they are on every screen. **The dock is BOTH assistants under

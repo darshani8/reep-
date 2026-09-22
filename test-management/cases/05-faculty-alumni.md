@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Screens | `/mentor/notebook`, `/mentor/mentees`, `/mentor/verifications`, `/mentor/upskilling`, `/mentor/signature`, `/mentor/leave`, `/mentor/agent`, `/alumni`, `/alumni/jobs` |
-| Automated tests | [`tests/faculty-alumni.spec.ts`](../../tests/faculty-alumni.spec.ts) |
+| Automated tests | [`tests/05-faculty-alumni.spec.ts`](../../tests/05-faculty-alumni.spec.ts) |
 | ID range | TC-400 to TC-499 |
 
 Setup, the seeded accounts and the rules that link these cases to their
@@ -30,7 +30,7 @@ timestamp. It keeps repeated runs apart on the same database.
 | Module | Faculty: notebook |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-400` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-400` |
 
 ### Pre-conditions
 
@@ -71,7 +71,7 @@ timestamp. It keeps repeated runs apart on the same database.
 | Module | Faculty: notebook |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-401` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-401` |
 
 ### Pre-conditions
 
@@ -125,7 +125,7 @@ session.
 | Module | Faculty: notebook |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-402` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-402` |
 
 ### Pre-conditions
 
@@ -161,7 +161,7 @@ session.
 | Module | Faculty: mentee log |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-403` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-403` |
 
 ### Pre-conditions
 
@@ -200,7 +200,7 @@ session.
 | Module | Faculty: mentee log |
 | Priority | P2 |
 | Type | Functional, positive and negative |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-404` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-404` |
 
 ### Pre-conditions
 
@@ -236,7 +236,7 @@ session.
 | Module | Faculty: mentee log |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-405` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-405` |
 
 ### Pre-conditions
 
@@ -287,7 +287,7 @@ shows it.
 | Module | Faculty: mentee log |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-406` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-406` |
 
 ### Pre-conditions
 
@@ -322,7 +322,7 @@ shows it.
 | Module | Faculty: verifications |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-407` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-407` |
 
 ### Pre-conditions
 
@@ -362,7 +362,7 @@ None beyond the seeded items above.
 | Module | Faculty: verifications |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-408` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-408` |
 
 ### Pre-conditions
 
@@ -425,7 +425,7 @@ docs at `/docs`, for example), and the student deletes the file on
 | Module | Faculty: verifications |
 | Priority | P1 |
 | Type | Functional, negative and positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-409` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-409` |
 
 ### Pre-conditions
 
@@ -472,7 +472,7 @@ since only an earned badge can be revoked.
 | Module | Faculty: verifications |
 | Priority | P1 |
 | Type | Functional, negative and positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-410` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-410` |
 
 ### Pre-conditions
 
@@ -517,7 +517,7 @@ As TC-409.
 | Module | Faculty: verifications |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-411` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-411` |
 
 ### Pre-conditions
 
@@ -568,7 +568,7 @@ it on `/student/uploads`.
 | Module | Faculty: verifications |
 | Priority | P2 |
 | Type | Functional, negative and positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-412` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-412` |
 
 ### Pre-conditions
 
@@ -611,7 +611,7 @@ As TC-411.
 | Module | Faculty: upskilling |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-413` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-413` |
 
 ### Pre-conditions
 
@@ -655,7 +655,7 @@ As TC-411.
 | Module | Faculty: upskilling |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-414` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-414` |
 
 ### Pre-conditions
 
@@ -688,7 +688,7 @@ As TC-411.
 | Module | Faculty: upskilling |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-415` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-415` |
 
 ### Pre-conditions
 
@@ -723,7 +723,7 @@ As TC-411.
 | Module | Faculty: signature |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-416` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-416` |
 
 ### Pre-conditions
 
@@ -771,7 +771,7 @@ No signature image is on file, as before the case.
 | Module | Faculty: signature |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-417` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-417` |
 
 ### Pre-conditions
 
@@ -804,7 +804,7 @@ No signature image is on file, as before the case.
 | Module | Faculty: leave |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-418` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-418` |
 
 ### Pre-conditions
 
@@ -858,7 +858,7 @@ withdraws it afterwards through the API. By hand, withdraw it as in TC-420.
 | Module | Faculty: leave |
 | Priority | P1 |
 | Type | Functional, negative |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-419` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-419` |
 
 ### Pre-conditions
 
@@ -896,7 +896,7 @@ withdraws it afterwards through the API. By hand, withdraw it as in TC-420.
 | Module | Faculty: leave |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-420` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-420` |
 
 ### Pre-conditions
 
@@ -943,7 +943,7 @@ The request stays on record as cancelled. It cannot be reopened.
 | Module | Faculty: leave |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-421` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-421` |
 
 ### Pre-conditions
 
@@ -983,7 +983,7 @@ The automated test withdraws the request afterwards through the API.
 | Module | Faculty: leave |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-422` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-422` |
 
 ### Pre-conditions
 
@@ -1028,7 +1028,7 @@ The automated test withdraws the request afterwards through the API.
 | Module | Faculty: REEP Agent |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-423` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-423` |
 
 ### Pre-conditions
 
@@ -1072,7 +1072,7 @@ The automated test withdraws the request afterwards through the API.
 | Module | Faculty: access |
 | Priority | P1 |
 | Type | Security, negative |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-424` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-424` |
 
 ### Pre-conditions
 
@@ -1111,7 +1111,7 @@ None.
 | Module | Alumni: profile |
 | Priority | P1 |
 | Type | Functional, positive and negative |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-425` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-425` |
 
 ### Pre-conditions
 
@@ -1169,7 +1169,7 @@ form is not seen again on this database.
 | Module | Alumni: profile |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-426` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-426` |
 
 ### Pre-conditions
 
@@ -1207,7 +1207,7 @@ form is not seen again on this database.
 | Module | Alumni: profile |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-427` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-427` |
 
 ### Pre-conditions
 
@@ -1241,7 +1241,7 @@ None: the resume on record is used.
 | Module | Alumni: jobs |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-428` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-428` |
 
 ### Pre-conditions
 
@@ -1278,7 +1278,7 @@ None beyond the seeded postings.
 | Module | Alumni: jobs |
 | Priority | P2 |
 | Type | Functional, positive and negative |
-| Automated test | `tests/faculty-alumni.spec.ts`, title tagged `@TC-429` |
+| Automated test | `tests/05-faculty-alumni.spec.ts`, title tagged `@TC-429` |
 
 ### Pre-conditions
 

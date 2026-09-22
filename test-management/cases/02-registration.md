@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Screens | `/register`, `/admin/registrations`, `/onboard` |
-| Automated tests | [`tests/registration.spec.ts`](../../tests/registration.spec.ts) |
+| Automated tests | [`tests/02-registration.spec.ts`](../../tests/02-registration.spec.ts) |
 | ID range | TC-100 to TC-199 |
 
 Setup, the seeded accounts and the rules that link these cases to their
@@ -55,7 +55,7 @@ What these cases rely on, in addition to the index's setup:
 | Module | Registration: the public form |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-100` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-100` |
 
 ### Pre-conditions
 
@@ -98,7 +98,7 @@ What these cases rely on, in addition to the index's setup:
 | Module | Registration: the public form |
 | Priority | P1 |
 | Type | Functional, negative |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-101` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-101` |
 
 ### Pre-conditions
 
@@ -136,7 +136,7 @@ What these cases rely on, in addition to the index's setup:
 | Module | Registration: the public form |
 | Priority | P2 |
 | Type | Functional, positive and negative |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-102` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-102` |
 
 ### Pre-conditions
 
@@ -187,7 +187,7 @@ What these cases rely on, in addition to the index's setup:
 | Module | Registration: the public form |
 | Priority | P2 |
 | Type | Functional, boundary |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-103` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-103` |
 
 ### Pre-conditions
 
@@ -233,7 +233,7 @@ What these cases rely on, in addition to the index's setup:
 | Module | Registration: the public form |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-104` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-104` |
 
 ### Pre-conditions
 
@@ -282,7 +282,7 @@ What these cases rely on, in addition to the index's setup:
 | Module | Registration: the public form |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-105` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-105` |
 
 ### Pre-conditions
 
@@ -337,7 +337,7 @@ run, shown here as `<run>`. By hand, use any values not used before.
 
 A pending application for the college email is in the office's queue. The
 automated run rejects it afterwards with the reason "E2E cleanup: test
-application from tests/registration.spec.ts", so no pending application is
+application from tests/02-registration.spec.ts", so no pending application is
 left behind. By hand, reject it on `/admin/registrations` or leave it for
 TC-111.
 
@@ -351,7 +351,7 @@ TC-111.
 | Module | Registration: the public form and the rule engine |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-106` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-106` |
 
 ### Pre-conditions
 
@@ -419,7 +419,7 @@ application stays on the Auto-approved tab.
 | Module | Registration: the public form |
 | Priority | P1 |
 | Type | Functional, negative, security |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-107` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-107` |
 
 ### Pre-conditions
 
@@ -477,7 +477,7 @@ application is left behind. Its next run puts it back in the queue.
 | Module | Registration: the public form |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-108` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-108` |
 
 ### Pre-conditions
 
@@ -534,7 +534,7 @@ run rejects it afterwards.
 | Module | Registration: the public form and the review queue |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-109` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-109` |
 
 ### Pre-conditions
 
@@ -596,7 +596,7 @@ one more rejection on record.
 | Module | Registrations: the review queue |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-110` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-110` |
 
 ### Pre-conditions
 
@@ -638,7 +638,7 @@ one more rejection on record.
 | Module | Registrations: the review queue |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-111` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-111` |
 
 ### Pre-conditions
 
@@ -699,7 +699,7 @@ afterwards, so no pending application is left behind.
 | Module | Registrations: the review queue |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-112` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-112` |
 
 ### Pre-conditions
 
@@ -740,7 +740,7 @@ afterwards, so no pending application is left behind.
 | Module | Registrations: the review queue |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-113` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-113` |
 
 ### Pre-conditions
 
@@ -794,7 +794,7 @@ The application stays approved.
 | Module | Registrations: the review queue |
 | Priority | P1 |
 | Type | Functional, positive and negative |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-114` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-114` |
 
 ### Pre-conditions
 
@@ -842,7 +842,7 @@ afterwards, so no pending application is left behind.
 | Module | Registrations: the review queue |
 | Priority | P2 |
 | Type | Functional, positive and negative |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-115` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-115` |
 
 ### Pre-conditions
 
@@ -892,7 +892,7 @@ afterwards, so no pending application is left behind.
 | Module | Registrations: the review queue |
 | Priority | P1 |
 | Type | Functional, negative, security |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-116` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-116` |
 
 ### Pre-conditions
 
@@ -944,7 +944,7 @@ pending application is left behind.
 | Module | Registrations: auto-approve rules |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-117` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-117` |
 
 ### Pre-conditions
 
@@ -997,7 +997,7 @@ the rule afterwards.
 | Module | Registrations: auto-approve rules |
 | Priority | P2 |
 | Type | Functional, negative, security |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-118` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-118` |
 
 ### Pre-conditions
 
@@ -1037,7 +1037,7 @@ the rule afterwards.
 | Module | Registrations: access |
 | Priority | P2 |
 | Type | Security, negative |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-119` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-119` |
 
 ### Pre-conditions
 
@@ -1072,7 +1072,7 @@ the rule afterwards.
 | Module | Onboarding: the setup page |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-120` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-120` |
 
 ### Pre-conditions
 
@@ -1106,7 +1106,7 @@ None.
 | Module | Onboarding: the setup page |
 | Priority | P2 |
 | Type | Functional, negative, security |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-121` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-121` |
 
 ### Pre-conditions
 
@@ -1210,7 +1210,7 @@ signs this browser out, because REEP keeps one live session per account.
 | Module | Registrations: auto-approve rules |
 | Priority | P3 |
 | Type | Functional, timing |
-| Automated test | `tests/registration.spec.ts`, title tagged `@TC-123` |
+| Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-123` |
 
 **Known bug.** The screen asks for the rules (`GET /api/register/rules`) and
 for the batch names (`GET /api/register/hierarchy`) at the same time when it

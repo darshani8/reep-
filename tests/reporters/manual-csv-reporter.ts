@@ -457,7 +457,16 @@ export default class ManualCsvReporter implements Reporter {
       Status: status,
       'Duration (ms)': result?.duration,
       'Failed Step': status === 'Blocked' ? 'Pre-conditions' : failed?.title,
-      Error: error?.replace(ANSI, '').replace(/\s+/g, ' ').trim().slice(0, 1000),
+      // A skipped test has no error; its reason (why the data or the feature
+      // it needs is absent) is what a reader of the Skipped row needs instead.
+      Error: (status === 'Skipped'
+        ? result?.annotations.find((a) => a.type === 'skip')?.description
+        : error
+      )
+        ?.replace(ANSI, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 1000),
       'Manual-only Checks': manual?.manualOnly.join('; '),
       Screenshots: screenshots.join(' | '),
       Location: this.where(test),

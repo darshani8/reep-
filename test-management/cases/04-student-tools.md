@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Screens | `/student/profile`, `/student/uploads`, `/student/resume`, `/student/jobs`, `/student/english`, `/student/mentor-log`, `/student/interviews`, `/student/assistant`, `/student/agent`, and the floating assistant orb and dock on every student screen |
-| Automated tests | [`tests/student-tools.spec.ts`](../../tests/student-tools.spec.ts) |
+| Automated tests | [`tests/04-student-tools.spec.ts`](../../tests/04-student-tools.spec.ts) |
 | ID range | TC-300 to TC-399 |
 
 Setup, the seeded accounts and the rules that link these cases to their
@@ -25,7 +25,7 @@ on `/login` first, with the Student portal selected.
 | Module | Student: profile |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-300` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-300` |
 
 ### Pre-conditions
 
@@ -78,7 +78,7 @@ on `/login` first, with the Student portal selected.
 | Module | Student: profile |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-301` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-301` |
 
 ### Pre-conditions
 
@@ -134,7 +134,7 @@ restores the profile it found through the API.
 | Module | Student: profile |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-302` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-302` |
 
 ### Pre-conditions
 
@@ -181,7 +181,7 @@ restores the profile it found through the API.
 | Module | Student: uploads |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-303` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-303` |
 
 ### Pre-conditions
 
@@ -224,7 +224,7 @@ restores the profile it found through the API.
 | Module | Student: uploads |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-304` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-304` |
 
 ### Pre-conditions
 
@@ -271,7 +271,7 @@ button (TC-305). The automated test deletes it through the API.
 | Module | Student: uploads |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-305` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-305` |
 
 ### Pre-conditions
 
@@ -314,7 +314,7 @@ button (TC-305). The automated test deletes it through the API.
 | Module | Student: uploads |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-306` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-306` |
 
 ### Pre-conditions
 
@@ -360,7 +360,7 @@ API.
 | Module | Student: uploads |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-307` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-307` |
 
 ### Pre-conditions
 
@@ -401,7 +401,7 @@ hand, switch the dialog's file-type filter to "All files".
 | Module | Student: uploads |
 | Priority | P2 |
 | Type | Functional, negative, boundary |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-308` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-308` |
 
 ### Pre-conditions
 
@@ -437,7 +437,7 @@ hand, switch the dialog's file-type filter to "All files".
 | Module | Student: resume builder |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-309` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-309` |
 
 ### Pre-conditions
 
@@ -492,7 +492,7 @@ The automated test restores the builder it found through the API.
 | Module | Student: resume builder |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-310` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-310` |
 
 ### Pre-conditions
 
@@ -544,7 +544,7 @@ Resumes" list. Nothing in the product deletes a generated resume.
 | Module | Student: resume builder |
 | Priority | P2 |
 | Type | Functional, positive and negative |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-311` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-311` |
 
 ### Pre-conditions
 
@@ -588,7 +588,7 @@ Resumes" list. Nothing in the product deletes a generated resume.
 | Module | Student: jobs |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-312` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-312` |
 
 ### Pre-conditions
 
@@ -631,7 +631,7 @@ Resumes" list. Nothing in the product deletes a generated resume.
 | Module | Student: jobs |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-313` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-313` |
 
 ### Pre-conditions
 
@@ -691,7 +691,7 @@ through the API.
 | Module | Student: jobs |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-314` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-314` |
 
 ### Pre-conditions
 
@@ -754,7 +754,7 @@ through the API.
 | Module | Student: English baseline |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-315` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-315` |
 
 ### Pre-conditions
 
@@ -800,7 +800,7 @@ through the API.
 | Module | Student: English baseline |
 | Priority | P1 |
 | Type | Functional, negative |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-316` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-316` |
 
 ### Pre-conditions
 
@@ -840,7 +840,7 @@ None beyond the seeded attempt.
 | Module | Student: English baseline |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-317` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-317` |
 
 ### Pre-conditions
 
@@ -921,7 +921,7 @@ again with the same account.
 | Module | Student: mentor log |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-319` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-319` |
 
 ### Pre-conditions
 
@@ -967,7 +967,7 @@ logged by Test Mentor.
 | Module | Student: mentor log |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-320` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-320` |
 
 ### Pre-conditions
 
@@ -1057,7 +1057,7 @@ through the API as the mentor.
 | Module | Student: mock interview records |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-322` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-322` |
 
 ### Pre-conditions
 
@@ -1067,8 +1067,10 @@ through the API as the mentor.
    as that account.
 3. The student has never started a mock interview, as on a fresh seed. Any
    interview started on `/student/assistant`, even one that failed to
-   connect (TC-327), leaves a record here. The automated test is Blocked when
-   one exists.
+   connect (TC-327), leaves a record here, and so do module 08's interview
+   record cases. The automated test is Skipped when one exists: that is used-up
+   test data, not a broken environment. The full suite runs this module before
+   module 08, so a fresh database always reaches this case.
 
 ### Test data
 
@@ -1134,7 +1136,7 @@ The interview held in TC-326.
 | Module | Student: mock interview |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-324` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-324` |
 
 ### Pre-conditions
 
@@ -1176,7 +1178,7 @@ The interview held in TC-326.
 | Module | Student: mock interview |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-325` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-325` |
 
 ### Pre-conditions
 
@@ -1186,8 +1188,9 @@ The interview held in TC-326.
    as that account.
 3. The student has never agreed to the interview terms, as on a fresh seed.
    Agreeing (TC-326, TC-327) records a consent the student cannot withdraw,
-   and after that Start goes straight to the interview. The automated test is
-   Blocked when a consent exists.
+   and after that Start goes straight to the interview. Module 08's interview
+   record cases agree on the student's behalf too. The automated test is
+   Skipped when a consent exists, for the reason given in TC-322.
 4. The student's college has no interview policy of its own, so the default
    applies: transcripts kept for 180 days, no recording, 8 interviews a day,
    8 minutes each. The automated test is Blocked otherwise.
@@ -1324,7 +1327,7 @@ pre-conditions of TC-322 and TC-325 no longer hold for them.
 | Module | Student: REEP Agent |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-328` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-328` |
 
 ### Pre-conditions
 
@@ -1381,7 +1384,7 @@ is no longer shown.
 | Module | Student: REEP Agent |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/student-tools.spec.ts`, title tagged `@TC-329` |
+| Automated test | `tests/04-student-tools.spec.ts`, title tagged `@TC-329` |
 
 ### Pre-conditions
 

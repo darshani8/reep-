@@ -154,7 +154,7 @@ const OFF_DOMAIN: Applicant = {
   personalEmail: 'e2e-m02-offdomain@example.com',
   linkedin: 'linkedin.com/in/e2e-m02-offdomain',
 };
-const CLEANUP_REASON = 'E2E cleanup: test application from tests/registration.spec.ts';
+const CLEANUP_REASON = 'E2E cleanup: test application from tests/02-registration.spec.ts';
 
 /** A new applicant whose every identifier is unique to this run. */
 function runApplicant(key: string, name: string, phone: string): Applicant {

@@ -79,6 +79,79 @@
   font-weight: 700;
 }
 
+/* The Specialization checklist (2026-09-22). A <fieldset> so the group has a
+   name for a screen reader; the browser's fieldset chrome is reset so it sits
+   in the grid like the <select> it replaced. The legend carries `.field label`'s
+   four rules by hand because it is not a <label> and the global cannot reach
+   it; the tick rows are body text, NOT the label style the `.field label`
+   global would give a <label> here, and the override below is what stops it. */
+.reg-checklist {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  legend {
+    padding: 0;
+    margin-bottom: 5px;
+    font-family: var(--font-display);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--ink-soft);
+  }
+}
+
+.reg-check-note {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.reg-check-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+
+/* One tick row. The row is the tap target (min-height 36px at every width),
+   and the whole label toggles the box. */
+.reg-checklist .reg-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  font-family: var(--font);
+  font-size: 12.8px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink);
+  cursor: pointer;
+
+  input {
+    width: auto;
+    margin: 0;
+    accent-color: var(--brand-purple);
+    cursor: pointer;
+  }
+
+  input:disabled {
+    cursor: default;
+  }
+}
+
+/* A box past the cap: the row reads as unavailable, not just the box. `:has()`
+   is Selectors 4, so it stands in rules of its own — grouped with a plain
+   selector, a parser that cannot read it would drop the plain one too, and
+   the native disabled box is the fallback that still says it. */
+.reg-checklist .reg-check:has(input:disabled) {
+  cursor: default;
+}
+
+.reg-checklist .reg-check:has(input:disabled) span {
+  color: var(--muted);
+}
+
 /* The accepted format and size, on the dropzone itself. A rule the applicant
    meets only as a refusal after picking a file is a rule stated too late. */
 .reg-file-hint {

@@ -41,7 +41,7 @@ from fastapi import (
     UploadFile,
     status,
 )
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
@@ -307,6 +307,15 @@ def _looks_like_email(value: str) -> bool:
     return "@" in value and "." in value.rsplit("@", 1)[-1]
 
 
+#: How many specializations one application may name. TWO, because the office's
+#: word for it is "dual specialization" and `registrations` has exactly two
+#: columns for it (`specialization_id`, `second_specialization_id`); a bigger
+#: number here would be a promise the row cannot keep. Served to the form by
+#: `GET /register/hierarchy` (`max_specializations`) so the checklist's cap and
+#: the schema's are one constant, not two.
+MAX_SPECIALIZATIONS_PER_APPLICATION = 2
+
+
 class RegisterIn(BaseModel):
     """EVERY FIELD THE FORM ASKS FOR IS REQUIRED HERE TOO (2026-09-16), except
     the claim of where the applicant belongs, which the hierarchy decides.
@@ -383,7 +392,40 @@ class RegisterIn(BaseModel):
     department_id: str | None = None
     course_id: str | None = None
     specialization_id: str | None = None
+    #: THE CHECKLIST (2026-09-22). The form's Specialization box is a list of
+    #: tick boxes now, because a student who opted for a DUAL specialization
+    #: has two to name and a <select> let them name one. At most
+    #: MAX_SPECIALIZATIONS_PER_APPLICATION, all under one course, in the order
+    #: ticked. `specialization_id` above is still accepted for an older client
+    #: and is folded in FIRST by `_merge_specialization_picks`, so after
+    #: validation THIS list is the whole claim and `_resolve_claim` reads
+    #: nothing else.
+    specialization_ids: list[str] = []
     requested_cohort_id: str | None = None
+
+    @model_validator(mode="after")
+    def _merge_specialization_picks(self) -> "RegisterIn":
+        """One list, stripped, de-duplicated in the order ticked, capped.
+
+        The legacy single field leads so that a client sending both (one pick
+        in each) reads as one pick, not two; a box ticked twice is one box.
+        The cap is a 422 here rather than a silent truncation, because a
+        student who ticked three and was recorded with two has been told a
+        different fact about themselves than they typed.
+        """
+        picks: list[str] = []
+        for raw in (self.specialization_id, *self.specialization_ids):
+            value = (raw or "").strip()
+            if value and value not in picks:
+                picks.append(value)
+        if len(picks) > MAX_SPECIALIZATIONS_PER_APPLICATION:
+            raise ValueError(
+                f"tick at most {MAX_SPECIALIZATIONS_PER_APPLICATION} specializations: one, "
+                "or two if you opted for a dual specialization"
+            )
+        self.specialization_ids = picks
+        self.specialization_id = picks[0] if picks else None
+        return self
 
 
 # --- the check vocabulary (B11.1) --------------------------------------------
@@ -440,6 +482,12 @@ CHECK_PRIOR_APPLICATIONS = "prior_applications"
 #: file, which is what HOLD is for - but the reviewer must see the gap before
 #: pressing the button, not after the student has no resume.
 CHECK_DOCUMENTS = "documents"
+#: A WARN, never a block, and only where a SECOND specialization is on the row
+#: (2026-09-22): the applicant ticked two on the form's checklist. It is on the
+#: list because seating is by BATCH and a batch hangs on one specialization at
+#: most, so the reviewer choosing where this person sits should know there are
+#: two choices to weigh and that the second stays on the application.
+CHECK_DUAL_SPECIALIZATION = "dual_specialization"
 
 
 class CheckOut(BaseModel):
@@ -492,11 +540,15 @@ class RegistrationOut(BaseModel):
     department_id: str | None = None
     course_id: str | None = None
     specialization_id: str | None = None
+    #: The other tick of a dual specialization (2026-09-22); null on every
+    #: application that named one or none. `specialization_id` is unchanged.
+    second_specialization_id: str | None = None
     requested_cohort_id: str | None = None
     college_name: str | None = None
     department_name: str | None = None
     course_name: str | None = None
     specialization_name: str | None = None
+    second_specialization_name: str | None = None
     requested_batch: str | None = None
     #: Kinds attached with the application - "CV", "PHOTO" - so the queue can
     #: show a reviewer what is there before they open anything.
@@ -560,11 +612,13 @@ class PublicRegistrationOut(BaseModel):
     department_id: str | None = None
     course_id: str | None = None
     specialization_id: str | None = None
+    second_specialization_id: str | None = None
     requested_cohort_id: str | None = None
     college_name: str | None = None
     department_name: str | None = None
     course_name: str | None = None
     specialization_name: str | None = None
+    second_specialization_name: str | None = None
     requested_batch: str | None = None
     documents: list[str] = []
 
@@ -649,12 +703,20 @@ def _move_documents_to_uploads(db: Session, reg: Registration, student: Student)
     return len(docs)
 
 
-_CLAIM_KEYS = ("college_id", "department_id", "course_id", "specialization_id", "requested_cohort_id")
+_CLAIM_KEYS = (
+    "college_id",
+    "department_id",
+    "course_id",
+    "specialization_id",
+    "second_specialization_id",
+    "requested_cohort_id",
+)
 _CLAIM_NOUN = {
     "college_id": "college",
     "department_id": "department",
     "course_id": "course",
     "specialization_id": "specialization",
+    "second_specialization_id": "second specialization",
     "requested_cohort_id": "batch",
 }
 
@@ -668,7 +730,10 @@ def _claim_names(db: Session, rows: Sequence[Registration]) -> dict[str, dict[st
     colleges = {c.id: c.name for c in db.scalars(select(College).where(College.id.in_(ids("college_id")))).all()} if ids("college_id") else {}
     departments = {d.id: d.name for d in db.scalars(select(Department).where(Department.id.in_(ids("department_id")))).all()} if ids("department_id") else {}
     courses = {c.id: c.name for c in db.scalars(select(AcademicCourse).where(AcademicCourse.id.in_(ids("course_id")))).all()} if ids("course_id") else {}
-    specs = {x.id: x.name for x in db.scalars(select(AcademicSpecialization).where(AcademicSpecialization.id.in_(ids("specialization_id")))).all()} if ids("specialization_id") else {}
+    # Both ticks of a dual specialization come out of the ONE query: the two
+    # columns name rows of the same table.
+    spec_ids = list({*ids("specialization_id"), *ids("second_specialization_id")})
+    specs = {x.id: x.name for x in db.scalars(select(AcademicSpecialization).where(AcademicSpecialization.id.in_(spec_ids))).all()} if spec_ids else {}
     # THE BATCH'S OWN course and specialization, not the application's. The two
     # dicts above are keyed on what the APPLICANT named, and a reviewer reading
     # "Approving seats them in ..." needs the words for the batch they will
@@ -693,6 +758,9 @@ def _claim_names(db: Session, rows: Sequence[Registration]) -> dict[str, dict[st
             "department_name": departments.get(r.department_id) if r.department_id else None,
             "course_name": courses.get(r.course_id) if r.course_id else None,
             "specialization_name": specs.get(r.specialization_id) if r.specialization_id else None,
+            "second_specialization_name": (
+                specs.get(r.second_specialization_id) if r.second_specialization_id else None
+            ),
             "requested_batch": batches.get(r.requested_cohort_id) if r.requested_cohort_id else None,
         }
         for r in rows
@@ -758,6 +826,7 @@ def _checks_for(
     rows: Sequence[Registration],
     *,
     docs: dict[str, list[str]] | None = None,
+    names: dict[str, dict[str, str | None]] | None = None,
 ) -> dict[str, list[CheckOut]]:
     """The pre-decision checklist for a whole page, in a handful of queries.
 
@@ -779,6 +848,9 @@ def _checks_for(
     # -- what was attached (the queue passes its own lookup; one query else) --
     if docs is None:
         docs = _doc_kinds(db, [r.id for r in rows])
+    # -- the claim by name (same rule: the queue already resolved these) ------
+    if names is None:
+        names = _claim_names(db, rows)
 
     # -- the college fence, per distinct college ------------------------------
     cohort_colleges = college_ids_for_cohorts(
@@ -865,9 +937,29 @@ def _checks_for(
             # the helper honest if that ever changes.
             prior=[p for p in prior_by_email.get((r.email or "").strip().lower(), []) if p.id != r.id],
             docs=docs.get(r.id, ()),
+            specializations=_specialization_names(r, names.get(r.id)),
         )
         for r in rows
     }
+
+
+def _specialization_names(r: Registration, names: dict[str, str | None] | None) -> list[str]:
+    """The ticked specializations by name, in the order the row holds them.
+
+    A pointer whose row has since been ARCHIVED resolves to no name and is left
+    out rather than printed as None: the claim is still on the row, but there
+    is no word to put on the screen for it.
+    """
+    names = names or {}
+    out: list[str] = []
+    for column, key in (
+        ("specialization_id", "specialization_name"),
+        ("second_specialization_id", "second_specialization_name"),
+    ):
+        name = names.get(key)
+        if getattr(r, column) and name:
+            out.append(name)
+    return out
 
 
 def _checks_for_one(
@@ -880,6 +972,7 @@ def _checks_for_one(
     rule: RegistrationRule | None,
     prior: Sequence[Registration] = (),
     docs: Sequence[str] = (),
+    specializations: Sequence[str] = (),
 ) -> list[CheckOut]:
     """One application's checklist, from facts the caller already resolved.
 
@@ -889,6 +982,8 @@ def _checks_for_one(
 
     `prior` is this address's REJECTED applications, newest decision first.
     `docs` is the kinds attached ("CV", "PHOTO"), from the queue's own lookup.
+    `specializations` is the ticked specializations BY NAME, in the row's
+    order; two of them is a dual specialization and earns a line.
     """
     checks: list[CheckOut] = []
     reason = (r.decision_reason or "").strip()
@@ -1147,6 +1242,24 @@ def _checks_for_one(
             )
         )
 
+    # ---- a dual specialization -----------------------------------------------
+    # Only where there are two: one is the ordinary case and earns no line, and
+    # a line reading "one specialization" on every row is noise in a panel
+    # meant to be read in two seconds.
+    if len(specializations) > 1:
+        checks.append(
+            CheckOut(
+                key=CHECK_DUAL_SPECIALIZATION,
+                status=CHECK_WARN,
+                label="Opted for a dual specialization",
+                detail=(
+                    "They ticked " + " and ".join(specializations) + ". A batch hangs on one "
+                    "specialization at most, so Approve seats them by the batch; both "
+                    "choices stay on this application."
+                ),
+            )
+        )
+
     return checks
 
 
@@ -1183,11 +1296,13 @@ def _out(
         department_id=r.department_id,
         course_id=r.course_id,
         specialization_id=r.specialization_id,
+        second_specialization_id=r.second_specialization_id,
         requested_cohort_id=r.requested_cohort_id,
         college_name=names.get("college_name"),
         department_name=names.get("department_name"),
         course_name=names.get("course_name"),
         specialization_name=names.get("specialization_name"),
+        second_specialization_name=names.get("second_specialization_name"),
         requested_batch=names.get("requested_batch"),
         id=r.id,
         name=r.name,
@@ -1276,6 +1391,10 @@ class PublicLevelOut(BaseModel):
 class PublicHierarchyOut(BaseModel):
     levels: list[PublicLevelOut]
     colleges: list[PublicCollegeOut]
+    #: How many specializations the form's checklist may take -
+    #: MAX_SPECIALIZATIONS_PER_APPLICATION, served so the form and the schema
+    #: refuse at the same number.
+    max_specializations: int
 
 
 @router.get("/hierarchy", response_model=PublicHierarchyOut)
@@ -1363,6 +1482,7 @@ def hierarchy(db: Session = Depends(get_db)) -> PublicHierarchyOut:
             PublicCollegeOut(id=c.id, code=c.code, name=c.name, departments=depts_by_college.get(c.id, []))
             for c in colleges
         ],
+        max_specializations=MAX_SPECIALIZATIONS_PER_APPLICATION,
     )
 
 
@@ -1378,6 +1498,17 @@ def _resolve_claim(db: Session, body: RegisterIn) -> dict[str, str | None]:
     named that differs from what was derived is a 422 naming the deeper choice,
     never a silent pick. An id that does not exist is a 422 too: this is a
     public form, and "unknown college" is input validation, not a missing page.
+
+    THE SPECIALIZATION IS A LIST OF AT MOST TWO (2026-09-22), already merged
+    and capped by `RegisterIn`. The first tick goes into `specialization_id`
+    and settles the course exactly as one pick always has; the other into
+    `second_specialization_id`, which must sit under THE SAME course - two
+    specializations from two courses is not a dual specialization, it is two
+    applications. Where the requested batch pins a specialization, that one is
+    moved to the front so the column the batch has always been checked against
+    still agrees with it; a batch pinning a specialization the applicant did
+    not tick at all is the same contradiction it was when the box was a
+    <select>, refused by the same sentence.
     """
     chain: dict[str, str | None] = {k: None for k in _CLAIM_KEYS}
 
@@ -1412,10 +1543,26 @@ def _resolve_claim(db: Session, body: RegisterIn) -> dict[str, str | None]:
         settle("course_id", batch.course_id, "batch")
         settle("department_id", batch.department_id, "batch")
 
-    settle("specialization_id", body.specialization_id, "batch")
+    picks = list(body.specialization_ids)
+    pinned = chain["specialization_id"]
+    if pinned is not None and pinned in picks:
+        picks = [pinned, *[p for p in picks if p != pinned]]
+    if picks:
+        settle("specialization_id", picks[0], "batch")
+        if len(picks) > 1:
+            chain["second_specialization_id"] = picks[1]
     spec = load(AcademicSpecialization, chain["specialization_id"], "specialization")
     if spec is not None:
         settle("course_id", spec.course_id, "specialization")
+    second = load(AcademicSpecialization, chain["second_specialization_id"], "specialization")
+    if second is not None and second.course_id != chain["course_id"]:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                "The two specializations you ticked belong to different courses. "
+                "A dual specialization is two streams of one course - tick both under it."
+            ),
+        )
 
     settle("course_id", body.course_id, "specialization or batch")
     course = load(AcademicCourse, chain["course_id"], "course")
@@ -1651,7 +1798,7 @@ def pending(
     names = _claim_names(db, rows)
     # Only a row somebody can still decide gets a checklist. See
     # DECIDABLE_STATUSES: null here means NOT COMPUTED, never "nothing wrong".
-    checks = _checks_for(db, rows, docs=kinds) if wanted in DECIDABLE_STATUSES else {}
+    checks = _checks_for(db, rows, docs=kinds, names=names) if wanted in DECIDABLE_STATUSES else {}
     return [_out(r, kinds.get(r.id, ()), names.get(r.id), checks.get(r.id)) for r in rows]
 
 

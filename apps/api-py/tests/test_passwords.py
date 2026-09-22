@@ -31,7 +31,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from sqlalchemy import delete, select
 
-from conftest import TEST_PASSWORD, requires_db
+from conftest import TEST_PASSWORD, application_files, requires_db
 
 from app import mail_transport
 from app.config import settings
@@ -484,9 +484,12 @@ def test_change_password_refuses_a_google_only_account(client, make_user, login)
 
 
 @pytest.fixture
-def application():
+def application(tmp_document_store):
     """A public application by email, torn down whatever the test does —
-    including the User/Student a confirmed auto-approve may have minted."""
+    including the User/Student a confirmed auto-approve may have minted.
+
+    Multipart with both files, as the form posts it (2026-09-22); the store
+    is the per-test directory `tmp_document_store` points it at."""
     emails: list[str] = []
     rules: list[str] = []
 
@@ -499,7 +502,7 @@ def application():
         # (2026-09-16); a caller that names no USN gets a unique one.
         return client.post(
             "/api/register",
-            json={
+            data={
                 "name": name,
                 "email": email,
                 "usn": usn or f"1BG26PWD{uuid.uuid4().hex[:3].upper()}",
@@ -508,6 +511,7 @@ def application():
                 "linkedin_url": "https://www.linkedin.com/in/password-applicant",
                 "degree_level": "PG",
             },
+            files=application_files(),
         )
 
     def _rule(**kw) -> str:

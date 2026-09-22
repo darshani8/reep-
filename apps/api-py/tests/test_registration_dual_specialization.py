@@ -42,6 +42,7 @@ from app.models.governance import ScopeLevel
 from app.models.registration import Registration
 from app.models.user import Role
 from app.policies import Reach
+from app.routers import registration as registration_router
 from app.routers.registration import (
     CHECK_DUAL_SPECIALIZATION,
     CHECK_WARN,
@@ -51,6 +52,13 @@ from app.routers.registration import (
 from app.scope_views import registration_scope_clause
 
 TAG = uuid.uuid4().hex[:6]
+
+
+@pytest.fixture(autouse=True)
+def _fresh_limiter(monkeypatch):
+    """One address for every TestClient request, and this module posts more
+    applications than the public limiter allows one network in a window."""
+    monkeypatch.setattr(registration_router, "_rate_windows", {})
 
 
 # ------------------------------------------------------- the schema, no DB --

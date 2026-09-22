@@ -50,28 +50,17 @@
         </p>
       }
 
-      @if (docNotes().length) {
-        <ul class="doc-notes">
-          @for (n of docNotes(); track n) {
-            <li>
-              <span class="icon" aria-hidden="true">{{ n.includes('could not') ? 'warning' : 'check_circle' }}</span>
-              {{ n }}
-            </li>
-          }
-        </ul>
-      }
+      <!-- Both files travelled WITH the application (2026-09-22), so there is
+           nothing left to attach and nothing to retry: an auto-approved
+           application has already moved them onto the new student's uploads,
+           which is why `documents` may be empty on a card that still says so. -->
+      <p class="reg-chain">
+        <span class="icon" aria-hidden="true">check_circle</span>
+        Your CV and photo came with the application.
+      </p>
 
       <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;">
-        @if (attachmentsIncomplete()) {
-          <!-- The application is in; only a file did not land. Retrying posts
-               to the SAME application - "Submit another" would meet the
-               duplicate guard on this address. -->
-          <button type="button" class="dt-btn primary" [disabled]="pending()" (click)="retryAttachments()">
-            <span class="icon" style="font-size:16px" aria-hidden="true">refresh</span>
-            {{ pending() ? 'Attaching…' : 'Try attaching again' }}
-          </button>
-        }
-        <a class="dt-btn" [class.primary]="!attachmentsIncomplete()" routerLink="/login">
+        <a class="dt-btn primary" routerLink="/login">
           Continue to sign in <span class="icon" style="font-size:16px" aria-hidden="true">arrow_forward</span>
         </a>
         <button type="button" class="dt-btn" (click)="reset()">Submit another</button>

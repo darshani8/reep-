@@ -83,13 +83,17 @@ def _docs(reg_id: str) -> list[RegistrationDocument]:
 
 @requires_db
 def test_an_applicant_can_attach_a_cv_and_a_photo_and_replace_them(client, application, _tmp_store):
+    """Both files arrive WITH the application (2026-09-22), so `_attach` is
+    the replacement path from the first call: one row per kind, old bytes
+    deleted, and the queue's list of kinds never changes."""
     submit, _ = application
     reg_id = _submit(client, submit, "rd.attach@bgscet.ac.in", "1BG26RD01", verify=False)
+    assert {d.kind for d in _docs(reg_id)} == {"CV", "PHOTO"}, "on the row from the 201"
 
     r = _attach(client, reg_id, "cv", "my-cv.pdf", PDF)
     assert r.status_code == 200, r.text
-    assert r.json()["documents"] == ["CV"]
-    (cv,) = _docs(reg_id)
+    assert r.json()["documents"] == ["CV", "PHOTO"]
+    cv = next(d for d in _docs(reg_id) if d.kind == "CV")
     assert cv.mime_type == "application/pdf" and cv.original_name == "my-cv.pdf"
     assert (_tmp_store / cv.stored_name).exists(), "the bytes must actually be on disk"
 
@@ -123,8 +127,8 @@ def test_a_cv_must_be_a_pdf_and_a_photo_an_image(client, application, _tmp_store
     r = _attach(client, reg_id, "transcript", "x.pdf", PDF)
     assert r.status_code == 404, "only the two known kinds exist"
 
-    assert _docs(reg_id) == [], "a refused file leaves no row"
-    assert list(_tmp_store.iterdir()) == [], "and no bytes on disk"
+    assert {d.kind for d in _docs(reg_id)} == {"CV", "PHOTO"}, "a refused file leaves the rows as they were"
+    assert len(list(_tmp_store.iterdir())) == 2, "and adds no bytes on disk"
 
 
 @requires_db
@@ -155,7 +159,7 @@ def test_the_queue_reports_what_is_attached(client, make_user, application):
     r = client.get("/api/register/pending", headers=director.headers)
     assert r.status_code == 200, r.text
     row = next(x for x in r.json() if x["id"] == reg_id)
-    assert row["documents"] == ["CV"]
+    assert row["documents"] == ["CV", "PHOTO"]
 
 
 # ----------------------------------------------------------- approve --
@@ -188,6 +192,33 @@ def test_documents_move_into_the_students_uploads_on_approve(client, make_user, 
         assert (_tmp_store / name).exists(), "the file survives the move"
 
 
+@requires_db
+def test_an_auto_approved_application_keeps_its_files(client, application, _tmp_store):
+    """THE CASE THAT WAS FAILING BY DESIGN. A rule that auto-approves decides
+    the application at submit time; the two uploads that used to follow the
+    201 were then refused by `attach_document`'s decided-application check,
+    so every auto-admitted student started with no resume and no photo. With
+    the files in the creating request they exist before the rule runs, and
+    `_provision_student` moves them onto the new student's uploads."""
+    submit, rule = application
+    tag = uuid.uuid4().hex[:4].upper()
+    rule(name=f"rd-auto-{tag}", enabled=True, email_domain=None, usn_pattern=f"^1BG26RDA{tag}",
+         degree_level=None, cohort_id=None, auto_approve=True, priority=0)
+    email = f"rd.auto.{tag.lower()}@bgscet.ac.in"
+    created = submit(client, email, usn=f"1BG26RDA{tag}1")
+    assert created.status_code == 201, created.text
+    assert created.json()["status"] == "AUTO_APPROVED", created.text
+    assert created.json()["documents"] == [], "moved off the application at approval"
+
+    with SessionLocal() as db:
+        user = db.scalar(select(User).where(User.email == email))
+        student = db.scalar(select(Student).where(Student.user_id == user.id))
+        uploads = {u.kind: u for u in db.scalars(select(Upload).where(Upload.student_id == student.id)).all()}
+    assert set(uploads) == {UploadKind.RESUME, UploadKind.PROFILE_PHOTO}
+    for u in uploads.values():
+        assert (_tmp_store / u.stored_name).exists(), "the file survives the move"
+
+
 # -------------------------------------------------------------- undo --
 
 
@@ -213,7 +244,7 @@ def test_a_rejection_can_be_reopened_and_an_approval_cannot(client, make_user, a
     body = r.json()
     assert body["status"] == "PENDING_REVIEW"
     assert body["reviewed_by_id"] is None and body["review_note"] is None
-    assert body["documents"] == ["CV"]
+    assert body["documents"] == ["CV", "PHOTO"]
     queue = client.get("/api/register/pending", headers=director.headers).json()
     assert any(x["id"] == a for x in queue), "back in the queue"
 
@@ -279,7 +310,7 @@ def test_the_public_endpoints_never_carry_the_reviewers_side(client, application
     assert up.status_code == 200, up.text
     for field in REVIEWER_FIELDS + INTERNAL_FIELDS:
         assert field not in up.json(), f"the upload endpoint leaked {field}"
-    assert up.json()["documents"] == ["CV"]
+    assert up.json()["documents"] == ["CV", "PHOTO"]
 
 
 @requires_db

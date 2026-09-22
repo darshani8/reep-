@@ -1,13 +1,15 @@
-"""The public form is compulsory end to end (2026-09-16).
+"""The public form is compulsory end to end (2026-09-16), the files included
+(2026-09-22).
 
 The owner's rule: every box on `/register` is required except Specialization,
-and the CV and the photo with them. The half of that rule the API can hold is
-pinned here — USN, phone, the personal address and the LinkedIn profile are
-refused blank or absent at the schema, the two new columns are written and
-travel to the reviewer (and never to the applicant), approval copies phone
-and LinkedIn onto the profile, and the reviewer's checklist names a missing
-CV or photo, because those two are posted AFTER the 201 and the schema cannot
-require what it never sees.
+and the CV and the photo with them. Pinned here — USN, phone, the personal
+address and the LinkedIn profile are refused blank or absent at the schema,
+the two contact columns are written and travel to the reviewer (and never to
+the applicant), approval copies phone and LinkedIn onto the profile, and —
+since 2026-09-22 — `POST /register` is ONE multipart request that refuses an
+application without both files, so the office's queue can no longer fill with
+applications that have neither. The reviewer's checklist still names a
+missing CV or photo, but only a row written before that rule can carry one.
 """
 
 from __future__ import annotations
@@ -20,12 +22,13 @@ from sqlalchemy import delete, select
 from app import document_store
 from app.db import SessionLocal
 from app.models.auth_token import AuthToken
-from app.models.registration import Registration
+from app.models.job import DegreeLevel
+from app.models.registration import Registration, RegistrationStatus
 from app.models.student_profile import StudentProfile
 from app.models.user import LoginDay, Role, Student, User
 from app.routers import registration as registration_router
 from app.routers.registration import CHECK_DOCUMENTS, CHECK_OK, CHECK_WARN
-from conftest import requires_db
+from conftest import application_files, requires_db
 
 PDF = b"%PDF-1.4\n% a cv\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n"
 PNG = bytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]) + b"\x00" * 64
@@ -70,6 +73,11 @@ def _payload(email: str, **override) -> dict:
     return {k: v for k, v in body.items() if v is not ...}
 
 
+def _post(client, email: str, **override):
+    """`POST /api/register` as the form sends it: multipart, both files."""
+    return client.post("/api/register", data=_payload(email, **override), files=application_files())
+
+
 def _address(cleanup) -> str:
     email = f"req.{uuid.uuid4().hex[:8]}@bgscet.ac.in"
     cleanup.append(email)
@@ -82,20 +90,20 @@ def test_each_required_field_is_refused_absent_and_blank(client, cleanup, field)
     """Absent and blank are the same refusal: a form that pads a box with a
     space must not be the one application in the queue with no phone."""
     email = _address(cleanup)
-    absent = client.post("/api/register", json=_payload(email, **{field: ...}))
+    absent = _post(client, email, **{field: ...})
     assert absent.status_code == 422, absent.text
-    blank = client.post("/api/register", json=_payload(email, **{field: "   "}))
+    blank = _post(client, email, **{field: "   "})
     assert blank.status_code == 422, blank.text
 
 
 @requires_db
 def test_the_personal_email_and_linkedin_have_a_shape(client, cleanup):
     email = _address(cleanup)
-    r = client.post("/api/register", json=_payload(email, personal_email="not-an-address"))
+    r = _post(client, email, personal_email="not-an-address")
     assert r.status_code == 422, r.text
-    r = client.post("/api/register", json=_payload(email, linkedin_url="instagram.com/someone"))
+    r = _post(client, email, linkedin_url="instagram.com/someone")
     assert r.status_code == 422, r.text
-    r = client.post("/api/register", json=_payload(email, linkedin_url="https://www.linkedin.com/"))
+    r = _post(client, email, linkedin_url="https://www.linkedin.com/")
     assert r.status_code == 422, "a bare linkedin.com with no profile path names nobody"
 
 
@@ -103,15 +111,13 @@ def test_the_personal_email_and_linkedin_have_a_shape(client, cleanup):
 def test_the_contact_fields_are_stored_normalised_and_shown_to_staff_only(client, make_user, cleanup):
     admin = make_user("req-staff", Role.ADMIN)
     email = _address(cleanup)
-    r = client.post(
-        "/api/register",
-        json=_payload(
-            email,
-            usn=" 1BG26REQX01 ",
-            phone=" +91 98765 43210 ",
-            personal_email="Req.Person@Gmail.com",
-            linkedin_url="http://linkedin.com/in/Req-Person/",
-        ),
+    r = _post(
+        client,
+        email,
+        usn=" 1BG26REQX01 ",
+        phone=" +91 98765 43210 ",
+        personal_email="Req.Person@Gmail.com",
+        linkedin_url="http://linkedin.com/in/Req-Person/",
     )
     assert r.status_code == 201, r.text
     public = r.json()
@@ -135,15 +141,65 @@ def test_the_contact_fields_are_stored_normalised_and_shown_to_staff_only(client
 
 
 @requires_db
-def test_the_reviewer_is_told_which_document_is_missing(client, make_user, cleanup):
-    """Both files are required by the form and posted after the 201, so the
-    API cannot refuse their absence; the checklist names it instead, and goes
-    green once both are there."""
+def test_an_application_cannot_exist_without_its_cv_and_photo(client, cleanup, _tmp_store):
+    """THE FIX FOR A QUEUE FULL OF APPLICATIONS WITH NO FILES (2026-09-22).
+
+    The form required both files and posted them AFTER the 201, so every way
+    that second half could fail — and it failed by design for every
+    application a rule auto-approved — left an application in the queue from
+    a student who had filled in every box. Now the files are judged before a
+    row exists: a missing file is a 422, a wrong one a 415, the old JSON shape
+    a 422, and none of them leaves an application or a byte behind, so the
+    applicant retries the same form and never meets the duplicate guard.
+    """
+    email = _address(cleanup)
+
+    no_photo = client.post("/api/register", data=_payload(email), files={"cv": application_files()["cv"]})
+    assert no_photo.status_code == 422, no_photo.text
+    assert "photo" in no_photo.text
+
+    png_as_cv = client.post("/api/register", data=_payload(email), files=application_files(cv=PNG))
+    assert png_as_cv.status_code == 415, png_as_cv.text
+    assert "PDF" in png_as_cv.text
+
+    old_shape = client.post("/api/register", json=_payload(email))
+    assert old_shape.status_code == 422, old_shape.text
+
+    with SessionLocal() as db:
+        assert db.scalar(select(Registration).where(Registration.email == email)) is None, (
+            "a refused submission writes no application"
+        )
+    assert list(_tmp_store.iterdir()) == [], "and stores no bytes"
+
+    created = _post(client, email)
+    assert created.status_code == 201, created.text
+    assert created.json()["documents"] == ["CV", "PHOTO"], "both files are on the row from the 201"
+    assert len(list(_tmp_store.iterdir())) == 2
+
+
+@requires_db
+def test_the_reviewer_is_told_which_document_is_missing_on_a_row_from_before(client, make_user, cleanup):
+    """`POST /register` refuses an application without both files now, so a
+    row without them can only be one written BEFORE 2026-09-22 (or one whose
+    upload failed after the 201 back then). The checklist still names the gap
+    on such a row, and goes green once the replacement path has both."""
     admin = make_user("req-docs", Role.ADMIN)
     email = _address(cleanup)
-    created = client.post("/api/register", json=_payload(email))
-    assert created.status_code == 201, created.text
-    reg_id = created.json()["id"]
+    with SessionLocal() as db:
+        legacy = Registration(
+            name="Legacy Applicant",
+            email=email,
+            usn=f"1BG26REQ{uuid.uuid4().hex[:3].upper()}",
+            phone="+91 98765 43210",
+            personal_email=f"legacy.{uuid.uuid4().hex[:8]}@gmail.com",
+            linkedin_url="https://www.linkedin.com/in/legacy-applicant",
+            degree_level=DegreeLevel.PG,
+            status=RegistrationStatus.PENDING_REVIEW,
+            decision_reason="No rule matched — needs manual review.",
+        )
+        db.add(legacy)
+        db.commit()
+        reg_id = legacy.id
 
     def documents_check() -> dict:
         queue = client.get("/api/register/pending", headers=admin.headers)
@@ -176,7 +232,7 @@ def test_the_reviewer_is_told_which_document_is_missing(client, make_user, clean
 def test_approval_copies_phone_and_linkedin_onto_the_profile(client, make_user, cleanup):
     admin = make_user("req-approve", Role.ADMIN)
     email = _address(cleanup)
-    created = client.post("/api/register", json=_payload(email, linkedin_url="linkedin.com/in/copied-over"))
+    created = _post(client, email, linkedin_url="linkedin.com/in/copied-over")
     assert created.status_code == 201, created.text
     decided = client.post(
         f"/api/register/{created.json()['id']}/decision",

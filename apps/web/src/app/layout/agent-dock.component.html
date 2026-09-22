@@ -79,6 +79,18 @@
           <p class="dock__loading">Loading…</p>
         } @loading (minimum 200ms) {
           <p class="dock__loading">Loading…</p>
+        } @error {
+          <!-- See the room's @error below for why this block exists at all. -->
+          <div class="dock__failed" role="alert">
+            <!-- `sync` and not `refresh`: the icon font is SUBSET to
+                 tools/fonts/icon-names.txt and `refresh` is not in it, so it
+                 would render as nothing at all. -->
+            <span class="icon dock__failed-icon" aria-hidden="true">sync</span>
+            <p class="dock__failed-text">
+              Ask REEP didn’t load. REEP was probably updated while this tab was open.
+            </p>
+            <button type="button" class="btn primary sm" (click)="reload()">Reload REEP</button>
+          </div>
         }
       </div>
       @if (canInterview()) {
@@ -94,6 +106,32 @@
             <p class="dock__loading">Loading…</p>
           } @loading (minimum 200ms) {
             <p class="dock__loading">Loading the interview room…</p>
+          } @error {
+            <!-- NG0750 (Sentry REEP-WEB-1, 2026-09-17, /admin/registrations).
+                 These two are the app's ONLY `@defer` blocks and neither had an
+                 `@error` template, so Angular's own code took the other branch:
+                 `if (errorTmplIndex === null) throw new RuntimeError(-750)`. A
+                 chunk that fails to fetch is not an exceptional state here — it
+                 is the NORMAL state of a tab that was open across a deploy,
+                 because `outputHashing: "all"` renames every chunk and the old
+                 names 404 from that moment. So the dock threw an unhandled
+                 error into the ErrorHandler, which reported it to Sentry and
+                 left the panel blank, on a deploy cadence.
+
+                 main.ts filters the three engines' dynamic-import messages out
+                 of Sentry with a note that "the real fix is a reload handler,
+                 not silence". This is that handler: a reload re-fetches
+                 index.html and with it the current chunk names. -->
+            <div class="dock__failed" role="alert">
+              <!-- `sync` and not `refresh`: the icon font is SUBSET to
+                   tools/fonts/icon-names.txt and `refresh` is not in it, so it
+                   would render as nothing at all. -->
+              <span class="icon dock__failed-icon" aria-hidden="true">sync</span>
+              <p class="dock__failed-text">
+                The interview room didn’t load. REEP was probably updated while this tab was open.
+              </p>
+              <button type="button" class="btn primary sm" (click)="reload()">Reload REEP</button>
+            </div>
           }
         </div>
       }

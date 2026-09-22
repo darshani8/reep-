@@ -20,7 +20,9 @@
   border-radius: 20px;
   border: 1px solid var(--hairline);
   background: var(--surface);
-  box-shadow: 0 22px 60px rgba(40, 20, 60, 0.28), inset 0 1px 0 #fff;
+  box-shadow:
+    0 22px 60px rgba(40, 20, 60, 0.28),
+    inset 0 1px 0 #fff;
   overflow: hidden;
 }
 .dock--room {
@@ -191,6 +193,32 @@
   margin: auto;
   color: var(--faint);
   font-size: 0.8125rem;
+}
+
+/* A deferred tab that could not be fetched. Centred in the panel like
+   .dock__loading, because it stands in the same place for the same reason —
+   the difference is that this one is not going to resolve on its own. */
+.dock__failed {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 24px;
+  text-align: center;
+}
+
+.dock__failed-icon {
+  font-size: 28px;
+  color: var(--faint);
+}
+
+.dock__failed-text {
+  margin: 0;
+  max-width: 34ch;
+  color: var(--ink);
+  font-size: 0.8125rem;
+  line-height: 1.5;
 }
 
 @media (max-width: 640px) {

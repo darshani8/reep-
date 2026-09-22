@@ -43,6 +43,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../environments/environment';
+import { BARGE_IN_CONSECUTIVE_CHUNKS, EchoGate, FarEndTimeline, echoWindow } from './echo-gate';
 
 /* ============================================================================
    Tunables. Every number here has a reason; none of them are inline literals.
@@ -210,10 +211,12 @@ const CONNECT_TIMEOUT_MS = 30_000;
    ========================================================================== */
 
 /** Master switch, and the default. ON, because the failure it prevents (an
- *  interviewer interviewing itself) is total, while its cost on headphones is
- *  200 ms of barge-in latency. On headphones there is no acoustic path from the
- *  speaker back to the microphone, so a student wearing them should turn it off:
- *  see setEchoSuppression(). */
+ *  interviewer interviewing itself) is total. On earphones there is no acoustic
+ *  path from the speaker back to the microphone, so the gate protects against
+ *  nothing and only costs: a breath or an "mm" on a headset mic opened it and
+ *  paused the interviewer. The room's Speaker / Earphones switch
+ *  (shared/interview-room/audio-route.ts) turns it off through
+ *  setEchoSuppression(); until 2026-09-22 nothing called that method at all. */
 const ECHO_SUPPRESSION_DEFAULT = true;
 
 /** AGC has a multi-hundred-millisecond release, so across a stretch of
@@ -225,39 +228,14 @@ const ECHO_SUPPRESSION_DEFAULT = true;
  *  simply not sufficient alone, which is the whole reason this gate exists. */
 const ECHO_SUPPRESSION_DISABLES_AGC = true;
 
-/** How far above the MEASURED echo level a chunk must sit before it is believed
- *  to be the student. A mouth ~30 cm from the microphone beats the speaker->mic
- *  path by 15-25 dB; 3.0 linear (~9.5 dB) clears echo with margin without
- *  demanding a raised voice. Lower it if barge-in feels unresponsive; raise it
- *  if the session summary shows local barge-ins the relay never confirmed. */
-const ECHO_GATE_MARGIN = 3.0;
-
-/** The same idea against the ROOM rather than the speaker. It is consulted ONLY
- *  inside the echo window (the gate returns before the threshold is computed at
- *  every other moment) and the floor it multiplies is measured ONLY outside one,
- *  so this is the term that carries the quiet room's measurement INTO the
- *  interviewer's answer — it is not, as this comment used to claim, a
- *  before-the-interviewer-has-spoken fallback. Wider than ECHO_GATE_MARGIN
- *  because a noise floor is steady while echo is speech-shaped and peaky, so a
- *  floor needs more headroom before a peak counts as a voice. */
-const NOISE_FLOOR_MARGIN = 4.0;
-
-/** Hard lower bound on the threshold, so a pathologically silent room cannot
- *  drive it to zero and let a DC offset open the gate. RMS 0.008 is ~-42 dBFS:
- *  below any speaking voice, above any microphone's self-noise. */
-const GATE_ABSOLUTE_MIN_RMS = 0.008;
-
-/** Consecutive over-threshold chunks required before the gate opens. One chunk
- *  (40 ms) is a keystroke or a chair; three (120 ms) is a syllable -- and it is
- *  also a cough, a sniff or a chair scraping for a beat, which is what this
- *  shipped at and what the interviews reported as "the voice keeps dropping":
- *  every one of those opened the gate, suspended the interviewer for the
- *  LOCAL_BARGE_IN_HOLD_MS hold, and forwarded the noise upstream, where Nova's
- *  own detector sometimes agreed and abandoned the question for good. Five
- *  (200 ms) is longer than any of those transients and shorter than the first
- *  word of an answer. This IS the latency the gate adds to barge-in detection,
- *  and it is still inside the round trip it sits in front of. */
-const BARGE_IN_CONSECUTIVE_CHUNKS = 5;
+/* The THRESHOLD itself -- the margins, the coupling it multiplies, the
+   consecutive-chunk run, the relax, the noise floor -- lives in
+   ./echo-gate.ts, as pure classes with a spec. It used to be calibrated here
+   from the first chunks after audio was SCHEDULED, which is 140-300 ms plus
+   the device's output latency before it is AUDIBLE: calibration measured the
+   silence before the voice, and the interviewer's own echo then opened the
+   gate on nearly every question on speakers. That module's header is the
+   record. What stays here is how the service acts on its verdict. */
 
 /** Withheld chunks held while the gate is still deciding, and replayed the
  *  instant it opens. These are the chunks ALREADY above threshold while the gate
@@ -269,64 +247,10 @@ const BARGE_IN_CONSECUTIVE_CHUNKS = 5;
  *  Bounded at 2 x 1920 B, and it costs zero added latency. */
 const BARGE_IN_PRIMER_CHUNKS = BARGE_IN_CONSECUTIVE_CHUNKS - 1;
 
-/** The gate's margins RELAX the longer ONE echo window holds the uplink shut.
- *
- *  A gate suppressing continuously for this long has either measured a correct
- *  threshold nobody is trying to cross, or a wrong one that is locking the
- *  student out - and it CANNOT tell which, because the only party that could
- *  (server VAD) sits downstream of the audio being withheld. Without this the
- *  threshold is fixed for the life of a response, and a threshold measured wrong
- *  once is a student who cannot be heard for the whole eight seconds of an
- *  answer. 50 chunks = 2 s at CHUNK_MS: longer than any syllable, far shorter
- *  than an answer. */
-const GATE_MARGIN_RELAX_CHUNKS = 50;
-
-/** The margin both terms relax TO. Not 1.0: at parity a peaky echo transient
- *  would cross a peak-follower reference. 1.5 (~3.5 dB) still refuses echo, and
- *  a chunk must still clear it BARGE_IN_CONSECUTIVE_CHUNKS times in a row. The
- *  named cost: past ~2 s of continuous suppression the false-positive rate
- *  rises, and that cost is already bounded at LOCAL_BARGE_IN_HOLD_MS of skipped
- *  interviewer audio and already counted as localBargeIns - confirmedBargeIns. */
-const ECHO_GATE_MARGIN_RELAXED = 1.5;
-
 /** Once genuine speech is detected, send unconditionally for this long. A spoken
  *  answer contains 150-300 ms inter-syllable gaps; without a hangover the gate
  *  would re-close inside the student's own sentence and chop it. */
 const ECHO_GATE_HANGOVER_MS = 600;
-
-/** Tail after the interviewer's last scheduled buffer has finished. The player
- *  reports itself idle as soon as its nodes end, but the sound is still in the
- *  OS output buffer (~50-100 ms on a laptop) and then in the room's reverb.
- *  250 ms covers both. This is the "after playback drains" window. */
-const ECHO_GATE_TAIL_MS = 250;
-
-/** The first chunks of every echo window are spent MEASURING the leakage rather
- *  than judging it: `echoRef` is stale or unset at the top of a response, and a
- *  fixed threshold would fire on the interviewer's own first syllable - which is
- *  precisely the bug being fixed. Five chunks (200 ms) is far shorter than the
- *  time it takes a student to react to a question they have not finished
- *  hearing, and it is the only window in which barge-in is refused outright. */
-const ECHO_CALIBRATION_CHUNKS = 5;
-
-/** Peak-follower coefficients for the echo reference, per 40 ms chunk. Fast
- *  attack so a loud response is tracked within ~120 ms; slow release so the
- *  reference does not collapse between the interviewer's own syllables and
- *  briefly wave the echo through as if it were the student. */
-const ECHO_REF_ATTACK = 0.6;
-const ECHO_REF_RELEASE = 0.05;
-
-/** Ceiling on the measured echo reference (~-30 dBFS). It bounds the one way
- *  calibration can go wrong: if the student is ALREADY speaking when a response
- *  starts, their voice would otherwise be learned as "echo" and jam the gate
- *  shut at three times their own level. Capped, the threshold can never exceed
- *  ECHO_REF_CEILING * ECHO_GATE_MARGIN, which sustained speech still clears. */
-const ECHO_REF_CEILING = 0.03;
-
-/** Noise-floor follower: instant downward, glacial upward (~20 s time constant),
- *  and hard-capped. A minimum-follower must not be dragged up by the student's
- *  own voice - a floor that has learned speech has stopped being a floor. */
-const NOISE_FLOOR_RISE = 0.002;
-const NOISE_FLOOR_CEILING = 0.02;
 
 /** After a LOCAL barge-in, interviewer audio still arriving is HELD, unplayed,
  *  until the relay confirms with `reep.audio.flush`. This is load-bearing and
@@ -368,6 +292,24 @@ const ECHO_GATE_KEEPALIVE_MS = 10_000;
  *  audio at all. Sent on TRANSITIONS ONLY, roughly twice per response. */
 const GATE_CONTROL_TYPE = 'reep.mic.gate';
 
+/** The session's audio counters, sent to the relay after every interviewer
+ *  turn and once more on End, and written into its end-of-interview log line.
+ *  Until 2026-09-22 they existed only as a console line on the student's own
+ *  machine, so "the voice kept breaking" could be answered by nobody who had
+ *  not been sitting at it. Numbers and one word, never audio or text: rule 1. */
+const CLIENT_STATS_TYPE = 'reep.client.stats';
+
+/** Output buffer size requested from the device. 'balanced', not
+ *  'interactive': the smallest buffer is the one that crackles on a low-end
+ *  phone while the orb is painting, and the conversational latency here is
+ *  set by Nova's ~2 s endpointing, beside which a few tens of milliseconds of
+ *  output buffer are inaudible. The echo gate reads the device's reported
+ *  outputLatency, so it follows whatever buffer the device picks. */
+const AUDIO_LATENCY_HINT: AudioContextLatencyCategory = 'balanced';
+
+/** Shown while the device holds the AudioContext paused and a resume attempt
+ *  has not brought it back. */
+const AUDIO_PAUSED_NOTICE = 'Audio is paused by the device. Tap anywhere on the page to resume.';
 
 /* ============================================================================
    Wire vocabulary.
@@ -723,8 +665,11 @@ class PcmRecorder extends AudioWorkletProcessor {
     out.set(this.acc.subarray(0, this.accLen));
     this.accLen = 0;
     // Transferred, not copied. The buffer is freshly allocated each time, so
-    // nothing on this side can observe the detached buffer.
-    this.port.postMessage(out.buffer, [out.buffer]);
+    // nothing on this side can observe the detached buffer. \`t\` is the
+    // context clock at capture: the echo gate asks the player's timeline what
+    // was PLAYING then, which the main thread's own clock, read whenever the
+    // message happens to be delivered, cannot answer.
+    this.port.postMessage({ pcm: out.buffer, t: currentTime }, [out.buffer]);
   }
 
   process(inputs) {
@@ -895,8 +840,9 @@ interface MicCaptureOptions {
    *        recomputed at the send site: it is measured exactly once, here, and
    *        the echo gate is the only reason the uplink needs it. Handing it over
    *        is what lets the gate cost zero extra DSP.
+   * @param t the AudioContext time at which the worklet captured it.
    */
-  onChunk: (pcm: ArrayBuffer, rms: number) => void;
+  onChunk: (pcm: ArrayBuffer, rms: number, t: number) => void;
   onLevel: (rms: number) => void;
   onError: (err: Error) => void;
 }
@@ -1002,14 +948,15 @@ class MicCapture {
         processorOptions: { targetRate: SAMPLE_RATE, chunkFrames },
       });
 
-      node.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
+      node.port.onmessage = (e: MessageEvent<{ pcm: ArrayBuffer; t: number }>) => {
         if (this.stopped) return;
+        const { pcm, t } = e.data;
         // Measured ONCE. The meter and the echo gate are both downstream of this
         // single number; computing it twice would run the same loop over 960
         // samples 25 times a second for nothing.
-        const rms = rmsOfPcm16(e.data);
+        const rms = rmsOfPcm16(pcm);
         this.opts.onLevel(rms);
-        this.opts.onChunk(e.data, rms);
+        this.opts.onChunk(pcm, rms, t);
       };
       node.onprocessorerror = () => {
         this.opts.onError(new Error('The audio processor stopped unexpectedly.'));
@@ -1096,6 +1043,14 @@ class PcmPlayer {
   readonly out: GainNode;
 
   private gain: GainNode;
+  /**
+   * Every buffer put on the clock, with its level: the echo gate's far-end
+   * reference. It asks what was PLAYING at the moment a microphone chunk was
+   * captured. The gate this replaced asked "is anything scheduled?", which is
+   * true a jitter-buffer lead and the device's output latency before anything
+   * is audible -- and it calibrated on exactly that silence.
+   */
+  readonly timeline = new FarEndTimeline();
   /** node -> its scheduled start time on the ctx clock, and the buffer it
    *  carries, so suspend() can hand back what has not sounded yet. */
   private readonly live = new Map<AudioBufferSourceNode, { startAt: number; buffer: AudioBuffer }>();
@@ -1172,6 +1127,7 @@ class PcmPlayer {
     };
     src.start(startAt);
     this.live.set(src, { startAt, buffer });
+    this.timeline.record(startAt, startAt + buffer.duration, rmsOfFloat(buffer.getChannelData(0)));
 
     this.cursor += buffer.duration;
     this.scheduledSec += buffer.duration;
@@ -1228,6 +1184,10 @@ class PcmPlayer {
     }
     const t = this.ctx.currentTime;
     const stopAt = t + FLUSH_RAMP_S;
+    // What is stopped will never sound, so it must stop counting as echo --
+    // otherwise the gate would hold the student's own answer shut against an
+    // interviewer who has already gone quiet.
+    this.timeline.truncate(stopAt);
 
     // Fade the CURRENT gain node out on the audio clock, then swap in a fresh
     // one, so the next response starts at unity even if it begins during the
@@ -1313,11 +1273,6 @@ class PcmPlayer {
     this.remainder = null;
   }
 
-  /** True while any scheduled audio has not yet finished playing. */
-  get isPlaying(): boolean {
-    return this.live.size > 0;
-  }
-
   /** How many times this player fell behind. See `underruns`. */
   get underrunCount(): number {
     return this.underruns;
@@ -1334,6 +1289,7 @@ class PcmPlayer {
     if (this.closed) return;
     this.closed = true;
     this.flush();
+    this.timeline.clear();
     this.gain.disconnect();
     this.out.disconnect();
     this.remainder = null;
@@ -1611,6 +1567,8 @@ export class InterviewService {
   private thinkingTimer: ReturnType<typeof setInterval> | null = null;
   private thinkingStartedAt = 0;
   private pageHideHandler: (() => void) | null = null;
+  /** Resumes a device-paused AudioContext on return to the tab or on a tap. */
+  private audioResumeHandler: (() => void) | null = null;
 
   /**
    * Identifies the current start attempt. Bumped by teardown() and by each new
@@ -1640,21 +1598,11 @@ export class InterviewService {
   // times a second on the uplink path, and only the two figures a human would
   // look at (gate state, suppressed count) are mirrored into signals.
 
-  /** Measured speaker->microphone leakage, as chunk RMS. A live measurement of
-   *  THIS room at THIS volume on THIS microphone — a fixed threshold cannot
-   *  work, because mic sensitivity varies ~20 dB across laptop hardware. */
-  private echoRef = 0;
-  /** Minimum-follower over chunk RMS while nothing is playing. Covers the window
-   *  before the interviewer has spoken at all and `echoRef` is still unmeasured. */
-  private noiseFloor = 0;
-  /** Consecutive over-threshold chunks. See BARGE_IN_CONSECUTIVE_CHUNKS. */
-  private hotChunks = 0;
-  /** Chunks elapsed in the current echo window; the first few are calibration. */
-  private echoWindowChunks = 0;
-  /** performance.now() of the last chunk during which the player had audio
-   *  scheduled. The tail is measured from here, which is why it survives the
-   *  player reporting itself idle the instant its last node ends. */
-  private lastPlaybackAt = 0;
+  /** The double-talk detector. Owns the threshold, the learned echo coupling
+   *  and the noise floor; see ./echo-gate.ts. One per service, reset per
+   *  session, because the coupling is a fact about this room and this volume
+   *  that the NEXT response should not have to re-learn. */
+  private readonly echoGate = new EchoGate();
   /** Send unconditionally until this instant — the student is mid-sentence. */
   private gateHangoverUntil = 0;
   /** Hold arriving interviewer audio until this instant, or until the relay
@@ -1834,27 +1782,34 @@ export class InterviewService {
     //    seventh interview of a session.
     let ctx: AudioContext;
     try {
-      ctx = new AudioContext({ sampleRate: SAMPLE_RATE, latencyHint: 'interactive' });
+      ctx = new AudioContext({ sampleRate: SAMPLE_RATE, latencyHint: AUDIO_LATENCY_HINT });
     } catch {
       // Some engines throw NotSupportedError for a non-native rate; others
       // silently hand back the hardware rate. Only ctx.sampleRate is the truth,
       // and the worklet resamples from whatever it turns out to be.
-      ctx = new AudioContext({ latencyHint: 'interactive' });
+      ctx = new AudioContext({ latencyHint: AUDIO_LATENCY_HINT });
     }
     this.ctx = ctx;
     ctx.onstatechange = () => {
       if (this.ctx !== ctx || this.ending) return;
-      if (ctx.state !== 'running') {
-        // 'interrupted' is iOS (a phone call, Siri); 'suspended' also arrives
-        // when the tab is backgrounded. Either way the scheduled cursor is now
-        // meaningless, so drop the queued audio rather than play it late.
-        this.player?.flush();
-        this._notice.set({
-          tone: 'warn',
-          text: 'Audio was interrupted by the device. Return to this tab to continue.',
-        });
+      if (ctx.state === 'running') {
+        if (this._notice()?.text === AUDIO_PAUSED_NOTICE) this._notice.set(null);
+        return;
       }
+      // 'suspended' (a locked screen, a backgrounded tab, a notification) or
+      // iOS's 'interrupted' (a call, Siri). The context's CLOCK stops, so what
+      // is scheduled is not lost: it waits, and plays on from where it was
+      // when the context resumes. This used to flush the player here, which
+      // threw the rest of the question away -- and nothing ever called
+      // resume(), so the interview stayed silent after the student came back.
+      void this.resumeAudio();
     };
+    this.audioResumeHandler = () => {
+      if (document.visibilityState === 'visible') void this.resumeAudio();
+    };
+    document.addEventListener('visibilitychange', this.audioResumeHandler);
+    // A tap is the user gesture some engines insist on before resume().
+    document.addEventListener('pointerdown', this.audioResumeHandler, true);
 
     const player = new PcmPlayer(ctx);
     this.player = player;
@@ -1870,7 +1825,7 @@ export class InterviewService {
     const mic = new MicCapture(
       ctx,
       {
-        onChunk: (pcm, rms) => this.sendAudio(pcm, rms),
+        onChunk: (pcm, rms, t) => this.sendAudio(pcm, rms, t),
         onLevel: (rms) => this.pushLevel(rms),
         onError: (err) => this.fail(err.message),
       },
@@ -1916,6 +1871,8 @@ export class InterviewService {
     if (!this.active() && this.ws === null) return;
     this.ending = true;
     this.ready = false;
+    // Before the socket is released: the relay logs the last copy it received.
+    this.sendClientStats();
 
     const ws = this.ws;
     this.ws = null;
@@ -1957,15 +1914,16 @@ export class InterviewService {
   /**
    * @param pcm one 40 ms chunk, PCM16 LE mono @ 24 kHz
    * @param rms that chunk's RMS, 0..1, measured once in MicCapture
+   * @param t the AudioContext time the worklet captured it at
    */
-  private sendAudio(pcm: ArrayBuffer, rms: number): void {
+  private sendAudio(pcm: ArrayBuffer, rms: number, t: number): void {
     const ws = this.ws;
     if (!ws || !this.ready || ws.readyState !== WebSocket.OPEN) return;
 
     // Half-duplex FIRST, backpressure second: a chunk the gate withholds must
     // not also be counted as a chunk the network dropped, or the two diagnostics
     // become one indistinguishable number.
-    if (!this.gateAllows(pcm, rms, ws)) return;
+    if (!this.gateAllows(pcm, rms, t, ws)) return;
 
     if (ws.bufferedAmount > MAX_UPLINK_BUFFERED_BYTES) {
       // The uplink cannot keep up. Buffering more only makes the interview more
@@ -2011,8 +1969,7 @@ export class InterviewService {
     if (this._echoSuppression() === on) return;
     this._echoSuppression.set(on);
     if (!on) {
-      this.hotChunks = 0;
-      this.echoWindowChunks = 0;
+      this.echoGate.bargedIn();
       // Full duplex from here; whatever the gate was holding is the interviewer
       // mid-sentence, so it is played, not stranded.
       this.releaseHold();
@@ -2028,102 +1985,72 @@ export class InterviewService {
    * Decide whether ONE captured chunk goes upstream. Capture never stops; this
    * is the only thing the gate touches.
    *
-   * While the interviewer is audible, a chunk must beat the MEASURED echo level
-   * by ECHO_GATE_MARGIN for BARGE_IN_CONSECUTIVE_CHUNKS in a row before it is
-   * believed to be the student. The reference is measured rather than guessed,
-   * so the discriminator calibrates itself to this room, this speaker volume and
-   * this microphone's gain - which is the only way a level gate can survive the
-   * ~20 dB spread in laptop microphone sensitivity.
+   * The verdict is EchoGate's (./echo-gate.ts): the chunk is compared with the
+   * loudest playback that can be arriving in it -- read off the player's
+   * timeline at the chunk's own capture time, reaching back by the device's
+   * output latency -- scaled by the echo coupling learned for this room. What
+   * this method owns is acting on the verdict: the primer, the hangover, the
+   * keepalive and the gate announcement.
    */
-  private gateAllows(pcm: ArrayBuffer, rms: number, ws: WebSocket): boolean {
+  private gateAllows(pcm: ArrayBuffer, rms: number, t: number, ws: WebSocket): boolean {
     // Counted BEFORE the early-out, so a headphone session (suppression off)
     // still logs a summary and `mode=off` is a line that can actually appear.
     this.gateChunks++;
     if (!this._echoSuppression()) return true;
 
     const now = performance.now();
-    const player = this.player;
-    // Sampled per chunk rather than read as an instant: the player goes idle the
-    // moment its last node ends, and the ear is still hearing the room.
-    if (player?.isPlaying) this.lastPlaybackAt = now;
-    const echoWindow = this.lastPlaybackAt > 0 && now - this.lastPlaybackAt < ECHO_GATE_TAIL_MS;
-
-    if (!echoWindow) {
-      // Nothing is playing and the tail has expired. Full duplex, and the quiet
-      // is the opportunity to learn what quiet sounds like on this machine.
-      this.echoWindowChunks = 0;
-      this.hotChunks = 0;
-      this.primer.length = 0;
-      this.trackNoiseFloor(rms);
+    // Inside a hangover opened by a detected barge-in: the student is
+    // mid-sentence, and re-closing on an inter-syllable gap would chop it.
+    if (now < this.gateHangoverUntil) {
       this.setGate(true);
       return true;
     }
 
-    // Inside a hangover opened by a detected barge-in: the student is
-    // mid-sentence, and re-closing on an inter-syllable gap would chop it.
-    if (now < this.gateHangoverUntil) return true;
+    const span = echoWindow(t, this.outputLatency());
+    const farRef = this.player?.timeline.peak(span.from, span.to) ?? 0;
 
-    this.setGate(false);
-    this.echoWindowChunks++;
+    switch (this.echoGate.judge(rms, farRef)) {
+      case 'send':
+        // Nothing audible can be reaching the microphone: full duplex.
+        this.primer.length = 0;
+        this.setGate(true);
+        return true;
 
-    if (this.echoWindowChunks <= ECHO_CALIBRATION_CHUNKS) {
-      // Measuring, not judging - but NEVER measuring the student. `echoRef` is
-      // stale at the top of a response, and judging against a stale reference is
-      // how a gate fires on the interviewer's own first syllable. A chunk above
-      // ECHO_REF_CEILING is, by that constant's own definition, louder than
-      // anything the reference is allowed to represent: letting it drive the 0.6
-      // attack pins echoRef at the ceiling in ONE chunk and jams the gate at
-      // three times it. That is reachable, not hypothetical - an unconfirmed
-      // barge-in expires back into the same response still playing, and
-      // calibration then restarts with the student provably mid-sentence.
-      if (rms <= ECHO_REF_CEILING) this.trackEchoRef(rms);
-      this.suppress();
-      this.keepAlive(ws, now);
-      return false;
-    }
-
-    // The margins RELAX with time-in-window - see GATE_MARGIN_RELAX_CHUNKS.
-    // Without this the threshold is fixed for the life of a response, nothing
-    // bounds how long the gate may refuse, and no other party can correct it:
-    // server VAD cannot see speech in audio that was never sent.
-    const relax = Math.min(1, this.echoWindowChunks / GATE_MARGIN_RELAX_CHUNKS);
-    const echoMargin =
-      ECHO_GATE_MARGIN + (ECHO_GATE_MARGIN_RELAXED - ECHO_GATE_MARGIN) * relax;
-    const floorMargin =
-      NOISE_FLOOR_MARGIN + (ECHO_GATE_MARGIN_RELAXED - NOISE_FLOOR_MARGIN) * relax;
-    const threshold = Math.max(
-      GATE_ABSOLUTE_MIN_RMS,
-      this.echoRef * echoMargin,
-      this.noiseFloor * floorMargin,
-    );
-
-    if (rms > threshold) {
-      if (++this.hotChunks >= BARGE_IN_CONSECUTIVE_CHUNKS) {
+      case 'bargeIn':
         this.openGateForBargeIn(now);
         // The head of the sentence goes out BEFORE the chunk that proved it, so
         // the uplink carries one contiguous waveform.
         this.flushPrimer(ws);
         return true;
-      }
-      // Not yet convinced: HOLD the samples rather than destroy them. Still do
-      // NOT fold this chunk into the echo reference, which would teach the gate
-      // that the student's voice is echo, and still no keepalive, because the
-      // next chunk may be real audio.
-      if (this.primer.length >= BARGE_IN_PRIMER_CHUNKS) this.primer.shift();
-      this.primer.push(pcm);
-      this.suppress();
-      return false;
-    }
 
-    this.hotChunks = 0;
-    // The run broke: whatever was held was echo after all, and replaying echo
-    // upstream is the exact loop this gate exists to break.
-    this.primer.length = 0;
-    // This chunk is echo, or silence. Either way it is the measurement.
-    this.trackEchoRef(rms);
-    this.suppress();
-    this.keepAlive(ws, now);
-    return false;
+      case 'hold':
+        // Not yet convinced: HOLD the samples rather than destroy them, and no
+        // keepalive, because the next chunk may be real audio.
+        this.setGate(false);
+        if (this.primer.length >= BARGE_IN_PRIMER_CHUNKS) this.primer.shift();
+        this.primer.push(pcm);
+        this.suppress();
+        return false;
+
+      case 'suppress':
+        // Echo, or silence under echo. The run broke, so whatever was held was
+        // echo after all, and replaying echo upstream is the exact loop this
+        // gate exists to break.
+        this.setGate(false);
+        this.primer.length = 0;
+        this.suppress();
+        this.keepAlive(ws, now);
+        return false;
+    }
+  }
+
+  /** The device's own report of how long scheduled audio takes to reach the
+   *  speaker. `outputLatency` where the engine has it (Chrome, Firefox),
+   *  `baseLatency` otherwise; echoWindow() bounds whatever comes back. */
+  private outputLatency(): number {
+    const ctx = this.ctx;
+    if (!ctx) return 0;
+    return ctx.outputLatency || ctx.baseLatency || 0;
   }
 
   /**
@@ -2149,7 +2076,8 @@ export class InterviewService {
   }
 
   /**
-   * Local barge-in: three consecutive chunks well above the measured echo.
+   * Local barge-in: BARGE_IN_CONSECUTIVE_CHUNKS in a row well above the echo
+   * the playback predicts.
    *
    * Suspend FIRST - the student is already talking over the interviewer and
    * every millisecond still scheduled is audible - then hold arriving audio
@@ -2165,18 +2093,14 @@ export class InterviewService {
    * see LOCAL_BARGE_IN_HOLD_MS for what discarding it used to cost.
    */
   private openGateForBargeIn(now: number): void {
-    this.hotChunks = 0;
-    this.echoWindowChunks = 0;
     this.gateHangoverUntil = now + ECHO_GATE_HANGOVER_MS;
     this.localBargeInHoldUntil = now + LOCAL_BARGE_IN_HOLD_MS;
     this.localBargeIns++;
     this.setGate(true);
+    // suspend() also truncates the player's timeline, so what it stopped stops
+    // counting as echo the moment it stops sounding.
     this.heldPlayback = this.player?.suspend() ?? [];
     this.armHoldTimer();
-    // flush() clears the scheduled set synchronously, so the echo window is over
-    // as of this instant; leaving the timestamp behind would keep the tail
-    // running against audio that has already been stopped.
-    this.lastPlaybackAt = 0;
     if (this._state() === 'speaking') this.setState('listening');
   }
 
@@ -2278,40 +2202,11 @@ export class InterviewService {
     this.lastUplinkAt = now;
   }
 
-  /** Peak-follower over the leakage: fast up, slow down, hard-capped. */
-  private trackEchoRef(rms: number): void {
-    const k = rms > this.echoRef ? ECHO_REF_ATTACK : ECHO_REF_RELEASE;
-    this.echoRef = Math.min(ECHO_REF_CEILING, this.echoRef + (rms - this.echoRef) * k);
-  }
-
-  /** Minimum-follower over the room: instant down, glacial up, hard-capped. */
-  private trackNoiseFloor(rms: number): void {
-    if (rms < this.noiseFloor) {
-      this.noiseFloor = rms; // a quieter room IS the new floor, at once
-      return;
-    }
-    // Only chunks that are not already loud enough to BE speech may raise it.
-    // This runs on every chunk OUTSIDE the echo window, which is exactly when
-    // the student is talking; without the test the follower learns their voice,
-    // and at NOISE_FLOOR_CEILING the threshold term becomes 0.02 * 4 = 0.08 —
-    // inside the 0.05-0.2 RMS this file documents for a normal speaking voice.
-    // Barge-in would then cost a raised voice for the rest of the session.
-    if (rms >= GATE_ABSOLUTE_MIN_RMS * NOISE_FLOOR_MARGIN) return;
-    this.noiseFloor = Math.min(
-      NOISE_FLOOR_CEILING,
-      this.noiseFloor + (rms - this.noiseFloor) * NOISE_FLOOR_RISE,
-    );
-  }
-
   /** Every gate field back to first-run values. State from a previous interview
    *  must not bleed into the next one's first frame - the same reason the meter
    *  ballistics are reset in teardown(). */
   private resetEchoGate(): void {
-    this.echoRef = 0;
-    this.noiseFloor = 0;
-    this.hotChunks = 0;
-    this.echoWindowChunks = 0;
-    this.lastPlaybackAt = 0;
+    this.echoGate.reset();
     this.gateHangoverUntil = 0;
     this.localBargeInHoldUntil = 0;
     this.clearHoldTimer();
@@ -2351,8 +2246,9 @@ export class InterviewService {
    *   replay             onset chunks replayed on gate open. Zero with a
    *                      non-zero bargeIn denominator means the primer is not
    *                      firing and word onsets are being lost.
-   *   echoRef/floor      the two measurements the threshold was built from. Both
-   *                      near zero means the gate never had anything to measure.
+   *   coupling/floor     the two measurements the threshold was built from:
+   *                      echo level relative to the playback (the prior, 2.0,
+   *                      means it never measured any echo) and the room.
    *   lead/underruns     the ADAPTIVE jitter buffer, and how often playback fell
    *                      behind. A lead still at its floor with zero underruns
    *                      means the network was never the reason the voice broke
@@ -2369,7 +2265,7 @@ export class InterviewService {
         `bargeIn=${this.confirmedBargeIns}/${this.localBargeIns} (unconfirmed=${unconfirmed}) ` +
         `heldFrames=${this.heldPlaybackFrames} replay=${this.replayedPrimerChunks} ` +
         `dropped=${this.droppedChunks} ` +
-        `echoRef=${this.echoRef.toFixed(4)} floor=${this.noiseFloor.toFixed(4)} ` +
+        `coupling=${this.echoGate.coupling.toFixed(3)} floor=${this.echoGate.noiseFloor.toFixed(4)} ` +
         `lead=${this._playbackLeadMs()}ms underruns=${this._underruns()}`,
     );
   }
@@ -2524,7 +2420,6 @@ export class InterviewService {
         // so what arrives next is the end of a finite stream, not a voice
         // talking over the student.
         this.confirmBargeIn();
-        this.lastPlaybackAt = 0;
         if (type === 'input_audio_buffer.speech_started') this.setState('listening');
         break;
       }
@@ -2542,6 +2437,7 @@ export class InterviewService {
         break;
 
       case 'response.done': {
+        this.sendClientStats();
         // Finalise every partial line so a completed answer never keeps a caret.
         // The relay does not forward response.audio_transcript.done, so this
         // sweep is the ONLY thing that de-carets an interviewer turn.
@@ -2794,6 +2690,11 @@ export class InterviewService {
       window.removeEventListener('pagehide', this.pageHideHandler);
       this.pageHideHandler = null;
     }
+    if (this.audioResumeHandler) {
+      document.removeEventListener('visibilitychange', this.audioResumeHandler);
+      document.removeEventListener('pointerdown', this.audioResumeHandler, true);
+      this.audioResumeHandler = null;
+    }
     this.clearConnectTimer();
     // Cleared here as well as in setState, because onClose() and fail() write
     // `_state` DIRECTLY rather than through setState — a socket that dropped
@@ -2864,6 +2765,55 @@ export class InterviewService {
       this._aiRms.set(rmsOfFloat(this.aiWindow));
       this.publishPlaybackStats();
     }, AI_LEVEL_INTERVAL_MS);
+  }
+
+  /**
+   * Bring a device-paused AudioContext back. Tried at once, again when the tab
+   * becomes visible and again on the next tap, because engines differ on which
+   * of those they accept. The notice stays up only while it is still paused.
+   */
+  private async resumeAudio(): Promise<void> {
+    const ctx = this.ctx;
+    if (!ctx || this.ending || ctx.state === 'running' || ctx.state === 'closed') return;
+    try {
+      await ctx.resume();
+    } catch {
+      // Needs a gesture, or the OS still holds the device (a call in progress).
+    }
+    if (this.ctx !== ctx || this.ending) return;
+    // Re-read after the await; TypeScript still holds the narrowing from above.
+    if ((ctx.state as string) !== 'running') {
+      this._notice.set({ tone: 'warn', text: AUDIO_PAUSED_NOTICE });
+    }
+  }
+
+  /** See CLIENT_STATS_TYPE. Best-effort: a stats frame must never break the
+   *  interview it is describing. */
+  private sendClientStats(): void {
+    const ws = this.ws;
+    if (!ws || ws.readyState !== WebSocket.OPEN || this.gateChunks === 0) return;
+    const player = this.player;
+    try {
+      ws.send(
+        JSON.stringify({
+          type: CLIENT_STATS_TYPE,
+          route: this._echoSuppression() ? 'speaker' : 'earphones',
+          judged: this.gateChunks,
+          suppressed: this.suppressedChunks,
+          keepalive: this.keepaliveChunks,
+          local_barge_ins: this.localBargeIns,
+          confirmed_barge_ins: this.confirmedBargeIns,
+          held_frames: this.heldPlaybackFrames,
+          dropped: this.droppedChunks,
+          underruns: player?.underrunCount ?? this._underruns(),
+          lead_ms: Math.round((player?.leadSeconds ?? PLAYBACK_LEAD_MIN_S) * 1000),
+          coupling: Math.round(this.echoGate.coupling * 1000) / 1000,
+          output_latency_ms: Math.round(this.outputLatency() * 1000),
+        }),
+      );
+    } catch {
+      /* advisory */
+    }
   }
 
   /**

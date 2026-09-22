@@ -932,6 +932,61 @@ class TestTheUplink:
         assert session._gate_closes == 1
         assert session._last_audio_at == before
 
+    def test_the_gate_frame_the_browser_actually_sends_is_counted(self):
+        """The browser says `{"state": "suppressed"}`. Counting only the
+        `{"open": false}` spelling left this counter at zero on every
+        interview, and an opening of the gate is not a close."""
+        session, _upstream, _browser = make_session("hr")
+        session._handle_client_control(json.dumps({"type": "reep.mic.gate", "state": "suppressed"}))
+        session._handle_client_control(json.dumps({"type": "reep.mic.gate", "state": "open"}))
+        assert session._gate_closes == 1
+
+    def test_the_browsers_audio_counters_reach_the_end_line_and_nothing_else_does(self):
+        """`reep.client.stats` is the only way a "the voice kept breaking"
+        report can be read without the student's own console. Whitelisted and
+        clamped: a frame from anybody's devtools can put a bounded number or a
+        known word into the log line, and nothing else."""
+        session, _upstream, _browser = make_session("hr")
+        session._handle_client_control(
+            json.dumps(
+                {
+                    "type": "reep.client.stats",
+                    "route": "speaker",
+                    "local_barge_ins": 3,
+                    "confirmed_barge_ins": 3,
+                    "underruns": 2,
+                    "lead_ms": 180,
+                    "coupling": 0.31234,
+                    "transcript": "a student's words must never be logged",
+                    "dropped": -5,
+                    "judged": 10**12,
+                    "suppressed": True,
+                    "keepalive": "7",
+                }
+            )
+        )
+        stats = session._client_stats
+        assert stats["route"] == "speaker"
+        assert stats["local_barge_ins"] == 3 and stats["underruns"] == 2
+        assert stats["coupling"] == 0.312
+        assert stats["dropped"] == 0
+        assert stats["judged"] == 1_000_000
+        assert "transcript" not in stats
+        assert "suppressed" not in stats, "a boolean is not a count"
+        assert "keepalive" not in stats, "a string is not a count"
+        line = nova._format_client_stats(stats)
+        assert line.startswith("route=speaker,")
+        assert "transcript" not in line
+        assert nova._format_client_stats({}) == "-"
+
+    def test_a_malformed_stats_frame_changes_nothing_and_raises_nothing(self):
+        session, _upstream, _browser = make_session("hr")
+        session._handle_client_control(json.dumps({"type": "reep.client.stats", "route": "moon"}))
+        assert session._client_stats == {}
+        session._handle_client_control("not json")
+        session._handle_client_control(json.dumps(["reep.client.stats"]))
+        assert session._client_stats == {}
+
     def test_reep_end_stops_the_session_with_1000(self):
         session, _upstream, _browser = make_session("hr")
         session._handle_client_control(json.dumps({"type": "reep.end"}))
@@ -1387,6 +1442,140 @@ class TestAnInterruptionThatWasNotAnAnswer:
             assert any("finish the question you were asking" in note for note in upstream.notes[before:])
 
         run(scenario())
+
+    def test_an_interruption_reported_only_as_a_stop_reason_is_still_resumed(self):
+        """Nova can end the audio block INTERRUPTED without the text marker.
+        It is the same barge-in: the browser is told to flush and the
+        transcript that follows is judged as the thing that interrupted, so a
+        cough gets the question back rather than losing it."""
+        session, _upstream, browser = make_session("hr")
+
+        async def scenario():
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c1"}}})
+            await session._on_upstream_event(
+                {"event": {"contentStart": {"contentId": "a1", "type": "AUDIO", "role": "ASSISTANT"}}}
+            )
+            await session._on_upstream_event(
+                {"event": {"contentEnd": {"contentId": "a1", "type": "AUDIO", "stopReason": "INTERRUPTED"}}}
+            )
+            await session._on_upstream_event({"event": {"completionEnd": {"stopReason": "INTERRUPTED"}}})
+            assert len(browser.of_type("reep.audio.flush")) == 1
+            assert session._interruptions == 1
+
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c2"}}})
+            await student_says(session, "u1", "hmm")
+            assert len(session._pending_notes) == 1
+            assert "finish the question you were asking" in session._pending_notes[0]
+
+        run(scenario())
+
+    def test_the_marker_and_the_stop_reason_are_one_interruption(self):
+        session, _upstream, browser = make_session("hr")
+
+        async def scenario():
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c1"}}})
+            await session._on_upstream_event(
+                {"event": {"contentStart": {"contentId": "a1", "type": "AUDIO", "role": "ASSISTANT"}}}
+            )
+            await interrupted(session, "a1")
+
+        run(scenario())
+        assert session._interruptions == 1
+        assert len(browser.of_type("reep.audio.flush")) == 1
+
+    def test_a_stale_stamp_does_not_swallow_the_next_interruption(self):
+        """A marker whose transcript never arrived leaves its stamp behind.
+        The NEXT turn cut off by a stop reason alone must still flush the
+        browser: holding the flush on the old stamp would leave the student
+        talking over the rest of an abandoned question."""
+        session, _upstream, browser = make_session("hr")
+
+        async def scenario():
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c1"}}})
+            await session._on_upstream_event(
+                {"event": {"contentStart": {"contentId": "a1", "type": "AUDIO", "role": "ASSISTANT"}}}
+            )
+            await interrupted(session, "a1")  # no transcript follows
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c2"}}})
+            await session._on_upstream_event(
+                {"event": {"contentStart": {"contentId": "a2", "type": "AUDIO", "role": "ASSISTANT"}}}
+            )
+            await session._on_upstream_event(
+                {"event": {"contentEnd": {"contentId": "a2", "type": "AUDIO", "stopReason": "INTERRUPTED"}}}
+            )
+
+        run(scenario())
+        assert session._interruptions == 2
+        assert len(browser.of_type("reep.audio.flush")) == 2
+
+    def test_an_echo_of_a_question_cut_before_its_final_text_is_still_echo(self):
+        """A barge-in can end a turn before Nova sends any FINAL text for it.
+        The echo of THAT question must be compared with it -- compared with the
+        question before, it matches nothing, counts as an answer, and the arc
+        moves on: "the voice drops and it goes to the next question"."""
+        session, _upstream, _browser = make_session("hr")
+        cut = "Walk me through how you would evaluate a new market before a product launch."
+
+        async def scenario():
+            await interviewer_turn(session, "a0", "Tell me about yourself.")
+            await exchange(session, 1)  # an accepted answer: the arc moves to PROBING
+            phase = session._machine.phase
+
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c2"}}})
+            await session._on_upstream_event(
+                {
+                    "event": {
+                        "contentStart": {
+                            "contentId": "s2",
+                            "type": "TEXT",
+                            "role": "ASSISTANT",
+                            "additionalModelFields": _SPECULATIVE,
+                        }
+                    }
+                }
+            )
+            await session._on_upstream_event({"event": {"textOutput": {"contentId": "s2", "content": cut}}})
+            await session._on_upstream_event(
+                {"event": {"contentStart": {"contentId": "a2", "type": "AUDIO", "role": "ASSISTANT"}}}
+            )
+            await interrupted(session, "a2")
+            assert session._last_interviewer_text == cut
+
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c3"}}})
+            await student_says(session, "u2", "how you would evaluate a new market before a product launch")
+            assert last_student_turn(session)[3] == "echo"
+            assert last_student_turn(session)[4] is False
+            assert session._machine.phase is phase, "an echo must not advance the arc"
+
+        run(scenario())
+
+    def test_the_speculative_text_is_never_the_record(self):
+        """It is only a fallback for the echo comparison. The interviewer's
+        recorded turn is still what it actually said."""
+        session, _upstream, _browser = make_session("hr")
+
+        async def scenario():
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c1"}}})
+            await session._on_upstream_event(
+                {
+                    "event": {
+                        "contentStart": {
+                            "contentId": "s1",
+                            "type": "TEXT",
+                            "role": "ASSISTANT",
+                            "additionalModelFields": _SPECULATIVE,
+                        }
+                    }
+                }
+            )
+            await session._on_upstream_event(
+                {"event": {"textOutput": {"contentId": "s1", "content": "What I planned to say."}}}
+            )
+            await spoken_reply(session, "a1", "What I said.")
+
+        run(scenario())
+        interviewer = [t for t in session.emitted if t[0] == nova._SENDER_INTERVIEWER]
+        assert interviewer[-1][1] == "What I said."
 
     def test_an_answer_that_reuses_the_questions_words_is_not_echo(self):
         session, _upstream, _browser = make_session("hr")

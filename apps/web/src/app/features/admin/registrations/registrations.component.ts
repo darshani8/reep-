@@ -134,6 +134,7 @@ import type {
 } from 'ag-grid-community';
 
 import { environment } from '../../../../environments/environment';
+import { specializationLabel } from '../../../core/specializations';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme, reepGridThemeCompact } from '../../../shared/grid/reep-grid-theme';
 import { plural } from '../../../shared/text/plural.pipe';
@@ -259,6 +260,9 @@ interface RegistrationApiRow {
   department_name: string | null;
   course_name: string | null;
   specialization_name: string | null;
+  /** The other tick of a dual specialization (2026-09-22); null when the
+   *  applicant ticked one or none. The panel prints both as one line. */
+  second_specialization_name: string | null;
   /** The batch the APPLICANT asked for; `cohort_id` is the rule's, and wins. */
   requested_batch: string | null;
   /** B11.1. NULL MEANS NOT COMPUTED — only a row somebody can still decide gets
@@ -789,6 +793,18 @@ export class AdminRegistrationsComponent {
   readonly canReopen = computed(
     () => this.activeTab() === 'HOLD' || this.activeTab() === 'REJECTED',
   );
+
+  /** The panel's Specialization line: both ticks of a dual specialization as
+   *  one sentence ("Finance and Marketing"), else the one tick, else the
+   *  course, else "Not named" — the same fallback the line had as a
+   *  one-name field. */
+  specializationOf(application: RegistrationApiRow): string {
+    return (
+      specializationLabel(application.specialization_name, application.second_specialization_name) ??
+      application.course_name ??
+      'Not named'
+    );
+  }
 
   /** THE BATCH IS THE PROGRAMME, when a rule chose one. With no batch, the
    *  degree level is all the application knows, and that is what is shown. */

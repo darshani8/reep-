@@ -91,6 +91,40 @@ TEST_PASSWORD = "voicepass123"
 requires_db = pytest.mark.skipif(not DB_UP, reason="Postgres reep_py not reachable")
 
 
+#: The smallest bytes app/document_store recognises as a PDF and as a PNG.
+#: Every fixture and helper that posts `POST /api/register` sends both,
+#: because since 2026-09-22 the endpoint is one multipart request that
+#: REFUSES an application without its CV and its photo — that is the fix for
+#: the queue filling with applications that had neither.
+APPLICATION_CV = b"%PDF-1.4\n% a cv\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n"
+APPLICATION_PHOTO = bytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]) + b"\x00" * 64
+
+
+def application_files(cv: bytes = APPLICATION_CV, photo: bytes = APPLICATION_PHOTO) -> dict:
+    """The `files=` argument of a multipart `POST /api/register`."""
+    return {
+        "cv": ("cv.pdf", cv, "application/pdf"),
+        "photo": ("me.png", photo, "image/png"),
+    }
+
+
+@pytest.fixture
+def tmp_document_store(tmp_path, monkeypatch):
+    """Point app/document_store at a per-test directory.
+
+    REQUESTED BY every fixture that submits an application (test_passwords'
+    `application`, test_registration_hierarchy's `applicant`) and by the tests
+    that post one inline, so the two files a submission now carries land in a
+    directory pytest removes rather than in the developer's own store. The
+    modules that already patch `_store_dir` themselves keep doing so; both
+    point at the same `tmp_path`.
+    """
+    from app import document_store
+
+    monkeypatch.setattr(document_store, "_store_dir", lambda: tmp_path)
+    return tmp_path
+
+
 @pytest.fixture(scope="session")
 def client():
     from fastapi.testclient import TestClient

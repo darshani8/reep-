@@ -191,6 +191,31 @@ class Registration(Base):
     specialization_id: Mapped[str | None] = mapped_column(
         ForeignKey("academic_specializations.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    # THE SECOND TICK OF A DUAL SPECIALIZATION (2026-09-22, migration
+    # d4c8e1f7a2b9). The form's Specialization box is a CHECKLIST: a student
+    # who opted for one specialization ticks one, a student who opted for a
+    # dual specialization ticks two, and `_resolve_claim` writes the first into
+    # `specialization_id` - which every reader that existed before this column
+    # (the scope clause, the queue, the batch settling) goes on reading
+    # unchanged - and the other one here. The two are UNORDERED on the form:
+    # "first" and "second" are the schema's words, not a rank, and where the
+    # requested batch pins a specialization that one is written first so the
+    # batch and the column it has always been checked against still agree.
+    #
+    # A COLUMN AND NOT A TABLE, because a dual specialization is TWO by
+    # definition, and a second column keeps its sibling's SET NULL discipline
+    # (an application survives the office archiving a specialization) and
+    # stays out of the three destructors' table ledgers - a
+    # `registration_specializations` table would need a verdict in
+    # `purge_people`, `purge_students` and the two deletion walks before it
+    # could hold a row. Nothing on `students` copies it: a batch hangs on ONE
+    # specialization and the student's locked profile card is read through
+    # that join, so the second choice lives on the application, where the
+    # office reads it (the queue's Specialization line and the
+    # `dual_specialization` check).
+    second_specialization_id: Mapped[str | None] = mapped_column(
+        ForeignKey("academic_specializations.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     requested_cohort_id: Mapped[str | None] = mapped_column(
         ForeignKey("cohorts.id", ondelete="SET NULL"), nullable=True, index=True
     )

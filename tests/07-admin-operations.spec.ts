@@ -441,9 +441,14 @@ test.describe('Admin: daily operations', () => {
       ).toHaveText(`Mentor load · ${plural(load.length, 'faculty account')}`);
       for (const mentor of load.slice(0, 8)) {
         await expect(
-          page.getByRole('row', { name: escapeRegExp(mentor.name) }).first(),
+          page
+            .locator('.mentor-grid')
+            .getByRole('row')
+            .filter({ hasText: mentor.name })
+            .filter({ hasText: `${mentor.mentee_count} / ${mentor.capacity}` })
+            .first(),
           `TC-600 ER-3: ${mentor.name} is listed with their mentees as count / capacity`,
-        ).toContainText(`${mentor.mentee_count} / ${mentor.capacity}`);
+        ).toBeVisible();
       }
 
       const alertCard = page.locator('.alerts-card');
@@ -454,9 +459,13 @@ test.describe('Admin: daily operations', () => {
       }
       for (const alert of alerts) {
         await expect(
-          alertCard.getByRole('listitem').filter({ hasText: alert.message }).first(),
-          `TC-600 ER-4: the open alert "${alert.message}" is listed with the student's name`,
-        ).toContainText(alert.student_name);
+          alertCard
+            .getByRole('listitem')
+            .filter({ hasText: alert.message })
+            .filter({ hasText: alert.student_name })
+            .first(),
+          `TC-600 ER-4: the open alert "${alert.message}" is listed with ${alert.student_name}'s name`,
+        ).toBeVisible();
       }
     });
   });
@@ -1023,6 +1032,8 @@ test.describe('Admin: daily operations', () => {
   });
 
   test('Recording, correcting and removing a leave allowance @TC-614', async ({ page, signIn }) => {
+    // Pre-condition 3: at 720 px the dialog squeezes the allowances table to 0 px (TC-616).
+    await page.setViewportSize({ width: 1280, height: 1100 });
     await signIn('admin');
     const policy = await ok<{ academic_year: string }>(
       await page.request.get('/api/admin/leave-policy'),
@@ -1157,12 +1168,16 @@ test.describe('Admin: daily operations', () => {
       await page.request.get('/api/admin/leave-policy'),
       'GET /api/admin/leave-policy',
     );
-    const college = policy.colleges[0];
-    if (!college) throw new Error('no college is on this database');
+    const first = policy.colleges[0];
+    const college = policy.colleges.find(
+      (candidate) => candidate.college_name === 'BGS College of Engineering and Technology',
+    );
+    if (!first || !college) throw new Error('the seeded college BGSCET is not on this database');
     const date = farDays(5).from;
     const label = `E2E holiday ${RUN}`;
     const dialog = page.getByRole('dialog', { name: 'Academic calendar' });
     const dayRow = dialog.getByRole('row', { name: escapeRegExp(date) });
+    const picker = dialog.getByRole('combobox', { name: 'College whose calendar this is' });
 
     try {
       await test.step('1. Open /admin/leave-approvals', async () => {
@@ -1171,44 +1186,56 @@ test.describe('Admin: daily operations', () => {
 
       await test.step('2. Click Calendar', async () => {
         await page.getByRole('button', { name: 'Calendar' }).click();
-        const picker = dialog.getByRole('combobox', { name: 'College whose calendar this is' });
         await expect(picker, 'TC-615 ER-1: the dialog opens on the first college').toHaveValue(
-          college.college_id,
+          first.college_id,
         );
         await expect(
-          picker.locator('option:checked'),
-          'TC-615 ER-1: the first college is BGS College of Engineering and Technology',
-        ).toHaveText('BGS College of Engineering and Technology');
+          picker.locator('option', { hasText: 'BGS College of Engineering and Technology' }),
+          'TC-615 ER-1: the College list offers BGS College of Engineering and Technology',
+        ).toHaveCount(1);
       });
 
-      await test.step('3. Enter the test date in Date, keep "Shut (holiday)", and type the label in Label', async () => {
+      await test.step('3. In College, choose "BGS College of Engineering and Technology"', async () => {
+        const answered = page.waitForResponse((response) =>
+          response.url().endsWith(`/api/admin/leave-calendar/${college.college_id}`),
+        );
+        await picker.selectOption({ label: 'BGS College of Engineering and Technology' });
+        await answered;
+        await expect(
+          picker.locator('option:checked'),
+          'TC-615 ER-2: College reads BGS College of Engineering and Technology',
+        ).toHaveText('BGS College of Engineering and Technology');
+        await expect(dayRow, 'TC-615 ER-2: the test date is not listed yet').toHaveCount(0);
+      });
+
+      await test.step('4. Enter the test date in Date, keep "Shut (holiday)", and type the label in Label', async () => {
         await dialog.getByLabel('Date', { exact: true }).fill(date);
         await expect(dialog.getByRole('combobox', { name: 'Kind of day' })).toHaveValue('holiday');
         await dialog.getByLabel('Label', { exact: true }).fill(label);
       });
 
-      await test.step('4. Click Record', async () => {
+      await test.step('5. Click Record', async () => {
         await dialog.getByRole('button', { name: 'Record' }).click();
         await expect(
           dialog.getByRole('status').filter({
             hasText: `${date} is recorded as a holiday and will not be counted against an allowance.`,
           }),
-          'TC-615 ER-2: the office is told the day is a holiday',
+          'TC-615 ER-3: the office is told the day is a holiday',
         ).toBeVisible();
-        await expect(dayRow, 'TC-615 ER-2: the day is listed as shut').toContainText(
+        await expect(dayRow, 'TC-615 ER-3: the day is listed as shut').toContainText(
           'Shut · not counted',
         );
-        await expect(dayRow, 'TC-615 ER-2: the day carries its label').toContainText(label);
+        await expect(dayRow, 'TC-615 ER-3: the day carries its label').toContainText(label);
       });
 
-      await test.step("5. Click the delete button on the test date's row, and confirm", async () => {
+      await test.step("6. Click the delete button on the test date's row, and confirm", async () => {
         page.once('dialog', (confirm) => void confirm.accept());
         await dialog.getByRole('button', { name: `Remove ${date} from the calendar` }).click();
         await expect(
           dialog.getByRole('status').filter({ hasText: 'Day removed.' }),
-          'TC-615 ER-3: the day is removed',
+          'TC-615 ER-4: the day is removed',
         ).toBeVisible();
-        await expect(dayRow, 'TC-615 ER-3: the day is gone from the list').toHaveCount(0);
+        await expect(dayRow, 'TC-615 ER-4: the day is gone from the list').toHaveCount(0);
       });
     } finally {
       await signIn('admin');
@@ -1220,6 +1247,43 @@ test.describe('Admin: daily operations', () => {
         await page.request.delete(`/api/admin/leave-calendar/${college.college_id}/${day.id}`);
       }
     }
+  });
+
+  test('The allowances table stays readable in a short window @TC-616', async ({
+    page,
+    signIn,
+  }) => {
+    test.fail(
+      true,
+      'BUG: the Leave policy dialog squeezes the "Allowances recorded" table to 0 px in a short window (leave-dialog.scss: .table-scroll is the only child of the .dialog-body flex column that can shrink to nothing).',
+    );
+    await page.setViewportSize({ width: 1280, height: 600 });
+    await signIn('admin');
+    const dialog = page.getByRole('dialog', { name: 'Leave policy' });
+    const table = dialog.getByRole('table', { name: /^Leave allowances for / });
+    const scroller = table.locator('xpath=..');
+
+    await test.step('1. Open /admin/leave-approvals', async () => {
+      await page.goto('/admin/leave-approvals');
+    });
+
+    await test.step('2. Click Leave policy', async () => {
+      await page.getByRole('button', { name: 'Leave policy' }).click();
+      await expect(
+        table.getByRole('columnheader', { name: 'Person' }),
+        'TC-616 ER-1 (arrange): the table is drawn',
+      ).toBeAttached();
+      await expect(
+        dialog.getByText('Loading the allowances…'),
+        'TC-616 ER-1 (arrange): the allowances have been read',
+      ).toHaveCount(0);
+      const drawn = await scroller.evaluate((box) => Math.min(box.scrollHeight, 300));
+      await expect
+        .poll(() => scroller.evaluate((box) => box.clientHeight), {
+          message: `TC-616 ER-1: the table is shown at its full height (${drawn} px), not squeezed`,
+        })
+        .toBeGreaterThanOrEqual(drawn - 2);
+    });
   });
 
   // ------------------------------------------------------------ jobs sheet --
@@ -1253,9 +1317,13 @@ test.describe('Admin: daily operations', () => {
       ).toHaveCount(firstPage.length);
       for (const job of firstPage) {
         await expect(
-          jobRow(page, job.title).first(),
+          jobRow(page, job.title)
+            .filter({
+              hasText: job.location === null ? job.company : `${job.company} · ${job.location}`,
+            })
+            .first(),
           `TC-620 ER-2: "${job.title}" is listed with its company and location`,
-        ).toContainText(job.location === null ? job.company : `${job.company} · ${job.location}`);
+        ).toBeVisible();
       }
     });
 
@@ -1693,10 +1761,12 @@ test.describe('Admin: daily operations', () => {
 
     await test.step('2. Type "Acme Capital" in "Search postings…"', async () => {
       await jobSearch(page).fill('Acme Capital');
+      // Waits for the (debounced) search to apply: a posting at another
+      // company leaves the sheet whether or not the company is searched.
       await expect(
-        page.getByText('Rows: 1'),
-        'TC-626 ER-1: the search narrows the sheet to one posting',
-      ).toBeVisible();
+        jobRow(page, 'BI Developer'),
+        'TC-626 ER-1: the search has narrowed the sheet',
+      ).toHaveCount(0);
       await expect(
         jobRow(page, 'Financial Analyst'),
         'TC-626 ER-1: found by its company',
@@ -1764,8 +1834,14 @@ test.describe('Admin: daily operations', () => {
       ).toHaveText(`${figures.approved_students} of ${figures.eligible} eligible`);
 
       const tracks = page.locator('.track-split');
-      for (const track of figures.by_track) {
-        const row = tracks.getByRole('row', { name: new RegExp(`^${track.name} `) });
+      // By position: the table draws the API's list in order, and two
+      // colleges may each have a track with the same name.
+      for (const [index, track] of figures.by_track.entries()) {
+        const row = tracks.getByRole('row').nth(index + 1);
+        await expect(
+          row.getByRole('cell').first(),
+          `TC-630 ER-4: row ${index + 1} is ${track.name}`,
+        ).toHaveText(track.name);
         await expect(row.getByRole('cell').nth(1), `TC-630 ER-4: ${track.name} placed`).toHaveText(
           String(track.placed),
         );
@@ -2174,9 +2250,21 @@ test.describe('Admin: daily operations', () => {
     });
   });
 
-  test('Checking and importing an attendance spreadsheet @TC-651', async ({ page, signIn }) => {
+  test('Checking and importing an attendance spreadsheet @TC-651', async ({
+    page,
+    signIn,
+  }, testInfo) => {
     await signIn('admin');
     const cohort = await seededCohort(page);
+    // Line 3 must name nobody: other modules create students with fresh USNs.
+    for (const suffix of ['', '&removed=true']) {
+      const holders = await ok<unknown[]>(
+        await page.request.get(`/api/admin/students?q=1BG24MBA999${suffix}`),
+        'GET /api/admin/students',
+      );
+      if (holders.length > 0)
+        block(testInfo, 'a student holds USN 1BG24MBA999, which TC-651 needs to be free.');
+    }
     const name = `e2e-attendance-${RUN}.csv`;
     const csv = [
       'usn,subject_code,sessions_held,sessions_attended',

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Screens | `/admin/analytics`, `/admin/leave-approvals`, `/admin/jobs`, `/admin/placement`, `/admin/exports`, `/admin/imports`, `/admin/swoc`, `/admin/agent` |
-| Automated tests | [`tests/admin-operations.spec.ts`](../../tests/admin-operations.spec.ts) |
+| Automated tests | [`tests/07-admin-operations.spec.ts`](../../tests/07-admin-operations.spec.ts) |
 | ID range | TC-600 to TC-699 |
 
 Setup, the seeded accounts and the rules that link these cases to their
@@ -19,7 +19,7 @@ automated tests are in [the index](../manual-test-cases.md).
 | Module | Admin: analytics |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-600` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-600` |
 
 ### Pre-conditions
 
@@ -64,7 +64,7 @@ automated tests are in [the index](../manual-test-cases.md).
 | Module | Admin: analytics |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-601` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-601` |
 
 ### Pre-conditions
 
@@ -101,7 +101,7 @@ automated tests are in [the index](../manual-test-cases.md).
 | Module | Admin: analytics |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-602` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-602` |
 
 ### Pre-conditions
 
@@ -143,7 +143,7 @@ automated tests are in [the index](../manual-test-cases.md).
 | Module | Admin: analytics, alert rules |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-603` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-603` |
 
 ### Pre-conditions
 
@@ -194,7 +194,7 @@ updated twice; a rule can be switched off but not removed.
 | Module | Admin: leave approvals |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-610` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-610` |
 
 ### Pre-conditions
 
@@ -248,7 +248,7 @@ or decide it. The automated run withdraws it through the API.
 | Module | Admin: leave approvals |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-611` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-611` |
 
 ### Pre-conditions
 
@@ -302,7 +302,7 @@ deleted from the console, so each run adds one row to the Approved tab.
 | Module | Admin: leave approvals |
 | Priority | P1 |
 | Type | Functional, negative and positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-612` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-612` |
 
 ### Pre-conditions
 
@@ -355,7 +355,7 @@ The request stays rejected, and each run adds one row to the Rejected tab.
 | Module | Admin: leave approvals |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-613` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-613` |
 
 ### Pre-conditions
 
@@ -399,7 +399,7 @@ through the API.
 | Module | Admin: leave approvals, leave policy |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-614` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-614` |
 
 ### Pre-conditions
 
@@ -408,6 +408,10 @@ through the API.
    batch) and holds no RH allowance for the current academic year. The
    automated run removes one an earlier failed run left behind before it
    starts.
+3. The browser window is at least 1000 px tall; the automated run uses
+   1280 × 1100. In a shorter window the dialog can squeeze the "Allowances
+   recorded" table down to nothing, and its rows can then be neither read nor
+   clicked (TC-616, a known product bug).
 
 ### Test data
 
@@ -457,7 +461,7 @@ removes those through the API.
 | Module | Admin: leave approvals, academic calendar |
 | Priority | P3 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-615` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-615` |
 
 ### Pre-conditions
 
@@ -469,7 +473,7 @@ removes those through the API.
 
 | Field | Value |
 |---|---|
-| College | BGS College of Engineering and Technology (the first, and on the seed the only, college) |
+| College | BGS College of Engineering and Technology (on the seed, the only college) |
 | Date | a day far in the future, unique to the run |
 | The college is | Shut (holiday) |
 | Label | `E2E holiday <test run id>` |
@@ -479,21 +483,71 @@ removes those through the API.
 
 1. Open `/admin/leave-approvals`.
 2. Click Calendar.
-3. Enter the test date in Date, keep "Shut (holiday)", and type the label in Label.
-4. Click Record.
-5. Click the delete button on the test date's row, and confirm.
+3. In College, choose "BGS College of Engineering and Technology".
+4. Enter the test date in Date, keep "Shut (holiday)", and type the label in Label.
+5. Click Record.
+6. Click the delete button on the test date's row, and confirm.
 
 ### Expected results
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 2 | The "Academic calendar" dialog opens on BGS College of Engineering and Technology. |
-| ER-2 | 4 | A message reads "<date> is recorded as a holiday and will not be counted against an allowance.", and the day is listed with "Shut · not counted" and the label. |
-| ER-3 | 5 | "Day removed." is shown, and the day is gone from the list. |
+| ER-1 | 2 | The "Academic calendar" dialog opens on the first college on the deployment (on the seed, the only one), and its College list offers BGS College of Engineering and Technology. |
+| ER-2 | 3 | College reads "BGS College of Engineering and Technology", and the test date is not among the days listed. |
+| ER-3 | 5 | A message reads "<date> is recorded as a holiday and will not be counted against an allowance.", and the day is listed with "Shut · not counted" and the label. |
+| ER-4 | 6 | "Day removed." is shown, and the day is gone from the list. |
 
 ### Post-conditions
 
 The calendar is as it was before the case.
+
+---
+
+## TC-616 — The allowances table stays readable in a short window
+
+| Field | Value |
+|---|---|
+| ID | TC-616 |
+| Module | Admin: leave approvals, leave policy |
+| Priority | P3 |
+| Type | Usability, layout |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-616` |
+
+### Pre-conditions
+
+1. Signed in as the Main Admin.
+2. The browser window is 1280 × 600 px inside the browser, about what a
+   1366 × 768 laptop screen leaves once the browser's own bars are drawn.
+
+### Test data
+
+| Field | Value |
+|---|---|
+| Window | 1280 × 600 |
+
+### Steps
+
+1. Open `/admin/leave-approvals`.
+2. Click Leave policy.
+
+### Expected results
+
+| # | After step | Expected result |
+|---|---|---|
+| ER-1 | 2 | The "Allowances recorded" table is shown at its full height, up to its own 300 px scrolling limit: its header row (Person, Type, Entitled, Taken, Left) and its lines, or its "No allowance is recorded …" line, can be read, and it is the dialog body that scrolls to reach it. |
+
+### Known issue
+
+Fails today. The table is squeezed to nothing: measured 0 px of its 106 px
+drawn in a 1280 × 600 window, and 2 px of 395 px in a 1280 × 720 window once
+other cases had added colleges and allowances. In
+`apps/web/src/app/features/admin/leave-approvals/leave-dialog.scss`,
+`.dialog-body` is a flex column capped at the window's height with
+`overflow-y: auto`, and `.table-scroll` is the one child that is itself a
+scroll container. That makes its minimum height 0, so it absorbs the whole
+shortfall before the dialog body scrolls. The same dialog then hides the rows
+TC-614 edits, which is why that case asks for a taller window. The automated
+test is marked as a known failure.
 
 ---
 
@@ -505,7 +559,7 @@ The calendar is as it was before the case.
 | Module | Admin: jobs sheet |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-620` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-620` |
 
 ### Pre-conditions
 
@@ -544,7 +598,7 @@ The calendar is as it was before the case.
 | Module | Admin: jobs sheet |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-621` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-621` |
 
 ### Pre-conditions
 
@@ -596,7 +650,7 @@ through the API.
 | Module | Admin: jobs sheet |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-622` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-622` |
 
 ### Pre-conditions
 
@@ -640,7 +694,7 @@ through the API.
 | Module | Admin: jobs sheet |
 | Priority | P3 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-623` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-623` |
 
 ### Pre-conditions
 
@@ -689,7 +743,7 @@ API.
 | Module | Admin: jobs sheet |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-624` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-624` |
 
 ### Pre-conditions
 
@@ -740,7 +794,7 @@ The posting stays on the sheet as Withdrawn. There is no reopen. Remove it
 | Module | Admin: jobs sheet |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-625` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-625` |
 
 ### Pre-conditions
 
@@ -781,7 +835,7 @@ The posting stays on the sheet as Withdrawn. There is no reopen. Remove it
 | Module | Admin: jobs sheet |
 | Priority | P3 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-626` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-626` |
 
 ### Pre-conditions
 
@@ -825,7 +879,7 @@ quick filter does not search. The automated test is marked as a known failure.
 | Module | Admin: placement and offers |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-630` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-630` |
 
 ### Pre-conditions
 
@@ -865,7 +919,7 @@ quick filter does not search. The automated test is marked as a known failure.
 | Module | Admin: placement and offers |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-631` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-631` |
 
 ### Pre-conditions
 
@@ -916,7 +970,7 @@ on Test Student's record. Offers cannot be deleted.
 | Module | Admin: placement and offers |
 | Priority | P1 |
 | Type | Functional, negative and positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-632` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-632` |
 
 ### Pre-conditions
 
@@ -1011,7 +1065,7 @@ Test Student counts as placed from now on. Reset the database.
 | Module | Admin: exports |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-640` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-640` |
 
 ### Pre-conditions
 
@@ -1063,7 +1117,7 @@ of the deployment.
 | Module | Admin: spreadsheet imports |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-650` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-650` |
 
 ### Pre-conditions
 
@@ -1106,7 +1160,7 @@ of the deployment.
 | Module | Admin: spreadsheet imports |
 | Priority | P1 |
 | Type | Functional, positive and negative |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-651` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-651` |
 
 ### Pre-conditions
 
@@ -1171,7 +1225,7 @@ receipt stay in the history.
 | Module | Admin: spreadsheet imports |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-652` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-652` |
 
 ### Pre-conditions
 
@@ -1215,7 +1269,7 @@ to any student's record.
 | Module | Admin: SWOC notes |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-660` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-660` |
 
 ### Pre-conditions
 
@@ -1258,7 +1312,7 @@ to any student's record.
 | Module | Admin: SWOC notes |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-661` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-661` |
 
 ### Pre-conditions
 
@@ -1305,7 +1359,7 @@ removes it through the API.
 | Module | Admin: SWOC notes |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-662` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-662` |
 
 ### Pre-conditions
 
@@ -1353,7 +1407,7 @@ through the API; its edit history is kept.
 | Module | Admin: SWOC notes |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-663` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-663` |
 
 ### Pre-conditions
 
@@ -1392,7 +1446,7 @@ through the API; its edit history is kept.
 | Module | Admin: SWOC notes |
 | Priority | P3 |
 | Type | Functional, negative |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-664` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-664` |
 
 ### Pre-conditions
 
@@ -1434,7 +1488,7 @@ the API.
 | Module | Admin: REEP Agent |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-670` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-670` |
 
 ### Pre-conditions
 
@@ -1478,7 +1532,7 @@ the API.
 | Module | Admin: REEP Agent |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-671` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-671` |
 
 ### Pre-conditions
 
@@ -1515,7 +1569,7 @@ the API.
 | Module | Admin: access |
 | Priority | P1 |
 | Type | Security, negative |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-680` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-680` |
 
 ### Pre-conditions
 
@@ -1565,7 +1619,7 @@ the API.
 | Module | Admin: access |
 | Priority | P1 |
 | Type | Security, negative |
-| Automated test | `tests/admin-operations.spec.ts`, title tagged `@TC-681` |
+| Automated test | `tests/07-admin-operations.spec.ts`, title tagged `@TC-681` |
 
 ### Pre-conditions
 

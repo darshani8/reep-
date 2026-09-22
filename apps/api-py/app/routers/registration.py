@@ -2235,6 +2235,15 @@ def _apply_rule(db: Session, reg: Registration) -> None:
         reg.decision_reason = f"Rule '{rule.name}' would auto-approve, but: {refused.detail}"
         log.warning("auto-approve of %s refused: %s", reg.email, refused.detail)
         return
+    db.flush()
+    # THE SAME ACT `decide` PERFORMS ON APPROVE, and it was missing here. The
+    # CV and the photo become the student's first uploads - moved, not copied.
+    # Until 2026-09-22 nothing reached this line with a document on the row:
+    # the files were posted after the 201, by which time this rule had already
+    # decided the application and `attach_document` refused them. Now they
+    # arrive with the application, and an auto-admitted student who still
+    # started with no resume would be the old defect wearing a new shape.
+    _move_documents_to_uploads(db, reg, student)
     reg.status = RegistrationStatus.AUTO_APPROVED
     reg.decision_reason = f"Auto-approved by rule '{rule.name}'."
     reg.reviewed_at = datetime.now(timezone.utc)

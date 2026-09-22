@@ -1,5 +1,5 @@
 /**
- * Writes `manual-test-results.csv`: one row per manual test case in
+ * Writes `manual-test-results.csv`: a row for every manual test case in
  * test-management/manual-test-cases.md, carrying the result of the automated
  * test tagged with its ID.
  *
@@ -17,13 +17,21 @@
  * override, when:
  *   - a test carries no `@TC-NNN` tag, or names a case the manual file lacks;
  *   - a test's top-level `test.step()` titles differ from its case's numbered
- *     steps (numbering and markdown aside), which is what makes the "Failed
- *     step" column mean the same step a tester would follow by hand;
+ *     steps, or a step's number is not its position. That is what makes the
+ *     "Failed Step" column name the step a tester would follow by hand;
  *   - a case's "Automated test" field says it is not automated while a test
- *     automates it, or the manual file repeats an ID.
- * A case with no automated test in the run is a ROW, not a failure: "Not
- * automated" when its field says so, "Not run" when a filter such as `--grep`
- * left its test out.
+ *     automates it, or names a tag that no test in an UNFILTERED run carries;
+ *   - the manual file repeats an ID.
+ * Each problem is printed and also written into the case's "Sync Problems"
+ * cell, so a drifted case never reads as a clean "Passed".
+ *
+ * STATUS, per row: Passed, Failed, Timed out, Interrupted, Flaky; Blocked (a
+ * pre-condition did not hold, see the spec's `beforeEach`); Known failure (a
+ * `test.fail()` test that failed as it was expected to); Skipped (`test.skip`
+ * or `test.fixme`); Did not run (Playwright never started it, because a hook,
+ * a serial sibling or the worker failed first); Not run (no test for the case
+ * was in this run, e.g. `--grep` left it out); Not automated (the case's field
+ * names no tag).
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -43,6 +51,10 @@ export interface ManualCsvReporterOptions {
   manualCases?: string;
   /** Set by Playwright itself, not by the config: `'list'` under `--list`. */
   _mode?: string;
+  /** Set by Playwright itself: `''` when no `--grep`, `--grep-invert`,
+   *  `--project`, file or line argument, `--only-changed`, `--test-list` or
+   *  config tag narrowed the run. */
+  _commandHash?: string;
 }
 
 export interface ManualCase {
@@ -51,6 +63,8 @@ export interface ManualCase {
   /** From the case's "Automated test" field: does it name a `@TC-NNN` tag? */
   automated: boolean;
   steps: string[];
+  /** Expected results marked "**Manual only.**", as `ER-n: text`. */
+  manualOnly: string[];
 }
 
 const COLUMNS = [
@@ -59,6 +73,7 @@ const COLUMNS = [
   'Automated Test',
   'Project',
   'Status',
+  'Sync Problems',
   'Duration (ms)',
   'Failed Step',
   'Error',
@@ -70,27 +85,43 @@ const COLUMNS = [
 
 type Row = Partial<Record<(typeof COLUMNS)[number], string | number>>;
 
-/** `## TC-001 — Title`. Any dash, or a colon, may separate the two. */
-const CASE_HEADING = /^##\s+(TC-\d+)\s*[—–:-]\s*(.+?)\s*$/;
+/** `## TC-001 — Title`. A dash or a colon may separate the two, or nothing. */
+const CASE_HEADING = /^##\s+(TC-\d+)\b\s*(?:[—–:-]\s*)?(.*?)\s*$/;
 const CASE_TAG = /^@(TC-\d+)$/;
+/** A `test.step()` title's list number, e.g. `3. `. Like a markdown list item
+ *  it needs whitespace after the dot, so `2.4 GHz ...` is not a number. */
+const STEP_NUMBER = /^\s*(\d+)\.\s+/;
+const MANUAL_ONLY_ROW = /^\|\s*(ER-\d+)\s*\|[^|]*\|\s*\*\*Manual only\.?\*\*\s*(.*?)\s*\|$/i;
 const ANSI = /\u001b\[[0-9;]*m/g;
 
 /**
  * Reads the cases out of the manual file: the `## TC-NNN — Title` heading, the
- * "Automated test" row of its field table, and the numbered list under its
- * "### Steps" heading. Any other level-2 heading ends the case.
+ * "Automated test" row of its field table, the numbered list under its
+ * "### Steps" heading and the "**Manual only.**" rows under "### Expected
+ * results". Any other level-2 heading ends the case. A step is its list
+ * item's first paragraph, lazy continuation lines included; nested lists,
+ * later paragraphs and fenced code are not part of it.
  */
 export function parseManualCases(markdown: string): ManualCase[] {
   const cases: ManualCase[] = [];
   let current: ManualCase | undefined;
   let section = '';
+  let inStep = false;
+  let fenced = false;
   for (const raw of markdown.split(/\r?\n/)) {
     const line = raw.trimEnd();
+    if (/^\s{0,3}(```|~~~)/.test(line)) {
+      fenced = !fenced;
+      inStep = false;
+      continue;
+    }
+    if (fenced) continue;
     const heading = CASE_HEADING.exec(line);
     if (heading) {
-      current = { id: heading[1], title: heading[2], automated: false, steps: [] };
+      current = { id: heading[1], title: heading[2], automated: false, steps: [], manualOnly: [] };
       cases.push(current);
       section = '';
+      inStep = false;
       continue;
     }
     if (/^##\s/.test(line)) {
@@ -101,6 +132,7 @@ export function parseManualCases(markdown: string): ManualCase[] {
     const subheading = /^###\s+(.+)$/.exec(line);
     if (subheading) {
       section = subheading[1].trim().toLowerCase();
+      inStep = false;
       continue;
     }
     const field = /^\|\s*Automated test\s*\|\s*(.*?)\s*\|$/i.exec(line);
@@ -108,26 +140,30 @@ export function parseManualCases(markdown: string): ManualCase[] {
       current.automated = /@TC-\d+/.test(field[1]);
       continue;
     }
+    if (section === 'expected results') {
+      const manualOnly = MANUAL_ONLY_ROW.exec(line);
+      if (manualOnly) current.manualOnly.push(`${manualOnly[1]}: ${manualOnly[2]}`);
+      continue;
+    }
     if (section !== 'steps') continue;
     const item = /^\d+\.\s+(.*)$/.exec(line);
     if (item) {
       current.steps.push(item[1]);
-    } else if (/^\s+\S/.test(line) && current.steps.length > 0) {
-      // A list item wrapped onto an indented continuation line.
+      inStep = true;
+    } else if (!line.trim()) {
+      inStep = false;
+    } else if (inStep && !/^\s*([-*+]|\d+[.)])\s/.test(line)) {
       current.steps[current.steps.length - 1] += ` ${line.trim()}`;
+    } else {
+      inStep = false;
     }
   }
   return cases;
 }
 
-/** A step as a sentence: no list number, markdown emphasis or closing full stop. */
+/** A step as a sentence: no markdown emphasis, extra spaces or closing full stop. */
 export function normalizeStep(text: string): string {
-  return text
-    .replace(/^\s*\d+\.\s*/, '')
-    .replace(/[`*_]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/[.:]$/, '');
+  return text.replace(/[`*_]/g, '').replace(/\s+/g, ' ').trim().replace(/[.:]$/, '');
 }
 
 /**
@@ -153,13 +189,20 @@ function statusOf(test: TestCase, result: TestResult | undefined): string {
   if (result.status !== 'passed' && result.annotations.some((a) => a.type === 'blocked')) {
     return 'Blocked';
   }
+  // test.fail() marks a known bug. Playwright calls its failure "expected",
+  // but the case's expected results do not hold, so it must never read Passed.
+  if (test.expectedStatus === 'failed') {
+    return result.status === 'passed' ? 'Failed (marked test.fail, but passed)' : 'Known failure';
+  }
   switch (test.outcome()) {
     case 'expected':
       return 'Passed';
     case 'flaky':
       return 'Flaky';
     case 'skipped':
-      return 'Skipped';
+      // 'skipped' covers both test.skip/test.fixme and a test Playwright never
+      // started because a hook, a serial sibling or the worker failed first.
+      return test.expectedStatus === 'skipped' ? 'Skipped' : 'Did not run';
     case 'unexpected':
       return result.status === 'timedOut' ? 'Timed out' : 'Failed';
   }
@@ -176,6 +219,10 @@ export default class ManualCsvReporter implements Reporter {
    * which is untidy but never claims a result nobody produced.
    */
   private readonly listOnly: boolean;
+  /** Internal like `_mode`. If it is renamed, `unfiltered()` answers false and
+   *  the "declared but missing" check goes quiet rather than failing good runs. */
+  private readonly commandHash: string | undefined;
+  private shard: FullConfig['shard'] = null;
   private configDir = process.cwd();
   private rootSuite: Suite | undefined;
 
@@ -183,6 +230,7 @@ export default class ManualCsvReporter implements Reporter {
     this.outputFile = options.outputFile ?? 'manual-test-results.csv';
     this.manualCases = options.manualCases ?? 'test-management/manual-test-cases.md';
     this.listOnly = options._mode === 'list';
+    this.commandHash = options._commandHash;
   }
 
   printsToStdio(): boolean {
@@ -191,11 +239,18 @@ export default class ManualCsvReporter implements Reporter {
 
   onBegin(config: FullConfig, suite: Suite): void {
     if (config.configFile) this.configDir = path.dirname(config.configFile);
+    this.shard = config.shard;
     this.rootSuite = suite;
   }
 
   async onEnd(result: FullResult): Promise<{ status: FullResult['status'] } | undefined> {
     const problems: string[] = [];
+    const syncByCase = new Map<string, string[]>();
+    const flag = (id: string, problem: string) => {
+      problems.push(problem);
+      syncByCase.set(id, [...(syncByCase.get(id) ?? []), problem]);
+    };
+
     const manualPath = path.resolve(this.configDir, this.manualCases);
     let cases: ManualCase[] = [];
     try {
@@ -207,7 +262,7 @@ export default class ManualCsvReporter implements Reporter {
     }
     const seen = new Set<string>();
     for (const c of cases) {
-      if (seen.has(c.id)) problems.push(`${this.manualCases} lists ${c.id} more than once`);
+      if (seen.has(c.id)) flag(c.id, `${this.manualCases} lists ${c.id} more than once`);
       seen.add(c.id);
     }
     const caseById = new Map(cases.map((c) => [c.id, c]));
@@ -217,41 +272,59 @@ export default class ManualCsvReporter implements Reporter {
     for (const test of this.rootSuite?.allTests() ?? []) {
       const ids = caseIdsOf(test);
       if (ids.length === 0) {
-        problems.push(`${this.where(test)} has no @TC-NNN tag in its title`);
-        unlinked.push(this.row(test, undefined));
+        const problem = `${this.where(test)} has no @TC-NNN tag in its title`;
+        problems.push(problem);
+        unlinked.push({ ...this.row(test, undefined), 'Sync Problems': problem });
         continue;
       }
       for (const id of ids) {
         const manual = caseById.get(id);
         if (!manual) {
-          problems.push(
-            `${this.where(test)} is tagged @${id}, which is not a case in ${this.manualCases}`,
-          );
-          unlinked.push(this.row(test, id));
+          const problem = `${this.where(test)} is tagged @${id}, which is not a case in ${this.manualCases}`;
+          problems.push(problem);
+          unlinked.push({ ...this.row(test, id), 'Sync Problems': problem });
           continue;
         }
         if (!manual.automated) {
-          problems.push(
+          flag(
+            id,
             `${id}'s "Automated test" field says it is not automated, but ${this.where(test)} automates it`,
           );
         }
-        if (ids.length === 1 && !this.listOnly) problems.push(...this.stepDrift(test, manual));
+        if (ids.length === 1 && !this.listOnly) {
+          for (const problem of this.stepDrift(test, manual)) flag(id, problem);
+        }
         testsByCase.set(id, [...(testsByCase.get(id) ?? []), test]);
+      }
+    }
+    if (this.unfiltered()) {
+      for (const manual of cases) {
+        if (manual.automated && !testsByCase.has(manual.id)) {
+          flag(
+            manual.id,
+            `${manual.id}'s "Automated test" field names a tag, but no test carries @${manual.id}`,
+          );
+        }
       }
     }
 
     const rows: Row[] = [];
     for (const manual of cases) {
+      const sync = (syncByCase.get(manual.id) ?? []).join('; ');
       const tests = testsByCase.get(manual.id) ?? [];
       if (tests.length === 0) {
         rows.push({
           'Test Case ID': manual.id,
           'Manual Test Case': manual.title,
           Status: manual.automated ? 'Not run' : 'Not automated',
+          'Sync Problems': sync,
+          'Manual-only Checks': manual.manualOnly.join('; '),
         });
         continue;
       }
-      for (const test of tests) rows.push(this.row(test, manual.id, manual.title));
+      for (const test of tests) {
+        rows.push({ ...this.row(test, manual.id, manual), 'Sync Problems': sync });
+      }
     }
     rows.push(...unlinked);
     if (!this.listOnly) this.write(rows);
@@ -262,6 +335,18 @@ export default class ManualCsvReporter implements Reporter {
     return result.status === 'passed' ? { status: 'failed' } : undefined;
   }
 
+  /** True only when nothing narrowed the run, so a tag missing from the suite
+   *  means a missing test and not a filter. `--last-failed` is read from argv
+   *  because Playwright applies it outside `_commandHash`. */
+  private unfiltered(): boolean {
+    return (
+      !this.listOnly &&
+      this.commandHash === '' &&
+      !this.shard &&
+      !process.argv.includes('--last-failed')
+    );
+  }
+
   private write(rows: Row[]): void {
     const outputPath = path.resolve(this.configDir, this.outputFile);
     const lines = [
@@ -269,7 +354,10 @@ export default class ManualCsvReporter implements Reporter {
       ...rows.map((r) => COLUMNS.map((c) => csvCell(r[c])).join(',')),
     ];
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-    fs.writeFileSync(outputPath, `${lines.join('\n')}\n`, 'utf8');
+    // A byte-order mark, because Excel on Windows reads a CSV without one as
+    // cp1252 and garbles the "×" and "…" that Playwright's call logs put in the
+    // Error column. CRLF, because RFC 4180 says so.
+    fs.writeFileSync(outputPath, `﻿${lines.join('\r\n')}\r\n`, 'utf8');
 
     const counts = new Map<string, number>();
     for (const r of rows) counts.set(String(r.Status), (counts.get(String(r.Status)) ?? 0) + 1);
@@ -285,15 +373,18 @@ export default class ManualCsvReporter implements Reporter {
   private stepDrift(test: TestCase, manual: ManualCase): string[] {
     const result = test.results.at(-1);
     if (!result) return [];
-    const ran = result.steps
-      .filter((s) => s.category === 'test.step')
-      .map((s) => normalizeStep(s.title));
+    const ran = result.steps.filter((s) => s.category === 'test.step').map((s) => s.title);
     const expected = manual.steps.map(normalizeStep);
     for (let i = 0; i < ran.length; i++) {
-      if (ran[i] !== expected[i]) {
+      const numbered = STEP_NUMBER.exec(ran[i]);
+      if (numbered && Number(numbered[1]) !== i + 1) {
+        return [`${manual.id}: ${this.where(test)} numbers its step ${i + 1} as "${numbered[1]}."`];
+      }
+      const title = normalizeStep(ran[i].replace(STEP_NUMBER, ''));
+      if (title !== expected[i]) {
         return [
           `${manual.id} step ${i + 1}: the manual file says "${expected[i] ?? '(no such step)'}", ` +
-            `${this.where(test)} says "${ran[i]}"`,
+            `${this.where(test)} says "${title}"`,
         ];
       }
     }
@@ -305,7 +396,7 @@ export default class ManualCsvReporter implements Reporter {
     return [];
   }
 
-  private row(test: TestCase, id: string | undefined, manualTitle?: string): Row {
+  private row(test: TestCase, id: string | undefined, manual?: ManualCase): Row {
     const result = test.results.at(-1);
     const status = statusOf(test, result);
     const failed = result?.steps.find((s) => s.error);
@@ -315,7 +406,7 @@ export default class ManualCsvReporter implements Reporter {
       .map((a) => path.relative(this.configDir, a.path!).split(path.sep).join('/'));
     return {
       'Test Case ID': id ?? '',
-      'Manual Test Case': manualTitle ?? `(not in ${this.manualCases})`,
+      'Manual Test Case': manual?.title ?? `(not in ${this.manualCases})`,
       // Root, project and file titles are dropped: the Project and Location columns carry them.
       'Automated Test': test.titlePath().slice(3).join(' > '),
       Project: test.parent.project()?.name ?? '',
@@ -323,10 +414,7 @@ export default class ManualCsvReporter implements Reporter {
       'Duration (ms)': result?.duration,
       'Failed Step': status === 'Blocked' ? 'Pre-conditions' : failed?.title,
       Error: error?.replace(ANSI, '').replace(/\s+/g, ' ').trim().slice(0, 1000),
-      'Manual-only Checks': (result?.annotations ?? test.annotations)
-        .filter((a) => a.type === 'manual-only')
-        .map((a) => a.description ?? '')
-        .join('; '),
+      'Manual-only Checks': manual?.manualOnly.join('; '),
       Screenshots: screenshots.join(' | '),
       Location: this.where(test),
       'Executed At': result?.startTime.toISOString(),

@@ -64,8 +64,8 @@ npm ci && npm run test:e2e                          # end-to-end, from the repo 
 
 The end-to-end suite is Playwright, and each of its tests automates one case in
 [test-management/manual-test-cases.md](test-management/manual-test-cases.md)
-(linked by a `@TC-NNN` tag). Every run writes `manual-test-results.csv`, one row
-per case. Before the first run, install its browser with `npx playwright install chromium`.
+(linked by a `@TC-NNN` tag). Every run writes `manual-test-results.csv`, with a
+row for every case. Before the first run, install its browser with `npx playwright install chromium`.
 
 `main` is gated by **five** required status checks, and `./tools/ci/preflight.sh`
 runs all five locally in the order that fails fastest — read its exit code, not

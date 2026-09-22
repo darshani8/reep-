@@ -182,3 +182,87 @@
     animation: none;
   }
 }
+
+/* ==========================================================================
+ * THE BUILDER AT PHONE WIDTH (2026-09-22)
+ *
+ * `.rb-shell` is a flex ROW — a 250px `.stepper` rail beside `section.main` —
+ * with `overflow: hidden`, and it never collapsed. Measured in Chromium at
+ * 390px: the shell's box was 356px against 575px of content, so 219px was
+ * CLIPPED rather than scrolled; `section.main` was squeezed to 106px, which
+ * wrapped "Identity and demographic" to one word per line; and `.head-actions`
+ * sat 202px past the right edge with its buttons entirely off-screen. Nothing
+ * could be scrolled to, because the shell hides its overflow — the same
+ * clip-not-overflow trap the data tables had, in the one screen where a
+ * student writes their CV.
+ *
+ * 640px IS MEASURED, NOT CHOSEN. The content has a hard 575px minimum, so the
+ * shell is correct down to 640 and starts clipping at 560. The rule sits well
+ * below any desktop width and this file is Angular-scoped, so it reaches the
+ * builder's own markup and nothing else — which matters here more than usual,
+ * because `.main-head`, `.head-actions` and `.footbar` are names BOTH global
+ * stylesheets already claim (tools/ci/check_style_duplicates.py's
+ * KNOWN_DUPLICATES). A global rule for them would have reached six other
+ * screens.
+ * ======================================================================= */
+
+@media (max-width: 640px) {
+  .rb-shell {
+    flex-direction: column;
+    /* The 680px floor is there to hold a two-column frame open; stacked, it
+       only adds empty space under a short step. */
+    min-height: 0;
+  }
+
+  .rb-shell .stepper {
+    width: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--hairline);
+    /* `auto` gave the rail its own scrollbar beside the page's; stacked, it
+       is just another block and the page scrolls it. */
+    overflow: visible;
+    padding: 14px 12px;
+  }
+
+  .rb-shell .main-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 16px;
+  }
+
+  .rb-shell .head-actions {
+    flex-wrap: wrap;
+  }
+
+  .rb-shell .body {
+    padding: 16px;
+  }
+
+  .rb-shell .footbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+
+  /* The four flow steps were 22px tall — the smallest targets in the product.
+     They wrap already, so height is the only thing missing. */
+  .rb-steps button {
+    min-height: 44px;
+  }
+
+  /* The only text in the app under 11px, and it includes the label that says
+     which fields are locked. `.rb-shell .lock` rather than `.lock`, because
+     `.field .lock` in the global resume sheet sets the 10px at (0,2,0). */
+  .step-group,
+  .rb-shell .lock,
+  .rb-shell .reqp {
+    font-size: 11px;
+  }
+
+  /* Not a `.btn`, so the global mobile rule does not reach it. */
+  .import-btn {
+    min-height: 44px;
+  }
+}

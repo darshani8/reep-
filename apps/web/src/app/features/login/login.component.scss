@@ -668,3 +668,47 @@
     text-decoration: underline;
   }
 }
+
+/* ==========================================================================
+ * THE FORM COMES FIRST ON A PHONE (2026-09-22)
+ *
+ * `.login` is a wrapping flex row: `.panel` (the brand hero) then `.signin`
+ * (the card). Above ~1040px they sit side by side; below, they wrap in source
+ * order — hero first — and measured in Chromium at 390x844 the first control
+ * a student can touch sat at 916px, past a 844px fold. So the sign-in screen
+ * opened on a full screen of marketing and the form was somewhere below it,
+ * on the one screen everybody has to get through.
+ *
+ * `order` and not a reordering of the markup: the source order is the reading
+ * order a screen reader and the tab sequence follow, and on a desktop, where
+ * the two are side by side, brand-then-form is the right one. This changes
+ * only where they are stacked anyway.
+ *
+ * 760px and not the ~1040px where they actually wrap: between those two the
+ * layout is the one this deployment already has, and the ask was to leave it
+ * exactly as it is. A tablet still meets the hero first.
+ * ======================================================================= */
+
+@media (max-width: 760px) {
+  .signin {
+    order: -1;
+  }
+
+  /* Three text links measured 15-18px tall. Padding rather than a min-height,
+     because these are inline words inside a sentence and a 44px box around
+     them would open gaps in the copy; the block padding gives the thumb its
+     area without moving the text. */
+  .doors a,
+  .doors__approved {
+    padding-block: 13px;
+  }
+
+  /* `.help-foot .help-foot__link` and not the flat class: the rule that zeroes
+     its padding is nested inside `.help-foot` at (0,2,0), so a bare
+     `.help-foot__link` at (0,1,0) lost and this link stayed 15px tall. */
+  .help-foot .help-foot__link {
+    /* 15px and not 13: measured at 41px tall with 13, which is short of the
+       44px floor by a hair. */
+    padding-block: 15px;
+  }
+}

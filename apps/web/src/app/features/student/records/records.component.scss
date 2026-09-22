@@ -387,3 +387,13 @@
     text-decoration: underline;
   }
 }
+
+/* Tap target at phone width (2026-09-22): Records' "Subject-by-subject progress" link, 208x18.
+   Block padding and not a min-height, because this is an inline link inside a
+   sentence — padding grows the hit area the thumb gets without moving the
+   words around it. Mobile only; the desktop link is unchanged. */
+@media (max-width: 760px) {
+  .rec-courses-link {
+    padding-block: 13px;
+  }
+}

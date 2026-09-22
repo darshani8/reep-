@@ -10,11 +10,12 @@ filter" is the reading that turns an empty mentor group into the whole
 programme.
 """
 
-from datetime import date, timedelta
+from datetime import timedelta
 
 import pytest
 from sqlalchemy import delete, select
 
+from app.clock import local_today
 from app.db import SessionLocal
 from app.models.english_baseline import (
     BaselineStatus,
@@ -27,7 +28,11 @@ from app.models.mentor_note import MentorNote
 from app.models.user import Mentor, Role, Student
 from tests.conftest import TEST_PASSWORD, requires_db
 
-TODAY = date.today()
+# The programme's day, the same clock the ledger router reads -- never the
+# container's. `date.today()` here is UTC, and from 18:30 to midnight UTC it is
+# yesterday in IST: the student's PUT landed on one day and the mentor's read,
+# which asks the server for "today", looked at the next, empty one.
+TODAY = local_today()
 
 FULL_DAY = [
     {"slot": "DAWN", "activity": "COURSEWORK", "hours": 4},

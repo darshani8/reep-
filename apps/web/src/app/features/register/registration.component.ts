@@ -149,7 +149,10 @@ export class RegistrationComponent {
   readonly result = signal<RegistrationResult | null>(null);
 
   /// Files staged on the form, sent WITH the application in the one multipart
-  /// request `submit()` builds.
+  /// request the submit handler builds. (The handler is not named as a call
+  /// in this comment on purpose: `check_form_submit.py` reads its body from
+  /// the first mention of the method name followed by a parenthesis, and one
+  /// in a comment above the method would hand the guard the wrong braces.)
   readonly cvFile = signal<File | null>(null);
   readonly photoFile = signal<File | null>(null);
   /// Why the last picked file was refused, per picker; cleared on a good pick.

@@ -12,16 +12,29 @@ every eyeball test and fail only for the student whose day happened to land on
 an unlucky sum — so the "exactly 24 h submits" case is asserted against a day
 built out of thirty separate half-hour cells, which is precisely the shape that
 drifts.
+
+THE DAY LOCKS (2026-09-22). A day stays open for `settings.ledger_edit_window_days`
+calendar days after it and is read-only from then on — no save, no submit, no
+"copy yesterday" onto it — and the history endpoint is how the student sees
+which days they filled, which are drafts, and which have closed. Every "today"
+here is the programme's (`app.clock.local_today`), the same clock the router
+reads, so these tests mean the same thing at 01:00 IST as at noon.
 """
 
-from datetime import date, timedelta
+from datetime import timedelta
 
 import pytest
 
+from app.clock import local_today
+from app.config import settings
 from tests.conftest import requires_db
 
-TODAY = date.today()
+TODAY = local_today()
 YESTERDAY = TODAY - timedelta(days=1)
+#: The first day that is shut: one past the window.
+LOCKED_DAY = TODAY - timedelta(days=settings.ledger_edit_window_days + 1)
+#: The oldest day that is still open.
+LAST_OPEN_DAY = TODAY - timedelta(days=settings.ledger_edit_window_days)
 
 
 def _cell(slot: str, activity: str, hours: float) -> dict:
@@ -263,6 +276,166 @@ def test_the_mix_bar_and_the_hatch_are_server_computed(client, make_user):
 
     empty = next(s for s in body["slots"] if s["key"] == "NIGHT")
     assert empty["state_label"] == "Empty"
+
+
+# --- the lock ---------------------------------------------------------------
+
+
+@requires_db
+def test_the_read_serves_the_programmes_today_and_the_lock_fields(client, make_user):
+    """No `day` means the programme's today, and the client anchors its stepper
+    on the `today` served back rather than on the handset's clock."""
+    stu = make_user("ledger-today")
+    body = client.get("/api/student/ledger", headers=stu.headers).json()
+    assert body["day"] == str(TODAY)
+    assert body["today"] == str(TODAY)
+    assert body["editable"] is True
+    assert body["locked"] is False
+    assert body["lock_reason"] is None
+    assert body["edit_window_days"] == settings.ledger_edit_window_days
+    assert body["edit_until"] == str(TODAY + timedelta(days=settings.ledger_edit_window_days))
+
+
+@requires_db
+def test_a_day_past_the_edit_window_is_locked_in_every_direction(client, make_user):
+    """Save, copy-yesterday and submit all answer 409 with the same sentence the
+    read puts on the chip, and the read says the day is not editable."""
+    stu = make_user("ledger-locked")
+
+    r = client.put(
+        "/api/student/ledger",
+        json={"day": str(LOCKED_DAY), "cells": FULL_DAY},
+        headers=stu.headers,
+    )
+    assert r.status_code == 409, r.text
+    assert "is locked" in r.json()["detail"]
+    assert f"{LOCKED_DAY:%d %b %Y}" in r.json()["detail"]
+
+    r = client.post(
+        "/api/student/ledger/copy-yesterday", json={"day": str(LOCKED_DAY)}, headers=stu.headers
+    )
+    assert r.status_code == 409, r.text
+    assert "is locked" in r.json()["detail"]
+
+    r = client.post("/api/student/ledger/submit", json={"day": str(LOCKED_DAY)}, headers=stu.headers)
+    assert r.status_code == 409, r.text
+    assert "is locked" in r.json()["detail"]
+
+    read = client.get(f"/api/student/ledger?day={LOCKED_DAY}", headers=stu.headers).json()
+    assert read["locked"] is True
+    assert read["editable"] is False
+    assert read["can_submit"] is False
+    assert read["lock_reason"] == read["submit_blocked_reason"]
+    assert read["total_hours"] == 0, "nothing was written to the locked day"
+
+
+@requires_db
+def test_the_last_open_day_still_saves_and_submits(client, make_user):
+    """The boundary is inclusive: with a window of N, today minus N is open and
+    today minus N+1 is not. Off by one here is a student refused a day the
+    screen told them they had until tonight to fill."""
+    stu = make_user("ledger-edge")
+    r = client.put(
+        "/api/student/ledger",
+        json={"day": str(LAST_OPEN_DAY), "cells": FULL_DAY},
+        headers=stu.headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["locked"] is False and r.json()["editable"] is True
+
+    r = client.post(
+        "/api/student/ledger/submit", json={"day": str(LAST_OPEN_DAY)}, headers=stu.headers
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "SUBMITTED"
+    assert r.json()["editable"] is False, "submitted is closed too, for the other reason"
+
+
+@requires_db
+def test_history_lists_every_recent_day_with_its_status(client, make_user):
+    """The record of what was filled in: one entry per calendar day whether or
+    not a row exists, most recent first, with EMPTY / DRAFT / SUBMITTED and the
+    lock on each — so "I filled it in and nothing shows" has a screen to
+    answer it."""
+    stu = make_user("ledger-history")
+    client.put(
+        "/api/student/ledger", json={"day": str(TODAY), "cells": FULL_DAY}, headers=stu.headers
+    )
+    client.post("/api/student/ledger/submit", json={"day": str(TODAY)}, headers=stu.headers)
+    client.put(
+        "/api/student/ledger",
+        json={"day": str(YESTERDAY), "cells": [_cell("NIGHT", "SLEEPING", 7)]},
+        headers=stu.headers,
+    )
+
+    r = client.get("/api/student/ledger/history?days=7", headers=stu.headers)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["today"] == str(TODAY)
+    assert body["window_days"] == 7
+    assert body["edit_window_days"] == settings.ledger_edit_window_days
+    assert body["days_submitted"] == 1
+    assert body["days_logged"] == 2
+    days = body["days"]
+    assert [d["day"] for d in days] == [str(TODAY - timedelta(days=i)) for i in range(7)]
+
+    today, yesterday = days[0], days[1]
+    assert today["status"] == "SUBMITTED" and today["logged_hours"] == 24
+    assert today["editable"] is False and today["submitted_at"] is not None
+    assert yesterday["status"] == "DRAFT" and yesterday["logged_hours"] == 7
+    assert yesterday["editable"] is True and yesterday["locked"] is False
+    assert all(d["status"] == "EMPTY" and d["logged_hours"] == 0 for d in days[2:])
+    # The lock is on the strip too: every day past the window reads locked and
+    # not editable, every day inside it the opposite.
+    for offset, d in enumerate(days):
+        expected_locked = offset > settings.ledger_edit_window_days
+        assert d["locked"] is expected_locked, (offset, d)
+        if d["status"] != "SUBMITTED":
+            assert d["editable"] is (not expected_locked), (offset, d)
+
+
+@requires_db
+def test_history_is_first_person_and_bounded(client, make_user):
+    a, b = make_user("ledger-hist-a"), make_user("ledger-hist-b")
+    client.put(
+        "/api/student/ledger", json={"day": str(TODAY), "cells": FULL_DAY}, headers=a.headers
+    )
+    assert client.get("/api/student/ledger/history", headers=b.headers).json()["days_logged"] == 0
+    assert len(client.get("/api/student/ledger/history?days=500", headers=a.headers).json()["days"]) == 90
+    assert len(client.get("/api/student/ledger/history?days=0", headers=a.headers).json()["days"]) == 1
+
+
+@requires_db
+def test_the_weekly_skilling_strip_reads_the_ledger(client, make_user):
+    """`GET /student/timesheet` summed a table the ledger never writes, so the
+    strip under the ledger read 0 h beside the very cells it should have been
+    summing. It reads the ledger's SKILLING cells now."""
+    stu = make_user("ledger-weekly")
+    before = client.get("/api/student/timesheet?days=7", headers=stu.headers).json()
+    assert before["skilling_hours"] == 0
+
+    client.put(
+        "/api/student/ledger",
+        json={
+            "day": str(TODAY),
+            "cells": [_cell("AFTERNOON", "SKILLING", 3), _cell("EVENING", "SKILLING", 1.5)],
+        },
+        headers=stu.headers,
+    )
+    client.put(
+        "/api/student/ledger",
+        json={"day": str(YESTERDAY), "cells": [_cell("MORNING", "SKILLING", 2)]},
+        headers=stu.headers,
+    )
+    after = client.get("/api/student/timesheet?days=7", headers=stu.headers).json()
+    assert after["skilling_hours"] == 6.5
+    assert after["by_activity_minutes"] == {"SKILLING": 390}
+    assert {(e["day"], e["minutes"]) for e in after["entries"]} == {
+        (str(TODAY), 270),
+        (str(YESTERDAY), 120),
+    }
+    # A one-day window counts today alone.
+    assert client.get("/api/student/timesheet?days=1", headers=stu.headers).json()["skilling_hours"] == 4.5
 
 
 @requires_db

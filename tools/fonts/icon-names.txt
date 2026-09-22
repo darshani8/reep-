@@ -63,6 +63,7 @@ lock
 lock_open
 logout
 mail
+menu
 menu_book
 mic
 military_tech
@@ -81,6 +82,7 @@ progress_activity
 radio_button_unchecked
 rate_review
 record_voice_over
+refresh
 remove
 save
 schedule

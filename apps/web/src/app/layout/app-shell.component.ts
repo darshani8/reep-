@@ -605,6 +605,20 @@ export class AppShellComponent {
   private readonly _accountMenuOpen = signal(false);
   readonly accountMenuOpen = this._accountMenuOpen.asReadonly();
 
+  /**
+   * The sidebar's drawer state — meaningful only below 900px, where
+   * reep-v2.scss takes `.desktop-nav` out of the flow and parks it off-screen.
+   * Above that the sidebar is always on screen, the hamburger and the scrim
+   * are `display: none`, and this stays false and costs nothing.
+   *
+   * ONE `<nav>`, NOT TWO. The drawer renders the same element with the same
+   * `navigation()` groups; a second mobile navigation would be a second list
+   * to keep in step with ADMIN_NAVIGATION and its three siblings, which is
+   * exactly what "the navigation is DATA, not markup" above exists to avoid.
+   */
+  private readonly _navOpen = signal(false);
+  readonly navOpen = this._navOpen.asReadonly();
+
   constructor() {
     if (this.session()?.role === 'STUDENT') void this.loadUsn();
 
@@ -628,6 +642,20 @@ export class AppShellComponent {
     } catch {
       // The sidebar is not worth an error state. Name only.
     }
+  }
+
+  toggleNav(): void {
+    this._navOpen.update((open) => !open);
+  }
+
+  /**
+   * Bound on the scrim, on Escape, and on every nav link — the link case being
+   * the one that matters: on a phone the destination is BEHIND the drawer, so
+   * a drawer left standing reads as a link that did nothing. Above 900px it is
+   * already false and every one of those is a no-op.
+   */
+  closeNav(): void {
+    this._navOpen.set(false);
   }
 
   toggleAccountMenu(): void {

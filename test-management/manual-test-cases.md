@@ -14,13 +14,13 @@ twin Playwright test under [`tests/`](../tests/).
 | # | Module | Cases | Automated tests | IDs | Screens |
 |---|---|---|---|---|---|
 | 01 | Authentication and access | [cases/01-authentication.md](cases/01-authentication.md) | `tests/auth-sync.spec.ts` | TC-001 to TC-099 | `/login`, sign-out, each role's landing page, route guards, `/account`, `/account/password`, `/activate`, `/reset` |
-| 02 | Registration and onboarding | [cases/02-registration.md](cases/02-registration.md) | `tests/registration.spec.ts` | TC-100 to TC-199 | `/register`, `/admin/registrations`, `/onboard` |
-| 03 | Student: home and progress | [cases/03-student-progress.md](cases/03-student-progress.md) | `tests/student-progress.spec.ts` | TC-200 to TC-299 | `/student`, `/student/skilling`, `/student/time-log`, `/student/courses`, `/student/records`, `/student/leaderboards` |
-| 04 | Student: profile, jobs and tools | [cases/04-student-tools.md](cases/04-student-tools.md) | `tests/student-tools.spec.ts` | TC-300 to TC-399 | `/student/profile`, `/student/uploads`, `/student/resume`, `/student/jobs`, `/student/english`, `/student/mentor-log`, `/student/interviews`, `/student/assistant`, `/student/agent` |
-| 05 | Faculty and alumni | [cases/05-faculty-alumni.md](cases/05-faculty-alumni.md) | `tests/faculty-alumni.spec.ts` | TC-400 to TC-499 | `/mentor/notebook`, `/mentor/mentees`, `/mentor/verifications`, `/mentor/upskilling`, `/mentor/signature`, `/mentor/leave`, `/mentor/agent`, `/alumni`, `/alumni/jobs` |
-| 06 | Admin: people and access | [cases/06-admin-people.md](cases/06-admin-people.md) | `tests/admin-people.spec.ts` | TC-500 to TC-599 | `/admin`, `/admin/students`, `/admin/students/:id`, `/admin/faculty`, `/admin/faculty/new`, `/admin/mentors`, `/admin/governance`, `/admin/governance/features`, `/admin/audit` |
-| 07 | Admin: daily operations | [cases/07-admin-operations.md](cases/07-admin-operations.md) | `tests/admin-operations.spec.ts` | TC-600 to TC-699 | `/admin/analytics`, `/admin/leave-approvals`, `/admin/jobs`, `/admin/placement`, `/admin/exports`, `/admin/imports`, `/admin/swoc`, `/admin/agent` |
-| 08 | Admin: college setup and interviews | [cases/08-admin-setup.md](cases/08-admin-setup.md) | `tests/admin-setup.spec.ts` | TC-700 to TC-799 | `/admin/colleges`, `/admin/setup`, `/admin/institution`, `/admin/catalogue`, `/admin/interviews`, `/admin/interview-questions` |
+| 02 | Registration and onboarding | [cases/02-registration.md](cases/02-registration.md) | `tests/02-registration.spec.ts` | TC-100 to TC-199 | `/register`, `/admin/registrations`, `/onboard` |
+| 03 | Student: home and progress | [cases/03-student-progress.md](cases/03-student-progress.md) | `tests/03-student-progress.spec.ts` | TC-200 to TC-299 | `/student`, `/student/skilling`, `/student/time-log`, `/student/courses`, `/student/records`, `/student/leaderboards` |
+| 04 | Student: profile, jobs and tools | [cases/04-student-tools.md](cases/04-student-tools.md) | `tests/04-student-tools.spec.ts` | TC-300 to TC-399 | `/student/profile`, `/student/uploads`, `/student/resume`, `/student/jobs`, `/student/english`, `/student/mentor-log`, `/student/interviews`, `/student/assistant`, `/student/agent` |
+| 05 | Faculty and alumni | [cases/05-faculty-alumni.md](cases/05-faculty-alumni.md) | `tests/05-faculty-alumni.spec.ts` | TC-400 to TC-499 | `/mentor/notebook`, `/mentor/mentees`, `/mentor/verifications`, `/mentor/upskilling`, `/mentor/signature`, `/mentor/leave`, `/mentor/agent`, `/alumni`, `/alumni/jobs` |
+| 06 | Admin: people and access | [cases/06-admin-people.md](cases/06-admin-people.md) | `tests/06-admin-people.spec.ts` | TC-500 to TC-599 | `/admin`, `/admin/students`, `/admin/students/:id`, `/admin/faculty`, `/admin/faculty/new`, `/admin/mentors`, `/admin/governance`, `/admin/governance/features`, `/admin/audit` |
+| 07 | Admin: daily operations | [cases/07-admin-operations.md](cases/07-admin-operations.md) | `tests/07-admin-operations.spec.ts` | TC-600 to TC-699 | `/admin/analytics`, `/admin/leave-approvals`, `/admin/jobs`, `/admin/placement`, `/admin/exports`, `/admin/imports`, `/admin/swoc`, `/admin/agent` |
+| 08 | Admin: college setup and interviews | [cases/08-admin-setup.md](cases/08-admin-setup.md) | `tests/08-admin-setup.spec.ts` | TC-700 to TC-799 | `/admin/colleges`, `/admin/setup`, `/admin/institution`, `/admin/catalogue`, `/admin/interviews`, `/admin/interview-questions` |
 
 ## How the manual and automated suites stay linked
 
@@ -29,7 +29,11 @@ twin Playwright test under [`tests/`](../tests/).
 2. **The automated test for a case carries the ID as a tag in its `test()`
    title**, for example `... @TC-002`. To run one case:
    `npx playwright test --grep @TC-002`. To run one module:
-   `npx playwright test tests/auth-sync.spec.ts`.
+   `npx playwright test tests/auth-sync.spec.ts`. The module specs are
+   numbered so a full run takes them in module order, with
+   `tests/auth-sync.spec.ts` last; module 04 runs before module 08 on purpose,
+   because module 08 gives the seeded student an interview record that module
+   04's "before any interview" cases need to be absent.
 3. **The automated test's `test.step()` titles are the case's steps, word for
    word**, numbered the same way, and every assertion is labelled with the
    expected result it checks (`TC-001 ER-4: ...`). A failure in the HTML report
@@ -54,7 +58,7 @@ twin Playwright test under [`tests/`](../tests/).
 | Failed | An expected result did not hold. "Failed Step" and "Error" say which. |
 | Blocked | A pre-condition did not hold (the API was down, the seed was missing, an account was locked). The run still fails. |
 | Known failure | The test is marked `test.fail()` for a known bug, and failed as expected. |
-| Skipped | The test is marked `test.skip()` or `test.fixme()`. |
+| Skipped | The test did not run, and "Error" says why: an optional feature is switched off on this server (Google sign-in), or the test data it needs was used up by earlier runs (open ledger days, a student who has never taken an interview). Reset the database to run it again. |
 | Did not run | Playwright never started it, because a hook, a serial sibling or the worker failed first. |
 | Not run | No test for the case was in this run. |
 | Not automated | The case is run by hand only. Its "Automated test" field says why. |

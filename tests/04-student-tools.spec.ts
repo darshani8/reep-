@@ -1534,12 +1534,14 @@ test.describe('Student: profile, jobs and tools', () => {
   }, testInfo) => {
     await signIn('student');
     const sessions = await page.request.get('/api/interview/sessions');
-    if (sessions.ok() && ((await sessions.json()) as unknown[]).length > 0) {
-      block(
-        testInfo,
-        'the student already has a mock interview record, so the empty state cannot show. Reset the database.',
-      );
-    }
+    // SKIPPED, not Blocked: an interview record is test data other cases
+    // create on purpose (module 08 records one to test the office's screens),
+    // not a broken environment. The full suite runs this module before module
+    // 08, so a run on a fresh database always reaches the empty state.
+    testInfo.skip(
+      sessions.ok() && ((await sessions.json()) as unknown[]).length > 0,
+      'the student already has a mock interview record, so the empty state cannot show. Reset the database.',
+    );
 
     await test.step('1. Open /student/interviews', async () => {
       await page.goto('/student/interviews');
@@ -1659,12 +1661,12 @@ test.describe('Student: profile, jobs and tools', () => {
   }, testInfo) => {
     await signIn('student');
     const consent = await page.request.get('/api/interview/consent');
-    if (((await consent.json()) as { consent: unknown }).consent !== null) {
-      block(
-        testInfo,
-        'the student has already agreed to the interview terms, so Start no longer shows them. Reset the database.',
-      );
-    }
+    // SKIPPED, not Blocked, for the reason given in TC-322: agreeing to the
+    // terms cannot be undone, and module 08 agrees on the student's behalf.
+    testInfo.skip(
+      ((await consent.json()) as { consent: unknown }).consent !== null,
+      'the student has already agreed to the interview terms, so Start no longer shows them. Reset the database.',
+    );
     const card = (await (await page.request.get('/api/interview/policy')).json()) as {
       policy: { source: string };
       usage: { completed: number };

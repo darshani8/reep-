@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Screens | `/student`, `/student/skilling`, `/student/time-log`, `/student/courses`, `/student/records`, `/student/leaderboards` |
-| Automated tests | [`tests/student-progress.spec.ts`](../../tests/student-progress.spec.ts) |
+| Automated tests | [`tests/03-student-progress.spec.ts`](../../tests/03-student-progress.spec.ts) |
 | ID range | TC-200 to TC-299 |
 
 Setup, the seeded accounts and the rules that link these cases to their
@@ -26,7 +26,7 @@ computer clock.
 | Module | Student home: header |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-200` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-200` |
 
 ### Pre-conditions
 
@@ -65,7 +65,7 @@ computer clock.
 | Module | Student home: programme stage cards |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-201` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-201` |
 
 ### Pre-conditions
 
@@ -100,7 +100,7 @@ None beyond the seeded student.
 | Module | Student home: programme stage cards |
 | Priority | P2 |
 | Type | Functional, navigation |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-202` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-202` |
 
 ### Pre-conditions
 
@@ -136,7 +136,7 @@ None beyond the seeded student.
 | Module | Student home: placement readiness |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-203` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-203` |
 
 ### Pre-conditions
 
@@ -171,7 +171,7 @@ None beyond the seeded student.
 | Module | Student home: recommendations |
 | Priority | P2 |
 | Type | Functional, navigation |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-204` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-204` |
 
 ### Pre-conditions
 
@@ -205,7 +205,7 @@ None beyond the seeded student.
 | Module | Student home: record summary |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-205` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-205` |
 
 ### Pre-conditions
 
@@ -241,7 +241,7 @@ None beyond the seeded student.
 | Module | Skilling: badge board |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-210` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-210` |
 
 ### Pre-conditions
 
@@ -277,7 +277,7 @@ None beyond the seeded student.
 | Module | Skilling: badge board |
 | Priority | P3 |
 | Type | Functional, positive |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-211` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-211` |
 
 ### Pre-conditions
 
@@ -314,7 +314,7 @@ None beyond the seeded student.
 | Module | Skilling: claim form |
 | Priority | P2 |
 | Type | Functional, validation |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-212` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-212` |
 
 ### Pre-conditions
 
@@ -356,7 +356,7 @@ None beyond the seeded student.
 | Module | Skilling: claim form |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-213` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-213` |
 
 ### Pre-conditions
 
@@ -415,7 +415,7 @@ the automated run.", and the badge reads "Not claimed" again.
 | Module | Skilling: claim form |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-214` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-214` |
 
 ### Pre-conditions
 
@@ -454,7 +454,7 @@ the automated run.", and the badge reads "Not claimed" again.
 | Module | Time Allocation Ledger |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-220` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-220` |
 
 ### Pre-conditions
 
@@ -489,7 +489,7 @@ None beyond the seeded student.
 | Module | Time Allocation Ledger |
 | Priority | P1 |
 | Type | Functional, regression |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-221` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-221` |
 
 A known defect sits next to this case: each click loads its day, and the
 screen shows whichever load finishes last (`load()` in
@@ -539,7 +539,7 @@ None beyond the seeded student.
 | Module | Time Allocation Ledger |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-222` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-222` |
 
 ### Pre-conditions
 
@@ -596,7 +596,7 @@ with no hours, whose chip reads "Draft · 0 h".
 | Module | Time Allocation Ledger |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-223` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-223` |
 
 ### Pre-conditions
 
@@ -637,7 +637,7 @@ with no hours, whose chip reads "Draft · 0 h".
 | Module | Time Allocation Ledger |
 | Priority | P1 |
 | Type | Functional, validation |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-224` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-224` |
 
 ### Pre-conditions
 
@@ -693,7 +693,7 @@ back the hours the day had before.
 | Module | Time Allocation Ledger: weekly skilling |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-225` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-225` |
 
 ### Pre-conditions
 
@@ -740,7 +740,7 @@ day had before.
 | Module | Time Allocation Ledger |
 | Priority | P1 |
 | Type | Functional, negative |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-226` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-226` |
 
 ### Pre-conditions
 
@@ -776,7 +776,7 @@ None beyond the seeded student.
 | Module | Time Allocation Ledger |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-227` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-227` |
 
 A known defect: the design (`docs/design-v3-student-app/HANDOFF.md`, "Time
 Sheet") places a "Copy yesterday" button beside Submit day, and the API
@@ -823,7 +823,7 @@ hours the day had before.
 | Module | Time Allocation Ledger |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-228` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-228` |
 
 ### Pre-conditions
 
@@ -870,7 +870,7 @@ reset.
 | Module | Courses |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-230` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-230` |
 
 ### Pre-conditions
 
@@ -905,7 +905,7 @@ None beyond the seeded student.
 | Module | Records |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-240` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-240` |
 
 ### Pre-conditions
 
@@ -976,7 +976,7 @@ The new student's own email address and password.
 | Module | Leaderboards |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-250` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-250` |
 
 ### Pre-conditions
 
@@ -1015,7 +1015,7 @@ None beyond the seeded student.
 | Module | Leaderboards |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-251` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-251` |
 
 ### Pre-conditions
 
@@ -1055,7 +1055,7 @@ None beyond the seeded student.
 | Module | Leaderboards |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-252` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-252` |
 
 ### Pre-conditions
 
@@ -1104,7 +1104,7 @@ TC-253, a removed batch mate is still listed on this card.
 | Module | Leaderboards |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-253` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-253` |
 
 A known defect: removing a student answers "… is off every screen and
 cannot sign in", but the leaderboard's roster query
@@ -1157,7 +1157,7 @@ Admin can restore them from the roster's "Removed" filter.
 | Module | Leaderboards |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/student-progress.spec.ts`, title tagged `@TC-254` |
+| Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-254` |
 
 ### Pre-conditions
 

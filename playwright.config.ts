@@ -7,9 +7,9 @@
  * URL: it drives the SPA and the API over HTTP, exactly as a person at a
  * browser does.
  *
- * Every test is the automated twin of a case in
- * test-management/manual-test-cases.md, linked by the `@TC-NNN` tag in its
- * title. The CSV reporter writes a row for every case to
+ * Every test is the automated twin of a case in test-management/cases/ (the
+ * index is test-management/manual-test-cases.md), linked by the `@TC-NNN` tag
+ * in its title. The CSV reporter writes a row for every case to
  * manual-test-results.csv and fails the run if the two files have drifted apart.
  */
 import { defineConfig, devices } from '@playwright/test';
@@ -39,7 +39,7 @@ export default defineConfig({
       './tests/reporters/manual-csv-reporter.ts',
       {
         outputFile: 'manual-test-results.csv',
-        manualCases: 'test-management/manual-test-cases.md',
+        manualCases: 'test-management/cases',
       },
     ],
   ],

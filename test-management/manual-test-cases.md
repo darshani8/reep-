@@ -1,44 +1,69 @@
-# Manual test cases: Authentication
+# REEP manual test cases
 
-| Suite | Authentication (sign-in and password reset) |
+This is the index of REEP's manual test cases. The cases themselves live in
+one file per module under [`cases/`](cases/), and every automated case has a
+twin Playwright test under [`tests/`](../tests/).
+
+| Application under test | REEP web app: the Angular SPA and the FastAPI API behind it |
 |---|---|
-| Application under test | REEP web app, `/login` screen (`apps/web/src/app/features/login/`) |
 | Environment | Local development: `npx ng serve` on http://localhost:4200, API on port 3300 with `ENV=dev`, dev seed applied |
-| Automated twin | [`tests/auth-sync.spec.ts`](../tests/auth-sync.spec.ts) |
 | Results | `manual-test-results.csv` at the repository root, written by every `npm run test:e2e` |
+
+## Modules
+
+| # | Module | Cases | Automated tests | IDs | Screens |
+|---|---|---|---|---|---|
+| 01 | Authentication and access | [cases/01-authentication.md](cases/01-authentication.md) | `tests/auth-sync.spec.ts` | TC-001 to TC-099 | `/login`, sign-out, each role's landing page, route guards, `/account`, `/account/password`, `/activate`, `/reset` |
+| 02 | Registration and onboarding | [cases/02-registration.md](cases/02-registration.md) | `tests/registration.spec.ts` | TC-100 to TC-199 | `/register`, `/admin/registrations`, `/onboard` |
+| 03 | Student: home and progress | [cases/03-student-progress.md](cases/03-student-progress.md) | `tests/student-progress.spec.ts` | TC-200 to TC-299 | `/student`, `/student/skilling`, `/student/time-log`, `/student/courses`, `/student/records`, `/student/leaderboards` |
+| 04 | Student: profile, jobs and tools | [cases/04-student-tools.md](cases/04-student-tools.md) | `tests/student-tools.spec.ts` | TC-300 to TC-399 | `/student/profile`, `/student/uploads`, `/student/resume`, `/student/jobs`, `/student/english`, `/student/mentor-log`, `/student/interviews`, `/student/assistant`, `/student/agent` |
+| 05 | Faculty and alumni | [cases/05-faculty-alumni.md](cases/05-faculty-alumni.md) | `tests/faculty-alumni.spec.ts` | TC-400 to TC-499 | `/mentor/notebook`, `/mentor/mentees`, `/mentor/verifications`, `/mentor/upskilling`, `/mentor/signature`, `/mentor/leave`, `/mentor/agent`, `/alumni`, `/alumni/jobs` |
+| 06 | Admin: people and access | [cases/06-admin-people.md](cases/06-admin-people.md) | `tests/admin-people.spec.ts` | TC-500 to TC-599 | `/admin`, `/admin/students`, `/admin/students/:id`, `/admin/faculty`, `/admin/faculty/new`, `/admin/mentors`, `/admin/governance`, `/admin/governance/features`, `/admin/audit` |
+| 07 | Admin: daily operations | [cases/07-admin-operations.md](cases/07-admin-operations.md) | `tests/admin-operations.spec.ts` | TC-600 to TC-699 | `/admin/analytics`, `/admin/leave-approvals`, `/admin/jobs`, `/admin/placement`, `/admin/exports`, `/admin/imports`, `/admin/swoc`, `/admin/agent` |
+| 08 | Admin: college setup and interviews | [cases/08-admin-setup.md](cases/08-admin-setup.md) | `tests/admin-setup.spec.ts` | TC-700 to TC-799 | `/admin/colleges`, `/admin/setup`, `/admin/institution`, `/admin/catalogue`, `/admin/interviews`, `/admin/interview-questions` |
 
 ## How the manual and automated suites stay linked
 
-1. **Every case has a permanent ID, `TC-NNN`.** An ID is never reused or
-   renumbered, even when its case is retired.
+1. **Every case has a permanent ID, `TC-NNN`,** inside its module's range. An
+   ID is never reused or renumbered, even when its case is retired.
 2. **The automated test for a case carries the ID as a tag in its `test()`
    title**, for example `... @TC-002`. To run one case:
-   `npx playwright test --grep @TC-002`.
-3. **The automated test's `test.step()` titles are the steps below, word for
-   word**, and every assertion is labelled with the expected result it checks
-   (`TC-001 ER-4: ...`). A failure in the HTML report or the CSV names the
-   step and the expected result that failed.
-4. **`manual-test-results.csv` has a row for every case**, carrying the
-   result of the test tagged with its ID. A second test with the same tag, or
-   a second browser project, adds a row. A case whose "Automated test" field
-   names no tag is listed as `Not automated`. A case whose test was left out
-   of the run (by `--grep`, for example) is listed as `Not run`. The run fails,
-   and the case's "Sync Problems" cell says why, when a test's title has no
-   `@TC-NNN` tag or names a case missing from this file, when its steps differ
-   from the case's steps, or when a full run has no test for a case whose
-   field names one.
+   `npx playwright test --grep @TC-002`. To run one module:
+   `npx playwright test tests/auth-sync.spec.ts`.
+3. **The automated test's `test.step()` titles are the case's steps, word for
+   word**, numbered the same way, and every assertion is labelled with the
+   expected result it checks (`TC-001 ER-4: ...`). A failure in the HTML report
+   or the CSV names the step and the expected result that failed.
+4. **`manual-test-results.csv` has a row for every case in `cases/`**,
+   carrying the result of the test tagged with its ID. A second test with the
+   same tag, or a second browser project, adds a row. A case whose "Automated
+   test" field names no tag is listed as `Not automated`. A case whose test
+   was left out of the run (by `--grep`, for example) is listed as `Not run`.
+   The run fails, and the case's "Sync Problems" cell says why, when a test's
+   title has no `@TC-NNN` tag or names a case missing from `cases/`, when its
+   steps differ from the case's steps, when two cases share an ID, or when a
+   full run has no test for a case whose field names one.
 5. **A change to a case's steps or expected results changes its automated test
    in the same commit, and the other way round.**
 
-## Traceability matrix
+## What each status in the CSV means
 
-| ID | Title | Priority | Type | Automated test | Manual-only checks |
-|---|---|---|---|---|---|
-| TC-001 | Successful login with valid credentials | P1 | Functional, positive | `tests/auth-sync.spec.ts` `@TC-001` | None |
-| TC-002 | Login is refused for an invalid password | P1 | Functional, negative | `tests/auth-sync.spec.ts` `@TC-002` | None |
-| TC-003 | Password reset request | P2 | Functional, positive | `tests/auth-sync.spec.ts` `@TC-003` | ER-4 (the email itself) |
+| Status | Meaning |
+|---|---|
+| Passed | The automated test ran and every expected result held. |
+| Failed | An expected result did not hold. "Failed Step" and "Error" say which. |
+| Blocked | A pre-condition did not hold (the API was down, the seed was missing, an account was locked). The run still fails. |
+| Known failure | The test is marked `test.fail()` for a known bug, and failed as expected. |
+| Skipped | The test is marked `test.skip()` or `test.fixme()`. |
+| Did not run | Playwright never started it, because a hook, a serial sibling or the worker failed first. |
+| Not run | No test for the case was in this run. |
+| Not automated | The case is run by hand only. Its "Automated test" field says why. |
 
-## Setup for every case
+"Manual-only Checks" lists the expected results marked **Manual only.** in a
+case: the ones a browser test cannot observe, such as whether an email
+arrived. Check those by hand, even when the row says Passed.
+
+## Setup
 
 These steps prepare the environment once. Each case's own pre-conditions
 list what must be true before that case starts.
@@ -50,197 +75,37 @@ list what must be true before that case starts.
    `python -m uvicorn app.main:app --port 3300`.
 4. From `apps/web`, start the web app: `npx ng serve`.
 
-The dev seed creates the accounts used below. The seed refuses to run when
-`ENV=prod`, so these passwords never exist on a production server.
+To run the automated suite, from the repository root: `npm ci`, then
+`npx playwright install chromium` once, then `npm run test:e2e`. Playwright
+starts the web app itself when nothing is serving port 4200; the API must
+already be running. Run the suite on its own: REEP keeps one live session per
+account, and the tests sign in as the seeded accounts, so a pytest run or a
+browser signed in as the same account at the same time signs the tests out.
 
----
+## Seeded accounts
 
-## TC-001 — Successful login with valid credentials
+The dev seed creates these accounts. It refuses to run when `ENV=prod`, so
+these passwords never exist on a production server.
 
-| Field | Value |
-|---|---|
-| ID | TC-001 |
-| Module | Authentication: password sign-in |
-| Priority | P1 |
-| Type | Functional, positive |
-| Automated test | `tests/auth-sync.spec.ts`, title tagged `@TC-001` |
+| Role | Email | Password | Name | Lands on |
+|---|---|---|---|---|
+| Student | `student@bgscet.ac.in` | `student123` | Test Student | `/student` |
+| Faculty (MENTOR) | `mentor@bgscet.ac.in` | `mentor123` | Test Mentor | `/mentor/notebook` |
+| Alumni | `alumni@bgscet.ac.in` | `alumni123` | Test Alumnus | `/alumni` |
+| Main Admin | `admin@bgscet.ac.in` | `admin123` | Main Admin (seed) | `/admin` |
 
-### Pre-conditions
+## Writing a case
 
-1. The web app and the API are running as described in "Setup for every
-   case", and the API's `ENV` is a development one (`dev`). The dev seed
-   that creates the test account refuses to run on `ENV=prod`, and a
-   development `ENV` always offers password sign-in. Elsewhere the password
-   form also appears when `PASSWORD_LOGIN=true`, or when that setting is
-   blank and some account holds a real password, so a visible password form
-   does not by itself mean the server is a development one.
-2. The dev seed has been applied, so the student account in the test data
-   exists.
-3. The browser has no REEP session and no remembered sign-in: use a fresh
-   private window, or sign out and clear this site's local storage (the
-   `reep.login.id` and `reep.login.portal` keys that "Remember me" sets).
-   Signing out alone leaves those keys, and the sign-in page then opens on
-   the remembered portal with the ID already filled in.
-4. The account has had fewer than 10 failed sign-in attempts in the last 15
-   minutes. After 10, the API pauses password sign-in for that account. A
-   successful sign-in resets the count.
-5. Nothing else signs in as `student@bgscet.ac.in` while the case runs: no
-   other browser or device, no pytest run and no other Playwright run
-   against the same database. REEP keeps one live session per account, so
-   another sign-in ends this one, either at once or within 60 seconds. The
-   reload in step 6 would then land on `/login?next=%2Fstudent&signedOut=elsewhere`,
-   and ER-5 would fail for a reason outside the app.
+Copy the layout of an existing case in [cases/01-authentication.md](cases/01-authentication.md):
 
-### Test data
+- a `## TC-NNN — Title` heading;
+- a field table whose "Automated test" row names the spec file and the tag,
+  or says `None (manual only)` and why;
+- **Pre-conditions**, **Test data**, numbered **Steps**, and an **Expected
+  results** table with `ER-n`, the step it is checked after, and the result.
+  Start a result with **Manual only.** when a browser test cannot observe it;
+- **Post-conditions**, when the case leaves something changed.
 
-| Field | Value |
-|---|---|
-| Portal | Student |
-| Email | `student@bgscet.ac.in` |
-| Password | `student123` |
-| Name on record | Test Student |
-
-### Steps
-
-1. Open the sign-in page at `/login`.
-2. Under "Choose your portal", select Student.
-3. Enter the email address in the "Institutional email or USN" field.
-4. Enter the password in the "Password" field.
-5. Click Sign in.
-6. Reload the page.
-
-### Expected results
-
-| # | After step | Expected result |
-|---|---|---|
-| ER-1 | 1 | The "Welcome back" sign-in card is shown, with the "Institutional email or USN" field, the "Password" field and a Sign in button. |
-| ER-2 | 2 | The Student portal card is marked as selected, and the ID field is labelled "Institutional email or USN". |
-| ER-3 | 4 | The password is masked, not shown as readable text. |
-| ER-4 | 5 | The browser leaves the sign-in page for the student home, `/student`, which greets the student by first name: "Welcome back, Test". |
-| ER-5 | 6 | The student is still signed in after the reload: the page stays on `/student` and shows "Welcome back, Test" again. |
-
-### Post-conditions
-
-The account now holds one live session. REEP allows one device per account,
-so any other browser signed in as this student is signed out on its next
-request.
-
----
-
-## TC-002 — Login is refused for an invalid password
-
-| Field | Value |
-|---|---|
-| ID | TC-002 |
-| Module | Authentication: password sign-in |
-| Priority | P1 |
-| Type | Functional, negative |
-| Automated test | `tests/auth-sync.spec.ts`, title tagged `@TC-002` |
-
-### Pre-conditions
-
-1. The web app and the API are running as described in "Setup for every
-   case", with a development `ENV`.
-2. The dev seed has been applied, so the email in the test data belongs to a
-   real account. The case checks a wrong password for an existing account.
-3. The browser has no REEP session and no remembered sign-in: use a fresh
-   private window, or sign out and clear this site's local storage (the
-   `reep.login.id` and `reep.login.portal` keys that "Remember me" sets).
-4. The account has had fewer than 10 failed sign-in attempts in the last 15
-   minutes. Past that, the API answers 429, and the card shows "Too many
-   failed attempts for this account or from this network, so password
-   sign-in is paused for a few minutes…" instead of the message in ER-1.
-
-### Test data
-
-| Field | Value |
-|---|---|
-| Portal | Student |
-| Email | `student@bgscet.ac.in` |
-| Password | `wrong-password` (any value other than the account's real password) |
-
-### Steps
-
-1. Open the sign-in page at `/login`.
-2. Under "Choose your portal", select Student.
-3. Enter the email address in the "Institutional email or USN" field.
-4. Enter the invalid password in the "Password" field.
-5. Click Sign in.
-6. Open `/student` directly in the same tab.
-
-### Expected results
-
-| # | After step | Expected result |
-|---|---|---|
-| ER-1 | 5 | An error message appears on the card: "That email and password did not match an account. Check both, or use Continue with Google." It does not say which of the two was wrong. |
-| ER-2 | 5 | The page stays on the sign-in page, `/login`. |
-| ER-3 | 5 | The password field is emptied, and the email address stays filled in. |
-| ER-4 | 6 | No session was created: the app sends the browser back to the sign-in page, and the address bar reads `/login?next=%2Fstudent`. |
-
-### Post-conditions
-
-One failed attempt is added to the account's count. The count lasts until
-15 minutes after the first failure in the current window, not 15 minutes
-after this attempt. The API keeps it in memory, so restarting the API clears
-it, and so does a successful sign-in (TC-001).
-
----
-
-## TC-003 — Password reset request
-
-| Field | Value |
-|---|---|
-| ID | TC-003 |
-| Module | Authentication: forgotten password |
-| Priority | P2 |
-| Type | Functional, positive |
-| Automated test | `tests/auth-sync.spec.ts`, title tagged `@TC-003` |
-
-### Pre-conditions
-
-1. The web app and the API are running as described in "Setup for every
-   case", with a development `ENV`. The "Forgot password?" link sits under
-   the password field, which is shown only when the server offers password
-   sign-in.
-2. In the last hour the API has received fewer than 3 reset requests for
-   this address, and fewer than 100 reset requests in total, for any address.
-   A request refused by the per-address limit still counts toward the 100.
-   The API keeps both counts in memory, so restarting it clears them. Past
-   either limit, it answers "Too many reset requests. Please wait an hour and
-   try again."
-3. For ER-4 only: access to the API's console output (a development server
-   with no mail transport), or to the account's mailbox.
-
-### Test data
-
-| Field | Value |
-|---|---|
-| Email | `student@bgscet.ac.in` (the dev seed's student account) |
-
-The automated run enters a new, unregistered address on every run instead,
-of the form `tc-003-<run id>@example.invalid`. That keeps repeated runs under
-the 3-per-hour limit, though each run still uses one of the 100 per hour. It
-checks the same thing: the page shows the same sentence for every address,
-registered or not (ER-3). The only difference a registered address makes is
-the email itself, and ER-4 is checked by hand.
-
-### Steps
-
-1. Open the sign-in page at `/login`.
-2. Click "Forgot password?".
-3. Enter the email address in the "Email address" field.
-4. Click Send reset link.
-
-### Expected results
-
-| # | After step | Expected result |
-|---|---|---|
-| ER-1 | 2 | A reset form opens on the sign-in card, under the Sign in button, with an "Email address" field and a Send reset link button. The button is disabled while the field is empty. |
-| ER-2 | 3 | The Send reset link button becomes enabled. |
-| ER-3 | 4 | The form is replaced by exactly this sentence: "If that address belongs to a REEP account, we've emailed it a link to reset your password - or to set one up, if you have not yet." The page stays on `/login`. |
-| ER-4 | 4 | **Manual only.** An email with the subject "Reset your REEP password" is sent to the address. It contains a single-use link to `/reset?token=…` that expires in 60 minutes. A development server with no mail transport (`SES_FROM_ADDRESS` blank) logs the email to the API console as `MAIL (no transport configured) to=student@bgscet.ac.in subject='Reset your REEP password'`. |
-
-### Post-conditions
-
-The account's password is unchanged until the emailed link is used. A new
-reset request replaces any earlier link that has not been used yet.
+A case must be repeatable on the same database: a case that creates something
+uses a name unique to the run, and a case that changes seeded data puts it
+back, or says in its post-conditions what it leaves behind.

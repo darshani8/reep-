@@ -1,36 +1,25 @@
 /**
- * The automated twins of the manual cases in test-management/manual-test-cases.md.
+ * Authentication: the automated twins of the cases in
+ * test-management/cases/01-authentication.md.
  *
  * THE TAG IS THE LINK. Each test's title ends with the `@TC-NNN` ID of the case
  * it automates, its top-level `test.step()` titles are that case's steps word
  * for word, and every assertion message names the expected result it checks
  * (`TC-001 ER-4: ...`). The CSV reporter (tests/reporters/manual-csv-reporter.ts)
- * FAILS THE RUN when a tag names no case in the manual file or a test's steps
+ * FAILS THE RUN when a tag names no case in the manual files or a test's steps
  * have drifted from the manual steps, so the two suites cannot quietly
  * disagree. Change a case and its test in the same commit.
  *
- * These drive the REAL app: the Angular dev server and the API on a
- * development ENV with the dev seed applied (the manual file's "Setup for
- * every case"). Nothing is mocked, because a mocked `/api/auth/login` would
- * test the mock. `beforeEach` checks the shared pre-conditions first and marks
- * the test Blocked when they do not hold. A test still FAILS in that case, so
- * a run against a stopped API is red rather than a quiet row of skips.
- *
- * A pre-condition that goes unchecked turns into a false result, and TC-002 is
- * the sharp case: the API refuses an UNKNOWN or disabled account with the same
- * 401 sentence as a wrong password (deliberately, see `login` in
- * apps/api-py/app/routers/auth.py). So without the check, TC-002 "passes"
- * against a database the seed never reached.
+ * These drive the REAL app, with nothing mocked, because a mocked
+ * `/api/auth/login` would test the mock. The shared pre-conditions are checked
+ * before every test by the `test` imported from ./support/reep, which marks
+ * the test Blocked when they do not hold.
  */
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { ACCOUNTS, expect, test } from './support/reep';
+import type { Page } from '@playwright/test';
 
-/** The "Test data" tables. `python -m app.seed` creates this account, and it
- *  refuses to run on ENV=prod, so these credentials exist only on dev/CI. */
-const STUDENT = {
-  email: 'student@bgscet.ac.in',
-  password: 'student123',
-  firstName: 'Test',
-} as const;
+/** The "Test data" tables: the dev seed's student. */
+const STUDENT = { ...ACCOUNTS.student, firstName: 'Test' } as const;
 const WRONG_PASSWORD = 'wrong-password';
 
 /** The app's own words, so a copy change fails a named expected result
@@ -53,79 +42,6 @@ const signInButton = (page: Page) => page.getByRole('button', { name: 'Sign in',
 const studentPortal = (page: Page) => page.getByRole('radio', { name: /^Student\b/ });
 const greeting = (page: Page) =>
   page.getByRole('heading', { level: 1, name: `Welcome back, ${STUDENT.firstName}`, exact: true });
-
-/**
- * The pre-conditions every case shares, in the order they fail:
- *   1. the web app answers, and the API answers behind it;
- *   2. the API offers password sign-in. The login screen hides the password
- *      form, and "Forgot password?" with it, unless `GET /api/auth/sso/status`
- *      says the password door is open;
- *   3. the dev seed's student signs in with its seed password. That one request
- *      proves the database is up and the seed was applied (TC-001 and TC-002
- *      pre-condition 2). It also proves the account's failure budget is not
- *      spent (pre-condition 4), and a success returns that budget, so TC-002
- *      run on its own, over and over, never meets the limiter.
- * The sign-in uses the `request` fixture, whose cookie jar is not the page's,
- * so the page still starts with no session (pre-condition 3).
- */
-async function preconditionProblem(request: APIRequestContext): Promise<string | null> {
-  let response;
-  try {
-    response = await request.get('/api/auth/sso/status');
-  } catch (error) {
-    return `the web app did not answer (${(error as Error).message.split('\n')[0]}). Start it with "npx ng serve" in apps/web.`;
-  }
-  if (!response.ok()) {
-    return (
-      `GET /api/auth/sso/status answered ${response.status()}, so the API is not reachable behind the web app. ` +
-      'Start it on port 3300 (see "Setup for every case" in test-management/manual-test-cases.md).'
-    );
-  }
-  let status: { password_login_available?: unknown };
-  try {
-    status = (await response.json()) as typeof status;
-  } catch {
-    return 'GET /api/auth/sso/status did not answer JSON, so REEP_BASE_URL is not pointing at a REEP web app.';
-  }
-  if (status.password_login_available !== true) {
-    return 'the server does not offer password sign-in. Run the API with ENV=dev, as in "Setup for every case".';
-  }
-
-  const signIn = await request.post('/api/auth/login', {
-    data: { email: STUDENT.email, password: STUDENT.password },
-  });
-  if (signIn.status() === 429) {
-    return (
-      `the API has paused password sign-in for ${STUDENT.email} after 10 failed attempts. ` +
-      'Wait 15 minutes, or restart the API, which clears the count.'
-    );
-  }
-  if (signIn.status() === 401) {
-    return `${STUDENT.email} does not sign in with its seed password. Run "python -m app.seed" in apps/api-py.`;
-  }
-  if (signIn.status() === 403) {
-    return `${STUDENT.email} is disabled or removed, so it cannot sign in. Restore it in the console, or seed a fresh database.`;
-  }
-  if (!signIn.ok()) {
-    return (
-      `POST /api/auth/login answered ${signIn.status()}, so the API cannot read its database. ` +
-      'Start Postgres with "docker compose up -d", then apply migrations and the dev seed.'
-    );
-  }
-  if ('otp_required' in ((await signIn.json()) as object)) {
-    return 'the server asks for an emailed code after the password (OTP_REQUIRED), which these cases do not cover.';
-  }
-  return null;
-}
-
-test.beforeEach(async ({ request }, testInfo) => {
-  const problem = await preconditionProblem(request);
-  if (problem) {
-    // Read by the CSV reporter, which records the case as Blocked, not Failed.
-    testInfo.annotations.push({ type: 'blocked', description: problem });
-    throw new Error(`Blocked by a pre-condition: ${problem}`);
-  }
-});
 
 test.describe('Authentication', () => {
   test('Successful login with valid credentials @TC-001', async ({ page }) => {

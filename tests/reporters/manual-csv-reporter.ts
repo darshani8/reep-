@@ -1,6 +1,7 @@
 /**
  * Writes `manual-test-results.csv`: a row for every manual test case in
- * test-management/manual-test-cases.md, carrying the result of the automated
+ * test-management/cases/ (one markdown file per module, indexed by
+ * test-management/manual-test-cases.md), carrying the result of the automated
  * test tagged with its ID.
  *
  * WHY THIS IS A FILE AND NOT A DEPENDENCY. The brief named the npm package
@@ -11,8 +12,8 @@
  * when this was written is exactly the name a typosquatter registers.
  *
  * WHAT IT ENFORCES, and why a reporter is the place. The link between the
- * suites is a `@TC-NNN` tag in a test's title (see the manual file's "How the
- * manual and automated suites stay linked"), and a convention nobody checks
+ * suites is a `@TC-NNN` tag in a test's title (see "How the manual and automated
+ * suites stay linked" in test-management/manual-test-cases.md), and a convention nobody checks
  * lasts until the first rename. So the run FAILS, through `onEnd`'s status
  * override, when:
  *   - a test carries no `@TC-NNN` tag, or names a case the manual file lacks;
@@ -47,7 +48,8 @@ import type {
 export interface ManualCsvReporterOptions {
   /** Where the CSV is written, relative to the Playwright config file. */
   outputFile?: string;
-  /** The manual test cases, relative to the Playwright config file. */
+  /** The manual test cases, relative to the Playwright config file: one
+   *  markdown file, or a directory whose `*.md` files are all read. */
   manualCases?: string;
   /** Set by Playwright itself, not by the config: `'list'` under `--list`. */
   _mode?: string;
@@ -60,6 +62,10 @@ export interface ManualCsvReporterOptions {
 export interface ManualCase {
   id: string;
   title: string;
+  /** The `# Title` of the file the case is in: its module. */
+  module: string;
+  /** The file the case is in, as given to `parseManualCases`. */
+  file: string;
   /** From the case's "Automated test" field: does it name a `@TC-NNN` tag? */
   automated: boolean;
   steps: string[];
@@ -69,6 +75,7 @@ export interface ManualCase {
 
 const COLUMNS = [
   'Test Case ID',
+  'Module',
   'Manual Test Case',
   'Automated Test',
   'Project',
@@ -95,15 +102,17 @@ const MANUAL_ONLY_ROW = /^\|\s*(ER-\d+)\s*\|[^|]*\|\s*\*\*Manual only\.?\*\*\s*(
 const ANSI = /\u001b\[[0-9;]*m/g;
 
 /**
- * Reads the cases out of the manual file: the `## TC-NNN — Title` heading, the
+ * Reads the cases out of one manual file: the `# Module` title, each case's
+ * `## TC-NNN — Title` heading, the
  * "Automated test" row of its field table, the numbered list under its
  * "### Steps" heading and the "**Manual only.**" rows under "### Expected
  * results". Any other level-2 heading ends the case. A step is its list
  * item's first paragraph, lazy continuation lines included; nested lists,
  * later paragraphs and fenced code are not part of it.
  */
-export function parseManualCases(markdown: string): ManualCase[] {
+export function parseManualCases(markdown: string, file = ''): ManualCase[] {
   const cases: ManualCase[] = [];
+  let module = '';
   let current: ManualCase | undefined;
   let section = '';
   let inStep = false;
@@ -116,9 +125,23 @@ export function parseManualCases(markdown: string): ManualCase[] {
       continue;
     }
     if (fenced) continue;
+    const title = /^#\s+(.+)$/.exec(line);
+    if (title) {
+      module = title[1].trim();
+      current = undefined;
+      continue;
+    }
     const heading = CASE_HEADING.exec(line);
     if (heading) {
-      current = { id: heading[1], title: heading[2], automated: false, steps: [], manualOnly: [] };
+      current = {
+        id: heading[1],
+        title: heading[2],
+        module,
+        file,
+        automated: false,
+        steps: [],
+        manualOnly: [],
+      };
       cases.push(current);
       section = '';
       inStep = false;
@@ -228,7 +251,7 @@ export default class ManualCsvReporter implements Reporter {
 
   constructor(options: ManualCsvReporterOptions = {}) {
     this.outputFile = options.outputFile ?? 'manual-test-results.csv';
-    this.manualCases = options.manualCases ?? 'test-management/manual-test-cases.md';
+    this.manualCases = options.manualCases ?? 'test-management/cases';
     this.listOnly = options._mode === 'list';
     this.commandHash = options._commandHash;
   }
@@ -251,19 +274,19 @@ export default class ManualCsvReporter implements Reporter {
       syncByCase.set(id, [...(syncByCase.get(id) ?? []), problem]);
     };
 
-    const manualPath = path.resolve(this.configDir, this.manualCases);
     let cases: ManualCase[] = [];
     try {
-      cases = parseManualCases(fs.readFileSync(manualPath, 'utf8'));
+      cases = this.readManualCases();
     } catch (error) {
       problems.push(
-        `cannot read the manual test cases at ${manualPath}: ${(error as Error).message}`,
+        `cannot read the manual test cases at ${this.manualCases}: ${(error as Error).message}`,
       );
     }
-    const seen = new Set<string>();
+    const seen = new Map<string, ManualCase>();
     for (const c of cases) {
-      if (seen.has(c.id)) flag(c.id, `${this.manualCases} lists ${c.id} more than once`);
-      seen.add(c.id);
+      const first = seen.get(c.id);
+      if (first) flag(c.id, `${c.id} is a case in both ${first.file} and ${c.file}`);
+      else seen.set(c.id, c);
     }
     const caseById = new Map(cases.map((c) => [c.id, c]));
 
@@ -315,6 +338,7 @@ export default class ManualCsvReporter implements Reporter {
       if (tests.length === 0) {
         rows.push({
           'Test Case ID': manual.id,
+          Module: manual.module,
           'Manual Test Case': manual.title,
           Status: manual.automated ? 'Not run' : 'Not automated',
           'Sync Problems': sync,
@@ -333,6 +357,25 @@ export default class ManualCsvReporter implements Reporter {
     console.error(`\nThe automated tests and ${this.manualCases} are out of sync:`);
     for (const problem of problems) console.error(`  - ${problem}`);
     return result.status === 'passed' ? { status: 'failed' } : undefined;
+  }
+
+  /** Every case in `manualCases`: one file, or each `*.md` file of a directory
+   *  in name order, so the numbered module files keep their order in the CSV. */
+  private readManualCases(): ManualCase[] {
+    const target = path.resolve(this.configDir, this.manualCases);
+    const files = fs.statSync(target).isDirectory()
+      ? fs
+          .readdirSync(target)
+          .filter((name) => name.endsWith('.md'))
+          .sort()
+          .map((name) => path.join(target, name))
+      : [target];
+    return files.flatMap((file) =>
+      parseManualCases(
+        fs.readFileSync(file, 'utf8'),
+        path.relative(this.configDir, file).split(path.sep).join('/'),
+      ),
+    );
   }
 
   /** True only when nothing narrowed the run, so a tag missing from the suite
@@ -406,6 +449,7 @@ export default class ManualCsvReporter implements Reporter {
       .map((a) => path.relative(this.configDir, a.path!).split(path.sep).join('/'));
     return {
       'Test Case ID': id ?? '',
+      Module: manual?.module,
       'Manual Test Case': manual?.title ?? `(not in ${this.manualCases})`,
       // Root, project and file titles are dropped: the Project and Location columns carry them.
       'Automated Test': test.titlePath().slice(3).join(' > '),

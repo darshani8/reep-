@@ -18,10 +18,15 @@
    word**, and every assertion is labelled with the expected result it checks
    (`TC-001 ER-4: ...`). A failure in the HTML report or the CSV names the
    step and the expected result that failed.
-4. **`manual-test-results.csv` has one row per case.** A case with no
-   automated test is listed as `Not automated`, and a Playwright test whose
-   title has no `@TC-NNN` tag, or names a case missing from this file, fails
-   the run.
+4. **`manual-test-results.csv` has a row for every case**, carrying the
+   result of the test tagged with its ID. A second test with the same tag, or
+   a second browser project, adds a row. A case whose "Automated test" field
+   names no tag is listed as `Not automated`. A case whose test was left out
+   of the run (by `--grep`, for example) is listed as `Not run`. The run fails,
+   and the case's "Sync Problems" cell says why, when a test's title has no
+   `@TC-NNN` tag or names a case missing from this file, when its steps differ
+   from the case's steps, or when a full run has no test for a case whose
+   field names one.
 5. **A change to a case's steps or expected results changes its automated test
    in the same commit, and the other way round.**
 
@@ -63,15 +68,28 @@ The dev seed creates the accounts used below. The seed refuses to run when
 ### Pre-conditions
 
 1. The web app and the API are running as described in "Setup for every
-   case". The API's `ENV` is a development one (`dev`), because password
-   sign-in is offered only on dev/CI servers or where `PASSWORD_LOGIN=true`.
+   case", and the API's `ENV` is a development one (`dev`). The dev seed
+   that creates the test account refuses to run on `ENV=prod`, and a
+   development `ENV` always offers password sign-in. Elsewhere the password
+   form also appears when `PASSWORD_LOGIN=true`, or when that setting is
+   blank and some account holds a real password, so a visible password form
+   does not by itself mean the server is a development one.
 2. The dev seed has been applied, so the student account in the test data
    exists.
-3. The browser has no REEP session: use a fresh private window, or sign out
-   first.
+3. The browser has no REEP session and no remembered sign-in: use a fresh
+   private window, or sign out and clear this site's local storage (the
+   `reep.login.id` and `reep.login.portal` keys that "Remember me" sets).
+   Signing out alone leaves those keys, and the sign-in page then opens on
+   the remembered portal with the ID already filled in.
 4. The account has had fewer than 10 failed sign-in attempts in the last 15
    minutes. After 10, the API pauses password sign-in for that account. A
    successful sign-in resets the count.
+5. Nothing else signs in as `student@bgscet.ac.in` while the case runs: no
+   other browser or device, no pytest run and no other Playwright run
+   against the same database. REEP keeps one live session per account, so
+   another sign-in ends this one, either at once or within 60 seconds. The
+   reload in step 6 would then land on `/login?next=%2Fstudent&signedOut=elsewhere`,
+   and ER-5 would fail for a reason outside the app.
 
 ### Test data
 
@@ -96,7 +114,7 @@ The dev seed creates the accounts used below. The seed refuses to run when
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 1 | The "Welcome back" sign-in card is shown, with the "Institutional email or USN" field, the "Password" field and a Sign in button. |
-| ER-2 | 2 | The Student portal card is marked as selected. |
+| ER-2 | 2 | The Student portal card is marked as selected, and the ID field is labelled "Institutional email or USN". |
 | ER-3 | 4 | The password is masked, not shown as readable text. |
 | ER-4 | 5 | The browser leaves the sign-in page for the student home, `/student`, which greets the student by first name: "Welcome back, Test". |
 | ER-5 | 6 | The student is still signed in after the reload: the page stays on `/student` and shows "Welcome back, Test" again. |
@@ -125,11 +143,13 @@ request.
    case", with a development `ENV`.
 2. The dev seed has been applied, so the email in the test data belongs to a
    real account. The case checks a wrong password for an existing account.
-3. The browser has no REEP session: use a fresh private window, or sign out
-   first.
+3. The browser has no REEP session and no remembered sign-in: use a fresh
+   private window, or sign out and clear this site's local storage (the
+   `reep.login.id` and `reep.login.portal` keys that "Remember me" sets).
 4. The account has had fewer than 10 failed sign-in attempts in the last 15
-   minutes. Past that, the API answers "Too many failed attempts…" instead of
-   the message in ER-1.
+   minutes. Past that, the API answers 429, and the card shows "Too many
+   failed attempts for this account or from this network, so password
+   sign-in is paused for a few minutes…" instead of the message in ER-1.
 
 ### Test data
 
@@ -159,8 +179,10 @@ request.
 
 ### Post-conditions
 
-One failed attempt is counted against the account for 15 minutes. A
-successful sign-in (TC-001) clears the count.
+One failed attempt is added to the account's count. The count lasts until
+15 minutes after the first failure in the current window, not 15 minutes
+after this attempt. The API keeps it in memory, so restarting the API clears
+it, and so does a successful sign-in (TC-001).
 
 ---
 
@@ -180,9 +202,12 @@ successful sign-in (TC-001) clears the count.
    case", with a development `ENV`. The "Forgot password?" link sits under
    the password field, which is shown only when the server offers password
    sign-in.
-2. The address has had fewer than 3 reset requests in the last hour. The API
-   allows 3 per address per hour, and 100 in total. Past that, it answers
-   "Too many reset requests. Please wait an hour and try again."
+2. In the last hour the API has received fewer than 3 reset requests for
+   this address, and fewer than 100 reset requests in total, for any address.
+   A request refused by the per-address limit still counts toward the 100.
+   The API keeps both counts in memory, so restarting it clears them. Past
+   either limit, it answers "Too many reset requests. Please wait an hour and
+   try again."
 3. For ER-4 only: access to the API's console output (a development server
    with no mail transport), or to the account's mailbox.
 
@@ -193,10 +218,11 @@ successful sign-in (TC-001) clears the count.
 | Email | `student@bgscet.ac.in` (the dev seed's student account) |
 
 The automated run enters a new, unregistered address on every run instead,
-of the form `tc-003-<run id>@example.invalid`. That keeps repeated runs
-under the 3-per-hour limit. It checks the same thing: the page shows the same
-sentence for every address, registered or not (ER-3). The only difference a
-registered address makes is the email itself, and ER-4 is checked by hand.
+of the form `tc-003-<run id>@example.invalid`. That keeps repeated runs under
+the 3-per-hour limit, though each run still uses one of the 100 per hour. It
+checks the same thing: the page shows the same sentence for every address,
+registered or not (ER-3). The only difference a registered address makes is
+the email itself, and ER-4 is checked by hand.
 
 ### Steps
 
@@ -209,7 +235,7 @@ registered address makes is the email itself, and ER-4 is checked by hand.
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 2 | A reset form opens below the card, with an "Email address" field and a Send reset link button. The button is disabled while the field is empty. |
+| ER-1 | 2 | A reset form opens on the sign-in card, under the Sign in button, with an "Email address" field and a Send reset link button. The button is disabled while the field is empty. |
 | ER-2 | 3 | The Send reset link button becomes enabled. |
 | ER-3 | 4 | The form is replaced by exactly this sentence: "If that address belongs to a REEP account, we've emailed it a link to reset your password - or to set one up, if you have not yet." The page stays on `/login`. |
 | ER-4 | 4 | **Manual only.** An email with the subject "Reset your REEP password" is sent to the address. It contains a single-use link to `/reset?token=…` that expires in 60 minutes. A development server with no mail transport (`SES_FROM_ADDRESS` blank) logs the email to the API console as `MAIL (no transport configured) to=student@bgscet.ac.in subject='Reset your REEP password'`. |

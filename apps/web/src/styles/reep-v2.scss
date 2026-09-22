@@ -936,6 +936,81 @@ html.fonts-ready .icon {
 }
 
 /* ==========================================================================
+ * TOUCH AND TYPING AT PHONE WIDTH (2026-09-22)
+ *
+ * Found by driving the real app in Chromium at 320/360/390 rather than by
+ * reading this file: 50 form fields across six screens and every icon button
+ * in the shell were below the sizes a phone needs. Both rules are INSIDE this
+ * query and nothing above 760px is touched — the desktop console keeps its
+ * 12.5px controls exactly as they are.
+ *
+ * 16px IS NOT A PREFERENCE, IT IS THE NUMBER iOS WATCHES. Safari zooms the
+ * whole page in when a focused input's font-size is under 16px, and it does
+ * not zoom back out when the field blurs — so on /register, the most public
+ * form in the product, every tap into a box left the applicant on a page
+ * wider than their screen, panning sideways to find the next field. Fourteen
+ * fields there, sixteen on the resume builder, twelve on the profile. The
+ * element selectors are deliberate: a class list would have to name every
+ * bespoke input class on every screen, and the one somebody adds next month
+ * is the one that keeps the bug.
+ *
+ * 44px is Apple's floor and 48 is Material's; `min-height` and `min-width`
+ * rather than `height`, so a control that is already bigger is left alone and
+ * one with an explicit `width` (the 28px `.iconbtn`) still grows — the used
+ * value is max(min-width, width).
+ * ======================================================================= */
+
+@media (max-width: 760px) {
+  /* `!important` IS LOAD-BEARING HERE AND WAS ADDED AFTER MEASURING. Without
+     it this rule fixed two screens and lost on the other six: Angular scopes a
+     component's styles by appending an attribute, so `input` written in a
+     component sheet is `input[_ngcontent-x]` at (0,1,1) and beats a global
+     `input` at (0,0,1) — and a class like `.ctrl` or `.field input` beats it
+     from the global resume sheet too. Re-measured in Chromium: 50 fields still
+     under 16px. This is the same case as the `prefers-reduced-motion` block
+     above, which carries `!important` for the same reason — a platform floor
+     that no component may opt out of by accident. */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* A checkbox is not a button: its label is the real target, so this is a
+     modest bump rather than 44px, which would draw a box bigger than the
+     words beside it. */
+  input[type='checkbox'],
+  input[type='radio'] {
+    min-width: 20px;
+    min-height: 20px;
+  }
+
+  .btn,
+  .dt-btn,
+  .iconbtn,
+  .tabs .tab,
+  .seg button,
+  select {
+    min-height: 44px;
+  }
+
+  .iconbtn {
+    min-width: 44px;
+  }
+
+  /* The app bar's two remaining small targets. Sign out is icon-only below
+     560px, so it needs a width as well as the height `.btn` now gives it; the
+     brand is a 26px-tall link and is the way home from every screen. */
+  .appbar .appbar__signout {
+    min-width: 44px;
+  }
+
+  .appbar__brand {
+    min-height: 44px;
+  }
+}
+
+/* ==========================================================================
  * TABLES AT PHONE WIDTH
  *
  * A REEP screen is mostly tables — marks, attendance, the ledger, jobs, the

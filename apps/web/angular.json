@@ -36,6 +36,7 @@
           },
           "configurations": {
             "production": {
+              "serviceWorker": "ngsw-config.json",
               "budgets": [
                 {
                   "type": "initial",

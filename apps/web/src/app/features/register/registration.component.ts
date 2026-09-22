@@ -20,6 +20,17 @@
  * Course and Batch are required whenever the office has listed any under the
  * chosen department: a box that cannot be filled cannot be compulsory, and a
  * half-set-up college must not refuse every applicant.
+ *
+ * SPECIALIZATION IS A CHECKLIST (2026-09-22). Some students opt for a DUAL
+ * specialization, and the <select> this box used to be let them name one of
+ * their two, so the office learned of the other by phone or not at all. The
+ * box is a list of tick boxes now, capped at the server's
+ * `max_specializations` (two), and the API takes `specialization_ids` — the
+ * ticks in order — writing the first into `specialization_id` and the other
+ * into `second_specialization_id`. Both must sit under the chosen course; a
+ * batch under one of them still fits, and a batch under a specialization
+ * that is then unticked is cleared. The decisions are in
+ * `core/specializations.ts`, with a spec.
  */
 
 import { Component, computed, signal } from '@angular/core';
@@ -28,6 +39,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../environments/environment';
+import { MAX_SPECIALIZATIONS_FALLBACK, specializationLabel, togglePick } from '../../core/specializations';
 
 type DegreeLevel = 'UG' | 'PG';
 
@@ -64,7 +76,14 @@ interface HierBatch {
 interface HierDept { id: string; code: string; name: string; courses: HierCourse[]; batches: HierBatch[] }
 interface HierCollege { id: string; code: string; name: string; departments: HierDept[] }
 interface HierLevel { key: string; label: string; required: boolean }
-interface Hierarchy { levels: HierLevel[]; colleges: HierCollege[] }
+interface Hierarchy {
+  levels: HierLevel[];
+  colleges: HierCollege[];
+  /// How many specializations may be ticked — the API's cap, served so the
+  /// form refuses at the same number. Absent from a hierarchy that failed to
+  /// load, where there is nothing to tick anyway.
+  max_specializations?: number;
+}
 
 /// The applicant's own view of their application — the server's
 /// `PublicRegistrationOut`, not the Main Admin queue's `RegistrationOut`. The
@@ -89,11 +108,14 @@ interface RegistrationResult {
   department_id: string | null;
   course_id: string | null;
   specialization_id: string | null;
+  /// The other tick of a dual specialization; null when one or none was ticked.
+  second_specialization_id: string | null;
   requested_cohort_id: string | null;
   college_name: string | null;
   department_name: string | null;
   course_name: string | null;
   specialization_name: string | null;
+  second_specialization_name: string | null;
   requested_batch: string | null;
   created_at: string;
 }
@@ -142,7 +164,9 @@ export class RegistrationComponent {
   readonly collegeId = signal('');
   readonly departmentId = signal('');
   readonly courseId = signal('');
-  readonly specializationId = signal('');
+  /// The ticked specializations, in the order ticked — one, or two for a dual
+  /// specialization. Sent as `specialization_ids`.
+  readonly specializationIds = signal<string[]>([]);
   readonly batchId = signal('');
 
   readonly college = computed(() => (this.hier()?.colleges ?? []).find((c) => c.id === this.collegeId()) ?? null);
@@ -151,16 +175,21 @@ export class RegistrationComponent {
   readonly courses = computed(() => this.department()?.courses ?? []);
   readonly course = computed(() => this.courses().find((c) => c.id === this.courseId()) ?? null);
   readonly specializations = computed(() => this.course()?.specializations ?? []);
+  readonly maxSpecializations = computed(() => this.hier()?.max_specializations ?? MAX_SPECIALIZATIONS_FALLBACK);
+  /// True once the cap is reached: the unticked boxes are drawn disabled.
+  readonly picksFull = computed(() => this.specializationIds().length >= this.maxSpecializations());
   /// Batches of the chosen department, narrowed by course/specialization when
   /// chosen (a batch with no course sits under the whole department), current
-  /// ones first. Ended batches stay listed but marked - a late applicant is a
-  /// Main Admin's call, not the form's.
+  /// ones first. A batch under EITHER ticked specialization fits. Ended
+  /// batches stay listed but marked - a late applicant is a Main Admin's
+  /// call, not the form's.
   readonly batches = computed(() => {
     const d = this.department();
     if (!d) return [];
     let list = d.batches;
     if (this.courseId()) list = list.filter((b) => !b.course_id || b.course_id === this.courseId());
-    if (this.specializationId()) list = list.filter((b) => !b.specialization_id || b.specialization_id === this.specializationId());
+    const picks = this.specializationIds();
+    if (picks.length) list = list.filter((b) => !b.specialization_id || picks.includes(b.specialization_id));
     return [...list].sort((a, z) => Number(z.current) - Number(a.current));
   });
   readonly required = computed(() => new Set((this.hier()?.levels ?? []).filter((l) => l.required).map((l) => l.key)));
@@ -170,7 +199,7 @@ export class RegistrationComponent {
       (!req.has('college') || !!this.collegeId()) &&
       (!req.has('department') || !!this.departmentId()) &&
       (!req.has('course') || !!this.courseId()) &&
-      (!req.has('specialization') || !!this.specializationId())
+      (!req.has('specialization') || this.specializationIds().length > 0)
     );
   });
 
@@ -182,26 +211,34 @@ export class RegistrationComponent {
     this.collegeId.set(id);
     this.departmentId.set('');
     this.courseId.set('');
-    this.specializationId.set('');
+    this.specializationIds.set([]);
     this.batchId.set('');
   }
 
   setDepartment(id: string): void {
     this.departmentId.set(id);
     this.courseId.set('');
-    this.specializationId.set('');
+    this.specializationIds.set([]);
     this.batchId.set('');
   }
 
   setCourse(id: string): void {
     this.courseId.set(id);
-    this.specializationId.set('');
+    this.specializationIds.set([]);
     this.batchId.set('');
   }
 
-  setSpecialization(id: string): void {
-    this.specializationId.set(id);
-    this.batchId.set('');
+  isPicked(id: string): boolean {
+    return this.specializationIds().includes(id);
+  }
+
+  /// One tick on the checklist. The <select> this replaces cleared the batch
+  /// on EVERY change; with a checklist that would throw a chosen batch away
+  /// for ticking the second box, so the batch is cleared only when it no
+  /// longer fits — it hangs on a specialization that was just unticked.
+  toggleSpecialization(id: string, checked: boolean): void {
+    this.specializationIds.set(togglePick(this.specializationIds(), id, checked, this.maxSpecializations()));
+    if (this.batchId() && !this.batches().some((b) => b.id === this.batchId())) this.batchId.set('');
   }
 
   /// A batch pins what it knows: its course and specialization fill the
@@ -212,7 +249,11 @@ export class RegistrationComponent {
     const b = this.batches().find((x) => x.id === id);
     if (!b) return;
     if (b.course_id && !this.courseId()) this.courseId.set(b.course_id);
-    if (b.specialization_id && !this.specializationId()) this.specializationId.set(b.specialization_id);
+    if (b.specialization_id && !this.isPicked(b.specialization_id)) {
+      this.specializationIds.set(
+        togglePick(this.specializationIds(), b.specialization_id, true, this.maxSpecializations()),
+      );
+    }
     this.degreeLevel = b.degree_level as typeof this.degreeLevel;
   }
 
@@ -271,7 +312,7 @@ export class RegistrationComponent {
     if (!this.collegeId()) out.push('your college');
     if (!this.departmentId()) out.push('your department');
     if (!this.courseId() && this.courses().length) out.push('your course');
-    if (this.required().has('specialization') && !this.specializationId()) out.push('your specialization');
+    if (this.required().has('specialization') && !this.specializationIds().length) out.push('your specialization');
     if (!this.batchId() && this.batches().length) out.push('your batch');
     if (!this.photoFile()) out.push('your photo (PNG or JPG)');
     return out;
@@ -285,6 +326,13 @@ export class RegistrationComponent {
   /// setup link; the applicant still has to confirm the address with a
   /// six-digit code and set a password before they can sign in.
   readonly approved = computed(() => this.result()?.status === 'AUTO_APPROVED');
+
+  /// "Finance and Marketing" on the result card's chain line, or one name, or
+  /// null — the same sentence the reviewer's panel prints.
+  readonly resultSpecialization = computed(() => {
+    const r = this.result();
+    return r ? specializationLabel(r.specialization_name, r.second_specialization_name) : null;
+  });
 
   async submit(event: Event): Promise<void> {
     event.preventDefault();
@@ -318,7 +366,7 @@ export class RegistrationComponent {
           college_id: this.collegeId() || null,
           department_id: this.departmentId() || null,
           course_id: this.courseId() || null,
-          specialization_id: this.specializationId() || null,
+          specialization_ids: this.specializationIds(),
           requested_cohort_id: this.batchId() || null,
         }),
       });

@@ -46,7 +46,7 @@
       @if (r.college_name || r.department_name) {
         <p class="reg-chain">
           <span class="icon" aria-hidden="true">school</span>
-          {{ r.college_name }}@if (r.department_name) { · {{ r.department_name }} }@if (r.course_name) { · {{ r.course_name }} }@if (r.specialization_name) { · {{ r.specialization_name }} }@if (r.requested_batch) { · Batch {{ r.requested_batch }} }
+          {{ r.college_name }}@if (r.department_name) { · {{ r.department_name }} }@if (r.course_name) { · {{ r.course_name }} }@if (resultSpecialization(); as spec) { · {{ spec }} }@if (r.requested_batch) { · Batch {{ r.requested_batch }} }
         </p>
       }
 
@@ -162,15 +162,39 @@
               }
             </select>
           </div>
-          <div class="field">
-            <label for="reg-spec">Specialization @if (required().has('specialization')) { <span class="req">*</span> }</label>
-            <select id="reg-spec" name="specialization" [value]="specializationId()" [disabled]="!courseId() || !specializations().length" (change)="setSpecialization($any($event.target).value)">
-              <option value="">{{ !courseId() ? 'Choose a course first' : (specializations().length ? 'Choose your specialization' : 'No specializations listed') }}</option>
-              @for (sp of specializations(); track sp.id) {
-                <option [value]="sp.id">{{ sp.name }}</option>
-              }
-            </select>
-          </div>
+          <!-- A CHECKLIST, NOT A SELECT (2026-09-22): a student who opted for a
+               dual specialization ticks two. A fieldset with a legend so a
+               screen reader names the group, and the cap is the server's
+               `max_specializations` - the boxes past it are drawn disabled
+               rather than evicting an earlier tick. -->
+          <fieldset class="field reg-checklist">
+            <legend>Specialization @if (required().has('specialization')) { <span class="req">*</span> }</legend>
+            @if (!courseId()) {
+              <p class="reg-check-note">Choose a course first</p>
+            } @else if (!specializations().length) {
+              <p class="reg-check-note">No specializations listed</p>
+            } @else {
+              <p class="reg-check-note" id="reg-spec-note">
+                Tick one, or {{ maxSpecializations() }} if you opted for a dual specialization.
+              </p>
+              <div class="reg-check-list">
+                @for (sp of specializations(); track sp.id) {
+                  <label class="reg-check">
+                    <input
+                      type="checkbox"
+                      name="specialization"
+                      [value]="sp.id"
+                      [checked]="isPicked(sp.id)"
+                      [disabled]="!isPicked(sp.id) && picksFull()"
+                      aria-describedby="reg-spec-note"
+                      (change)="toggleSpecialization(sp.id, $any($event.target).checked)"
+                    >
+                    <span>{{ sp.name }}</span>
+                  </label>
+                }
+              </div>
+            }
+          </fieldset>
           <div class="field">
             <label for="reg-batch">Batch @if (batches().length) { <span class="req">*</span> }</label>
             <select id="reg-batch" name="batch" [value]="batchId()" [disabled]="!departmentId() || !batches().length" [required]="batches().length > 0" (change)="setBatch($any($event.target).value)">

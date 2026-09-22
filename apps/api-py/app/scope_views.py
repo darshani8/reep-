@@ -112,6 +112,11 @@ def registration_scope_clause(reach: Reach):
         clauses.append(Registration.course_id.in_(reach.courses))
     if reach.specializations:
         clauses.append(Registration.specialization_id.in_(reach.specializations))
+        # The other tick of a dual specialization (2026-09-22). An application
+        # naming Finance AND Marketing hangs under both, so a reviewer whose
+        # grant reaches only Marketing must still see it - otherwise the one
+        # applicant that office most needs to seat is the one it cannot list.
+        clauses.append(Registration.second_specialization_id.in_(reach.specializations))
     if reach.cohorts:
         clauses.append(Registration.cohort_id.in_(reach.cohorts))
         clauses.append(Registration.requested_cohort_id.in_(reach.cohorts))

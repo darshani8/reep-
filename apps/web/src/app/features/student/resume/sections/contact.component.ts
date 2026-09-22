@@ -67,6 +67,18 @@ const LINK_TYPES = ['LinkedIn', 'GitHub', 'Portfolio', 'Other'] as const;
         margin-left: 6px;
         white-space: nowrap;
       }
+
+      /* Phone width (2026-09-22): this label is 10px, the smallest text in the app,
+   and it is the one that tells a student a field is required for their
+   placement profile. Mobile only — the desktop builder is unchanged. It has to
+   live here rather than in the builder's own stylesheet, because Angular scopes
+   a component's styles to its OWN template and this span is rendered by this
+   child component. */
+      @media (max-width: 640px) {
+        .reqp {
+          font-size: 11px;
+        }
+      }
     `,
   ],
 })

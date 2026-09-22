@@ -951,6 +951,77 @@ A **fourth alarm** goes with it, and it is the one the other three could not be.
 **AND THE SAME WORKFLOW CATCHES THE MIRROR IMAGE, WHICH IS WHAT ACTUALLY HAPPENED NEXT (2026-09-16).** Graviton -- `RuntimePlatform: ARM64` on the api task definition, same vCPU, same memory, ~20% cheaper -- was deployed by passing `-c apiArm64=true` from a `core-arm64` dropdown option, and **the flag was never written into `cdk.json`**. Deployed and never merged, the exact inverse of `ecdb37b`, and `infra-drift.yml` would have opened an issue the next morning: `main` rendered no `RuntimePlatform` while the running service was arm64. Being red for a known-good reason is how a daily check becomes one nobody reads, so it is not a false positive to tolerate. The second half is worse and is invisible from the diff: **every `core-*` option in `cdk-deploy.yml` passes only its OWN context flag**, so the next deploy of `core-9a`, `core-9b` or either NAT option would have re-rendered the task definition WITHOUT the platform and rolled the api silently back to x86 at twice the price -- CI green, PR merged, nothing on any screen. The fix needed no deploy at all, because the repository is what was wrong: `"apiArm64": true` in `infra/cdk/cdk.json`, pinned by `test_cdk_json_carries_the_arm64_the_deployment_is_actually_running`, and `core-arm64` DELETED from the dropdown -- with the flag in `cdk.json` that option is a second source of truth for one setting, and it was a bare `reep-core` deploy gated only by the word `deploy`. **A context flag set at deploy time and not persisted is not configuration, it is a thing somebody has to remember**; `cdk.json` is the file that remembers, and the two `-c` flags still in that workflow (`hardenEcs=false`, the NAT pair) are there because they name a PHASE of a one-way migration rather than a standing property of the deployment. One consequence to carry forward: `deploy.yml`'s multi-arch manifest assertion is now load-bearing rather than belt-and-braces -- the api runs ARM64 unconditionally, so that check is the only thing between a routine image build and a service whose every task dies at pull with "Manifest does not contain descriptor matching platform linux/arm64". Do not remove it.
 
 
+## Self-hosting, and the two things that stay in the cloud (2026-09-22)
+
+`docker-compose.prod.yml` is a full deployment on ONE machine the college owns
+— Postgres, the api, the compiled SPA behind nginx, the nightly `pg_dump -Fc`,
+the retention reaper and the archive sweep — and `docs/self-hosting.md` is its
+runbook, its data migration and the order the AWS stacks come down in.
+`.env.selfhost.example` is the contract, per variable, with the reasoning.
+
+**THE SPLIT IS NOT A COMPROMISE, IT IS WHAT THE BILL SAYS.** Of the $153/month
+in `docs/cost-review-2026-09.md`, **Bedrock was $1.10**. The other $152 was NAT
+gateways, Fargate, an ALB, a Multi-AZ RDS, three public IPv4 addresses, a WAF
+and sixteen CloudWatch alarms — every one of which this file replaces with one
+box. So the infrastructure moves and the AI does not: the mock interviewer
+(Nova 2 Sonic on Bedrock), the assistant's model, SES for mail, and optionally
+the document-archive bucket. Moving the interviewer too would save the $1.10
+and cost the product its interviewer — `INTERVIEW_ENGINE=local` exists and
+shares the engine contract, but it needs numpy, a model and the headroom to run
+one beside the dashboard, which is a different project rather than a flag.
+
+**THE `api` AND `archive` SERVICES DECLARE THEIR ENVIRONMENT AS A LIST NOW, AND
+THE REASON IS BOTO3.** A mapping can only write `FOO=${FOO:-}`, which sets FOO
+to the EMPTY STRING on a host that never defined it — and unset and empty are
+different facts to a credential chain. botocore's `EnvironmentProvider` returns
+whatever is in the environment, empty string included, so an empty
+`AWS_DEFAULT_REGION` is a region of `""`: an invalid endpoint at the first SES
+call, not a fall-through to the shared config file. A BARE NAME in the list is
+passed in only when the operator actually set it. Entries this file DECIDES
+keep their `=` and their value; entries the operator owns are bare. There is
+still no blanket pass-through — that is the property that made a stray
+`DOCUMENT_ARCHIVE_BUCKET` in somebody's `.env` reach nothing, and every name an
+operator can set is enumerated. **Which also means a blank line in `.env` is
+not the same as a commented-out one**, and the template says so where it
+matters.
+
+**NOVA TAKES NO API KEY IS NOT THE SAME AS NOVA TAKES NOTHING.** The stream is
+signed with SigV4 from boto3's own chain, so what must arrive off AWS is a
+credential pair and a region — on ECS that chain found a task role and nothing
+was pasted, and the compose file carried neither, so the interviewer could not
+have worked on a self-hosted box at all. The IAM user behind it holds
+`bedrock:InvokeModelWithBidirectionalStream`, plus `ses:SendEmail` if mail is
+on and `s3:PutObject`/`s3:ListBucket` if the archive is, and NOTHING ELSE:
+this machine is on a college network rather than inside a VPC, and never
+`s3:GetObject` on a backup or archive bucket, which is read access to every
+document the college holds as original bytes.
+
+**`/health` AND `/ready` WERE ANSWERING 200 WITH `index.html`.** Both are
+UNPREFIXED on the api (`app/routers/health.py`; the whole client surface is
+`/api`, these two are infrastructure), and `apps/web/nginx.conf` proxied only
+`/api/` — so through the one service with a published port they fell to the SPA
+fallback and returned the application shell with a 200. The api container's own
+healthcheck reaches them on 127.0.0.1 and was never affected, which is exactly
+why it could sit there unnoticed; what it breaks is every reader OUTSIDE the
+compose network, where an uptime monitor or a fronting load balancer reads 200
+and calls a dead API healthy. Two exact-match proxy blocks now, `access_log
+off`, and `/ready` is the one to point a load balancer at — it reports a
+dependency name and an exception TYPE, never a connection string.
+
+**WHAT A SELF-HOSTED BOX GIVES UP IS WRITTEN DOWN RATHER THAN DISCOVERED.**
+`db-backup` writes into a volume on the SAME machine as the database it
+protects, which answers "we dropped a table" and not "the machine died" —
+getting that volume off the box is the operator's job and nothing here does it.
+`reep_uploads` becomes the only copy of every marksheet, certificate, resume,
+signature and recording unless `DOCUMENT_ARCHIVE_BUCKET` is set, which is cents
+a month and is the piece nobody asks for because nothing on any screen reports
+its absence. There is no WAF, so spraying — the one control that was always the
+edge's, since the brute-force limiter is keyed on the account — is nobody's.
+And the SPA's Sentry fields are rewritten only by `deploy.yml`, so a
+self-hosted build has API telemetry and no browser telemetry until somebody
+adds that step to the web image's build.
+
+
 ## The two rules that must not be broken
 
 ### 1. Student data must not leave the machine unbidden

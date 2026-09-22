@@ -158,57 +158,215 @@ services:
       db: { condition: service_healthy }
       migrate: { condition: service_completed_successfully }
       interview-audio-init: { condition: service_completed_successfully }
+    # A LIST AND NO LONGER A MAPPING, AND THE CLOUD BLOCK BELOW IS WHY.
+    #
+    # A mapping can only write `FOO=${FOO:-}`, which sets FOO to the EMPTY
+    # STRING on a host that never defined it — and unset and empty are
+    # different facts to the chain that reads them. botocore's
+    # EnvironmentProvider hands back whatever is in the environment, empty
+    # string included, so an empty AWS_DEFAULT_REGION is a region of "": an
+    # invalid endpoint at the first SES call, not a fall-through to the shared
+    # config file. A BARE NAME is passed in only when the operator actually set
+    # it, and is absent otherwise, which is the only way to say "leave this to
+    # the SDK". Entries that this file DECIDES keep their `=` and their value;
+    # entries the operator owns are bare. Explicit enumeration either way —
+    # there is still no blanket pass-through, which is the property that made a
+    # stray `DOCUMENT_ARCHIVE_BUCKET` in somebody's .env reach nothing.
     environment:
-      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      - DATABASE_URL=${DATABASE_URL:?set DATABASE_URL}
       # No default. config.py ships a dev fallback secret; inheriting it in
       # production would let anyone who has read the repo forge a session cookie.
-      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET}
-      WEB_ORIGIN: ${WEB_ORIGIN:?set WEB_ORIGIN}
+      - AUTH_SECRET=${AUTH_SECRET:?set AUTH_SECRET}
+      - WEB_ORIGIN=${WEB_ORIGIN:?set WEB_ORIGIN}
       # prod marks the session cookie Secure — which REQUIRES TLS in front of
       # this. Without HTTPS the browser silently drops the cookie and every
       # login appears to succeed and then behaves as logged-out.
-      ENV: prod
+      - ENV=prod
       # ---- Scale: 4 workers × 50 interview slots = the 200-interview fleet. --
       # uvicorn (0.52.3, pinned in requirements.txt) reads $WEB_CONCURRENCY as
       # the default for --workers whenever the flag is absent — and the
       # Dockerfile CMD deliberately leaves it absent, so the image stays
       # single-worker on a laptop and scales here without a rebuild. One worker
       # was the fleet cap: every per-worker limit in config.py multiplied by 1.
-      WEB_CONCURRENCY: "4"
+      #
+      # ON ONE COLLEGE BOX THIS IS A NUMBER TO SIZE, NOT TO INHERIT. Four
+      # workers is four full CPython processes with the AI clients resident,
+      # against the 2 CPU / 2G limit below; a 4-core machine also running
+      # Postgres wants 2. `${WEB_CONCURRENCY:-4}` so the sizing is a .env edit
+      # rather than a diff.
+      - WEB_CONCURRENCY=${WEB_CONCURRENCY:-4}
       # PER-WORKER, as config.py says on the setting: 4 workers × 50 = 200
       # concurrent interviews across the fleet, the stated target. Leaving the
       # default 100 would quietly advertise 400 — twice the budget in upstream
       # audio-token spend. (Each worker also reruns the idempotent orphan sweep
       # at boot; `status = 'running'` makes the four of them race safely.)
-      INTERVIEW_MAX_SESSIONS: "50"
+      - INTERVIEW_MAX_SESSIONS=${INTERVIEW_MAX_SESSIONS:-50}
       # Connection budget, sized against max_connections=200 on the db service:
       # 4 workers × (10 pool + 10 overflow) = 80 connections at full burst,
       # leaving 120 for the sidecars, migrations and humans. The 5s timeout
       # turns a saturated pool into a fast 500 instead of a request that hangs
       # for the default 30s while the student watches a spinner.
-      DB_POOL_SIZE: "10"
-      DB_MAX_OVERFLOW: "10"
-      DB_POOL_TIMEOUT_S: "5"
+      - DB_POOL_SIZE=10
+      - DB_MAX_OVERFLOW=10
+      - DB_POOL_TIMEOUT_S=5
       # Interview audio lands HERE, on the mounted volume below — not in the
       # code default (a sibling of uploads that resolves inside the container
       # layer, where a redeploy destroys every recording). Recording itself
       # still requires the flag below AND the student's scope_store_audio
       # grant; this only makes what IS captured durable.
-      INTERVIEW_AUDIO_DIR: /var/reep/interview-audio
-      INTERVIEW_RECORDING_ENABLED: ${INTERVIEW_RECORDING_ENABLED:-false}
-      # THE INTERVIEWER TAKES NO API KEY. It is Amazon Nova 2 Sonic on Bedrock,
-      # signed with SigV4 from the task's own AWS chain — see AGENTS.md. What
-      # must resolve is NOVA_SONIC_REGION (falling back to BEDROCK_REGION, then
-      # AWS_REGION), not a secret. `OPENAI_API_KEY`, `LIVEKIT_URL`,
-      # `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` and `VOICE_WORKER_SECRET` all
-      # stood here until Phase 5 and NOTHING READ ANY OF THEM: the relay engine
-      # and the LiveKit worker were deleted in 2026-09. VOICE_WORKER_SECRET was
-      # the expensive one — a `:?` hard-fail, so `docker compose up` refused the
-      # whole production stack over a secret no process looks at.
+      - INTERVIEW_AUDIO_DIR=/var/reep/interview-audio
+      - INTERVIEW_RECORDING_ENABLED=${INTERVIEW_RECORDING_ENABLED:-false}
+
+      # ================= THE CLOUD SURFACE, AND WHY IT IS THIS SMALL ==========
       #
-      # GROQ_API_KEY stays and is live: it is one of the LLM adapter's providers
-      # (app/ai/llm.py), nothing to do with voice.
-      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      # This stack is the SELF-HOSTED deployment: every server-shaped thing —
+      # Postgres, the API, the SPA, the nightly dump, retention, the archive
+      # sweep — runs on one machine the college owns. Two things deliberately do
+      # not, because neither can run on it: the mock interviewer is Amazon Nova
+      # 2 Sonic on Bedrock, and the grounded assistant is whichever
+      # OpenAI-compatible provider the LLM adapter selects.
+      #
+      # That split is the whole point of this deployment and the arithmetic is
+      # in docs/cost-review-2026-09.md: of a $153/month AWS bill, **Bedrock was
+      # $1.10**. The other $152 was NAT gateways, Fargate, an ALB, a Multi-AZ
+      # RDS, three public IPv4 addresses, a WAF and sixteen CloudWatch alarms —
+      # every one of which this file replaces with one box. Moving the AI as
+      # well would save the $1.10 and cost the product its interviewer.
+      #
+      # WHAT USED TO STAND HERE, because the lesson outlives the variables.
+      # `OPENAI_API_KEY`, `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`
+      # and `VOICE_WORKER_SECRET` were all in this block until Phase 5 and
+      # NOTHING READ ANY OF THEM: the relay engine and the LiveKit worker were
+      # deleted in 2026-09. VOICE_WORKER_SECRET was the expensive one — a `:?`
+      # hard-fail, so `docker compose up` refused the entire production stack
+      # over a secret no process looks at. An environment entry is a claim that
+      # something reads it; delete it when that stops being true.
+      #
+      # NOVA TAKES NO API KEY, and that is not the same as taking nothing. The
+      # stream is signed with SigV4 from boto3's own chain, so what must arrive
+      # is a CREDENTIAL PAIR and a REGION. On the AWS deployment the chain found
+      # a task role and nothing was ever pasted; there is no task role here, so
+      # these carry an IAM user holding exactly
+      # `bedrock:InvokeModelWithBidirectionalStream` — plus `ses:SendEmail` if
+      # the mail below is on — and nothing else. Give it nothing else: this box
+      # sits on a college network, not inside a VPC, and a key on it that can
+      # read S3 is a key that can read whatever the account holds. Mount a
+      # read-only ~/.aws and set AWS_PROFILE instead if you would rather the
+      # secret never be an environment variable; boto3's chain finds either.
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_SESSION_TOKEN
+      - AWS_PROFILE
+      - AWS_SHARED_CREDENTIALS_FILE
+      - AWS_CONFIG_FILE
+      - AWS_REGION
+      - AWS_DEFAULT_REGION
+      # Nova 2 Sonic is not offered in every region and this process composes
+      # the bidirectional endpoint itself, so ONE of NOVA_SONIC_REGION,
+      # BEDROCK_REGION or AWS_REGION has to resolve. The AWS deployment reaches
+      # it in ap-northeast-1 (Tokyo) while the rest of it ran in ap-south-1,
+      # which is exactly why the interviewer has a region setting of its own.
+      # Nothing resolving is not an outage: GET /api/interview/status reports
+      # unavailable, the socket closes 4001, and every other screen is
+      # unaffected — the mock interviewer, and only it, is off.
+      - NOVA_SONIC_REGION
+      - BEDROCK_REGION
+      # `local` (app/interview_local.py) runs the interview on this machine
+      # instead and needs numpy and a model to be present; `nova` is the default
+      # and is what this deployment keeps in the cloud on purpose. An
+      # unrecognised value falls back to the default WITH A WARNING —
+      # INTERVIEW_ENGINE=loca must not quietly leave the machine.
+      - INTERVIEW_ENGINE
+
+      # ---- The assistant, the resume builder, and the KB's embedder. ---------
+      # Explicit provider first (LLM_BASE_URL + LLM_MODEL + LLM_API_KEY),
+      # otherwise the adapter auto-selects the first per-provider key present,
+      # in app/ai/llm.py's order: Sakana, Groq, Mistral, OpenRouter, Gemini,
+      # Cohere. Several carry a free tier that covers a college's volume, which
+      # is why "the chat bot stays in the cloud" is a line item of roughly
+      # nothing. GROQ_API_KEY stood here alone before and had nothing to do with
+      # voice; it is one of these six.
+      #
+      # RULE 1 IS NOT RELAXED BY ANY OF THEM. A resume brief carries a student's
+      # name, USN, marks and attendance, and student_data_egress_allowed()
+      # refuses to send it to a non-loopback model unless
+      # LLM_ALLOW_REMOTE_STUDENT_DATA is the exact string "true". Left unset,
+      # /student/resume/generate composes the resume deterministically and says
+      # so (used_ai=false); setting it is the decision that a student's record
+      # may go to that provider. The grounded assistant and the KB are
+      # unaffected either way — the KB is approved public policy text, which is
+      # why embedding it was never behind that gate.
+      - LLM_BASE_URL
+      - LLM_MODEL
+      - LLM_API_KEY
+      - LLM_TIMEOUT_MS
+      - LLM_ALLOW_REMOTE_STUDENT_DATA
+      - GROQ_API_KEY
+      - MISTRAL_API_KEY
+      - OPENROUTER_API_KEY
+      - GEMINI_API_KEY
+      - COHERE_API_KEY
+      - SAKANA_API_KEY
+      # No embedder configured ⇒ retrieval is Postgres full-text ALONE. The KB
+      # still works and still refuses to answer off-topic; hybrid search simply
+      # loses its vector half and the answers get worse. Nothing breaks, so this
+      # is the one cloud dependency here it is reasonable to do without.
+      - EMBEDDING_BASE_URL
+      - EMBEDDING_MODEL
+      - EMBEDDING_API_KEY
+
+      # ---- The doors, and the mail that opens them. --------------------------
+      # Sign-in is Google for every role and the roster is the access control: a
+      # verified Google account with no `users` row is refused, nothing
+      # self-provisions. Blank here means GET /api/auth/sso/status reports
+      # unavailable and the login screen draws the Google button disabled with
+      # the reason — which, on a host whose password door is shut, is every
+      # student locked out. The authorised redirect URI in the Google console
+      # must name THIS origin: moving the deployment and leaving the URI behind
+      # is a successful Google sign-in that lands on a host nobody is running.
+      - GOOGLE_CLIENT_ID
+      - GOOGLE_CLIENT_SECRET
+      - GOOGLE_REDIRECT_URI
+      - GOOGLE_ALLOWED_DOMAIN
+      - ROSTER_EMAIL_DOMAIN
+      # The password door is DERIVED and not toggled: dev/CI always, "true"
+      # always, "false" never, and otherwise open exactly when at least one
+      # account holds a real `scrypt:` hash — so issuing the first key with
+      # `python -m app.set_password` IS the decision to open it. Setting this is
+      # therefore a second, louder way to say the same thing, and is worth it
+      # only to force the door SHUT on a deployment that has keys in
+      # circulation.
+      - PASSWORD_LOGIN
+      # MAIL IS THE ONE PIECE THIS MOVE CAN QUIETLY BREAK, AND BLANK IS NOT OFF
+      # — IT IS THE CONSOLE.
+      #
+      # With SES_FROM_ADDRESS blank every message is logged in full and kept in
+      # a bounded in-memory outbox, and NOTHING LEAVES THE BOX. That is right on
+      # a laptop and wrong here: the onboarding setup link, the six-digit codes,
+      # a rejected applicant's reason and the delete-for-good second factor are
+      # all mail, and every one of them fails as "I typed the right address and
+      # nothing came" — a support call about a broken form, not about mail. SES
+      # authenticates through the same AWS chain above, so it adds no second
+      # credential, and at a college's volume it costs cents.
+      #
+      # Swapping it for the college's own SMTP relay is app/mail_transport.py's
+      # `send()` and nothing else — the module says so in its first paragraph.
+      # docs/self-hosting.md carries the decision.
+      - SES_FROM_ADDRESS
+      - SES_REGION
+      - SES_CONFIGURATION_SET
+      # Both default FALSE in config.py, for the machine that has no transport:
+      # mail switched on there writes a `mail_logs` row reading SENT about a
+      # message that reached nobody. Turn them on WITH the sender above, never
+      # before it. (And SENT means SES ACCEPTED it — an address on the account
+      # suppression list is delivered nothing while the row still says SENT.)
+      - LEAVE_MAIL_ENABLED
+      - BADGE_MAIL_ENABLED
+      # Blank is OFF and says so once at boot. On a box with nobody watching it,
+      # this is the only thing that will tell you the nightly dump has been
+      # failing for three weeks — and at this volume it is free.
+      - SENTRY_DSN
+
       # THE PERMANENT DOCUMENT ARCHIVE, AND ON THIS STACK IT IS OPT-IN.
       #
       # Blank is the default and it is a REAL CHOICE with a real cost, not a
@@ -225,17 +383,38 @@ services:
       # every upload still returned 201. The deployment was indistinguishable
       # from an archived one. The api now says which of the two states it is in
       # at boot, and the `archive` sidecar below repeats it nightly.
-      DOCUMENT_ARCHIVE_BUCKET: ${DOCUMENT_ARCHIVE_BUCKET:-}
-      DOCUMENT_ARCHIVE_PREFIX: ${DOCUMENT_ARCHIVE_PREFIX:-}
-      DOCUMENT_ARCHIVE_REGION: ${DOCUMENT_ARCHIVE_REGION:-}
+      #
+      # ON A SELF-HOSTED BOX IT IS ALSO THE CHEAPEST THING ON THIS PAGE AND THE
+      # HARDEST TO ADD LATER: S3 storage for a college's documents is cents a
+      # month, and it is the only copy that survives the machine itself. Losing
+      # the $152 of infrastructure is the point of this file; losing the
+      # student's marksheet with it is not.
+      - DOCUMENT_ARCHIVE_BUCKET
+      - DOCUMENT_ARCHIVE_PREFIX
+      - DOCUMENT_ARCHIVE_REGION
       # libpq reads these directly, so TLS verification works regardless of what
       # the DATABASE_URL query string carries.
-      PGSSLMODE: ${PGSSLMODE:-prefer}
-      PGSSLROOTCERT: ${PGSSLROOTCERT:-}
+      - PGSSLMODE=${PGSSLMODE:-prefer}
+      - PGSSLROOTCERT=${PGSSLROOTCERT:-}
     volumes:
       # Uploads MUST outlive the container. Without this they land in the image
       # layer and every redeploy destroys them.
       - reep_uploads:/var/reep/uploads
+      # THE OTHER WAY TO HAND THIS BOX ITS AWS IDENTITY, and the better one if
+      # the operator would rather a long-lived secret were never an environment
+      # variable — one in `environment:` is readable in `docker inspect`, in
+      # `docker compose config`, and in whatever shell history set it.
+      #
+      # NOT `~/.aws`: the Dockerfile creates uid 10001 with --no-create-home, so
+      # there is no home directory for boto3 to expand `~` against and the
+      # default path would silently find nothing. Mount the credentials file at
+      # a fixed path and NAME it, which is what AWS_SHARED_CREDENTIALS_FILE (and
+      # AWS_CONFIG_FILE, for a profile's region) are passed above for:
+      #   AWS_SHARED_CREDENTIALS_FILE=/var/reep/aws/credentials
+      #   AWS_PROFILE=reep-bedrock
+      # It must be readable by uid 10001 — a 0600 file owned by the operator is
+      # not, so this is `chown 10001` on a copy, not a bind of the real one.
+      # - ./secrets/aws:/var/reep/aws:ro
       # Same sentence for interview audio — a recording that evaporates on
       # redeploy reads as "the system deleted my evidence".
       - reep_interview_audio:/var/reep/interview-audio
@@ -282,6 +461,13 @@ services:
       # Must MATCH the api's value: the reaper destroys expiring interview
       # audio through the filesystem, so it has to look where the api writes.
       INTERVIEW_AUDIO_DIR: /var/reep/interview-audio
+      # ITS OWN PROJECT, NEVER THE API'S. This loop is the one scheduled
+      # destructor in the product and it runs with nobody watching, which makes
+      # it exactly the process whose failures must not land in the api's issue
+      # stream to be scrolled past. Blank is OFF and says so once — on a
+      # self-hosted box with no CloudWatch behind it, this is the only thing
+      # that will report a sweep that has been throwing for three weeks.
+      SENTRY_JOBS_DSN: ${SENTRY_JOBS_DSN:-}
       PGSSLMODE: ${PGSSLMODE:-prefer}
       PGSSLROOTCERT: ${PGSSLROOTCERT:-}
     volumes:
@@ -327,24 +513,49 @@ services:
       db: { condition: service_healthy }
       migrate: { condition: service_completed_successfully }
       interview-audio-init: { condition: service_completed_successfully }
+    # A LIST for the api service's reason: this sweep builds a real boto3
+    # client, and `FOO=${FOO:-}` would hand botocore an empty-string region
+    # rather than letting its own chain answer.
     environment:
-      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
-      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET}
-      ENV: prod
+      - DATABASE_URL=${DATABASE_URL:?set DATABASE_URL}
+      - AUTH_SECRET=${AUTH_SECRET:?set AUTH_SECRET}
+      - ENV=prod
       # Must MATCH the api's values: the sweep reads the DISK, so it has to look
       # exactly where the api writes. The same argument the reaper's comment
       # makes, and the same failure if they drift — a sweep pointed at an empty
       # directory reports a healthy pass having archived nothing.
-      UPLOAD_DIR: /var/reep/uploads
-      INTERVIEW_AUDIO_DIR: /var/reep/interview-audio
-      DOCUMENT_ARCHIVE_BUCKET: ${DOCUMENT_ARCHIVE_BUCKET:-}
-      DOCUMENT_ARCHIVE_PREFIX: ${DOCUMENT_ARCHIVE_PREFIX:-}
-      DOCUMENT_ARCHIVE_REGION: ${DOCUMENT_ARCHIVE_REGION:-}
-      PGSSLMODE: ${PGSSLMODE:-prefer}
-      PGSSLROOTCERT: ${PGSSLROOTCERT:-}
+      - UPLOAD_DIR=/var/reep/uploads
+      - INTERVIEW_AUDIO_DIR=/var/reep/interview-audio
+      - DOCUMENT_ARCHIVE_BUCKET
+      - DOCUMENT_ARCHIVE_PREFIX
+      - DOCUMENT_ARCHIVE_REGION
+      # The credentials the bucket above is reached with, and the reason they
+      # appear on a sidecar at all: on AWS this ran under a task role and there
+      # was nothing to pass. Off AWS the chain finds nothing unless these do,
+      # and an archive sweep that cannot authenticate reports a clean pass
+      # having uploaded not one file. Same IAM user as the api, and it needs
+      # only `s3:PutObject` and `s3:ListBucket` on this bucket — the sweep asks
+      # what already exists with list_objects_v2 precisely so it never needs
+      # `s3:GetObject`, which would be read access to every document the
+      # college holds, as original bytes.
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_SESSION_TOKEN
+      - AWS_PROFILE
+      - AWS_SHARED_CREDENTIALS_FILE
+      - AWS_CONFIG_FILE
+      - AWS_REGION
+      - AWS_DEFAULT_REGION
+      # The scheduled-jobs project, for `retention`'s reason.
+      - SENTRY_JOBS_DSN=${SENTRY_JOBS_DSN:-}
+      - PGSSLMODE=${PGSSLMODE:-prefer}
+      - PGSSLROOTCERT=${PGSSLROOTCERT:-}
     volumes:
       - reep_uploads:/var/reep/uploads
       - reep_interview_audio:/var/reep/interview-audio
+      # Uncomment WITH the api's copy, never alone: a sweep that cannot
+      # authenticate reports a clean pass having uploaded nothing.
+      # - ./secrets/aws:/var/reep/aws:ro
     # THE 82800 IS 23 HOURS AND IT IS THE ORDERING, NOT A STAGGER.
     #
     # `retention` next to this one runs at T+0 and every 24h after. Sleeping

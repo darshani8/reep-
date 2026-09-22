@@ -58,3 +58,8 @@ tools/coder/.orc/
 
 # Personal Claude Code overrides (effort level, ultracode). Not team settings.
 .claude/settings.local.json
+
+# Operator secrets for the self-hosted stack (docker-compose.prod.yml mounts
+# ./secrets/aws read-only when AWS_SHARED_CREDENTIALS_FILE is used instead of
+# environment variables). Never committed.
+/secrets/

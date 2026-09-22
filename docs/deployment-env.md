@@ -27,6 +27,16 @@ service does.
 hazard this document exists to address: a missing variable does not crash, it
 silently selects a development default.
 
+**On a self-hosted box there is a third hazard: a variable that is present but
+EMPTY.** On AWS the credential chain found a task role and the region came from
+the task definition, so nothing here was ever blank-but-set. Off AWS it is, and
+botocore's `EnvironmentProvider` returns whatever is in the environment —
+an empty `AWS_DEFAULT_REGION` is a region of `""`, which is an invalid endpoint
+rather than a fall-through to the shared config file. That is why the `api` and
+`archive` services declare their environment as a LIST of bare names: a name
+compose never resolves is not set in the container at all. `docs/self-hosting.md`
+is the runbook for that deployment and `.env.selfhost.example` is its contract.
+
 ---
 
 ## API image

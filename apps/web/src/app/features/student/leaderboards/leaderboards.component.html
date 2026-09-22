@@ -3,8 +3,16 @@
   <div class="dt-header">
     <div>
       <h1 class="dt-title">Leaderboards</h1>
-      <div class="dt-sub">
-        Ranked within your cohort — everyone sees the same name, position and total.
+      <!-- WHO this ranks against, in the server's words: the batch, or the
+           department while unseated, or nobody yet. Three different
+           situations that used to render as one empty table. -->
+      <div class="dt-sub" [class.lb-scope--unseated]="scope() !== 'batch'">
+        @if (scope() === 'batch') {
+          <span class="icon" aria-hidden="true">groups</span>
+        } @else {
+          <span class="icon" aria-hidden="true">info</span>
+        }
+        {{ scopeLine() }}
       </div>
     </div>
   </div>
@@ -72,7 +80,7 @@
       </div>
     </div>
   } @else {
-    <!-- OWN RANK — prominent, cohort-aware, encouraging -->
+    <!-- OWN RANK — prominent, batch-aware, encouraging -->
     <div class="lb-me-card" [class.lb-me-card--unranked]="!ownStanding().ranked">
       <div class="lb-me-card__rank">
         @if (ownStanding().ranked) {
@@ -102,10 +110,7 @@
         <span class="icon" aria-hidden="true">leaderboard</span>
         <div>
           <div class="lb-empty__title">No ranking yet</div>
-          <div class="dt-sub">
-            The {{ activeLabel() }} board has no results for your cohort yet. You will see each
-            classmate’s position and total here, with your own row highlighted.
-          </div>
+          <div class="dt-sub">{{ emptyLine() }}</div>
         </div>
       </div>
     } @else {
@@ -138,6 +143,39 @@
             }
           </tbody>
         </table>
+      </div>
+    }
+
+    <!-- THE REST OF THE BATCH: classmates with nothing on this board yet. Not
+         ranked (no number, no confident zero), but on the screen by name, so a
+         fresh batch reads as a batch rather than as an empty room. -->
+    @if (unranked().length > 0) {
+      <div class="card lb-unranked">
+        <div class="lb-unranked__head">
+          <div>
+            <div class="lb-unranked__title">
+              <span class="icon" aria-hidden="true">group</span>
+              Not ranked on this board yet
+            </div>
+            <div class="dt-sub">
+              {{ unrankedTotal() }} of {{ classmates() }} classmates · {{ activeTab().first }}
+            </div>
+          </div>
+        </div>
+        <ul class="lb-unranked__list">
+          @for (p of unranked(); track p.student_id) {
+            <li [class.me]="p.is_me">
+              <span class="lb-avatar" aria-hidden="true">{{ p.initials }}</span>
+              <span class="lb-unranked__name">{{ p.name }}</span>
+              @if (p.is_me) {
+                <span class="chip accent lb-you">You</span>
+              }
+            </li>
+          }
+          @if (unrankedTotal() > unranked().length) {
+            <li class="lb-unranked__more">+{{ unrankedTotal() - unranked().length }} more</li>
+          }
+        </ul>
       </div>
     }
   }

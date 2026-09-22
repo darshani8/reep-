@@ -1172,6 +1172,85 @@ and not at import. The DEADLINES intent answers the courses' next tasks now
 already sent the student — `test_readiness_is_deterministic_with_score_and_weakest_factor`
 indexes that map directly, so every measurable factor must name a live route.
 
+**THE LEDGER LOCKS, THE STEPPER WALKED THROUGH UTC, AND THE WEEKLY STRIP SUMMED
+A TABLE NOBODY WRITES (2026-09-22).** Three defects reported as one — "the time
+sheet is completely broken, the filled data shows nothing, and a student can
+enter any old day" — and each is a different fix in a different place.
+
+  * **The date stepper.** `step()` did `new Date(`${day}T00:00:00`)`, added
+    the days, and printed `toISOString().slice(0, 10)`. The first parses LOCAL
+    midnight; the last prints UTC. In India — UTC+5:30, every student this
+    app has — local midnight is 18:30 the previous day in UTC, so "Previous
+    day" went back TWO days and "Next day" landed on the day it started from,
+    every time. A student who filled Monday in, opened the screen on Tuesday
+    and pressed the back arrow saw Sunday, empty, and reported their record
+    gone. It never was; the stepper could not reach it, `ng build` cannot see
+    it, and a test run in UTC cannot either. `features/student/ledger/ledger-days.ts`
+    does the calendar arithmetic through `Date.UTC` and never touches local
+    time; its spec walks forty days back and forty forward.
+  * **"Today" is the SERVER's, in the college's zone.** The container runs UTC,
+    so `date.today()` in a handler is yesterday for the whole of 00:00–05:30
+    IST, and a student pressing Save at 00:30 was told the day "has not
+    happened yet". `app/clock.py` (`local_today`, `PROGRAMME_TIMEZONE`,
+    default `Asia/Kolkata`) is what the ledger reads now, the first load asks
+    for no day so the server picks it, every `LedgerOut` carries `today`, and
+    the client steps from THAT rather than from the handset's clock. An unknown
+    zone name falls back to UTC with a warning rather than refusing to boot.
+  * **The lock.** `LEDGER_EDIT_WINDOW_DAYS` (2) is how long a day stays open
+    after it ends — Monday can be written until the end of Wednesday. Past
+    that it is LOCKED in every direction: no save, no submit, no "copy
+    yesterday" onto it, 409 with a sentence naming the day and the last day it
+    could have been filled in. `_day_window` in `routers/student_programme.py`
+    is the ONE function that decides open/future/locked; the read, the history,
+    the save, the copy and the submit all ask it, so the chip on the screen and
+    the 409 are one sentence. The inputs enable off `editable` alone.
+  * **The record.** `GET /api/student/ledger/history?days=14` is one entry per
+    calendar day — EMPTY / DRAFT / SUBMITTED, hours, locked or open — padded to
+    every day in the window, because "Not logged" and "Locked" are things the
+    strip must be able to say rather than things a student infers from a gap.
+    The screen draws it as a strip of day chips, each a button onto that day.
+  * **The weekly strip.** "Skilling this week" read `time_sheet_entries`, the
+    old free-form time log's table, which nothing has written since the ledger
+    replaced that screen — so it sat at "0 h" under the very cells it should
+    have been adding up. `GET /student/timesheet` sums the ledger's SKILLING
+    cells now, per day, and counts a legacy row only for a day that has no
+    ledger row, so the seed's demo data and any old-screen history count once.
+
+`tests/test_time_ledger.py` pins the lock's inclusive boundary (today minus N
+is open, minus N+1 is not), the history's shape and the strip's sum;
+`tests/test_clock.py` the zone and its fallback. Every `TODAY` in that module
+is `local_today()`, so the tests mean the same thing at 01:00 IST as at noon.
+
+**THE LEADERBOARD IS THE BATCH, AND THE BATCH IS ON THE SCREEN (2026-09-22).**
+A student who registered naming a batch, was approved and seated, opened
+Leaderboards and saw none of their batch mates. Two causes, both in
+`routers/student.py`'s leaderboard section. A board listed only the students
+who already HELD something on it (the 2026-09-17 rule, kept — "Rank 2 of 30"
+over a zero is a lie), so a fresh batch drew "No ranking yet" for everybody and
+nothing said the classmates were there; the board now carries the batch mates
+who are NOT yet ranked as a second, unnumbered list (`unranked`, names only,
+capped at 200), so the student sees their batch and sees who is ranked. And a
+student with `students.cohort_id` NULL was "ranked" among every other
+NULL-cohort student on the deployment, which is not a batch. `_leaderboard_scope`
+resolves the batch where there is one, else the DEPARTMENT
+(`students.department_id`, the second pointer `ancestry_of_student` reads —
+every batch of it plus its unseated students), else nobody — and the response
+SAYS which (`scope`, `scope_label`, composed by `batch_labels.compose` and
+never `cohorts.name`), because "your batch has no results yet" and "you are not
+seated in a batch" are different sentences with different fixes and used to be
+one empty table. `overall` is the new default board: skills, VTU results,
+streak and mocks each worth up to `OVERALL_POINTS_PER_COMPONENT` (25), SCALED
+against the best in the batch — added raw, a streak of eighty days would BE the
+leaderboard — summed to a score out of 100 and ranked on the ROUNDED number so
+two students the label calls "72 pts" are level. `overall_points` is pure and
+pinned without a database; a fresh account is on it through its sign-in streak
+alone, which `test_board_values_leave_out_a_student_with_nothing_recorded` now
+says out loud. Certificates are not a component: the skills board already ranks
+what a certificate was verified into. The cache key is `(scope kind, scope id,
+board)` and a visibility change clears the whole cache rather than guessing
+which scopes a student is in. The badge boards on Skilling
+(`routers/badges.py`) were not touched.
+
 **Staff read these through rule 2's gate**, in `app/routers/mentee_records.py`:
 `GET /api/mentor/students/{id}/ledger`, `.../ledger/summary` and
 `.../english-baseline`. Every one names a student in the PATH, so every one goes

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Screens | `/admin`, `/admin/students`, `/admin/students/:id`, `/admin/faculty`, `/admin/faculty/new`, `/admin/mentors`, `/admin/governance`, `/admin/governance/features`, `/admin/audit` |
-| Automated tests | [`tests/admin-people.spec.ts`](../../tests/admin-people.spec.ts) |
+| Automated tests | [`tests/06-admin-people.spec.ts`](../../tests/06-admin-people.spec.ts) |
 | ID range | TC-500 to TC-599 |
 
 Setup, the seeded accounts and the rules that link these cases to their
@@ -31,7 +31,24 @@ nothing seeded is disabled, removed or deleted:
 - **A new student**: submit `/register` with a unique name, a unique
   `@bgscet.ac.in` address and a USN that is not of the form `1BG2?MBA???`, so
   that no rule seats them in a batch, then approve the application on
-  `/admin/registrations`.
+  `/admin/registrations`. A new student has never signed in, so their Status
+  reads "Invited"; they start at stage Excel, in semester 1.
+- **A new batch**: on College structure (`/admin/institution`), add a batch
+  under Department of Management Studies, course Master of Business
+  Administration, with a unique name, running from 1 Jul 2026 to 30 Jun 2028.
+  Move the students a case names into it with the pencil on the roster (Batch).
+  Other test runs leave students, some of them removed from the roster, in the
+  seeded batch, and a batch action writes to every student seated in the
+  batch, so the cases about a whole batch use a batch of their own. When a
+  case moves Test Student into it, move them back to "Master of Business
+  Administration - Finance · 2024-26 Section B" afterwards, in semester 2 at
+  stage Excel-Adv, then delete the empty batch ("Batch actions", "Remove this
+  empty batch…").
+
+Other test modules leave data behind (more students, removed accounts, more
+colleges and departments), so the cases below name the seeded records they
+check and give counts as they read on a freshly seeded database. Where a count
+on screen depends on what else exists, the case says so.
 
 The automated tests make these through the API, with names unique to the run,
 and remove them again when the case ends. Removed accounts stay on the Removed
@@ -48,7 +65,7 @@ no automated test reads.
 | Module | Admin: home |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-500` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-500` |
 
 ### Pre-conditions
 
@@ -81,7 +98,7 @@ None.
 | Module | Admin: home |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-501` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-501` |
 
 ### Pre-conditions
 
@@ -118,7 +135,7 @@ None.
 | Module | Admin: home |
 | Priority | P3 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-502` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-502` |
 
 ### Pre-conditions
 
@@ -156,7 +173,7 @@ None.
 | Module | Admin: students roster |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-503` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-503` |
 
 ### Pre-conditions
 
@@ -191,7 +208,7 @@ None.
 | Module | Admin: students roster |
 | Priority | P2 |
 | Type | Functional, positive and negative |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-504` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-504` |
 
 ### Pre-conditions
 
@@ -230,7 +247,7 @@ None.
 | Module | Admin: students roster |
 | Priority | P2 |
 | Type | Functional, positive (known defect) |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-505` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-505` |
 
 ### Pre-conditions
 
@@ -271,7 +288,7 @@ this problem: its name column gives the quick filter the address as well.
 | Module | Admin: students roster |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-506` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-506` |
 
 ### Pre-conditions
 
@@ -297,7 +314,7 @@ this problem: its name column gives the quick filter the address as well.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 2 | Test Student is listed. The card beside the grid is headed "Batch · 2024-26 Section B" and reads Course "Master of Business Administration · PG", Specialization "Finance", Department "Department of Management Studies" and Term "Ended · 2024-26". |
-| ER-2 | 3 | Test Student is hidden, because they have signed in, and the bar under the grid reads "Rows: 0". |
+| ER-2 | 3 | Test Student is hidden, because they have signed in. Any student still listed reads "Invited" (on a freshly seeded database none is left, and the bar reads "Rows: 0"). |
 | ER-3 | 4 | Test Student is listed again. |
 | ER-4 | 5 | The line under the heading ends "… with no batch yet · N seated with a faculty member", and Test Student, who is in a batch, is not listed. On a freshly seeded database the grid says "Every student is in a batch." |
 
@@ -311,30 +328,31 @@ this problem: its name column gives the quick filter the address as well.
 | Module | Admin: students roster |
 | Priority | P3 |
 | Type | Functional, negative (known defect) |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-507` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-507` |
 
 ### Pre-conditions
 
 1. The common pre-conditions at the top of this file.
-2. The seeded student has signed in at least once (see TC-503).
+2. Test Student, who has signed in at least once (see TC-503), has been moved
+   into a new batch (see the top of this file) and is its only student.
 
 ### Test data
 
 | Field | Value |
 |---|---|
-| Batch | Master of Business Administration - Finance · 2024-26 Section B |
+| Batch | The new batch |
 
 ### Steps
 
 1. Open `/admin/students`.
-2. Under "Batch", choose "Master of Business Administration - Finance · 2024-26 Section B (ended)".
+2. Under "Batch", choose the new batch.
 3. Under "Status", choose "Invited · not signed in yet".
 
 ### Expected results
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 3 | Test Student is hidden and the grid says "No student matches these filters.", not that the batch is empty. |
+| ER-1 | 3 | Test Student, who has signed in, is hidden, and the grid says "No student matches these filters.", not that the batch is empty. |
 
 ### Known defect
 
@@ -342,6 +360,11 @@ Today the grid says "Nobody is in this batch." although the batch holds Test
 Student and it is the Status filter that hides them. The screen picks its
 empty-grid sentence by checking for a chosen batch before it checks for the
 other filters.
+
+### Post-conditions
+
+Move Test Student back to the seeded batch and delete the empty batch (see the
+top of this file). The automated test does this through the API.
 
 ---
 
@@ -353,7 +376,7 @@ other filters.
 | Module | Admin: students roster |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-508` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-508` |
 
 ### Pre-conditions
 
@@ -401,7 +424,7 @@ with the action `UPDATE`, one for each save.
 | Module | Admin: students roster |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-509` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-509` |
 
 ### Pre-conditions
 
@@ -432,7 +455,7 @@ with the action `UPDATE`, one for each save.
 
 ---
 
-## TC-510 — A batch action sets the semester for the whole batch
+## TC-510 — A batch action sets the semester and the stage for the whole batch
 
 | Field | Value |
 |---|---|
@@ -440,42 +463,107 @@ with the action `UPDATE`, one for each save.
 | Module | Admin: students roster, batch actions |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-510` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-510` |
 
 ### Pre-conditions
 
 1. The common pre-conditions at the top of this file.
-2. Test Student is the only student in the seeded batch, in semester 2.
+2. Test Student has been moved into a new batch (see the top of this file)
+   and is its only student. They are in semester 2, at stage Excel-Adv, as
+   seeded.
 
 ### Test data
 
 | Field | Value |
 |---|---|
-| Batch | Master of Business Administration - Finance · 2024-26 Section B |
-| Semester to set, then to put back | 3, then 2 |
+| Batch | The new batch |
+| Semester to set | 3 |
+| Stage to set | Elevate |
 
 ### Steps
 
 1. Open `/admin/students`.
-2. Under "Batch", choose "Master of Business Administration - Finance · 2024-26 Section B (ended)".
+2. Under "Batch", choose the new batch.
 3. Click "Batch actions".
 4. Under "Set semester", choose `3` and click the Set button beside it.
 5. Click "Batch actions" again.
-6. Under "Set semester", choose `2` and click the Set button beside it.
+6. Under "Set stage", choose "Elevate" and click the Set button beside it.
 
 ### Expected results
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 3 | A dialog "Batch actions · Master of Business Administration - Finance · 2024-26 Section B" opens, saying "Every action here touches all 1 student in this batch — the filters above do not narrow it." |
-| ER-2 | 4 | The dialog closes, the screen says "1 student: set to semester 3." and the Sem column reads 3. |
+| ER-1 | 3 | A dialog "Batch actions · <the new batch>" opens, saying "Every action here touches all 1 student in this batch — the filters above do not narrow it." |
+| ER-2 | 4 | The dialog closes, the screen says "1 student: set to semester 3." and Test Student's Sem column reads 3. |
 | ER-3 | 5 | The dialog opens again. |
-| ER-4 | 6 | The screen says "1 student: set to semester 2." and the Sem column reads 2 again. |
+| ER-4 | 6 | The screen says "1 student: set to Elevate." and Test Student's Stage column reads Elevate. |
 
 ### Post-conditions
 
-Every student in the batch is back in semester 2. The audit trail has two
-`cohort` events for the batch with the action `STUDENTS_SEMESTER`.
+The audit trail has a `cohort` event for the batch with the action
+`STUDENTS_SEMESTER` and one with `STUDENTS_STAGE`. Put Test Student back in
+the seeded batch, in semester 2 at stage Excel-Adv, and delete the empty batch
+(see the top of this file). The automated test does this through the API.
+
+---
+
+## TC-539 — A batch action writes only to the students its dialog counts
+
+| Field | Value |
+|---|---|
+| ID | TC-539 |
+| Module | Admin: students roster, batch actions |
+| Priority | P2 |
+| Type | Functional, negative (known defect) |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-539` |
+
+### Pre-conditions
+
+1. The common pre-conditions at the top of this file.
+2. Test Student, in semester 2 as seeded, has been moved into a new batch
+   (see the top of this file). A new student, in semester 1, has been moved
+   into it too and then removed from the roster (the pencil on their row,
+   "Remove or delete…", a reason, "Remove from the roster"; see TC-515), so the
+   roster lists only Test Student in the batch.
+
+### Test data
+
+| Field | Value |
+|---|---|
+| Batch | The new batch |
+| Semester to set | 3 |
+
+### Steps
+
+1. Open `/admin/students`.
+2. Under "Batch", choose the new batch.
+3. Click "Batch actions".
+4. Under "Set semester", choose `3` and click the Set button beside it.
+5. Under "Status", choose "Removed · off the roster, record kept".
+
+### Expected results
+
+| # | After step | Expected result |
+|---|---|---|
+| ER-1 | 3 | The dialog says "Every action here touches all 1 student in this batch — the filters above do not narrow it." |
+| ER-2 | 4 | The screen says "1 student: set to semester 3.", the one student the dialog counted. |
+| ER-3 | 5 | The removed student is listed and is still in semester 1: a student off the roster is not moved by an action whose dialog did not count them. |
+
+### Known defect
+
+The action writes to every student seated in the batch, including removed
+ones, and counts them: the screen says "2 students: set to semester 3." under a
+dialog that said "all 1 student", and the removed student's Sem column reads 3.
+The API selects the batch's students without leaving out removed accounts
+(`apps/api-py/app/routers/admin_students.py`, the batch action, around line
+636), while the dialog counts the roster, which does.
+
+### Post-conditions
+
+Test Student's Sem column reads 3. Put them back in the seeded batch, in
+semester 2 at stage Excel-Adv, move the removed student out of the batch and
+delete the empty batch (see the top of this file). The removed student stays on
+the Removed list. The automated test does this through the API.
 
 ---
 
@@ -487,15 +575,16 @@ Every student in the batch is back in semester 2. The audit trail has two
 | Module | Admin: students roster, selection actions |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-511` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-511` |
 
 ### Pre-conditions
 
 1. The common pre-conditions at the top of this file.
 2. A new faculty member exists (see the top of this file). They have no
    students yet.
-3. Test Student is with Test Mentor, who has no other student, and the
-   programme's mentor capacity is 20.
+3. Test Student is with Test Mentor. On a freshly seeded database Test
+   Student is Test Mentor's only student and the programme's mentor capacity
+   is 20.
 
 ### Test data
 
@@ -517,7 +606,7 @@ Every student in the batch is back in semester 2. The audit trail has two
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 2 | The toolbar button reads "Assign faculty to 1 selected" and the bar under the grid reads "Selected: 1". |
-| ER-2 | 3 | A dialog "Assign a faculty member" opens, saying "1 student ticked in the grid.". Each faculty member is offered with their load, for example "Test Mentor — 1 of 20" and "<new faculty member> — 0 of 20". |
+| ER-2 | 3 | A dialog "Assign a faculty member" opens, saying "1 student ticked in the grid.". Each faculty member is offered with their load: the number of students they have now "of" the capacity, as the Mentor load screen (`/admin/mentors`) counts them. On a freshly seeded database that is "Test Mentor — 1 of 20" and "<new faculty member> — 0 of 20". |
 | ER-3 | 4 | The dialog closes, the screen says "1 of 1 student: assigned to <new faculty member>." and the Faculty column names the new faculty member. |
 | ER-4 | 5 | The edit dialog opens with Faculty member set to the new faculty member. |
 | ER-5 | 6 | The screen says "Saved." and the Faculty column reads "Test Mentor" again. |
@@ -538,7 +627,7 @@ history, and moving them off Test Mentor gave Test Mentor a 90-day read-only
 | Module | Admin: students roster, selection actions |
 | Priority | P3 |
 | Type | Functional, negative (known defect) |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-512` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-512` |
 
 ### Pre-conditions
 
@@ -580,7 +669,7 @@ grid's ticks.
 | Module | Admin: Student 360 |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-513` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-513` |
 
 ### Pre-conditions
 
@@ -613,14 +702,16 @@ None.
 | Module | Admin: Student 360 |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-514` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-514` |
 
 ### Pre-conditions
 
 1. The common pre-conditions at the top of this file.
-2. Test Student is with Test Mentor. Their seeded uploads are still waiting
-   for a verdict, as seeded: nobody has reviewed the profile photo or the
-   leadership certificate.
+2. Test Student is with Test Mentor. As seeded, the profile photo and the
+   leadership certificate are waiting for a verdict and the CV is verified
+   with the note "Looks good."; other test modules may have decided one of
+   them since, so read each verdict as the record holds it (the Verifications
+   screen of their faculty member shows the same).
 
 ### Test data
 
@@ -641,7 +732,7 @@ None.
 | ER-1 | 2 | "Contact & profile" reads City "Bengaluru" and, under "Career summary", "MBA finance candidate seeking placement.". |
 | ER-2 | 2 | The "Mentor" card names Test Mentor, and under "Assignment history" the first entry names Test Mentor with a "current" chip. |
 | ER-3 | 3 | "Results, semester by semester" lists semester 1 with SGPA 8.2 and CGPA 8.2. |
-| ER-4 | 4 | "Documents" carries a "2 pending review" chip and lists three files: "Profile photo" (me.png, Photo, Pending review, note "—"), "Leadership certificate" (leadership_completion.pdf, Certificate, Pending review, note "—") and "Existing CV" (resume_v1.pdf, Resume, Verified, note "Looks good."). |
+| ER-4 | 4 | "Documents" lists the three seeded files, each with its verdict and the reviewer's note ("—" when there is none): "Profile photo" (me.png, Photo), "Leadership certificate" (leadership_completion.pdf, Certificate) and "Existing CV" (resume_v1.pdf, Resume). A chip counts the files waiting for a verdict ("N pending review"), and there is no chip when none is waiting. On a freshly seeded database the chip reads "2 pending review", the photo and the certificate read "Pending review" with note "—", and the CV reads "Verified" with note "Looks good.". |
 | ER-5 | 5 | The CV opens in a new tab as a PDF. |
 
 ---
@@ -654,7 +745,7 @@ None.
 | Module | Admin: students roster, remove and restore |
 | Priority | P1 |
 | Type | Functional, positive and negative |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-515` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-515` |
 
 ### Pre-conditions
 
@@ -707,13 +798,13 @@ The automated test removes them again when the case ends.
 | Module | Admin: faculty |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-516` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-516` |
 
 ### Pre-conditions
 
 1. The common pre-conditions at the top of this file.
-2. Test Mentor mentors Test Student and nobody else, and is filed in no
-   department, as seeded.
+2. Test Mentor mentors Test Student and is filed in no department, as
+   seeded. On a freshly seeded database Test Student is their only student.
 
 ### Test data
 
@@ -731,9 +822,9 @@ The automated test removes them again when the case ends.
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 1 | The page is headed "Faculty". Test Mentor's row reads: "Test Mentor" with "mentor@bgscet.ac.in"; Department "Not filed"; Designation "Not on record"; Mentor group "Mentor · 1"; Status "Active". |
+| ER-1 | 1 | The page is headed "Faculty". Test Mentor's row reads: "Test Mentor" with "mentor@bgscet.ac.in"; Department "Not filed"; Designation "Not on record"; Mentor group "Mentor · N", where N is the number of students they have now (the Mentor load screen, `/admin/mentors`, gives the same number; 1 on a freshly seeded database); Status "Active". |
 | ER-2 | 2 | A side panel opens for Test Mentor with tabs Profile, Access and Sessions. Profile shows Name "Test Mentor", Official email "mentor@bgscet.ac.in" and College "Not filed". |
-| ER-3 | 3 | The panel says "1 mentee in their group." and that access is given on "Who can do what", which links to `/admin/governance`. |
+| ER-3 | 3 | The panel says "N mentees in their group." with the same N as ER-1 ("1 mentee in their group." on a freshly seeded database) and that access is given on "Who can do what", which links to `/admin/governance`. |
 
 ---
 
@@ -745,15 +836,12 @@ The automated test removes them again when the case ends.
 | Module | Admin: add faculty |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-517` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-517` |
 
 ### Pre-conditions
 
 1. The common pre-conditions at the top of this file.
-2. The deployment has one college, BGSCET, so the wizard chooses it by
-   itself. With more than one, choose "BGSCET · BGS College of Engineering
-   and Technology" first.
-3. No mail transport is configured (`SES_FROM_ADDRESS` blank), which is the
+2. No mail transport is configured (`SES_FROM_ADDRESS` blank), which is the
    development default.
 
 ### Test data
@@ -767,23 +855,25 @@ The automated test removes them again when the case ends.
 
 1. Open `/admin/faculty`.
 2. Click "Add faculty".
-3. Under "Department", choose "MGMT · Department of Management Studies".
-4. Click Continue.
-5. Enter the name in "Full name" and the address in "College email".
-6. Click Continue.
-7. Click "Create account & invite".
-8. Click Done.
+3. Under "College", choose "BGSCET · BGS College of Engineering and Technology".
+4. Under "Department", choose "MGMT · Department of Management Studies".
+5. Click Continue.
+6. Enter the name in "Full name" and the address in "College email".
+7. Click Continue.
+8. Click "Create account & invite".
+9. Click Done.
 
 ### Expected results
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 2 | `/admin/faculty/new` opens, headed "Add faculty member", on "Step 1 of 3" (Institution, Identity, Invite), with College set to "BGSCET · BGS College of Engineering and Technology". |
-| ER-2 | 4 | "Step 2 of 3" says "BGSCET has no domains of its own, so the deployment’s list applies." and "Filed under" names "MGMT · Department of Management Studies". |
-| ER-3 | 6 | "Step 3 of 3" reviews Name, College email (lower-cased), College "BGSCET · BGS College of Engineering and Technology", Department "MGMT · Department of Management Studies", Designation "—" and Role "Faculty · no functions". |
-| ER-4 | 7 | The screen says "<name> now has a Faculty account on <address>. Nothing can sign in to it until they redeem the invitation and set their own password." and "No mail was sent. The link below is the only way <name> gets in — hand it over yourself. It expires in 168 hours and is shown once." The link, `…/activate?token=…`, is on screen, with "Copy link", "Add another" and "Done". |
-| ER-5 | 8 | `/admin/faculty` opens. The new faculty member's row reads Department "Department of Management Studies", Designation "Not on record", Mentor group "No mentor group" and Status "Active". |
-| ER-6 | 7 | **Manual only.** On a deployment with a mail transport, the screen says instead "The sign-in link was emailed to <address> and expires in 168 hours." and the mail arrives. |
+| ER-1 | 2 | `/admin/faculty/new` opens, headed "Add faculty member", on "Step 1 of 3" (Institution, Identity, Invite). "College" offers "BGSCET · BGS College of Engineering and Technology". (When the deployment has only one college the wizard chooses it by itself; with more, College starts at "Select a college".) |
+| ER-2 | 3 | "Department" can be chosen and offers "MGMT · Department of Management Studies". |
+| ER-3 | 5 | "Step 2 of 3" says which addresses the college admits: "BGSCET admits addresses on <its domains>." or, when it has none of its own (as seeded), "BGSCET has no domains of its own, so the deployment’s list applies." "Filed under" names "MGMT · Department of Management Studies". |
+| ER-4 | 7 | "Step 3 of 3" reviews Name, College email (lower-cased), College "BGSCET · BGS College of Engineering and Technology", Department "MGMT · Department of Management Studies", Designation "—" and Role "Faculty · no functions". |
+| ER-5 | 8 | The screen says "<name> now has a Faculty account on <address>. Nothing can sign in to it until they redeem the invitation and set their own password." and "No mail was sent. The link below is the only way <name> gets in — hand it over yourself. It expires in 168 hours and is shown once." The link, `…/activate?token=…`, is on screen, with "Copy link", "Add another" and "Done". |
+| ER-6 | 9 | `/admin/faculty` opens. The new faculty member's row reads Department "Department of Management Studies", Designation "Not on record", Mentor group "No mentor group" and Status "Active". |
+| ER-7 | 8 | **Manual only.** On a deployment with a mail transport, the screen says instead "The sign-in link was emailed to <address> and expires in 168 hours." and the mail arrives. |
 
 ### Post-conditions
 
@@ -800,12 +890,11 @@ when the case ends.
 | Module | Admin: add faculty |
 | Priority | P2 |
 | Type | Functional, negative |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-518` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-518` |
 
 ### Pre-conditions
 
 1. The common pre-conditions at the top of this file.
-2. The deployment has one college, so the wizard chooses it by itself.
 
 ### Test data
 
@@ -818,23 +907,24 @@ when the case ends.
 ### Steps
 
 1. Open `/admin/faculty/new`.
-2. Click Continue without choosing a department.
-3. Under "Department", choose "MGMT · Department of Management Studies" and click Continue.
-4. Click Continue with "Full name" and "College email" empty.
-5. Enter `E2E Visitor` in "Full name" and `visitor@example.com` in "College email", then click Continue.
-6. Click "Create account & invite".
-7. Click Back.
-8. Replace "College email" with `mentor@bgscet.ac.in` and click Continue.
-9. Click "Create account & invite".
+2. Under "College", choose "BGSCET · BGS College of Engineering and Technology".
+3. Click Continue without choosing a department.
+4. Under "Department", choose "MGMT · Department of Management Studies" and click Continue.
+5. Click Continue with "Full name" and "College email" empty.
+6. Enter `E2E Visitor` in "Full name" and `visitor@example.com` in "College email", then click Continue.
+7. Click "Create account & invite".
+8. Click Back.
+9. Replace "College email" with `mentor@bgscet.ac.in` and click Continue.
+10. Click "Create account & invite".
 
 ### Expected results
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 2 | The wizard stays on "Step 1 of 3" and says "A department is required: it is how this account reaches its college, and the college decides which addresses may hold one." |
-| ER-2 | 4 | The wizard stays on "Step 2 of 3" and says "A name is required." and "Type a full email address — this is the address they sign in with." |
-| ER-3 | 6 | Nothing is created. The wizard says "visitor@example.com is not on this college's domains (bgscet.ac.in). Tick "outside the college domain" and give a reason if that is deliberate." and still offers "Create account & invite". |
-| ER-4 | 9 | Nothing is created. The wizard says "mentor@bgscet.ac.in already belongs to a MENTOR account." |
+| ER-1 | 3 | The wizard stays on "Step 1 of 3" and says "A department is required: it is how this account reaches its college, and the college decides which addresses may hold one." |
+| ER-2 | 5 | The wizard stays on "Step 2 of 3" and says "A name is required." and "Type a full email address — this is the address they sign in with." |
+| ER-3 | 7 | Nothing is created. The wizard says "visitor@example.com is not on this college's domains (bgscet.ac.in). Tick "outside the college domain" and give a reason if that is deliberate." and still offers "Create account & invite". The brackets list the college's own domains, or the deployment's list (`bgscet.ac.in` in development) when it has none, as seeded. |
+| ER-4 | 10 | Nothing is created. The wizard says "mentor@bgscet.ac.in already belongs to a MENTOR account." |
 
 ---
 
@@ -846,7 +936,7 @@ when the case ends.
 | Module | Admin: faculty |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-519` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-519` |
 
 ### Pre-conditions
 
@@ -883,7 +973,7 @@ when the case ends.
 | Module | Admin: faculty, activation links |
 | Priority | P1 |
 | Type | Functional, positive and negative |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-520` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-520` |
 
 ### Pre-conditions
 
@@ -933,7 +1023,7 @@ automated test removes the account when the case ends.
 | Module | Admin: faculty, disable and enable |
 | Priority | P1 |
 | Type | Functional, positive and negative |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-521` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-521` |
 
 ### Pre-conditions
 
@@ -991,7 +1081,7 @@ action `DISABLE`, carrying the reason, and one with `ENABLE`.
 | Module | Admin: faculty, disable |
 | Priority | P2 |
 | Type | Functional, negative (known defect) |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-522` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-522` |
 
 ### Pre-conditions
 
@@ -1044,7 +1134,7 @@ or enable the new faculty member.
 | Module | Admin: faculty, disable; the sign-in page |
 | Priority | P2 |
 | Type | Functional, negative (known defect) |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-523` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-523` |
 
 ### Pre-conditions
 
@@ -1095,7 +1185,7 @@ The faculty member is still disabled. Enable or remove them in the console.
 | Module | Admin: faculty, sessions |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-524` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-524` |
 
 ### Pre-conditions
 
@@ -1137,7 +1227,7 @@ The faculty member can sign in again as usual.
 | Module | Admin: faculty, remove and restore |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-525` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-525` |
 
 ### Pre-conditions
 
@@ -1180,7 +1270,7 @@ The faculty member can sign in again as usual.
 | Module | Admin: faculty, delete for good |
 | Priority | P1 |
 | Type | Functional, negative |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-526` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-526` |
 
 ### Pre-conditions
 
@@ -1271,13 +1361,15 @@ The account is gone for good, and the code is spent.
 | Module | Admin: assign faculty |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-528` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-528` |
 
 ### Pre-conditions
 
 1. The common pre-conditions at the top of this file.
-2. Test Mentor mentors Test Student and nobody else, the programme's mentor
-   capacity is 20, and no department has set its own.
+2. Test Mentor mentors Test Student, the programme's mentor capacity is 20,
+   and no department has set its own. On a freshly seeded database Test
+   Student is Test Mentor's only student; other test modules may have given
+   them more.
 
 ### Test data
 
@@ -1293,8 +1385,8 @@ None.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 1 | The page is headed "Assign faculty". The line under it counts the students with no faculty member; on a freshly seeded database it reads "Every student has a faculty member." |
-| ER-2 | 1 | Test Mentor is on the Mentors list with "Department not on record", "19 places free of 20, the programme default" and "1/20". |
-| ER-3 | 2 | Test Mentor is selected, and "Current mentees · 1" lists Test Student with "1BG24MBA001 · Excel-Adv" and three numbers: attendance, verified skills and hours logged (for example "85% attendance · 1 verified skill · 47.5 h logged"). |
+| ER-2 | 1 | Test Mentor is on the Mentors list with "Department not on record", their load as "N/20", where N is the number of students they have now, and the places left: "<20 − N> places free of 20, the programme default" ("At capacity — 20, the programme default" once N reaches 20). On a freshly seeded database that is "1/20" and "19 places free of 20, the programme default". |
+| ER-3 | 2 | Test Mentor is selected, and "Current mentees · N", with the same N, lists Test Student with "1BG24MBA001 · Excel-Adv" and three numbers: attendance, verified skills and hours logged (for example "85% attendance · 1 verified skill · 47.5 h logged"). |
 
 ---
 
@@ -1306,12 +1398,14 @@ None.
 | Module | Admin: assign faculty |
 | Priority | P1 |
 | Type | Functional, positive and negative |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-529` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-529` |
 
 ### Pre-conditions
 
 1. The common pre-conditions at the top of this file.
-2. Test Mentor mentors Test Student, with a capacity of 20.
+2. Test Mentor mentors Test Student, with a capacity of 20. Note Test
+   Mentor's load on the Mentors list before you start, "N/20" (1/20 on a
+   freshly seeded database).
 
 ### Test data
 
@@ -1338,9 +1432,9 @@ Student from Test Mentor"; the history button has the clock icon.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 3 | Nothing moves, and the screen says "Say why this student is being released, then press Release again." |
-| ER-2 | 4 | The screen says "Test Student released from Test Mentor". Test Student is under "Unassigned students", and Test Mentor reads "0/20". |
+| ER-2 | 4 | The screen says "Test Student released from Test Mentor". Test Student is under "Unassigned students", and Test Mentor holds one student fewer: "N − 1/20" ("0/20" on a freshly seeded database). |
 | ER-3 | 5 | The button reads "Assign 1 selected to Test Mentor" and is disabled until a reason is typed. |
-| ER-4 | 6 | The screen says "1 student assigned to Test Mentor". Test Student is back under "Current mentees", and Test Mentor reads "1/20". |
+| ER-4 | 6 | The screen says "1 student assigned to Test Mentor". Test Student is back under "Current mentees", and Test Mentor reads "N/20" again ("1/20" on a freshly seeded database). |
 | ER-5 | 7 | "Assignment history · Test Student" lists, newest first, a "Current" spell with Test Mentor, "Assigned by Main Admin (seed) — “E2E: back with their mentor”", then an "Ended" spell with Test Mentor, "Released to the unassigned pool by Main Admin (seed) — “E2E: moving between groups”". |
 
 ### Post-conditions
@@ -1358,7 +1452,7 @@ read-only "Mentee log" grant for this student, listed on `/admin/governance`.
 | Module | Admin: who can do what |
 | Priority | P1 |
 | Type | Functional, positive and negative |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-530` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-530` |
 
 ### Pre-conditions
 
@@ -1432,7 +1526,7 @@ reason.
 | Module | Admin: who can do what |
 | Priority | P2 |
 | Type | Functional, negative (known defect) |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-531` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-531` |
 
 ### Pre-conditions
 
@@ -1488,19 +1582,24 @@ does this through the API.
 | Module | Admin: student feature switches |
 | Priority | P1 |
 | Type | Functional, positive and negative |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-532` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-532` |
 
 ### Pre-conditions
 
 1. The common pre-conditions at the top of this file.
 2. Leaderboards has no rule: it is on for every student, as seeded.
+3. Below, N is the number of students seated in the batch, counted the way
+   this screen counts them: every student in it, including students removed
+   from the roster (their records are kept). "N students" reads "1 student" on
+   a freshly seeded database, where Test Student is the batch's only student;
+   earlier test runs add more.
 
 ### Test data
 
 | Field | Value |
 |---|---|
 | Feature | Leaderboards (`student.leaderboards`) |
-| Batch | Master of Business Administration - Finance · 2024-26 Section B, which has 1 student |
+| Batch | Master of Business Administration - Finance · 2024-26 Section B |
 | Too short a reason | `E2E: short` |
 | Reason | `E2E: leaderboards paused during the audit` |
 | Student-facing message | `Leaderboards are paused this week.` |
@@ -1521,11 +1620,11 @@ does this through the API.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 2 | The panel is headed "Override · Leaderboards" and says "The API checks this switch before it serves the feature." and "No rule on this feature — it is on for every student." Save is disabled, with "Pick who this applies to." |
-| ER-2 | 4 | The panel counts the reach: "1 student · beaten only by a student-level rule". |
+| ER-2 | 4 | The panel counts the reach: "N students · beaten only by a student-level rule". |
 | ER-3 | 5 | Save is disabled, with "A reason of at least 20 characters is required." |
-| ER-4 | 6 | The screen says "Leaderboards is off for 2024-26 Section B — 1 student." The table's Leaderboards row reads Applies to "Batch · 2024-26 Section B · 1 student" and Value "Off". The panel shows "1 rule in force": "Batch · 2024-26 Section B", the reason, and "Students are shown: “Leaderboards are paused this week.”" |
-| ER-5 | 7 | The panel asks "Remove this rule? The next rung up decides again for 1 student." |
-| ER-6 | 8 | The screen says "Rule removed for 2024-26 Section B. The next rung up decides again for 1 student." Leaderboards reads "On everywhere" again, and the panel says "No rule on this feature — it is on for every student." |
+| ER-4 | 6 | The screen says "Leaderboards is off for 2024-26 Section B — N students." The table's Leaderboards row reads Applies to "Batch · 2024-26 Section B · N students" and Value "Off". The panel shows "1 rule in force": "Batch · 2024-26 Section B", the reason, and "Students are shown: “Leaderboards are paused this week.”" |
+| ER-5 | 7 | The panel asks "Remove this rule? The next rung up decides again for N students." |
+| ER-6 | 8 | The screen says "Rule removed for 2024-26 Section B. The next rung up decides again for N students." Leaderboards reads "On everywhere" again, and the panel says "No rule on this feature — it is on for every student." |
 
 ### Post-conditions
 
@@ -1542,7 +1641,7 @@ Leaderboards is on for every student again. The audit trail has
 | Module | Admin: student feature switches |
 | Priority | P3 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-533` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-533` |
 
 ### Pre-conditions
 
@@ -1574,7 +1673,7 @@ None.
 | Module | Admin: student feature switches; the student's Leaderboards |
 | Priority | P2 |
 | Type | Functional, positive (known defect) |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-534` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-534` |
 
 ### Pre-conditions
 
@@ -1627,7 +1726,7 @@ through the API.
 | Module | Admin: what changed |
 | Priority | P1 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-535` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-535` |
 
 ### Pre-conditions
 
@@ -1671,7 +1770,7 @@ through the API.
 | Module | Admin: what changed |
 | Priority | P2 |
 | Type | Functional, positive |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-536` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-536` |
 
 ### Pre-conditions
 
@@ -1706,7 +1805,7 @@ None.
 | Module | Admin: access |
 | Priority | P1 |
 | Type | Security, negative |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-537` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-537` |
 
 ### Pre-conditions
 
@@ -1747,7 +1846,7 @@ None.
 | Module | Admin: access |
 | Priority | P1 |
 | Type | Security, negative |
-| Automated test | `tests/admin-people.spec.ts`, title tagged `@TC-538` |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-538` |
 
 ### Pre-conditions
 

@@ -61,8 +61,6 @@ const SEED = {
   departmentOption: 'MGMT · Department of Management Studies',
   college: 'BGS College of Engineering and Technology',
   collegeOption: 'BGSCET · BGS College of Engineering and Technology',
-  /** `settings.mentor_capacity`, the programme default. */
-  capacity: 20,
 } as const;
 
 /** The batch as the roster's Batch filter offers it: it ended on 31 Jul 2026. */
@@ -108,6 +106,22 @@ interface Seeded {
   mentorId: string;
   departmentId: string;
   cohortId: string;
+  courseId: string;
+}
+
+/** A batch as `GET /api/register/hierarchy` serves it. */
+interface HierarchyBatchRow {
+  id: string;
+  course_id: string | null;
+  display_label: string;
+  current: boolean;
+}
+
+/** A batch a test made for itself: what the roster's Batch filter offers. */
+interface Batch {
+  id: string;
+  /** "Master of Business Administration · 2026-28 E2E …", the server's own label. */
+  label: string;
 }
 
 interface Faculty {
@@ -150,13 +164,106 @@ async function seeded(api: APIRequestContext): Promise<Seeded> {
   if (!student || !student.cohort_id || !mentor?.mentor_id || !department) {
     throw new Error('The dev seed is missing its student, batch, mentor group or department.');
   }
+  const batch = (await hierarchyBatches(api)).find((row) => row.id === student.cohort_id);
+  if (!batch?.course_id) throw new Error('The seeded batch names no course.');
   return {
     studentId: student.student_id,
     mentorUserId: mentor.user_id,
     mentorId: mentor.mentor_id,
     departmentId: department.id,
     cohortId: student.cohort_id,
+    courseId: batch.course_id,
   };
+}
+
+/** Every batch on the deployment, as the roster's Batch filter reads them. */
+async function hierarchyBatches(api: APIRequestContext): Promise<HierarchyBatchRow[]> {
+  const body = await ok<{ colleges: { departments: { batches: HierarchyBatchRow[] }[] }[] }>(
+    await api.get('/api/register/hierarchy'),
+    'GET /api/register/hierarchy',
+  );
+  return body.colleges.flatMap((college) =>
+    college.departments.flatMap((department) => department.batches),
+  );
+}
+
+/**
+ * A running batch of the test's own, under the seeded department and course.
+ *
+ * A batch action writes to EVERY student seated in its batch, removed ones
+ * included, and earlier modules leave approved-then-removed students in the
+ * seeded batch. A case about a batch action therefore works on a batch that
+ * holds only the students it put there, and deletes it afterwards.
+ */
+async function createBatch(api: APIRequestContext, ids: Seeded): Promise<Batch> {
+  const tag = nextTag();
+  const created = await ok<{ id: string }>(
+    await api.post(`/api/admin/departments/${ids.departmentId}/cohorts`, {
+      data: {
+        code: `E2E-${tag}`,
+        name: `2026-28 E2E ${tag}`,
+        batch_label: '2026-28',
+        degree_level: 'PG',
+        entry_date: '2026-07-01',
+        expected_completion: '2028-06-30',
+        course_id: ids.courseId,
+      },
+    }),
+    'POST /api/admin/departments/{id}/cohorts',
+  );
+  const row = (await hierarchyBatches(api)).find((batch) => batch.id === created.id);
+  if (!row?.current) throw new Error('The new batch is not listed as running.');
+  return { id: created.id, label: row.display_label };
+}
+
+async function seat(
+  api: APIRequestContext,
+  studentId: string,
+  batchId: string | null,
+): Promise<void> {
+  await ok(
+    await api.patch(`/api/admin/students/${studentId}`, { data: { cohort_id: batchId } }),
+    'PATCH /api/admin/students/{id}',
+  );
+}
+
+/** Takes every student, removed ones included, out of a test's own batch and
+ *  deletes it: a batch can only be deleted empty. */
+async function deleteBatch(api: APIRequestContext, batchId: string): Promise<void> {
+  for (const removed of [false, true]) {
+    const rows = await ok<StudentApiRow[]>(
+      await api.get('/api/admin/students', {
+        params: { cohort_id: batchId, removed: String(removed) },
+      }),
+      'GET /api/admin/students',
+    );
+    for (const row of rows) await seat(api, row.student_id, null);
+  }
+  const response = await api.delete(`/api/admin/cohorts/${batchId}`);
+  if (!response.ok() && response.status() !== 404) {
+    throw new Error(
+      `Deleting batch ${batchId} answered ${response.status()}: ${await response.text()}`,
+    );
+  }
+}
+
+/** A faculty member's load, as the assignment screens print it. */
+async function mentorLoad(
+  api: APIRequestContext,
+  userId: string,
+): Promise<{ menteeCount: number; capacity: number }> {
+  const rows = await ok<(MentorLoadApiRow & { mentee_count: number; capacity: number })[]>(
+    await api.get('/api/admin/mentor-load'),
+    'GET /api/admin/mentor-load',
+  );
+  const row = rows.find((candidate) => candidate.user_id === userId);
+  if (!row) throw new Error(`${userId} is not on the mentor load.`);
+  return { menteeCount: row.mentee_count, capacity: row.capacity };
+}
+
+/** "1 student", "5 students": the app's own plural. */
+function plural(count: number, noun: string, many = `${noun}s`): string {
+  return `${count} ${count === 1 ? noun : many}`;
 }
 
 async function seededStudentRow(api: APIRequestContext): Promise<StudentApiRow> {
@@ -717,7 +824,10 @@ test.describe('Admin: people and access', () => {
     await test.step('3. Under "Status", choose "Invited · not signed in yet"', async () => {
       await statusFilter.selectOption({ label: 'Invited · not signed in yet' });
       await expect(row, 'TC-506 ER-2: Test Student, who has signed in, is hidden').toBeHidden();
-      await expect(rowsCount(page), 'TC-506 ER-2: no row is left').toHaveText('Rows: 0');
+      await expect(
+        page.locator('.ag-row [col-id="status"]').filter({ hasNotText: /^Invited$/ }),
+        'TC-506 ER-2: every student still listed reads Invited',
+      ).toHaveCount(0);
     });
 
     await test.step('4. Under "Status", choose "All"', async () => {
@@ -746,34 +856,46 @@ test.describe('Admin: people and access', () => {
       'BUG: with a batch chosen, the empty-grid sentence is "Nobody is in this batch." even when a Status filter hid its students',
     );
     await signIn('admin');
-    const ids = await seeded(page.request);
+    const api = page.request;
+    const ids = await seeded(api);
+    // Test Student, who has signed in, is the batch's only student. A batch of
+    // the test's own, so that nobody another module seated can be listed.
+    const batch = await createBatch(api, ids);
     const row = gridRow(page, ids.studentId);
 
-    await test.step('1. Open /admin/students', async () => {
-      await page.goto('/admin/students');
-    });
+    try {
+      await seat(api, ids.studentId, batch.id);
 
-    await test.step(`2. Under "Batch", choose "${BATCH_OPTION}"`, async () => {
-      await page.getByRole('combobox', { name: 'Batch', exact: true }).selectOption({
-        label: BATCH_OPTION,
+      await test.step('1. Open /admin/students', async () => {
+        await page.goto('/admin/students');
       });
-      await expect(row, 'TC-507 (arrange): Test Student is in the batch').toBeVisible();
-    });
 
-    await test.step('3. Under "Status", choose "Invited · not signed in yet"', async () => {
-      await page
-        .getByRole('combobox', { name: 'Status', exact: true })
-        .selectOption({ label: 'Invited · not signed in yet' });
-      await expect(row, 'TC-507 (arrange): Test Student is filtered out').toBeHidden();
-      await expect(
-        page.getByText('No student matches these filters.'),
-        'TC-507 ER-1: the grid says no student matches these filters',
-      ).toBeVisible();
-      await expect(
-        page.getByText('Nobody is in this batch.'),
-        'TC-507 ER-1: it does not claim the batch is empty',
-      ).toHaveCount(0);
-    });
+      await test.step('2. Under "Batch", choose the new batch', async () => {
+        await page.getByRole('combobox', { name: 'Batch', exact: true }).selectOption(batch.id);
+        await expect(row, 'TC-507 (arrange): Test Student is in the batch').toBeVisible();
+      });
+
+      await test.step('3. Under "Status", choose "Invited · not signed in yet"', async () => {
+        await page
+          .getByRole('combobox', { name: 'Status', exact: true })
+          .selectOption({ label: 'Invited · not signed in yet' });
+        await expect(
+          row,
+          'TC-507 (arrange): Test Student, who has signed in, is hidden',
+        ).toBeHidden();
+        await expect(
+          page.getByText('No student matches these filters.'),
+          'TC-507 ER-1: the grid says no student matches these filters',
+        ).toBeVisible();
+        await expect(
+          page.getByText('Nobody is in this batch.'),
+          'TC-507 ER-1: it does not claim the batch is empty',
+        ).toHaveCount(0);
+      });
+    } finally {
+      await restoreSeededStudent(api, ids);
+      await deleteBatch(api, batch.id);
+    }
   });
 
   test('Editing a student and putting the change back @TC-508', async ({ page, signIn }) => {
@@ -914,30 +1036,42 @@ test.describe('Admin: people and access', () => {
     }
   });
 
-  test('A batch action sets the semester for the whole batch @TC-510', async ({ page, signIn }) => {
+  test('A batch action sets the semester and the stage for the whole batch @TC-510', async ({
+    page,
+    signIn,
+  }) => {
     await signIn('admin');
-    const ids = await seeded(page.request);
-    const dialog = page.getByRole('dialog', { name: `Batch actions · ${SEED.batch}` });
+    const api = page.request;
+    const ids = await seeded(api);
+    // Test Student is moved into a batch of the test's own, so the action
+    // reaches nobody another module seated, and is put back when the case ends.
+    const batch = await createBatch(api, ids);
+    const dialog = page.getByRole('dialog', { name: `Batch actions · ${batch.label}` });
     const semester = gridCell(page, ids.studentId, 'semester');
-    const setSemester = async (value: string) => {
-      await dialog.getByRole('combobox', { name: 'Set semester' }).selectOption(value);
-      await dialog
+    const stage = gridCell(page, ids.studentId, 'stage');
+    const setTo = async (control: string, value: { label: string }) => {
+      const action = dialog
         .locator('.batch-action')
-        .filter({ has: page.getByRole('combobox', { name: 'Set semester' }) })
-        .getByRole('button', { name: 'Set', exact: true })
-        .click();
+        .filter({ has: page.getByRole('combobox', { name: control }) });
+      await action.getByRole('combobox', { name: control }).selectOption(value);
+      await action.getByRole('button', { name: 'Set', exact: true }).click();
     };
 
     try {
+      await seat(api, ids.studentId, batch.id);
+
       await test.step('1. Open /admin/students', async () => {
         await page.goto('/admin/students');
       });
 
-      await test.step(`2. Under "Batch", choose "${BATCH_OPTION}"`, async () => {
-        await page.getByRole('combobox', { name: 'Batch', exact: true }).selectOption({
-          label: BATCH_OPTION,
-        });
-        await expect(semester, 'TC-510 (arrange): Test Student is in semester 2').toHaveText('2');
+      await test.step('2. Under "Batch", choose the new batch', async () => {
+        await page.getByRole('combobox', { name: 'Batch', exact: true }).selectOption(batch.id);
+        await expect(semester, 'TC-510 (arrange): Test Student is in semester 2').toHaveText(
+          String(SEED.student.semester),
+        );
+        await expect(stage, 'TC-510 (arrange): at stage Excel-Adv').toHaveText(
+          SEED.student.stageLabel,
+        );
       });
 
       await test.step('3. Click "Batch actions"', async () => {
@@ -952,13 +1086,13 @@ test.describe('Admin: people and access', () => {
       });
 
       await test.step('4. Under "Set semester", choose 3 and click the Set button beside it', async () => {
-        await setSemester('3');
+        await setTo('Set semester', { label: '3' });
         await expect(dialog, 'TC-510 ER-2: the dialog closes').toBeHidden();
         await expect(
           notice(page, '1 student: set to semester 3.'),
           'TC-510 ER-2: the screen says the batch moved to semester 3',
         ).toBeVisible();
-        await expectCell(semester, '3', 'TC-510 ER-2: the Sem column reads 3');
+        await expectCell(semester, '3', "TC-510 ER-2: Test Student's Sem column reads 3");
       });
 
       await test.step('5. Click "Batch actions" again', async () => {
@@ -966,16 +1100,108 @@ test.describe('Admin: people and access', () => {
         await expect(dialog, 'TC-510 ER-3: the dialog opens again').toBeVisible();
       });
 
-      await test.step('6. Under "Set semester", choose 2 and click the Set button beside it', async () => {
-        await setSemester('2');
+      await test.step('6. Under "Set stage", choose "Elevate" and click the Set button beside it', async () => {
+        await setTo('Set stage', { label: 'Elevate' });
         await expect(
-          notice(page, '1 student: set to semester 2.'),
-          'TC-510 ER-4: the screen says the batch is back in semester 2',
+          notice(page, '1 student: set to Elevate.'),
+          'TC-510 ER-4: the screen says the batch moved to Elevate',
         ).toBeVisible();
-        await expectCell(semester, '2', 'TC-510 ER-4: the Sem column reads 2 again');
+        await expectCell(
+          stage,
+          'Elevate',
+          "TC-510 ER-4: Test Student's Stage column reads Elevate",
+        );
       });
     } finally {
-      await restoreSeededStudent(page.request, ids);
+      await restoreSeededStudent(api, ids);
+      await deleteBatch(api, batch.id);
+    }
+  });
+
+  test('A batch action writes only to the students its dialog counts @TC-539', async ({
+    page,
+    signIn,
+  }) => {
+    test.fail(
+      true,
+      'BUG: a batch action also writes to students REMOVED from the roster and counts them, while its dialog counts only the roster',
+    );
+    await signIn('admin');
+    const api = page.request;
+    const ids = await seeded(api);
+    // Test Student is on the roster; a new student is seated beside them and
+    // removed. Both are in a batch of the test's own.
+    const batch = await createBatch(api, ids);
+    const dialog = page.getByRole('dialog', { name: `Batch actions · ${batch.label}` });
+    let removed: CreatedStudent | null = null;
+    const removedId = () => {
+      if (removed === null) throw new Error('The removed student was not created.');
+      return removed.studentId;
+    };
+
+    try {
+      await seat(api, ids.studentId, batch.id);
+      removed = await createStudent(api);
+      await seat(api, removed.studentId, batch.id);
+      await removeStudent(api, removed.studentId);
+
+      await test.step('1. Open /admin/students', async () => {
+        await page.goto('/admin/students');
+      });
+
+      await test.step('2. Under "Batch", choose the new batch', async () => {
+        await page.getByRole('combobox', { name: 'Batch', exact: true }).selectOption(batch.id);
+        await expect(
+          gridRow(page, ids.studentId),
+          'TC-539 (arrange): Test Student, on the roster, is listed',
+        ).toBeVisible();
+      });
+
+      await test.step('3. Click "Batch actions"', async () => {
+        await page.getByRole('button', { name: 'Batch actions' }).click();
+        await expect(
+          dialog,
+          'TC-539 ER-1: the dialog counts the one student on the roster',
+        ).toContainText(
+          'Every action here touches all 1 student in this batch — the filters above do not narrow it.',
+        );
+      });
+
+      await test.step('4. Under "Set semester", choose 3 and click the Set button beside it', async () => {
+        const action = dialog
+          .locator('.batch-action')
+          .filter({ has: page.getByRole('combobox', { name: 'Set semester' }) });
+        await action.getByRole('combobox', { name: 'Set semester' }).selectOption({ label: '3' });
+        await action.getByRole('button', { name: 'Set', exact: true }).click();
+        await expect(
+          notice(page, ': set to semester 3.'),
+          'TC-539 (arrange): the action finished',
+        ).toBeVisible();
+        await expect
+          .soft(
+            notice(page, '1 student: set to semester 3.'),
+            'TC-539 ER-2: the screen reports the one student the dialog counted',
+          )
+          .toBeVisible();
+      });
+
+      await test.step('5. Under "Status", choose "Removed · off the roster, record kept"', async () => {
+        await page
+          .getByRole('combobox', { name: 'Status', exact: true })
+          .selectOption({ label: 'Removed · off the roster, record kept' });
+        await expect(
+          gridRow(page, removedId()),
+          'TC-539 (arrange): the removed student is listed',
+        ).toBeVisible();
+        await expect(
+          gridCell(page, removedId(), 'semester'),
+          'TC-539 ER-3: the removed student is still in semester 1',
+        ).toHaveText('1');
+      });
+    } finally {
+      await restoreSeededStudent(api, ids);
+      await deleteBatch(api, batch.id);
+      if (removed !== null) await removeStudent(api, removed.studentId);
     }
   });
 
@@ -984,6 +1210,12 @@ test.describe('Admin: people and access', () => {
     const api = page.request;
     const ids = await seeded(api);
     const faculty = await createFaculty(api, ids.departmentId);
+    // The loads the dialog prints beside each name, read the way it reads them.
+    const theirs = await mentorLoad(api, ids.mentorUserId);
+    const fresh = await mentorLoad(api, faculty.userId).catch(() => ({
+      menteeCount: 0,
+      capacity: theirs.capacity,
+    }));
     const dialog = page.getByRole('dialog', { name: 'Assign a faculty member' });
     const editDialog = page.getByRole('dialog', { name: `Edit ${SEED.student.name}` });
     const mentorCell = gridCell(page, ids.studentId, 'mentor');
@@ -1020,7 +1252,7 @@ test.describe('Admin: people and access', () => {
         );
         await expect(
           dialog.getByRole('combobox', { name: 'Faculty member' }).getByRole('option', {
-            name: `${SEED.mentor.name} — 1 of ${SEED.capacity}`,
+            name: `${SEED.mentor.name} — ${theirs.menteeCount} of ${theirs.capacity}`,
           }),
           'TC-511 ER-2: each faculty member is offered with their load',
         ).toHaveCount(1);
@@ -1029,7 +1261,7 @@ test.describe('Admin: people and access', () => {
       await test.step('4. Under "Faculty member", choose the new faculty member and click "Apply to 1 student"', async () => {
         await dialog
           .getByRole('combobox', { name: 'Faculty member' })
-          .selectOption({ label: `${faculty.name} — 0 of ${SEED.capacity}` });
+          .selectOption({ label: `${faculty.name} — ${fresh.menteeCount} of ${fresh.capacity}` });
         await dialog.getByRole('button', { name: 'Apply to 1 student' }).click();
         await expect(dialog, 'TC-511 ER-3: the dialog closes').toBeHidden();
         await expect(
@@ -1078,6 +1310,7 @@ test.describe('Admin: people and access', () => {
     const ids = await seeded(api);
     const tick = gridRow(page, ids.studentId).getByRole('checkbox');
     const dialog = page.getByRole('dialog', { name: 'Assign a faculty member' });
+    const load = await mentorLoad(api, ids.mentorUserId);
 
     try {
       await test.step('1. Open /admin/students', async () => {
@@ -1097,7 +1330,7 @@ test.describe('Admin: people and access', () => {
       await test.step('4. Under "Faculty member", choose "Test Mentor", who already mentors them, and click "Apply to 1 student"', async () => {
         await dialog
           .getByRole('combobox', { name: 'Faculty member' })
-          .selectOption({ label: `${SEED.mentor.name} — 1 of ${SEED.capacity}` });
+          .selectOption({ label: `${SEED.mentor.name} — ${load.menteeCount} of ${load.capacity}` });
         await dialog.getByRole('button', { name: 'Apply to 1 student' }).click();
         await expect(
           notice(page, `1 of 1 student: assigned to ${SEED.mentor.name}.`),
@@ -1182,29 +1415,31 @@ test.describe('Admin: people and access', () => {
         .locator('.card')
         .filter({ has: page.getByRole('heading', { level: 2, name: title, exact: true }) });
     const tabs = page.getByRole('group', { name: 'Student views' });
+    // The seeded uploads, by title. Their verdicts are read from the record
+    // itself: module 05's verification cases may have decided one since the seed.
+    const verdictLabel: Record<string, string> = {
+      PENDING_REVIEW: 'Pending review',
+      VERIFIED: 'Verified',
+      NEEDS_CHANGES: 'Needs changes',
+      REJECTED: 'Rejected',
+    };
+    const record = await ok<{
+      documents: { title: string; status: string; review_note: string | null }[];
+    }>(await page.request.get(`/api/admin/students/${ids.studentId}/360`), 'GET 360');
+    const pending = record.documents.filter((row) => row.status === 'PENDING_REVIEW').length;
     const documents = [
-      {
-        title: 'Profile photo',
-        file: 'me.png',
-        kind: 'Photo',
-        status: 'Pending review',
-        note: '—',
-      },
-      {
-        title: 'Leadership certificate',
-        file: 'leadership_completion.pdf',
-        kind: 'Certificate',
-        status: 'Pending review',
-        note: '—',
-      },
-      {
-        title: 'Existing CV',
-        file: 'resume_v1.pdf',
-        kind: 'Resume',
-        status: 'Verified',
-        note: 'Looks good.',
-      },
-    ];
+      { title: 'Profile photo', file: 'me.png', kind: 'Photo' },
+      { title: 'Leadership certificate', file: 'leadership_completion.pdf', kind: 'Certificate' },
+      { title: 'Existing CV', file: 'resume_v1.pdf', kind: 'Resume' },
+    ].map((seededDocument) => {
+      const onRecord = record.documents.find((row) => row.title === seededDocument.title);
+      if (!onRecord) throw new Error(`The seeded upload "${seededDocument.title}" is missing.`);
+      return {
+        ...seededDocument,
+        status: verdictLabel[onRecord.status] ?? onRecord.status,
+        note: onRecord.review_note || '—',
+      };
+    });
 
     await test.step("1. Open Test Student's full record with the eye on the roster", async () => {
       await page.goto('/admin/students');
@@ -1258,9 +1493,9 @@ test.describe('Admin: people and access', () => {
       await tabs.getByRole('button', { name: 'Documents', exact: true }).click();
       const table = page.getByRole('table', { name: `Documents uploaded by ${SEED.student.name}` });
       await expect(
-        page.locator('.chip').filter({ hasText: '2 pending review' }),
-        'TC-514 ER-4: two documents wait for a verdict',
-      ).toBeVisible();
+        page.locator('.chip').filter({ hasText: /pending review$/ }),
+        'TC-514 ER-4: the chip counts the documents waiting for a verdict',
+      ).toHaveText(pending > 0 ? [`${pending} pending review`] : []);
       for (const document of documents) {
         const row = table.getByRole('row').filter({ hasText: document.title });
         await expect(row, `TC-514 ER-4: "${document.title}" is listed`).toHaveCount(1);
@@ -1419,6 +1654,7 @@ test.describe('Admin: people and access', () => {
   test('The faculty list shows the seeded faculty member @TC-516', async ({ page, signIn }) => {
     await signIn('admin');
     const ids = await seeded(page.request);
+    const mentees = (await mentorLoad(page.request, ids.mentorUserId)).menteeCount;
     const drawer = facultyDrawer(page);
     const cell = (colId: string) => gridCell(page, ids.mentorUserId, colId);
 
@@ -1436,7 +1672,9 @@ test.describe('Admin: people and access', () => {
       );
       await expect(cell('department'), 'TC-516 ER-1: Department').toHaveText('Not filed');
       await expect(cell('designation'), 'TC-516 ER-1: Designation').toHaveText('Not on record');
-      await expect(cell('functions'), 'TC-516 ER-1: Mentor group').toHaveText('Mentor · 1');
+      await expect(cell('functions'), 'TC-516 ER-1: Mentor group').toHaveText(
+        `Mentor · ${mentees}`,
+      );
       await expect(cell('status'), 'TC-516 ER-1: Status').toHaveText('Active');
     });
 
@@ -1467,7 +1705,7 @@ test.describe('Admin: people and access', () => {
     await test.step('3. Click the Access tab', async () => {
       await drawer.getByRole('button', { name: 'Access', exact: true }).click();
       await expect(drawer, 'TC-516 ER-3: their mentor group is counted').toContainText(
-        '1 mentee in their group.',
+        `${plural(mentees, 'mentee')} in their group.`,
       );
       await expect(
         drawer.getByRole('link', { name: 'Who can do what' }),
@@ -1488,6 +1726,12 @@ test.describe('Admin: people and access', () => {
     const email = `e2e.faculty.${tag}@bgscet.ac.in`;
     const wizard = page.locator('[data-p="faculty-new"]');
     let createdUserId: string | null = null;
+    const colleges = await ok<{ code: string; email_domains: string[] }[]>(
+      await api.get('/api/admin/colleges'),
+      'GET /api/admin/colleges',
+    );
+    const domains = colleges.find((college) => college.code === 'BGSCET')?.email_domains ?? [];
+    const department = wizard.getByRole('combobox', { name: /^Department/ });
 
     try {
       await test.step('1. Open /admin/faculty', async () => {
@@ -1505,36 +1749,49 @@ test.describe('Admin: people and access', () => {
         ).toBeVisible();
         await expect(wizard, 'TC-517 ER-1: step 1 of 3').toContainText('Step 1 of 3');
         await expect(
-          wizard.getByRole('combobox', { name: /^College/ }).locator('option:checked'),
-          'TC-517 ER-1: the one college is already chosen',
-        ).toHaveText(SEED.collegeOption);
+          wizard.getByRole('combobox', { name: /^College/ }).locator('option', {
+            hasText: SEED.collegeOption,
+          }),
+          'TC-517 ER-1: BGSCET is offered under College',
+        ).toHaveCount(1);
       });
 
-      await test.step('3. Under "Department", choose "MGMT · Department of Management Studies"', async () => {
+      await test.step('3. Under "College", choose "BGSCET · BGS College of Engineering and Technology"', async () => {
         await wizard
-          .getByRole('combobox', { name: /^Department/ })
-          .selectOption({ label: SEED.departmentOption });
+          .getByRole('combobox', { name: /^College/ })
+          .selectOption({ label: SEED.collegeOption });
+        await expect(department, 'TC-517 ER-2: Department can be chosen now').toBeEnabled();
+        await expect(
+          department.locator('option', { hasText: SEED.departmentOption }),
+          "TC-517 ER-2: and offers the college's MGMT department",
+        ).toHaveCount(1);
       });
 
-      await test.step('4. Click Continue', async () => {
+      await test.step('4. Under "Department", choose "MGMT · Department of Management Studies"', async () => {
+        await department.selectOption({ label: SEED.departmentOption });
+      });
+
+      await test.step('5. Click Continue', async () => {
         await wizard.getByRole('button', { name: 'Continue' }).click();
-        await expect(wizard, 'TC-517 ER-2: step 2 of 3').toContainText('Step 2 of 3');
-        await expect(wizard, 'TC-517 ER-2: the college has no domains of its own').toContainText(
-          'BGSCET has no domains of its own, so the deployment’s list applies.',
+        await expect(wizard, 'TC-517 ER-3: step 2 of 3').toContainText('Step 2 of 3');
+        await expect(wizard, 'TC-517 ER-3: which addresses the college admits').toContainText(
+          domains.length === 0
+            ? 'BGSCET has no domains of its own, so the deployment’s list applies.'
+            : `BGSCET admits addresses on ${domains.join(', ')}.`,
         );
-        await expect(wizard, 'TC-517 ER-2: "Filed under" names the department').toContainText(
+        await expect(wizard, 'TC-517 ER-3: "Filed under" names the department').toContainText(
           SEED.departmentOption,
         );
       });
 
-      await test.step('5. Enter the name in "Full name" and the address in "College email"', async () => {
+      await test.step('6. Enter the name in "Full name" and the address in "College email"', async () => {
         await wizard.getByRole('textbox', { name: /^Full name/ }).fill(name);
         await wizard.getByRole('textbox', { name: /^College email/ }).fill(email);
       });
 
-      await test.step('6. Click Continue', async () => {
+      await test.step('7. Click Continue', async () => {
         await wizard.getByRole('button', { name: 'Continue' }).click();
-        await expect(wizard, 'TC-517 ER-3: step 3 of 3').toContainText('Step 3 of 3');
+        await expect(wizard, 'TC-517 ER-4: step 3 of 3').toContainText('Step 3 of 3');
         const review = wizard.locator('.summary-card').filter({ hasText: 'Review' });
         for (const [label, value] of [
           ['Name', name],
@@ -1549,12 +1806,12 @@ test.describe('Admin: people and access', () => {
               .locator('div')
               .filter({ has: page.getByText(label, { exact: true }) })
               .locator('dd'),
-            `TC-517 ER-3: the review lists ${label}`,
+            `TC-517 ER-4: the review lists ${label}`,
           ).toHaveText(value);
         }
       });
 
-      await test.step('7. Click "Create account & invite"', async () => {
+      await test.step('8. Click "Create account & invite"', async () => {
         await wizard.getByRole('button', { name: 'Create account & invite' }).click();
         await expect(
           notice(
@@ -1562,7 +1819,7 @@ test.describe('Admin: people and access', () => {
             `${name} now has a Faculty account on ${email}. Nothing can sign in to it until ` +
               'they redeem the invitation and set their own password.',
           ),
-          'TC-517 ER-4: the account is created',
+          'TC-517 ER-5: the account is created',
         ).toBeVisible();
         await expect(
           notice(
@@ -1570,43 +1827,43 @@ test.describe('Admin: people and access', () => {
             `No mail was sent. The link below is the only way ${name} gets in — hand it over ` +
               'yourself. It expires in 168 hours and is shown once.',
           ),
-          'TC-517 ER-4: the link is shown because no mail was sent',
+          'TC-517 ER-5: the link is shown because no mail was sent',
         ).toBeVisible();
         await expect(
           wizard.locator('.activation-link'),
-          'TC-517 ER-4: the activation link is on screen',
+          'TC-517 ER-5: the activation link is on screen',
         ).toHaveText(new RegExp(`^${baseURL ?? ''}/activate\\?token=\\S+$`));
         await expect(
           wizard.getByRole('button', { name: 'Add another' }),
-          'TC-517 ER-4: "Add another" is offered',
+          'TC-517 ER-5: "Add another" is offered',
         ).toBeVisible();
       });
 
-      await test.step('8. Click Done', async () => {
+      await test.step('9. Click Done', async () => {
         await wizard.getByRole('link', { name: 'Done' }).click();
-        await expect(page, 'TC-517 ER-5: the faculty list opens').toHaveURL(/\/admin\/faculty$/);
+        await expect(page, 'TC-517 ER-6: the faculty list opens').toHaveURL(/\/admin\/faculty$/);
         const listed = await ok<{ user_id: string; email: string }[]>(
           await api.get('/api/admin/faculty'),
           'GET /api/admin/faculty',
         );
         createdUserId = listed.find((row) => row.email === email)?.user_id ?? null;
-        expect(createdUserId, 'TC-517 ER-5: the account exists').not.toBeNull();
+        expect(createdUserId, 'TC-517 ER-6: the account exists').not.toBeNull();
         await facultySearch(page).fill(name);
         const cell = (colId: string) => gridCell(page, createdUserId ?? '', colId);
         await expect(
           cell('faculty'),
-          'TC-517 ER-5: the new faculty member is listed',
+          'TC-517 ER-6: the new faculty member is listed',
         ).toContainText(email);
-        await expect(cell('department'), 'TC-517 ER-5: filed under the department').toHaveText(
+        await expect(cell('department'), 'TC-517 ER-6: filed under the department').toHaveText(
           SEED.department,
         );
-        await expect(cell('designation'), 'TC-517 ER-5: no designation').toHaveText(
+        await expect(cell('designation'), 'TC-517 ER-6: no designation').toHaveText(
           'Not on record',
         );
-        await expect(cell('functions'), 'TC-517 ER-5: no mentor group yet').toHaveText(
+        await expect(cell('functions'), 'TC-517 ER-6: no mentor group yet').toHaveText(
           'No mentor group',
         );
-        await expect(cell('status'), 'TC-517 ER-5: Status Active').toHaveText('Active');
+        await expect(cell('status'), 'TC-517 ER-6: Status Active').toHaveText('Active');
       });
     } finally {
       if (createdUserId === null) {
@@ -1627,13 +1884,31 @@ test.describe('Admin: people and access', () => {
     await signIn('admin');
     const wizard = page.locator('[data-p="faculty-new"]');
     const visitor = 'visitor@example.com';
+    // The refusal lists the college's own domains, or the deployment's when it
+    // has none; another module may have given BGSCET a domain of its own.
+    const colleges = await ok<{ code: string; email_domains: string[] }[]>(
+      await page.request.get('/api/admin/colleges'),
+      'GET /api/admin/colleges',
+    );
+    const ownDomains = colleges.find((college) => college.code === 'BGSCET')?.email_domains ?? [];
+    const listed = ownDomains.length > 0 ? [...ownDomains].sort().join(', ') : 'bgscet.ac.in';
 
     await test.step('1. Open /admin/faculty/new', async () => {
       await page.goto('/admin/faculty/new');
       await expect(wizard, 'TC-518 (arrange): step 1 of 3').toContainText('Step 1 of 3');
     });
 
-    await test.step('2. Click Continue without choosing a department', async () => {
+    await test.step('2. Under "College", choose "BGSCET · BGS College of Engineering and Technology"', async () => {
+      await wizard
+        .getByRole('combobox', { name: /^College/ })
+        .selectOption({ label: SEED.collegeOption });
+      await expect(
+        wizard.getByRole('combobox', { name: /^Department/ }),
+        'TC-518 (arrange): Department can be chosen now',
+      ).toBeEnabled();
+    });
+
+    await test.step('3. Click Continue without choosing a department', async () => {
       await wizard.getByRole('button', { name: 'Continue' }).click();
       await expect(
         alert(
@@ -1646,7 +1921,7 @@ test.describe('Admin: people and access', () => {
       await expect(wizard, 'TC-518 ER-1: the wizard stays on step 1').toContainText('Step 1 of 3');
     });
 
-    await test.step('3. Under "Department", choose "MGMT · Department of Management Studies" and click Continue', async () => {
+    await test.step('4. Under "Department", choose "MGMT · Department of Management Studies" and click Continue', async () => {
       await wizard
         .getByRole('combobox', { name: /^Department/ })
         .selectOption({ label: SEED.departmentOption });
@@ -1654,7 +1929,7 @@ test.describe('Admin: people and access', () => {
       await expect(wizard, 'TC-518 (arrange): step 2 of 3').toContainText('Step 2 of 3');
     });
 
-    await test.step('4. Click Continue with "Full name" and "College email" empty', async () => {
+    await test.step('5. Click Continue with "Full name" and "College email" empty', async () => {
       await wizard.getByRole('button', { name: 'Continue' }).click();
       await expect(
         alert(page, 'A name is required.'),
@@ -1667,19 +1942,19 @@ test.describe('Admin: people and access', () => {
       await expect(wizard, 'TC-518 ER-2: the wizard stays on step 2').toContainText('Step 2 of 3');
     });
 
-    await test.step('5. Enter E2E Visitor in "Full name" and visitor@example.com in "College email", then click Continue', async () => {
+    await test.step('6. Enter E2E Visitor in "Full name" and visitor@example.com in "College email", then click Continue', async () => {
       await wizard.getByRole('textbox', { name: /^Full name/ }).fill('E2E Visitor');
       await wizard.getByRole('textbox', { name: /^College email/ }).fill(visitor);
       await wizard.getByRole('button', { name: 'Continue' }).click();
       await expect(wizard, 'TC-518 (arrange): step 3 of 3').toContainText('Step 3 of 3');
     });
 
-    await test.step('6. Click "Create account & invite"', async () => {
+    await test.step('7. Click "Create account & invite"', async () => {
       await wizard.getByRole('button', { name: 'Create account & invite' }).click();
       await expect(
         alert(
           page,
-          `${visitor} is not on this college's domains (bgscet.ac.in). Tick "outside the ` +
+          `${visitor} is not on this college's domains (${listed}). Tick "outside the ` +
             'college domain" and give a reason if that is deliberate.',
         ),
         'TC-518 ER-3: an address off the college domain is refused',
@@ -1690,17 +1965,17 @@ test.describe('Admin: people and access', () => {
       ).toBeVisible();
     });
 
-    await test.step('7. Click Back', async () => {
+    await test.step('8. Click Back', async () => {
       await wizard.getByRole('button', { name: 'Back' }).click();
       await expect(wizard, 'TC-518 (arrange): back on step 2').toContainText('Step 2 of 3');
     });
 
-    await test.step('8. Replace "College email" with mentor@bgscet.ac.in and click Continue', async () => {
+    await test.step('9. Replace "College email" with mentor@bgscet.ac.in and click Continue', async () => {
       await wizard.getByRole('textbox', { name: /^College email/ }).fill(SEED.mentor.email);
       await wizard.getByRole('button', { name: 'Continue' }).click();
     });
 
-    await test.step('9. Click "Create account & invite"', async () => {
+    await test.step('10. Click "Create account & invite"', async () => {
       await wizard.getByRole('button', { name: 'Create account & invite' }).click();
       await expect(
         alert(page, `${SEED.mentor.email} already belongs to a MENTOR account.`),
@@ -2310,6 +2585,8 @@ test.describe('Admin: people and access', () => {
     const unassigned = (
       await ok<unknown[]>(await api.get('/api/admin/unassigned-students'), 'GET unassigned')
     ).length;
+    const ids = await seeded(api);
+    const load = await mentorLoad(api, ids.mentorUserId);
     const rail = page.getByRole('region', { name: /^Mentors · / });
     const testMentor = rail.getByRole('button', { name: /^TM Test Mentor\b/ });
 
@@ -2329,10 +2606,12 @@ test.describe('Admin: people and access', () => {
       ).toHaveText(summary);
       await expect(testMentor, 'TC-528 ER-2: Test Mentor is on the Mentors list').toBeVisible();
       await expect(testMentor, 'TC-528 ER-2: with their load against capacity').toContainText(
-        `1/${SEED.capacity}`,
+        `${load.menteeCount}/${load.capacity}`,
       );
       await expect(testMentor, 'TC-528 ER-2: and the places free').toContainText(
-        `${SEED.capacity - 1} places free of ${SEED.capacity}, the programme default`,
+        load.menteeCount >= load.capacity
+          ? `At capacity — ${load.capacity}, the programme default`
+          : `${plural(load.capacity - load.menteeCount, 'place')} free of ${load.capacity}, the programme default`,
       );
       await expect(testMentor, 'TC-528 ER-2: and where they are filed').toContainText(
         'Department not on record',
@@ -2346,8 +2625,8 @@ test.describe('Admin: people and access', () => {
         'true',
       );
       await expect(
-        rail.getByRole('heading', { name: 'Current mentees · 1' }),
-        'TC-528 ER-3: one current mentee',
+        rail.getByRole('heading', { name: `Current mentees · ${load.menteeCount}` }),
+        'TC-528 ER-3: their current mentees are counted',
       ).toBeVisible();
       const mentee = rail.locator('.mentee').filter({ hasText: SEED.student.name });
       await expect(mentee, 'TC-528 ER-3: Test Student, with USN and stage').toContainText(
@@ -2374,6 +2653,7 @@ test.describe('Admin: people and access', () => {
     const reason = page.getByRole('textbox', { name: 'Reason', exact: true });
     const poolRow = page.locator('.pool-grid').locator(`.ag-row[row-id="${ids.studentId}"]`);
     const assign = page.getByRole('button', { name: `Assign 1 selected to ${SEED.mentor.name}` });
+    const load = await mentorLoad(api, ids.mentorUserId);
     const released = 'E2E: moving between groups';
     const reseated = 'E2E: back with their mentor';
 
@@ -2407,8 +2687,8 @@ test.describe('Admin: people and access', () => {
           poolRow,
           'TC-529 ER-2: Test Student is in "Unassigned students"',
         ).toBeVisible();
-        await expect(testMentor, 'TC-529 ER-2: Test Mentor holds nobody now').toContainText(
-          `0/${SEED.capacity}`,
+        await expect(testMentor, 'TC-529 ER-2: Test Mentor holds one student fewer').toContainText(
+          `${load.menteeCount - 1}/${load.capacity}`,
         );
       });
 
@@ -2429,8 +2709,8 @@ test.describe('Admin: people and access', () => {
           'TC-529 ER-4: the screen says the student was assigned',
         ).toBeVisible();
         await expect(release, 'TC-529 ER-4: Test Student is back in the group').toBeVisible();
-        await expect(testMentor, 'TC-529 ER-4: Test Mentor holds one again').toContainText(
-          `1/${SEED.capacity}`,
+        await expect(testMentor, 'TC-529 ER-4: Test Mentor holds as many as before').toContainText(
+          `${load.menteeCount}/${load.capacity}`,
         );
       });
 
@@ -2720,6 +3000,15 @@ test.describe('Admin: people and access', () => {
     await signIn('admin');
     const api = page.request;
     const ids = await seeded(api);
+    // How many students the batch holds, as this screen counts them: every
+    // student seated in it, removed ones included, which earlier modules leave.
+    const spine = await ok<{ scope: string; id: string; students: number }[]>(
+      await api.get('/api/admin/governance/hierarchy'),
+      'GET /api/admin/governance/hierarchy',
+    );
+    const seated = spine.find((node) => node.scope === 'COHORT' && node.id === ids.cohortId);
+    if (!seated) throw new Error('The seeded batch is not in the hierarchy.');
+    const reach = plural(seated.students, 'student');
     const panel = page.getByRole('region', { name: 'Override' });
     const save = panel.getByRole('button', { name: 'Save', exact: true });
     const blocked = panel.locator('.fs-blocked');
@@ -2759,7 +3048,7 @@ test.describe('Admin: people and access', () => {
       await test.step(`4. Under "Applies to", choose "${SEED.batch}"`, async () => {
         await panel.getByRole('combobox', { name: 'Applies to' }).selectOption(ids.cohortId);
         await expect(panel, 'TC-532 ER-2: the reach is counted').toContainText(
-          '1 student · beaten only by a student-level rule',
+          `${reach} · beaten only by a student-level rule`,
         );
       });
 
@@ -2776,13 +3065,13 @@ test.describe('Admin: people and access', () => {
         await panel.getByRole('textbox', { name: 'Student-facing message' }).fill(message);
         await save.click();
         await expect(
-          notice(page, `Leaderboards is off for ${SEED.batchYear} — 1 student.`),
+          notice(page, `Leaderboards is off for ${SEED.batchYear} — ${reach}.`),
           'TC-532 ER-4: the rule is saved',
         ).toBeVisible();
         await expect(
           leaderboards.getByRole('cell').nth(2),
           'TC-532 ER-4: the table says where it applies',
-        ).toHaveText(`Batch · ${SEED.batchYear} · 1 student`);
+        ).toHaveText(`Batch · ${SEED.batchYear} · ${reach}`);
         await expect(leaderboards.getByRole('cell').nth(3), 'TC-532 ER-4: Value Off').toHaveText(
           'Off',
         );
@@ -2802,7 +3091,7 @@ test.describe('Admin: people and access', () => {
         await panel.locator('.fs-rule').getByRole('button', { name: 'Remove override' }).click();
         await expect(
           panel.getByRole('status').filter({
-            hasText: 'Remove this rule? The next rung up decides again for 1 student.',
+            hasText: `Remove this rule? The next rung up decides again for ${reach}.`,
           }),
           'TC-532 ER-5: it asks before removing',
         ).toBeVisible();
@@ -2816,7 +3105,7 @@ test.describe('Admin: people and access', () => {
         await expect(
           notice(
             page,
-            `Rule removed for ${SEED.batchYear}. The next rung up decides again for 1 student.`,
+            `Rule removed for ${SEED.batchYear}. The next rung up decides again for ${reach}.`,
           ),
           'TC-532 ER-6: the rule is removed',
         ).toBeVisible();

@@ -88,7 +88,13 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  /* `min(Npx, 100%)` and not a bare `Npx`: a minmax() track whose minimum is a
+     fixed length does NOT collapse when the container is narrower than it — the
+     track keeps its minimum and the grid overflows. On a 320px handset the
+     content box inside a card is about 260px, so every one of these was wider
+     than the screen it was drawn on. `min()` caps the minimum at the container,
+     which changes nothing at any width where the track already fitted. */
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
   gap: 10px;
 }
 .ck {

@@ -82,10 +82,7 @@
         } @error {
           <!-- See the room's @error below for why this block exists at all. -->
           <div class="dock__failed" role="alert">
-            <!-- `sync` and not `refresh`: the icon font is SUBSET to
-                 tools/fonts/icon-names.txt and `refresh` is not in it, so it
-                 would render as nothing at all. -->
-            <span class="icon dock__failed-icon" aria-hidden="true">sync</span>
+            <span class="icon dock__failed-icon" aria-hidden="true">refresh</span>
             <p class="dock__failed-text">
               Ask REEP didn’t load. REEP was probably updated while this tab was open.
             </p>
@@ -123,10 +120,7 @@
                  not silence". This is that handler: a reload re-fetches
                  index.html and with it the current chunk names. -->
             <div class="dock__failed" role="alert">
-              <!-- `sync` and not `refresh`: the icon font is SUBSET to
-                   tools/fonts/icon-names.txt and `refresh` is not in it, so it
-                   would render as nothing at all. -->
-              <span class="icon dock__failed-icon" aria-hidden="true">sync</span>
+              <span class="icon dock__failed-icon" aria-hidden="true">refresh</span>
               <p class="dock__failed-text">
                 The interview room didn’t load. REEP was probably updated while this tab was open.
               </p>

@@ -19,6 +19,14 @@ share a rank, and the Skills board counts what the mentor verified. Every
 test here hits the seeded dev database like the rest of the suite, so a
 cohort is minted per test and the students are `make_user` accounts seated
 in it.
+
+THE BOARD IS THE BATCH (2026-09-22). The second half of this module pins the
+scope: a batch never sees another batch, the batch mates who hold nothing yet
+are listed by name under the ranking rather than left out of the screen, a
+student seated in no batch is ranked within the department they named and told
+so, a student seated nowhere is told that instead of shown an empty board, and
+the `overall` board adds the four single-component boards scaled to the best
+in the batch.
 """
 
 from __future__ import annotations
@@ -35,6 +43,7 @@ from app.models.academics import SemesterResult
 from app.models.badge import BADGES, StudentBadge, StudentBadgeStatus
 from app.models.cohort import Cohort
 from app.models.interview import InterviewScoreSummary
+from app.models.institution import College, Department
 from app.models.job import DegreeLevel
 from app.models.user import Student
 
@@ -76,6 +85,78 @@ def cohort(make_user):
     with SessionLocal() as db:
         db.execute(update(Student).where(Student.cohort_id == cohort_id).values(cohort_id=None))
         db.execute(delete(Cohort).where(Cohort.id == cohort_id))
+        db.commit()
+
+
+@pytest.fixture
+def batches(make_user):
+    """A factory of batches, each with its own seating helper.
+
+    `cohort` above is one batch; the scope tests need two, and one of them
+    filed under a department. `make_batch(department_id=None)` returns a
+    `seat(label)` closure like `cohort`'s, and every batch is unseated and
+    deleted before `make_user` tears the accounts down.
+    """
+    tag = uuid.uuid4().hex[:8]
+    made: list[str] = []
+    now = datetime.now(timezone.utc)
+
+    def make_batch(department_id: str | None = None, name: str = "2026-28"):
+        with SessionLocal() as db:
+            row = Cohort(
+                code=f"LB-{tag}-{len(made)}",
+                name=name,
+                batch_label=name,
+                degree_level=DegreeLevel.PG,
+                department_id=department_id,
+                start_date=now - timedelta(days=60),
+                end_date=now + timedelta(days=600),
+            )
+            db.add(row)
+            db.commit()
+            cohort_id = row.id
+        made.append(cohort_id)
+
+        def seat(label: str):
+            account = make_user(f"lb-{label}-{tag[:4]}")
+            with SessionLocal() as db:
+                student = db.scalar(select(Student).where(Student.user_id == account.user_id))
+                student.cohort_id = cohort_id
+                db.commit()
+                account.student_id = student.id
+            return account
+
+        seat.cohort_id = cohort_id
+        return seat
+
+    yield make_batch
+
+    with SessionLocal() as db:
+        db.execute(update(Student).where(Student.cohort_id.in_(made)).values(cohort_id=None))
+        db.execute(delete(Cohort).where(Cohort.id.in_(made)))
+        db.commit()
+
+
+@pytest.fixture
+def department():
+    """A college and a department of its own, deleted afterwards."""
+    tag = uuid.uuid4().hex[:6]
+    with SessionLocal() as db:
+        college = College(name=f"Leaderboard College {tag}", code=f"LC{tag}")
+        db.add(college)
+        db.flush()
+        dept = Department(college_id=college.id, name=f"Leaderboard Dept {tag}", code=f"LD{tag}")
+        db.add(dept)
+        db.commit()
+        ids = (college.id, dept.id)
+    yield ids[1]
+    with SessionLocal() as db:
+        # Set up after `batches`, so torn down before it: unhook the batch that
+        # was filed under this department first, or the FK refuses the delete.
+        db.execute(update(Cohort).where(Cohort.department_id == ids[1]).values(department_id=None))
+        db.execute(update(Student).where(Student.department_id == ids[1]).values(department_id=None))
+        db.execute(delete(Department).where(Department.id == ids[1]))
+        db.execute(delete(College).where(College.id == ids[0]))
         db.commit()
 
 
@@ -240,8 +321,178 @@ def test_board_values_leave_out_a_student_with_nothing_recorded(cohort):
     empty = cohort("empty")
     with SessionLocal() as db:
         for board in _BOARDS:
-            if board == "streak":
+            if board in ("streak", "overall"):
                 # Signing in through `make_user` wrote today's login day, so
-                # this is the one board a fresh account IS on.
+                # this is the one board a fresh account IS on — and `overall`
+                # carries the streak as one of its four components.
                 continue
             assert _board_values(db, board, [(empty.student_id, empty.user_id)]) == {}, board
+
+
+# --- the scope: a batch, and only the batch ----------------------------------
+
+
+@requires_db
+def test_the_board_is_the_batch_and_never_another_batch(client, batches):
+    """Two batches, two students each. A student sees their own batch mates
+    and nobody from the other batch, however many skills the others hold."""
+    seat_a, seat_b = batches(), batches(name="2027-29")
+    a1, a2 = seat_a("a1"), seat_a("a2")
+    b1 = seat_b("b1")
+    with SessionLocal() as db:
+        _earn(db, a1.student_id, 1)
+        _earn(db, a2.student_id, 2)
+        _earn(db, b1.student_id, 5)  # the best in the world, in another batch
+        db.commit()
+
+    body = _board(client, a1, "skills")
+    assert body["scope"] == "batch"
+    # `cohorts.name` IS the year here, so the label is the year alone — the
+    # batch-label rule, applied by `batch_labels.compose` and not restated.
+    assert body["scope_label"] == "2026-28"
+    assert body["classmates"] == 2
+    assert [(r["rank"], r["student_id"]) for r in body["rows"]] == [
+        (1, a2.student_id),
+        (2, a1.student_id),
+    ]
+    assert b1.student_id not in {r["student_id"] for r in body["rows"]}
+
+    other = _board(client, b1, "skills")
+    assert other["scope_label"] == "2027-29"
+    assert [r["student_id"] for r in other["rows"]] == [b1.student_id]
+    assert other["classmates"] == 1
+
+
+@requires_db
+def test_classmates_without_a_record_are_listed_unranked(client, cohort):
+    """The batch mate holding nothing is not RANKED (no confident zero) but is
+    ON THE SCREEN, by name, so a fresh batch reads as a batch and not as
+    "no ranking yet" over an empty room."""
+    ranked, waiting = cohort("ranked"), cohort("waiting")
+    with SessionLocal() as db:
+        _earn(db, ranked.student_id, 1)
+        db.commit()
+
+    body = _board(client, waiting, "skills")
+    assert body["classmates"] == 2
+    assert body["cohort_size"] == 1, "the unranked classmate must not count as ranked"
+    assert [r["student_id"] for r in body["rows"]] == [ranked.student_id]
+    assert [(u["student_id"], u["is_me"]) for u in body["unranked"]] == [
+        (waiting.student_id, True)
+    ]
+    assert body["unranked_total"] == 1
+
+    # And from the ranked student's side the same classmate is listed, not me.
+    body = _board(client, ranked, "skills")
+    assert [(u["student_id"], u["is_me"]) for u in body["unranked"]] == [
+        (waiting.student_id, False)
+    ]
+
+
+@requires_db
+def test_an_opted_out_classmate_is_on_neither_list(client, cohort):
+    """Opting out means leaving the screen entirely — the unranked list is
+    still the screen."""
+    shown, hidden = cohort("shown"), cohort("hidden")
+    r = client.put(
+        "/api/student/leaderboard-visibility", json={"hidden": True}, headers=hidden.headers
+    )
+    assert r.status_code == 200, r.text
+
+    body = _board(client, shown, "skills")
+    assert body["classmates"] == 1
+    assert hidden.student_id not in {u["student_id"] for u in body["unranked"]}
+    assert hidden.student_id not in {r["student_id"] for r in body["rows"]}
+
+
+@requires_db
+def test_an_unseated_student_is_ranked_within_their_department(client, batches, department):
+    """No batch yet, but a department named on the form: the board is the
+    department — the seated students of its batches AND the unseated ones —
+    and the response says so, because the fix is the office seating them."""
+    seat = batches(department_id=department)
+    seated = seat("seated")
+    unseated = seat("unseated")
+    with SessionLocal() as db:
+        row = db.get(Student, unseated.student_id)
+        row.cohort_id = None
+        row.department_id = department
+        _earn(db, seated.student_id, 2)
+        _earn(db, unseated.student_id, 1)
+        db.commit()
+
+    body = _board(client, unseated, "skills")
+    assert body["scope"] == "department"
+    assert body["scope_label"].startswith("Leaderboard Dept")
+    assert body["classmates"] == 2
+    assert [(r["rank"], r["student_id"]) for r in body["rows"]] == [
+        (1, seated.student_id),
+        (2, unseated.student_id),
+    ]
+
+    # The seated student's own board is still the BATCH, and it is one person.
+    body = _board(client, seated, "skills")
+    assert body["scope"] == "batch"
+    assert body["classmates"] == 1
+    assert [r["student_id"] for r in body["rows"]] == [seated.student_id]
+
+
+@requires_db
+def test_a_student_seated_nowhere_is_told_so(client, make_user):
+    """Neither a batch nor a department: `scope: none`, nobody listed. It used
+    to rank every NULL-cohort student on the deployment against each other,
+    which is not a batch and drew a board that looked like one."""
+    nobody = make_user("lb-nowhere")
+    body = _board(client, nobody, "overall")
+    assert body["scope"] == "none"
+    assert body["scope_label"] is None
+    assert body["classmates"] == 0
+    assert body["cohort_size"] == 0
+    assert body["rows"] == [] and body["unranked"] == []
+
+
+# --- the overall board ------------------------------------------------------
+
+
+def test_overall_points_scale_each_component_to_the_best_and_round_half_up():
+    """Pure arithmetic, no database: the best on a component takes the full 25,
+    the rest a share of it; the components add; .5 rounds up; a student on no
+    component is absent."""
+    from app.routers.student import OVERALL_POINTS_PER_COMPONENT, overall_points
+
+    assert OVERALL_POINTS_PER_COMPONENT == 25
+    points = overall_points(
+        {
+            "skills": {"a": 2.0, "b": 1.0},
+            "vtu": {"a": 8.0, "b": 8.0},
+            "streak": {},
+            "mocks": {"c": 3.0},
+        }
+    )
+    # a: 25 + 25; b: 12.5 + 25 = 37.5 -> 38; c: 25 on mocks alone.
+    assert points == {"a": 50, "b": 38, "c": 25}
+    assert overall_points({"skills": {}, "vtu": {}}) == {}
+
+
+@requires_db
+def test_the_overall_board_adds_the_four_components(client, cohort):
+    """Skills and results set apart; the sign-in `make_user` performed puts every
+    one of the three on the streak board at the same one day, so each collects
+    the same 25 there — which is also why a student with nothing else is
+    still on the overall board, at 25."""
+    top, mid, low = cohort("top"), cohort("mid"), cohort("low")
+    with SessionLocal() as db:
+        _earn(db, top.student_id, 2)
+        _earn(db, mid.student_id, 1)
+        db.add(SemesterResult(student_id=top.student_id, semester=1, cgpa=8.0))
+        db.add(SemesterResult(student_id=mid.student_id, semester=1, cgpa=8.0))
+        db.commit()
+
+    body = _board(client, low, "overall")
+    assert body["cohort_size"] == 3
+    assert [(r["rank"], r["student_id"], r["value_label"]) for r in body["rows"]] == [
+        (1, top.student_id, "75 pts"),
+        (2, mid.student_id, "63 pts"),
+        (3, low.student_id, "25 pts"),
+    ]
+    assert body["unranked"] == []

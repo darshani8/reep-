@@ -34,6 +34,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from ..clock import local_today
 from ..db import get_db
 from ..identity import get_current_session
 from ..models.time_ledger import DAY_CAPACITY_HALVES, LedgerDayStatus, TimeLedgerDay
@@ -66,7 +67,9 @@ def read_student_ledger(
     # B9.1: a GET, so the 90-day handover window applies (read-only by
     # construction -- this module has no write path, by design).
     _assert_can_access_student(session, student_id, db, allow_handover=True)
-    target = day or date.today()
+    # The programme's day (app/clock.py), the same clock the student's own
+    # read uses, so staff and student see the same day open and the same lock.
+    target = day or local_today()
     return compose_ledger(target, load_day(db, student_id, target))
 
 
@@ -112,7 +115,7 @@ def read_student_ledger_summary(
     # construction -- this module has no write path, by design).
     _assert_can_access_student(session, student_id, db, allow_handover=True)
 
-    since = date.today() - timedelta(days=days - 1)
+    since = local_today() - timedelta(days=days - 1)
     rows = db.scalars(
         select(TimeLedgerDay)
         .options(selectinload(TimeLedgerDay.cells))

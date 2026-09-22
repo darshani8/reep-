@@ -13,10 +13,17 @@
  * EVERY BOX IS COMPULSORY EXCEPT SPECIALIZATION (2026-09-16), the owner's rule
  * for this form, and the CV and the photo with them. The API holds the same
  * rule for the typed fields (`RegisterIn` refuses a blank USN, phone, personal
- * email or LinkedIn); the two files are posted after the 201, so the form is
- * what refuses to submit without them, and it checks each file's type and
- * size BEFORE the application is created — a 413 or 415 after the 201 would
- * leave an application in the queue with no way for the applicant to retry.
+ * email or LinkedIn) AND, since 2026-09-22, for the two files: the submission
+ * is ONE multipart request carrying every field and both files, and the API
+ * refuses it without them. It used to be a JSON POST and two uploads after
+ * the 201, and every way those two could fail — an edge refusing the body, a
+ * phone losing its connection, the applicant closing the tab at "Try
+ * attaching again", and by design for every application a rule auto-approved
+ * at submit time — left an application in the office's queue with no CV and
+ * no photo from a student who had filled in every box. The form still checks
+ * each file's type and size before it posts, so the refusal is met once,
+ * here, before the upload; a refusal from the server leaves no application
+ * behind, so the same form is simply submitted again.
  * Course and Batch are required whenever the office has listed any under the
  * chosen department: a box that cannot be filled cannot be compulsory, and a
  * half-set-up college must not refuse every applicant.
@@ -141,23 +148,14 @@ export class RegistrationComponent {
   readonly error = signal<string | null>(null);
   readonly result = signal<RegistrationResult | null>(null);
 
-  /// Files staged on the form. Uploaded AFTER the application is created — the
-  /// upload endpoint is keyed on the application id, which does not exist until
-  /// the 201 — so a picked file is held here until then.
+  /// Files staged on the form, sent WITH the application in the one multipart
+  /// request `submit()` builds.
   readonly cvFile = signal<File | null>(null);
   readonly photoFile = signal<File | null>(null);
   /// Why the last picked file was refused, per picker; cleared on a good pick.
   readonly cvError = signal<string | null>(null);
   readonly photoError = signal<string | null>(null);
-  /// The application the last submission created, kept so a failed
-  /// attachment can be retried against the same id rather than the
-  /// applicant meeting the duplicate guard on "Submit another".
-  private createdId: string | null = null;
   readonly maxUploadMb = MAX_UPLOAD_MB;
-  /// What happened to each attachment, shown on the result card. The
-  /// application itself is already in; a failed attachment is a warning, not a
-  /// reason to make the applicant start over.
-  readonly docNotes = signal<string[]>([]);
 
   // -- where the applicant belongs: cascading pickers over the admin's hierarchy --
   readonly hier = signal<Hierarchy | null>(null);
@@ -349,88 +347,52 @@ export class RegistrationComponent {
       return;
     }
 
+    // `missing()` above has just refused a form without either file.
+    const cv = this.cvFile();
+    const photo = this.photoFile();
+    if (!cv || !photo) return;
+
     this.pending.set(true);
     try {
+      // ONE MULTIPART REQUEST: the fields and both files together, so the
+      // application cannot be created without them. No Content-Type header —
+      // the browser writes the multipart boundary itself.
+      const fd = new FormData();
+      const fields: Record<string, string> = {
+        name: this.fullName.trim(),
+        email: this.collegeEmail.trim(),
+        usn: this.usn.trim(),
+        phone: this.phone.trim(),
+        personal_email: this.personalEmail.trim(),
+        linkedin_url: this.linkedin.trim(),
+        degree_level: this.degreeLevel,
+      };
+      for (const [key, value] of Object.entries(fields)) fd.append(key, value);
+      // The claim: only the pickers that were used. An empty part would be
+      // read as an id, and a picker left on "Choose …" names nothing.
+      const claim: ReadonlyArray<readonly [string, string]> = [
+        ['college_id', this.collegeId()],
+        ['department_id', this.departmentId()],
+        ['course_id', this.courseId()],
+        ['requested_cohort_id', this.batchId()],
+      ];
+      for (const [key, value] of claim) if (value) fd.append(key, value);
+      for (const id of this.specializationIds()) fd.append('specialization_ids', id);
+      fd.append('cv', cv, cv.name);
+      fd.append('photo', photo, photo.name);
+
       const res = await fetch(`${environment.apiBase}/register`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: this.fullName.trim(),
-          email: this.collegeEmail.trim(),
-          usn: this.usn.trim(),
-          phone: this.phone.trim(),
-          personal_email: this.personalEmail.trim(),
-          linkedin_url: this.linkedin.trim(),
-          degree_level: this.degreeLevel,
-          college_id: this.collegeId() || null,
-          department_id: this.departmentId() || null,
-          course_id: this.courseId() || null,
-          specialization_ids: this.specializationIds(),
-          requested_cohort_id: this.batchId() || null,
-        }),
+        body: fd,
       });
       if (!res.ok) {
         this.error.set(await this.detailOf(res));
         return;
       }
-      const created = (await res.json()) as RegistrationResult;
-      this.createdId = created.id;
-      await this.attachDocuments(created);
-      this.result.set(created);
+      this.result.set((await res.json()) as RegistrationResult);
     } catch {
       this.error.set('Could not reach the registration service. Is the API running on :3300?');
-    } finally {
-      this.pending.set(false);
-    }
-  }
-
-  /// Attach both files, one request per file, each reporting for itself. The
-  /// application is already created whatever happens here; a file that fails
-  /// is retried from the result card against the same application, never by
-  /// submitting again (which meets the duplicate guard).
-  private async attachDocuments(created: RegistrationResult): Promise<void> {
-    const notes: string[] = [];
-    for (const [kind, file, label, stored] of [
-      ['cv', this.cvFile(), 'CV', 'CV'],
-      ['photo', this.photoFile(), 'photo', 'PHOTO'],
-    ] as const) {
-      if (!file) continue;
-      if (created.documents.includes(stored)) {
-        notes.push(`${label} attached.`);
-        continue;
-      }
-      const fd = new FormData();
-      fd.append('file', file, file.name);
-      const up = await fetch(`${environment.apiBase}/register/${created.id}/documents/${kind}`, {
-        method: 'POST',
-        credentials: 'include',
-        body: fd,
-      });
-      if (up.ok) {
-        const updated = (await up.json()) as RegistrationResult;
-        created.documents = updated.documents;
-        notes.push(`${label} attached.`);
-      } else {
-        notes.push(`${label} could not be attached: ${await this.detailOf(up)}`);
-      }
-    }
-    this.docNotes.set(notes);
-  }
-
-  /// True while a note on the result card says a file did not land.
-  readonly attachmentsIncomplete = computed(() => this.docNotes().some((n) => n.includes('could not')));
-
-  async retryAttachments(): Promise<void> {
-    const current = this.result();
-    if (!current || !this.createdId || this.pending()) return;
-    this.pending.set(true);
-    try {
-      const copy = { ...current, documents: [...current.documents] };
-      await this.attachDocuments(copy);
-      this.result.set(copy);
-    } catch {
-      this.docNotes.set([...this.docNotes(), 'Could not reach the registration service to retry.']);
     } finally {
       this.pending.set(false);
     }
@@ -458,19 +420,20 @@ export class RegistrationComponent {
         'or you think this is a mistake, contact the placement office.'
       );
     }
-    if (res.status === 422) return 'Please check the form — some details are not valid.';
-    return 'Something went wrong submitting your registration. Please try again.';
+    if (res.status === 422) return 'Please check the form — some details are not valid (422).';
+    // The status stays in the sentence: a body with no `detail` is the shape
+    // an edge refusal has, and "(403)" points at the edge where a sentence
+    // about the form points at the applicant.
+    return `Something went wrong submitting your registration (${res.status}). Please try again.`;
   }
 
   /// Start over after a hold so a mistyped email can be corrected in place.
   reset(): void {
     this.result.set(null);
-    this.createdId = null;
     this.cvFile.set(null);
     this.photoFile.set(null);
     this.cvError.set(null);
     this.photoError.set(null);
-    this.docNotes.set([]);
     this.setCollege('');
     this.error.set(null);
   }

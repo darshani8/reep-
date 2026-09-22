@@ -28,12 +28,13 @@ import re
 import time
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import NamedTuple, Sequence
+from typing import Annotated, NamedTuple, Sequence
 
 from fastapi import (
     APIRouter,
     Depends,
     File,
+    Form,
     HTTPException,
     Query,
     Request,
@@ -330,11 +331,21 @@ class RegisterIn(BaseModel):
     they land in stay NULLABLE, because requiredness is a rule about new rows
     and nullability is a promise about the ones already written.
 
-    The CV and the photo are required by the same rule and CANNOT be here:
-    they are posted to `attach_document` after the 201, keyed on the id this
-    endpoint mints. The form refuses to submit without both, and the reviewer's
-    checklist (`CHECK_DOCUMENTS`) names whichever is missing on a row that
-    arrived without them.
+    THE CV AND THE PHOTO ARE REQUIRED HERE TOO, SINCE 2026-09-22, on
+    `RegisterForm` below - the shape `POST /register` actually takes. They
+    used to be posted to `attach_document` AFTER the 201, keyed on the id this
+    endpoint minted, and the reviewer's checklist (`CHECK_DOCUMENTS`) named
+    whichever was missing. That is how the office came to hold applications
+    with no CV and no photo from students who had filled in every box: the
+    application existed the moment the JSON landed, and the two uploads that
+    followed could fail on their own - the edge refusing a body over its
+    limit, a phone losing its connection, the applicant closing the tab at
+    "Try attaching again" - and, for every application a rule AUTO-APPROVED
+    at submit time, they were refused by design, because `attach_document`
+    accepts no file on a decided application and the rule had decided it a
+    moment before the upload arrived. So the files travel IN the request that
+    creates the application, are judged before a row is written, and land in
+    the same transaction; an application cannot exist without them.
     """
 
     name: str = Field(min_length=1, max_length=200)
@@ -357,6 +368,20 @@ class RegisterIn(BaseModel):
         value = value.strip()
         if not value:
             raise ValueError("this field is required")
+        return value
+
+    @field_validator(
+        "college_id", "department_id", "course_id", "specialization_id", "requested_cohort_id",
+        mode="before",
+    )
+    @classmethod
+    def _blank_id_is_none(cls, value: object) -> object:
+        """A picker left on "Choose ..." arrives as `null` from a JSON client and
+        as `""` from a multipart one - the form's shape since 2026-09-22 - and
+        the second must not reach `_resolve_claim` as a college id that "does
+        not exist"."""
+        if isinstance(value, str) and not value.strip():
+            return None
         return value
 
     @field_validator("personal_email")
@@ -428,6 +453,26 @@ class RegisterIn(BaseModel):
         return self
 
 
+class RegisterForm(RegisterIn):
+    """What `POST /register` takes: every field of `RegisterIn` as a
+    `multipart/form-data` part, plus the two files, BOTH REQUIRED.
+
+    The files are fields of the model rather than separate `File()` parameters
+    on the endpoint because FastAPI embeds a form model under its parameter
+    name the moment a second body parameter appears, and the form would then
+    have to post `body[name]`. One model, one flat multipart body.
+
+    `RegisterIn` stays as the JSON-shaped schema for the two things that read
+    it without a request: `_resolve_claim`, which takes either, and the tests
+    that pin the field rules without a database.
+    """
+
+    #: The CV, a PDF (`_DOCUMENT_ROUTES["cv"]`), up to `MAX_BYTES`.
+    cv: UploadFile
+    #: The headshot, a PNG or a JPEG (`_DOCUMENT_ROUTES["photo"]`), same cap.
+    photo: UploadFile
+
+
 # --- the check vocabulary (B11.1) --------------------------------------------
 #
 # DEFINED ONCE, HERE. The pending queue draws these, and the Hold screen and the
@@ -476,11 +521,14 @@ CHECK_USN_PATTERN = "usn_pattern"
 #: the new application is the one person who needs to know it is not the first
 #: - and what the office said last time. Approve is not refused by it.
 CHECK_PRIOR_APPLICATIONS = "prior_applications"
-#: A WARN, never a block: the form requires both files (2026-09-16), so a row
-#: without them is one whose upload failed after the 201 or that was posted
-#: past the form. Approve still works - the office can hold it and ask for the
-#: file, which is what HOLD is for - but the reviewer must see the gap before
-#: pressing the button, not after the student has no resume.
+#: A WARN, never a block. Since 2026-09-22 `POST /register` refuses an
+#: application that does not carry both files, so this line can only fire on
+#: a row written BEFORE that - one whose upload failed after the 201, or was
+#: refused because a rule had already auto-approved it. Those rows are still in
+#: the queue and still decidable; the office can hold one and ask for the file
+#: (`attach_document` still takes a replacement on an undecided application),
+#: and the reviewer must see the gap before pressing the button, not after
+#: the student has no resume.
 CHECK_DOCUMENTS = "documents"
 #: A WARN, never a block, and only where a SECOND specialization is on the row
 #: (2026-09-22): the applicant ticked two on the form's checklist. It is on the
@@ -1580,10 +1628,29 @@ def _resolve_claim(db: Session, body: RegisterIn) -> dict[str, str | None]:
 
 
 @router.post("", response_model=PublicRegistrationOut, status_code=status.HTTP_201_CREATED)
-def submit(
-    body: RegisterIn, request: Request, db: Session = Depends(get_db)
+async def submit(
+    # `media_type` stated, or the spec documents this body as urlencoded, which
+    # cannot carry a file; the runtime parses multipart either way.
+    body: Annotated[RegisterForm, Form(media_type="multipart/form-data")],
+    request: Request,
+    db: Session = Depends(get_db),
 ) -> PublicRegistrationOut:
-    """Public: submit an application. No auth — the applicant is not a user yet."""
+    """Public: submit an application. No auth — the applicant is not a user yet.
+
+    ONE MULTIPART REQUEST, THE CV AND THE PHOTO IN IT, AND NOTHING IS WRITTEN
+    UNTIL BOTH HAVE BEEN JUDGED (2026-09-22). The application used to be
+    created from a JSON body and the two files posted afterwards, one request
+    each, keyed on the id the 201 handed back - and every way that second
+    half could fail left an application in the queue with no CV and no photo,
+    from a student who had filled in every compulsory box. The one that was
+    not even a failure: a rule that AUTO-APPROVES at submit time decided the
+    application before the uploads arrived, and `attach_document` refuses a
+    decided application, so every auto-admitted student's CV was rejected by
+    design. Now the row, its two document rows and their bytes land in one
+    transaction after both files have passed the size and type checks; a
+    refused file is a 413 or 415 with no application behind it, so the
+    applicant retries the same form and never meets the duplicate guard.
+    """
     # Limit BEFORE the database is touched: the point is that a flood never
     # reaches Postgres, not that Postgres survives it.
     client_ip = request.client.host if request.client else "unknown"
@@ -1669,6 +1736,13 @@ def submit(
     # HUMAN now sees the application first, and a provisioned-but-unconfirmed
     # row is inert — its password hash is the unusable sentinel, and Google
     # sign-in needs the Google account itself.
+    # THE FILES ARE JUDGED BEFORE ANYTHING IS WRITTEN - after the duplicate
+    # guard, so an address that cannot apply is refused without its bytes
+    # ever being read past the cap, and before the claim is resolved, so a
+    # wrong file and a contradictory batch both leave nothing behind.
+    cv = await _read_document(body.cv, "cv")
+    photo = await _read_document(body.photo, "photo")
+
     reg = Registration(
         name=body.name.strip(),
         email=email,
@@ -1684,7 +1758,25 @@ def submit(
         decision_reason=None,
     )
     db.add(reg)
-    db.commit()
+    db.flush()  # mints reg.id for the two document rows
+    stored: list[str] = []
+    try:
+        for kind, (content, original_name) in (("cv", cv), ("photo", photo)):
+            stored.append(_store_document(db, reg, kind, content, original_name))
+        db.commit()
+    except Exception:
+        # The row and both document rows roll back together; the bytes are on
+        # the volume already and would be a file nobody can name, so they go
+        # too. The archive copy `save_and_record` may have made is Object-Locked
+        # and stays, unnamed, which is the price of archiving before the commit
+        # and the reason the type is decided BEFORE the store is asked.
+        db.rollback()
+        for name in stored:
+            try:
+                delete_stored(name)
+            except FileNotFoundError:
+                pass
+        raise
     db.refresh(reg)
     _apply_rule(db, reg)
     db.commit()
@@ -2307,94 +2399,24 @@ def decide(
     return _out_one(db, reg)
 
 
-@router.post(
-    "/{registration_id}/documents/{kind}",
-    response_model=PublicRegistrationOut,
-    status_code=status.HTTP_200_OK,
-)
-async def attach_document(
-    registration_id: str,
-    kind: str,
-    request: Request,
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-) -> PublicRegistrationOut:
-    """Attach the CV or the photo to an application that nobody has decided yet.
+async def _read_document(upload: UploadFile, kind: str) -> tuple[bytes, str]:
+    """Read one uploaded document and decide what it is, WITHOUT storing it.
 
-    PUBLIC, like the form that created the application - there is no account to
-    sign in with yet. The application id is the bearer: a uuid4 the client was
-    handed on the 201, unguessable, and the same trust the emailed confirmation
-    link carries. It is accepted only while the application is undecided
-    (PENDING_REVIEW or HOLD - and the dead PENDING_VERIFICATION; see the check
-    itself), so a file can never be slipped onto a record the Main Admin has
-    already ruled on.
-
-    The bytes go through app/document_store exactly as a student's own uploads
-    do - magic-sniffed, size-capped, no client path near the disk - and THEN
-    the sniffed mime is checked against what this kind may be, so a PNG posted
-    as a CV is a 415 and its bytes are removed, not a CV nobody can open. One
-    of each kind: a second CV replaces the first, old bytes deleted first.
-
-    Rate-limited per source address like POST /register: with no account on
-    the request there is nothing else to key on, and the limiter's own note
-    says why that is acceptable for this form and not for sign-in.
+    `(content, original_name)`, or a 413 / 415 naming the kind. The size cap
+    is enforced on `len(content)` after a `read(MAX+1)` - never `read()` - so
+    the process holds at most one byte past the cap of a body an anonymous
+    caller chose the size of; the type is decided by the store's sniff and
+    then narrowed to what THIS kind may be, so a PNG posted as a CV is a 415
+    and never bytes on the volume. Shared by `submit` (both files, before a
+    row exists) and `attach_document` (one replacement, on a row that does).
     """
-    route = _DOCUMENT_ROUTES.get(kind)
-    if route is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown document kind.")
-    doc_kind, allowed_mimes, wanted = route
-
-    client_ip = request.client.host if request.client else "unknown"
-    retry_after = _rate_limit_retry_after(client_ip)
-    if retry_after is not None:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many uploads from this connection. Wait a few minutes and try again.",
-            headers={"Retry-After": str(retry_after)},
-        )
-
-    reg = db.scalar(
-        select(Registration).where(Registration.id == registration_id).with_for_update()
-    )
-    if reg is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
-    # UNDECIDED, WHICH NOW INCLUDES HOLD. "Held for a missing document" is the
-    # main reason to hold an application at all, so an applicant who is told to
-    # send their CV must be able to send it; refusing here would make the hold
-    # note an instruction the product itself blocks.
-    #
-    # PENDING_VERIFICATION IS DEAD and is kept here only so a row written before
-    # migration 9b2d47f0ce15 — if any survived it — is not locked out by this
-    # check. Nothing has written it since; see `RegistrationStatus` for why the
-    # value cannot simply be removed. Read this tuple as "the three statuses
-    # nobody has ruled on", not as three live states.
-    if reg.status not in (
-        RegistrationStatus.PENDING_VERIFICATION,
-        RegistrationStatus.PENDING_REVIEW,
-        RegistrationStatus.HOLD,
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="This application has already been decided; documents can no longer be added.",
-        )
-
-    # read(MAX+1), never read(): the per-file cap is enforced on `len(content)`
-    # below, so reading one byte past it is enough to trip the refusal -- while
-    # an unbounded read loads a body only nginx's client_max_body_size bounds
-    # into RAM, and that bound does not exist when uvicorn is exposed directly
-    # (the documented dev setup, or a different ingress). Verbatim the rule
-    # routers/student.py states over its own upload, and it matters MORE here
-    # than there: this is the one upload in the product with no cookie in front
-    # of it, so the body that gets buffered is a body an anonymous caller chose
-    # the size of. The size check has to come after the read either way; what
-    # this decides is how much of the file the process ever holds.
-    content = await file.read(MAX_BYTES + 1)
+    _doc_kind, allowed_mimes, wanted = _DOCUMENT_ROUTES[kind]
+    content = await upload.read(MAX_BYTES + 1)
     if len(content) > MAX_BYTES:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="That file is larger than " + str(MAX_BYTES // (1024 * 1024)) + " MB.",
+            detail="The " + kind + " is larger than " + str(MAX_BYTES // (1024 * 1024)) + " MB.",
         )
-    quota = VolumeQuota.single_slot(noun=kind)
     # THE TYPE IS DECIDED BEFORE ANYTHING IS STORED. This used to store the
     # file, read the sniffed mime off the result and `delete_stored` it again
     # when the kind was wrong -- which stopped being survivable when
@@ -2411,18 +2433,35 @@ async def attach_document(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail="The " + kind + " must be " + wanted + ".",
         )
+    return content, (upload.filename or "document")
+
+
+def _store_document(
+    db: Session, reg: Registration, kind: str, content: bytes, original_name: str
+) -> str:
+    """Store judged bytes and write - or replace - the application's row of
+    that kind. Returns the stored name. NO COMMIT: `submit` writes two of
+    these beside the application row in one transaction, and `attach_document`
+    commits its one.
+
+    The bytes go through app/document_store exactly as a student's own uploads
+    do - magic-sniffed again on the way in, size-capped, no client path near
+    the disk - through `save_and_record`, the one spelling routers may use.
+    One of each kind: a second CV replaces the first, old bytes deleted first.
+    """
+    doc_kind, _allowed_mimes, _wanted = _DOCUMENT_ROUTES[kind]
     try:
         stored_name, mime, size = save_and_record(
             db,
             content,
-            quota=quota,
+            quota=VolumeQuota.single_slot(noun=kind),
             kind=DocumentOwnerKind.REGISTRATION_DOCUMENT,
             # NONE, AND STATED RATHER THAN OMITTED. An applicant has no account
             # yet -- that is the whole shape of the registration flow -- so the
             # address on the `registrations` row is the only identity there is,
             # and inventing an owner id here would be inventing a user.
             owner_id=None,
-            original_name=file.filename or "document",
+            original_name=original_name,
         )
     except QuotaRejected as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc))
@@ -2464,7 +2503,7 @@ async def attach_document(
             delete_stored(existing.stored_name)
         except FileNotFoundError:
             pass
-        existing.original_name = file.filename or stored_name
+        existing.original_name = original_name
         existing.stored_name = stored_name
         existing.mime_type = mime
         existing.size_bytes = size
@@ -2473,12 +2512,88 @@ async def attach_document(
             RegistrationDocument(
                 registration_id=reg.id,
                 kind=doc_kind,
-                original_name=file.filename or stored_name,
+                original_name=original_name,
                 stored_name=stored_name,
                 mime_type=mime,
                 size_bytes=size,
             )
         )
+    return stored_name
+
+
+@router.post(
+    "/{registration_id}/documents/{kind}",
+    response_model=PublicRegistrationOut,
+    status_code=status.HTTP_200_OK,
+)
+async def attach_document(
+    registration_id: str,
+    kind: str,
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+) -> PublicRegistrationOut:
+    """Replace the CV or the photo on an application that nobody has decided yet.
+
+    PUBLIC, like the form that created the application - there is no account to
+    sign in with yet. The application id is the bearer: a uuid4 the client was
+    handed on the 201, unguessable, and the same trust the emailed confirmation
+    link carries. It is accepted only while the application is undecided
+    (PENDING_REVIEW or HOLD - and the dead PENDING_VERIFICATION; see the check
+    itself), so a file can never be slipped onto a record the Main Admin has
+    already ruled on.
+
+    THE FORM NO LONGER CALLS THIS (2026-09-22). Both files arrive with the
+    application itself (`submit`), so an application cannot exist without
+    them; what remains here is the REPLACEMENT path - an applicant the office
+    has HELD and asked for a better scan, and the rows written before that
+    date that arrived without a file. The bytes are judged and stored by the
+    same two helpers `submit` uses, so the two doors cannot disagree about
+    what a CV is.
+
+    Rate-limited per source address like POST /register: with no account on
+    the request there is nothing else to key on, and the limiter's own note
+    says why that is acceptable for this form and not for sign-in.
+    """
+    if kind not in _DOCUMENT_ROUTES:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown document kind.")
+
+    client_ip = request.client.host if request.client else "unknown"
+    retry_after = _rate_limit_retry_after(client_ip)
+    if retry_after is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many uploads from this connection. Wait a few minutes and try again.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    reg = db.scalar(
+        select(Registration).where(Registration.id == registration_id).with_for_update()
+    )
+    if reg is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
+    # UNDECIDED, WHICH NOW INCLUDES HOLD. "Held for a missing document" is the
+    # main reason to hold an application at all, so an applicant who is told to
+    # send their CV must be able to send it; refusing here would make the hold
+    # note an instruction the product itself blocks.
+    #
+    # PENDING_VERIFICATION IS DEAD and is kept here only so a row written before
+    # migration 9b2d47f0ce15 — if any survived it — is not locked out by this
+    # check. Nothing has written it since; see `RegistrationStatus` for why the
+    # value cannot simply be removed. Read this tuple as "the three statuses
+    # nobody has ruled on", not as three live states.
+    if reg.status not in (
+        RegistrationStatus.PENDING_VERIFICATION,
+        RegistrationStatus.PENDING_REVIEW,
+        RegistrationStatus.HOLD,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This application has already been decided; documents can no longer be added.",
+        )
+
+    content, original_name = await _read_document(file, kind)
+    _store_document(db, reg, kind, content, original_name)
     db.commit()
     db.refresh(reg)
     return _public_out_one(db, reg)

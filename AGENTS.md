@@ -172,21 +172,41 @@ columns (`registrations.personal_email` / `linkedin_url`, migration
 `a3f9c2e17b48`) are NULLABLE because the rule is about new applications and
 the column is a promise about the rows already written; approval copies phone
 and LinkedIn onto `student_profiles`, where the placement record already asks
-for both. The two files CANNOT be required there: they are posted to
-`attach_document` after the 201, keyed on the id `submit` mints. So the form
-refuses to submit without both, checks each file's TYPE AND SIZE before the
-application is created (a 413 or 415 after the 201 would leave an application
-in the queue with no way for the applicant to retry), states the accepted
-format and the cap on the dropzone itself (PDF, and PNG or JPG, each up to
-`document_store.MAX_BYTES`), and a file that still fails to land is retried
-from the result card against the SAME application — "Submit another" would
-meet the duplicate guard. The reviewer's checklist gained `CHECK_DOCUMENTS`, a
-WARN and never a block, naming whichever file is missing on a row that
-arrived without it. Course and Batch are required on the form WHENEVER THE
-OFFICE HAS LISTED ANY under the chosen department, and not otherwise: a box
-that cannot be filled cannot be compulsory, and a half-set-up college must not
-refuse every applicant. `tests/test_registration_required.py` pins the API
-half.
+for both. **THE TWO FILES ARE REQUIRED BY THE API TOO, SINCE 2026-09-22, AND
+THE REQUEST IS ONE MULTIPART POST.** Until then they were posted to
+`attach_document` AFTER the 201, keyed on the id `submit` minted, with the
+form refusing to submit without them and a retry button on the result card —
+and the office's queue still filled with applications that had neither, from
+students who had filled in every box. Every way the second half could fail
+left one behind (the edge refusing a body over its limit, a phone losing its
+connection, the applicant closing the tab at "Try attaching again"), and one
+case failed BY DESIGN: a rule that auto-approves decides the application at
+submit time, `attach_document` refuses a decided application, so every
+auto-admitted student's CV and photo were rejected a second after the 201.
+`POST /register` now takes `RegisterForm` — `RegisterIn`'s fields as
+multipart parts plus `cv` and `photo`, both required, as fields of the ONE
+form model because FastAPI embeds a form model under its parameter name the
+moment a second body parameter appears — and `_read_document` judges both
+files (size after a `read(MAX+1)`, then the sniff, then the kind's own mime
+list) BEFORE a row is written; the row, its two `registration_documents` and
+their bytes land in one transaction, bytes unlinked on a rollback, and only
+then does `_apply_rule` run, so `_provision_student` finds the documents it
+moves onto the new student's uploads. A refused file is a 413 or 415 with no
+application behind it, so the applicant resubmits the same form and never
+meets the duplicate guard. `attach_document` stays as the REPLACEMENT path
+(a held applicant asked for a better scan, and the rows from before), built
+on the same two helpers so the two doors cannot disagree about what a CV is.
+The form still checks each file's type and size before it posts and states
+the accepted format and the cap on the dropzone itself (PDF, and PNG or JPG,
+each up to `document_store.MAX_BYTES`). The reviewer's checklist keeps
+`CHECK_DOCUMENTS`, a WARN and never a block, which can now fire only on a row
+written before the rule. Course and Batch are required on the form WHENEVER
+THE OFFICE HAS LISTED ANY under the chosen department, and not otherwise: a
+box that cannot be filled cannot be compulsory, and a half-set-up college must
+not refuse every applicant. `tests/test_registration_required.py` pins the
+API half, `test_an_application_cannot_exist_without_its_cv_and_photo` and
+`test_registration_documents.py::test_an_auto_approved_application_keeps_its_files`
+the two halves of this rule.
 
 **SPECIALIZATION IS A CHECKLIST, AND A STUDENT MAY TICK TWO (2026-09-22).**
 Some students opt for a DUAL specialization, and the box was a `<select>`, so

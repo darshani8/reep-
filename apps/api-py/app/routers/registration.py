@@ -48,7 +48,7 @@ from sqlalchemy.orm import Session
 
 from fastapi.responses import RedirectResponse
 
-from .. import account_links, batch_labels
+from .. import account_links, batch_labels, dual_specialization
 from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
@@ -1302,8 +1302,8 @@ def _checks_for_one(
                 label="Opted for a dual specialization",
                 detail=(
                     "They ticked " + " and ".join(specializations) + ". A batch hangs on one "
-                    "specialization at most, so Approve seats them by the batch; both "
-                    "choices stay on this application."
+                    "specialization at most, so Approve seats them by the batch and keeps "
+                    "the other as their second specialization."
                 ),
             )
         )
@@ -2160,6 +2160,13 @@ def _provision_student(db: Session, reg: Registration) -> Student:
             # because a stored application is not a human contradicting
             # themselves, so this derives and never refuses an approval.
             department_id=_provisioned_department(db, cohort_id, reg.department_id),
+            # THE DUAL SPECIALIZATION TRAVELS WITH THE STUDENT (2026-09-23).
+            # The batch is the first of the two; the application's other tick
+            # is written here, so the roster editor shows what the applicant
+            # opted for instead of it living on this row alone.
+            second_specialization_id=dual_specialization.second_for_seat(
+                db, cohort_id, (reg.specialization_id, reg.second_specialization_id)
+            ),
         )
         db.add(student)
         db.flush()

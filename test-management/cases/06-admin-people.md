@@ -319,7 +319,7 @@ None.
 | ID | TC-507 |
 | Module | Admin: students roster |
 | Priority | P3 |
-| Type | Functional, negative (known defect) |
+| Type | Functional, negative |
 | Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-507` |
 
 ### Pre-conditions
@@ -345,13 +345,6 @@ None.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 3 | Test Student, who has signed in, is hidden, and the grid says "No student matches these filters.", not that the batch is empty. |
-
-### Known defect
-
-Today the grid says "Nobody is in this batch." although the batch holds Test
-Student and it is the Status filter that hides them. The screen picks its
-empty-grid sentence by checking for a chosen batch before it checks for the
-other filters.
 
 ### Post-conditions
 
@@ -618,7 +611,7 @@ history, and moving them off Test Mentor gave Test Mentor a 90-day read-only
 | ID | TC-512 |
 | Module | Admin: students roster, selection actions |
 | Priority | P3 |
-| Type | Functional, negative (known defect) |
+| Type | Functional, negative |
 | Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-512` |
 
 ### Pre-conditions
@@ -642,14 +635,6 @@ None.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 4 | The screen says "1 of 1 student: assigned to Test Mentor.", the bar under the grid reads "Selected: 0", and Test Student's row is no longer ticked, so the tick and the count agree. |
-
-### Known defect
-
-Today the row stays ticked beside "Selected: 0" and a disabled "Assign faculty
-to 0 selected" button. Ticking the row again unticks it, so a second action
-needs two clicks and the screen shows a selection the toolbar will not act on.
-After an action the screen clears its own count of ticked rows but not the
-grid's ticks.
 
 ---
 

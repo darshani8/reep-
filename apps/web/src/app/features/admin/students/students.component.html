@@ -202,7 +202,11 @@
       } @else {
         <!-- Mounted once and never torn down: an @if around the grid destroys
              the GridApi the toolbar and the status bar hold, so the empty case
-             is main's own words in the no-rows overlay instead. -->
+             is main's own words in the no-rows overlay instead.
+             Hidden columns stay in the quick filter: the server's `q` reads
+             the name, the address and the USN whichever columns are shown,
+             and a filter that read only the shown ones emptied the grid
+             under a row the server had just matched. -->
         <ag-grid-angular
           class="roster-ag"
           [theme]="gridTheme"
@@ -215,6 +219,7 @@
           [overlayNoRowsTemplate]="emptyOverlay()"
           [getRowId]="rowId"
           [quickFilterText]="quickFilter()"
+          [includeHiddenColumnsInQuickFilter]="true"
           [rowHeight]="rowHeight()"
           [pagination]="true"
           [paginationPageSize]="pageSize()"

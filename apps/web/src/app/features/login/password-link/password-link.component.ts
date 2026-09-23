@@ -11,7 +11,8 @@
  * THE LINK IS NOT BURNED BY A TYPO. The API checks the password against
  * policy BEFORE spending the token, so a 422 here means "try again with the
  * same link"; a 410 means the link itself is dead (used or expired) and the
- * only way forward is a new one. The screen says which.
+ * only way forward is a new one. The screen says which — and a 422 whose
+ * errors locate the TOKEN is the second kind, not the first (`namesTheToken`).
  *
  * Outside the shell, like /login and /register: nobody on this screen has a
  * session yet.
@@ -37,6 +38,22 @@ type Mode = 'activate' | 'reset';
 /** The API's floor is 12 (app/set_password.py). Mirrored here only so the
  *  message appears before the round trip; the server's answer still wins. */
 const MIN_LENGTH = 12;
+
+/**
+ * Whether a 422 is the API refusing the LINK rather than the password.
+ *
+ * A refused password is a sentence (`password_problem` in
+ * app/set_password.py). A request the schema refused is FastAPI's list of
+ * errors, each naming its field in `loc`, and one naming `token` is a broken
+ * link: read as a refused password, it empties both fields and asks for
+ * another one, which no password can ever satisfy.
+ */
+export function namesTheToken(detail: unknown): boolean {
+  return (
+    Array.isArray(detail) &&
+    detail.some((error) => Array.isArray(error?.loc) && error.loc.includes('token'))
+  );
+}
 
 function matching(group: AbstractControl): ValidationErrors | null {
   const a = group.get('password')?.value;
@@ -110,7 +127,7 @@ export class PasswordLinkComponent {
       const body = (await res.json().catch(() => ({}))) as { detail?: unknown; role?: string };
       const detail = typeof body.detail === 'string' ? body.detail : null;
 
-      if (res.status === 410) {
+      if (res.status === 410 || (res.status === 422 && namesTheToken(body.detail))) {
         this.linkError.set(detail ?? 'This link is no longer valid.');
         return;
       }

@@ -24,6 +24,14 @@
  * submitted, draft, not logged, locked — the screen showed one day at a time
  * and nothing else, so a fortnight of entries had nowhere to be seen.
  *
+ * ONLY THE LAST DAY ASKED FOR IS DRAWN. Each step or chip loads its day, and
+ * the answers can arrive in any order. The screen used to draw whichever
+ * arrived LAST, so a quick second click while the first day was still loading
+ * could settle on the earlier day, date control and all. Every read and write
+ * carries `loadSeq` at the moment it was asked, and an answer whose number is
+ * no longer current is dropped, a refusal included. A write names its day when
+ * it is asked, never after an await: see `submitDay`.
+ *
  * EDITS ARE LOCAL UNTIL SAVED. `draft` holds what the student has typed; the
  * server's view is only replaced on a successful write. Re-rendering the whole
  * table from a response on every keystroke would move focus out of the cell
@@ -35,6 +43,7 @@ import { Component, computed, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 
 import { environment } from '../../../../environments/environment';
+import { featureRefusal } from '../../../core/feature-refusal';
 import { deviceTodayIso, isoAfter, shiftIsoDay } from './ledger-days';
 
 type Tone = 'good' | 'warn' | 'risk' | 'neutral';
@@ -153,6 +162,9 @@ const HISTORY_DAYS = 14;
 export class LedgerComponent {
   readonly state = signal<State>('loading');
   readonly error = signal<string | null>(null);
+  /** The office's message when the ledger is switched off for the student;
+   *  null for every other failed read, which keeps the screen's own line. */
+  readonly refusal = signal<string | null>(null);
   readonly saving = signal(false);
   readonly ledger = signal<Ledger | null>(null);
 
@@ -176,6 +188,22 @@ export class LedgerComponent {
   readonly submitted = computed(() => this.ledger()?.status === 'SUBMITTED');
   readonly locked = computed(() => this.ledger()?.locked === true);
   readonly editable = computed(() => this.ledger()?.editable === true);
+
+  /** "Copy yesterday" is offered only where the server would take it: a day
+   *  still open, whose previous day the strip reports SUBMITTED.
+   *  `copy_yesterday` refuses a draft source (a half-finished day must not be
+   *  spread forward), and the strip is the server's own word on each day, so
+   *  a day it does not reach is simply not offered the button. */
+  readonly canCopyYesterday = computed(() => {
+    if (this.state() !== 'data' || !this.editable()) return false;
+    const previous = shiftIsoDay(this.day(), -1);
+    return this.history()?.days.find((d) => d.day === previous)?.status === 'SUBMITTED';
+  });
+
+  /** Bumped by every read of a day; see "ONLY THE LAST DAY ASKED FOR". */
+  private loadSeq = 0;
+  /** The same for the strip of recent days; see `loadHistory`. */
+  private historySeq = 0;
 
   /** "Each day can be filled in for 2 days after it ends, then it locks." —
    *  the window the server applies, in one sentence for the history card. */
@@ -231,8 +259,12 @@ export class LedgerComponent {
   }
 
   /** The strip of recent days. Same independence as the weekly strip: the
-   *  ledger renders without it. */
+   *  ledger renders without it. Every write re-reads it, so a save and the
+   *  submit behind it put two reads in flight, and only the later one may be
+   *  drawn: the earlier would say the day just submitted is still a draft,
+   *  and take "Copy yesterday" off the day after it. */
   async loadHistory(): Promise<void> {
+    const seq = ++this.historySeq;
     try {
       const res = await fetch(
         `${environment.apiBase}/student/ledger/history?days=${HISTORY_DAYS}`,
@@ -240,6 +272,7 @@ export class LedgerComponent {
       );
       if (!res.ok) return;
       const body = (await res.json()) as History;
+      if (seq !== this.historySeq) return;
       this.history.set(body);
       this.today.set(body.today);
     } catch {
@@ -250,22 +283,31 @@ export class LedgerComponent {
   /** `initial` asks for no day, so the SERVER decides what today is; every
    *  later load names the day the student stepped to. */
   async load(initial = false): Promise<void> {
+    const seq = ++this.loadSeq;
     this.state.set('loading');
     this.error.set(null);
+    this.refusal.set(null);
     this.draft.set({});
     try {
       const query = initial ? '' : `?day=${encodeURIComponent(this.day())}`;
       const res = await fetch(`${environment.apiBase}/student/ledger${query}`, {
         credentials: 'include',
       });
-      if (!res.ok) throw new Error(String(res.status));
+      if (!res.ok) {
+        const refusal = await featureRefusal(res);
+        if (seq !== this.loadSeq) return;
+        this.refusal.set(refusal);
+        this.state.set('error');
+        return;
+      }
       const body = (await res.json()) as Ledger;
+      if (seq !== this.loadSeq) return;
       this.ledger.set(body);
       this.today.set(body.today);
       this.day.set(body.day);
       this.state.set('data');
     } catch {
-      this.state.set('error');
+      if (seq === this.loadSeq) this.state.set('error');
     }
   }
 
@@ -374,6 +416,10 @@ export class LedgerComponent {
   }
 
   private async write(path: string, body: unknown, method = 'POST'): Promise<boolean> {
+    // The day this write is about. A step taken while it is in flight makes
+    // its answer — a refusal as much as a saved day — a different day's, and
+    // it must not be drawn over the day the student is now looking at.
+    const seq = this.loadSeq;
     this.saving.set(true);
     this.error.set(null);
     try {
@@ -391,20 +437,24 @@ export class LedgerComponent {
           .json()
           .then((b: { detail?: string }) => b.detail)
           .catch(() => null);
-        this.error.set(detail || 'That could not be saved. Please try again.');
+        if (seq === this.loadSeq) {
+          this.error.set(detail || 'That could not be saved. Please try again.');
+        }
         return false;
       }
       const saved = (await res.json()) as Ledger;
-      this.ledger.set(saved);
-      this.today.set(saved.today);
-      this.draft.set({});
+      if (seq === this.loadSeq) {
+        this.ledger.set(saved);
+        this.today.set(saved.today);
+        this.draft.set({});
+      }
       // The strip and the weekly figure are both sums over what was just
       // written; refresh them rather than let them lag the table.
       void this.loadHistory();
       void this.loadWeekly();
       return true;
     } catch {
-      this.error.set('Could not reach the server. Please try again.');
+      if (seq === this.loadSeq) this.error.set('Could not reach the server. Please try again.');
       return false;
     } finally {
       this.saving.set(false);
@@ -415,11 +465,29 @@ export class LedgerComponent {
     return this.write('/student/ledger', { day: this.day(), cells: this.cellsPayload() }, 'PUT');
   }
 
+  /** Prefill the day from the submitted day before it. What the student had
+   *  typed or saved on this day is replaced, exactly as the server replaces
+   *  the day's cells; the copy is a draft until it is submitted. */
+  copyYesterday(): Promise<boolean> {
+    return this.write('/student/ledger/copy-yesterday', { day: this.day() });
+  }
+
   /** Save first, then submit. Submitting what is on screen rather than what was
-   *  last written is the only behaviour that matches the button's label. */
+   *  last written is the only behaviour that matches the button's label.
+   *
+   *  The day is the one on screen when the button was pressed, taken before
+   *  the save is awaited. The stepper stays live while it saves, and reading
+   *  `day()` afterwards submitted whichever day the student had stepped to —
+   *  a day they never chose, and a submitted day cannot be reopened. If they
+   *  have stepped away by the time the save answers, the submit is not sent
+   *  at all: the save stands, the strip shows the day as a draft, and
+   *  submitting it is one press when they go back to it. */
   async submitDay(): Promise<void> {
+    const day = this.day();
+    const seq = this.loadSeq;
     if (this.dirty() && !(await this.save())) return;
-    await this.write('/student/ledger/submit', { day: this.day() });
+    if (seq !== this.loadSeq) return;
+    await this.write('/student/ledger/submit', { day });
   }
 
   // --- helpers used by the template ---------------------------------------

@@ -16,6 +16,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 
 import { environment } from '../../../../../environments/environment';
+import { failedReadMessage } from '../../../../core/feature-refusal';
 import { ResumeBuilderService } from '../resume-builder.service';
 
 /** One row of GET /student/uploads (UploadRowOut, snake_case verbatim). */
@@ -158,7 +159,7 @@ export class RbAttachmentsComponent {
     try {
       const res = await fetch(`${environment.apiBase}/student/uploads`, { credentials: 'include' });
       if (!res.ok) {
-        this.error.set('Could not load your documents.');
+        this.error.set(await failedReadMessage(res, 'Could not load your documents.'));
         return;
       }
       const rows = (await res.json()) as UploadRow[];

@@ -27,16 +27,20 @@
  * server has no schedule to take.
  *
  * WHAT IT STATES IS THE POINT, and every sentence is checked against the
- * endpoint's own docstring rather than against the board's copy. Two of them
- * used to be wrong in the same direction — they promised the mentees were
- * released and the grants revoked, and `disable_account` explicitly does
- * NEITHER. A dialog that over-states what it is about to do is worse than one
- * that under-states it: the reader stops checking.
+ * endpoint's own docstring rather than against the board's copy. The board's
+ * copy promised the mentees were released and the grants revoked; this dialog
+ * then said `disable_account` did NEITHER, and was right about the grants and
+ * wrong about the mentees for as long as B9.1 has been live —
+ * `release_mentees_of` puts every one of them back in the unassigned pool, and
+ * the office read "still filed under them" one click before the screen said
+ * they had been released. A dialog that states something other than what it is
+ * about to do is worse than one that says less: the reader stops checking.
  *
  * THE MENTEE COUNT IS THE ONE NUMBER, and it is nullable for the reason
  * faculty-row.ts gives: `GET /api/admin/mentor-load` needs `admin.analytics`
  * while this screen needs `admin.mentors`, so it can be refused. When it is,
- * the sentence says "their mentees" rather than inventing a zero.
+ * the sentence says "their mentees" rather than inventing a zero; when it is a
+ * real zero there is nobody to release and no sentence.
  */
 
 import {
@@ -61,6 +65,9 @@ const REVERSIBLE_FOR_DAYS = 90;
 
 /** `DisableIn._reason` folds whitespace and refuses anything shorter. */
 const MINIMUM_REASON_LENGTH = 3;
+
+/** The rule `plural` applies, for the second verb in the mentee sentence. */
+const PLURAL_RULES = new Intl.PluralRules('en');
 
 interface DisableConsequence {
   icon: string;
@@ -120,37 +127,38 @@ export class DisableFacultyDialogComponent {
 
   readonly canDisable = computed(() => this.reasonIsUsable() && !this.busy());
 
-  readonly consequences = computed<DisableConsequence[]>(() => [
-    {
-      icon: 'lock',
-      isKept: false,
-      sentence:
-        'Sign-in stops immediately — REEP password and Google both. Every device it holds is signed out.',
-    },
-    {
-      icon: 'link',
-      isKept: false,
-      sentence:
-        'Every activation, reset and onboarding link still outstanding on this account is spent, so nothing in circulation can set a password on it.',
-    },
-    {
-      icon: 'key',
-      isKept: false,
-      sentence:
-        'The functions granted to this account are NOT revoked and its mentor group is NOT released — a disabled account cannot make a request, so nothing is reachable. Revoke what is no longer wanted in Governance.',
-    },
-    {
-      icon: 'diversity_3',
-      isKept: true,
-      sentence: `${this.menteesKeptPhrase()} still filed under them on Mentors & Students, and stay there until the office reassigns them.`,
-    },
-    {
-      icon: 'history_edu',
-      isKept: true,
-      sentence:
-        'Notes, verifications, signatures and leave records stay attached to their name, for the students’ history.',
-    },
-  ]);
+  readonly consequences = computed<DisableConsequence[]>(() => {
+    const menteesReleased = this.menteesReleasedSentence();
+    return [
+      {
+        icon: 'lock',
+        isKept: false,
+        sentence:
+          'Sign-in stops immediately — REEP password and Google both. Every device it holds is signed out.',
+      },
+      {
+        icon: 'link',
+        isKept: false,
+        sentence:
+          'Every activation, reset and onboarding link still outstanding on this account is spent, so nothing in circulation can set a password on it.',
+      },
+      ...(menteesReleased === null
+        ? []
+        : [{ icon: 'diversity_3', isKept: false, sentence: menteesReleased }]),
+      {
+        icon: 'key',
+        isKept: false,
+        sentence:
+          'The functions granted to this account are NOT revoked — a disabled account cannot make a request, so nothing is reachable. Revoke what is no longer wanted in Governance.',
+      },
+      {
+        icon: 'history_edu',
+        isKept: true,
+        sentence:
+          'Notes, verifications, signatures and leave records stay attached to their name, for the students’ history.',
+      },
+    ];
+  });
 
   dismiss(): void {
     if (this.busy()) return;
@@ -188,15 +196,24 @@ export class DisableFacultyDialogComponent {
     }
   }
 
-  /** "Their 14 mentees are", or "Their mentees are" when the assignment list
-   *  could not be read. Never "Their 0 mentees" from a failed request. The VERB
-   *  travels with the count, because the sentence it opens is about where they
-   *  stay: "Their 1 mentee are still filed" is the same unfinished-software
-   *  tell as "1 mentees", on the one dialog a reader cannot undo by clicking. */
-  private menteesKeptPhrase(): string {
+  /** What `release_mentees_of` does to their group, in the words the delete
+   *  dialog uses for the same release: "Their 14 mentees are released …", or
+   *  "Their mentees are …" when the assignment list could not be read — never
+   *  "Their 0 mentees" from a failed request. A real zero releases nobody, so
+   *  there is nothing to say. The verbs travel with the count: "Their 1 mentee
+   *  are released" is the same unfinished-software tell as "1 mentees", on the
+   *  one dialog a reader cannot undo by clicking. */
+  private menteesReleasedSentence(): string | null {
     const menteeCount = this.faculty().menteeCount;
-    if (menteeCount === null) return 'Their mentees are';
-    return `Their ${plural(menteeCount, 'mentee')} ${plural(menteeCount, 'is', 'are')}`;
+    if (menteeCount === 0) return null;
+    if (menteeCount === null) {
+      return 'Their mentees are released to the unassigned pool and need a new faculty member.';
+    }
+    const one = PLURAL_RULES.select(menteeCount) === 'one';
+    return (
+      `Their ${plural(menteeCount, 'mentee is', 'mentees are')} released to the unassigned pool ` +
+      `and ${one ? 'needs' : 'need'} a new faculty member.`
+    );
   }
 
   /** FastAPI answers a schema error with `detail` as a LIST; rendered raw it

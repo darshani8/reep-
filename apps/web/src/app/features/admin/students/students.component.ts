@@ -359,9 +359,15 @@ export class AdminStudentsComponent {
 
   /** True when what is on screen is less than what the server returned, or less
    *  than the batch holds. Every batch-level control is off while it is true,
-   *  because none of them can be described honestly from a partial roster. */
+   *  because none of them can be described honestly from a partial roster.
+   *  The Removed list is not the roster at all: a batch action writes to the
+   *  roster and never to a removed student, so counting that list in the
+   *  dialog would describe exactly the people the action leaves alone. */
   readonly rosterIsNarrowed = computed(
-    () => this.search().trim() !== '' || this.visibleRows().length !== this.allRows().length,
+    () =>
+      this.search().trim() !== '' ||
+      this.statusFilter() === 'removed' ||
+      this.visibleRows().length !== this.allRows().length,
   );
   readonly selectedCount = computed(() => this.selectedRows().length);
   readonly hasSelection = computed(() => this.selectedCount() > 0);

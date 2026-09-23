@@ -172,6 +172,44 @@ describe('Students roster', () => {
     expect(c.emptyMessage()).toBe('Nobody is in this batch.');
   });
 
+  it('keeps the batch controls off on the Removed list, which is not the roster', async () => {
+    const fixture = TestBed.createComponent(AdminStudentsComponent);
+    const c = fixture.componentInstance;
+    await until(() => c.apiRows() !== null && c.batches().length === 2);
+
+    c.setBatchFilter('b1');
+    await until(() => calls.some((call) => call.path === '/admin/students?cohort_id=b1'));
+    await until(() => c.allRows().length === 1);
+    expect(c.hasOneBatchInView()).toBe(true);
+    expect(c.batchSummary()?.studentCount).toBe(1);
+
+    // b1's Removed list is empty while its roster holds Test Student. A batch
+    // action writes to the roster and never to a removed student, so nothing
+    // here may count that list as the batch, or call the batch empty.
+    c.setStatusFilter('removed');
+    await until(() =>
+      calls.some((call) => call.path === '/admin/students?cohort_id=b1&removed=true'),
+    );
+    await until(() => c.apiRows()?.length === 0);
+    expect(c.rosterIsNarrowed()).toBe(true);
+    expect(c.batchSummary()).toBeNull();
+    expect(c.hasOneBatchInView()).toBe(false);
+    expect(c.canRemoveBatch()).toBe(false);
+    expect(c.batchActionsHint()).toContain('Status');
+
+    fixture.detectChanges();
+    const toolbar = fixture.nativeElement.querySelectorAll(
+      '.dt-toolbar button',
+    ) as NodeListOf<HTMLButtonElement>;
+    expect(
+      Array.from(toolbar).map((button) => [button.textContent?.trim(), button.disabled]),
+    ).toEqual([
+      ['edit_note Batch actions', true],
+      ['school Graduate batch', true],
+      ['arrow_forward Promote batch', true],
+    ]);
+  });
+
   it("clears the grid's ticks, not only its count, after a selection action", async () => {
     const fixture = TestBed.createComponent(AdminStudentsComponent);
     const c = fixture.componentInstance;

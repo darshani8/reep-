@@ -1455,7 +1455,7 @@ row, off every list.
 | ID | TC-032 |
 | Module | Authentication: activation and reset links |
 | Priority | P3 |
-| Type | Functional, negative (known bug) |
+| Type | Functional, negative |
 | Automated test | `tests/auth-sync.spec.ts`, title tagged `@TC-032` |
 
 ### Pre-conditions
@@ -1480,7 +1480,7 @@ row, off every list.
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 3 | The link is refused as a link: "This link is not valid. Ask for a new one." with the pointer to "Forgot password?", and the form is gone. **Known bug:** the page says "That password was not accepted." and empties both password fields, so a person with a broken link keeps retyping good passwords. The API refuses a token under 16 characters with a validation error (422, `LinkPasswordIn` in `apps/api-py/app/routers/passwords.py`), and the page reads every 422 as a refused password (`password-link.component.ts`). |
+| ER-1 | 3 | The link is refused as a link: "This link is not valid. Ask for a new one." with the pointer to "Forgot password?", and the form is gone. |
 
 ---
 

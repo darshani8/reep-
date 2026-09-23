@@ -1,12 +1,21 @@
 """Skills & Badge framework — catalogue shape, the §12 review workflow, rule-2
 scope, growth derivation and the §16 leaderboards."""
 
+import uuid
+from datetime import datetime, timezone
+
 from conftest import requires_db
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 
 from app.db import SessionLocal
-from app.models.badge import ApprovedCertification, BADGES, BadgeCategory
-from app.models.user import Role
+from app.models.badge import (
+    ApprovedCertification,
+    BADGES,
+    BadgeCategory,
+    StudentBadge,
+    StudentBadgeStatus,
+)
+from app.models.user import Role, Student, User
 
 
 def test_catalogue_matches_the_framework_document():
@@ -248,6 +257,44 @@ def test_leaderboards_views(client, make_user):
         client.get("/api/student/badges/leaderboards?view=nope", headers=student.headers).status_code
         == 422
     )
+
+
+@requires_db
+def test_a_removed_student_is_on_no_badge_board(client, make_user):
+    """REMOVE answers "… is off every screen", and these boards are screens
+    too: the roster behind them left out nobody. The removed student holds
+    every badge, so nobody can outrank them off the top fifty instead."""
+    viewer = make_user("bdg-lb-view", Role.STUDENT)
+    removed = make_user(f"bdg-lb-gone-{uuid.uuid4().hex[:6]}", Role.STUDENT)
+    admin = make_user("bdg-lb-office", Role.ADMIN)
+    with SessionLocal() as db:
+        sid = db.scalar(select(Student.id).where(Student.user_id == removed.user_id))
+        for badge in BADGES:
+            db.add(
+                StudentBadge(
+                    student_id=sid,
+                    badge_code=badge.code,
+                    status=StudentBadgeStatus.EARNED,
+                    points_awarded=badge.points,
+                    earned_at=datetime.now(timezone.utc),
+                )
+            )
+        db.commit()
+        name = db.scalar(select(User.name).where(User.id == removed.user_id))
+
+    def names_on_overall() -> set[str]:
+        r = client.get("/api/student/badges/leaderboards?view=overall", headers=viewer.headers)
+        assert r.status_code == 200, r.text
+        return {row["name"] for row in r.json()["rows"]}
+
+    assert name in names_on_overall()
+    r = client.post(
+        f"/api/admin/students/{sid}/remove",
+        headers=admin.headers,
+        json={"reason": "Withdrew from the programme"},
+    )
+    assert r.status_code == 200, r.text
+    assert name not in names_on_overall()
 
 
 @requires_db

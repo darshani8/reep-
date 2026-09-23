@@ -289,6 +289,19 @@ class Student(Base):
     department_id: Mapped[str | None] = mapped_column(
         ForeignKey("departments.id"), nullable=True, index=True
     )
+    # THE OTHER HALF OF A DUAL SPECIALIZATION (2026-09-23, migration
+    # e2b7c4d9f1a6). A student who opted for two specializations -- Finance
+    # and Marketing, say -- sits in ONE batch, and a batch hangs on one
+    # specialization at most, so the first of the two is the batch's own and is
+    # read through `cohort_id` exactly as before; this column is the SECOND and
+    # nothing else. It is copied from `registrations.second_specialization_id`
+    # when an application is approved and set by the Main Admin on the roster
+    # editor, whose PATCH refuses a stream from another course or the batch's
+    # own. SET NULL, the application column's discipline: a student survives
+    # the office archiving a specialization, and only the pointer goes.
+    second_specialization_id: Mapped[str | None] = mapped_column(
+        ForeignKey("academic_specializations.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     mentor_id: Mapped[str | None] = mapped_column(ForeignKey("mentors.id"), nullable=True, index=True)
     current_stage: Mapped[Stage] = mapped_column(
         Enum(Stage, name="stage"), default=Stage.EXCEL, server_default="EXCEL"

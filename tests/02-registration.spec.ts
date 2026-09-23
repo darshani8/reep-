@@ -88,7 +88,9 @@ const SEEDED = {
   department: 'Department of Management Studies',
   course: 'MBA · Master of Business Administration',
   specialization: 'Finance',
-  batchOption: 'Master of Business Administration - Finance · 2024-26 Section B (ended)',
+  /** The Batch box on the public form is the YEAR and nothing else (2026-09-23). */
+  batchOption: '2024-26',
+  /** What the console's screens print for the same batch, spine included. */
   batchLabel: 'Master of Business Administration - Finance · 2024-26 Section B',
 } as const;
 
@@ -824,7 +826,7 @@ test.describe('Registration and onboarding', () => {
       ).toBeEnabled();
       await expect(
         form.batch(page).getByRole('option', { name: SEEDED.batchOption, exact: true }),
-        'TC-100 ER-3: Batch offers the seeded batch, marked ended',
+        'TC-100 ER-3: Batch offers the seeded batch by its year alone',
       ).toHaveCount(1);
     });
 
@@ -1212,7 +1214,7 @@ test.describe('Registration and onboarding', () => {
       await chooseSeededPlace(page, { withBatch: false });
     });
 
-    await test.step('5. Tick "Finance" and choose the batch "Master of Business Administration - Finance · 2024-26 Section B (ended)"', async () => {
+    await test.step('5. Tick "Finance" and choose the batch "2024-26"', async () => {
       await form.tick(page, SEEDED.specialization).check();
       await form.batch(page).selectOption({ label: SEEDED.batchOption });
     });
@@ -1232,7 +1234,7 @@ test.describe('Registration and onboarding', () => {
       await expect(
         page.getByText(
           `${SEEDED.college} · ${SEEDED.department} · Master of Business Administration · Finance · ` +
-            `Batch ${SEEDED.batchLabel}`,
+            `Batch ${SEEDED.batchOption}`,
         ),
         'TC-106 ER-2: the card names the college, department, course, specialization and batch',
       ).toBeVisible();
@@ -1284,7 +1286,7 @@ test.describe('Registration and onboarding', () => {
       await fillTyped(page, applicant);
     });
 
-    await test.step('4. Choose the college "BGS College of Engineering and Technology", the department "Department of Management Studies", the course "MBA · Master of Business Administration" and the batch "Master of Business Administration - Finance · 2024-26 Section B (ended)"', async () => {
+    await test.step('4. Choose the college "BGS College of Engineering and Technology", the department "Department of Management Studies", the course "MBA · Master of Business Administration" and the batch "2024-26"', async () => {
       await chooseSeededPlace(page, { withBatch: true });
     });
 
@@ -1349,7 +1351,7 @@ test.describe('Registration and onboarding', () => {
       await fillTyped(page, applicant);
     });
 
-    await test.step('4. Choose the college "BGS College of Engineering and Technology", the department "Department of Management Studies", the course "MBA · Master of Business Administration" and the batch "Master of Business Administration - Finance · 2024-26 Section B (ended)"', async () => {
+    await test.step('4. Choose the college "BGS College of Engineering and Technology", the department "Department of Management Studies", the course "MBA · Master of Business Administration" and the batch "2024-26"', async () => {
       await chooseSeededPlace(page, { withBatch: true });
     });
 
@@ -1418,7 +1420,7 @@ test.describe('Registration and onboarding', () => {
       await fillTyped(page, REAPPLICANT);
     });
 
-    await test.step('4. Choose the college "BGS College of Engineering and Technology", the department "Department of Management Studies", the course "MBA · Master of Business Administration" and the batch "Master of Business Administration - Finance · 2024-26 Section B (ended)"', async () => {
+    await test.step('4. Choose the college "BGS College of Engineering and Technology", the department "Department of Management Studies", the course "MBA · Master of Business Administration" and the batch "2024-26"', async () => {
       await chooseSeededPlace(page, { withBatch: true });
     });
 
@@ -1632,7 +1634,7 @@ test.describe('Registration and onboarding', () => {
         'TC-111 ER-3: the dual-specialization check names both',
       ).toContainText(
         'They ticked E2E Analytics and E2E Finance. A batch hangs on one specialization at most, so ' +
-          'Approve seats them by the batch; both choices stay on this application.',
+          'Approve seats them by the batch and keeps the other as their second specialization.',
       );
       await expect(
         queue.panel(page).getByText(/^Approve will refuse this application/),

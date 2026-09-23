@@ -90,6 +90,7 @@ import {
   STAGES,
   escapeHtml,
   initialsOf,
+  secondSpecializationOptions,
   stageLabelOf,
   trackColourOf,
   type BatchAction,
@@ -303,7 +304,13 @@ export class AdminStudentsComponent {
     return this.allRows().filter((row) => {
       if (department !== '' && row.departmentId !== department) return false;
       if (course !== '' && row.courseId !== course) return false;
-      if (specialization !== '' && row.specializationId !== specialization) return false;
+      if (
+        specialization !== '' &&
+        row.specializationId !== specialization &&
+        row.secondSpecializationId !== specialization
+      ) {
+        return false;
+      }
       if (status === 'active' && row.lastLoginAt === null) return false;
       if (status === 'invited' && row.lastLoginAt !== null) return false;
       // 'removed' is narrowed by the server (`?removed=true`), not here.
@@ -1019,6 +1026,7 @@ export class AdminStudentsComponent {
       mentorUserId: row.mentorUserId ?? '',
       stage: row.stageKey,
       semester: row.semester,
+      secondSpecializationId: row.secondSpecializationId ?? '',
     };
     this.draft.set({ ...opened });
     this.openedDraft.set(opened);
@@ -1027,7 +1035,31 @@ export class AdminStudentsComponent {
 
   setDraft<Key extends keyof StudentDraft>(key: Key, value: StudentDraft[Key]): void {
     this.draft.update((draft) => ({ ...draft, [key]: value }));
+    // A new batch can make the second specialization its own, or sit under
+    // another course: it is cleared rather than left pointing at a stream the
+    // select no longer offers (the server applies the same rule on a move).
+    if (key === 'cohortId' || key === 'departmentId') {
+      const second = this.draft().secondSpecializationId;
+      if (second !== '' && !this.secondSpecializationChoices().some((entry) => entry.id === second)) {
+        this.draft.update((draft) => ({ ...draft, secondSpecializationId: '' }));
+      }
+    }
   }
+
+  /** The edit dialog's "Second specialization" options, for the batch and
+   *  department the draft names now. */
+  readonly secondSpecializationChoices = computed<SpecializationOption[]>(() => {
+    const draft = this.draft();
+    const batch = this.batches().find((entry) => entry.id === draft.cohortId) ?? null;
+    return secondSpecializationOptions(this.specializations(), this.courses(), batch, draft.departmentId);
+  });
+
+  /** The first specialization the draft's batch already gives, for the
+   *  sentence beside the select. */
+  readonly draftBatchSpecialization = computed<string | null>(() => {
+    const batch = this.batches().find((entry) => entry.id === this.draft().cohortId) ?? null;
+    return batch?.specializationName ?? null;
+  });
 
   /**
    * ONLY WHAT CHANGED, and `department_id` is the reason why.
@@ -1057,6 +1089,9 @@ export class AdminStudentsComponent {
     }
     if (draft.stage !== opened.stage) body['current_stage'] = draft.stage;
     if (draft.semester !== opened.semester) body['current_semester'] = draft.semester;
+    if (draft.secondSpecializationId !== opened.secondSpecializationId) {
+      body['second_specialization_id'] = draft.secondSpecializationId === '' ? null : draft.secondSpecializationId;
+    }
     return body;
   }
 
@@ -1341,6 +1376,7 @@ export class AdminStudentsComponent {
       specializationId: batch === null ? null : batch.specializationId,
       specializationCode: batch === null ? null : batch.specializationCode,
       specializationColour: trackColourOf(batch === null ? null : batch.specializationCode),
+      ...this.secondSpecializationOf(row),
       semester: row.current_semester,
       stageKey: row.current_stage,
       stageLabel: stageLabelOf(row.current_stage),
@@ -1353,6 +1389,21 @@ export class AdminStudentsComponent {
       deletedAt: row.deleted_at,
       deleteReason: row.delete_reason,
     };
+  }
+
+  /** The second of a dual specialization, as the grid's second chip. The
+   *  code comes from the catalogue the filters already loaded; a stream the
+   *  catalogue does not list (archived since) prints its name. */
+  private secondSpecializationOf(
+    row: StudentApiRow,
+  ): Pick<RosterRow, 'secondSpecializationId' | 'secondSpecializationCode' | 'secondSpecializationColour'> {
+    const id = row.second_specialization_id ?? null;
+    if (id === null) {
+      return { secondSpecializationId: null, secondSpecializationCode: null, secondSpecializationColour: trackColourOf(null) };
+    }
+    const known = this.specializations().find((entry) => entry.id === id);
+    const code = known?.code ?? row.second_specialization ?? null;
+    return { secondSpecializationId: id, secondSpecializationCode: code, secondSpecializationColour: trackColourOf(code) };
   }
 
   private semesterLabelOf(semesters: number[]): string {

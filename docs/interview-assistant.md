@@ -802,6 +802,30 @@ note landed after the model had begun its reply. This is the known trade in
 `app/interview_nova.py`'s header; the injection point is `_on_student_transcript`
 and the alternative it rejected is documented there.
 
+**The interviewer's voice cuts out mid-sentence on speakers, or pauses on
+earphones** — the browser's echo gate. On speakers the microphone hears the
+interviewer; anything of that echo that reaches Nova is "the student
+interrupting", Nova abandons the question and the relay flushes the browser's
+queue. The gate (`apps/web/src/app/core/echo-gate.ts`) holds the uplink while
+the interviewer is audible, judging each microphone chunk against the playback
+that can be arriving in it (the player's own timeline, read at the chunk's
+capture time and reaching back by the device's `outputLatency`) scaled by an
+echo coupling it learns once per session. Until 2026-09-22 it calibrated from
+the first chunks after audio was *scheduled* instead — a jitter-buffer lead
+plus the device's output latency before anything is *audible* — so it learned
+the silence, and the interviewer's own voice opened it on nearly every
+question; its echo reference was also capped at 0.03 RMS, below a speaking
+voice. On earphones there is no echo to hold back, and the room's
+**Speaker / Earphones** switch (`shared/interview-room/audio-route.ts`) turns
+the gate off; before it existed nothing called `setEchoSuppression`, so a breath
+on a headset mic paused the interviewer. To diagnose a report, read the
+`Interview ended …` log line's `client=` field (the browser sends its counters
+as `reep.client.stats`): `route` says which side the student was on;
+`local_barge_ins` well above `confirmed_barge_ins` is the gate opening on
+something Nova did not take for speech; `coupling` at the prior (2.0) means it
+never measured any echo; `underruns` with `lead_ms` at 300 means the audio
+arrived late (network, or the event loop), which no gate setting fixes.
+
 **"Please accept the interview terms before starting." (4013)** — the student has
 no live grant for `INTERVIEW_CONSENT_VERSION`. Normally the consent panel appears
 instead, so 4013 means the client's own check disagreed with the server's: a

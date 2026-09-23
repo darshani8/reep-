@@ -509,6 +509,53 @@ def _looks_like_echo(transcript: str, interviewer_said: str) -> bool:
     return run >= _ECHO_MIN_RUN_WORDS and run >= _ECHO_MIN_COVERAGE * len(heard)
 
 
+# `reep.client.stats`: the fields the browser sends, and the only ones kept.
+# Numbers are clamped to a sane non-negative range and the one word is checked
+# against its two values, so a frame from anybody's devtools can put nothing
+# but a bounded number or a known word into the log line.
+_CLIENT_STAT_FIELDS: Final[tuple[str, ...]] = (
+    "judged",
+    "suppressed",
+    "keepalive",
+    "local_barge_ins",
+    "confirmed_barge_ins",
+    "held_frames",
+    "dropped",
+    "underruns",
+    "lead_ms",
+    "coupling",
+    "output_latency_ms",
+)
+_CLIENT_STAT_MAX: Final[float] = 1_000_000.0
+_CLIENT_ROUTES: Final[frozenset[str]] = frozenset({"speaker", "earphones"})
+
+
+def _client_stats(payload: dict[str, Any]) -> dict[str, float | int | str]:
+    """Whitelist and clamp one `reep.client.stats` frame. Never raises."""
+    out: dict[str, float | int | str] = {}
+    route = payload.get("route")
+    if isinstance(route, str) and route in _CLIENT_ROUTES:
+        out["route"] = route
+    for field in _CLIENT_STAT_FIELDS:
+        value = payload.get(field)
+        # bool is an int in Python; a `true` here is not a count.
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        if value != value:  # NaN
+            continue
+        clamped = min(max(float(value), 0.0), _CLIENT_STAT_MAX)
+        out[field] = round(clamped, 3) if field == "coupling" else int(clamped)
+    return out
+
+
+def _format_client_stats(stats: dict[str, float | int | str]) -> str:
+    """`-` when the browser sent none; otherwise `key=value` pairs, in order."""
+    if not stats:
+        return "-"
+    keys = ("route", *_CLIENT_STAT_FIELDS)
+    return ",".join(f"{key}={stats[key]}" for key in keys if key in stats)
+
+
 def _resample(pcm: bytes, src_hz: int, dst_hz: int) -> bytes:
     """Linear resample of PCM16 LE mono. Dependency-free beyond numpy.
 
@@ -892,15 +939,27 @@ class NovaSonicSession:
         # interviewer is still speaking) but it is what the model PLANNED to
         # say, and on a barge-in the two differ.
         self._assistant_final: list[str] = []
+        # The SPECULATIVE text of the same turn, kept only as a fallback for
+        # `_last_interviewer_text`. A turn cut off by a barge-in may end with
+        # no FINAL text at all, and an echo of THAT question must be compared
+        # with it -- not with the question before it, which it does not match,
+        # so the echo would be counted as an answer and the arc advanced on
+        # it. Never recorded and never persisted: FINAL stays the record.
+        self._assistant_speculative: list[str] = []
         self._assistant_spoke = False
-        # What the interviewer last finished saying -- `_end_response`'s joined
-        # FINAL text -- which is what an echo through the student's speakers
-        # comes back as. Only ever compared against, never sent anywhere.
+        # What the interviewer last said -- `_end_response`'s joined FINAL
+        # text, or the speculative text where a barge-in left no FINAL --
+        # which is what an echo through the student's speakers comes back as.
+        # Only ever compared against, never sent anywhere.
         self._last_interviewer_text = ""
         # When Nova last reported a barge-in, so the transcript that follows
         # can be judged as "the thing that interrupted" rather than as an
         # answer. None until the first marker; consumed by the next transcript.
         self._interrupted_at: float | None = None
+        # Whether the turn now closing has already been handled as
+        # interrupted, so the text marker and an INTERRUPTED stop reason for
+        # the same barge-in are one interruption. Cleared as the turn ends.
+        self._interrupted_this_turn = False
 
         # The two-beat close, mirroring the relay: the tick into WRAP_UP asks
         # "any questions for us?" and the student's reply — any reply, never
@@ -935,6 +994,9 @@ class NovaSonicSession:
         self._oversized_frames = 0
         self._gate_closes = 0
         self._interruptions = 0
+        # The browser's own audio counters (`reep.client.stats`): the latest
+        # copy, already reduced to whitelisted numbers, for the end line.
+        self._client_stats: dict[str, float | int | str] = {}
 
         # Counted where a turn is EMITTED, so the pair (turns_emitted,
         # turns_persisted) on the interview_sessions row answers the AGENTS.md
@@ -1113,7 +1175,8 @@ class NovaSonicSession:
             await self._finalize_session(code, reason)
             self._log.info(
                 "Interview ended %d %s: phase=%s answers=%d turns=%d/%d "
-                "frames=%d bytes=%d interruptions=%d report=%s",
+                "frames=%d bytes=%d interruptions=%d gate_closes=%d report=%s "
+                "client=%s",
                 code,
                 reason,
                 self._machine.phase.value,
@@ -1123,7 +1186,9 @@ class NovaSonicSession:
                 self._client_frames,
                 self._client_bytes,
                 self._interruptions,
+                self._gate_closes,
                 self._report_status or "-",
+                _format_client_stats(self._client_stats),
             )
         return code, reason
 
@@ -1380,7 +1445,15 @@ class NovaSonicSession:
         is accepted rather than rejected so the client needs no branch for which
         engine it got. It deliberately does NOT advance the idle clock: a text
         frame that did would let a client hold a billed session open with no
-        audio at all.
+        audio at all. The browser sends `{"state": "suppressed"}`; the
+        `{"open": false}` spelling is kept for older clients -- counting only
+        that one meant this counter read zero on every interview.
+
+        `reep.client.stats` is the browser's own audio counters (the echo
+        gate's barge-ins, playback underruns, the jitter buffer). The latest
+        copy is kept, reduced to whitelisted numbers, and printed in the
+        end-of-interview line -- the only place a "the voice kept breaking"
+        report can be read without the student's browser console.
         """
         try:
             payload = json.loads(text)
@@ -1391,8 +1464,12 @@ class NovaSonicSession:
         kind = payload.get("type")
         if kind == "reep.end":
             self.request_stop(_CLOSE_OK, "Student ended the interview")
-        elif kind == "reep.mic.gate" and payload.get("open") is False:
+        elif kind == "reep.mic.gate" and (
+            payload.get("state") == "suppressed" or payload.get("open") is False
+        ):
             self._gate_closes += 1
+        elif kind == "reep.client.stats":
+            self._client_stats = _client_stats(payload)
 
     async def _pump_upstream(self) -> None:
         """Bedrock -> browser. One task, and the only one that reads the stream."""
@@ -1500,13 +1577,7 @@ class NovaSonicSession:
         stage = meta.get("stage", "")
 
         if _is_interruption(text):
-            # BARGE-IN. Nova has already stopped generating; what matters here
-            # is the browser's queue, which may hold a second of speech the
-            # student is talking over. `reep.audio.flush` is the client's
-            # existing handler for exactly this.
-            self._interruptions += 1
-            self._interrupted_at = time.monotonic()
-            await self._send_control({"type": "reep.audio.flush"})
+            await self._on_interruption()
             return
 
         if role == _ROLE_USER:
@@ -1521,6 +1592,7 @@ class NovaSonicSession:
             # and the transcript a mentor reads must match the audio.
             self._assistant_final.append(text)
             return
+        self._assistant_speculative.append(text)
         # SPECULATIVE: the live caption, aliased onto the event name the client
         # already renders. Never persisted — the FINAL text above is the record.
         await self._send_control(
@@ -1531,6 +1603,17 @@ class NovaSonicSession:
                 "delta": text,
             }
         )
+
+    async def _on_interruption(self) -> None:
+        """BARGE-IN. Nova has already stopped generating; what matters here is
+        the browser's queue, which may hold a second of speech the student is
+        talking over. `reep.audio.flush` is the client's existing handler for
+        exactly this. The stamp makes the transcript that follows readable as
+        "the thing that interrupted" (`_took_interruption`)."""
+        self._interruptions += 1
+        self._interrupted_at = time.monotonic()
+        self._interrupted_this_turn = True
+        await self._send_control({"type": "reep.audio.flush"})
 
     async def _on_audio_output(self, payload: dict[str, Any]) -> None:
         """The interviewer's voice: base64 in, raw PCM out, in client-sized chunks."""
@@ -1583,6 +1666,13 @@ class NovaSonicSession:
             return
 
         if kind == "AUDIO" and stop_reason in ("END_TURN", "INTERRUPTED"):
+            if stop_reason == "INTERRUPTED" and not self._interrupted_this_turn:
+                # Nova ended the audio block as interrupted without the
+                # `{"interrupted": true}` text marker. It is the same barge-in,
+                # and without the stamp the transcript that follows is judged
+                # as an ordinary answer: no `resume`, and the question it cut
+                # off is simply gone.
+                await self._on_interruption()
             # Lets the browser's player drop its scheduling cursor and play the
             # tail out. The client accepts two spellings of this event (the
             # relay had two API generations to serve); this engine sends the one
@@ -1763,11 +1853,21 @@ class NovaSonicSession:
         including one that produced no audio at all.
         """
         spoken = " ".join(part.strip() for part in self._assistant_final if part.strip())
+        planned = " ".join(
+            part.strip() for part in self._assistant_speculative if part.strip()
+        )
         was_open = self._response_open
         self._response_open = False
         self._assistant_final = []
-        if spoken:
-            self._last_interviewer_text = spoken
+        self._assistant_speculative = []
+        self._interrupted_this_turn = False
+        if spoken or planned:
+            # Both, when both exist: a turn cut mid-way has FINAL text for the
+            # sentences that finished and speculative text for the one the
+            # student's speakers were playing when it was cut. Echo is judged
+            # on the longest shared RUN of words, so the duplication of the
+            # finished sentences costs nothing.
+            self._last_interviewer_text = " ".join(t for t in (spoken, planned) if t)
         if was_open and (spoken or self._assistant_spoke):
             self._emit_turn(
                 _SENDER_INTERVIEWER,

@@ -296,13 +296,11 @@ const tile = (page: Page, label: string) => page.locator('.kpi-tile').filter({ h
 const footChip = (page: Page) => page.locator('.footbar .chip.warn');
 
 /**
- * The ledger's reads must be let finish, one at a time, the way a person waits
- * for the table before clicking again. `load()` in ledger.component.ts shows
- * whichever response arrives LAST, so a click made while an earlier day is
- * still loading can leave the screen on that earlier day (a defect, noted
- * under TC-221). Waiting on the response itself, not on a label the click sets
- * before the request even leaves, is what keeps these tests on the day they
- * chose, and keeps a write from landing on another day.
+ * The ledger's reads are let finish, one at a time, the way a person waits
+ * for the table before clicking again. Waiting on the response itself, not on
+ * a label the click sets before the request even leaves, is what keeps these
+ * tests from typing into a table that has not been drawn yet, and keeps a
+ * write from landing on another day.
  */
 function dayLoaded(page: Page, day?: string) {
   const suffix = day ? `/api/student/ledger?day=${day}` : '/api/student/ledger';
@@ -1603,11 +1601,6 @@ test.describe('Student: home and progress', () => {
     page,
     signIn,
   }, testInfo) => {
-    test.fail(
-      true,
-      'BUG: the ledger has no "Copy yesterday" button, although the design (HANDOFF.md) places one ' +
-        'and POST /api/student/ledger/copy-yesterday exists',
-    );
     await signIn('student');
     const history = await ledgerHistory(page);
     const status = new Map(history.days.map((d) => [d.day, d]));
@@ -2022,11 +2015,6 @@ test.describe('Student: home and progress', () => {
     playwright,
     baseURL,
   }, testInfo) => {
-    test.fail(
-      true,
-      "BUG: a removed student is still listed on classmates' leaderboards " +
-        '(_ranked_board in routers/student.py does not leave out users.deleted_at)',
-    );
     await signIn('student');
     const admin = await apiAs(playwright, baseURL, 'admin');
     let mate: BatchMate | undefined;

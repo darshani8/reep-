@@ -29,6 +29,13 @@
       </button>
     </div>
 
+    @if (canCopyYesterday()) {
+      <button type="button" class="btn" [disabled]="saving()" (click)="copyYesterday()">
+        <span class="icon" aria-hidden="true">content_copy</span>
+        Copy yesterday
+      </button>
+    }
+
     <button
       type="button"
       class="btn primary"
@@ -110,7 +117,11 @@
   @case ('error') {
     <div class="notice ledger-notice" role="alert">
       <span class="icon" aria-hidden="true">info</span>
-      Could not load this day’s time sheet.
+      @if (refusal(); as message) {
+        {{ message }}
+      } @else {
+        Could not load this day’s time sheet.
+      }
       <button type="button" class="btn ghost" (click)="load()">Retry</button>
     </div>
   }

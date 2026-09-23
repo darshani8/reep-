@@ -406,6 +406,126 @@ def test_an_opted_out_classmate_is_on_neither_list(client, cohort):
 
 
 @requires_db
+def test_a_removed_classmate_leaves_every_board_and_restore_brings_them_back(
+    client, cohort, make_user
+):
+    """REMOVE answers "… is off every screen", and a classmate's leaderboard is
+    a screen: the roster left out `users.deleted_at`, so a removed batch mate
+    stayed ranked, or listed as not ranked, on every board. Every board is read
+    BEFORE the removal as well, so the removal has to reach the cache too — a
+    board served from it for another minute is the same name left standing."""
+    from app.models.user import Role
+    from app.routers.student import _BOARDS
+
+    me, ranked, waiting = cohort("me"), cohort("ranked"), cohort("waiting")
+    admin = make_user("lb-office", Role.ADMIN)
+    with SessionLocal() as db:
+        _earn(db, ranked.student_id, 1)
+        db.commit()
+    mates = {ranked.student_id, waiting.student_id}
+
+    def listed(board: str) -> tuple[set[str], int]:
+        body = _board(client, me, board)
+        ids = {r["student_id"] for r in body["rows"]} | {u["student_id"] for u in body["unranked"]}
+        return ids, body["classmates"]
+
+    for board in _BOARDS:
+        ids, classmates = listed(board)
+        assert mates <= ids and classmates == 3, board
+
+    for mate in (ranked, waiting):
+        r = client.post(
+            f"/api/admin/students/{mate.student_id}/remove",
+            headers=admin.headers,
+            json={"reason": "Withdrew from the programme"},
+        )
+        assert r.status_code == 200, r.text
+    for board in _BOARDS:
+        ids, classmates = listed(board)
+        assert not ids & mates, f"a removed classmate is still on the {board} board"
+        assert classmates == 1, board
+
+    for mate in (ranked, waiting):
+        r = client.post(f"/api/admin/students/{mate.student_id}/restore", headers=admin.headers)
+        assert r.status_code == 200, r.text
+    for board in _BOARDS:
+        ids, classmates = listed(board)
+        assert mates <= ids and classmates == 3, f"restore did not bring them back to {board}"
+
+
+def _listed_everywhere(client, viewer) -> dict[str, set[str]]:
+    """Every student on every board the viewer can read, ranked or not."""
+    from app.routers.student import _BOARDS
+
+    out = {}
+    for board in _BOARDS:
+        body = _board(client, viewer, board)
+        out[board] = {r["student_id"] for r in body["rows"]} | {
+            u["student_id"] for u in body["unranked"]
+        }
+    return out
+
+
+@requires_db
+def test_a_classmate_deleted_for_good_leaves_the_boards_at_once(client, cohort, make_user):
+    """DELETE FOR GOOD reaches the boards' cache as REMOVE does. Every board is
+    read first, so a delete that did not clear the cache would leave the name
+    standing for another minute, served from a board that no longer has a
+    student behind it."""
+    from app import mail_transport
+    from app.models.user import Role
+
+    from test_account_deletion import _last_code
+
+    me, gone = cohort("me"), cohort("gone")
+    admin = make_user("lb-office", Role.ADMIN)
+    with SessionLocal() as db:
+        _earn(db, gone.student_id, 1)
+        db.commit()
+    assert all(gone.student_id in ids for ids in _listed_everywhere(client, me).values())
+
+    mail_transport.outbox.clear()
+    assert client.post("/api/admin/deletions/code", headers=admin.headers).status_code == 200
+    r = client.post(
+        f"/api/admin/students/{gone.student_id}/delete",
+        headers=admin.headers,
+        json={"code": _last_code(), "reason": "Left the college"},
+    )
+    assert r.status_code == 200, r.text
+    for board, ids in _listed_everywhere(client, me).items():
+        assert gone.student_id not in ids, f"a deleted classmate is still on the {board} board"
+
+
+@requires_db
+def test_a_removed_graduate_leaves_the_boards_at_once(client, cohort, make_user):
+    """A graduate is ALUMNI and keeps their `students` row and batch, so the
+    boards still list them; removing one must reach the cache like removing a
+    student does. Deciding that by the ROLE left their name up for a minute."""
+    from app.models.user import Role, User
+
+    me, graduate = cohort("me"), cohort("graduate")
+    admin = make_user("lb-office", Role.ADMIN)
+    with SessionLocal() as db:
+        db.execute(update(User).where(User.id == graduate.user_id).values(role=Role.ALUMNI))
+        db.commit()
+    assert all(graduate.student_id in ids for ids in _listed_everywhere(client, me).values())
+
+    r = client.post(
+        f"/api/admin/users/{graduate.user_id}/remove",
+        headers=admin.headers,
+        json={"reason": "Asked to be taken off the records"},
+    )
+    assert r.status_code == 200, r.text
+    for board, ids in _listed_everywhere(client, me).items():
+        assert graduate.student_id not in ids, f"a removed graduate is still on the {board} board"
+
+    r = client.post(f"/api/admin/users/{graduate.user_id}/restore", headers=admin.headers)
+    assert r.status_code == 200, r.text
+    for board, ids in _listed_everywhere(client, me).items():
+        assert graduate.student_id in ids, f"restore did not bring the graduate back to {board}"
+
+
+@requires_db
 def test_an_unseated_student_is_ranked_within_their_department(client, batches, department):
     """No batch yet, but a department named on the form: the board is the
     department — the seated students of its batches AND the unseated ones —

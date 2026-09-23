@@ -18,6 +18,7 @@ import { DatePipe, LowerCasePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
+import { featureRefusal } from '../../../core/feature-refusal';
 
 interface Subscore {
   label: string;
@@ -72,6 +73,9 @@ interface Baseline {
 export class EnglishBaselineComponent {
   readonly state = signal<'loading' | 'data' | 'error'>('loading');
   readonly data = signal<Baseline | null>(null);
+  /** The office's message when this screen is switched off for the student;
+   *  null for every other failure, which keeps the screen's own line. */
+  readonly refusal = signal<string | null>(null);
   readonly busy = signal(false);
   readonly notice = signal<string | null>(null);
 
@@ -151,11 +155,16 @@ export class EnglishBaselineComponent {
 
   async load(): Promise<void> {
     this.state.set('loading');
+    this.refusal.set(null);
     try {
       const res = await fetch(`${environment.apiBase}/student/english-baseline`, {
         credentials: 'include',
       });
-      if (!res.ok) throw new Error(String(res.status));
+      if (!res.ok) {
+        this.refusal.set(await featureRefusal(res));
+        this.state.set('error');
+        return;
+      }
       this.data.set((await res.json()) as Baseline);
       this.state.set('data');
     } catch {

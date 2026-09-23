@@ -551,9 +551,9 @@ test.describe('Authentication', () => {
 
     await test.step('3. Click the eye button, "Show password", at the end of the field', async () => {
       // A click lands on whatever is drawn on top at that point, and Playwright
-      // refuses to click when that is another element. That refusal is the
-      // defect, so it is reported against ER-2 within the usual expect timeout
-      // rather than after the whole test's.
+      // refuses to click when that is another element - which is what the
+      // focused Password field used to be. Such a refusal is reported against
+      // ER-2 within the usual expect timeout rather than after the whole test's.
       await show.click({ timeout: 5_000 }).catch((error: Error) => {
         throw new Error(
           `TC-006 ER-2: the "Show password" button did not receive the click. ${error.message}`,

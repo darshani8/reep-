@@ -406,6 +406,54 @@ def test_an_opted_out_classmate_is_on_neither_list(client, cohort):
 
 
 @requires_db
+def test_a_removed_classmate_leaves_every_board_and_restore_brings_them_back(
+    client, cohort, make_user
+):
+    """REMOVE answers "… is off every screen", and a classmate's leaderboard is
+    a screen: the roster left out `users.deleted_at`, so a removed batch mate
+    stayed ranked, or listed as not ranked, on every board. Every board is read
+    BEFORE the removal as well, so the removal has to reach the cache too — a
+    board served from it for another minute is the same name left standing."""
+    from app.models.user import Role
+    from app.routers.student import _BOARDS
+
+    me, ranked, waiting = cohort("me"), cohort("ranked"), cohort("waiting")
+    admin = make_user("lb-office", Role.ADMIN)
+    with SessionLocal() as db:
+        _earn(db, ranked.student_id, 1)
+        db.commit()
+    mates = {ranked.student_id, waiting.student_id}
+
+    def listed(board: str) -> tuple[set[str], int]:
+        body = _board(client, me, board)
+        ids = {r["student_id"] for r in body["rows"]} | {u["student_id"] for u in body["unranked"]}
+        return ids, body["classmates"]
+
+    for board in _BOARDS:
+        ids, classmates = listed(board)
+        assert mates <= ids and classmates == 3, board
+
+    for mate in (ranked, waiting):
+        r = client.post(
+            f"/api/admin/students/{mate.student_id}/remove",
+            headers=admin.headers,
+            json={"reason": "Withdrew from the programme"},
+        )
+        assert r.status_code == 200, r.text
+    for board in _BOARDS:
+        ids, classmates = listed(board)
+        assert not ids & mates, f"a removed classmate is still on the {board} board"
+        assert classmates == 1, board
+
+    for mate in (ranked, waiting):
+        r = client.post(f"/api/admin/students/{mate.student_id}/restore", headers=admin.headers)
+        assert r.status_code == 200, r.text
+    for board in _BOARDS:
+        ids, classmates = listed(board)
+        assert mates <= ids and classmates == 3, f"restore did not bring them back to {board}"
+
+
+@requires_db
 def test_an_unseated_student_is_ranked_within_their_department(client, batches, department):
     """No batch yet, but a department named on the form: the board is the
     department — the seated students of its batches AND the unseated ones —

@@ -2022,11 +2022,6 @@ test.describe('Student: home and progress', () => {
     playwright,
     baseURL,
   }, testInfo) => {
-    test.fail(
-      true,
-      "BUG: a removed student is still listed on classmates' leaderboards " +
-        '(_ranked_board in routers/student.py does not leave out users.deleted_at)',
-    );
     await signIn('student');
     const admin = await apiAs(playwright, baseURL, 'admin');
     let mate: BatchMate | undefined;

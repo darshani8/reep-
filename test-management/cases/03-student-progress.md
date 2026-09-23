@@ -1091,8 +1091,7 @@ None beyond the seeded student.
 ### Post-conditions
 
 The batch mate stays seated in the batch. The automated test removes them
-as the Main Admin, with a reason, when it ends. Because of the defect in
-TC-253, a removed batch mate is still listed on this card.
+as the Main Admin, with a reason, when it ends.
 
 ---
 
@@ -1105,12 +1104,6 @@ TC-253, a removed batch mate is still listed on this card.
 | Priority | P2 |
 | Type | Functional, negative |
 | Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-253` |
-
-A known defect: removing a student answers "… is off every screen and
-cannot sign in", but the leaderboard's roster query
-(`_ranked_board` in `apps/api-py/app/routers/student.py`) does not leave out
-removed accounts, so classmates still see the name. The automated test is
-marked as an expected failure until it does.
 
 ### Pre-conditions
 

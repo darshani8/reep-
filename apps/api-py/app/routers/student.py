@@ -2948,6 +2948,21 @@ _leaderboard_cache: dict[tuple[str, str | None, str], tuple[float, "_Board"]] = 
 _leaderboard_cache_lock = threading.Lock()
 
 
+def clear_leaderboard_cache() -> None:
+    """Drop every cached board on this worker.
+
+    For a write that changes WHO is on a board rather than what they hold: a
+    student's own visibility setting, and the office removing or restoring an
+    account (`routers/admin_deletion.py`). The WHOLE cache and never one
+    scope, because a student sits in a batch and a department at once and a
+    change like this is rare enough that recomputing every board once is
+    cheaper than getting the key set wrong. Per worker, like the cache itself:
+    another worker keeps its board for the rest of the TTL.
+    """
+    with _leaderboard_cache_lock:
+        _leaderboard_cache.clear()
+
+
 @dataclass(frozen=True)
 class _Scope:
     """Who the caller is ranked against — see the module note above."""
@@ -3022,10 +3037,16 @@ def _ranked_board(db: Session, scope: _Scope, board: str) -> _Board:
             )
         ).all()
     )
+    # A REMOVED account (`users.deleted_at`) is off every screen, classmates'
+    # boards included: the office is told "… is off every screen", and a name
+    # left ranked, or listed as not ranked yet, on a batch mate's board made
+    # that untrue. Every board, `overall`'s scaling and `classmates` read this
+    # roster, so the one filter reaches them all.
     roster_q = (
         select(Student.id, Student.user_id, User.name)
         .select_from(Student)
         .join(User, Student.user_id == User.id)
+        .where(User.deleted_at.is_(None))
     )
     if scope.kind == "batch":
         roster_q = roster_q.where(Student.cohort_id == scope.key)
@@ -3175,15 +3196,11 @@ def set_leaderboard_visibility(
     # without them — the review of the 2026-08 fix wave caught the
     # contradiction. (Opting OUT never had the problem only because the
     # caller's own opt-out is checked fresh, before the cache, in
-    # `leaderboards` above.) The WHOLE cache and not this student's scope: a
-    # student's batch and department are two scopes, and a visibility change
-    # is rare enough that recomputing every board once is cheaper than getting
-    # the key set wrong. Per worker, like the cache itself: classmates on
-    # another worker may see the old board for the remaining TTL, which is the
-    # staleness the cache already declares acceptable — lying to the student
-    # about their own setting was not.
-    with _leaderboard_cache_lock:
-        _leaderboard_cache.clear()
+    # `leaderboards` above.) Classmates on another worker may see the old
+    # board for the remaining TTL, which is the staleness the cache already
+    # declares acceptable — lying to the student about their own setting was
+    # not.
+    clear_leaderboard_cache()
     return {"hidden": body.hidden}
 
 

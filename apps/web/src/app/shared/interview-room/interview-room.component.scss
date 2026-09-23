@@ -509,6 +509,14 @@
 .picker__pill--active::before {
   content: '\2713  ';
 }
+/* Speaker / Earphones: the picker's pills, as a pair. */
+.route {
+  display: inline-flex;
+  gap: 6px;
+}
+.route--live .picker__pill {
+  padding: 4px 11px;
+}
 .picker__blurb {
   margin: 0;
   text-align: center;

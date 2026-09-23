@@ -408,10 +408,6 @@ through the API.
    batch) and holds no RH allowance for the current academic year. The
    automated run removes one an earlier failed run left behind before it
    starts.
-3. The browser window is at least 1000 px tall; the automated run uses
-   1280 × 1100. In a shorter window the dialog can squeeze the "Allowances
-   recorded" table down to nothing, and its rows can then be neither read nor
-   clicked (TC-616, a known product bug).
 
 ### Test data
 
@@ -535,19 +531,6 @@ The calendar is as it was before the case.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 2 | The "Allowances recorded" table is shown at its full height, up to its own 300 px scrolling limit: its header row (Person, Type, Entitled, Taken, Left) and its lines, or its "No allowance is recorded …" line, can be read, and it is the dialog body that scrolls to reach it. |
-
-### Known issue
-
-Fails today. The table is squeezed to nothing: measured 0 px of its 106 px
-drawn in a 1280 × 600 window, and 2 px of 395 px in a 1280 × 720 window once
-other cases had added colleges and allowances. In
-`apps/web/src/app/features/admin/leave-approvals/leave-dialog.scss`,
-`.dialog-body` is a flex column capped at the window's height with
-`overflow-y: auto`, and `.table-scroll` is the one child that is itself a
-scroll container. That makes its minimum height 0, so it absorbs the whole
-shortfall before the dialog body scrolls. The same dialog then hides the rows
-TC-614 edits, which is why that case asks for a taller window. The automated
-test is marked as a known failure.
 
 ---
 

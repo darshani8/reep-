@@ -975,7 +975,7 @@ pending application is left behind.
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 2 | A dialog "Auto-approve rules" opens, with the line "Lowest priority wins; ties go to the older rule." It lists the seeded rules: priority 10, "MBA 2024-26 auto-admit", matching "email on bgscet.ac.in · USN like ^1BG2[0-9]MBA[0-9]{3}$ · PG", marked "Auto-approves"; and priority 100, "College domain — route to review", matching "email on bgscet.ac.in", seating in "No batch", marked "Waits for review". What the first rule's "Seats in" shows is TC-123's subject. |
+| ER-1 | 2 | A dialog "Auto-approve rules" opens, with the line "Lowest priority wins; ties go to the older rule." It lists the seeded rules: priority 10, "MBA 2024-26 auto-admit", matching "email on bgscet.ac.in · USN like ^1BG2[0-9]MBA[0-9]{3}$ · PG", seating in "Master of Business Administration - Finance · 2024-26 Section B", marked "Auto-approves"; and priority 100, "College domain — route to review", matching "email on bgscet.ac.in", seating in "No batch", marked "Waits for review". |
 | ER-2 | 3 | A "New rule" form opens with an empty Name, Priority 100, Degree level "Any degree level", Seats in "No batch", "Enabled" ticked and "Auto-approve a matching application" not ticked. |
 | ER-3 | 4 | The notice reads "Rule 'E2E rule `<run>`' is live." and the table has a row: 9000, the rule's name, "email on e2e-m02.invalid", "No batch", "Waits for review". |
 | ER-4 | 5 | The notice reads "Rule 'E2E rule `<run>`' saved." and the row's priority is 9001. |
@@ -1211,18 +1211,6 @@ signs this browser out, because REEP keeps one live session per account.
 | Priority | P3 |
 | Type | Functional, timing |
 | Automated test | `tests/02-registration.spec.ts`, title tagged `@TC-123` |
-
-**Known bug.** The screen asks for the rules (`GET /api/register/rules`) and
-for the batch names (`GET /api/register/hierarchy`) at the same time when it
-opens. Each rule's "Seats in" text is worked out once, when the rules arrive
-(`toSeatingRuleLine` and `seatLabelFor` in
-`apps/web/src/app/features/admin/registrations/registrations.component.ts`).
-If the batch names have not arrived yet, the rule reads "Batch 9b799137" (the
-first eight characters of the batch's id), and it keeps reading that after the
-names arrive, until a rule is saved and the list is read again. The rest of
-the screen shows the batch name, because the queue works its labels out
-again when the names arrive. The automated test is marked as a known failure
-until this is fixed.
 
 ### Pre-conditions
 

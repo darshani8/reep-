@@ -2056,8 +2056,7 @@ test.describe('Registration and onboarding', () => {
           '10',
           'MBA 2024-26 auto-admit',
           'email on bgscet.ac.in · USN like ^1BG2[0-9]MBA[0-9]{3}$ · PG',
-          // Seats in: TC-123's subject, and a race (see there).
-          null,
+          SEEDED.batchLabel,
           'Auto-approves',
         ],
         'TC-117 ER-1: the seeded auto-admit rule',
@@ -2360,12 +2359,6 @@ test.describe('Registration and onboarding', () => {
     page,
     signIn,
   }) => {
-    test.fail(
-      true,
-      "BUG: a rule's Seats in text is computed once when GET /api/register/rules answers " +
-        '(registrations.component.ts toSeatingRuleLine/seatLabelFor), so if GET ' +
-        '/api/register/hierarchy answers later it stays "Batch <id prefix>"',
-    );
     // The two lists are requested together when the page opens, and which one
     // lands first is chance. Hold the batch names back until the rules have
     // been answered, so the order the case is about happens every time. Both

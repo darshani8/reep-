@@ -3169,10 +3169,6 @@ test.describe('Admin: people and access', () => {
     page,
     signIn,
   }) => {
-    test.fail(
-      true,
-      'BUG: student screens discard the 403\'s detail; Leaderboards says "Could not load the leaderboard." instead of the office\'s message',
-    );
     await signIn('admin');
     const ids = await seeded(page.request);
     const message = 'Leaderboards are paused this week.';

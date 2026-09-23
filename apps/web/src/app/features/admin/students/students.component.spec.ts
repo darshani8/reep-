@@ -210,6 +210,28 @@ describe('Students roster', () => {
     ]);
   });
 
+  it('finds a student by address or name with the Student column hidden', async () => {
+    const fixture = TestBed.createComponent(AdminStudentsComponent);
+    const c = fixture.componentInstance;
+    await until(() => c.apiRows() !== null);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const grid = fixture.debugElement.query(By.directive(AgGridAngular))
+      .componentInstance as AgGridAngular;
+    await until(() => c.totalPages() === 1);
+    c.toggleColumn('name');
+    expect(grid.api.getColumn('name')?.isVisible()).toBe(false);
+
+    // The server's `q` matched these; the grid must not hide the row it sent.
+    for (const typed of ['student@bgscet.ac.in', 'Test Student', '1BG24MBA001']) {
+      c.quickFilter.set(typed);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(grid.api.getDisplayedRowCount(), typed).toBe(1);
+    }
+  });
+
   it("clears the grid's ticks, not only its count, after a selection action", async () => {
     const fixture = TestBed.createComponent(AdminStudentsComponent);
     const c = fixture.componentInstance;

@@ -173,6 +173,21 @@ def test_an_expired_activation_link_is_refused_with_the_right_words(client, make
 
 
 @requires_db
+@pytest.mark.parametrize("door", ["activate", "reset"])
+def test_a_shortened_link_is_refused_as_a_link(client, door):
+    """A link a mail client cut short is a DEAD LINK, and is answered as one.
+
+    The schema used to refuse a token under 16 characters as a 422 about the
+    request, and the set-password screen reads a 422 as a refused PASSWORD: the
+    person was asked for another one, and no password could ever get past it.
+    It now reaches the lookup like any other token nobody issued.
+    """
+    r = client.post(f"/api/auth/{door}", json={"token": "abc123", "password": GOOD})
+    assert r.status_code == 410, r.text
+    assert r.json()["detail"] == "This link is not valid. Ask for a new one."
+
+
+@requires_db
 def test_reissuing_an_activation_link_supersedes_the_old_one(client, make_user):
     """"Resend" must hand over ONE working link, not two."""
     director = make_user("pw-dir5", Role.ADMIN)

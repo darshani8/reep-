@@ -1892,11 +1892,6 @@ test.describe('Authentication', () => {
   });
 
   test('A shortened reset link is reported as a link problem @TC-032', async ({ page }) => {
-    test.fail(
-      true,
-      'BUG: a reset or activation link whose token is under 16 characters is answered "That password was not accepted." ' +
-        '(the 422 from LinkPasswordIn is read as a refused password by password-link.component.ts)',
-    );
     const valid = 'a-valid-password-e2e';
 
     await test.step('1. Open /reset?token=abc123', async () => {

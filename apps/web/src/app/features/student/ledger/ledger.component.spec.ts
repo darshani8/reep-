@@ -212,6 +212,66 @@ describe('Time Allocation Ledger', () => {
     expect(c.canCopyYesterday()).toBe(true);
   });
 
+  it('saves what is on screen and then submits the same day', async () => {
+    const c = await opened();
+    c.onCellInput(c.ledger()!.slots[0], 'SLEEPING', '24');
+    const submitted = c.submitDay();
+    await until(() => api.pending.length === 1);
+    api.answer('/student/ledger', json(ledgerDay(TODAY, 24)), 'PUT');
+    await until(() => api.pending.some((p) => p.path === '/student/ledger/submit'));
+    const submit = api.pending.find((p) => p.path === '/student/ledger/submit')!;
+    expect(submit.body).toEqual({ day: TODAY });
+    api.answer('/student/ledger/submit', json(ledgerDay(TODAY, 24, 'SUBMITTED')), 'POST');
+    await submitted;
+    expect(c.submitted()).toBe(true);
+  });
+
+  it('submits nothing when the student steps away while Submit day is saving', async () => {
+    const c = await opened();
+    c.onCellInput(c.ledger()!.slots[0], 'SLEEPING', '24');
+    const submitted = c.submitDay();
+    await until(() => api.pending.length === 1);
+    expect(api.pending[0]).toMatchObject({ path: '/student/ledger', method: 'PUT' });
+    expect(api.pending[0].body).toMatchObject({ day: TODAY });
+
+    c.step(-1); // 22 Sep, while the save for 23 Sep is still in flight
+    await until(() => api.pending.length === 2);
+    api.answer('/student/ledger', json(ledgerDay(TODAY, 24)), 'PUT');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    // The save stands; the submit, which cannot be undone, is not sent for
+    // either day, and 23 Sep's answer is not drawn over 22 Sep.
+    const submits = api.pending.filter((p) => p.path === '/student/ledger/submit');
+    expect(submits.map((p) => p.body)).toEqual([]);
+    await submitted;
+    api.answer('/student/ledger?day=2026-09-22', json(ledgerDay('2026-09-22', 5)));
+    await until(() => c.state() === 'data');
+    expect(c.ledger()?.day).toBe('2026-09-22');
+    expect(c.dayTotal()).toBe(5);
+  });
+
+  it('keeps a refusal about one day off the day the student stepped to', async () => {
+    const c = await opened(
+      history([
+        { day: TODAY, status: 'EMPTY' },
+        { day: '2026-09-22', status: 'SUBMITTED' },
+      ]),
+    );
+    const copied = c.copyYesterday();
+    await until(() => api.pending.length === 1);
+    c.step(-1); // 22 Sep
+    await until(() => api.pending.length === 2);
+    api.answer(
+      '/student/ledger/copy-yesterday',
+      json({ detail: 'No submitted ledger for 22 Sep 2026 to copy from.' }, 404),
+      'POST',
+    );
+    expect(await copied).toBe(false);
+    api.answer('/student/ledger?day=2026-09-22', json(ledgerDay('2026-09-22', 24, 'SUBMITTED')));
+    await until(() => c.state() === 'data');
+    expect(c.error()).toBeNull();
+  });
+
   it('offers Copy yesterday only on an open day whose previous day was submitted', async () => {
     const c = await opened(
       history([

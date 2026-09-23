@@ -29,7 +29,8 @@
  * arrived LAST, so a quick second click while the first day was still loading
  * could settle on the earlier day, date control and all. Every read and write
  * carries `loadSeq` at the moment it was asked, and an answer whose number is
- * no longer current is dropped.
+ * no longer current is dropped, a refusal included. A write names its day when
+ * it is asked, never after an await: see `submitDay`.
  *
  * EDITS ARE LOCAL UNTIL SAVED. `draft` holds what the student has typed; the
  * server's view is only replaced on a successful write. Re-rendering the whole
@@ -416,7 +417,8 @@ export class LedgerComponent {
 
   private async write(path: string, body: unknown, method = 'POST'): Promise<boolean> {
     // The day this write is about. A step taken while it is in flight makes
-    // its answer a different day's, which must not be drawn over this one.
+    // its answer — a refusal as much as a saved day — a different day's, and
+    // it must not be drawn over the day the student is now looking at.
     const seq = this.loadSeq;
     this.saving.set(true);
     this.error.set(null);
@@ -435,7 +437,9 @@ export class LedgerComponent {
           .json()
           .then((b: { detail?: string }) => b.detail)
           .catch(() => null);
-        this.error.set(detail || 'That could not be saved. Please try again.');
+        if (seq === this.loadSeq) {
+          this.error.set(detail || 'That could not be saved. Please try again.');
+        }
         return false;
       }
       const saved = (await res.json()) as Ledger;
@@ -450,7 +454,7 @@ export class LedgerComponent {
       void this.loadWeekly();
       return true;
     } catch {
-      this.error.set('Could not reach the server. Please try again.');
+      if (seq === this.loadSeq) this.error.set('Could not reach the server. Please try again.');
       return false;
     } finally {
       this.saving.set(false);
@@ -469,10 +473,21 @@ export class LedgerComponent {
   }
 
   /** Save first, then submit. Submitting what is on screen rather than what was
-   *  last written is the only behaviour that matches the button's label. */
+   *  last written is the only behaviour that matches the button's label.
+   *
+   *  The day is the one on screen when the button was pressed, taken before
+   *  the save is awaited. The stepper stays live while it saves, and reading
+   *  `day()` afterwards submitted whichever day the student had stepped to —
+   *  a day they never chose, and a submitted day cannot be reopened. If they
+   *  have stepped away by the time the save answers, the submit is not sent
+   *  at all: the save stands, the strip shows the day as a draft, and
+   *  submitting it is one press when they go back to it. */
   async submitDay(): Promise<void> {
+    const day = this.day();
+    const seq = this.loadSeq;
     if (this.dirty() && !(await this.save())) return;
-    await this.write('/student/ledger/submit', { day: this.day() });
+    if (seq !== this.loadSeq) return;
+    await this.write('/student/ledger/submit', { day });
   }
 
   // --- helpers used by the template ---------------------------------------

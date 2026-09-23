@@ -494,9 +494,11 @@ None beyond the seeded student.
 Each click loads its day, and the screen draws only the day clicked last,
 whatever order the loads finish in: click Next day twice quickly from the
 day before yesterday and the screen settles on today, with Next day
-disabled, even when yesterday's answer arrives after today's. The steps
-below wait for each day, as a person does; the answers arriving out of order
-are covered by the unit tests in
+disabled, even when yesterday's answer arrives after today's. The same holds
+for the buttons that write: Submit day submits the day it was pressed on, and
+a step taken while it is still saving leaves that day a saved draft and
+submits nothing. The steps below wait for each day, as a person does; the
+answers arriving out of order are covered by the unit tests in
 `apps/web/src/app/features/student/ledger/ledger.component.spec.ts`.
 
 ### Pre-conditions

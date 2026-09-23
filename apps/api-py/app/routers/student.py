@@ -2957,7 +2957,9 @@ def clear_leaderboard_cache() -> None:
     scope, because a student sits in a batch and a department at once and a
     change like this is rare enough that recomputing every board once is
     cheaper than getting the key set wrong. Per worker, like the cache itself:
-    another worker keeps its board for the rest of the TTL.
+    another worker keeps its board for the rest of the TTL. And a board read
+    that began before the write committed can finish after this clear and put
+    the old board back for one TTL — the staleness the cache already declares.
     """
     with _leaderboard_cache_lock:
         _leaderboard_cache.clear()

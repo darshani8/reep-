@@ -294,7 +294,7 @@ None.
 | ID | TC-006 |
 | Module | Authentication: sign-in page |
 | Priority | P3 |
-| Type | Functional, UI (known bug) |
+| Type | Functional, UI |
 | Automated test | `tests/auth-sync.spec.ts`, title tagged `@TC-006` |
 
 ### Pre-conditions
@@ -320,7 +320,7 @@ None.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 2 | The password is masked. |
-| ER-2 | 3 | The password is shown as readable text, and the button is now named "Hide password" and shown as pressed. **Known bug:** while the caret is still in the "Password" field, the field is drawn on top of the eye button, so the click lands in the field and nothing is revealed. The global `*:focus-visible { z-index: 1 }` rule (`apps/web/src/styles/reep-theme.scss`) lifts the focused field, a flex item, above the absolutely placed button (`.field__eye` in `login.component.scss`). Clicking elsewhere first, or using the keyboard (TC-041), works. |
+| ER-2 | 3 | The password is shown as readable text, and the button is now named "Hide password" and shown as pressed. |
 | ER-3 | 4 | The password is masked again, and the button is named "Show password" and no longer pressed. The typed value is unchanged. |
 
 ---

@@ -533,11 +533,6 @@ test.describe('Authentication', () => {
   });
 
   test('Show password and Hide password @TC-006', async ({ page }) => {
-    test.fail(
-      true,
-      'BUG: while the Password field has the focus it is drawn over the "Show password" button, so a click ' +
-        'lands in the field (*:focus-visible { z-index: 1 } in reep-theme.scss lifts the flex item above .field__eye)',
-    );
     const typed = 'Typed-but-not-sent-1';
     const show = page.getByRole('button', { name: 'Show password' });
     const hide = page.getByRole('button', { name: 'Hide password' });

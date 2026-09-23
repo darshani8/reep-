@@ -1826,10 +1826,6 @@ Remove the track made for the case (TC-746). The automated run deletes it throug
 
 As TC-741's.
 
-### Known defect
-
-Seen by hand; the automated test cannot see it. The two move buttons render as narrow empty buttons with no arrow on them: commit `a7ff923` removed every `expand_more` glyph from the templates, and those glyphs were the only content of these buttons (`interview-questions.component.html`, the two `bank-icon-btn` buttons before "Remove this question"). They still work and keep their accessible names, which is why the automated test passes.
-
 ---
 
 ## TC-750 — A faculty member cannot open the college setup and interview screens

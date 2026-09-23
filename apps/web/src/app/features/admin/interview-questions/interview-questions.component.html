@@ -552,7 +552,9 @@
                         [title]="reorderHint()"
                         aria-label="Move this question up"
                         (click)="moveQuestionUp(row.question)"
-                      ></button>
+                      >
+                        <span class="icon bank-arrow-up" aria-hidden="true">arrow_forward</span>
+                      </button>
                       <button
                         type="button"
                         class="btn secondary sm bank-icon-btn"
@@ -562,7 +564,9 @@
                         [title]="reorderHint()"
                         aria-label="Move this question down"
                         (click)="moveQuestionDown(row.question)"
-                      ></button>
+                      >
+                        <span class="icon bank-arrow-down" aria-hidden="true">arrow_forward</span>
+                      </button>
                       <button
                         type="button"
                         class="btn danger sm bank-icon-btn"

@@ -1032,8 +1032,6 @@ test.describe('Admin: daily operations', () => {
   });
 
   test('Recording, correcting and removing a leave allowance @TC-614', async ({ page, signIn }) => {
-    // Pre-condition 3: at 720 px the dialog squeezes the allowances table to 0 px (TC-616).
-    await page.setViewportSize({ width: 1280, height: 1100 });
     await signIn('admin');
     const policy = await ok<{ academic_year: string }>(
       await page.request.get('/api/admin/leave-policy'),
@@ -1253,10 +1251,6 @@ test.describe('Admin: daily operations', () => {
     page,
     signIn,
   }) => {
-    test.fail(
-      true,
-      'BUG: the Leave policy dialog squeezes the "Allowances recorded" table to 0 px in a short window (leave-dialog.scss: .table-scroll is the only child of the .dialog-body flex column that can shrink to nothing).',
-    );
     await page.setViewportSize({ width: 1280, height: 600 });
     await signIn('admin');
     const dialog = page.getByRole('dialog', { name: 'Leave policy' });
@@ -1745,10 +1739,6 @@ test.describe('Admin: daily operations', () => {
   });
 
   test('Searching the jobs sheet by company or location @TC-626', async ({ page, signIn }) => {
-    test.fail(
-      true,
-      'BUG: the jobs sheet search matches titles only; "Search postings by role, company or location" finds nothing by company or location (jobs-grid.ts keys the Posting column on the title).',
-    );
     await signIn('admin');
 
     await test.step('1. Open /admin/jobs', async () => {

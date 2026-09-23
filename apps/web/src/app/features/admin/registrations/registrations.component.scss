@@ -401,7 +401,11 @@
 /* B11.3. Local names only: `.field` and `.ctrl` are the global controls the
    decision panel already uses, and everything below is layout around them. */
 
+/* `flex: none`: `overflow-x` makes this a scroll container, so as a child of
+   the `.dialog-body` column its minimum height is 0 and a short window squeezed
+   the rules table rather than scrolling the body. */
 .rules-scroll {
+  flex: none;
   overflow-x: auto;
 }
 

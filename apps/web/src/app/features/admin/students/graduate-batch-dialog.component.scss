@@ -29,8 +29,12 @@
 }
 
 /* A batch can hold sixty students and the dialog is 560px tall: the table
-   scrolls inside the body rather than pushing the footer off the panel. */
+   scrolls inside the body rather than pushing the footer off the panel.
+   `flex: none`, or a short window squeezes it to nothing: it is the one child
+   of `.dialog-body` that is itself a scroll container, which makes its minimum
+   height 0, so it took the whole shortfall before the body scrolled. */
 .roster-scroll {
+  flex: none;
   max-height: 260px;
   overflow: auto;
   border: 1px solid var(--hairline-42);

@@ -769,10 +769,6 @@ test.describe('Admin: people and access', () => {
     page,
     signIn,
   }) => {
-    test.fail(
-      true,
-      'BUG: the roster quick filter only reads the Student column value (the name), so an address hides every row',
-    );
     await signIn('admin');
     const ids = await seeded(page.request);
     const row = gridRow(page, ids.studentId);

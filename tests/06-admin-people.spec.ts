@@ -2225,10 +2225,6 @@ test.describe('Admin: people and access', () => {
     page,
     signIn,
   }) => {
-    test.fail(
-      true,
-      'BUG: the disable dialog says the mentor group is NOT released and the mentees stay filed under them; disable_account releases them',
-    );
     await signIn('admin');
     const api = page.request;
     const ids = await seeded(api);
@@ -2898,10 +2894,6 @@ test.describe('Admin: people and access', () => {
       page,
       signIn,
     }) => {
-      test.fail(
-        true,
-        'BUG: the grant form sends the typed day as 23:59:59Z, which east of UTC is the next local day, so the list shows the day after',
-      );
       await signIn('admin');
       const api = page.request;
       const ids = await seeded(api);

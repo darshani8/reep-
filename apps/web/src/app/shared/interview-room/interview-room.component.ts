@@ -71,6 +71,13 @@ import {
   ReportCardView,
 } from '../../features/student/interviews/interview-report-card.component';
 import { MockAudioStreamController, VisualizerState, VoiceVisualizer } from '../voice-visualizer';
+import {
+  AudioRoute,
+  defaultDeviceLabels,
+  readStoredRoute,
+  routeFromDeviceLabels,
+  storeRoute,
+} from './audio-route';
 import { grantMatchesPolicy, recordingLabel } from './consent-sync';
 
 /** One consent grant, verbatim from ConsentOut in
@@ -321,6 +328,22 @@ export class InterviewRoomComponent implements AfterViewInit, OnDestroy {
   readonly selectedSpecialization = signal<string | null>(null);
   readonly specializationOptions = SPECIALIZATION_OPTIONS;
 
+  /**
+   * Speaker or earphones (audio-route.ts). Speaker arms the echo gate that
+   * keeps the interviewer's own voice off the uplink; earphones switch it off,
+   * so a breath on a headset mic can no longer pause the interviewer. Takes
+   * effect on the gate at once, mid-interview included; the microphone's
+   * auto-gain follows at the next Start.
+   *
+   * READ FROM the service rather than held here: the page and the dock can
+   * both render this component, and one switch must not show a different
+   * answer from the other.
+   */
+  readonly audioRoute = computed<AudioRoute>(() =>
+    this.interview.echoSuppression() ? 'speaker' : 'earphones',
+  );
+  private readonly onDeviceChange = () => void this.preselectRoute();
+
   // -- consent, which is a server row (see the file header) --------------- //
   readonly showConsent = signal(false);
   readonly consentVersion = signal<string | null>(null);
@@ -463,6 +486,14 @@ export class InterviewRoomComponent implements AfterViewInit, OnDestroy {
     void this.loadConsent();
     void this.loadPolicy();
 
+    // --- speaker or earphones ------------------------------------------- //
+    const stored = readStoredRoute();
+    if (stored) this.applyRoute(stored);
+    else void this.preselectRoute();
+    // Earphones plugged in or pulled out: follow them, unless the student
+    // has chosen.
+    navigator.mediaDevices?.addEventListener?.('devicechange', this.onDeviceChange);
+
     // --- drive the orb ------------------------------------------------- //
     // Injection only moves a damper TARGET; the visualizer's own render loop
     // advances the damper, so publishing at the feeds' own rates is right.
@@ -518,6 +549,7 @@ export class InterviewRoomComponent implements AfterViewInit, OnDestroy {
    * is the most literal form of it.
    */
   ngOnDestroy(): void {
+    navigator.mediaDevices?.removeEventListener?.('devicechange', this.onDeviceChange);
     this.interview.end('Left the interview room');
     this.dock.reportLive(null, null);
     // destroy() FIRST, dispose() second — see MockAudioStreamController.dispose.
@@ -541,7 +573,7 @@ export class InterviewRoomComponent implements AfterViewInit, OnDestroy {
     // A rehearsal has no consent row to write — the server keeps nothing it
     // could be consented to — so it starts straight away.
     if (this.isRehearsal()) {
-      void this.interview.start(this.selectedSpecialization());
+      this.begin();
       return;
     }
     // A standing grant is a COPY of the college's policy on the day it was
@@ -556,13 +588,41 @@ export class InterviewRoomComponent implements AfterViewInit, OnDestroy {
     const grant = this.consent();
     const card = this.policy();
     if (grant && (card === null || grantMatchesPolicy(grant, card.policy))) {
-      void this.interview.start(this.selectedSpecialization());
+      this.begin();
       void this.loadPolicy();
       return;
     }
     // No live grant for the current terms, or one that no longer matches the
     // policy — show the disclosure before touching the microphone.
     this.openConsent();
+  }
+
+  /** Start, from inside the click's gesture (start() must run in it). Once
+   *  it has the microphone, device names are readable, so the route is
+   *  preselected again for a student who has not chosen one. */
+  private begin(): void {
+    void this.interview.start(this.selectedSpecialization()).then(() => this.preselectRoute());
+  }
+
+  /** The Speaker / Earphones switch. Remembered on this device, and from
+   *  then on never overridden by a device name. */
+  chooseRoute(route: AudioRoute): void {
+    storeRoute(route);
+    this.applyRoute(route);
+  }
+
+  private applyRoute(route: AudioRoute): void {
+    this.interview.setEchoSuppression(route === 'speaker');
+  }
+
+  /** For a student who has not chosen: earphones when the browser's device
+   *  names say so, otherwise speaker -- the default, and the side that keeps
+   *  the interviewer's echo off the uplink when the names say nothing. */
+  private async preselectRoute(): Promise<void> {
+    if (readStoredRoute()) return;
+    const route = routeFromDeviceLabels(await defaultDeviceLabels()) ?? 'speaker';
+    if (readStoredRoute()) return;
+    this.applyRoute(route);
   }
 
   /** The track picker. Selecting never starts anything on its own. */
@@ -632,7 +692,7 @@ export class InterviewRoomComponent implements AfterViewInit, OnDestroy {
       // End — rather than being dropped on <body> with a live microphone.
       this.consentReturnFocus?.focus();
       this.consentReturnFocus = null;
-      void this.interview.start(this.selectedSpecialization());
+      this.begin();
     } catch {
       this.consentError.set('Could not reach the server. Please try again.');
     } finally {

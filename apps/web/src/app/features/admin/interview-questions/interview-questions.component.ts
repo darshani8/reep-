@@ -134,6 +134,8 @@ interface BankQuestion {
 interface QuestionRow {
   question: BankQuestion;
   number: number;
+  /** How many times this row has been put back; part of its `track` key. */
+  generation: number;
 }
 
 const PHASE_LABEL: Record<string, string> = {
@@ -257,16 +259,23 @@ export class InterviewQuestionsComponent {
   readonly pageIndex = signal(0);
   readonly selectedQuestionIds = signal<ReadonlySet<string>>(new Set<string>());
 
-  /** Bumped when an inline edit was REFUSED, and read by the grid's `track`
-   *  expression so the row is rebuilt from the server's copy.
+  /** Bumped for a question when an inline edit on it was REFUSED, and carried
+   *  on its row into the grid's `track` expression so that row is rebuilt from
+   *  the server's copy.
    *
    *  The two inline editors write straight into the DOM — a `<select>` the
    *  browser has already moved, a `<textarea>` the reader has already typed in
    *  — and their bindings (`[value]`, `[selected]`) are unchanged when the
    *  PATCH fails, so Angular has nothing to re-apply and the row keeps showing
    *  an edit the bank never took. That is the worst kind of lie a console can
-   *  tell: it looks saved. Rebuilding the row is what puts the truth back. */
-  readonly rowGeneration = signal(0);
+   *  tell: it looks saved. Rebuilding the row is what puts the truth back.
+   *
+   *  It rides ON THE ROW and not beside it. `@for` keys the row it drew and
+   *  the row it is handed with the same track expression, evaluated now, so a
+   *  counter read from the component moves both keys together and rebuilds
+   *  nothing. Per question, so putting one row back leaves alone the row the
+   *  reader has just clicked into. */
+  private readonly rowGenerations = signal<ReadonlyMap<string, number>>(new Map());
 
   // ----------------------------------------------------------- the rail --
 
@@ -359,9 +368,14 @@ export class InterviewQuestionsComponent {
 
   // ---------------------------------------------------------- the table --
 
-  readonly rows = computed<QuestionRow[]>(() =>
-    (this.questions() ?? []).map((question, index) => ({ question, number: index + 1 })),
-  );
+  readonly rows = computed<QuestionRow[]>(() => {
+    const generations = this.rowGenerations();
+    return (this.questions() ?? []).map((question, index) => ({
+      question,
+      number: index + 1,
+      generation: generations.get(question.id) ?? 0,
+    }));
+  });
 
   readonly matchingRows = computed<QuestionRow[]>(() => {
     const needle = this.quickFilter().trim().toLowerCase();
@@ -639,10 +653,13 @@ export class InterviewQuestionsComponent {
     if (!this.canAddBulk()) return;
     const lines = this.bulkText().trim();
     await this.whileBusy(async () => {
-      const response = await this.postJson(`${environment.apiBase}/admin/interview-questions/bulk`, {
-        track: this.selectedTrackKey(),
-        lines,
-      });
+      const response = await this.postJson(
+        `${environment.apiBase}/admin/interview-questions/bulk`,
+        {
+          track: this.selectedTrackKey(),
+          lines,
+        },
+      );
       if (!response.ok) throw new Error(await this.detailOf(response));
       const result = (await response.json()) as { added: BankQuestion[]; skipped: string[] };
       this.questions.update((list) => [...(list ?? []), ...result.added]);
@@ -672,13 +689,13 @@ export class InterviewQuestionsComponent {
   async saveText(question: BankQuestion, text: string): Promise<void> {
     const trimmed = text.trim();
     if (trimmed === question.text) {
-      this.refreshRows();
+      this.refreshRow(question.id);
       return;
     }
     if (trimmed.length < MINIMUM_QUESTION_CHARS) {
       // Silently declining would leave the reader's too-short text sitting in
       // the grid as though the bank held it.
-      this.refreshRows();
+      this.refreshRow(question.id);
       this.error.set(
         `A question needs at least ${MINIMUM_QUESTION_CHARS} characters. Put back as it was.`,
       );
@@ -845,7 +862,7 @@ export class InterviewQuestionsComponent {
       },
     );
     if (!response.ok) {
-      this.refreshRows();
+      this.refreshRow(question.id);
       throw new Error(await this.detailOf(response));
     }
     const updated = (await response.json()) as BankQuestion;
@@ -854,9 +871,11 @@ export class InterviewQuestionsComponent {
     );
   }
 
-  /** Rebuild every row in the grid from the questions signal. */
-  private refreshRows(): void {
-    this.rowGeneration.update((generation) => generation + 1);
+  /** Rebuild one question's row from the questions signal. */
+  private refreshRow(questionId: string): void {
+    this.rowGenerations.update((generations) =>
+      new Map(generations).set(questionId, (generations.get(questionId) ?? 0) + 1),
+    );
   }
 
   private forgetSelection(questionId: string): void {

@@ -1218,11 +1218,6 @@ test.describe('Admin: college setup and interviews', () => {
     page,
     signIn,
   }) => {
-    test.fail(
-      true,
-      'BUG: on "Create again" the college row reads "New" although it was created by the first press ' +
-        '(ensureCollege returns early without recording an outcome, college-setup.component.ts:650-651)',
-    );
     await signIn('admin');
     const code = newCode();
     const name = `E2E Resume College ${RUN}`;
@@ -1354,11 +1349,6 @@ test.describe('Admin: college setup and interviews', () => {
     page,
     signIn,
   }) => {
-    test.fail(
-      true,
-      'BUG: /admin/setup?college=<id> loads the college but its picker shows "— New college —" ' +
-        '([value] is bound on the <select> before its options exist, college-setup.component.html:51-58)',
-    );
     await signIn('admin');
     const spine = await createSpine(page, { name: `E2E Picker College ${RUN}` });
     const card = collegeCard(page, spine.collegeName);
@@ -3696,12 +3686,6 @@ test.describe('Admin: college setup and interviews', () => {
   });
 
   test('A question edited below 8 characters is put back @TC-744', async ({ page, signIn }) => {
-    test.fail(
-      true,
-      'BUG: the refused edit stays in the box although the screen says "Put back as it was" — ' +
-        'refreshRows() bumps rowGeneration, which only the @for track function reads, and the ' +
-        '@for never re-diffs (interview-questions.component.html:493, .ts:678-685)',
-    );
     await signIn('admin');
     const track = await createTrack(page, `E2E Short ${RUN}`);
     const original = 'Describe a time you cut waste from a process.';
@@ -3725,10 +3709,9 @@ test.describe('Admin: college setup and interviews', () => {
             .filter({ hasText: 'A question needs at least 8 characters. Put back as it was.' }),
           'TC-744 ER-2: the edit is refused',
         ).toBeVisible();
-        // Soft, so ER-3 is still checked while this known defect stands.
-        await expect
-          .soft(text, 'TC-744 ER-2: the row shows the question as it was')
-          .toHaveValue(original);
+        await expect(text, 'TC-744 ER-2: the row shows the question as it was').toHaveValue(
+          original,
+        );
       });
 
       await test.step('3. Reload the page and press the tab of the track again', async () => {

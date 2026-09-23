@@ -99,7 +99,7 @@ The new college stays on the database. Deleting a college needs a code emailed t
 | ER-1 | 1 | The college has a card. |
 | ER-2 | 2 | College structure opens at `/admin/institution?college=<college id>`, with that college chosen in the "College" picker, its name as the first section's heading, and its department "MGT Management Studies" listed under "Departments". |
 | ER-3 | 3 | The card is shown again. |
-| ER-4 | 4 | "Set up a college" opens at `/admin/setup?college=<college id>` on "Step 1 of 6" with that college loaded: its Code and Name are shown as facts rather than as boxes to type into, and Continue is available. (What the "Continue a college that is already here" picker shows here is TC-709.) |
+| ER-4 | 4 | "Set up a college" opens at `/admin/setup?college=<college id>` on "Step 1 of 6" with that college loaded: its Code and Name are shown as facts rather than as boxes to type into, and Continue is available. |
 
 ---
 
@@ -457,10 +457,6 @@ The college now has the specialization `BA` and its 2026-28 batch.
 
 The college, its department, its course and one batch stay on the database.
 
-### Known defect
-
-On the second press the college row reads "New" instead of "Already there": `ensureCollege` in `apps/web/src/app/features/admin/college-setup/college-setup.component.ts` returns the id it resolved on the first press without recording an outcome, so the row falls back to "New" while the department row, which records one, reads "Already there". Nothing is written twice; only the label is wrong. The automated test is marked as a known failure until this is fixed.
-
 ---
 
 ## TC-709 — Setup opened for an existing college shows that college in the picker
@@ -495,10 +491,6 @@ On the second press the college row reads "New" instead of "Already there": `ens
 |---|---|---|
 | ER-1 | 1 | The college has a card. |
 | ER-2 | 2 | Step 1 shows the college's facts (its Name is the college in the test data), and the "Continue a college that is already here" picker names that college ("`<code>` · E2E Picker College `<run id>`"). |
-
-### Known defect
-
-The picker shows "— New college —" above the loaded college's facts. `college-setup.component.html` binds `[value]` on the `<select>`, and on a page opened with `?college=` the value is set before the college options exist, so the browser keeps the first option. Choosing the college by hand in the picker is not affected. The automated test is marked as a known failure until this is fixed.
 
 ---
 
@@ -1707,10 +1699,6 @@ As TC-741's.
 ### Post-conditions
 
 As TC-741's.
-
-### Known defect
-
-At step 2 the message appears but the box keeps showing "Why?", so the screen contradicts itself until the page is reloaded; the stored question is unchanged (ER-3 holds). `refreshRows()` in `apps/web/src/app/features/admin/interview-questions/interview-questions.component.ts` bumps `rowGeneration`, which the template reads only inside the `@for`'s `track` expression (`interview-questions.component.html` line 493). A `@for` re-diffs only when its list changes, and `pageRows()` has not, so the row is never rebuilt. The same applies to an inline edit the server refuses. The automated test is marked as a known failure until this is fixed.
 
 ---
 

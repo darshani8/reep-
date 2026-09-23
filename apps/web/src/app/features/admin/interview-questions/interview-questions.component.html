@@ -489,8 +489,9 @@
               <tbody>
                 <!-- The generation is part of the identity on purpose: a
                      refused inline edit rebuilds the row so the DOM cannot
-                     keep showing an edit the bank never took. -->
-                @for (row of pageRows(); track row.question.id + ':' + rowGeneration()) {
+                     keep showing an edit the bank never took. It is read off
+                     the row, never the component: see `rowGenerations`. -->
+                @for (row of pageRows(); track row.question.id + ':' + row.generation) {
                   <tr [class.selected]="isRowSelected(row.question)">
                     <td class="bank-tick">
                       <input
@@ -551,8 +552,7 @@
                         [title]="reorderHint()"
                         aria-label="Move this question up"
                         (click)="moveQuestionUp(row.question)"
-                      >
-                      </button>
+                      ></button>
                       <button
                         type="button"
                         class="btn secondary sm bank-icon-btn"
@@ -562,8 +562,7 @@
                         [title]="reorderHint()"
                         aria-label="Move this question down"
                         (click)="moveQuestionDown(row.question)"
-                      >
-                      </button>
+                      ></button>
                       <button
                         type="button"
                         class="btn danger sm bank-icon-btn"

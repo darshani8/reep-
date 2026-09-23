@@ -1739,10 +1739,6 @@ test.describe('Admin: daily operations', () => {
   });
 
   test('Searching the jobs sheet by company or location @TC-626', async ({ page, signIn }) => {
-    test.fail(
-      true,
-      'BUG: the jobs sheet search matches titles only; "Search postings by role, company or location" finds nothing by company or location (jobs-grid.ts keys the Posting column on the title).',
-    );
     await signIn('admin');
 
     await test.step('1. Open /admin/jobs', async () => {

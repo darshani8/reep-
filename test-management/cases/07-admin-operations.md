@@ -844,14 +844,6 @@ The posting stays on the sheet as Withdrawn. There is no reopen. Remove it
 | ER-1 | 2 | The Financial Analyst row is listed: the search box is labelled "Search postings by role, company or location", and Acme Capital is its company. |
 | ER-2 | 3 | The Financial Analyst row is listed: Bengaluru is its location. |
 
-### Known issue
-
-Fails today: the search matches the posting's title only, and answers "Rows: 0"
-for a company or a location. The grid's Posting column is keyed on the title
-(`field: 'title'` in `apps/web/src/app/features/admin/jobs-sheet/jobs-grid.ts`)
-and draws the company and location with a cell renderer, which the grid's
-quick filter does not search. The automated test is marked as a known failure.
-
 ---
 
 ## TC-630 — Placement shows the funnel and the offers from the database

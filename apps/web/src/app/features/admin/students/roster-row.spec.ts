@@ -1,5 +1,5 @@
 import { composeBatchLabel } from '../../../core/batch-label';
-import { batchPickerLabel } from './roster-row';
+import { batchPickerLabel, secondSpecializationOptions, type BatchOption } from './roster-row';
 
 /**
  * The regression this pins actually shipped, in commit 48f7ca4: the Batch
@@ -67,5 +67,36 @@ describe('the roster Batch option', () => {
       batchLabel: '2024-26',
     };
     expect(label(odd, true, true)).toBe('2024-26 · Chain Batch');
+  });
+});
+
+/**
+ * The edit dialog's "Second specialization" (2026-09-23): the streams of the
+ * batch's course minus the batch's own, which is already the student's first
+ * — the same rule `dual_specialization.refusal` holds on the server.
+ */
+describe('secondSpecializationOptions', () => {
+  const specs = [
+    { id: 'fin', name: 'Finance', code: 'FIN', courseId: 'mba' },
+    { id: 'mkt', name: 'Marketing', code: 'MKT', courseId: 'mba' },
+    { id: 'ds', name: 'Data Science', code: 'DS', courseId: 'mca' },
+  ];
+  const courses = [
+    { id: 'mba', name: 'MBA', departmentId: 'mgmt' },
+    { id: 'mca', name: 'MCA', departmentId: 'cs' },
+  ];
+  const batch = (over: Partial<BatchOption>): BatchOption =>
+    ({ departmentId: 'mgmt', courseId: 'mba', specializationId: 'fin', ...over }) as BatchOption;
+
+  it('offers the other streams of the batch course, never the batch own', () => {
+    expect(secondSpecializationOptions(specs, courses, batch({}), '').map((s) => s.id)).toEqual(['mkt']);
+  });
+
+  it('falls back to the department when the batch names no course, or there is no batch', () => {
+    const ids = (b: BatchOption | null, dept: string) =>
+      secondSpecializationOptions(specs, courses, b, dept).map((s) => s.id);
+    expect(ids(batch({ courseId: null, specializationId: null }), '')).toEqual(['fin', 'mkt']);
+    expect(ids(null, 'cs')).toEqual(['ds']);
+    expect(ids(null, '')).toEqual([]);
   });
 });

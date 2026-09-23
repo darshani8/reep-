@@ -650,7 +650,11 @@ export class LoginComponent {
       const id = localStorage.getItem(REMEMBER_ID_KEY);
       if (!id) return;
       const portal = localStorage.getItem(REMEMBER_PORTAL_KEY) as Portal['key'] | null;
-      if (portal && PORTALS.some((p) => p.key === portal)) this.portal.set(portal);
+      // The Main Admin door is remembered too: `remember()` stores whatever
+      // `portal()` holds, and 'admin' is no card in PORTALS (see ADMIN_DOOR).
+      if (portal && (portal === ADMIN_DOOR.key || PORTALS.some((p) => p.key === portal))) {
+        this.portal.set(portal);
+      }
       this.form.patchValue({ id, remember: true });
     } catch {
       // Same as above.

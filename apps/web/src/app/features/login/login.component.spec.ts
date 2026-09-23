@@ -7,7 +7,7 @@ import { LoginComponent } from './login.component';
 
 /**
  * The sign-in card's own behaviour, without a server: the field messages
- * follow the fields.
+ * follow the fields, and "Remember me" brings back the door it was ticked at.
  */
 
 /** The capability probe, answering with the password door open. */
@@ -76,5 +76,39 @@ describe('Sign in · the field messages follow the fields', () => {
     expect(c.form.controls.password.value).toBe('');
     expect(c.pwErr()).toBe(false);
     expect(c.idErr()).toBe(false);
+  });
+});
+
+describe('Sign in · Remember me', () => {
+  const realFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    globalThis.fetch = probeFetch;
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+    localStorage.clear();
+  });
+
+  it('brings back the Main Admin door it was ticked at', async () => {
+    localStorage.setItem('reep.login.id', 'admin@bgscet.ac.in');
+    localStorage.setItem('reep.login.portal', 'admin');
+    const c = await create();
+    expect(c.portal()).toBe('admin');
+    expect(c.current().fieldLabel).toBe('Institutional email');
+    expect(c.form.controls.id.value).toBe('admin@bgscet.ac.in');
+    expect(c.form.controls.remember.value).toBe(true);
+  });
+
+  it('brings back a portal card, and ignores a value that names none', async () => {
+    localStorage.setItem('reep.login.id', 'mentor@bgscet.ac.in');
+    localStorage.setItem('reep.login.portal', 'mentor');
+    expect((await create()).portal()).toBe('mentor');
+
+    TestBed.resetTestingModule();
+    localStorage.setItem('reep.login.portal', 'director');
+    expect((await create()).portal()).toBe('student');
   });
 });

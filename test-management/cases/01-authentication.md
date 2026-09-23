@@ -387,7 +387,7 @@ after step 7, the browser keeps the ID and portal (the `reep.login.id` and
 | ID | TC-008 |
 | Module | Authentication: password sign-in |
 | Priority | P3 |
-| Type | Functional, positive (known bug) |
+| Type | Functional, positive |
 | Automated test | `tests/auth-sync.spec.ts`, title tagged `@TC-008` |
 
 ### Pre-conditions
@@ -421,7 +421,7 @@ after step 7, the browser keeps the ID and portal (the `reep.login.id` and
 |---|---|---|
 | ER-1 | 6 | The Main Admin is signed in and lands on `/admin`. |
 | ER-2 | 7 | The sign-in page opens with the email address already in the ID field and "Remember me" ticked. |
-| ER-3 | 7 | The Main Admin door is shown as pressed and the ID field is labelled "Institutional email", as it was when the Main Admin signed in. **Known bug:** the page opens on the Student portal instead, with the admin's address in a field labelled "Institutional email or USN". The sign-in page stores the `admin` portal but only restores one of the three portal cards (`restoreRemembered` in `login.component.ts`). |
+| ER-3 | 7 | The Main Admin door is shown as pressed and the ID field is labelled "Institutional email", as it was when the Main Admin signed in. |
 
 ### Post-conditions
 

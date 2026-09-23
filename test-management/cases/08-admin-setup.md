@@ -1700,10 +1700,6 @@ As TC-741's.
 
 As TC-741's.
 
-### Known defect
-
-At step 2 the message appears but the box keeps showing "Why?", so the screen contradicts itself until the page is reloaded; the stored question is unchanged (ER-3 holds). `refreshRows()` in `apps/web/src/app/features/admin/interview-questions/interview-questions.component.ts` bumps `rowGeneration`, which the template reads only inside the `@for`'s `track` expression (`interview-questions.component.html` line 493). A `@for` re-diffs only when its list changes, and `pageRows()` has not, so the row is never rebuilt. The same applies to an inline edit the server refuses. The automated test is marked as a known failure until this is fixed.
-
 ---
 
 ## TC-745 — Remove a question after confirming

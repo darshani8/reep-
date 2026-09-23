@@ -37,9 +37,9 @@ nothing seeded is disabled, removed or deleted:
   under Department of Management Studies, course Master of Business
   Administration, with a unique name, running from 1 Jul 2026 to 30 Jun 2028.
   Move the students a case names into it with the pencil on the roster (Batch).
-  Other test runs leave students, some of them removed from the roster, in the
-  seeded batch, and a batch action writes to every student seated in the
-  batch, so the cases about a whole batch use a batch of their own. When a
+  Other test runs leave students in the seeded batch, and a batch action
+  writes to every student on the roster in that batch, so the cases about a
+  whole batch use a batch of their own. When a
   case moves Test Student into it, move them back to "Master of Business
   Administration - Finance · 2024-26 Section B" afterwards, in semester 2 at
   stage Excel-Adv, then delete the empty batch ("Batch actions", "Remove this
@@ -499,7 +499,7 @@ the seeded batch, in semester 2 at stage Excel-Adv, and delete the empty batch
 | ID | TC-539 |
 | Module | Admin: students roster, batch actions |
 | Priority | P2 |
-| Type | Functional, negative (known defect) |
+| Type | Functional, negative |
 | Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-539` |
 
 ### Pre-conditions
@@ -533,15 +533,6 @@ the seeded batch, in semester 2 at stage Excel-Adv, and delete the empty batch
 | ER-1 | 3 | The dialog says "Every action here touches all 1 student in this batch — the filters above do not narrow it." |
 | ER-2 | 4 | The screen says "1 student: set to semester 3.", the one student the dialog counted. |
 | ER-3 | 5 | The removed student is listed and is still in semester 1: a student off the roster is not moved by an action whose dialog did not count them. |
-
-### Known defect
-
-The action writes to every student seated in the batch, including removed
-ones, and counts them: the screen says "2 students: set to semester 3." under a
-dialog that said "all 1 student", and the removed student's Sem column reads 3.
-The API selects the batch's students without leaving out removed accounts
-(`apps/api-py/app/routers/admin_students.py`, the batch action, around line
-636), while the dialog counts the roster, which does.
 
 ### Post-conditions
 

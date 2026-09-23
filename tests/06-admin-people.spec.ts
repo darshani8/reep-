@@ -1114,10 +1114,6 @@ test.describe('Admin: people and access', () => {
     page,
     signIn,
   }) => {
-    test.fail(
-      true,
-      'BUG: a batch action also writes to students REMOVED from the roster and counts them, while its dialog counts only the roster',
-    );
     await signIn('admin');
     const api = page.request;
     const ids = await seeded(api);
@@ -1166,15 +1162,9 @@ test.describe('Admin: people and access', () => {
         await action.getByRole('combobox', { name: 'Set semester' }).selectOption({ label: '3' });
         await action.getByRole('button', { name: 'Set', exact: true }).click();
         await expect(
-          notice(page, ': set to semester 3.'),
-          'TC-539 (arrange): the action finished',
+          notice(page, '1 student: set to semester 3.'),
+          'TC-539 ER-2: the screen reports the one student the dialog counted',
         ).toBeVisible();
-        await expect
-          .soft(
-            notice(page, '1 student: set to semester 3.'),
-            'TC-539 ER-2: the screen reports the one student the dialog counted',
-          )
-          .toBeVisible();
       });
 
       await test.step('5. Under "Status", choose "Removed · off the roster, record kept"', async () => {

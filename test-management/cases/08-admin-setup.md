@@ -1224,15 +1224,9 @@ Remove both programmes' stage rules on the Stage rules tab, and remove both cert
 | ER-5 | 5 | The interview is not listed. The list holds exactly the Digital Marketing interviews noted before the step, or reads "No interview matches these filters." when there are none. |
 | ER-6 | 6 | The HR interview is listed again. |
 
-Wait for the list to change after each step before choosing the next filter (see "Known defect").
-
 ### Post-conditions
 
 The interview stays on the student's record until the retention sweep removes it (180 days by default). It used one of the student's 20 attempts for the day.
-
-### Known defect
-
-The screen shows whichever list answers LAST, not the one for the filters now chosen. Changing two filters in quick succession (Status to "All", then at once Track to "Digital Marketing") left the grid and the tiles showing all 13 interviews under a Track filter reading "Digital Marketing", in one automated run of this case: the slower "All" answer arrived after the "Digital Marketing" one and replaced it. `reload()` → `loadRecords()` and `loadSummary()` in `apps/web/src/app/features/admin/interviews/interviews.component.ts` write every answer into `records` and `kpis` without checking that it belongs to the filters still in force. The automated test waits for each list before the next change, as a person watching the screen would, so it does not trip on this.
 
 ---
 

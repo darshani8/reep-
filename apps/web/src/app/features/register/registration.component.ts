@@ -38,6 +38,12 @@
  * batch under one of them still fits, and a batch under a specialization
  * that is then unticked is cleared. The decisions are in
  * `core/specializations.ts`, with a spec.
+ *
+ * THE BATCH BOX IS THE YEAR AND NOTHING ELSE (2026-09-23). It listed each
+ * batch with its course and specialization composed on, repeating the two
+ * boxes above it and drawing one year twice for a dual specialization. It
+ * offers each year once now, and the year is resolved to the batch of the
+ * ticked specialization when the form is sent (`batch-years.ts`, with a spec).
  */
 
 import { Component, computed, signal } from '@angular/core';
@@ -47,6 +53,7 @@ import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../environments/environment';
 import { MAX_SPECIALIZATIONS_FALLBACK, specializationLabel, togglePick } from '../../core/specializations';
+import { batchForYear, batchYear, yearOptions } from './batch-years';
 
 type DegreeLevel = 'UG' | 'PG';
 
@@ -71,10 +78,9 @@ function fileIsOneOf(file: File, types: ReadonlySet<string>, extensions: readonl
 interface HierSpec { id: string; code: string; name: string }
 interface HierCourse { id: string; code: string; name: string; specializations: HierSpec[] }
 interface HierBatch {
-  // `name` is the batch itself: a YEAR. `display_label` is that with its spine
-  // composed back on from the links ("General MBA - Finance · 2026-28"), which
-  // is the only form an applicant can pick from — every batch a department
-  // runs this year is called "2026-28".
+  // `name` is the batch itself: a YEAR, and the year is all this form shows
+  // (`batch-years.ts`). `display_label` carries the spine for the console's
+  // screens and is not drawn here.
   id: string; code: string; name: string; batch_label: string; display_label: string;
   department_id: string | null; course_id: string | null; specialization_id: string | null;
   course_name: string | null; specialization_name: string | null;
@@ -168,7 +174,9 @@ export class RegistrationComponent {
   /// The ticked specializations, in the order ticked — one, or two for a dual
   /// specialization. Sent as `specialization_ids`.
   readonly specializationIds = signal<string[]>([]);
-  readonly batchId = signal('');
+  /// The YEAR picked in the Batch box ("2026-28"). The batch it means is
+  /// `batchId`, resolved from the ticked specializations.
+  readonly batchYearPick = signal('');
 
   readonly college = computed(() => (this.hier()?.colleges ?? []).find((c) => c.id === this.collegeId()) ?? null);
   readonly departments = computed(() => this.college()?.departments ?? []);
@@ -193,6 +201,13 @@ export class RegistrationComponent {
     if (picks.length) list = list.filter((b) => !b.specialization_id || picks.includes(b.specialization_id));
     return [...list].sort((a, z) => Number(z.current) - Number(a.current));
   });
+  /// The Batch box: each year once.
+  readonly years = computed(() => yearOptions(this.batches()));
+  /// The batch the picked year means for what is ticked; '' when none, or
+  /// when two streams run that year and nothing ticked says which.
+  readonly batchId = computed(
+    () => batchForYear(this.batches(), this.batchYearPick(), this.specializationIds())?.id ?? '',
+  );
   readonly required = computed(() => new Set((this.hier()?.levels ?? []).filter((l) => l.required).map((l) => l.key)));
   readonly hierarchyOk = computed(() => {
     const req = this.required();
@@ -213,20 +228,20 @@ export class RegistrationComponent {
     this.departmentId.set('');
     this.courseId.set('');
     this.specializationIds.set([]);
-    this.batchId.set('');
+    this.batchYearPick.set('');
   }
 
   setDepartment(id: string): void {
     this.departmentId.set(id);
     this.courseId.set('');
     this.specializationIds.set([]);
-    this.batchId.set('');
+    this.batchYearPick.set('');
   }
 
   setCourse(id: string): void {
     this.courseId.set(id);
     this.specializationIds.set([]);
-    this.batchId.set('');
+    this.batchYearPick.set('');
   }
 
   isPicked(id: string): boolean {
@@ -239,15 +254,16 @@ export class RegistrationComponent {
   /// longer fits — it hangs on a specialization that was just unticked.
   toggleSpecialization(id: string, checked: boolean): void {
     this.specializationIds.set(togglePick(this.specializationIds(), id, checked, this.maxSpecializations()));
-    if (this.batchId() && !this.batches().some((b) => b.id === this.batchId())) this.batchId.set('');
+    if (this.batchYearPick() && !this.years().some((y) => y.year === this.batchYearPick())) this.batchYearPick.set('');
   }
 
-  /// A batch pins what it knows: its course and specialization fill the
-  /// pickers above if they were left blank, and its degree level sets the
-  /// degree field - the API derives the same ancestors, so the two agree.
-  setBatch(id: string): void {
-    this.batchId.set(id);
-    const b = this.batches().find((x) => x.id === id);
+  /// A year is picked; the batch it means pins what it knows: its course and
+  /// specialization fill the pickers above if they were left blank, and its
+  /// degree level sets the degree field - the API derives the same
+  /// ancestors, so the two agree.
+  setBatchYear(year: string): void {
+    this.batchYearPick.set(year);
+    const b = this.batches().find((x) => x.id === this.batchId());
     if (!b) return;
     if (b.course_id && !this.courseId()) this.courseId.set(b.course_id);
     if (b.specialization_id && !this.isPicked(b.specialization_id)) {
@@ -314,7 +330,10 @@ export class RegistrationComponent {
     if (!this.departmentId()) out.push('your department');
     if (!this.courseId() && this.courses().length) out.push('your course');
     if (this.required().has('specialization') && !this.specializationIds().length) out.push('your specialization');
-    if (!this.batchId() && this.batches().length) out.push('your batch');
+    if (!this.batchYearPick() && this.batches().length) out.push('your batch');
+    else if (this.batchYearPick() && !this.batchId()) {
+      out.push(`your specialization, so we can find your ${this.batchYearPick()} batch`);
+    }
     if (!this.photoFile()) out.push('your photo (PNG or JPG)');
     return out;
   }
@@ -330,6 +349,19 @@ export class RegistrationComponent {
 
   /// "Finance and Marketing" on the result card's chain line, or one name, or
   /// null — the same sentence the reviewer's panel prints.
+  /// The batch on the result card: its year, like the box it was picked from.
+  readonly resultBatch = computed(() => {
+    const r = this.result();
+    if (!r?.requested_cohort_id) return null;
+    for (const college of this.hier()?.colleges ?? []) {
+      for (const dept of college.departments) {
+        const b = dept.batches.find((x) => x.id === r.requested_cohort_id);
+        if (b) return batchYear(b);
+      }
+    }
+    return r.requested_batch;
+  });
+
   readonly resultSpecialization = computed(() => {
     const r = this.result();
     return r ? specializationLabel(r.specialization_name, r.second_specialization_name) : null;

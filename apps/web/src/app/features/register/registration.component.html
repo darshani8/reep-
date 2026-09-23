@@ -46,7 +46,7 @@
       @if (r.college_name || r.department_name) {
         <p class="reg-chain">
           <span class="icon" aria-hidden="true">school</span>
-          {{ r.college_name }}@if (r.department_name) { · {{ r.department_name }} }@if (r.course_name) { · {{ r.course_name }} }@if (resultSpecialization(); as spec) { · {{ spec }} }@if (r.requested_batch) { · Batch {{ r.requested_batch }} }
+          {{ r.college_name }}@if (r.department_name) { · {{ r.department_name }} }@if (r.course_name) { · {{ r.course_name }} }@if (resultSpecialization(); as spec) { · {{ spec }} }@if (resultBatch(); as year) { · Batch {{ year }} }
         </p>
       }
 
@@ -186,10 +186,13 @@
           </fieldset>
           <div class="field">
             <label for="reg-batch">Batch @if (batches().length) { <span class="req">*</span> }</label>
-            <select id="reg-batch" name="batch" [value]="batchId()" [disabled]="!departmentId() || !batches().length" [required]="batches().length > 0" (change)="setBatch($any($event.target).value)">
+            <!-- The YEAR and nothing else (2026-09-23): the course and the
+                 specialization are the two boxes above. `batchId()` turns
+                 the year back into a batch from the ticks. -->
+            <select id="reg-batch" name="batch" [value]="batchYearPick()" [disabled]="!departmentId() || !batches().length" [required]="batches().length > 0" (change)="setBatchYear($any($event.target).value)">
               <option value="">{{ !departmentId() ? 'Choose a department first' : (batches().length ? 'Choose your batch' : 'No batches listed') }}</option>
-              @for (b of batches(); track b.id) {
-                <option [value]="b.id">{{ b.display_label }}{{ b.current ? '' : ' (ended)' }}</option>
+              @for (y of years(); track y.year) {
+                <option [value]="y.year" [selected]="y.year === batchYearPick()">{{ y.year }}</option>
               }
             </select>
           </div>

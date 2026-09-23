@@ -85,7 +85,7 @@ What these cases rely on, in addition to the index's setup:
 |---|---|---|
 | ER-1 | 1 | The page is headed "Student registration", with the line "Every box marked * is required — everything except Specialization — and so are your CV and your photo." Full name, USN, College email, Personal email, Phone, LinkedIn profile, College, Department and Degree level are each marked *. Degree level shows "Post Graduate (PG)". The Department list is disabled and reads "Choose a college first", the Course list reads "Choose a department first", and under Specialization it says "Choose a course first". |
 | ER-2 | 2 | The College list offers "BGS College of Engineering and Technology". Once it is chosen, the Department list is enabled and offers "Department of Management Studies". |
-| ER-3 | 3 | The Course list is enabled, is now marked * ("Course *") and offers "MBA · Master of Business Administration". The Batch list is marked * ("Batch *") and offers "Master of Business Administration - Finance · 2024-26 Section B (ended)". |
+| ER-3 | 3 | The Course list is enabled, is now marked * ("Course *") and offers "MBA · Master of Business Administration". The Batch list is marked * ("Batch *") and offers "2024-26". |
 | ER-4 | 4 | Under Specialization, which has no *, the form says "Tick one, or 2 if you opted for a dual specialization." and shows one tick box, "Finance", not ticked. |
 
 ---
@@ -378,7 +378,7 @@ TC-111.
 | LinkedIn profile | `linkedin.com/in/e2e-<run>-auto` |
 | College, department, course | BGS College of Engineering and Technology, Department of Management Studies, MBA · Master of Business Administration |
 | Specialization | Finance |
-| Batch | Master of Business Administration - Finance · 2024-26 Section B (ended) |
+| Batch | 2024-26 |
 | Degree level | Post Graduate (PG), the default |
 
 ### Steps
@@ -387,7 +387,7 @@ TC-111.
 2. Attach `sample.pdf` as the CV and `sample.png` as the photo.
 3. Fill in Full name, USN, College email, Personal email, Phone and LinkedIn profile with the test data.
 4. Choose the college "BGS College of Engineering and Technology", the department "Department of Management Studies" and the course "MBA · Master of Business Administration".
-5. Tick "Finance" and choose the batch "Master of Business Administration - Finance · 2024-26 Section B (ended)".
+5. Tick "Finance" and choose the batch "2024-26".
 6. Click Submit registration.
 7. Sign in as the Main Admin and open `/admin/registrations`.
 8. Click the Auto-approved tab.
@@ -397,7 +397,7 @@ TC-111.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 6 | The result card reads: "A seating rule approved your application. Auto-approved by rule 'MBA 2024-26 auto-admit'. We have emailed `<college email>` a setup link. Open it, confirm the address with the code we send you, and choose a password — approval created your account but no password, and that link is how you get one." |
-| ER-2 | 6 | The card names "BGS College of Engineering and Technology · Department of Management Studies · Master of Business Administration · Finance · Batch Master of Business Administration - Finance · 2024-26 Section B". |
+| ER-2 | 6 | The card names "BGS College of Engineering and Technology · Department of Management Studies · Master of Business Administration · Finance · Batch 2024-26". |
 | ER-3 | 6 | **Manual only.** An email with the subject "Your REEP account is approved - set it up" goes to the college email. It holds a link to `/onboard?token=…` that expires in 7 days. Without a mail transport, the API console logs `MAIL (no transport configured) to=<college email> subject='Your REEP account is approved - set it up'`. |
 | ER-4 | 8 | The Auto-approved tab lists the application, with the applicant's name, college email and USN. |
 
@@ -450,7 +450,7 @@ application stays on the Auto-approved tab.
 1. Open the registration page at `/register`.
 2. Attach `sample.pdf` as the CV and `sample.jpg` as the photo.
 3. Fill in Full name, USN, College email, Personal email, Phone and LinkedIn profile with the test data.
-4. Choose the college "BGS College of Engineering and Technology", the department "Department of Management Studies", the course "MBA · Master of Business Administration" and the batch "Master of Business Administration - Finance · 2024-26 Section B (ended)".
+4. Choose the college "BGS College of Engineering and Technology", the department "Department of Management Studies", the course "MBA · Master of Business Administration" and the batch "2024-26".
 5. Click Submit registration.
 6. Sign in as the Main Admin, open `/admin/registrations` and type `e2e-m02-fixture@bgscet.ac.in` in the quick filter.
 
@@ -506,7 +506,7 @@ application is left behind. Its next run puts it back in the queue.
 1. Open the registration page at `/register`.
 2. Attach `not-a-pdf.pdf` as the CV and `sample.png` as the photo.
 3. Fill in Full name, USN, College email, Personal email, Phone and LinkedIn profile with the test data.
-4. Choose the college "BGS College of Engineering and Technology", the department "Department of Management Studies", the course "MBA · Master of Business Administration" and the batch "Master of Business Administration - Finance · 2024-26 Section B (ended)".
+4. Choose the college "BGS College of Engineering and Technology", the department "Department of Management Studies", the course "MBA · Master of Business Administration" and the batch "2024-26".
 5. Click Submit registration.
 6. Attach `sample.pdf` as the CV instead.
 7. Click Submit registration again.
@@ -567,7 +567,7 @@ run rejects it afterwards.
 1. Open the registration page at `/register`.
 2. Attach `sample.pdf` as the CV and `sample.jpg` as the photo.
 3. Fill in Full name, USN, College email, Personal email, Phone and LinkedIn profile with the test data.
-4. Choose the college "BGS College of Engineering and Technology", the department "Department of Management Studies", the course "MBA · Master of Business Administration" and the batch "Master of Business Administration - Finance · 2024-26 Section B (ended)".
+4. Choose the college "BGS College of Engineering and Technology", the department "Department of Management Studies", the course "MBA · Master of Business Administration" and the batch "2024-26".
 5. Click Submit registration.
 6. Sign in as the Main Admin, open `/admin/registrations` and type `e2e-m02-reapply@bgscet.ac.in` in the quick filter.
 7. Click the applicant's row.
@@ -680,7 +680,7 @@ The fixture application:
 |---|---|---|
 | ER-1 | 2 | One row is left: E2E Fixture Applicant, `e2e-m02-fixture@bgscet.ac.in`, USN "E2EM02FIX", email domain "bgscet.ac.in". The status bar reads "Rows: 1". |
 | ER-2 | 3 | The panel shows Batch "PG · no batch yet", Specialization "E2E Analytics and E2E Finance", College "E2E Registration College", Department "E2E Dual Department", USN "E2EM02FIX", Phone "+91 90000 00002", Personal email "e2e-m02-fixture@example.org", LinkedIn "https://www.linkedin.com/in/e2e-m02-fixture" (the form's short link, stored in full) and Documents "CV + photo". |
-| ER-3 | 3 | Under Checks: "Routed by rule 'College domain — route to review'", "bgscet.ac.in is a college domain", "No account on this address", "USN E2EM02FIX is free", "CV and photo attached", "Opted for a dual specialization" with the detail "They ticked E2E Analytics and E2E Finance. A batch hangs on one specialization at most, so Approve seats them by the batch; both choices stay on this application.", "No batch on this application", "CV attached" and "Photo attached". There is no warning that Approve will refuse the application. |
+| ER-3 | 3 | Under Checks: "Routed by rule 'College domain — route to review'", "bgscet.ac.in is a college domain", "No account on this address", "USN E2EM02FIX is free", "CV and photo attached", "Opted for a dual specialization" with the detail "They ticked E2E Analytics and E2E Finance. A batch hangs on one specialization at most, so Approve seats them by the batch and keeps the other as their second specialization.", "No batch on this application", "CV attached" and "Photo attached". There is no warning that Approve will refuse the application. |
 | ER-4 | 4 | The browser downloads `sample.pdf`, byte for byte the file the applicant attached. |
 | ER-5 | 5 | The browser downloads `sample.png`, byte for byte the file the applicant attached. |
 

@@ -1133,7 +1133,7 @@ or enable the new faculty member.
 | ID | TC-523 |
 | Module | Admin: faculty, disable; the sign-in page |
 | Priority | P2 |
-| Type | Functional, negative (known defect) |
+| Type | Functional, negative |
 | Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-523` |
 
 ### Pre-conditions
@@ -1162,14 +1162,6 @@ or enable the new faculty member.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 4 | The page says "This account has been disabled. Contact the placement office.", which is what the server answers. |
-
-### Known defect
-
-Today the page says "Password sign-in is switched off on this server, so this
-form cannot work. Use Continue with Google." The sign-in page gives that one
-sentence for every refusal with the status 403, and throws away the server's
-own reason. A disabled faculty member is sent to Google sign-in, which refuses
-a disabled account too.
 
 ### Post-conditions
 

@@ -292,6 +292,17 @@ def password_door_open(db: Session) -> bool:
         return False
     return password_keys_exist(db)
 
+
+#: The header /login's shut-door 403 carries, so the login screen can tell it
+#: from the OTHER 403 this endpoint gives — the right password for an account
+#: the office has disabled or removed (`refuse_disabled_sign_in`) — without
+#: parsing English out of `detail`. The two want opposite advice: a shut door
+#: is "use Google", and a disabled account is refused by Google too, so the
+#: screen shows that one the server's own sentence. `X-Reep-Feature-Disabled`'s
+#: idiom (app/governance.py): the body stays human, the machine reads a header.
+PASSWORD_DOOR_HEADER: Final[str] = "X-Reep-Password-Door"
+PASSWORD_DOOR_CLOSED: Final[str] = "closed"
+
 # Where a signed-in user lands when the flow carries no `?next=`. Mirrors
 # HOME_FOR_ROLE in apps/web/src/app/core/session.ts (the SPA's `''` route now
 # routes by role too, via homeRedirectGuard) â keep the two maps in step.
@@ -791,6 +802,7 @@ def login(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Password sign-in is disabled. Use Continue with Google.",
+            headers={PASSWORD_DOOR_HEADER: PASSWORD_DOOR_CLOSED},
         )
 
     email = body.email.strip().lower()

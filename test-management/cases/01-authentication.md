@@ -1421,7 +1421,7 @@ row, off every list.
 
 | Field | Value |
 |---|---|
-| Unknown link token | `not-a-real-link-token-0123456789abcdef` (16 or more characters, issued by nobody) |
+| Unknown link token | `not-a-real-link-token-0123456789abcdef` (issued by nobody) |
 | Short password | `short`, repeated as `shorter` |
 | Valid password | `a-valid-password-e2e` |
 

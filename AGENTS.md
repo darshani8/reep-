@@ -1251,9 +1251,12 @@ pinned without a database; a fresh account is on it through its sign-in streak
 alone, which `test_board_values_leave_out_a_student_with_nothing_recorded` now
 says out loud. Certificates are not a component: the skills board already ranks
 what a certificate was verified into. The cache key is `(scope kind, scope id,
-board)` and a visibility change clears the whole cache rather than guessing
-which scopes a student is in. The badge boards on Skilling
-(`routers/badges.py`) were not touched.
+board)`, and a visibility change, or the office removing, restoring or deleting
+an account with a `students` row, clears the whole cache
+(`clear_leaderboard_cache`) rather than guessing which scopes a student is in.
+A REMOVED account (`users.deleted_at`) is on no board, the badge boards on
+Skilling (`routers/badges.py`) included; those keep their own programme-wide
+scope and were otherwise not touched.
 
 **Staff read these through rule 2's gate**, in `app/routers/mentee_records.py`:
 `GET /api/mentor/students/{id}/ledger`, `.../ledger/summary` and

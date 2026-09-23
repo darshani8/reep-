@@ -40,6 +40,7 @@
 import { Component, computed, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
+import { failedReadMessage } from '../../../core/feature-refusal';
 import {
   LeaderboardScope,
   emptyBoardSentence,
@@ -220,7 +221,14 @@ export class LeaderboardsComponent {
     return `Keep going — ${ahead} ${ahead === 1 ? 'peer is' : 'peers are'} ahead. Every record you add climbs the board.`;
   }
 
+  /** Bumped by every read. Tabs can be pressed faster than boards answer,
+   *  and the answers arrive in any order: only the board asked for last is
+   *  drawn, or a quick Skills-then-Streak could end on Skills' rows under the
+   *  Streak tab. */
+  private loadSeq = 0;
+
   private async load(): Promise<void> {
+    const seq = ++this.loadSeq;
     this.loading.set(true);
     this.error.set(null);
     try {
@@ -229,11 +237,14 @@ export class LeaderboardsComponent {
         { credentials: 'include' },
       );
       if (!res.ok) {
-        this.error.set('Could not load the leaderboard.');
+        const message = await failedReadMessage(res, 'Could not load the leaderboard.');
+        if (seq !== this.loadSeq) return;
+        this.error.set(message);
         this.clear();
         return;
       }
       const body = (await res.json()) as LeaderboardResponse;
+      if (seq !== this.loadSeq) return;
       this.optedOut.set(body.opted_out);
       this.scope.set(body.scope ?? 'batch');
       this.scopeLabel.set(body.scope_label ?? null);
@@ -243,10 +254,11 @@ export class LeaderboardsComponent {
       this.unranked.set(body.unranked ?? []);
       this.unrankedTotal.set(body.unranked_total ?? 0);
     } catch {
+      if (seq !== this.loadSeq) return;
       this.error.set('Could not reach the server.');
       this.clear();
     } finally {
-      this.loading.set(false);
+      if (seq === this.loadSeq) this.loading.set(false);
     }
   }
 

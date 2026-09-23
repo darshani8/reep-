@@ -19,6 +19,7 @@
 import { Component, computed, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
+import { featureRefusal } from '../../../core/feature-refusal';
 
 /**
  * One SWOC line, as /student/overview returns it — B7.5.
@@ -114,6 +115,9 @@ function when(iso: string): string {
 export class MentorLogComponent {
   readonly state = signal<'loading' | 'data' | 'error'>('loading');
   readonly data = signal<MentorLog | null>(null);
+  /** The office's message when this screen is switched off for the student;
+   *  null for every other failure, which keeps the screen's own line. */
+  readonly refusal = signal<string | null>(null);
 
   /** The request form is a DISCLOSURE, not a route. Asking for a 1:1 is three
    *  words and a send; a page transition for it loses the log the student is
@@ -269,11 +273,16 @@ export class MentorLogComponent {
 
   async load(): Promise<void> {
     this.state.set('loading');
+    this.refusal.set(null);
     try {
       const res = await fetch(`${environment.apiBase}/student/mentor-meetings`, {
         credentials: 'include',
       });
-      if (!res.ok) throw new Error(String(res.status));
+      if (!res.ok) {
+        this.refusal.set(await featureRefusal(res));
+        this.state.set('error');
+        return;
+      }
       this.data.set((await res.json()) as MentorLog);
       this.state.set('data');
     } catch {

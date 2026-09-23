@@ -491,14 +491,15 @@ None beyond the seeded student.
 | Type | Functional, regression |
 | Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-221` |
 
-A known defect sits next to this case: each click loads its day, and the
-screen shows whichever load finishes last (`load()` in
-`apps/web/src/app/features/student/ledger/ledger.component.ts` has no guard
-against an older answer). A click made while an earlier day is still loading
-can therefore end on that earlier day: click Next day twice quickly from the
-day before yesterday, let yesterday's answer arrive after today's, and the
-screen settles on yesterday with Next day enabled. The steps below wait for
-each day, as a person does, so they pass. The defect is reported, not tested.
+Each click loads its day, and the screen draws only the day clicked last,
+whatever order the loads finish in: click Next day twice quickly from the
+day before yesterday and the screen settles on today, with Next day
+disabled, even when yesterday's answer arrives after today's. The same holds
+for the buttons that write: Submit day submits the day it was pressed on, and
+a step taken while it is still saving leaves that day a saved draft and
+submits nothing. The steps below wait for each day, as a person does; the
+answers arriving out of order are covered by the unit tests in
+`apps/web/src/app/features/student/ledger/ledger.component.spec.ts`.
 
 ### Pre-conditions
 
@@ -777,11 +778,6 @@ None beyond the seeded student.
 | Priority | P2 |
 | Type | Functional, positive |
 | Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-227` |
-
-A known defect: the design (`docs/design-v3-student-app/HANDOFF.md`, "Time
-Sheet") places a "Copy yesterday" button beside Submit day, and the API
-offers `POST /api/student/ledger/copy-yesterday`, but the screen has no such
-button. The automated test is marked as an expected failure until it does.
 
 ### Pre-conditions
 
@@ -1091,8 +1087,7 @@ None beyond the seeded student.
 ### Post-conditions
 
 The batch mate stays seated in the batch. The automated test removes them
-as the Main Admin, with a reason, when it ends. Because of the defect in
-TC-253, a removed batch mate is still listed on this card.
+as the Main Admin, with a reason, when it ends.
 
 ---
 
@@ -1105,12 +1100,6 @@ TC-253, a removed batch mate is still listed on this card.
 | Priority | P2 |
 | Type | Functional, negative |
 | Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-253` |
-
-A known defect: removing a student answers "… is off every screen and
-cannot sign in", but the leaderboard's roster query
-(`_ranked_board` in `apps/api-py/app/routers/student.py`) does not leave out
-removed accounts, so classmates still see the name. The automated test is
-marked as an expected failure until it does.
 
 ### Pre-conditions
 

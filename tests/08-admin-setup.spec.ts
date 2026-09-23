@@ -1349,11 +1349,6 @@ test.describe('Admin: college setup and interviews', () => {
     page,
     signIn,
   }) => {
-    test.fail(
-      true,
-      'BUG: /admin/setup?college=<id> loads the college but its picker shows "— New college —" ' +
-        '([value] is bound on the <select> before its options exist, college-setup.component.html:51-58)',
-    );
     await signIn('admin');
     const spine = await createSpine(page, { name: `E2E Picker College ${RUN}` });
     const card = collegeCard(page, spine.collegeName);

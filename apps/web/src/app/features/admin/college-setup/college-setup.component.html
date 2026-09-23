@@ -48,16 +48,20 @@
         @if (colleges().length) {
           <div class="field">
             <label for="setup-existing">Continue a college that is already here</label>
+            <!-- The choice is on the options, not a [value] on the select:
+                 opened with ?college=, the list and the pick arrive in the same
+                 pass, and a value set before its option exists is dropped. -->
             <select
               id="setup-existing"
               class="ctrl"
-              [value]="pickedCollegeId()"
               (change)="pickCollege($any($event.target).value)"
               [disabled]="loadingExisting()"
             >
-              <option value="">— New college —</option>
+              <option value="" [selected]="!pickedCollegeId()">— New college —</option>
               @for (c of colleges(); track c.id) {
-                <option [value]="c.id">{{ c.code }} · {{ c.name }}</option>
+                <option [value]="c.id" [selected]="c.id === pickedCollegeId()">
+                  {{ c.code }} · {{ c.name }}
+                </option>
               }
             </select>
           </div>

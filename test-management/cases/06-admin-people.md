@@ -537,9 +537,11 @@ the seeded batch, in semester 2 at stage Excel-Adv, and delete the empty batch
 ### Post-conditions
 
 Test Student's Sem column reads 3. Put them back in the seeded batch, in
-semester 2 at stage Excel-Adv, move the removed student out of the batch and
-delete the empty batch (see the top of this file). The removed student stays on
-the Removed list. The automated test does this through the API.
+semester 2 at stage Excel-Adv. A removed student cannot be edited or moved by a
+batch action, so restore the removed student (TC-515, steps 7 to 9), take them
+out of the batch with the pencil and remove them again, then delete the empty
+batch (see the top of this file). The removed student stays on the Removed
+list. The automated test does this through the API.
 
 ---
 

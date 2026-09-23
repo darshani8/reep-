@@ -313,6 +313,13 @@ def test_a_batch_action_leaves_a_removed_student_exactly_as_they_were(client, ma
     assert moved[live]["current_semester"] == 3 and moved[live]["current_stage"] == "ELEVATE"
     assert moved[live]["mentor_user_id"] == faculty.user_id
 
+    # The roster reads empty now and the batch is not: the removed student is
+    # still seated in it, and the refusal says where they are.
+    assert client.get(f"{API}?cohort_id={a}", headers=h).json() == []
+    refused = client.delete(f"/api/admin/cohorts/{a}", headers=h)
+    assert refused.status_code == 409
+    assert "1 of them is on the Removed list" in refused.json()["detail"]
+
     # Still on the batch's Removed list, and Restore brings them back as left.
     assert [x["student_id"] for x in client.get(f"{API}?cohort_id={a}&removed=true", headers=h).json()] == [gone]
     assert client.post(f"/api/admin/students/{gone}/restore", headers=h).status_code == 200

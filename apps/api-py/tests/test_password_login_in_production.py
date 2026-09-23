@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
@@ -229,6 +230,24 @@ def test_the_shut_door_says_so_in_a_header_and_a_disabled_account_does_not(
     )
     assert shut.status_code == 403, shut.text
     assert shut.headers.get(auth_router.PASSWORD_DOOR_HEADER) == auth_router.PASSWORD_DOOR_CLOSED
+
+
+def test_the_login_screen_reads_the_door_header_the_api_sends() -> None:
+    """The header above is half a contract, and the other half is a literal.
+
+    `passwordErrorFor` in the login component spells the header and its value
+    out, and its spec builds the refusal with its own copy of both, so a rename
+    on either side passes every test on that side. It would not fail loudly:
+    a renamed header makes the shut door print the API's terser sentence, and
+    a renamed value makes it print `detail` for the door. So the client file
+    is read here, against the constants the API sends.
+    """
+    login = (
+        Path(__file__).resolve().parents[3]
+        / "apps" / "web" / "src" / "app" / "features" / "login" / "login.component.ts"
+    ).read_text(encoding="utf-8")
+    assert f"headers.get('{auth_router.PASSWORD_DOOR_HEADER}')" in login
+    assert f"=== '{auth_router.PASSWORD_DOOR_CLOSED}'" in login
 
 
 @requires_db

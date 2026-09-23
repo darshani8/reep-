@@ -204,13 +204,18 @@ export function passwordErrorFor(err: unknown): string {
  * What a refused one-time code should say. 401 is the only refusal the server
  * gives for a wrong, expired, replayed or misdirected code (one message, on
  * purpose — see login_with_code in app/routers/auth.py); 429 carries its own
- * words, which name Google because that door is not gated by the counter.
+ * words, which name Google because that door is not gated by the counter; and
+ * 403 is a right code for an account the office disabled after the code was
+ * sent (`refuse_disabled_sign_in`), which the server's sentence says.
  */
-function codeErrorFor(err: unknown): string {
+export function codeErrorFor(err: unknown): string {
   const e = err as { status?: number; error?: { detail?: unknown } } | null;
   switch (e?.status) {
     case 401:
       return 'That code is wrong or has expired.';
+    case 403:
+      if (typeof e?.error?.detail === 'string') return e.error.detail;
+      break;
     case 429:
       return typeof e?.error?.detail === 'string'
         ? e.error.detail
@@ -218,9 +223,8 @@ function codeErrorFor(err: unknown): string {
     case 0:
     case undefined:
       return 'Could not reach the server. Check your connection and try again.';
-    default:
-      return `Sign-in failed (error ${e?.status}). Try again, and quote that number if you need to report it.`;
   }
+  return `Sign-in failed (error ${e?.status}). Try again, and quote that number if you need to report it.`;
 }
 
 /**
@@ -383,7 +387,9 @@ export class LoginComponent {
   private readonly attempted = signal(false);
 
   readonly form = this.fb.nonNullable.group({
-    id: ['', [Validators.required]],
+    // `required` passes an ID of spaces, which `idErr` reads as empty and
+    // `resolveEmail` would post as "@<domain>": one rule, not two.
+    id: ['', [Validators.required, Validators.pattern(/\S/)]],
     password: ['', [Validators.required]],
     remember: [false],
   });

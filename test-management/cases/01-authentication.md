@@ -294,7 +294,7 @@ None.
 | ID | TC-006 |
 | Module | Authentication: sign-in page |
 | Priority | P3 |
-| Type | Functional, UI (known bug) |
+| Type | Functional, UI |
 | Automated test | `tests/auth-sync.spec.ts`, title tagged `@TC-006` |
 
 ### Pre-conditions
@@ -320,7 +320,7 @@ None.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 2 | The password is masked. |
-| ER-2 | 3 | The password is shown as readable text, and the button is now named "Hide password" and shown as pressed. **Known bug:** while the caret is still in the "Password" field, the field is drawn on top of the eye button, so the click lands in the field and nothing is revealed. The global `*:focus-visible { z-index: 1 }` rule (`apps/web/src/styles/reep-theme.scss`) lifts the focused field, a flex item, above the absolutely placed button (`.field__eye` in `login.component.scss`). Clicking elsewhere first, or using the keyboard (TC-041), works. |
+| ER-2 | 3 | The password is shown as readable text, and the button is now named "Hide password" and shown as pressed. |
 | ER-3 | 4 | The password is masked again, and the button is named "Show password" and no longer pressed. The typed value is unchanged. |
 
 ---
@@ -387,7 +387,7 @@ after step 7, the browser keeps the ID and portal (the `reep.login.id` and
 | ID | TC-008 |
 | Module | Authentication: password sign-in |
 | Priority | P3 |
-| Type | Functional, positive (known bug) |
+| Type | Functional, positive |
 | Automated test | `tests/auth-sync.spec.ts`, title tagged `@TC-008` |
 
 ### Pre-conditions
@@ -421,7 +421,7 @@ after step 7, the browser keeps the ID and portal (the `reep.login.id` and
 |---|---|---|
 | ER-1 | 6 | The Main Admin is signed in and lands on `/admin`. |
 | ER-2 | 7 | The sign-in page opens with the email address already in the ID field and "Remember me" ticked. |
-| ER-3 | 7 | The Main Admin door is shown as pressed and the ID field is labelled "Institutional email", as it was when the Main Admin signed in. **Known bug:** the page opens on the Student portal instead, with the admin's address in a field labelled "Institutional email or USN". The sign-in page stores the `admin` portal but only restores one of the three portal cards (`restoreRemembered` in `login.component.ts`). |
+| ER-3 | 7 | The Main Admin door is shown as pressed and the ID field is labelled "Institutional email", as it was when the Main Admin signed in. |
 
 ### Post-conditions
 
@@ -1421,7 +1421,7 @@ row, off every list.
 
 | Field | Value |
 |---|---|
-| Unknown link token | `not-a-real-link-token-0123456789abcdef` (16 or more characters, issued by nobody) |
+| Unknown link token | `not-a-real-link-token-0123456789abcdef` (issued by nobody) |
 | Short password | `short`, repeated as `shorter` |
 | Valid password | `a-valid-password-e2e` |
 
@@ -1455,7 +1455,7 @@ row, off every list.
 | ID | TC-032 |
 | Module | Authentication: activation and reset links |
 | Priority | P3 |
-| Type | Functional, negative (known bug) |
+| Type | Functional, negative |
 | Automated test | `tests/auth-sync.spec.ts`, title tagged `@TC-032` |
 
 ### Pre-conditions
@@ -1480,7 +1480,7 @@ row, off every list.
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 3 | The link is refused as a link: "This link is not valid. Ask for a new one." with the pointer to "Forgot password?", and the form is gone. **Known bug:** the page says "That password was not accepted." and empties both password fields, so a person with a broken link keeps retyping good passwords. The API refuses a token under 16 characters with a validation error (422, `LinkPasswordIn` in `apps/api-py/app/routers/passwords.py`), and the page reads every 422 as a refused password (`password-link.component.ts`). |
+| ER-1 | 3 | The link is refused as a link: "This link is not valid. Ask for a new one." with the pointer to "Forgot password?", and the form is gone. |
 
 ---
 
@@ -1812,7 +1812,7 @@ None.
 | ID | TC-040 |
 | Module | Authentication: password sign-in |
 | Priority | P3 |
-| Type | Functional, negative (known bug) |
+| Type | Functional, negative |
 | Automated test | `tests/auth-sync.spec.ts`, title tagged `@TC-040` |
 
 ### Pre-conditions
@@ -1840,7 +1840,7 @@ None.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 2 | "Enter your institutional email or usn." and "Enter your password." appear (as in TC-004). |
-| ER-2 | 3 | The ID message goes as soon as the field is filled, and the field is no longer marked invalid. **Known bug:** both messages stay on screen however the fields are filled, and even beside the answer to a later sign-in attempt. `idErr` and `pwErr` in `login.component.ts` are `computed()` signals that read the form's plain `value`, which is not a signal, so they are worked out again only when the "attempted" flag changes, and it never changes back. |
+| ER-2 | 3 | The ID message goes as soon as the field is filled, and the field is no longer marked invalid. |
 | ER-3 | 4 | The password message goes too. |
 
 ---

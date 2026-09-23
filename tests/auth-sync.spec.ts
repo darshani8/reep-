@@ -533,11 +533,6 @@ test.describe('Authentication', () => {
   });
 
   test('Show password and Hide password @TC-006', async ({ page }) => {
-    test.fail(
-      true,
-      'BUG: while the Password field has the focus it is drawn over the "Show password" button, so a click ' +
-        'lands in the field (*:focus-visible { z-index: 1 } in reep-theme.scss lifts the flex item above .field__eye)',
-    );
     const typed = 'Typed-but-not-sent-1';
     const show = page.getByRole('button', { name: 'Show password' });
     const hide = page.getByRole('button', { name: 'Hide password' });
@@ -556,9 +551,9 @@ test.describe('Authentication', () => {
 
     await test.step('3. Click the eye button, "Show password", at the end of the field', async () => {
       // A click lands on whatever is drawn on top at that point, and Playwright
-      // refuses to click when that is another element. That refusal is the
-      // defect, so it is reported against ER-2 within the usual expect timeout
-      // rather than after the whole test's.
+      // refuses to click when that is another element - which is what the
+      // focused Password field used to be. Such a refusal is reported against
+      // ER-2 within the usual expect timeout rather than after the whole test's.
       await show.click({ timeout: 5_000 }).catch((error: Error) => {
         throw new Error(
           `TC-006 ER-2: the "Show password" button did not receive the click. ${error.message}`,
@@ -662,11 +657,6 @@ test.describe('Authentication', () => {
   test('Remember me through the Main Admin door keeps the admin wording @TC-008', async ({
     page,
   }) => {
-    test.fail(
-      true,
-      'BUG: a remembered sign-in through the Main Admin door comes back on the Student portal ' +
-        '(restoreRemembered in login.component.ts restores only the three portal cards, not "admin")',
-    );
     const adminId = idFieldLabelled(page, PORTAL_WORDING.admin.label);
 
     await test.step('1. Open the sign-in page at /login', async () => {
@@ -1902,11 +1892,6 @@ test.describe('Authentication', () => {
   });
 
   test('A shortened reset link is reported as a link problem @TC-032', async ({ page }) => {
-    test.fail(
-      true,
-      'BUG: a reset or activation link whose token is under 16 characters is answered "That password was not accepted." ' +
-        '(the 422 from LinkPasswordIn is read as a refused password by password-link.component.ts)',
-    );
     const valid = 'a-valid-password-e2e';
 
     await test.step('1. Open /reset?token=abc123', async () => {
@@ -2110,11 +2095,6 @@ test.describe('Authentication', () => {
   });
 
   test('Field messages clear once the fields are filled @TC-040', async ({ page }) => {
-    test.fail(
-      true,
-      'BUG: the sign-in field messages never clear (idErr/pwErr in login.component.ts are computed() over ' +
-        'form values, which are not signals, so they are recomputed only when "attempted" changes)',
-    );
     const idMessage = 'Enter your institutional email or usn.';
     const passwordMessage = 'Enter your password.';
 

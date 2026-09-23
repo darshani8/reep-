@@ -1812,7 +1812,7 @@ None.
 | ID | TC-040 |
 | Module | Authentication: password sign-in |
 | Priority | P3 |
-| Type | Functional, negative (known bug) |
+| Type | Functional, negative |
 | Automated test | `tests/auth-sync.spec.ts`, title tagged `@TC-040` |
 
 ### Pre-conditions
@@ -1840,7 +1840,7 @@ None.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 2 | "Enter your institutional email or usn." and "Enter your password." appear (as in TC-004). |
-| ER-2 | 3 | The ID message goes as soon as the field is filled, and the field is no longer marked invalid. **Known bug:** both messages stay on screen however the fields are filled, and even beside the answer to a later sign-in attempt. `idErr` and `pwErr` in `login.component.ts` are `computed()` signals that read the form's plain `value`, which is not a signal, so they are worked out again only when the "attempted" flag changes, and it never changes back. |
+| ER-2 | 3 | The ID message goes as soon as the field is filled, and the field is no longer marked invalid. |
 | ER-3 | 4 | The password message goes too. |
 
 ---

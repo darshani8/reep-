@@ -2105,11 +2105,6 @@ test.describe('Authentication', () => {
   });
 
   test('Field messages clear once the fields are filled @TC-040', async ({ page }) => {
-    test.fail(
-      true,
-      'BUG: the sign-in field messages never clear (idErr/pwErr in login.component.ts are computed() over ' +
-        'form values, which are not signals, so they are recomputed only when "attempted" changes)',
-    );
     const idMessage = 'Enter your institutional email or usn.';
     const passwordMessage = 'Enter your password.';
 

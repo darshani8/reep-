@@ -34,6 +34,7 @@
  */
 
 import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
@@ -300,7 +301,9 @@ export class LoginComponent {
   readonly portals = PORTALS;
   readonly portal = signal<Portal['key']>('student');
   readonly current = computed(
-    () => PORTALS.find((p) => p.key === this.portal()) ?? (this.portal() === 'admin' ? ADMIN_DOOR : PORTALS[0]),
+    () =>
+      PORTALS.find((p) => p.key === this.portal()) ??
+      (this.portal() === 'admin' ? ADMIN_DOOR : PORTALS[0]),
   );
 
   /** The refusal carried back on the callback redirect, if any. */
@@ -372,8 +375,16 @@ export class LoginComponent {
     remember: [false],
   });
 
-  readonly idErr = computed(() => this.attempted() && !this.form.controls.id.value.trim());
-  readonly pwErr = computed(() => this.attempted() && !this.form.controls.password.value);
+  /** The form's value as a signal. `computed()` re-runs only when a signal it
+   *  read has changed, and a reactive form's `.value` is a plain property:
+   *  read directly, the two messages below were worked out when `attempted`
+   *  changed and never again, so they stayed however the fields were filled. */
+  private readonly values = toSignal(this.form.valueChanges, {
+    initialValue: this.form.getRawValue(),
+  });
+
+  readonly idErr = computed(() => this.attempted() && !(this.values().id ?? '').trim());
+  readonly pwErr = computed(() => this.attempted() && !this.values().password);
   readonly idErrMsg = computed(() => `Enter your ${this.current().fieldLabel.toLowerCase()}.`);
 
   constructor() {
@@ -549,6 +560,10 @@ export class LoginComponent {
       this.form.markAllAsTouched();
       return;
     }
+    // Both fields are filled, so neither message has anything to say — and a
+    // refusal below empties the password, which must not raise "Enter your
+    // password." beside the server's answer to this attempt.
+    this.attempted.set(false);
     this.submitting.set(true);
     this.formError.set(null);
     // A fresh attempt supersedes whatever Google said last time; leaving both

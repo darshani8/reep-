@@ -190,10 +190,10 @@ async function hierarchyBatches(api: APIRequestContext): Promise<HierarchyBatchR
 /**
  * A running batch of the test's own, under the seeded department and course.
  *
- * A batch action writes to EVERY student seated in its batch, removed ones
- * included, and earlier modules leave approved-then-removed students in the
- * seeded batch. A case about a batch action therefore works on a batch that
- * holds only the students it put there, and deletes it afterwards.
+ * A batch action writes to EVERY student on its batch's roster, and earlier
+ * modules leave approved students (and removed ones) in the seeded batch. A
+ * case about a batch action therefore works on a batch that holds only the
+ * students it put there, and deletes it afterwards.
  */
 async function createBatch(api: APIRequestContext, ids: Seeded): Promise<Batch> {
   const tag = nextTag();
@@ -769,10 +769,6 @@ test.describe('Admin: people and access', () => {
     page,
     signIn,
   }) => {
-    test.fail(
-      true,
-      'BUG: the roster quick filter only reads the Student column value (the name), so an address hides every row',
-    );
     await signIn('admin');
     const ids = await seeded(page.request);
     const row = gridRow(page, ids.studentId);
@@ -851,10 +847,6 @@ test.describe('Admin: people and access', () => {
     page,
     signIn,
   }) => {
-    test.fail(
-      true,
-      'BUG: with a batch chosen, the empty-grid sentence is "Nobody is in this batch." even when a Status filter hid its students',
-    );
     await signIn('admin');
     const api = page.request;
     const ids = await seeded(api);
@@ -1122,10 +1114,6 @@ test.describe('Admin: people and access', () => {
     page,
     signIn,
   }) => {
-    test.fail(
-      true,
-      'BUG: a batch action also writes to students REMOVED from the roster and counts them, while its dialog counts only the roster',
-    );
     await signIn('admin');
     const api = page.request;
     const ids = await seeded(api);
@@ -1174,15 +1162,9 @@ test.describe('Admin: people and access', () => {
         await action.getByRole('combobox', { name: 'Set semester' }).selectOption({ label: '3' });
         await action.getByRole('button', { name: 'Set', exact: true }).click();
         await expect(
-          notice(page, ': set to semester 3.'),
-          'TC-539 (arrange): the action finished',
+          notice(page, '1 student: set to semester 3.'),
+          'TC-539 ER-2: the screen reports the one student the dialog counted',
         ).toBeVisible();
-        await expect
-          .soft(
-            notice(page, '1 student: set to semester 3.'),
-            'TC-539 ER-2: the screen reports the one student the dialog counted',
-          )
-          .toBeVisible();
       });
 
       await test.step('5. Under "Status", choose "Removed · off the roster, record kept"', async () => {
@@ -1301,10 +1283,6 @@ test.describe('Admin: people and access', () => {
     page,
     signIn,
   }) => {
-    test.fail(
-      true,
-      'BUG: after a selection action the roster clears its own count but not the grid, so the row stays ticked beside "Selected: 0"',
-    );
     await signIn('admin');
     const api = page.request;
     const ids = await seeded(api);

@@ -28,8 +28,10 @@ from app.models.mentor_note import MentorNote
 from app.models.user import Mentor, Role, Student
 from tests.conftest import TEST_PASSWORD, requires_db
 
-# The programme's today, the clock the ledger endpoints read: `date.today()` is
-# the runner's UTC date, which is yesterday in IST from 18:30 to 24:00 UTC.
+# The programme's day, the same clock the ledger router reads -- never the
+# container's. `date.today()` here is UTC, and from 18:30 to midnight UTC it is
+# yesterday in IST: the student's PUT landed on one day and the mentor's read,
+# which asks the server for "today", looked at the next, empty one.
 TODAY = local_today()
 
 FULL_DAY = [

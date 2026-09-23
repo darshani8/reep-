@@ -25,6 +25,7 @@ or published password, the door and the key are both weak at once.
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 
 import pytest
 
@@ -39,7 +40,7 @@ from app.models.user import LoginDay, Role, User
 from app.routers import auth as auth_router
 from app.security import verify_password
 
-from conftest import requires_db
+from conftest import TEST_PASSWORD, requires_db
 
 
 @pytest.fixture
@@ -193,6 +194,41 @@ def test_password_login_false_shuts_the_door_over_issued_keys(client, monkeypatc
         json={"email": "student@bgscet.ac.in", "password": "student123"},
     )
     assert r.status_code == 403
+
+
+@requires_db
+def test_the_shut_door_says_so_in_a_header_and_a_disabled_account_does_not(
+    client, make_user, monkeypatch
+) -> None:
+    """/login gives two 403s that want opposite advice, and a header tells them apart.
+
+    A shut door means "use Google". The RIGHT password for an account the
+    office has disabled means "contact the office" — Google refuses that
+    account too. The login screen printed the door's words for both, so a
+    disabled faculty member was sent to a door that would also refuse them.
+    It now prints the server's sentence unless the 403 names the door.
+    """
+    staff = make_user("door-header", Role.MENTOR)
+    with SessionLocal() as db:
+        row = db.get(User, staff.user_id)
+        row.disabled_at = datetime.now(timezone.utc)
+        row.disable_reason = "checking which 403 names the door"
+        db.commit()
+    auth_router._login_failures.clear()
+    barred = client.post(
+        "/api/auth/login", json={"email": staff.email, "password": TEST_PASSWORD}
+    )
+    assert barred.status_code == 403, barred.text
+    assert barred.json()["detail"] == auth_router.DISABLED_SIGN_IN_MESSAGE
+    assert auth_router.PASSWORD_DOOR_HEADER not in barred.headers
+
+    monkeypatch.setattr(settings, "env", "prod", raising=False)
+    monkeypatch.setattr(settings, "password_login", "false", raising=False)
+    shut = client.post(
+        "/api/auth/login", json={"email": staff.email, "password": TEST_PASSWORD}
+    )
+    assert shut.status_code == 403, shut.text
+    assert shut.headers.get(auth_router.PASSWORD_DOOR_HEADER) == auth_router.PASSWORD_DOOR_CLOSED
 
 
 @requires_db

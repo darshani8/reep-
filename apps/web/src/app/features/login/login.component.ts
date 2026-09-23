@@ -33,6 +33,7 @@
  * is not one this page knows" and every honest message below was dead code.
  */
 
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -162,17 +163,29 @@ function messageFor(code: string, domain: string): string {
  * failed" collapses them into one dead end. 429 in particular must not read as
  * a wrong password: the person has typed the RIGHT one, possibly, and the
  * useful sentence is that Google still works and this counter does not gate it.
+ *
+ * 403 is two refusals, and only the server knows which: the password door is
+ * shut, which it names in `X-Reep-Password-Door` (PASSWORD_DOOR_HEADER in
+ * app/routers/auth.py), or the RIGHT password reached an account the office
+ * has disabled or removed (`refuse_disabled_sign_in`). The second is the
+ * server's own sentence: this page used to answer it with the door's, which
+ * sent a disabled person to Google — and Google refuses them too.
  */
-function passwordErrorFor(err: unknown): string {
-  const status = (err as { status?: number } | null)?.status;
+export function passwordErrorFor(err: unknown): string {
+  const e = err as { status?: number; error?: { detail?: unknown } } | null;
+  const status = e?.status;
   switch (status) {
     case 401:
       return 'That email and password did not match an account. Check both, or use Continue with Google.';
-    case 403:
+    case 403: {
+      const doorShut =
+        err instanceof HttpErrorResponse && err.headers.get('X-Reep-Password-Door') === 'closed';
+      if (!doorShut && typeof e?.error?.detail === 'string') return e.error.detail;
       return (
         'Password sign-in is switched off on this server, so this form cannot ' +
         'work. Use Continue with Google.'
       );
+    }
     case 429:
       return (
         'Too many failed attempts for this account or from this network, so ' +

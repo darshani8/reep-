@@ -1,14 +1,18 @@
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 
 import { AuthService } from '../../core/auth.service';
-import { LoginComponent } from './login.component';
+import { LoginComponent, passwordErrorFor } from './login.component';
 
 /**
  * The sign-in card's own behaviour, without a server: the field messages
- * follow the fields, and "Remember me" brings back the door it was ticked at.
+ * follow the fields, "Remember me" brings back the door it was ticked at, and
+ * a 403 says the server's reason rather than one sentence for every 403.
  */
+const DISABLED = 'This account has been disabled. Contact the placement office.';
+const DOOR_SHUT =
+  'Password sign-in is switched off on this server, so this form cannot work. Use Continue with Google.';
 
 /** The capability probe, answering with the password door open. */
 const probeFetch = (async () =>
@@ -110,5 +114,35 @@ describe('Sign in · Remember me', () => {
     TestBed.resetTestingModule();
     localStorage.setItem('reep.login.portal', 'director');
     expect((await create()).portal()).toBe('student');
+  });
+});
+
+describe('Sign in · what a refused password sign-in says', () => {
+  /** A refusal as HttpClient hands it over: the parsed body, and the headers. */
+  const refused = (status: number, detail: unknown, headers: Record<string, string> = {}) =>
+    new HttpErrorResponse({ status, error: { detail }, headers: new HttpHeaders(headers) });
+
+  it("gives the server's own reason for a disabled account", () => {
+    expect(passwordErrorFor(refused(403, DISABLED))).toBe(DISABLED);
+  });
+
+  it('says the password door is shut when the server names the door', () => {
+    expect(
+      passwordErrorFor(
+        refused(403, 'Password sign-in is disabled. Use Continue with Google.', {
+          'X-Reep-Password-Door': 'closed',
+        }),
+      ),
+    ).toBe(DOOR_SHUT);
+  });
+
+  it('says the password door is shut for a 403 that carries no reason', () => {
+    expect(passwordErrorFor(new HttpErrorResponse({ status: 403, error: null }))).toBe(DOOR_SHUT);
+  });
+
+  it('keeps its own words for a wrong password', () => {
+    expect(passwordErrorFor(refused(401, 'Invalid email or password.'))).toBe(
+      'That email and password did not match an account. Check both, or use Continue with Google.',
+    );
   });
 });

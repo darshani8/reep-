@@ -270,6 +270,23 @@
   padding: 0 7px;
 }
 
+/* The reorder pair. `arrow_forward` is in the icon subset and turned a
+   quarter either way is an up and a down arrow; `expand_more`, which these
+   buttons used to carry, was taken off every screen in a7ff923 and left
+   them empty. */
+.bank-arrow-up,
+.bank-arrow-down {
+  display: inline-block;
+}
+
+.bank-arrow-up {
+  transform: rotate(-90deg);
+}
+
+.bank-arrow-down {
+  transform: rotate(90deg);
+}
+
 .bank-empty {
   color: var(--muted);
   padding: 18px 10px;

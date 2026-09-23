@@ -266,6 +266,40 @@ async function until(check: () => boolean, tries = 400): Promise<void> {
   throw new Error('the condition never held');
 }
 
+/** A deployment holding one college, 1MP, with a department and a course. */
+function existingCollegeFetch(calls: Call[]): typeof fetch {
+  const reply = (status: number, body: unknown) =>
+    ({ ok: status < 400, status, json: async () => body }) as unknown as Response;
+  return (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    const path = url.slice(url.indexOf('/api') + 4);
+    const method = init?.method ?? 'GET';
+    calls.push({ method, path, body: null });
+    switch (path) {
+      case '/admin/colleges':
+        return reply(200, [
+          {
+            id: 'c1',
+            code: '1MP',
+            name: 'BGSCET',
+            campus: null,
+            contact: null,
+            email_domains: [],
+          },
+        ]);
+      case '/admin/colleges/c1/departments':
+        return reply(200, [{ id: 'd1', code: 'MBA', name: 'Management', head: null }]);
+      case '/admin/departments/d1/academic-courses':
+        return reply(200, [{ id: 'k1', code: 'MBA', name: 'General MBA', duration_months: 24 }]);
+      case '/admin/departments/d1/cohorts':
+        return reply(200, []);
+      case '/admin/academic-courses/k1/academic-specializations':
+        return reply(200, []);
+    }
+    return reply(404, { detail: `unscripted ${method} ${path}` });
+  }) as typeof fetch;
+}
+
 /**
  * Opened from a college card or a College structure section: `?college=` loads
  * that college on step 1 exactly as picking it in the select would, and
@@ -276,42 +310,9 @@ describe('Set up a college · opened with ?college= and ?step=', () => {
   const calls: Call[] = [];
   const realFetch = globalThis.fetch;
 
-  function existingCollegeFetch(): typeof fetch {
-    const reply = (status: number, body: unknown) =>
-      ({ ok: status < 400, status, json: async () => body }) as unknown as Response;
-    return (async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      const path = url.slice(url.indexOf('/api') + 4);
-      const method = init?.method ?? 'GET';
-      calls.push({ method, path, body: null });
-      switch (path) {
-        case '/admin/colleges':
-          return reply(200, [
-            {
-              id: 'c1',
-              code: '1MP',
-              name: 'BGSCET',
-              campus: null,
-              contact: null,
-              email_domains: [],
-            },
-          ]);
-        case '/admin/colleges/c1/departments':
-          return reply(200, [{ id: 'd1', code: 'MBA', name: 'Management', head: null }]);
-        case '/admin/departments/d1/academic-courses':
-          return reply(200, [{ id: 'k1', code: 'MBA', name: 'General MBA', duration_months: 24 }]);
-        case '/admin/departments/d1/cohorts':
-          return reply(200, []);
-        case '/admin/academic-courses/k1/academic-specializations':
-          return reply(200, []);
-      }
-      return reply(404, { detail: `unscripted ${method} ${path}` });
-    }) as typeof fetch;
-  }
-
   beforeEach(async () => {
     calls.length = 0;
-    globalThis.fetch = existingCollegeFetch();
+    globalThis.fetch = existingCollegeFetch(calls);
     await TestBed.configureTestingModule({
       imports: [AdminCollegeSetupComponent],
       providers: [
@@ -343,5 +344,55 @@ describe('Set up a college · opened with ?college= and ?step=', () => {
     expect(c.courses().map((k) => k.existingId)).toEqual(['k1']);
     expect(c.stepComplete()).toBe(true);
     expect(calls.filter((k) => k.method === 'POST')).toEqual([]);
+  });
+});
+
+/**
+ * Opened with `?college=` alone, on step 1: the picker names the college the
+ * screen loaded. The list of colleges and the pick land in the same pass, so a
+ * choice made before its option exists would leave "— New college —" showing
+ * above the loaded college's facts.
+ */
+describe('Set up a college · the picker, opened with ?college=', () => {
+  const calls: Call[] = [];
+  const realFetch = globalThis.fetch;
+
+  beforeEach(async () => {
+    calls.length = 0;
+    globalThis.fetch = existingCollegeFetch(calls);
+    await TestBed.configureTestingModule({
+      imports: [AdminCollegeSetupComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { queryParamMap: convertToParamMap({ college: 'c1' }) } },
+        },
+        {
+          provide: AuthService,
+          useValue: { session: signal({ role: 'ADMIN', capabilities: ['admin.institution'] }) },
+        },
+      ],
+    }).compileComponents();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  it('shows the loaded college as the choice, and "— New college —" once it is let go', async () => {
+    const fixture = TestBed.createComponent(AdminCollegeSetupComponent);
+    const c = fixture.componentInstance;
+    fixture.detectChanges();
+    await until(() => c.existingCollege()?.id === 'c1' && !c.loadingExisting());
+    fixture.detectChanges();
+    const picker = () =>
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLSelectElement>('#setup-existing')!;
+    expect(c.step()).toBe(1);
+    expect(picker().value).toBe('c1');
+
+    await c.pickCollege('');
+    fixture.detectChanges();
+    expect(picker().value).toBe('');
   });
 });

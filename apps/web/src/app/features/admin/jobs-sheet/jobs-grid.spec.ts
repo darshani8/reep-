@@ -77,7 +77,7 @@ describe('the jobs sheet search', () => {
     expect(listedFor('pune')).toEqual(['BI Developer']);
   });
 
-  it('still finds a posting by its role, including one with no location', () => {
+  it('still finds a posting by its role, and one with no location by its company', () => {
     expect(listedFor('Analyst')).toEqual(['Financial Analyst']);
     expect(listedFor('Contoso')).toEqual(['HR Associate']);
   });

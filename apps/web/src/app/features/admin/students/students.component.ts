@@ -313,11 +313,17 @@ export class AdminStudentsComponent {
 
   readonly isLoading = computed(() => this.apiRows() === null);
 
-  /** Main's own words for each empty case, kept exactly. */
+  /** Main's own words for each empty case, kept exactly.
+   *
+   *  "Nobody is in this batch" is a fact about what the SERVER returned, so it
+   *  is said only when the roster it returned is empty: a batch whose students
+   *  a Status filter hid is not empty, and the Removed list is a different
+   *  list from the roster. Everything else the filters hid. */
   readonly emptyMessage = computed(() => {
     if (this.search().trim() !== '') return `No student matches “${this.search().trim()}”.`;
-    if (this.batchFilter() === 'unseated') return 'Every student is in a batch.';
-    if (this.batchFilter() !== '') return 'Nobody is in this batch.';
+    const nobodyReturned = this.allRows().length === 0 && this.statusFilter() !== 'removed';
+    if (this.batchFilter() === 'unseated' && nobodyReturned) return 'Every student is in a batch.';
+    if (this.batchFilter() !== '' && nobodyReturned) return 'Nobody is in this batch.';
     if (this.hasNarrowingFilters()) return 'No student matches these filters.';
     return 'No students yet. They arrive by approving a registration.';
   });
@@ -773,7 +779,7 @@ export class AdminStudentsComponent {
       );
       if (!response.ok) throw new Error(await this.detailOf(response));
       this.apiRows.set((await response.json()) as StudentApiRow[]);
-      this.selectedRows.set([]);
+      this.clearSelection();
     } catch (failure) {
       this.apiRows.set([]);
       this.error.set(failure instanceof Error ? failure.message : 'Could not load students.');
@@ -902,6 +908,16 @@ export class AdminStudentsComponent {
   onSelectionChanged(): void {
     if (this.gridApi === null) return;
     this.selectedRows.set(this.gridApi.getSelectedRows());
+  }
+
+  /** Both halves of the selection: the grid's ticks and this screen's mirror.
+   *  Clearing only the mirror left a row the reload kept (its id is stable)
+   *  ticked beside "Selected: 0", and ticking it again UNticked it.
+   *  `deselectAll` fires selectionChanged, which sets the mirror; the explicit
+   *  set is for the first load, when there is no grid yet. */
+  private clearSelection(): void {
+    this.gridApi?.deselectAll();
+    this.selectedRows.set([]);
   }
 
   onPaginationChanged(): void {

@@ -847,10 +847,6 @@ test.describe('Admin: people and access', () => {
     page,
     signIn,
   }) => {
-    test.fail(
-      true,
-      'BUG: with a batch chosen, the empty-grid sentence is "Nobody is in this batch." even when a Status filter hid its students',
-    );
     await signIn('admin');
     const api = page.request;
     const ids = await seeded(api);
@@ -1297,10 +1293,6 @@ test.describe('Admin: people and access', () => {
     page,
     signIn,
   }) => {
-    test.fail(
-      true,
-      'BUG: after a selection action the roster clears its own count but not the grid, so the row stays ticked beside "Selected: 0"',
-    );
     await signIn('admin');
     const api = page.request;
     const ids = await seeded(api);

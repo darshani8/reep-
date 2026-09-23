@@ -1050,7 +1050,7 @@ action `DISABLE`, carrying the reason, and one with `ENABLE`.
 | ID | TC-522 |
 | Module | Admin: faculty, disable |
 | Priority | P2 |
-| Type | Functional, negative (known defect) |
+| Type | Functional, negative |
 | Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-522` |
 
 ### Pre-conditions
@@ -1078,15 +1078,6 @@ action `DISABLE`, carrying the reason, and one with `ENABLE`.
 |---|---|---|
 | ER-1 | 2 | The dialog tells the truth about the mentee: it does not say they stay filed under this faculty member, and it does not say the mentor group is NOT released. |
 | ER-2 | 3 | The screen says, among the rest, "1 student(s) were released back to the unassigned pool and need a new faculty member." |
-
-### Known defect
-
-Today the dialog says "Their 1 mentee is still filed under them on Mentors &
-Students, and stay there until the office reassigns them." and "The functions
-granted to this account are NOT revoked and its mentor group is NOT released
-…", and then disabling releases the mentee, as ER-2 shows. The server has
-released a disabled faculty member's mentees since B9.1; the dialog's
-sentences were not updated.
 
 ### Post-conditions
 
@@ -1487,7 +1478,7 @@ reason.
 | ID | TC-531 |
 | Module | Admin: who can do what |
 | Priority | P2 |
-| Type | Functional, negative (known defect) |
+| Type | Functional, negative |
 | Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-531` |
 
 ### Pre-conditions
@@ -1518,15 +1509,6 @@ reason.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 5 | The grant is made, and its Expires column shows the day that was typed. |
-
-### Known defect
-
-Today Expires shows the day after. The form sends the typed day as
-23:59:59 UTC, which in India is 05:29 the next morning, and the list prints
-that instant in the local calendar. The grant also lasts five and a half hours
-into that next day. Extending a grant has the same fault for both of its
-dates. The student feature switches screen was fixed for the same fault; this
-screen was not.
 
 ### Post-conditions
 

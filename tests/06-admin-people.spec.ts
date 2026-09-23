@@ -2311,10 +2311,6 @@ test.describe('Admin: people and access', () => {
     baseURL,
     playwright,
   }) => {
-    test.fail(
-      true,
-      'BUG: the login screen answers every 403 with "Password sign-in is switched off on this server", including a disabled account',
-    );
     await signIn('admin');
     const api = page.request;
     const ids = await seeded(api);

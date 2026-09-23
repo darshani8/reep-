@@ -126,7 +126,14 @@ def reset_throttles() -> None:
 
 
 class LinkPasswordIn(BaseModel):
-    token: str = Field(min_length=16, max_length=200)
+    # NO LOWER BOUND ON THE TOKEN. A link cut short by a mail client is a dead
+    # link, and the lookup in both handlers already says so: 410 and "This link
+    # is not valid", the answer every other unknown token gets. `min_length=16`
+    # refused it here instead, as a 422 about the request, and the set-password
+    # screen reads a 422 as a refused PASSWORD - so a person holding a broken
+    # link was told to choose another password, over and over. The upper bound
+    # stays: it caps what is hashed.
+    token: str = Field(max_length=200)
     password: str = Field(min_length=1, max_length=256)
 
 

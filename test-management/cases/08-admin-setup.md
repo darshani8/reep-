@@ -457,10 +457,6 @@ The college now has the specialization `BA` and its 2026-28 batch.
 
 The college, its department, its course and one batch stay on the database.
 
-### Known defect
-
-On the second press the college row reads "New" instead of "Already there": `ensureCollege` in `apps/web/src/app/features/admin/college-setup/college-setup.component.ts` returns the id it resolved on the first press without recording an outcome, so the row falls back to "New" while the department row, which records one, reads "Already there". Nothing is written twice; only the label is wrong. The automated test is marked as a known failure until this is fixed.
-
 ---
 
 ## TC-709 — Setup opened for an existing college shows that college in the picker

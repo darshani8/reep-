@@ -150,6 +150,112 @@ describe('Set up a college · Create everything', () => {
   });
 });
 
+/**
+ * A refused row stops only what hangs under it, and the second press resumes:
+ * the rows the first press wrote are reused rather than written again, and the
+ * plan says so for the college exactly as it does for the department.
+ */
+describe('Set up a college · Create again', () => {
+  const calls: Call[] = [];
+  const realFetch = globalThis.fetch;
+
+  function refusingFetch(): typeof fetch {
+    const reply = (status: number, body: unknown) =>
+      ({ ok: status < 400, status, json: async () => body }) as unknown as Response;
+    return (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const path = url.slice(url.indexOf('/api') + 4);
+      const method = init?.method ?? 'GET';
+      const body = init?.body ? JSON.parse(String(init.body)) : null;
+      calls.push({ method, path, body });
+      if (method === 'GET' && path === '/admin/colleges') return reply(200, []);
+      if (method === 'POST' && path === '/admin/colleges') {
+        return reply(201, {
+          id: 'c1',
+          code: 'E2E1',
+          name: 'Resume',
+          campus: null,
+          email_domains: [],
+        });
+      }
+      if (method === 'POST' && path === '/admin/colleges/c1/departments') {
+        return reply(201, { id: 'd1', code: 'MGT', name: 'Management Studies', head: null });
+      }
+      if (method === 'POST' && path === '/admin/departments/d1/academic-courses') {
+        if (body.code.length > 32) {
+          return reply(422, {
+            detail: [{ loc: ['body', 'code'], msg: 'String should have at most 32 characters' }],
+          });
+        }
+        return reply(201, { id: 'k1', code: body.code, name: body.name, duration_months: 24 });
+      }
+      if (method === 'POST' && path === '/admin/departments/d1/cohorts') {
+        return reply(201, { id: 'b1', code: body.code, course_id: 'k1', specialization_id: null });
+      }
+      return reply(404, { detail: `unscripted ${method} ${path}` });
+    }) as typeof fetch;
+  }
+
+  beforeEach(async () => {
+    calls.length = 0;
+    globalThis.fetch = refusingFetch();
+    await TestBed.configureTestingModule({
+      imports: [AdminCollegeSetupComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: AuthService,
+          useValue: { session: signal({ role: 'ADMIN', capabilities: ['admin.institution'] }) },
+        },
+      ],
+    }).compileComponents();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  it('reads "Already there" for the college and the department the first press wrote', async () => {
+    const fixture = TestBed.createComponent(AdminCollegeSetupComponent);
+    const c = fixture.componentInstance;
+    c.setCode('E2E1');
+    c.setName('Resume');
+    const dept = c.departments()[0];
+    c.setDepartment(dept.key, 'code', 'MGT');
+    c.setDepartment(dept.key, 'name', 'Management Studies');
+    c.addCourse(dept.key);
+    const course = c.courses()[0];
+    c.setCourse(course.key, 'code', 'MBA-THIS-COURSE-CODE-IS-FAR-TOO-LONG');
+    c.setCourse(course.key, 'name', 'General MBA');
+    c.setStartYear('2026');
+    const batch = 'batch:' + course.key;
+
+    await c.createEverything();
+
+    expect(c.runState()).toBe('failed');
+    expect(c.outcome('college')).toEqual({ status: 'created' });
+    expect(c.outcome(dept.key)).toEqual({ status: 'created' });
+    expect(c.outcome(course.key)).toEqual({
+      status: 'failed',
+      detail: 'String should have at most 32 characters',
+    });
+    expect(c.outcome(batch)?.status).toBe('skipped');
+
+    c.setCourse(course.key, 'code', 'MBA');
+    await c.createEverything();
+
+    expect(c.runState()).toBe('done');
+    expect(c.outcome('college')).toEqual({ status: 'existed' });
+    expect(c.outcome(dept.key)).toEqual({ status: 'existed' });
+    expect(c.outcome(course.key)).toEqual({ status: 'created' });
+    expect(c.outcome(batch)).toEqual({ status: 'created' });
+    // Reused, not written again.
+    const posts = calls.filter((k) => k.method === 'POST').map((k) => k.path);
+    expect(posts.filter((p) => p === '/admin/colleges')).toHaveLength(1);
+    expect(posts.filter((p) => p === '/admin/colleges/c1/departments')).toHaveLength(1);
+  });
+});
+
 /** Poll until `check` holds: the component's loads are plain fetch promises
  *  that `whenStable` does not track. */
 async function until(check: () => boolean, tries = 400): Promise<void> {

@@ -246,7 +246,7 @@ None.
 | ID | TC-505 |
 | Module | Admin: students roster |
 | Priority | P2 |
-| Type | Functional, positive (known defect) |
+| Type | Functional, positive |
 | Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-505` |
 
 ### Pre-conditions
@@ -268,15 +268,7 @@ None.
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 2 | Test Student's row is listed and the bar reads "Rows: 1". The box is labelled for screen readers as "Search students by name, email or USN", and the line under the heading does count "1 student in view". |
-
-### Known defect
-
-Today the grid empties ("No Matching Rows", "Rows: 0") while the line under
-the heading says "1 student in view". The server finds the student by address,
-but the grid's own quick filter reads only the Student column's value, which
-is the name, so an address hides every row. The faculty grid does not have
-this problem: its name column gives the quick filter the address as well.
+| ER-1 | 2 | Test Student's row is listed and the bar reads "Rows: 1". The box is labelled for screen readers as "Search students by name, email or USN", and the line under the heading counts "1 student in view". |
 
 ---
 

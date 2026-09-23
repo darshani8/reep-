@@ -49,6 +49,7 @@ import { Component, ElementRef, computed, signal, viewChild } from '@angular/cor
 import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
+import { endOfLocalDay } from '../../../core/calendar-day';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
 // ---- exact snake_case shapes of the governance router's Out models ---------
@@ -201,27 +202,6 @@ const SCOPE_LABELS: Record<string, string> = {
 const ROWS_PER_PAGE_CHOICES = [10, 25, 50];
 const DEFAULT_ROWS_PER_PAGE = 10;
 
-/** A rule lapses at the END of the day an admin types, not at midnight before
- *  it: "until 30 Nov" means the thirtieth is covered — and the thirtieth in
- *  THE OFFICE'S OWN CLOCK. Composing the instant as `…T23:59:59Z` was wrong
- *  everywhere east of UTC, which includes every REEP deployment: 23:59:59Z on
- *  30 Nov is 05:29 on 1 Dec in IST, so an admin typed 30 Nov, saved, and the
- *  rule read back "Until 01 Dec 2026". The date is read and written through
- *  the local calendar at both ends, so the day that goes in is the day that
- *  comes back. */
-function endOfLocalDay(calendarDay: string): string | null {
-  const parts = calendarDay.split('-').map(Number);
-  if (parts.length !== 3 || parts.some((part) => !Number.isFinite(part))) {
-    return null;
-  }
-  const [year, month, day] = parts;
-  const when = new Date(year, month - 1, day, 23, 59, 59, 999);
-  if (Number.isNaN(when.getTime())) {
-    return null;
-  }
-  return when.toISOString();
-}
-
 /** Has this expiry already passed? `null` never lapses. */
 function lapsedBy(isoTimestamp: string | null, nowMs: number): boolean {
   if (isoTimestamp === null || isoTimestamp === '') {
@@ -264,7 +244,7 @@ function dayMonthYearOf(isoTimestamp: string | null): string {
 }
 
 /** The `<input type="date">` value for an API timestamp: the LOCAL calendar
- *  day, matching `endOfLocalDay` above and the day `dayMonthYearOf` prints.
+ *  day, matching `endOfLocalDay` and the day `dayMonthYearOf` prints.
  *  `toISOString().slice(0, 10)` here would hand the edit form a different day
  *  from the one the rule list shows, for the same row. */
 function calendarDayOf(isoTimestamp: string | null): string {

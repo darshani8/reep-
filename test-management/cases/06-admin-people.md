@@ -1516,7 +1516,7 @@ reason.
 | ID | TC-531 |
 | Module | Admin: who can do what |
 | Priority | P2 |
-| Type | Functional, negative (known defect) |
+| Type | Functional, negative |
 | Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-531` |
 
 ### Pre-conditions
@@ -1547,15 +1547,6 @@ reason.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 5 | The grant is made, and its Expires column shows the day that was typed. |
-
-### Known defect
-
-Today Expires shows the day after. The form sends the typed day as
-23:59:59 UTC, which in India is 05:29 the next morning, and the list prints
-that instant in the local calendar. The grant also lasts five and a half hours
-into that next day. Extending a grant has the same fault for both of its
-dates. The student feature switches screen was fixed for the same fault; this
-screen was not.
 
 ### Post-conditions
 

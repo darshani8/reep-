@@ -50,6 +50,13 @@ secrets.json
 dist/
 .angular/
 
+# Playwright end-to-end run output (playwright.config.ts at the root): written
+# by every `npm run test:e2e`, so it is a result, never source.
+/test-results/
+/playwright-report/
+/blob-report/
+/manual-test-results.csv
+
 # uploaded files (bytes on disk; only metadata is in Postgres)
 apps/api-py/var/
 

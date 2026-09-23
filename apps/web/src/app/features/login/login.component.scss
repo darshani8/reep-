@@ -414,10 +414,16 @@
   border-color: var(--risk, #ad2452);
 }
 
+/* The eye sits ON the input, so it must stay above it. The global
+   `*:focus-visible { z-index: 1 }` (reep-theme.scss) lifts a focused input —
+   a flex item here, so the z-index applies without a position — over a
+   button left at `auto`, and a click on the eye then lands in the field.
+   `isolation` keeps the two numbers local to this row. */
 .field__pw {
   position: relative;
   display: flex;
   align-items: center;
+  isolation: isolate;
 
   .field__input {
     padding-right: 44px;
@@ -426,6 +432,7 @@
 
 .field__eye {
   position: absolute;
+  z-index: 2;
   right: 6px;
   width: 32px;
   height: 32px;

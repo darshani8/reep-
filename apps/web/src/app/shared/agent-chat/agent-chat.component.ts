@@ -46,6 +46,7 @@ import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth.service';
+import { featureRefusal } from '../../core/feature-refusal';
 
 /** One routed next step the agent suggests — rendered as an arrow card. */
 export interface AgentAction {
@@ -263,7 +264,11 @@ export class AgentChatComponent {
       });
       if (!res.ok) {
         this.markUser(userTurn.id, 'failed');
-        this.error.set(res.status === 429 ? RATE_LIMIT_TEXT : ERROR_TEXT);
+        // A student whose office switched the agent off reads the office's
+        // message; "Could not reach the REEP Agent" would send them to support.
+        this.error.set(
+          res.status === 429 ? RATE_LIMIT_TEXT : ((await featureRefusal(res)) ?? ERROR_TEXT),
+        );
         return;
       }
       const body = (await res.json()) as AskOut;

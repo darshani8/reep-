@@ -43,7 +43,11 @@
 
   @case ('error') {
     <div class="card eb-note">
-      We could not load your English baseline just now. Please refresh in a moment.
+      @if (refusal(); as message) {
+        {{ message }}
+      } @else {
+        We could not load your English baseline just now. Please refresh in a moment.
+      }
       <button type="button" class="btn ghost" (click)="load()">Retry</button>
     </div>
   }

@@ -37,9 +37,9 @@ nothing seeded is disabled, removed or deleted:
   under Department of Management Studies, course Master of Business
   Administration, with a unique name, running from 1 Jul 2026 to 30 Jun 2028.
   Move the students a case names into it with the pencil on the roster (Batch).
-  Other test runs leave students, some of them removed from the roster, in the
-  seeded batch, and a batch action writes to every student seated in the
-  batch, so the cases about a whole batch use a batch of their own. When a
+  Other test runs leave students in the seeded batch, and a batch action
+  writes to every student on the roster in that batch, so the cases about a
+  whole batch use a batch of their own. When a
   case moves Test Student into it, move them back to "Master of Business
   Administration - Finance · 2024-26 Section B" afterwards, in semester 2 at
   stage Excel-Adv, then delete the empty batch ("Batch actions", "Remove this
@@ -246,7 +246,7 @@ None.
 | ID | TC-505 |
 | Module | Admin: students roster |
 | Priority | P2 |
-| Type | Functional, positive (known defect) |
+| Type | Functional, positive |
 | Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-505` |
 
 ### Pre-conditions
@@ -268,15 +268,7 @@ None.
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 2 | Test Student's row is listed and the bar reads "Rows: 1". The box is labelled for screen readers as "Search students by name, email or USN", and the line under the heading does count "1 student in view". |
-
-### Known defect
-
-Today the grid empties ("No Matching Rows", "Rows: 0") while the line under
-the heading says "1 student in view". The server finds the student by address,
-but the grid's own quick filter reads only the Student column's value, which
-is the name, so an address hides every row. The faculty grid does not have
-this problem: its name column gives the quick filter the address as well.
+| ER-1 | 2 | Test Student's row is listed and the bar reads "Rows: 1". The box is labelled for screen readers as "Search students by name, email or USN", and the line under the heading counts "1 student in view". |
 
 ---
 
@@ -327,7 +319,7 @@ this problem: its name column gives the quick filter the address as well.
 | ID | TC-507 |
 | Module | Admin: students roster |
 | Priority | P3 |
-| Type | Functional, negative (known defect) |
+| Type | Functional, negative |
 | Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-507` |
 
 ### Pre-conditions
@@ -353,13 +345,6 @@ this problem: its name column gives the quick filter the address as well.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 3 | Test Student, who has signed in, is hidden, and the grid says "No student matches these filters.", not that the batch is empty. |
-
-### Known defect
-
-Today the grid says "Nobody is in this batch." although the batch holds Test
-Student and it is the Status filter that hides them. The screen picks its
-empty-grid sentence by checking for a chosen batch before it checks for the
-other filters.
 
 ### Post-conditions
 
@@ -514,7 +499,7 @@ the seeded batch, in semester 2 at stage Excel-Adv, and delete the empty batch
 | ID | TC-539 |
 | Module | Admin: students roster, batch actions |
 | Priority | P2 |
-| Type | Functional, negative (known defect) |
+| Type | Functional, negative |
 | Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-539` |
 
 ### Pre-conditions
@@ -549,21 +534,14 @@ the seeded batch, in semester 2 at stage Excel-Adv, and delete the empty batch
 | ER-2 | 4 | The screen says "1 student: set to semester 3.", the one student the dialog counted. |
 | ER-3 | 5 | The removed student is listed and is still in semester 1: a student off the roster is not moved by an action whose dialog did not count them. |
 
-### Known defect
-
-The action writes to every student seated in the batch, including removed
-ones, and counts them: the screen says "2 students: set to semester 3." under a
-dialog that said "all 1 student", and the removed student's Sem column reads 3.
-The API selects the batch's students without leaving out removed accounts
-(`apps/api-py/app/routers/admin_students.py`, the batch action, around line
-636), while the dialog counts the roster, which does.
-
 ### Post-conditions
 
 Test Student's Sem column reads 3. Put them back in the seeded batch, in
-semester 2 at stage Excel-Adv, move the removed student out of the batch and
-delete the empty batch (see the top of this file). The removed student stays on
-the Removed list. The automated test does this through the API.
+semester 2 at stage Excel-Adv. A removed student cannot be edited or moved by a
+batch action, so restore the removed student (TC-515, steps 7 to 9), take them
+out of the batch with the pencil and remove them again, then delete the empty
+batch (see the top of this file). The removed student stays on the Removed
+list. The automated test does this through the API.
 
 ---
 
@@ -626,7 +604,7 @@ history, and moving them off Test Mentor gave Test Mentor a 90-day read-only
 | ID | TC-512 |
 | Module | Admin: students roster, selection actions |
 | Priority | P3 |
-| Type | Functional, negative (known defect) |
+| Type | Functional, negative |
 | Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-512` |
 
 ### Pre-conditions
@@ -650,14 +628,6 @@ None.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 4 | The screen says "1 of 1 student: assigned to Test Mentor.", the bar under the grid reads "Selected: 0", and Test Student's row is no longer ticked, so the tick and the count agree. |
-
-### Known defect
-
-Today the row stays ticked beside "Selected: 0" and a disabled "Assign faculty
-to 0 selected" button. Ticking the row again unticks it, so a second action
-needs two clicks and the screen shows a selection the toolbar will not act on.
-After an action the screen clears its own count of ticked rows but not the
-grid's ticks.
 
 ---
 

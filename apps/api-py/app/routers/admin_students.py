@@ -2,7 +2,7 @@
 
     GET    /admin/students?cohort_id=&q=&unseated=   the roster, filtered
     PATCH  /admin/students/{id}                       name / email / USN / batch / faculty / stage / semester
-    POST   /admin/cohorts/{id}/students/bulk          move / assign faculty / set stage / set semester - every student in the batch
+    POST   /admin/cohorts/{id}/students/bulk          move / assign faculty / set stage / set semester - every student on the batch's roster
     DELETE /admin/cohorts/{id}                        remove an EMPTY batch
 
 NO CREATE (2026-09-10), and the absence is the design rather than an
@@ -633,7 +633,17 @@ def batch_action(
 ) -> BatchActionOut:
     require_capability(db, session, CAPABILITY)
     cohort = _cohort_or_404(db, cohort_id)
-    students = db.scalars(select(Student).where(Student.cohort_id == cohort.id)).all()
+    # THE BATCH'S ROSTER, NOT EVERY ROW SEATED IN IT. A student REMOVED from the
+    # roster (`users.deleted_at`) is still seated here, and `GET /admin/students`
+    # - the list the dialog counts - leaves them out. Writing to them anyway
+    # moved people the office had taken off every list, reported a count the
+    # dialog never showed, and made Restore bring back a student who was not as
+    # they were left. Removal promises every row stays exactly where it is.
+    students = db.scalars(
+        select(Student)
+        .join(User, Student.user_id == User.id)
+        .where(Student.cohort_id == cohort.id, User.deleted_at.is_(None))
+    ).all()
     # B1.4. A batch action is the single action repeated, so it is scoped the
     # same way — but ALL OR NOTHING rather than per student. See the helper.
     if students:
@@ -813,10 +823,22 @@ def delete_cohort(
     cohort = _cohort_or_404(db, cohort_id)
     seated = db.scalar(select(func.count()).select_from(Student).where(Student.cohort_id == cohort.id)) or 0
     if seated:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"{seated} student{'s are' if seated != 1 else ' is'} seated in this batch. Move or delete them first.",
-        )
+        detail = f"{seated} student{'s are' if seated != 1 else ' is'} seated in this batch. Move or delete them first."
+        # A REMOVED student is still seated here and on no roster, so the batch
+        # reads empty on screen and a batch move leaves them behind. Say where
+        # they are: the Removed list, where Restore makes them movable again.
+        removed = db.scalar(
+            select(func.count())
+            .select_from(Student)
+            .join(User, Student.user_id == User.id)
+            .where(Student.cohort_id == cohort.id, User.deleted_at.is_not(None))
+        ) or 0
+        if removed:
+            detail += (
+                f" {removed} of them {'are' if removed != 1 else 'is'} on the Removed list "
+                "and can be moved once restored."
+            )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
     _audit(db, session, request, "cohort", cohort.id, "DELETE",
            {"code": cohort.code, "name": cohort.name, "batch_label": cohort.batch_label}, None, {})
     db.delete(cohort)

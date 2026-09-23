@@ -20,6 +20,7 @@
 
 import type {
   ColDef,
+  GetQuickFilterTextParams,
   ICellRendererParams,
   RowSelectionOptions,
   SelectionColumnDef,
@@ -76,6 +77,16 @@ function renderStudentCell(params: ICellRendererParams<RosterRow>): string {
     identity +
     `</span>`
   );
+}
+
+/** What the quick filter matches on the Student column: the name AND the
+ *  address the cell draws. The column's value is the name alone, so without
+ *  this an address typed into the box hid every row — including the one the
+ *  server had just found by that address. */
+export function quickFilterStudent(params: GetQuickFilterTextParams<RosterRow>): string {
+  const row = params.data;
+  if (row === undefined) return '';
+  return `${row.name} ${row.email}`;
 }
 
 function renderSpecializationCell(params: ICellRendererParams<RosterRow>): string {
@@ -177,6 +188,7 @@ export const ROSTER_COLUMNS: ColDef<RosterRow>[] = [
     flex: 1.4,
     cellStyle: { display: 'flex', alignItems: 'center', gap: '8px' },
     cellRenderer: renderStudentCell,
+    getQuickFilterText: quickFilterStudent,
   },
   {
     colId: 'specialization',

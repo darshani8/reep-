@@ -657,11 +657,6 @@ test.describe('Authentication', () => {
   test('Remember me through the Main Admin door keeps the admin wording @TC-008', async ({
     page,
   }) => {
-    test.fail(
-      true,
-      'BUG: a remembered sign-in through the Main Admin door comes back on the Student portal ' +
-        '(restoreRemembered in login.component.ts restores only the three portal cards, not "admin")',
-    );
     const adminId = idFieldLabelled(page, PORTAL_WORDING.admin.label);
 
     await test.step('1. Open the sign-in page at /login', async () => {

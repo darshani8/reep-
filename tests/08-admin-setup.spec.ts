@@ -1218,11 +1218,6 @@ test.describe('Admin: college setup and interviews', () => {
     page,
     signIn,
   }) => {
-    test.fail(
-      true,
-      'BUG: on "Create again" the college row reads "New" although it was created by the first press ' +
-        '(ensureCollege returns early without recording an outcome, college-setup.component.ts:650-651)',
-    );
     await signIn('admin');
     const code = newCode();
     const name = `E2E Resume College ${RUN}`;

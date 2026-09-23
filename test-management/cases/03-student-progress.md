@@ -491,14 +491,13 @@ None beyond the seeded student.
 | Type | Functional, regression |
 | Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-221` |
 
-A known defect sits next to this case: each click loads its day, and the
-screen shows whichever load finishes last (`load()` in
-`apps/web/src/app/features/student/ledger/ledger.component.ts` has no guard
-against an older answer). A click made while an earlier day is still loading
-can therefore end on that earlier day: click Next day twice quickly from the
-day before yesterday, let yesterday's answer arrive after today's, and the
-screen settles on yesterday with Next day enabled. The steps below wait for
-each day, as a person does, so they pass. The defect is reported, not tested.
+Each click loads its day, and the screen draws only the day clicked last,
+whatever order the loads finish in: click Next day twice quickly from the
+day before yesterday and the screen settles on today, with Next day
+disabled, even when yesterday's answer arrives after today's. The steps
+below wait for each day, as a person does; the answers arriving out of order
+are covered by the unit tests in
+`apps/web/src/app/features/student/ledger/ledger.component.spec.ts`.
 
 ### Pre-conditions
 
@@ -777,11 +776,6 @@ None beyond the seeded student.
 | Priority | P2 |
 | Type | Functional, positive |
 | Automated test | `tests/03-student-progress.spec.ts`, title tagged `@TC-227` |
-
-A known defect: the design (`docs/design-v3-student-app/HANDOFF.md`, "Time
-Sheet") places a "Copy yesterday" button beside Submit day, and the API
-offers `POST /api/student/ledger/copy-yesterday`, but the screen has no such
-button. The automated test is marked as an expected failure until it does.
 
 ### Pre-conditions
 

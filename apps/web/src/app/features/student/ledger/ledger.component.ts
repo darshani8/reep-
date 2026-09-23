@@ -35,6 +35,7 @@ import { Component, computed, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 
 import { environment } from '../../../../environments/environment';
+import { featureRefusal } from '../../../core/feature-refusal';
 import { deviceTodayIso, isoAfter, shiftIsoDay } from './ledger-days';
 
 type Tone = 'good' | 'warn' | 'risk' | 'neutral';
@@ -153,6 +154,9 @@ const HISTORY_DAYS = 14;
 export class LedgerComponent {
   readonly state = signal<State>('loading');
   readonly error = signal<string | null>(null);
+  /** The office's message when the ledger is switched off for the student;
+   *  null for every other failed read, which keeps the screen's own line. */
+  readonly refusal = signal<string | null>(null);
   readonly saving = signal(false);
   readonly ledger = signal<Ledger | null>(null);
 
@@ -252,13 +256,18 @@ export class LedgerComponent {
   async load(initial = false): Promise<void> {
     this.state.set('loading');
     this.error.set(null);
+    this.refusal.set(null);
     this.draft.set({});
     try {
       const query = initial ? '' : `?day=${encodeURIComponent(this.day())}`;
       const res = await fetch(`${environment.apiBase}/student/ledger${query}`, {
         credentials: 'include',
       });
-      if (!res.ok) throw new Error(String(res.status));
+      if (!res.ok) {
+        this.refusal.set(await featureRefusal(res));
+        this.state.set('error');
+        return;
+      }
       const body = (await res.json()) as Ledger;
       this.ledger.set(body);
       this.today.set(body.today);

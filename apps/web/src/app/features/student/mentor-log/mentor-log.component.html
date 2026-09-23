@@ -130,7 +130,11 @@
 
   @case ('error') {
     <div class="card card-line" role="alert">
-      We could not load your meeting log just now. Please refresh in a moment.
+      @if (refusal(); as message) {
+        {{ message }}
+      } @else {
+        We could not load your meeting log just now. Please refresh in a moment.
+      }
       <button type="button" class="btn ghost retry" (click)="load()">Retry</button>
     </div>
   }

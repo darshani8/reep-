@@ -40,6 +40,7 @@
 import { Component, computed, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
+import { failedReadMessage } from '../../../core/feature-refusal';
 import {
   LeaderboardScope,
   emptyBoardSentence,
@@ -229,7 +230,7 @@ export class LeaderboardsComponent {
         { credentials: 'include' },
       );
       if (!res.ok) {
-        this.error.set('Could not load the leaderboard.');
+        this.error.set(await failedReadMessage(res, 'Could not load the leaderboard.'));
         this.clear();
         return;
       }

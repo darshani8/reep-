@@ -110,7 +110,11 @@
   @case ('error') {
     <div class="notice ledger-notice" role="alert">
       <span class="icon" aria-hidden="true">info</span>
-      Could not load this day’s time sheet.
+      @if (refusal(); as message) {
+        {{ message }}
+      } @else {
+        Could not load this day’s time sheet.
+      }
       <button type="button" class="btn ghost" (click)="load()">Retry</button>
     </div>
   }

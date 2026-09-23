@@ -1672,7 +1672,7 @@ None.
 | ID | TC-534 |
 | Module | Admin: student feature switches; the student's Leaderboards |
 | Priority | P2 |
-| Type | Functional, positive (known defect) |
+| Type | Functional, positive |
 | Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-534` |
 
 ### Pre-conditions
@@ -1701,15 +1701,6 @@ Step 1 is TC-532's steps 1 to 6, with the message from the test data.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 2 | The Leaderboards screen shows the office's message, "Leaderboards are paused this week." |
-
-### Known defect
-
-Today the screen says "Could not load the leaderboard." The server refuses
-with the office's message (a 403 whose detail is the student-facing message),
-but the student screens throw the detail away on their first read. Jobs and
-Uploads do the same ("Could not load the jobs board.", "Could not load your
-uploads."). The feature switches screen promises the message is "What the
-student reads when this rule refuses them."
 
 ### Post-conditions
 

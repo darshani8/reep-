@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 
 import { AuthService } from '../../core/auth.service';
-import { LoginComponent, passwordErrorFor } from './login.component';
+import { codeErrorFor, LoginComponent, passwordErrorFor } from './login.component';
 
 /**
  * The sign-in card's own behaviour, without a server: the field messages
@@ -72,6 +72,21 @@ describe('Sign in · the field messages follow the fields', () => {
     expect(c.idErr()).toBe(true);
   });
 
+  it('keeps asking for an ID of spaces, and sends nothing', async () => {
+    let calls = 0;
+    const c = await create({
+      login: async () => {
+        calls++;
+        throw new HttpErrorResponse({ status: 401, error: null });
+      },
+    });
+    c.form.setValue({ id: '   ', password: 'wrong-password', remember: false });
+    await c.submitPassword();
+    expect(calls).toBe(0);
+    expect(c.idErr()).toBe(true);
+    expect(c.pwErr()).toBe(false);
+  });
+
   it('does not ask for a password beside the answer to a refused sign-in', async () => {
     const c = await create();
     c.form.setValue({ id: 'student@bgscet.ac.in', password: 'wrong-password', remember: false });
@@ -138,6 +153,13 @@ describe('Sign in · what a refused password sign-in says', () => {
 
   it('says the password door is shut for a 403 that carries no reason', () => {
     expect(passwordErrorFor(new HttpErrorResponse({ status: 403, error: null }))).toBe(DOOR_SHUT);
+  });
+
+  it("gives the server's own reason for a code spent after the account was disabled", () => {
+    expect(codeErrorFor(refused(403, DISABLED))).toBe(DISABLED);
+    expect(codeErrorFor(new HttpErrorResponse({ status: 403, error: null }))).toContain(
+      'error 403',
+    );
   });
 
   it('keeps its own words for a wrong password', () => {

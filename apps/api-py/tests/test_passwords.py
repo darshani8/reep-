@@ -41,6 +41,7 @@ from app.models.job import DegreeLevel
 from app.models.registration import EmailVerification, Registration, RegistrationRule, RegistrationStatus
 from app.models.student_profile import StudentProfile
 from app.models.user import LoginDay, Role, Student, User
+from app.routers import onboarding as onboarding_router
 from app.routers import passwords as passwords_router
 from app.routers.registration import SSO_ONLY_PASSWORD_HASH
 
@@ -185,6 +186,29 @@ def test_a_shortened_link_is_refused_as_a_link(client, door):
     r = client.post(f"/api/auth/{door}", json={"token": "abc123", "password": GOOD})
     assert r.status_code == 410, r.text
     assert r.json()["detail"] == "This link is not valid. Ask for a new one."
+
+
+@requires_db
+@pytest.mark.parametrize(
+    "step, body",
+    [
+        ("start", {"email": "someone@bgscet.ac.in"}),
+        ("verify", {"code": "123456"}),
+    ],
+)
+def test_a_shortened_setup_link_is_refused_as_a_link(client, step, body):
+    """The /onboard walk's twin of the test above, on the link every approved
+    student is mailed and "Forgot password?" mails a student with no password.
+
+    Its first two steps carried the same 16-character floor on the token, and
+    that screen prints a 422's message under the address box as something to
+    fix: the student read "String should have at least 16 characters" each
+    time they retyped their address and was never told the link was dead. A
+    410 is what the screen draws as a dead link, with `_REFUSED`'s words.
+    """
+    r = client.post(f"/api/auth/onboard/{step}", json={"token": "abc123", **body})
+    assert r.status_code == 410, r.text
+    assert r.json()["detail"] == onboarding_router._REFUSED
 
 
 @requires_db

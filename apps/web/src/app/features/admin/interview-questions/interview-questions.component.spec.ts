@@ -191,3 +191,45 @@ describe('Interview questions · a refused inline edit is put back', () => {
     ]);
   });
 });
+
+/**
+ * A track picked while the screen is still reading the first one's questions
+ * keeps its own list, whichever read answers last.
+ */
+describe('Interview questions · the list belongs to the track picked last', () => {
+  const realFetch = globalThis.fetch;
+  const held: Array<() => void> = [];
+
+  beforeEach(async () => {
+    held.length = 0;
+    const scripted = scriptedFetch([]);
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      // The first track's questions answer late: after the reader has moved on.
+      if (String(input).endsWith('/admin/interview-questions?track=hr')) {
+        await new Promise<void>((resolve) => held.push(resolve));
+      }
+      return scripted(input, init);
+    }) as typeof fetch;
+    await TestBed.configureTestingModule({
+      imports: [InterviewQuestionsComponent],
+    }).compileComponents();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  it('keeps the picked track’s questions when the first track’s read answers after them', async () => {
+    const c = TestBed.createComponent(InterviewQuestionsComponent).componentInstance;
+    await until(() => c.tracks() !== null && held.length === 1);
+
+    await c.selectTrack('fa');
+    expect(c.questionCount()).toBe(1);
+
+    held.splice(0).forEach((release) => release());
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(c.selectedTrackKey()).toBe('fa');
+    expect(c.questionCount()).toBe(1);
+    expect(c.pageRows().map((row) => row.question.id)).toEqual(['q3']);
+  });
+});

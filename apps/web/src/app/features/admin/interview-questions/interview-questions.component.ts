@@ -617,6 +617,7 @@ export class InterviewQuestionsComponent {
   async addQuestion(): Promise<void> {
     if (!this.canAddQuestion()) return;
     const text = this.newQuestionText().trim();
+    const read = this.questionsRead;
     await this.whileBusy(async () => {
       const response = await this.postJson(`${environment.apiBase}/admin/interview-questions`, {
         track: this.selectedTrackKey(),
@@ -625,7 +626,7 @@ export class InterviewQuestionsComponent {
       });
       if (!response.ok) throw new Error(await this.detailOf(response));
       const added = (await response.json()) as BankQuestion;
-      this.questions.update((list) => [...(list ?? []), added]);
+      if (read === this.questionsRead) this.questions.update((list) => [...(list ?? []), added]);
       this.newQuestionText.set('');
       this.flash.set('Question added.');
       await this.loadTracks();
@@ -652,6 +653,7 @@ export class InterviewQuestionsComponent {
   async addBulk(): Promise<void> {
     if (!this.canAddBulk()) return;
     const lines = this.bulkText().trim();
+    const read = this.questionsRead;
     await this.whileBusy(async () => {
       const response = await this.postJson(
         `${environment.apiBase}/admin/interview-questions/bulk`,
@@ -662,7 +664,9 @@ export class InterviewQuestionsComponent {
       );
       if (!response.ok) throw new Error(await this.detailOf(response));
       const result = (await response.json()) as { added: BankQuestion[]; skipped: string[] };
-      this.questions.update((list) => [...(list ?? []), ...result.added]);
+      if (read === this.questionsRead) {
+        this.questions.update((list) => [...(list ?? []), ...result.added]);
+      }
       this.bulkSkipped.set(result.skipped);
       this.flash.set(this.bulkFlashFor(result.added.length, result.skipped.length));
       if (result.skipped.length === 0) this.bulkText.set('');
@@ -838,13 +842,15 @@ export class InterviewQuestionsComponent {
     const moved = ordered[from];
     ordered[from] = ordered[to];
     ordered[to] = moved;
+    const read = this.questionsRead;
     await this.whileBusy(async () => {
       const response = await this.postJson(
         `${environment.apiBase}/admin/interview-questions/reorder`,
         { track: this.selectedTrackKey(), ids: ordered.map((row) => row.id) },
       );
       if (!response.ok) throw new Error(await this.detailOf(response));
-      this.questions.set((await response.json()) as BankQuestion[]);
+      const reordered = (await response.json()) as BankQuestion[];
+      if (read === this.questionsRead) this.questions.set(reordered);
     });
   }
 
@@ -946,7 +952,20 @@ export class InterviewQuestionsComponent {
     }
   }
 
+  /** Which read of the list is the one on screen. Every `loadQuestions()`
+   *  takes the next number, and an answer under an older one is dropped: the
+   *  list it describes is no longer the one being looked at.
+   *
+   *  THE LAST ANSWER IS NOT THE LAST TRACK PICKED. The screen reads the first
+   *  track's questions as it opens, and a tab pressed before that read answers
+   *  used to be overwritten by it: "Questions · 0" under a track whose tab
+   *  said 1. An add or a reorder carries the number it started under for the
+   *  same reason — its answer belongs to the list it was made against, and a
+   *  track picked meanwhile has already been read from the server. */
+  private questionsRead = 0;
+
   private async loadQuestions(): Promise<void> {
+    const read = ++this.questionsRead;
     this.questions.set(null);
     const track = encodeURIComponent(this.selectedTrackKey());
     try {
@@ -954,9 +973,13 @@ export class InterviewQuestionsComponent {
         `${environment.apiBase}/admin/interview-questions?track=${track}`,
         { credentials: 'include' },
       );
+      if (read !== this.questionsRead) return;
       if (!response.ok) throw new Error(String(response.status));
-      this.questions.set((await response.json()) as BankQuestion[]);
+      const loaded = (await response.json()) as BankQuestion[];
+      if (read !== this.questionsRead) return;
+      this.questions.set(loaded);
     } catch {
+      if (read !== this.questionsRead) return;
       this.error.set('Could not load the questions for this track.');
       this.questions.set([]);
     }

@@ -823,10 +823,22 @@ def delete_cohort(
     cohort = _cohort_or_404(db, cohort_id)
     seated = db.scalar(select(func.count()).select_from(Student).where(Student.cohort_id == cohort.id)) or 0
     if seated:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"{seated} student{'s are' if seated != 1 else ' is'} seated in this batch. Move or delete them first.",
-        )
+        detail = f"{seated} student{'s are' if seated != 1 else ' is'} seated in this batch. Move or delete them first."
+        # A REMOVED student is still seated here and on no roster, so the batch
+        # reads empty on screen and a batch move leaves them behind. Say where
+        # they are: the Removed list, where Restore makes them movable again.
+        removed = db.scalar(
+            select(func.count())
+            .select_from(Student)
+            .join(User, Student.user_id == User.id)
+            .where(Student.cohort_id == cohort.id, User.deleted_at.is_not(None))
+        ) or 0
+        if removed:
+            detail += (
+                f" {removed} of them {'are' if removed != 1 else 'is'} on the Removed list "
+                "and can be moved once restored."
+            )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
     _audit(db, session, request, "cohort", cohort.id, "DELETE",
            {"code": cohort.code, "name": cohort.name, "batch_label": cohort.batch_label}, None, {})
     db.delete(cohort)

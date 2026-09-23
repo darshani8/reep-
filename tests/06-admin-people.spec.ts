@@ -190,10 +190,10 @@ async function hierarchyBatches(api: APIRequestContext): Promise<HierarchyBatchR
 /**
  * A running batch of the test's own, under the seeded department and course.
  *
- * A batch action writes to EVERY student seated in its batch, removed ones
- * included, and earlier modules leave approved-then-removed students in the
- * seeded batch. A case about a batch action therefore works on a batch that
- * holds only the students it put there, and deletes it afterwards.
+ * A batch action writes to EVERY student on its batch's roster, and earlier
+ * modules leave approved students (and removed ones) in the seeded batch. A
+ * case about a batch action therefore works on a batch that holds only the
+ * students it put there, and deletes it afterwards.
  */
 async function createBatch(api: APIRequestContext, ids: Seeded): Promise<Batch> {
   const tag = nextTag();

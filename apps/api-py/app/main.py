@@ -36,6 +36,7 @@ from .routers import (
     interview,
     admin_deletion,
     admin_faculty,
+    admin_mail,
     admin_imports,
     admin_interview_tracks,
     admin_mentoring,
@@ -404,6 +405,7 @@ app.include_router(admin_faculty.router, prefix="/api")
 # for the reason the purge modules are their own: a destructive act should
 # be found by looking for it, not by reading an edit router to the end.
 app.include_router(admin_deletion.router, prefix="/api")
+app.include_router(admin_mail.router, prefix="/api")
 # B8.1 - spreadsheet imports. Its own module for admin_promotion.py's reason:
 # `console.py` and `admin.py` are ~1700 lines each and this is a new surface,
 # not a variation on an existing one. Today it answers the history; preview,

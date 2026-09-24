@@ -320,10 +320,19 @@ def _open_batch(db: Session, session: dict, cohort_id: str) -> Cohort:
 
 
 def _seated(db: Session, cohort_id: str) -> list[tuple[Student, User]]:
+    """The batch's ROSTER, which is not every row seated in it.
+
+    A student REMOVED from the roster (`users.deleted_at`) is still seated here,
+    and `GET /admin/students` - the list both dialogs count - leaves them out.
+    `batch_action` selects the same roster for the same reason: promoting a
+    removed student moved their semester behind a dialog that never counted
+    them, and graduating one turned them into an ALUMNI account, so Restore
+    brought back somebody other than the student the office took off the list.
+    """
     rows = db.execute(
         select(Student, User)
         .join(User, Student.user_id == User.id)
-        .where(Student.cohort_id == cohort_id)
+        .where(Student.cohort_id == cohort_id, User.deleted_at.is_(None))
         .order_by(User.name, Student.usn)
     ).all()
     return [(s, u) for s, u in rows]
@@ -487,7 +496,7 @@ def promote_batch(
     if not seated:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="There are no students seated in this batch.",
+            detail="There are no students on this batch's roster.",
         )
 
     held = set(body.hold_back)
@@ -651,7 +660,7 @@ def graduate_batch(
     if not seated:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="There are no students seated in this batch.",
+            detail="There are no students on this batch's roster.",
         )
 
     ceiling = ceiling_for_cohort(db, cohort.id)

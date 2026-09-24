@@ -211,7 +211,13 @@
 /* --- the four skill cards ------------------------------------------------- */
 .eb-sections {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  /* `min(Npx, 100%)` and not a bare `Npx`: a minmax() track whose minimum is a
+     fixed length does NOT collapse when the container is narrower than it — the
+     track keeps its minimum and the grid overflows. On a 320px handset the
+     content box inside a card is about 260px, so every one of these was wider
+     than the screen it was drawn on. `min()` caps the minimum at the container,
+     which changes nothing at any width where the track already fitted. */
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
   gap: 16px;
   margin-bottom: 16px;
 }
@@ -316,7 +322,9 @@
   border-color: #3a1f52;
   background: var(--primary-gradient);
   color: #fff;
-  box-shadow: 0 6px 16px rgba(85, 44, 126, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 6px 16px rgba(85, 44, 126, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 .eb-start-btn .icon {
   font-size: 17px;

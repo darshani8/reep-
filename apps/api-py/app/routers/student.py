@@ -12,7 +12,9 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 
+from .. import batch_labels
 from ..ai.llm import complete_chat, llm_config, student_data_egress_allowed
+from ..clock import local_today
 from ..db import get_db
 from ..governance import require_feature
 from ..identity import get_current_session
@@ -33,7 +35,8 @@ from ..resume_pdf import EvidenceProof, append_evidence, render_resume_pdf
 from ..models.academic_history import AcademicGap, AcademicQualification
 from ..models.academics import SemesterResult
 from ..models.attendance import AttendanceRecord
-from ..models.certification import Certification, CertificationProgress
+from ..models.badge import StudentBadge, StudentBadgeStatus
+from ..models.certification import CertificationProgress
 from ..models.cohort import Cohort
 from ..models.institution import AcademicCourse, AcademicSpecialization, College, Department
 from ..models.course import Course, Enrollment, ProgressStatus
@@ -72,6 +75,7 @@ from ..models.schedule import ScheduleItem
 from ..models.skill import Skill, SkillClaim, StudentSkill
 from ..models.swoc import SwocEntry, SwocKind, SwocSource
 from ..models.resume_profile import ResumeProfile
+from ..models.time_ledger import TimeLedgerCell, TimeLedgerDay
 from ..models.timesheet import DayActivity, TimeSheetEntry
 from ..models.upload import Upload, UploadKind, UploadStatus
 from ..models.user import LoginDay, Mentor, Role, Student, User
@@ -981,20 +985,61 @@ def my_timesheet(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> TimeSheetSummaryOut:
-    """The self-learning time log over the last `days`, with per-activity totals
-    and the SKILLING-hours-vs-target the chart draws."""
+    """The time log over the last `days`, with per-activity totals and the
+    SKILLING-hours-vs-target the ledger's weekly strip draws.
+
+    THE LEDGER IS WHAT THE STUDENT FILLS IN, SO THE LEDGER IS WHAT THIS SUMS
+    (2026-09-22). `time_sheet_entries` was the old free-form time log's table,
+    and when the Time Allocation Ledger replaced that screen the only thing
+    left writing it was `POST /student/timesheet`, which no client posts to.
+    This endpoint went on reading it alone, so the "Skilling this week" strip
+    on the ledger read "0 h of a 12 h target" under a fortnight of ledger days
+    carrying three hours of skilling each — the student's own screen telling
+    them their filled-in record did not exist. Per calendar day, the ledger's
+    cells win where a ledger row exists (that is the record the student made
+    and can see), and a legacy row is counted only for a day that has no
+    ledger row, so the seed's demo data and any history from the old screen
+    still count once and never twice.
+    """
     student_id = _require_student(session)
     window = max(1, min(days, 90))
-    since = date.today() - timedelta(days=window - 1)
-    rows = db.scalars(
+    today = local_today()
+    since = today - timedelta(days=window - 1)
+
+    ledger_rows = db.execute(
+        select(TimeLedgerDay.day, TimeLedgerCell.activity, func.sum(TimeLedgerCell.half_hours))
+        .select_from(TimeLedgerDay)
+        .join(TimeLedgerCell, TimeLedgerCell.ledger_day_id == TimeLedgerDay.id)
+        .where(
+            TimeLedgerDay.student_id == student_id,
+            TimeLedgerDay.day >= since,
+            TimeLedgerDay.day <= today,
+        )
+        .group_by(TimeLedgerDay.day, TimeLedgerCell.activity)
+    ).all()
+    # minutes per (day, activity): a half hour is thirty minutes.
+    minutes: dict[tuple[date, str], int] = {}
+    for day, activity, halves in ledger_rows:
+        minutes[(day, activity.value)] = minutes.get((day, activity.value), 0) + int(halves) * 30
+    ledger_days = {day for day, _ in minutes}
+
+    legacy = db.scalars(
         select(TimeSheetEntry)
-        .where(TimeSheetEntry.student_id == student_id, TimeSheetEntry.day >= since)
+        .where(
+            TimeSheetEntry.student_id == student_id,
+            TimeSheetEntry.day >= since,
+            TimeSheetEntry.day <= today,
+        )
         .order_by(TimeSheetEntry.day)
     ).all()
+    for r in legacy:
+        if r.day in ledger_days:
+            continue
+        minutes[(r.day, r.activity.value)] = minutes.get((r.day, r.activity.value), 0) + r.minutes
 
     by_activity: dict[str, int] = {}
-    for r in rows:
-        by_activity[r.activity.value] = by_activity.get(r.activity.value, 0) + r.minutes
+    for (_day, activity), mins in minutes.items():
+        by_activity[activity] = by_activity.get(activity, 0) + mins
 
     stu = db.get(Student, student_id)
     return TimeSheetSummaryOut(
@@ -1003,7 +1048,8 @@ def my_timesheet(
         skilling_hours=round(by_activity.get("SKILLING", 0) / 60, 1),
         weekly_hour_target=stu.weekly_hour_target if stu else 12.0,
         entries=[
-            TimeSheetEntryOut(day=r.day, activity=r.activity.value, minutes=r.minutes) for r in rows
+            TimeSheetEntryOut(day=day, activity=activity, minutes=mins)
+            for (day, activity), mins in sorted(minutes.items())
         ],
     )
 
@@ -2137,84 +2183,6 @@ def my_courses(
     return out
 
 
-class CertProgressOut(BaseModel):
-    code: str
-    name: str
-    provider: str
-    status: str
-    progress_pct: float
-    hours_logged: float
-    required_hours: float
-    due_date: datetime
-    self_reported: bool
-    # --- Progress-plan fields (rule-based; no LLM) ---
-    est_hours_remaining: float
-    days_until_due: int | None
-    next_task: str
-    unlocks: str
-
-
-def _cert_next_task(status: str, self_reported: bool, est_hours_remaining: float) -> str:
-    """The single next action for a certification, derived from its status."""
-    if status == "NOT_STARTED":
-        return "Start the course"
-    if status == "IN_PROGRESS":
-        return f"Log about {est_hours_remaining:.0f} more hours, then take the assessment"
-    if status == "COMPLETED":
-        if self_reported:
-            return "Upload your certificate for verification"
-        return "Done — verified"
-    if status == "OVERDUE":
-        return "Catch up — you're behind the pace to finish in time"
-    return "Start the course"
-
-
-@router.get("/certifications", response_model=list[CertProgressOut])
-def my_certifications(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
-) -> list[CertProgressOut]:
-    student_id = _require_student(session)
-    require_feature(db, student_id, "student.certifications")
-    rows = db.execute(
-        select(CertificationProgress, Certification)
-        .join(Certification, CertificationProgress.cert_code == Certification.code)
-        .where(CertificationProgress.student_id == student_id)
-        .order_by(CertificationProgress.due_date)
-    ).all()
-    now = datetime.now(timezone.utc)
-    out: list[CertProgressOut] = []
-    for prog, cert in rows:
-        est_hours_remaining = max(0.0, cert.required_hours - prog.hours_logged)
-        due = prog.due_date
-        if due is None:
-            days_until_due = None
-        else:
-            # Tolerate a naive due_date (some backends drop tzinfo) by assuming UTC.
-            if due.tzinfo is None:
-                due = due.replace(tzinfo=timezone.utc)
-            days_until_due = (due - now).days
-        out.append(
-            CertProgressOut(
-                code=cert.code,
-                name=cert.name,
-                provider=cert.provider,
-                status=prog.status.value,
-                progress_pct=prog.progress_pct,
-                hours_logged=prog.hours_logged,
-                required_hours=cert.required_hours,
-                due_date=prog.due_date,
-                self_reported=prog.self_reported,
-                est_hours_remaining=round(est_hours_remaining, 1),
-                days_until_due=days_until_due,
-                next_task=_cert_next_task(
-                    prog.status.value, prog.self_reported, est_hours_remaining
-                ),
-                unlocks="Raises your placement readiness (certification completion)",
-            )
-        )
-    return out
-
-
 class CheckInIn(BaseModel):
     course_code: str
     module: str
@@ -2721,8 +2689,44 @@ def put_resume_profile(
 
 
 # --- Leaderboards --------------------------------------------------------------
+#
+# THE BOARD IS THE BATCH (2026-09-22). A student who registered naming a batch,
+# was approved and seated in it, opened Leaderboards and saw none of their
+# batch mates. Two things did that, and both are fixed here rather than in the
+# client.
+#
+# ONE: a board listed only the students who already HELD something on it (the
+# 2026-09-17 rule, kept — a "Rank 2 of 30" over a zero is a lie), so a fresh
+# batch with no verified skills and no results yet drew "No ranking yet" for
+# everybody, and nothing on the screen said the classmates were there at all.
+# The board now carries the batch mates who are NOT yet ranked as a second,
+# unnumbered list, so the student sees their batch and sees who is ranked.
+#
+# TWO: a student with `students.cohort_id` NULL — provisioned before the form
+# copied the requested batch onto the row, or granted with `--department-id`
+# alone — was "ranked" among every other NULL-cohort student on the
+# deployment, which is not a batch and never was. The scope is resolved by
+# `_leaderboard_scope`: the batch where there is one, else the department
+# (`students.department_id`, the same second pointer `ancestry_of_student`
+# reads), else nobody — and the response SAYS which, in words the screen
+# prints, because "you are not seated in a batch yet" and "your batch has no
+# results yet" are different sentences with different fixes.
+#
+# And the boards rank ONE component each. `overall` is the rank across all of
+# them: skills, VTU results, streak and mocks, each worth up to
+# OVERALL_POINTS_PER_COMPONENT scaled against the best in the batch, summed to
+# a score out of 100. Scaled rather than summed raw because a CGPA is out of
+# 10 and a streak is out of however many days the term has run — added
+# unscaled, the streak would BE the leaderboard.
 
-_BOARDS = ("certificates", "skills", "vtu", "streak", "mocks")
+_BOARDS = ("overall", "certificates", "skills", "vtu", "streak", "mocks")
+
+#: The single-component boards `overall` is built from. `certificates` is not
+#: one of them for the reason the client dropped its tab: a certificate is
+#: evidence for a skill, and the skills board already ranks what those
+#: certificates were verified into — counting both would count it twice.
+OVERALL_COMPONENTS: tuple[str, ...] = ("skills", "vtu", "streak", "mocks")
+OVERALL_POINTS_PER_COMPONENT = 25
 
 
 def _initials(name: str) -> str:
@@ -2734,12 +2738,58 @@ def _initials(name: str) -> str:
     return (parts[0][0] + parts[-1][0]).upper()
 
 
+def _plural(n: int, noun: str) -> str:
+    return f"{n} {noun}" if n == 1 else f"{n} {noun}s"
+
+
+def overall_points(components: dict[str, dict[str, float]]) -> dict[str, int]:
+    """student_id -> points out of 100, from `{board: {student_id: value}}`.
+
+    Each component is worth OVERALL_POINTS_PER_COMPONENT, scaled by the
+    student's value against the BEST value in the batch on that component —
+    the batch's top CGPA earns the full 25, a CGPA of 8 against a best of 9
+    earns 22.2 — and the components are added. Rounded half up to a whole
+    point, and RANKED ON THE ROUNDED NUMBER, so two students the label calls
+    "72 pts" are level rather than separated by a decimal the screen hides.
+    A student on no component at all is absent, like on every other board.
+
+    Pure, so the arithmetic is pinned without a database.
+    """
+    totals: dict[str, float] = defaultdict(float)
+    for values in components.values():
+        best = max(values.values(), default=0.0)
+        if best <= 0:
+            continue
+        for sid, value in values.items():
+            if value > 0:
+                totals[sid] += OVERALL_POINTS_PER_COMPONENT * value / best
+    return {sid: int(total + 0.5) for sid, total in totals.items() if total > 0}
+
+
 def _board_values(db: Session, board: str, roster: list[tuple[str, str]]) -> dict[str, tuple[float, str]]:
     """student_id -> (value, label) for the chosen board, over the cohort roster
-    (list of (student_id, user_id)). Students with no activity score 0."""
+    (list of (student_id, user_id)).
+
+    A STUDENT WITH NOTHING RECORDED ON A BOARD IS ABSENT FROM THE RESULT, and
+    `_ranked_board` reads that absence as "not ranked" (2026-09-17). Every
+    roster student used to come back scoring 0 and was then ranked with the
+    rest, so a batch of thirty with one verified skill between them drew
+    "Rank 2 of 30 -- top 7%" under a student holding nothing, in whatever order
+    Postgres returned the roster that minute. On the VTU board the same rule
+    printed "CGPA 0.00" against a student whose results were never recorded --
+    the confident zero the English-baseline and attendance screens already
+    refuse to draw. The client has carried a "You're not ranked here yet" state
+    for exactly this since the UX audit, and nothing could reach it.
+    """
     sids = [sid for sid, _ in roster]
     uid_by_sid = {sid: uid for sid, uid in roster}
-    out: dict[str, tuple[float, str]] = {sid: (0.0, "") for sid in sids}
+
+    if board == "overall":
+        components = {
+            component: {sid: value for sid, (value, _label) in _board_values(db, component, roster).items()}
+            for component in OVERALL_COMPONENTS
+        }
+        return {sid: (float(pts), f"{pts} pts") for sid, pts in overall_points(components).items()}
 
     if board == "certificates":
         rows = db.execute(
@@ -2750,17 +2800,32 @@ def _board_values(db: Session, board: str, roster: list[tuple[str, str]]) -> dic
             )
             .group_by(CertificationProgress.student_id)
         ).all()
-        counts = {sid: n for sid, n in rows}
-        return {sid: (float(counts.get(sid, 0)), f"{counts.get(sid, 0)} certs") for sid in sids}
+        return {sid: (float(n), _plural(n, "cert")) for sid, n in rows if n}
 
     if board == "skills":
+        # WHAT THE SKILLING SCREEN VERIFIES, NOT `student_skills` (2026-09-17).
+        # `/student/skilling` files a certificate as badge evidence, the mentor
+        # APPROVES it on `/mentor/verifications`, and `_award` mints the EARNED
+        # `student_badges` row that screen draws as "Verified and acquired" and
+        # counts as "N skills currently illuminated". This board counted rows of
+        # `student_skills` instead -- a table written only by the legacy
+        # skill-claim review (`/mentor/skill-claims/{id}/review`, which no
+        # client has posted to since the Skilling screen replaced the per-skill
+        # claim form) and by the dev seed -- and counted them verified or not.
+        # So on a live deployment a student whose skills the mentor had just
+        # verified saw "0 skills" beside classmates showing the same, and the
+        # office reported the ranking as never done. One record, one count: the
+        # board agrees with the screen the student verifies on, which is B6.3's
+        # rule for the mocks board below.
         rows = db.execute(
-            select(StudentSkill.student_id, func.count())
-            .where(StudentSkill.student_id.in_(sids))
-            .group_by(StudentSkill.student_id)
+            select(StudentBadge.student_id, func.count())
+            .where(
+                StudentBadge.student_id.in_(sids),
+                StudentBadge.status == StudentBadgeStatus.EARNED,
+            )
+            .group_by(StudentBadge.student_id)
         ).all()
-        counts = {sid: n for sid, n in rows}
-        return {sid: (float(counts.get(sid, 0)), f"{counts.get(sid, 0)} skills") for sid in sids}
+        return {sid: (float(n), _plural(n, "skill")) for sid, n in rows if n}
 
     if board == "mocks":
         # B6.3 — BOTH SOURCES, and in the same commit as `my_mocks`. This board
@@ -2768,43 +2833,47 @@ def _board_values(db: Session, board: str, roster: list[tuple[str, str]]) -> dic
         # ("mocks"), so a board counting only the staff-logged rehearsals would
         # tell a student they had sat 2 while their own home screen showed 9,
         # with nothing on either screen to explain the gap. Completed interviews
-        # only, which is exactly what `my_mocks` charts.
-        rows = db.execute(
+        # only, which is exactly what `my_mocks` charts: an interview closed
+        # before its verdict is `abandoned`, has no score, and counts nowhere.
+        counts: dict[str, int] = {}
+        for sid, n in db.execute(
             select(MockAttempt.student_id, func.count())
             .where(MockAttempt.student_id.in_(sids))
             .group_by(MockAttempt.student_id)
-        ).all()
-        counts = {sid: n for sid, n in rows}
-        interview_rows = db.execute(
+        ).all():
+            counts[sid] = counts.get(sid, 0) + n
+        for sid, n in db.execute(
             select(InterviewScoreSummary.student_id, func.count())
             .where(
                 InterviewScoreSummary.student_id.in_(sids),
                 InterviewScoreSummary.status == "completed",
             )
             .group_by(InterviewScoreSummary.student_id)
-        ).all()
-        for sid, n in interview_rows:
+        ).all():
             counts[sid] = counts.get(sid, 0) + n
-        return {sid: (float(counts.get(sid, 0)), f"{counts.get(sid, 0)} mocks") for sid in sids}
+        return {sid: (float(n), _plural(n, "mock")) for sid, n in counts.items() if n}
 
     if board == "vtu":
-        # Latest semester's CGPA per student, decided by Postgres. This used to
+        # Latest recorded CGPA per student, decided by Postgres. This used to
         # fetch EVERY SemesterResult row for the cohort and keep the first per
         # student in Python — ~30,000 hydrated rows per call at a 5,000-student
         # cohort (2026-08 audit). DISTINCT ON with the matching ORDER BY is the
         # same "first row per student is the highest semester" idea, executed
-        # where the rows live, returning one row per student.
+        # where the rows live, returning one row per student. A semester filed
+        # without a CGPA is skipped in the WHERE, so the latest semester that
+        # HAS one is the number, and a student with none is absent rather than
+        # "CGPA 0.00" (or, before this, a TypeError on float(None)).
         rows = db.execute(
             select(SemesterResult.student_id, SemesterResult.cgpa)
-            .where(SemesterResult.student_id.in_(sids))
+            .where(SemesterResult.student_id.in_(sids), SemesterResult.cgpa.is_not(None))
             .distinct(SemesterResult.student_id)
             .order_by(SemesterResult.student_id, SemesterResult.semester.desc())
         ).all()
-        latest = {sid: float(cgpa) for sid, cgpa in rows}
-        return {sid: (latest.get(sid, 0.0), f"CGPA {latest.get(sid, 0.0):.2f}") for sid in sids}
+        return {sid: (float(cgpa), f"CGPA {float(cgpa):.2f}") for sid, cgpa in rows}
 
     if board == "streak":
-        # Active-day count (LoginDay is keyed by user_id).
+        # Active-day count (LoginDay is keyed by user_id, and every sign-in door
+        # writes one through auth._record_login).
         uids = list(uid_by_sid.values())
         rows = db.execute(
             select(LoginDay.user_id, func.count())
@@ -2813,11 +2882,12 @@ def _board_values(db: Session, board: str, roster: list[tuple[str, str]]) -> dic
         ).all()
         by_uid = {uid: n for uid, n in rows}
         return {
-            sid: (float(by_uid.get(uid_by_sid[sid], 0)), f"{by_uid.get(uid_by_sid[sid], 0)} active days")
-            for sid in sids
+            sid: (float(by_uid[uid]), _plural(by_uid[uid], "active day"))
+            for sid, uid in uid_by_sid.items()
+            if by_uid.get(uid)
         }
 
-    return out
+    return {}
 
 
 class LeaderRow(BaseModel):
@@ -2830,11 +2900,35 @@ class LeaderRow(BaseModel):
     is_me: bool
 
 
+class LeaderPeer(BaseModel):
+    """A batch mate who is on the roster but not yet ranked on this board:
+    a name and nothing else, because there is no number to print."""
+
+    student_id: str
+    name: str
+    initials: str
+    is_me: bool
+
+
 class LeaderboardOut(BaseModel):
     board: str
     opted_out: bool
+    #: "batch" — ranked within the caller's batch; "department" — the caller is
+    #: seated in no batch and is ranked within the department they named;
+    #: "none" — neither is recorded, and the screen says so instead of drawing
+    #: an empty board as if nobody had done anything.
+    scope: str
+    #: The batch ("General MBA - Finance · 2026-28") or department the board
+    #: covers, for the sentence under the title. None when `scope` is "none".
+    scope_label: str | None
+    #: Everybody in the scope who has not opted out — ranked or not.
+    classmates: int
     cohort_size: int  # number of ranked students on the board (for "Rank 8 of N")
     rows: list[LeaderRow]
+    #: Classmates with nothing on this board yet, by name. Capped; see
+    #: `_LEADERBOARD_UNRANKED_N`.
+    unranked: list[LeaderPeer]
+    unranked_total: int
 
 
 # How much of a board one response carries: the top of the table plus the
@@ -2842,23 +2936,86 @@ class LeaderboardOut(BaseModel):
 # 5,000-student cohort the full board was a ~600 KB JSON document per request,
 # and nobody scrolls to rank 4,000 — they look at the top and at themselves.
 _LEADERBOARD_TOP_N = 50
-# One ranked board per (cohort, board) is recomputed at most this often, per
+# The unranked list is names only, and a batch is dozens of people; the cap
+# exists for the department fallback, which can be every batch of a department.
+_LEADERBOARD_UNRANKED_N = 200
+# One ranked board per (scope, board) is recomputed at most this often, per
 # worker. Leaderboards tolerate staleness by definition — a rank that is 60 s
 # old is still today's rank — and this turns a deadline-week thundering herd
-# into at most one aggregate pass a minute per cohort per board.
+# into at most one aggregate pass a minute per scope per board.
 _LEADERBOARD_CACHE_TTL_S = 60.0
-_leaderboard_cache: dict[tuple[str | None, str], tuple[float, list[tuple]]] = {}
+_leaderboard_cache: dict[tuple[str, str | None, str], tuple[float, "_Board"]] = {}
 _leaderboard_cache_lock = threading.Lock()
 
 
-def _ranked_board(
-    db: Session, cohort_id: str | None, board: str
-) -> list[tuple[int, str, str, float, str]]:
-    """The whole ranked board — (rank, student_id, name, value, label) — for one
-    cohort, cached per worker for _LEADERBOARD_CACHE_TTL_S.
+def clear_leaderboard_cache() -> None:
+    """Drop every cached board on this worker.
+
+    For a write that changes WHO is on a board rather than what they hold: a
+    student's own visibility setting, and the office removing or restoring an
+    account (`routers/admin_deletion.py`). The WHOLE cache and never one
+    scope, because a student sits in a batch and a department at once and a
+    change like this is rare enough that recomputing every board once is
+    cheaper than getting the key set wrong. Per worker, like the cache itself:
+    another worker keeps its board for the rest of the TTL. And a board read
+    that began before the write committed can finish after this clear and put
+    the old board back for one TTL — the staleness the cache already declares.
+    """
+    with _leaderboard_cache_lock:
+        _leaderboard_cache.clear()
+
+
+@dataclass(frozen=True)
+class _Scope:
+    """Who the caller is ranked against — see the module note above."""
+
+    kind: str  # "batch" | "department" | "none"
+    key: str | None
+    label: str | None
+
+
+@dataclass(frozen=True)
+class _Board:
+    """One computed board: the ranked entries — (rank, student_id, name, value,
+    label) — the unranked classmates as (student_id, name), and the roster
+    size the two were drawn from."""
+
+    entries: list[tuple[int, str, str, float, str]]
+    unranked: list[tuple[str, str]]
+    classmates: int
+
+
+def _leaderboard_scope(db: Session, me: Student) -> _Scope:
+    """The batch, else the department, else nobody — and the words for it.
+
+    The label is `batch_labels.compose` over the same institution query the
+    profile card reads (`_INSTITUTION_Q`), never `cohorts.name` alone, which
+    is a year and not a batch ("A BATCH IS A YEAR", AGENTS.md).
+    """
+    if me.cohort_id:
+        cohort = db.get(Cohort, me.cohort_id)
+        if cohort is not None:
+            row = db.execute(_INSTITUTION_Q, {"cohort_id": cohort.id}).mappings().first()
+            label = batch_labels.compose(
+                row["course_name"] if row else None,
+                row["specialization_name"] if row else None,
+                cohort.name,
+                cohort.batch_label,
+            )
+            return _Scope("batch", cohort.id, label)
+    if me.department_id:
+        department = db.get(Department, me.department_id)
+        if department is not None:
+            return _Scope("department", department.id, department.name)
+    return _Scope("none", None, None)
+
+
+def _ranked_board(db: Session, scope: _Scope, board: str) -> _Board:
+    """The whole board for one scope, cached per worker for
+    _LEADERBOARD_CACHE_TTL_S.
 
     Cached WITHOUT the caller folded in: `is_me` is per-request decoration, so
-    one cached list serves every student in the cohort. The opt-out set is part
+    one cached board serves every student in the scope. The opt-out set is part
     of the cached computation and therefore up to 60 s stale FOR OTHERS — the
     student who opts out vanishes from their own screen immediately, because
     `leaderboards` checks their own profile fresh on every request. A stampede
@@ -2866,7 +3023,9 @@ def _ranked_board(
     than serialising every reader behind one computation; the work is idempotent
     and the last writer wins.
     """
-    key = (cohort_id, board)
+    if scope.kind == "none":
+        return _Board(entries=[], unranked=[], classmates=0)
+    key = (scope.kind, scope.key, board)
     now = time.monotonic()
     with _leaderboard_cache_lock:
         hit = _leaderboard_cache.get(key)
@@ -2880,34 +3039,66 @@ def _ranked_board(
             )
         ).all()
     )
-    cohort_filter = (
-        Student.cohort_id.is_(None) if cohort_id is None else Student.cohort_id == cohort_id
-    )
-    roster_rows = db.execute(
+    # A REMOVED account (`users.deleted_at`) is off every screen, classmates'
+    # boards included: the office is told "… is off every screen", and a name
+    # left ranked, or listed as not ranked yet, on a batch mate's board made
+    # that untrue. Every board, `overall`'s scaling and `classmates` read this
+    # roster, so the one filter reaches them all.
+    roster_q = (
         select(Student.id, Student.user_id, User.name)
+        .select_from(Student)
         .join(User, Student.user_id == User.id)
-        .where(cohort_filter)
-    ).all()
+        .where(User.deleted_at.is_(None))
+    )
+    if scope.kind == "batch":
+        roster_q = roster_q.where(Student.cohort_id == scope.key)
+    else:
+        # The department reaches BOTH pointers, as `ancestry_of_student` does:
+        # the students seated in one of its batches and the students who named
+        # it on the form and are seated nowhere yet.
+        roster_q = roster_q.outerjoin(Cohort, Student.cohort_id == Cohort.id).where(
+            (Student.department_id == scope.key) | (Cohort.department_id == scope.key)
+        )
+    roster_rows = db.execute(roster_q).all()
     roster = [(sid, uid, name) for sid, uid, name in roster_rows if sid not in opted_out]
 
     values = _board_values(db, board, [(sid, uid) for sid, uid, _ in roster])
-    ranked = sorted(roster, key=lambda r: values[r[0]][0], reverse=True)
-    entries = [
-        (i + 1, sid, name, values[sid][0], values[sid][1])
-        for i, (sid, _uid, name) in enumerate(ranked)
-    ]
+    # Only a student with a record on this board is on it (see _board_values).
+    # Equal totals share a rank and the next rank skips -- 1, 2, 2, 4 -- because
+    # two students holding the same three verified skills are level, and
+    # `enumerate` over a sort made one of them second by whichever row Postgres
+    # happened to return first, a different one after every cache refresh. The
+    # name and then the id order the DISPLAY of a tie only, so the board is the
+    # same list every time it is drawn.
+    ordered = sorted(
+        ((sid, name) for sid, _uid, name in roster if sid in values),
+        key=lambda r: (-values[r[0]][0], r[1].casefold(), r[0]),
+    )
+    entries: list[tuple[int, str, str, float, str]] = []
+    rank = 0
+    previous: float | None = None
+    for position, (sid, name) in enumerate(ordered, start=1):
+        value, label = values[sid]
+        if value != previous:
+            rank, previous = position, value
+        entries.append((rank, sid, name, value, label))
+    unranked = sorted(
+        ((sid, name) for sid, _uid, name in roster if sid not in values),
+        key=lambda r: (r[1].casefold(), r[0]),
+    )
+    computed = _Board(entries=entries, unranked=unranked, classmates=len(roster))
     with _leaderboard_cache_lock:
-        _leaderboard_cache[key] = (now, entries)
-    return entries
+        _leaderboard_cache[key] = (now, computed)
+    return computed
 
 
 @router.get("/leaderboards", response_model=LeaderboardOut)
 def leaderboards(
-    board: str = "certificates",
+    board: str = "overall",
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> LeaderboardOut:
-    """Rank the caller's cohort on one board. A student who opted out is excluded
+    """Rank the caller's batch on one board. A student who opted out is excluded
     from every board and — in both directions — sees no ranks themselves."""
     student_id = _require_student(session)
     require_feature(db, student_id, "student.leaderboards")
@@ -2924,15 +3115,26 @@ def leaderboards(
         # dereferences the caller's own Student answers 404 here (see
         # /dashboard); match them rather than inventing a third behaviour.
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
+    scope = _leaderboard_scope(db, me)
     my_profile = db.scalar(
         select(StudentProfile).where(StudentProfile.student_id == student_id)
     )
     if my_profile is not None and my_profile.leaderboard_opt_out:
-        return LeaderboardOut(board=board, opted_out=True, cohort_size=0, rows=[])
+        return LeaderboardOut(
+            board=board,
+            opted_out=True,
+            scope=scope.kind,
+            scope_label=scope.label,
+            classmates=0,
+            cohort_size=0,
+            rows=[],
+            unranked=[],
+            unranked_total=0,
+        )
 
     # The whole board, ranked, from the per-worker 60 s cache — see
     # _ranked_board for what is cached and what stays per-request.
-    entries = _ranked_board(db, me.cohort_id, board)
+    computed = _ranked_board(db, scope, board)
 
     def _row(entry: tuple[int, str, str, float, str]) -> LeaderRow:
         rank, sid, name, value, label = entry
@@ -2949,13 +3151,25 @@ def leaderboards(
     # Top of the table, plus the caller's own row with its TRUE rank when they
     # fall outside it — "Rank 1,247 of 4,890" is the sentence a student wants,
     # and shipping ranks 51-4,889 to render it was the 600 KB the audit flagged.
-    rows = [_row(e) for e in entries[: _LEADERBOARD_TOP_N]]
+    rows = [_row(e) for e in computed.entries[: _LEADERBOARD_TOP_N]]
     if not any(r.is_me for r in rows):
-        mine = next((e for e in entries if e[1] == student_id), None)
+        mine = next((e for e in computed.entries if e[1] == student_id), None)
         if mine is not None:
             rows.append(_row(mine))
+    unranked = [
+        LeaderPeer(student_id=sid, name=name, initials=_initials(name), is_me=(sid == student_id))
+        for sid, name in computed.unranked[:_LEADERBOARD_UNRANKED_N]
+    ]
     return LeaderboardOut(
-        board=board, opted_out=False, cohort_size=len(entries), rows=rows
+        board=board,
+        opted_out=False,
+        scope=scope.kind,
+        scope_label=scope.label,
+        classmates=computed.classmates,
+        cohort_size=len(computed.entries),
+        rows=rows,
+        unranked=unranked,
+        unranked_total=len(computed.unranked),
     )
 
 
@@ -2978,21 +3192,17 @@ def set_leaderboard_visibility(
         db.add(prof)
     prof.leaderboard_opt_out = body.hidden
     db.commit()
-    # Drop this cohort's cached boards so the toggle is visible on the very
-    # next read. Without this, opting BACK IN inside a still-fresh cache window
-    # answered "You're now visible on the leaderboards" and then rendered a
-    # board without them — the review of the 2026-08 fix wave caught the
+    # Drop the cached boards so the toggle is visible on the very next read.
+    # Without this, opting BACK IN inside a still-fresh cache window answered
+    # "You're now visible on the leaderboards" and then rendered a board
+    # without them — the review of the 2026-08 fix wave caught the
     # contradiction. (Opting OUT never had the problem only because the
     # caller's own opt-out is checked fresh, before the cache, in
-    # `leaderboards` above.) Per worker, like the cache itself: classmates on
-    # another worker may see the old board for the remaining TTL, which is the
-    # staleness the cache already declares acceptable — lying to the student
-    # about their own setting was not.
-    me = db.get(Student, student_id)
-    if me is not None:
-        with _leaderboard_cache_lock:
-            for b in _BOARDS:
-                _leaderboard_cache.pop((me.cohort_id, b), None)
+    # `leaderboards` above.) Classmates on another worker may see the old
+    # board for the remaining TTL, which is the staleness the cache already
+    # declares acceptable — lying to the student about their own setting was
+    # not.
+    clear_leaderboard_cache()
     return {"hidden": body.hidden}
 
 
@@ -3207,45 +3417,15 @@ def next_actions(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> NextActionsOut:
     """The student's 'what to do next' list — the top 5 candidate actions drawn
-    from their real certification, course, profile, resume and skilling state,
-    sorted by urgency (lower priority = more urgent). Rule-based; no model."""
+    from their real course, profile, resume and skilling state, sorted by
+    urgency (lower priority = more urgent). Rule-based; no model.
+
+    Certification rows used to lead this list ("Finish X", routed to the
+    Certification Tracker). That screen and its endpoint were removed on
+    2026-09-17, so an action pointing at it would be a button to nowhere.
+    """
     student_id = _require_student(session)
     actions: list[NextActionOut] = []
-
-    # Certifications (join for the display name), split by status.
-    cert_rows = db.execute(
-        select(CertificationProgress, Certification)
-        .join(Certification, CertificationProgress.cert_code == Certification.code)
-        .where(CertificationProgress.student_id == student_id)
-        .order_by(CertificationProgress.due_date)
-    ).all()
-    for prog, cert in cert_rows:
-        if prog.status == ProgressStatus.OVERDUE:
-            actions.append(
-                NextActionOut(
-                    id=f"cert-overdue-{cert.code}",
-                    title=f"Finish {cert.name}",
-                    reason="Overdue — behind the pace to complete in time",
-                    cta_label="Continue",
-                    cta_route="/student/certifications",
-                    status="Overdue",
-                    deadline=prog.due_date,
-                    priority=1,
-                )
-            )
-        elif prog.status == ProgressStatus.IN_PROGRESS:
-            actions.append(
-                NextActionOut(
-                    id=f"cert-progress-{cert.code}",
-                    title=f"Finish {cert.name}",
-                    reason=f"In progress ({round(prog.progress_pct)}%)",
-                    cta_label="Continue",
-                    cta_route="/student/certifications",
-                    status="In progress",
-                    deadline=prog.due_date,
-                    priority=3,
-                )
-            )
 
     # In-progress courses.
     course_rows = db.execute(
@@ -4051,33 +4231,11 @@ def recommendations(
         )
 
     # Holds every catalogue skill (or the catalogue is empty): fall back to
-    # finishing an in-progress certification, then completing the resume profile.
+    # completing the resume profile. This used to suggest finishing an
+    # in-progress certification first, routed to the Certification Tracker —
+    # removed with that screen on 2026-09-17.
     if not items:
-        in_prog = db.execute(
-            select(Certification.name)
-            .join(
-                CertificationProgress,
-                CertificationProgress.cert_code == Certification.code,
-            )
-            .where(
-                CertificationProgress.student_id == student_id,
-                CertificationProgress.status.in_(
-                    (ProgressStatus.IN_PROGRESS, ProgressStatus.OVERDUE)
-                ),
-            )
-            .order_by(CertificationProgress.due_date)
-            .limit(3)
-        ).all()
-        for (cert_name,) in in_prog:
-            items.append(
-                RecommendationOut(
-                    title=f"Finish {cert_name}",
-                    why="You have every catalogue skill — completing this certification is your next win",
-                    cta_label="Continue",
-                    cta_route="/student/certifications",
-                )
-            )
-        if len(items) < 3 and _resume_pct(db, student_id) < 100:
+        if _resume_pct(db, student_id) < 100:
             items.append(
                 RecommendationOut(
                     title="Complete your resume profile",

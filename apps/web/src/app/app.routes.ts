@@ -113,14 +113,6 @@ export const routes: Routes = [
           import('./features/student/home/home.component').then((m) => m.StudentHomeComponent),
       },
       {
-        path: 'student/certifications',
-        canActivate: [roleGuard('STUDENT')],
-        loadComponent: () =>
-          import('./features/student/certifications/certifications.component').then(
-            (m) => m.CertificationsComponent,
-          ),
-      },
-      {
         path: 'student/skilling',
         canActivate: [roleGuard('STUDENT')],
         loadComponent: () =>
@@ -334,8 +326,11 @@ export const routes: Routes = [
           ),
       },
       {
+        // A capability, not a role (2026-09-17): the Main Admin holds
+        // admin.leave_approvals by baseline and can grant it to a faculty
+        // member, who then reaches this queue under "Granted access".
         path: 'admin/leave-approvals',
-        canActivate: [roleGuard('ADMIN')],
+        canActivate: [capabilityGuard('admin.leave_approvals')],
         loadComponent: () =>
           import('./features/admin/leave-approvals/leave-approvals.component').then(
             (m) => m.AdminLeaveApprovalsComponent,
@@ -436,12 +431,15 @@ export const routes: Routes = [
       // route, though the order is not what separates them — both are full-path
       // matches, so `admin/students` never swallows `admin/students/5`.
       //
-      // It carries the SAME key as the roster since Phase 5 removed the preview
-      // switch, so anyone who can read the roster can open a row. That is what
-      // `RosterGridContext.canOpenDetail` mirrors — see students.component.ts.
+      // ITS OWN KEY (2026-09-17). `admin.students` is the roster EDITOR;
+      // `admin.student_records` is the read of one candidate's complete
+      // record, split off so the office can grant a faculty member the second
+      // without the first. The Main Admin holds both by baseline. That is what
+      // `RosterGridContext.canOpenDetail` mirrors — see students.component.ts —
+      // and what the Mentee Log's "Full record" link reads.
       {
         path: 'admin/students/:id',
-        canActivate: [capabilityGuard('admin.students')],
+        canActivate: [capabilityGuard('admin.student_records')],
         loadComponent: () =>
           import('./features/admin/student-detail/student-detail.component').then(
             (m) => m.AdminStudentDetailComponent,

@@ -103,9 +103,11 @@ from ..db import SessionLocal, engine, get_db
 from ..governance import FEATURE_DISABLED_DEFAULT_MESSAGE, FeatureState, feature_state
 from ..identity import get_current_session, get_ws_session
 from ..interview_audio import (
+    SKIP_NOTHING_CAPTURED,
     available_tracks,
     download_name,
     recorder_for,
+    recorder_or_reason,
     track_path,
 )
 from .. import tracing
@@ -855,8 +857,14 @@ def _record_audio_in_the_manifest(
         )
 
 
-def _make_finalizer(interview_session_id: str):
+def _make_finalizer(interview_session_id: str, *, audio_skip_reason: str | None = None):
     """LAYER 1's database half: close the record, and record that no report came.
+
+    `audio_skip_reason` is `recorder_or_reason`'s word for the gate that
+    refused a recorder before the interview began, or None when one was built.
+    It lands on the row ONLY when nothing was recorded: a recorder that was
+    built and still closed with nothing is `nothing_captured`, and a recorded
+    interview has nothing to explain.
 
     The UPDATE carries `AND status = 'running'`, which is what makes all three
     finalization layers idempotent against each other with no coordination: the
@@ -914,6 +922,11 @@ def _make_finalizer(interview_session_id: str):
                     audio_bytes=outcome.audio_bytes,
                     audio_duration_ms=outcome.audio_duration_ms,
                     audio_truncated=outcome.audio_truncated,
+                    audio_skipped_reason=(
+                        None
+                        if outcome.audio_recorded
+                        else (audio_skip_reason or SKIP_NOTHING_CAPTURED)
+                    ),
                     heartbeat_at=now,
                     ended_at=now,
                 )
@@ -1532,8 +1545,8 @@ async def interview(websocket: WebSocket) -> None:
     # `store_audio`, and the student's own live `scope_store_audio` grant. A
     # policy that turned recording on over a student who was never told would be
     # the one failure this whole area exists to prevent.
-    recorder = await asyncio.to_thread(
-        recorder_for,
+    recorder, audio_skip_reason = await asyncio.to_thread(
+        recorder_or_reason,
         interview_session_id,
         user_id,
         policy_allows_audio=policy.store_audio,
@@ -1588,7 +1601,9 @@ async def interview(websocket: WebSocket) -> None:
             store_transcript=policy.store_transcript,
         ),
         on_report=_make_report_writer(interview_session_id),
-        on_finalize=_make_finalizer(interview_session_id),
+        on_finalize=_make_finalizer(
+            interview_session_id, audio_skip_reason=audio_skip_reason
+        ),
         on_heartbeat=_make_heartbeat(
             interview_session_id,
             consent_id=consent_id,

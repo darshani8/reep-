@@ -34,7 +34,7 @@ from app.routers.registration import (
     CHECK_WARN,
 )
 
-from conftest import requires_db
+from conftest import application_files, requires_db
 
 
 # --------------------------------------------------------------- fixtures --
@@ -333,7 +333,7 @@ def test_a_clean_application_carries_no_blocker(client, make_user, applicant):
 
 
 @requires_db
-def test_the_applicant_never_sees_the_reviewers_checklist(client):
+def test_the_applicant_never_sees_the_reviewers_checklist(client, tmp_document_store):
     """`_public_out_one` narrows by `model_fields`, so a field added to the staff
     model is private BY DEFAULT — the direction the mistake should fall in, and
     the reason the map says do not "fix" it. A check naming somebody else's
@@ -347,7 +347,7 @@ def test_the_applicant_never_sees_the_reviewers_checklist(client):
     try:
         r = client.post(
             "/api/register",
-            json={
+            data={
                 "name": "Public Applicant",
                 "email": email,
                 "usn": f"1BG26PUB{uuid.uuid4().hex[:3].upper()}",
@@ -356,6 +356,7 @@ def test_the_applicant_never_sees_the_reviewers_checklist(client):
                 "linkedin_url": "https://www.linkedin.com/in/public-applicant",
                 "degree_level": "PG",
             },
+            files=application_files(),
         )
         assert r.status_code == 201, r.text
         assert "checks" not in r.json(), (

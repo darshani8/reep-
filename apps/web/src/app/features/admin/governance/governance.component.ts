@@ -73,6 +73,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
+import { endOfLocalDay } from '../../../core/calendar-day';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
 // ---- exact snake_case shapes of the governance router's Out models ---------
@@ -992,8 +993,12 @@ export class GovernanceComponent {
       user_ids: this.grantMode() === 'users' ? this.pickedUserIds() : [],
       group_ids: this.grantMode() === 'groups' ? this.pickedGroupIds() : [],
     };
-    if (this.grantExpiry()) {
-      body['expires_at'] = `${this.grantExpiry()}T23:59:59Z`;
+    // The END of the typed day on this browser's clock, the calendar
+    // `asDayLabel` prints it back in — never `…T23:59:59Z`, which in IST is
+    // the next morning and reads back as the day after.
+    const expiresAt = endOfLocalDay(this.grantExpiry());
+    if (expiresAt !== null) {
+      body['expires_at'] = expiresAt;
     }
     // B1.2. BOTH OR NEITHER, and "neither" means the keys are absent rather
     // than present and empty: `GrantIn` refuses a half pair with a 422, and an
@@ -1204,11 +1209,14 @@ export class GovernanceComponent {
     this.actionBusy.set(true);
     const body: Record<string, unknown> = { reason: this.actionReason().trim() };
     if (kind === 'extend') {
-      if (this.actionExpiry()) {
-        body['expires_at'] = `${this.actionExpiry()}T23:59:59Z`;
+      // Both dates through the grant form's own conversion, for its reason.
+      const expiresAt = endOfLocalDay(this.actionExpiry());
+      if (expiresAt !== null) {
+        body['expires_at'] = expiresAt;
       }
-      if (this.actionReview()) {
-        body['review_at'] = `${this.actionReview()}T23:59:59Z`;
+      const reviewAt = endOfLocalDay(this.actionReview());
+      if (reviewAt !== null) {
+        body['review_at'] = reviewAt;
       }
     }
     let doneCount = 0;

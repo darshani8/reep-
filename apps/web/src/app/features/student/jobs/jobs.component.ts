@@ -34,6 +34,7 @@ import { Component, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { environment } from '../../../../environments/environment';
+import { failedReadMessage } from '../../../core/feature-refusal';
 
 type Tone = 'good' | 'warn' | 'risk' | 'neutral';
 
@@ -127,7 +128,7 @@ export class JobsComponent {
     try {
       const res = await fetch(`${environment.apiBase}/student/jobs`, { credentials: 'include' });
       if (!res.ok) {
-        this.error.set('Could not load the jobs board.');
+        this.error.set(await failedReadMessage(res, 'Could not load the jobs board.'));
         return;
       }
       this.jobs.set((await res.json()) as JobRow[]);

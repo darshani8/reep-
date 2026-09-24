@@ -287,7 +287,9 @@ def test_programme_returns_the_three_stages_with_defaults(client, make_user):
     stu = make_user("prog-new")
     body = client.get("/api/student/programme", headers=stu.headers).json()
     assert [s["key"] for s in body["stages"]] == ["reboot", "excel", "elevate"]
-    assert body["total"] == 12
+    # 3 + 4 + 4. Elevate had five until 2026-09-17, when "Specialization Cert"
+    # left the catalogue with the screen behind it.
+    assert body["total"] == 11
     assert body["completed"] == 0
     reboot = body["stages"][0]
     assert [i["key"] for i in reboot["items"]] == ["ree_101", "ree_102", "english_baseline"]
@@ -332,7 +334,7 @@ def test_stored_milestones_and_the_derived_english_row(client, make_user):
     assert by_key["english_baseline"]["status"] == "COMPLETED"
     assert reboot["completed"] == 2
     # The retired key contributed nothing.
-    assert body["total"] == 12
+    assert body["total"] == 11
 
 
 @requires_db

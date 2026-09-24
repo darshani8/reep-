@@ -1,8 +1,8 @@
-/* The landing. Cards, grids, chips, the stage rows, the donut, the bar chart and
- * the streak cells are the global reep-v2 classes; what lives here is the
- * layout this screen alone has — the two asymmetric grids, the attendance
- * bars, the VTU marks line chart, the academic-history cards and the readiness
- * / recommendation rows. Nothing global is redefined. */
+/* The landing. Cards, grids, chips and the stage rows are the global reep-v2
+ * classes; what lives here is the layout this screen alone has — the two
+ * asymmetric grids, the attendance bars, the VTU marks line chart, the
+ * academic-history cards and the readiness / recommendation rows. Nothing
+ * global is redefined. */
 
 :host {
   display: block;
@@ -16,7 +16,8 @@
 :host > .card {
   margin-bottom: 16px;
 }
-:host > .card:last-child {
+:host > .card:last-child,
+:host > .grid-wide:last-child {
   margin-bottom: 0;
 }
 
@@ -245,7 +246,13 @@
 }
 .acad-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  /* `min(Npx, 100%)` and not a bare `Npx`: a minmax() track whose minimum is a
+     fixed length does NOT collapse when the container is narrower than it — the
+     track keeps its minimum and the grid overflows. On a 320px handset the
+     content box inside a card is about 260px, so every one of these was wider
+     than the screen it was drawn on. `min()` caps the minimum at the container,
+     which changes nothing at any width where the track already fitted. */
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
   gap: 16px;
   margin-bottom: 16px;
 }
@@ -422,32 +429,6 @@
   text-decoration: none;
   cursor: pointer;
   flex: none;
-}
-
-/* --- stat strip ------------------------------------------------------------------------ */
-.donut {
-  margin: 0 auto;
-}
-.badge-locked {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  margin-left: 2px;
-  font-size: 9.5px;
-  font-weight: 700;
-  color: var(--faint);
-}
-.badge-locked .icon {
-  font-size: 12px;
-}
-.mock-summary {
-  margin: 0 0 8px;
-}
-.mock-chart {
-  height: 80px;
-}
-.streak-sub {
-  margin-top: 10px;
 }
 
 /* SWOC - the design's 2x2 tinted tiles under the stage cards. */

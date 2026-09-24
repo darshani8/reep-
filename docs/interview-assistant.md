@@ -587,25 +587,65 @@ that a real grant authorised.
 answerable years later — after the grant has been revoked and re-given twice.
 Revoking stamps `revoked_at` and never deletes the row.
 
-## Audio — off by default, and "off" is two independent switches
+## Audio — off by default, and "off" is three independent switches
 
 This section replaces an earlier flat *"audio is not recorded"*. Capture now
 exists (`app/interview_audio.py`), and a doc that denies a feature that exists is
 as much of a trap as a setting that exists and does nothing.
 
-**Nothing is captured unless BOTH of these are true**, and neither is true in a
-default deployment:
+**Nothing is captured unless ALL THREE of these are true**, and none of them is
+true in a default deployment:
 
-1. `INTERVIEW_RECORDING_ENABLED=true` in `apps/api-py/.env` (default `false`);
-2. the student holds a live consent grant of the current version whose
-   `scope_store_audio` is `true` — a separate, **unticked** checkbox whose copy
-   says plainly that staff can listen.
+1. `INTERVIEW_RECORDING_ENABLED=true` in `apps/api-py/.env` (default `false`;
+   the CDK stack sets it `true` on the AWS deployment) — the **operator's**;
+2. the college's `interview_policies.store_audio` is `true` — the **college's**,
+   the "Allow voice recording" box on the Interview records screen's policy
+   card, and **unticked until somebody ticks it** (no policy row is seeded, and
+   the absence of one is the default);
+3. the student holds a live consent grant of the current version whose
+   `scope_store_audio` is `true` — the **student's** acknowledgement, which
+   since B6.1 is a copy of the college's decision taken at Start, shown to them
+   in words that say plainly that staff can listen.
 
-Both gates live inside `recorder_for()` so that *"when does REEP record a
+All three gates live inside `recorder_or_reason()` (`recorder_for()` is the
+same decision with the reason thrown away) so that *"when does REEP record a
 student's voice?"* has one answer in one function. It **fails closed** — an
 unreachable database means "do not record", never "record anyway" — and it is
 called from `routers/interview.py`, because the engines import no ORM model and
 a recording feature is not what that containment gets spent on.
+
+**WHICH GATE CLOSED IS WRITTEN DOWN (2026-09-17).** The four Nones used to be
+told apart only by INFO lines in the API log, so the Interview records screen
+drew "No audio" beside a grey "Download recording" button for every interview
+on a deployment whose operator switch was on and whose college had simply never
+ticked the box — and the office reported the recording feature as broken. The
+finalizer now writes `interview_sessions.audio_skipped_reason` (`operator_off`,
+`policy_off`, `no_consent`, `store_full`, `open_failed`, or `nothing_captured`
+for a recorder that closed with nothing), the records API serves it, and the
+open record spells it out with a button to the policy card when the fix is the
+college's own tick. The Download button is drawn only when there is a file to
+download. NULL on a recorded interview and on every row older than the column,
+which the screen renders as "no recording was kept" and nothing more — the
+gate that closed a year ago is not a thing to guess. The policy card also says
+when the operator's switch is off, so "Allow voice recording" is not a box the
+office ticks and then waits on.
+
+**THE ROOM RE-ASKS WHEN THE POLICY CHANGED (2026-09-17, the same evening).** A
+consent row is a copy of the policy taken when the student pressed "I agree",
+and the room used to start straight away whenever it held one — so the Start
+line's "recording on/off", read off that row, could disagree with what the
+recorder was about to do in BOTH directions: "on" over an interview refused
+`policy_off`, and, after the office ticked the box, "off" with `no_consent` on
+every existing student while the record claimed they would be shown the terms
+again. `shared/interview-room/consent-sync.ts` holds the two decisions as pure
+functions with a spec: Start proceeds on the standing row only while the
+policy's two storage scopes still equal the row's (the server's `acknowledged`
+comparison, made on the client), otherwise the terms are shown again and "I
+agree" posts the acknowledgement the server supersedes; and the label reads the
+policy and `recording_enabled_on_server` (now on `GET /api/interview/policy`
+too), not the row. Judged on the card already loaded, never on a fetch —
+`start()` must run inside the click's gesture — and the card is re-read in the
+background after each Start.
 
 | | |
 |---|---|
@@ -651,7 +691,7 @@ Nova's own settings, all optional except the region:
 | `NOVA_SONIC_MODEL` | `amazon.nova-2-sonic-v1:0` | the model id. **Not** an inference profile — the bidirectional API takes the bare id, which is why this is separate from `BEDROCK_MODEL` |
 | `NOVA_SONIC_REGION` | *(unset)* | falls back to `BEDROCK_REGION`, then `AWS_REGION` / `AWS_DEFAULT_REGION`. The endpoint is composed from it here, so blank is "not configured" rather than "let the SDK decide" |
 | `NOVA_SONIC_VOICE` | `matthew` | the voice for the GENERIC interview only; each matrix row casts its own |
-| `NOVA_SONIC_ENDPOINTING` | `MEDIUM` | `HIGH`/`MEDIUM`/`LOW` — how fast Nova decides the student has stopped. `HIGH` reads a thinking pause as the end of a turn, and being cut off mid-answer is the most damaging thing a mock interviewer can do |
+| `NOVA_SONIC_ENDPOINTING` | `LOW` | `HIGH`/`MEDIUM`/`LOW` — the pause Nova waits for before it takes the turn (AWS documents 1.5 s / 1.75 s / ~2 s). `LOW` since 2026-09-17: a student gathering an example stops for a breath, `MEDIUM` read that breath as the end of the answer and asked the next question over its second half, and being cut off mid-answer is the most damaging thing a mock interviewer can do |
 | `NOVA_SONIC_INPUT_RATE_HZ` | 16000 | the uplink rate. The browser captures 24 kHz and the engine resamples; Nova accepts 8/16/24 kHz and 16 is the documented path |
 | `NOVA_SONIC_CONNECTION_SECONDS` | 480 | Bedrock's 8-minute stream limit, as the engine understands it. Lower it if a deployment sees streams cut sooner |
 
@@ -744,12 +784,47 @@ that fake the upstream cannot see this, which is why two in
 **Connects, transcribes, plays no sound** — the client matches a *set* of audio
 event names for exactly this reason, so a name change upstream cannot mute the
 interviewer silently. Check the engine is emitting `response.audio.done` and that
-`audioOutput` frames are arriving in the API log.
+`audioOutput` frames are arriving in the API log. Open the record on the
+Interview records screen first: its facts line reads "N turns, M saved". N equal
+to the student turns alone means the model produced no reply the engine could
+record (no audio and no final text); N larger than M means the write path
+dropped rows, and the cause is logged as `Dropped interview turn`.
+
+**The transcript is in Hindi (or any language but English)** — Nova 2 Sonic
+auto-detects the language and switches, and `kiara`/`arjun` are its Hindi voices
+as well as its Indian-English ones. There is no language parameter; the prompt's
+"Language and turn-taking" note pins English and tells the model to ask for
+English. If a transcript still arrives in another script the word gate reads it
+word for word (`words_of`) rather than as empty, and "अगला प्रश्न" is a skip.
 
 **The interviewer asks two questions in a row at a phase boundary** — a control
 note landed after the model had begun its reply. This is the known trade in
 `app/interview_nova.py`'s header; the injection point is `_on_student_transcript`
 and the alternative it rejected is documented there.
+
+**The interviewer's voice cuts out mid-sentence on speakers, or pauses on
+earphones** — the browser's echo gate. On speakers the microphone hears the
+interviewer; anything of that echo that reaches Nova is "the student
+interrupting", Nova abandons the question and the relay flushes the browser's
+queue. The gate (`apps/web/src/app/core/echo-gate.ts`) holds the uplink while
+the interviewer is audible, judging each microphone chunk against the playback
+that can be arriving in it (the player's own timeline, read at the chunk's
+capture time and reaching back by the device's `outputLatency`) scaled by an
+echo coupling it learns once per session. Until 2026-09-22 it calibrated from
+the first chunks after audio was *scheduled* instead — a jitter-buffer lead
+plus the device's output latency before anything is *audible* — so it learned
+the silence, and the interviewer's own voice opened it on nearly every
+question; its echo reference was also capped at 0.03 RMS, below a speaking
+voice. On earphones there is no echo to hold back, and the room's
+**Speaker / Earphones** switch (`shared/interview-room/audio-route.ts`) turns
+the gate off; before it existed nothing called `setEchoSuppression`, so a breath
+on a headset mic paused the interviewer. To diagnose a report, read the
+`Interview ended …` log line's `client=` field (the browser sends its counters
+as `reep.client.stats`): `route` says which side the student was on;
+`local_barge_ins` well above `confirmed_barge_ins` is the gate opening on
+something Nova did not take for speech; `coupling` at the prior (2.0) means it
+never measured any echo; `underruns` with `lead_ms` at 300 means the audio
+arrived late (network, or the event loop), which no gate setting fixes.
 
 **"Please accept the interview terms before starting." (4013)** — the student has
 no live grant for `INTERVIEW_CONSENT_VERSION`. Normally the consent panel appears

@@ -133,6 +133,10 @@ interface InterviewRecord {
   specialization: string | null;
   status: string;
   audio_recorded: boolean;
+  /** Why `audio_recorded` is false — `app/interview_audio.py`'s SKIP_* words,
+   *  written by the finalizer — or null on a recorded interview and on every
+   *  row older than the column. See AUDIO_SKIP_REASONS. */
+  audio_skipped_reason: string | null;
   started_at: string;
   ended_at: string | null;
   /** Nullable, and a null is a real "not scored" — never a zero. */
@@ -227,6 +231,12 @@ interface PolicySheet {
   default: InterviewPolicy | null;
   courses: InterviewPolicy[];
   effective_default: EffectivePolicy;
+  /** The OPERATOR's switch, INTERVIEW_RECORDING_ENABLED. "Allow voice
+   *  recording" below is one of three gates and this is another; the card
+   *  says so when it is off, rather than let the office tick a box that can
+   *  do nothing. Optional so a sheet from an older API reads as "unknown",
+   *  which draws no warning. */
+  recording_enabled_on_server?: boolean;
 }
 
 /** One interview as `GET /api/mentor/students/{id}/interviews` returns it —
@@ -239,6 +249,11 @@ interface StudentInterviewSession {
   terminal_reason: string | null;
   final_phase: string | null;
   answers_accepted: number;
+  /** AGENTS.md's runbook pair: every turn the engine saw, and the rows that
+   *  landed. Both 0 on a row older than the counters; an older API omits them,
+   *  which the facts line reads as absent rather than as zero. */
+  turns_emitted?: number;
+  turns_persisted?: number;
   audio_recorded: boolean;
   started_at: string;
   ended_at: string | null;
@@ -287,6 +302,13 @@ interface InterviewRecordRow {
   /** null until the student behind this row is opened — see the file header. */
   overallScore: number | null;
   audioRecorded: boolean;
+  /** The sentence for a row with no recording: which switch was off, or, for a
+   *  row the server has no word for, only that nothing was kept. Null when a
+   *  recording exists. */
+  audioReason: string | null;
+  /** True when the reason is the college's own policy — the one case this
+   *  screen can fix, on the policy card below. */
+  audioFixableHere: boolean;
   statusLabel: string;
   statusTone: 'good' | 'warn' | 'risk' | 'neutral';
 }
@@ -433,6 +455,33 @@ function formatStartedAt(iso: string): string {
 const FAINT_TEXT = 'color:var(--faint);font-size:11px';
 const MONO_TEXT = 'font-variant-numeric:tabular-nums';
 
+/** `app/interview_audio.py`'s SKIP_* vocabulary as sentences. Each names the
+ *  gate that closed and, where this office can open it, where. A word this map
+ *  does not know renders as the generic line rather than as nothing: a new
+ *  reason on the server must not turn into a blank on the screen. */
+const AUDIO_SKIP_REASONS: Record<string, string> = {
+  operator_off:
+    'Voice recording is switched off on this server (INTERVIEW_RECORDING_ENABLED), so no college can record until the operator turns it on.',
+  policy_off:
+    'This college’s interview policy did not allow voice recording when this interview ran. Tick “Allow voice recording” on the policy card below and the next interview is recorded.',
+  no_consent:
+    'The student had not acknowledged the current interview terms with recording on when this interview started. They are shown the terms again at their next Start.',
+  store_full:
+    'The recording store was out of disk space when this interview started, so capture was declined. The interview itself ran normally.',
+  open_failed:
+    'The recording store could not be opened for this interview; the API log has the cause. The interview itself ran normally.',
+  nothing_captured:
+    'Recording was allowed, but the session closed with nothing captured; the API log has the cause.',
+};
+const AUDIO_NOT_KEPT = 'No recording was kept for this interview.';
+
+function audioReasonOf(record: InterviewRecord): string | null {
+  if (record.audio_recorded) return null;
+  const word = record.audio_skipped_reason;
+  if (word === null) return AUDIO_NOT_KEPT;
+  return AUDIO_SKIP_REASONS[word] ?? AUDIO_NOT_KEPT;
+}
+
 function renderUsnCell(params: ICellRendererParams<InterviewRecordRow>): string {
   const row = params.data;
   if (!row) return '';
@@ -464,7 +513,21 @@ function renderAudioCell(params: ICellRendererParams<InterviewRecordRow>): strin
   const row = params.data;
   if (!row) return '';
   if (row.audioRecorded) return '<span class="chip dot good">Audio stored</span>';
-  return '<span class="chip dot neutral">No audio</span>';
+  // The reason is on the chip's title and spelled out on the open record; the
+  // column itself stays one word so the grid reads at a glance.
+  const title = escapeAttribute(row.audioReason ?? AUDIO_NOT_KEPT);
+  return `<span class="chip dot neutral" title="${title}">No audio</span>`;
+}
+
+/** The reason is server-authored text from a fixed vocabulary, but it goes into
+ *  an attribute of an HTML string, and the habit of escaping is worth more than
+ *  the argument that this particular string is safe. */
+function escapeAttribute(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 function renderStatusCell(params: ICellRendererParams<InterviewRecordRow>): string {
@@ -718,6 +781,8 @@ export class InterviewRecordsComponent implements OnDestroy {
         durationSeconds: durationSecondsOf(record.started_at, record.ended_at),
         overallScore: record.overall_score,
         audioRecorded: record.audio_recorded,
+        audioReason: audioReasonOf(record),
+        audioFixableHere: !record.audio_recorded && record.audio_skipped_reason === 'policy_off',
         statusLabel: status.label,
         statusTone: status.tone,
       };
@@ -772,7 +837,7 @@ export class InterviewRecordsComponent implements OnDestroy {
       minWidth: 140,
       cellRenderer: renderAudioCell,
       headerTooltip:
-        'Whether a recording was stored — the audio consent scope as it was enforced',
+        'Whether a recording was stored. Hover a "No audio" chip, or open the record, for which switch was off',
     },
     {
       field: 'statusLabel',
@@ -971,6 +1036,34 @@ export class InterviewRecordsComponent implements OnDestroy {
     return formatStartedAt(record.startedAt);
   });
 
+  /** The open interview's own session row, once the student's list has been
+   *  read for the trend chart — the same read, no second request. */
+  readonly openSession = computed<StudentInterviewSession | null>(() => {
+    const record = this.openRecord();
+    if (record === null) return null;
+    const sessions = this.sessionsByStudent()[record.studentId];
+    return sessions?.find((session) => session.id === record.sessionId) ?? null;
+  });
+
+  /** How the interview ended and what the engine kept, as facts on one line
+   *  (2026-09-17). A transcript with student turns and no interviewer turns
+   *  is either an interviewer that never spoke or a write path that dropped
+   *  its rows, and "N turns, M saved" is the one number that tells the office
+   *  which — the AGENTS.md runbook signal, on the screen instead of in a
+   *  database client. The close reason is the engine's own sentence. */
+  readonly openSessionFacts = computed<string | null>(() => {
+    const session = this.openSession();
+    if (session === null) return null;
+    const parts: string[] = [];
+    parts.push(session.terminal_reason ? `Ended: ${session.terminal_reason}` : 'Still running');
+    if (session.final_phase) parts.push(`stopped in ${session.final_phase.replace('_', ' ')}`);
+    parts.push(`${session.answers_accepted} answer${session.answers_accepted === 1 ? '' : 's'} counted`);
+    if (typeof session.turns_emitted === 'number' && typeof session.turns_persisted === 'number') {
+      parts.push(`${session.turns_emitted} turns, ${session.turns_persisted} saved`);
+    }
+    return parts.join(' · ');
+  });
+
   /** The selected student's interviews, oldest first — the trend the board
    *  draws beside the grid. */
   readonly scoreTrend = computed<ScoreTrendPoint[]>(() => {
@@ -1080,15 +1173,31 @@ export class InterviewRecordsComponent implements OnDestroy {
 
   // --- the reads -------------------------------------------------------------
 
+  /** Which filters the answers on screen must belong to. Every reload takes
+   *  the next number; a read that comes back under an older one describes
+   *  filters no longer chosen and is dropped.
+   *
+   *  THE LAST ANSWER IS NOT THE LAST QUESTION. Status to "All" and then at
+   *  once Track to "Digital Marketing" puts two reads in flight, and the
+   *  slower "All" used to land second and fill the grid and the tiles with
+   *  every interview under a Track filter reading "Digital Marketing". */
+  private listGeneration = 0;
+
   /** The grid and its tiles, together, because they are one answer. */
   private async reload(): Promise<void> {
     this.clearOpenRecord();
-    await Promise.all([this.loadRecords(), this.loadSummary()]);
+    const generation = ++this.listGeneration;
+    await Promise.all([this.loadRecords(null, generation), this.loadSummary(generation)]);
   }
 
   /** One page of `GET /api/admin/interviews`. `cursor` continues the list; its
-   *  absence starts it again. */
-  private async loadRecords(cursor: string | null = null): Promise<void> {
+   *  absence starts it again. A page that answers after the filters changed
+   *  touches nothing, not even the spinners: the read that replaced it owns
+   *  them. */
+  private async loadRecords(
+    cursor: string | null = null,
+    generation = this.listGeneration,
+  ): Promise<void> {
     if (cursor === null) {
       this.loading.set(true);
       this.error.set(null);
@@ -1104,11 +1213,15 @@ export class InterviewRecordsComponent implements OnDestroy {
         credentials: 'include',
       });
       if (!response.ok) {
-        this.error.set(
-          await detailOf(response, 'Could not load interview records. Reload the page to try again.'),
+        const message = await detailOf(
+          response,
+          'Could not load interview records. Reload the page to try again.',
         );
+        if (generation !== this.listGeneration) return;
+        this.error.set(message);
       } else {
         const page = (await response.json()) as InterviewGridPage;
+        if (generation !== this.listGeneration) return;
         this.records.update((loaded) =>
           cursor === null ? page.rows : [...(loaded ?? []), ...page.rows],
         );
@@ -1116,6 +1229,7 @@ export class InterviewRecordsComponent implements OnDestroy {
         this.rememberTracks(page.rows);
       }
     } catch {
+      if (generation !== this.listGeneration) return;
       this.error.set('Could not load interview records. Reload the page to try again.');
     }
     this.loading.set(false);
@@ -1144,13 +1258,14 @@ export class InterviewRecordsComponent implements OnDestroy {
 
   /** The tiles. Same gate, same reach, same filters, same query builder — so a
    *  tile can never report a number the grid below it cannot produce. */
-  private async loadSummary(): Promise<void> {
+  private async loadSummary(generation = this.listGeneration): Promise<void> {
     const query = this.filterQuery();
     if (this.recordingFilter() === 'recorded') query.set('recorded_only', 'true');
     try {
       const response = await fetch(`${environment.apiBase}/admin/interviews/summary?${query}`, {
         credentials: 'include',
       });
+      if (generation !== this.listGeneration) return;
       if (!response.ok) {
         // A DASH, NOT A STALE NUMBER. The tiles left showing the previous
         // filter's counts would be four confident numbers about a list nobody
@@ -1158,8 +1273,11 @@ export class InterviewRecordsComponent implements OnDestroy {
         this.kpis.set(null);
         return;
       }
-      this.kpis.set((await response.json()) as InterviewKpis);
+      const kpis = (await response.json()) as InterviewKpis;
+      if (generation !== this.listGeneration) return;
+      this.kpis.set(kpis);
     } catch {
+      if (generation !== this.listGeneration) return;
       this.kpis.set(null);
     }
   }
@@ -1254,6 +1372,14 @@ export class InterviewRecordsComponent implements OnDestroy {
       this.panelNote.set('Could not reach the server.');
     }
     this.panelLoading.set(false);
+  }
+
+  /** From an unrecorded record to the card that fixes it. A plain scroll: the
+   *  card is on this screen, and the college picker on it is what the office
+   *  has to touch. */
+  goToPolicyCard(): void {
+    document.getElementById('policy-college')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('policy-college')?.focus();
   }
 
   // --- the downloads ---------------------------------------------------------
@@ -1393,6 +1519,11 @@ export class InterviewRecordsComponent implements OnDestroy {
   });
 
   readonly policyIsConfigured = computed(() => this.policyRow() !== null);
+  /** True only when the server SAID recording is off; an older sheet without
+   *  the field draws nothing. */
+  readonly recordingOffOnServer = computed(
+    () => this.policySheet()?.recording_enabled_on_server === false,
+  );
 
   readonly policyEffective = computed<EffectivePolicy | null>(
     () => this.policySheet()?.effective_default ?? null,
@@ -1427,7 +1558,17 @@ export class InterviewRecordsComponent implements OnDestroy {
         this.colleges.set([]);
         return;
       }
-      this.colleges.set((await response.json()) as CollegeOption[]);
+      const colleges = (await response.json()) as CollegeOption[];
+      this.colleges.set(colleges);
+      if (colleges.length === 1 && this.policyCollege() === '') {
+        // One college on the deployment is one answer to "which college", so
+        // the card opens on it rather than on "Choose…" with the one option
+        // underneath. The office reached this card to tick a box and found a
+        // picker first; with more than one college the picker is a real
+        // question and stays.
+        this.policyCollege.set(colleges[0].id);
+        await this.loadPolicySheet();
+      }
     } catch {
       this.collegesBlocked.set('The list of colleges could not be read.');
       this.colleges.set([]);

@@ -181,6 +181,21 @@ class InterviewSessionOut(BaseModel):
     # consent refused, the write failed and "predates capture entirely" are four
     # different facts and a NULL flattens them into one.
     audio_recorded: bool
+    # Why `audio_recorded` is false, in `app/interview_audio.py`'s SKIP_* words,
+    # or null: on a recorded interview, and on every row written before the
+    # column existed. The screen turns a word into the switch to flip; a null
+    # renders as "no recording" and nothing more, because guessing which gate
+    # closed a year ago would be inventing a fact.
+    audio_skipped_reason: str | None = None
+    # AGENTS.md's runbook pair, served rather than left in the database
+    # (2026-09-17): a transcript with five student turns and no interviewer
+    # turns is either an interviewer that never spoke or a write path that
+    # dropped its turns, and only these two numbers tell the office which
+    # without a database client. Emitted counts every turn the engine saw;
+    # persisted counts the rows that landed. Zero on both for a row that
+    # predates the counters.
+    turns_emitted: int = 0
+    turns_persisted: int = 0
     started_at: datetime
     ended_at: datetime | None
     # From the evaluation row, via one LEFT JOIN, so a history list does not
@@ -397,6 +412,9 @@ def _session_out(
         answers_accepted=row.answers_accepted,
         close_code=row.close_code,
         audio_recorded=row.audio_recorded,
+        audio_skipped_reason=row.audio_skipped_reason,
+        turns_emitted=row.turns_emitted or 0,
+        turns_persisted=row.turns_persisted or 0,
         started_at=row.started_at,
         ended_at=row.ended_at,
         report_status=report_status,
@@ -1309,6 +1327,10 @@ class InterviewRecordRow(BaseModel):
     specialization: str | None
     status: str
     audio_recorded: bool
+    #: See `InterviewSessionOut.audio_skipped_reason`: the gate that closed, or
+    #: null. The grid's Audio column carries it as the chip's title and the open
+    #: record spells it out, with the policy card one scroll away.
+    audio_skipped_reason: str | None = None
     started_at: datetime
     ended_at: datetime | None
     #: B6.7. The grid used to carry no score at all, so the Interviews screen
@@ -1393,6 +1415,7 @@ def _record_row(iv, name, usn, report_status, overall_score) -> InterviewRecordR
         specialization=iv.specialization,
         status=iv.status,
         audio_recorded=iv.audio_recorded,
+        audio_skipped_reason=iv.audio_skipped_reason,
         started_at=iv.started_at,
         ended_at=iv.ended_at,
         overall_score=overall_score,

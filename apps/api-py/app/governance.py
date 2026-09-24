@@ -90,9 +90,10 @@ _SCOPED: Final[frozenset[str]] = frozenset(
 #: shelf. These stay in the catalogue and stay SCOPED, so the Main Admin can
 #: GRANT any of them in Governance -- to a faculty member, or to itself when a
 #: student's evidence is stuck and nobody else will look -- and revoke them
-#: again. Leave approval is not a capability at all since 2026-09-16: it is
-#: the Main Admin's by role (`routers/leave.py`), so there is no key to keep
-#: out of anybody's baseline.
+#: again. Leave approval is `admin.leave_approvals` (2026-09-17): a PROGRAMME
+#: key the Main Admin holds by baseline through `_ALL` and can grant to any
+#: faculty member in Governance -- never derived from mentoring, which is what
+#: the retired `mentor.leave_approve` was.
 _FACULTY_ONLY: Final[frozenset[str]] = frozenset(
     {"mentor.mentees", "mentor.notebook", "mentor.verifications", "mentor.upskilling"}
 )
@@ -717,9 +718,8 @@ def require_feature(db: Session, student_id: str | None, feature: str) -> None:
         student.english       GET /student/english-baseline, POST .../start
         student.skilling      GET /student/badges, GET /student/growth,
                               POST /student/badges/{code}/{start,evidence}
-        student.time_log      GET + PUT /student/ledger,
+        student.time_log      GET + PUT /student/ledger, GET /student/ledger/history,
                               POST /student/ledger/{copy-yesterday,submit}
-        student.certifications  GET /student/certifications
         student.mentor_log    GET /student/mentor-meetings,
                               POST /student/mentor-meetings/request
 

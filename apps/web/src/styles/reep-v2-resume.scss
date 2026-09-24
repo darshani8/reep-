@@ -549,3 +549,47 @@ textarea.ctrl {
   margin-left: 6px;
   font-weight: 700;
 }
+
+/* ==========================================================================
+ * PHONE WIDTH (2026-09-22)
+ *
+ * `.field .lock` is 10px — the smallest text in the product, and it is the
+ * chip that says a field is locked because it comes from the student record.
+ * A descendant selector so it matches the (0,2,0) rule above; mobile only, so
+ * the desktop builder keeps the 10px chip it has today.
+ * ======================================================================= */
+
+@media (max-width: 640px) {
+  .field .lock {
+    font-size: 11px;
+  }
+}
+
+/* THE GRIDS NEVER COLLAPSED, AND THE TWO-STYLESHEETS RULE IS EXACTLY WHY.
+ *
+ * reep-v2.scss collapses `.grid-2 / .grid2 / .grid3 / .grid4` to one column at
+ * 720px. This sheet re-declares those three names at 182-196 with NO media
+ * query, and it loads AFTER — so at equal specificity source order wins and
+ * the resume builder's cards stayed two and three columns wide on a phone.
+ * Measured at 390px once the shell was stacked: `.grid2` rendered
+ * `172.5px 172.5px` inside a 294px box, so 67px of every paired field was
+ * clipped.
+ *
+ * It is invisible until the shell collapses, which is why it surfaced only
+ * after the fix above — before that the whole builder was clipped anyway.
+ * AGENTS.md's "two global stylesheets, and they must not claim each other's
+ * names" is this defect, from the other direction: the duplicate is already
+ * listed in check_style_duplicates.py's KNOWN_DUPLICATES, and what that list
+ * records is a name claimed twice, not a behaviour anybody checked.
+ *
+ * 720px and not this file's 640, deliberately: these three names belong to the
+ * global design system and their breakpoint is its business, not the builder's.
+ */
+
+@media (max-width: 720px) {
+  .grid2,
+  .grid3,
+  .grid4 {
+    grid-template-columns: 1fr;
+  }
+}

@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from .. import badge_mail
 from ..db import get_db
 from ..governance import require_feature
 from ..identity import get_current_session
@@ -462,19 +463,18 @@ def submit_evidence(
         if upload is None or upload.student_id != student_id:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Upload not found.")
 
-    db.add(
-        BadgeEvidence(
-            student_id=student_id,
-            badge_code=code,
-            evidence_type=ev_type,
-            upload_id=body.upload_id,
-            approved_certification_id=catalogue_row.id if catalogue_row else None,
-            title=title,
-            provider=provider,
-            completed_on=body.completed_on,
-            student_note=(body.note or "").strip() or None,
-        )
+    ev = BadgeEvidence(
+        student_id=student_id,
+        badge_code=code,
+        evidence_type=ev_type,
+        upload_id=body.upload_id,
+        approved_certification_id=catalogue_row.id if catalogue_row else None,
+        title=title,
+        provider=provider,
+        completed_on=body.completed_on,
+        student_note=(body.note or "").strip() or None,
     )
+    db.add(ev)
     # Submitting evidence also moves a Not Started badge to a live row, so the
     # tile stops reading "not started" while a review is pending.
     if (
@@ -487,6 +487,13 @@ def submit_evidence(
     ):
         db.add(StudentBadge(student_id=student_id, badge_code=code))
     db.commit()
+    # THE MENTOR IS TOLD A CLAIM IS WAITING (2026-09-17) -- after the commit,
+    # so the mail can never describe a row that did not land, and through
+    # `deliver_once`, so a retried submission never mails twice. It returns
+    # None rather than raising when nothing can be sent (gate off, no mentor,
+    # mentor's account barred): a mail that did not go out is never the
+    # reason a claim fails to file. app/badge_mail.py carries the reasoning.
+    badge_mail.notify_mentor_of_claim(db, ev)
     return compose_badges(db.get(Student, student_id), db)
 
 
@@ -564,10 +571,16 @@ def badge_leaderboards(
         # is excluded from every board AND sees none — otherwise opting out
         # buys privacy from classmates who kept the visibility you still use.
         return LeaderboardOut(view=view, label=_LB_LABEL[view], unit="points", opted_out=True, rows=[])
+    # A REMOVED account (`users.deleted_at`) is on no board, these included,
+    # for the reason `_ranked_board` in routers/student.py gives: the office is
+    # told "… is off every screen". Only a named student is ranked below, so
+    # leaving them out of `names` leaves them off every view.
     names = {
         s_id: (name, usn)
         for s_id, name, usn in db.execute(
-            select(Student.id, User.name, Student.usn).join(User, Student.user_id == User.id)
+            select(Student.id, User.name, Student.usn)
+            .join(User, Student.user_id == User.id)
+            .where(User.deleted_at.is_(None))
         ).all()
     }
 

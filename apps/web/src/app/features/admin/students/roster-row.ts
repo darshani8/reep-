@@ -75,6 +75,10 @@ export interface StudentApiRow {
   mentor_name: string | null;
   current_stage: string;
   current_semester: number;
+  /** The other half of a dual specialization (2026-09-23). The first is the
+   *  batch's own; this is the second, null for a student who opted for one. */
+  second_specialization_id?: string | null;
+  second_specialization?: string | null;
   enrolled_at: string;
   last_login_at: string | null;
   /** REMOVED from the roster (2026-09-16): null on every row the default list
@@ -216,6 +220,10 @@ export interface RosterRow {
   specializationId: string | null;
   specializationCode: string | null;
   specializationColour: string;
+  /** The second of a dual specialization, drawn as a second chip. */
+  secondSpecializationId: string | null;
+  secondSpecializationCode: string | null;
+  secondSpecializationColour: string;
   semester: number;
   stageKey: string;
   stageLabel: string;
@@ -240,6 +248,8 @@ export interface StudentDraft {
   mentorUserId: string;
   stage: string;
   semester: number;
+  /** The second specialization of a dual; '' for none. */
+  secondSpecializationId: string;
 }
 
 export const EMPTY_DRAFT: StudentDraft = {
@@ -251,7 +261,31 @@ export const EMPTY_DRAFT: StudentDraft = {
   mentorUserId: '',
   stage: 'REBOOT',
   semester: 1,
+  secondSpecializationId: '',
 };
+
+/**
+ * What the edit dialog offers as the SECOND half of a dual specialization
+ * (2026-09-23): the streams of the batch's course, minus the batch's own —
+ * which is already the student's first. A batch with no course (or no batch)
+ * offers the streams of the student's department instead. The same three
+ * rules `dual_specialization.refusal` applies on the server, so nothing
+ * offered here is refused there.
+ */
+export function secondSpecializationOptions(
+  specializations: readonly SpecializationOption[],
+  courses: readonly CourseOption[],
+  batch: BatchOption | null,
+  departmentId: string,
+): SpecializationOption[] {
+  if (batch !== null && batch.courseId !== null) {
+    return specializations.filter((s) => s.courseId === batch.courseId && s.id !== batch.specializationId);
+  }
+  const department = batch?.departmentId || departmentId;
+  if (!department) return [];
+  const inDepartment = new Set(courses.filter((c) => c.departmentId === department).map((c) => c.id));
+  return specializations.filter((s) => inDepartment.has(s.courseId) && s.id !== batch?.specializationId);
+}
 
 /** The whole-batch actions the bulk endpoint performs. */
 export type BatchAction = 'move' | 'mentor' | 'stage' | 'semester';

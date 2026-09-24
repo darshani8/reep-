@@ -22,11 +22,12 @@ mentor can never see a confident number where the student sees a dash.
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from .. import badge_mail
 from ..architecture_events import record_change
 from ..db import get_db
 from ..governance import require_capability
@@ -57,7 +58,7 @@ from ..exports import (
 )
 from ..policies import scope_filter
 from ..scope_views import scope_header
-from ..models.upload import Upload
+from ..models.upload import Upload, UploadStatus
 from ..models.user import Student, User
 from .badges import BadgeDashboardOut, GrowthOut, compose_badges, compose_growth
 from .mentor import _assert_can_access_student, require_admin, require_mentor
@@ -85,9 +86,20 @@ class PendingEvidenceOut(BaseModel):
     from_catalogue: bool
     upload_id: str | None
     created_at: datetime
+    # Filled on a DECIDED row -- the "Recently reviewed" strip reads them back
+    # so a mentor can check what they said. Null on every pending row.
+    review_note: str | None = None
+    reviewed_at: datetime | None = None
+    # What the file behind the claim is called, so the card names it before the
+    # reviewer opens it. Null when nothing backs the claim, and null again once
+    # the student has deleted the upload (`badge_evidence.upload_id` is SET
+    # NULL): the claim outlives its file as an honest audit line.
+    evidence_file_name: str | None = None
 
 
-def _pending_row(ev: BadgeEvidence, name: str, usn: str | None) -> PendingEvidenceOut:
+def _pending_row(
+    ev: BadgeEvidence, name: str, usn: str | None, upload: Upload | None = None
+) -> PendingEvidenceOut:
     badge = BADGE_BY_CODE.get(ev.badge_code)
     return PendingEvidenceOut(
         id=ev.id,
@@ -106,7 +118,38 @@ def _pending_row(ev: BadgeEvidence, name: str, usn: str | None) -> PendingEviden
         from_catalogue=ev.approved_certification_id is not None,
         upload_id=ev.upload_id,
         created_at=ev.created_at,
+        review_note=ev.review_note,
+        reviewed_at=ev.reviewed_at,
+        evidence_file_name=upload.original_name if upload is not None else None,
     )
+
+
+def _evidence_query(db: Session, session: dict, response: Response):
+    """The claim rows this reader may see, with the names the card needs, or
+    None for a reader whose reach is nothing.
+
+    ONE query for the pending queue and the reviewed strip, so the two lists
+    cannot disagree about scope -- `mentor.py::_claim_query`'s rule. The
+    narrowing is `pending_evidence`'s, documented there.
+    """
+    query = (
+        select(BadgeEvidence, User.name, Student.usn, Upload)
+        .join(Student, BadgeEvidence.student_id == Student.id)
+        .join(User, Student.user_id == User.id)
+        .outerjoin(Upload, BadgeEvidence.upload_id == Upload.id)
+    )
+    if session["role"] == "MENTOR":
+        mentor_id = session.get("mentorId")
+        if not mentor_id:
+            return None  # no Mentor group => nobody (never the whole programme)
+        return query.where(Student.mentor_id == mentor_id)
+    reach = scope_filter(db, session, "mentor.verifications")
+    scope_header(response, reach)
+    if reach.nothing:
+        return None
+    if not reach.everything:
+        query = query.where(Student.id.in_(reach.student_ids()))
+    return query
 
 
 @router.get("/mentor/badge-evidence/pending", response_model=list[PendingEvidenceOut])
@@ -116,6 +159,16 @@ def pending_evidence(
     db: Session = Depends(get_db),
 ) -> list[PendingEvidenceOut]:
     """The verification queue, narrowed the same way both kinds of holder are.
+
+    THIS IS THE QUEUE THE SKILLING SCREEN FILES INTO (2026-09-17). The claim
+    form on `/student/skilling` stores the certificate and then posts
+    `POST /student/badges/{code}/evidence`, which lands here; the faculty
+    Verifications screen reads this list. It used to read `skill_claims`
+    (`mentor.py::/skill-claims/pending`), a queue no client has written to
+    since the Skilling screen replaced the per-skill claim form -- so every
+    claim a student filed went into a table the mentor's screen never opened,
+    and the mentor's screen showed a queue nothing could fill. The
+    `skill_claims` endpoints stay for the resume builder's read of them.
 
     SCOPED (B1.4), COMPOSED WITH THE GROUP FENCE AND NOT REPLACING IT. There are
     two ways to hold `mentor.verifications` and they are narrowed differently
@@ -142,26 +195,42 @@ def pending_evidence(
     # their evidence, the admin can grant itself this, clear the queue, and
     # revoke it again. Without that the evidence would simply sit.
     require_capability(db, session, "mentor.verifications")
-    query = (
-        select(BadgeEvidence, User.name, Student.usn)
-        .join(Student, BadgeEvidence.student_id == Student.id)
-        .join(User, Student.user_id == User.id)
-        .where(BadgeEvidence.status == EvidenceStatus.PENDING_VERIFICATION)
-        .order_by(BadgeEvidence.created_at)
-    )
-    if session["role"] == "MENTOR":
-        mentor_id = session.get("mentorId")
-        if not mentor_id:
-            return []  # no Mentor group => nobody (never the whole programme)
-        query = query.where(Student.mentor_id == mentor_id)
-    else:
-        reach = scope_filter(db, session, "mentor.verifications")
-        scope_header(response, reach)
-        if reach.nothing:
-            return []
-        if not reach.everything:
-            query = query.where(Student.id.in_(reach.student_ids()))
-    return [_pending_row(ev, name, usn) for ev, name, usn in db.execute(query).all()]
+    query = _evidence_query(db, session, response)
+    if query is None:
+        return []
+    rows = db.execute(
+        query.where(BadgeEvidence.status == EvidenceStatus.PENDING_VERIFICATION).order_by(
+            BadgeEvidence.created_at
+        )
+    ).all()
+    return [_pending_row(ev, name, usn, upload) for ev, name, usn, upload in rows]
+
+
+@router.get("/mentor/badge-evidence/reviewed", response_model=list[PendingEvidenceOut])
+def reviewed_evidence(
+    response: Response,
+    limit: int = Query(default=10, ge=1, le=50),
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> list[PendingEvidenceOut]:
+    """The queue's "Recently reviewed" strip: claims already decided, newest
+    decision first, under the SAME scope as the pending list.
+
+    `mentor.py::reviewed_skill_claims`'s reason, for this queue: a decision that
+    vanishes from the screen the moment it is made is a decision the mentor
+    cannot check they made correctly. Read-only, and it carries the review note,
+    so the strip shows the outcome AND the words the student was given.
+    """
+    require_capability(db, session, "mentor.verifications")
+    query = _evidence_query(db, session, response)
+    if query is None:
+        return []
+    rows = db.execute(
+        query.where(BadgeEvidence.status != EvidenceStatus.PENDING_VERIFICATION)
+        .order_by(BadgeEvidence.reviewed_at.desc().nullslast(), BadgeEvidence.created_at.desc())
+        .limit(limit)
+    ).all()
+    return [_pending_row(ev, name, usn, upload) for ev, name, usn, upload in rows]
 
 
 @router.get("/mentor/badge-evidence/{evidence_id}/file")
@@ -224,7 +293,18 @@ def _award(db: Session, student_id: str, code: str, awarded_by: str, note: str |
 
 class ReviewIn(BaseModel):
     decision: str  # APPROVE | REJECT | MORE_INFO
+    # Optional on APPROVE; REQUIRED on REJECT and MORE_INFO, enforced in the
+    # handler rather than here because the rule depends on the decision.
     note: str | None = Field(default=None, max_length=2000)
+
+
+#: What a decision on the claim writes onto the certificate behind it, when
+#: that certificate is still waiting for a verdict of its own.
+_UPLOAD_VERDICT: dict[str, UploadStatus] = {
+    "APPROVE": UploadStatus.VERIFIED,
+    "REJECT": UploadStatus.REJECTED,
+    "MORE_INFO": UploadStatus.NEEDS_CHANGES,
+}
 
 
 @router.post("/mentor/badge-evidence/{evidence_id}/review", response_model=PendingEvidenceOut)
@@ -262,10 +342,26 @@ def review_evidence(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="This evidence is already approved."
         )
+    note = (body.note or "").strip() or None
+    # A NO WITHOUT A REASON IS INDISTINGUISHABLE FROM A BROKEN SCREEN. The note
+    # is the whole of what the student sees on Skilling under a claim that was
+    # not verified, and since 2026-09-17 it is the whole of what their mail
+    # says too. The Verifications form asks for it first; this is the
+    # guarantee, so the rule does not depend on that form being the only
+    # caller (test_skill_verification.py's argument, for this queue).
+    if decision != "APPROVE" and not note:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                "Say why. The note is the only thing the student is told when a "
+                "claim is not verified, so Reject and Request changes both need one."
+            ),
+        )
 
-    ev.review_note = (body.note or "").strip() or None
+    now = datetime.now(timezone.utc)
+    ev.review_note = note
     ev.reviewed_by_id = session["userId"]
-    ev.reviewed_at = datetime.now(timezone.utc)
+    ev.reviewed_at = now
     if decision == "APPROVE":
         ev.status = EvidenceStatus.APPROVED
         _award(db, ev.student_id, ev.badge_code, session["userId"], "Approved evidence")
@@ -273,15 +369,35 @@ def review_evidence(
         ev.status = EvidenceStatus.REJECTED
     else:
         ev.status = EvidenceStatus.MORE_INFO_REQUIRED
+
+    # THE CERTIFICATE IS DECIDED WITH THE CLAIM (2026-09-17). The Skilling form
+    # stores the file through `POST /student/uploads`, which writes the row
+    # PENDING_REVIEW, and then files this claim against it -- so the same
+    # certificate sat in the Documents queue AND the claim queue, and the two
+    # could be decided differently. One act, both rows: verifying the claim
+    # verifies the certificate, refusing it refuses the certificate, and the
+    # student's Uploads screen reads the same note. Only a row still waiting is
+    # written; a verdict somebody already gave the document is never rewritten.
+    upload = db.get(Upload, ev.upload_id) if ev.upload_id else None
+    if upload is not None and upload.status == UploadStatus.PENDING_REVIEW:
+        upload.status = _UPLOAD_VERDICT[decision]
+        upload.reviewed_by_id = session["userId"]
+        upload.reviewed_at = now
+        upload.review_note = note
     db.commit()
     db.refresh(ev)
+    # THE STUDENT IS TOLD, WHICHEVER WAY IT WENT -- after the commit, so the
+    # mail never describes a decision that did not land, and through
+    # `deliver_once`, so a double-tap on Verify mails once. Never raises;
+    # app/badge_mail.py says what None means.
+    badge_mail.notify_student_of_decision(db, ev)
 
     student, name, usn = db.execute(
         select(Student, User.name, Student.usn)
         .join(User, Student.user_id == User.id)
         .where(Student.id == ev.student_id)
     ).one()
-    return _pending_row(ev, name, usn)
+    return _pending_row(ev, name, usn, upload)
 
 
 # --- manual award / revoke (§18) --------------------------------------------

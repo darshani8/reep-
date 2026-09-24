@@ -135,7 +135,10 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     # `mentor.leave_approve` ("Approve leave") WAS HERE until 2026-09-16 and
     # went when leave approval became the Main Admin's alone (routers/leave.py):
     # a key nothing checks is a promise the API does not keep, and migration
-    # d8b1f4c2a7e9 revoked every live grant of it.
+    # d8b1f4c2a7e9 revoked every live grant of it. Its successor is
+    # `admin.leave_approvals` below, in the PROGRAMME section, and deliberately
+    # not this name: a grant row that survived the revocation must not come
+    # back to life under a rule it was never made under.
     Capability("mentor.upskilling", "Own upskilling shelf", _S),
     Capability("mentor.agent", "REEP Agent", _S),
     # -- programme-wide: no group narrows these ------------------------------
@@ -147,6 +150,19 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     Capability("admin.jobs", "Jobs sheet", _P),
     Capability("admin.placement", "Placement", _P),
     Capability("admin.mentors", "Mentors & students", _P, carries_pii=True),
+    # Leave approval (2026-09-17): the Main Admin's by baseline, and GRANTABLE
+    # to any faculty member. Leave became the office's one signature on
+    # 2026-09-16 and `mentor.leave_approve` -- a SCOPED key derived from
+    # mentoring somebody, which admitted a colleague to their own group's
+    # queue -- left with the two-signature chain. The owner then asked for the
+    # office to be able to hand the queue to a named faculty member, which is
+    # a different thing from the key that went: PROGRAMME, because a leave
+    # request hangs on no mentor group (staff apply for leave too), decided
+    # by a grant in Governance with a reason, and never derived. `carries_pii`
+    # because a leave reason is free text and routinely medical, so a DEPUTY's
+    # grant of it waits for a second signature (B2.4); the Main Admin's is live
+    # at once. `routers/leave.py::_require_leave_approver` is the call site.
+    Capability("admin.leave_approvals", "Approve leave", _P, carries_pii=True),
     Capability("admin.interview_audio", "Interview audio", _P, carries_pii=True),
     # The admin-authored question bank the free-style interviewer weaves in
     # (app/interview_bank.py). PROGRAMME: a question is asked of every student on
@@ -161,6 +177,23 @@ CAPABILITIES: Final[tuple[Capability, ...]] = (
     # time (app/routers/admin_students.py). PROGRAMME and personal: it creates,
     # edits and deletes roster rows - the access control itself.
     Capability("admin.students", "Students", _P, carries_pii=True),
+    # ONE STUDENT'S WHOLE RECORD (2026-09-17): `GET /admin/students/{id}/360`,
+    # the screen behind the View button on the roster and the "Full record"
+    # link on a faculty member's Mentee Log. Its own key, split off
+    # `admin.students`, because the roster key is the WRITE -- it edits and
+    # moves roster rows -- and reading a candidate's complete details (contact
+    # details, every semester's results, attendance, the documents they
+    # uploaded and each one's verdict, badges, interviews, the trail) is a
+    # decision the office should be able to hand to a faculty member without
+    # also handing them the roster editor. PROGRAMME, narrowed by B1.2's scope
+    # on the student's ancestry, and rule 2 still runs underneath: a MENTOR
+    # granted it opens their OWN mentees' records and nobody else's.
+    # `carries_pii` for the obvious reason -- it is the most complete view of a
+    # student the console has -- so a DEPUTY's grant waits for a second
+    # signature and the Main Admin's is live at once. The Main Admin holds it
+    # by baseline through `_ALL`, which is what puts "candidate complete
+    # details" in front of the office with no grant to make.
+    Capability("admin.student_records", "View student records", _P, carries_pii=True),
     # B8.1's spreadsheet imports (app/routers/admin_imports.py). PROGRAMME,
     # because an import is FOR A BATCH and no mentor group narrows a batch - the
     # rung it hangs on is the college or the batch itself, which is a B1.2 scope
@@ -289,16 +322,18 @@ FEATURES: Final[tuple[Feature, ...]] = (
     Feature("student.uploads", "Document uploads", enforced=True),
     Feature("student.time_log", "Time allocation ledger", enforced=True),
     Feature("student.skilling", "Skilling & badges", enforced=True),
-    Feature("student.certifications", "Certifications", enforced=True),
     # ADDED BY B2.2, and the spec is why it was missing. 04-backend-changes.md
     # names the ten features to gate as "jobs, leaderboards, mock interview,
     # resume generate, agent, uploads, english, skilling, time-log, mentor-log"
-    # — but the catalogue it was describing has no `student.mentor_log`, and has
-    # `student.certifications`, which that sentence never mentions. Both screens
-    # are real and a student reaches both, so both are switches now: dropping
-    # the mentor log would have left the spec's own list one short, and dropping
-    # certifications would have left a catalogue row that gates nothing, which
-    # is the exact state B2.2 exists to end.
+    # — but the catalogue it was describing had no `student.mentor_log`. The
+    # screen is real and a student reaches it, so it is a switch: dropping it
+    # would have left the spec's own list one short.
+    #
+    # `student.certifications` sat here until 2026-09-17, when the Certification
+    # Tracker (`GET /student/certifications`) was removed at the owner's
+    # request. A row that gates nothing is the state B2.2 exists to end, so the
+    # row went with the endpoint; a stored override naming the old key is
+    # skipped by the resolver and listed under its bare key by the console.
     Feature("student.mentor_log", "Mentor meeting log", enforced=True),
 )
 

@@ -153,7 +153,7 @@ export const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
         label: 'Leave requests',
         icon: 'event_available',
         path: '/admin/leave-approvals',
-        mainAdminOnly: true,
+        capability: 'admin.leave_approvals',
       },
       {
         label: 'Upload spreadsheets',
@@ -252,10 +252,10 @@ export const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
  * The student's items, unchanged from what the sidebar lists today — the
  * redesign restyles this console, it does not re-navigate it.
  *
- * Shorter than the route table on purpose: English Baseline, Certifications,
- * Courses, Records, Uploads and Profile are each reached from the screen that
- * owns the work, or from the identity card. Their routes are kept, so a
- * bookmark and a deep link still resolve.
+ * Shorter than the route table on purpose: English Baseline, Courses, Records,
+ * Uploads and Profile are each reached from the screen that owns the work, or
+ * from the identity card. Their routes are kept, so a bookmark and a deep link
+ * still resolve.
  */
 const STUDENT_NAVIGATION: readonly NavigationGroup[] = [
   {
@@ -347,6 +347,14 @@ const ALUMNI_NAVIGATION: readonly NavigationGroup[] = [
  * capability with no row here is a grant that changes nothing on screen, so
  * this list and the catalogue in app/models/governance.py are kept in step.
  *
+ * ONE KEY HAS NO ROW ON PURPOSE: `admin.student_records` (2026-09-17) opens a
+ * PER-STUDENT screen, /admin/students/:id, and there is no list to put in a
+ * sidebar. It is reached from the roster's View button (a holder of
+ * `admin.students`) and from the "Full record" link on a faculty member's own
+ * Mentee Log (a holder of `mentor.mentees`) — the two places a person who
+ * may read a record already meets the student, and rule 2 narrows a faculty
+ * holder to their own mentees on the way through.
+ *
  * THE REDESIGNED SCREENS ARE HERE TOO. Left out, a faculty member granted
  * `admin.institution` would pass /admin/colleges' route guard with no row
  * anywhere offering it — reachable only by typing the URL, which is the exact
@@ -370,6 +378,26 @@ export const GRANTABLE_ADMIN_SCREENS: readonly (NavigationItem & {
     icon: 'pending_actions',
   },
   { capability: 'admin.mentors', path: '/admin/mentors', label: 'Assign faculty', icon: 'group' },
+  // Leave approval became grantable on 2026-09-17: a faculty member the office
+  // hands the queue to signs as a delegate on the same screen the office uses.
+  {
+    capability: 'admin.leave_approvals',
+    path: '/admin/leave-approvals',
+    label: 'Leave requests',
+    icon: 'event_available',
+  },
+  // Interview records were grantable (admin.interviews) before this row was:
+  // a granted faculty member passed the route guard with no row anywhere
+  // offering the screen, which is the defect this list exists to prevent.
+  // The grid is still rule 2's -- a faculty member sees their own mentees'
+  // interviews -- and "Download recording" on it needs admin.interview_audio
+  // as well, granted separately and on purpose.
+  {
+    capability: 'admin.interviews',
+    path: '/admin/interviews',
+    label: 'Interview records',
+    icon: 'mic',
+  },
   {
     capability: 'admin.students',
     path: '/admin/students',
@@ -583,6 +611,20 @@ export class AppShellComponent {
   private readonly _accountMenuOpen = signal(false);
   readonly accountMenuOpen = this._accountMenuOpen.asReadonly();
 
+  /**
+   * The sidebar's drawer state — meaningful only below 900px, where
+   * reep-v2.scss takes `.desktop-nav` out of the flow and parks it off-screen.
+   * Above that the sidebar is always on screen, the hamburger and the scrim
+   * are `display: none`, and this stays false and costs nothing.
+   *
+   * ONE `<nav>`, NOT TWO. The drawer renders the same element with the same
+   * `navigation()` groups; a second mobile navigation would be a second list
+   * to keep in step with ADMIN_NAVIGATION and its three siblings, which is
+   * exactly what "the navigation is DATA, not markup" above exists to avoid.
+   */
+  private readonly _navOpen = signal(false);
+  readonly navOpen = this._navOpen.asReadonly();
+
   constructor() {
     if (this.session()?.role === 'STUDENT') void this.loadUsn();
 
@@ -606,6 +648,20 @@ export class AppShellComponent {
     } catch {
       // The sidebar is not worth an error state. Name only.
     }
+  }
+
+  toggleNav(): void {
+    this._navOpen.update((open) => !open);
+  }
+
+  /**
+   * Bound on the scrim, on Escape, and on every nav link — the link case being
+   * the one that matters: on a phone the destination is BEHIND the drawer, so
+   * a drawer left standing reads as a link that did nothing. Above 900px it is
+   * already false and every one of those is a no-op.
+   */
+  closeNav(): void {
+    this._navOpen.set(false);
   }
 
   toggleAccountMenu(): void {

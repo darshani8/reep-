@@ -746,6 +746,7 @@ def test_sentry_never_ships_local_variables_or_request_bodies() -> None:
         "main.py",
         "retention_job.py",
         "alerts_job.py",
+        "leave_today_job.py",
         "voice_platform/queue/worker.py",
     ):
         text = (APP / module).read_text(encoding="utf-8")
@@ -772,6 +773,9 @@ def test_every_reporting_process_names_its_own_service_and_its_own_dsn() -> None
         # reading SENTRY_DSN, which is in their environment because they run on
         # the api's task definition with a command override.
         "alerts_job.py": ("SERVICE_JOBS", "settings.sentry_jobs_dsn"),
+        # The morning "<name> is on leave today" announcement (2026-09-24),
+        # the third scheduled job in the same project for the same reason.
+        "leave_today_job.py": ("SERVICE_JOBS", "settings.sentry_jobs_dsn"),
         "voice_platform/queue/worker.py": ("SERVICE_INTERVIEW_WORKER", "settings.sentry_interview_worker_dsn"),
     }
     for module, (service, dsn_setting) in expectations.items():
@@ -779,7 +783,7 @@ def test_every_reporting_process_names_its_own_service_and_its_own_dsn() -> None
         assert f"init_sentry({service}, {dsn_setting})" in text, (
             f"app/{module} must call init_sentry({service}, {dsn_setting}) — see this test's docstring"
         )
-    for module in ("retention_job.py", "alerts_job.py", "voice_platform/queue/worker.py"):
+    for module in ("retention_job.py", "alerts_job.py", "leave_today_job.py", "voice_platform/queue/worker.py"):
         text = (APP / module).read_text(encoding="utf-8")
         assert "settings.sentry_dsn)" not in text and "settings.sentry_dsn " not in text, (
             f"app/{module} reads the api's DSN; it must read its own"

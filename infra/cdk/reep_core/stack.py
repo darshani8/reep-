@@ -2188,6 +2188,57 @@ class CoreStack(Stack):
                 ),
             )
 
+        if harden_ecs and ses_from_address and leave_mail_enabled:
+            # "<NAME> IS ON LEAVE TODAY", DAILY AT 07:00 IST (app/leave_today_job.py).
+            # Every approved faculty leave covering the day is mailed to every
+            # other faculty member ON THE LEAVE DAY, not when it is approved,
+            # which is the whole reason this is a schedule and not a line in
+            # the decision endpoint.
+            #
+            # GATED ON EXACTLY THE CONDITION THAT PUTS `LEAVE_MAIL_ENABLED` IN
+            # THE TASK DEFINITION above (`harden_ecs`, a sender, the switch). A
+            # schedule without that variable is a job that wakes every morning
+            # and announces nothing, and one ahead of the sender is refused at
+            # synth already.
+            #
+            # 01:30 UTC is before the working day in India and clear of every
+            # other clock in this stack: the RDS backup (20:30-21:30) and
+            # maintenance (Sun 21:30-22:30) windows, the AWS Backup rule
+            # (19:00), and the four jobs above (18:00-21:30). It only reads a
+            # handful of rows and writes `mail_logs`, so the ordering is about
+            # the inbox, not the database.
+            #
+            # It reuses the api task definition and so the scheduler role's
+            # existing ecs:RunTask on `{project}-api:*`, and the api task role
+            # already holds the SES send grant it needs.
+            scheduler.CfnSchedule(
+                self,
+                "LeaveTodaySchedule",
+                name=f"{project}-leave-today-daily",
+                schedule_expression="cron(30 1 * * ? *)",  # 07:00 IST
+                flexible_time_window=scheduler.CfnSchedule.FlexibleTimeWindowProperty(mode="OFF"),
+                target=scheduler.CfnSchedule.TargetProperty(
+                    arn=cluster.cluster_arn,
+                    role_arn=scheduler_role.role_arn,
+                    ecs_parameters=scheduler.CfnSchedule.EcsParametersProperty(
+                        task_definition_arn=task_def.task_definition_arn,
+                        launch_type="FARGATE",
+                        network_configuration=scheduler.CfnSchedule.NetworkConfigurationProperty(
+                            awsvpc_configuration=scheduler.CfnSchedule.AwsVpcConfigurationProperty(
+                                subnets=[s.ref for s in private_subnets],
+                                security_groups=[api_sg.ref],
+                                assign_public_ip="DISABLED",
+                            )
+                        ),
+                    ),
+                    input=json.dumps(
+                        {"containerOverrides": [{"name": "api", "command": ["python", "-m", "app.leave_today_job"]}]},
+                        separators=(",", ":"),
+                        sort_keys=True,
+                    ),
+                ),
+            )
+
         # ------------------------------------------------------------- edge --
         spa_fallback = cloudfront.Function(
             self,

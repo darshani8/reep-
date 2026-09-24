@@ -1,6 +1,7 @@
 """The endpoints behind the three screens the v2 student UI adds:
 
     GET  /api/student/ledger?day=          the Time Allocation Ledger
+    GET  /api/student/ledger/history        the last N days and their status
     PUT  /api/student/ledger                save a day (draft)
     POST /api/student/ledger/copy-yesterday prefill from the previous day
     POST /api/student/ledger/submit         latch the day, once it reconciles
@@ -25,6 +26,18 @@ band's proportions and the mix bars are all derived from the same cell figures,
 and deriving them twice — once in Python for the API and once in TypeScript for
 the chart — is how a band ends up disagreeing with the number printed above it.
 The client renders what it is given.
+
+A DAY LOCKS, AND "TODAY" IS THE STUDENT'S (2026-09-22). Until this date any
+past day could be written at any time — a student could type the whole
+semester in on the last night, and the faculty's weekly roll-up would be a
+record of nothing. `settings.ledger_edit_window_days` (2) is how long a day
+stays open after it ends; `_day_window` is the ONE function that decides
+open/locked, and the read, the history, the save, the copy and the submit all
+ask it, so the chip on the screen and the 409 are one sentence. Every "today"
+here is `clock.local_today()`, the programme's zone and not the container's,
+because on Fargate the container is UTC and a student pressing Save at 00:30
+IST was told the day "has not happened yet". The client anchors its stepper on
+the `today` this module serves, for the same reason from the other side.
 """
 
 from collections import defaultdict
@@ -32,7 +45,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -78,6 +91,8 @@ from ..models.time_ledger import (
     TimeLedgerCell,
     TimeLedgerDay,
 )
+from ..clock import local_today
+from ..config import settings
 from ..english_report import render_english_report_pdf
 from ..governance import require_feature
 from ..models.timesheet import DayActivity
@@ -203,8 +218,24 @@ class LedgerLegendOut(BaseModel):
 
 class LedgerOut(BaseModel):
     day: date
+    #: The programme's calendar day when this was read (app/clock.py). The
+    #: client steps its date picker from THIS, never from the handset's clock,
+    #: so a phone set to the wrong zone cannot ask for a day the server will
+    #: refuse as "not happened yet".
+    today: date
     status: str
     submitted_at: datetime | None
+    #: True while the day can still be written: not submitted, not locked and
+    #: not in the future. The inputs on the screen are enabled off this alone.
+    editable: bool
+    #: True once the day is past its edit window (`edit_until`). A submitted day
+    #: that is also old reads `locked: true` too; `status` says which state the
+    #: student left it in, and `lock_reason` says why it cannot change now.
+    locked: bool
+    #: The last calendar day on which this day can still be written.
+    edit_until: date
+    edit_window_days: int
+    lock_reason: str | None
     can_submit: bool
     submit_blocked_reason: str | None
     total_hours: float
@@ -230,8 +261,71 @@ def _cell_map(ledger: TimeLedgerDay | None) -> dict[tuple[LedgerSlot, DayActivit
     return {(c.slot, c.activity): c.half_hours for c in ledger.cells}
 
 
-def compose_ledger(day: date, ledger: TimeLedgerDay | None) -> LedgerOut:
-    """Everything the ledger screen draws, derived once from the cell figures."""
+class DayWindow(BaseModel):
+    """Whether one calendar day is still open to be written, and why not."""
+
+    today: date
+    edit_until: date
+    locked: bool
+    future: bool
+    reason: str | None
+
+
+def _day_window(day: date, today: date | None = None) -> DayWindow:
+    """THE ONE PLACE that decides whether a ledger day is open.
+
+    A day stays open for `settings.ledger_edit_window_days` calendar days after
+    it — with the default of 2, Monday can be written until the end of
+    Wednesday — and is LOCKED from the next morning. Locked means read-only in
+    every direction: no save, no submit, no "copy yesterday" onto it. A day in
+    the future is refused too, as it always was; both refusals are worded here
+    so the read's chip, the history's flag and the write's 409 cannot drift.
+
+    Calendar days in the programme's zone, deliberately, rather than a number
+    of hours: "until the end of Wednesday" is a sentence a student can plan
+    around, and it is the same sentence at 9 am and at 11 pm.
+    """
+    today = today or local_today()
+    window = max(0, settings.ledger_edit_window_days)
+    edit_until = day + timedelta(days=window)
+    if day > today:
+        return DayWindow(
+            today=today,
+            edit_until=edit_until,
+            locked=False,
+            future=True,
+            reason="You cannot log a day that has not happened yet.",
+        )
+    if today > edit_until:
+        if window == 0:
+            open_words = "on the day itself"
+        elif window == 1:
+            open_words = "until the end of the next day"
+        else:
+            open_words = f"for {window} days after it ends"
+        return DayWindow(
+            today=today,
+            edit_until=edit_until,
+            locked=True,
+            future=False,
+            reason=(
+                f"{day:%d %b %Y} is locked — it could be filled in until "
+                f"{edit_until:%d %b %Y}. A day stays open {open_words}."
+            ),
+        )
+    return DayWindow(today=today, edit_until=edit_until, locked=False, future=False, reason=None)
+
+
+def compose_ledger(
+    day: date, ledger: TimeLedgerDay | None, *, today: date | None = None
+) -> LedgerOut:
+    """Everything the ledger screen draws, derived once from the cell figures.
+
+    `today` is the programme's day (app/clock.py) and is a parameter only so a
+    caller that has already asked the clock once can hand it over; nothing
+    passes a different day to move the lock.
+    """
+    window = _day_window(day, today)
     cells = _cell_map(ledger)
 
     per_slot: dict[LedgerSlot, int] = defaultdict(int)
@@ -371,6 +465,8 @@ def compose_ledger(day: date, ledger: TimeLedgerDay | None) -> LedgerOut:
     blocked: str | None = None
     if already:
         blocked = "This day is already submitted."
+    elif window.locked or window.future:
+        blocked = window.reason
     elif total != DAY_CAPACITY_HALVES:
         # Deliberately the same sentence the metrics strip shows, so the
         # disabled button and the nudge above it agree word for word.
@@ -378,8 +474,14 @@ def compose_ledger(day: date, ledger: TimeLedgerDay | None) -> LedgerOut:
 
     return LedgerOut(
         day=day,
+        today=window.today,
         status=status_value,
         submitted_at=ledger.submitted_at if ledger else None,
+        editable=not already and not window.locked and not window.future,
+        locked=window.locked,
+        edit_until=window.edit_until,
+        edit_window_days=max(0, settings.ledger_edit_window_days),
+        lock_reason=window.reason if window.locked else None,
         can_submit=blocked is None,
         submit_blocked_reason=blocked,
         total_hours=_hours(total),
@@ -410,8 +512,100 @@ def read_ledger(
     an empty day is a real answer, not a 404."""
     student_id = _require_student(session)
     require_feature(db, student_id, "student.time_log")
-    target = day or date.today()
-    return compose_ledger(target, load_day(db, student_id, target))
+    today = local_today()
+    target = day or today
+    return compose_ledger(target, load_day(db, student_id, target), today=today)
+
+
+class LedgerHistoryDayOut(BaseModel):
+    day: date
+    #: EMPTY (no row), DRAFT or SUBMITTED.
+    status: str
+    logged_hours: float
+    editable: bool
+    locked: bool
+    submitted_at: datetime | None
+
+
+class LedgerHistoryOut(BaseModel):
+    today: date
+    window_days: int
+    edit_window_days: int
+    days_submitted: int
+    #: Days with anything on them at all, submitted or not.
+    days_logged: int
+    #: Most recent first, one entry per calendar day whether or not a row
+    #: exists — a day the student never opened is a real answer ("Not logged"),
+    #: not a gap in a list.
+    days: list[LedgerHistoryDayOut]
+
+
+@router.get("/ledger/history", response_model=LedgerHistoryOut)
+def read_ledger_history(
+    days: int = 14,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> LedgerHistoryOut:
+    """The last `days` of the ledger, each with its status and whether it can
+    still be written.
+
+    THE RECORD OF WHAT WAS FILLED IN. The screen showed one day at a time and
+    nothing else, so a student who had filled a fortnight in had no way to see
+    it — and, with the date stepper walking through UTC (see the client), no
+    reliable way to reach it either. This is the same aggregate the mentor's
+    `/ledger/summary` builds, read first-person and padded to every calendar
+    day in the window, so "Not logged" and "Locked" are things the strip can
+    say rather than things the student infers from an absence.
+    """
+    student_id = _require_student(session)
+    require_feature(db, student_id, "student.time_log")
+    window = max(1, min(days, 90))
+    today = local_today()
+    since = today - timedelta(days=window - 1)
+
+    rows = db.execute(
+        select(
+            TimeLedgerDay.day,
+            TimeLedgerDay.status,
+            TimeLedgerDay.submitted_at,
+            func.coalesce(func.sum(TimeLedgerCell.half_hours), 0),
+        )
+        .select_from(TimeLedgerDay)
+        .outerjoin(TimeLedgerCell, TimeLedgerCell.ledger_day_id == TimeLedgerDay.id)
+        .where(
+            TimeLedgerDay.student_id == student_id,
+            TimeLedgerDay.day >= since,
+            TimeLedgerDay.day <= today,
+        )
+        .group_by(TimeLedgerDay.day, TimeLedgerDay.status, TimeLedgerDay.submitted_at)
+    ).all()
+    by_day = {row[0]: row for row in rows}
+
+    out: list[LedgerHistoryDayOut] = []
+    for offset in range(window):
+        day = today - timedelta(days=offset)
+        row = by_day.get(day)
+        status_value = row[1].value if row is not None else "EMPTY"
+        halves = int(row[3]) if row is not None else 0
+        day_window = _day_window(day, today)
+        out.append(
+            LedgerHistoryDayOut(
+                day=day,
+                status=status_value,
+                logged_hours=_hours(halves),
+                editable=status_value != LedgerDayStatus.SUBMITTED.value and not day_window.locked,
+                locked=day_window.locked,
+                submitted_at=row[2] if row is not None else None,
+            )
+        )
+    return LedgerHistoryOut(
+        today=today,
+        window_days=window,
+        edit_window_days=max(0, settings.ledger_edit_window_days),
+        days_submitted=sum(1 for d in out if d.status == LedgerDayStatus.SUBMITTED.value),
+        days_logged=sum(1 for d in out if d.logged_hours > 0),
+        days=out,
+    )
 
 
 def _validate_cells(cells: list[LedgerCellIn]) -> dict[tuple[LedgerSlot, DayActivity], int]:
@@ -501,6 +695,18 @@ def _editable(ledger: TimeLedgerDay | None) -> None:
         )
 
 
+def _assert_day_open(day: date, today: date | None = None) -> DayWindow:
+    """Refuse a write to a day that is in the future (422, input) or locked
+    (409, state) — the sentence is `_day_window`'s, so it is the one the
+    screen already shows on that day's chip."""
+    window = _day_window(day, today)
+    if window.future:
+        raise HTTPException(status_code=422, detail=window.reason)
+    if window.locked:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=window.reason)
+    return window
+
+
 @router.put("/ledger", response_model=LedgerOut)
 def save_ledger(
     body: LedgerSaveIn,
@@ -510,8 +716,7 @@ def save_ledger(
     """Save the whole day as a draft. Does not submit it."""
     student_id = _require_student(session)
     require_feature(db, student_id, "student.time_log")
-    if body.day > date.today():
-        raise HTTPException(422, detail="You cannot log a day that has not happened yet.")
+    window = _assert_day_open(body.day)
 
     parsed = _validate_cells(body.cells)
     ledger = load_day(db, student_id, body.day)
@@ -522,7 +727,7 @@ def save_ledger(
     _write_cells(db, ledger, parsed)
     db.commit()
     db.refresh(ledger)
-    return compose_ledger(body.day, load_day(db, student_id, body.day))
+    return compose_ledger(body.day, load_day(db, student_id, body.day), today=window.today)
 
 
 class LedgerDayIn(BaseModel):
@@ -544,6 +749,7 @@ def copy_yesterday(
     """
     student_id = _require_student(session)
     require_feature(db, student_id, "student.time_log")
+    window = _assert_day_open(body.day)
     source_day = body.day - timedelta(days=1)
     source = load_day(db, student_id, source_day)
     if source is None or source.status != LedgerDayStatus.SUBMITTED:
@@ -559,7 +765,7 @@ def copy_yesterday(
         db.add(target)
     _write_cells(db, target, {(c.slot, c.activity): c.half_hours for c in source.cells})
     db.commit()
-    return compose_ledger(body.day, load_day(db, student_id, body.day))
+    return compose_ledger(body.day, load_day(db, student_id, body.day), today=window.today)
 
 
 @router.post("/ledger/submit", response_model=LedgerOut)
@@ -577,8 +783,11 @@ def submit_ledger(
     """
     student_id = _require_student(session)
     require_feature(db, student_id, "student.time_log")
+    today = local_today()
     ledger = load_day(db, student_id, body.day)
-    view = compose_ledger(body.day, ledger)
+    # A locked day cannot be latched late either: `compose_ledger` folds the
+    # window into `can_submit`, so this is one refusal with the same words.
+    view = compose_ledger(body.day, ledger, today=today)
     if not view.can_submit:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -589,7 +798,7 @@ def submit_ledger(
     ledger.status = LedgerDayStatus.SUBMITTED
     ledger.submitted_at = datetime.now(timezone.utc)
     db.commit()
-    return compose_ledger(body.day, load_day(db, student_id, body.day))
+    return compose_ledger(body.day, load_day(db, student_id, body.day), today=today)
 
 
 # ---------------------------------------------------------------------------

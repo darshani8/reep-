@@ -103,7 +103,16 @@ class OnboardStepOut(BaseModel):
 
 
 class StartIn(BaseModel):
-    token: str = Field(min_length=16, max_length=200)
+    # NO LOWER BOUND ON THE TOKEN, and none on VerifyIn's either. A setup link a
+    # mail client cut short is a dead link, and the lookup below already says
+    # so: 410 and `_REFUSED`, which the screen draws as "this link cannot go
+    # any further". `min_length=16` refused it here instead, as a 422 about the
+    # request, and the screen prints a 422 as a thing to fix and retry - so the
+    # student read "String should have at least 16 characters" under their own
+    # address every time they retyped it, and was never told the link was
+    # dead. passwords.LinkPasswordIn dropped the same bound for /reset and
+    # /activate. The upper bound stays: it caps what is hashed.
+    token: str = Field(max_length=200)
     email: str = Field(min_length=3, max_length=254)
 
 
@@ -135,7 +144,7 @@ def start(body: StartIn, db: Session = Depends(get_db)) -> OnboardStepOut:
 
 
 class VerifyIn(BaseModel):
-    token: str = Field(min_length=16, max_length=200)
+    token: str = Field(max_length=200)  # no lower bound: see StartIn
     code: str = Field(min_length=4, max_length=12)
 
 

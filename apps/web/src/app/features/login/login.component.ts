@@ -33,7 +33,9 @@
  * is not one this page knows" and every honest message below was dead code.
  */
 
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
@@ -161,17 +163,29 @@ function messageFor(code: string, domain: string): string {
  * failed" collapses them into one dead end. 429 in particular must not read as
  * a wrong password: the person has typed the RIGHT one, possibly, and the
  * useful sentence is that Google still works and this counter does not gate it.
+ *
+ * 403 is two refusals, and only the server knows which: the password door is
+ * shut, which it names in `X-Reep-Password-Door` (PASSWORD_DOOR_HEADER in
+ * app/routers/auth.py), or the RIGHT password reached an account the office
+ * has disabled or removed (`refuse_disabled_sign_in`). The second is the
+ * server's own sentence: this page used to answer it with the door's, which
+ * sent a disabled person to Google — and Google refuses them too.
  */
-function passwordErrorFor(err: unknown): string {
-  const status = (err as { status?: number } | null)?.status;
+export function passwordErrorFor(err: unknown): string {
+  const e = err as { status?: number; error?: { detail?: unknown } } | null;
+  const status = e?.status;
   switch (status) {
     case 401:
       return 'That email and password did not match an account. Check both, or use Continue with Google.';
-    case 403:
+    case 403: {
+      const doorShut =
+        err instanceof HttpErrorResponse && err.headers.get('X-Reep-Password-Door') === 'closed';
+      if (!doorShut && typeof e?.error?.detail === 'string') return e.error.detail;
       return (
         'Password sign-in is switched off on this server, so this form cannot ' +
         'work. Use Continue with Google.'
       );
+    }
     case 429:
       return (
         'Too many failed attempts for this account or from this network, so ' +
@@ -190,13 +204,18 @@ function passwordErrorFor(err: unknown): string {
  * What a refused one-time code should say. 401 is the only refusal the server
  * gives for a wrong, expired, replayed or misdirected code (one message, on
  * purpose — see login_with_code in app/routers/auth.py); 429 carries its own
- * words, which name Google because that door is not gated by the counter.
+ * words, which name Google because that door is not gated by the counter; and
+ * 403 is a right code for an account the office disabled after the code was
+ * sent (`refuse_disabled_sign_in`), which the server's sentence says.
  */
-function codeErrorFor(err: unknown): string {
+export function codeErrorFor(err: unknown): string {
   const e = err as { status?: number; error?: { detail?: unknown } } | null;
   switch (e?.status) {
     case 401:
       return 'That code is wrong or has expired.';
+    case 403:
+      if (typeof e?.error?.detail === 'string') return e.error.detail;
+      break;
     case 429:
       return typeof e?.error?.detail === 'string'
         ? e.error.detail
@@ -204,9 +223,8 @@ function codeErrorFor(err: unknown): string {
     case 0:
     case undefined:
       return 'Could not reach the server. Check your connection and try again.';
-    default:
-      return `Sign-in failed (error ${e?.status}). Try again, and quote that number if you need to report it.`;
   }
+  return `Sign-in failed (error ${e?.status}). Try again, and quote that number if you need to report it.`;
 }
 
 /**
@@ -300,7 +318,9 @@ export class LoginComponent {
   readonly portals = PORTALS;
   readonly portal = signal<Portal['key']>('student');
   readonly current = computed(
-    () => PORTALS.find((p) => p.key === this.portal()) ?? (this.portal() === 'admin' ? ADMIN_DOOR : PORTALS[0]),
+    () =>
+      PORTALS.find((p) => p.key === this.portal()) ??
+      (this.portal() === 'admin' ? ADMIN_DOOR : PORTALS[0]),
   );
 
   /** The refusal carried back on the callback redirect, if any. */
@@ -367,13 +387,23 @@ export class LoginComponent {
   private readonly attempted = signal(false);
 
   readonly form = this.fb.nonNullable.group({
-    id: ['', [Validators.required]],
+    // `required` passes an ID of spaces, which `idErr` reads as empty and
+    // `resolveEmail` would post as "@<domain>": one rule, not two.
+    id: ['', [Validators.required, Validators.pattern(/\S/)]],
     password: ['', [Validators.required]],
     remember: [false],
   });
 
-  readonly idErr = computed(() => this.attempted() && !this.form.controls.id.value.trim());
-  readonly pwErr = computed(() => this.attempted() && !this.form.controls.password.value);
+  /** The form's value as a signal. `computed()` re-runs only when a signal it
+   *  read has changed, and a reactive form's `.value` is a plain property:
+   *  read directly, the two messages below were worked out when `attempted`
+   *  changed and never again, so they stayed however the fields were filled. */
+  private readonly values = toSignal(this.form.valueChanges, {
+    initialValue: this.form.getRawValue(),
+  });
+
+  readonly idErr = computed(() => this.attempted() && !(this.values().id ?? '').trim());
+  readonly pwErr = computed(() => this.attempted() && !this.values().password);
   readonly idErrMsg = computed(() => `Enter your ${this.current().fieldLabel.toLowerCase()}.`);
 
   constructor() {
@@ -549,6 +579,10 @@ export class LoginComponent {
       this.form.markAllAsTouched();
       return;
     }
+    // Both fields are filled, so neither message has anything to say — and a
+    // refusal below empties the password, which must not raise "Enter your
+    // password." beside the server's answer to this attempt.
+    this.attempted.set(false);
     this.submitting.set(true);
     this.formError.set(null);
     // A fresh attempt supersedes whatever Google said last time; leaving both
@@ -635,7 +669,11 @@ export class LoginComponent {
       const id = localStorage.getItem(REMEMBER_ID_KEY);
       if (!id) return;
       const portal = localStorage.getItem(REMEMBER_PORTAL_KEY) as Portal['key'] | null;
-      if (portal && PORTALS.some((p) => p.key === portal)) this.portal.set(portal);
+      // The Main Admin door is remembered too: `remember()` stores whatever
+      // `portal()` holds, and 'admin' is no card in PORTALS (see ADMIN_DOOR).
+      if (portal && (portal === ADMIN_DOOR.key || PORTALS.some((p) => p.key === portal))) {
+        this.portal.set(portal);
+      }
       this.form.patchValue({ id, remember: true });
     } catch {
       // Same as above.

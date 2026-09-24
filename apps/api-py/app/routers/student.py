@@ -12,7 +12,9 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 
+from .. import batch_labels
 from ..ai.llm import complete_chat, llm_config, student_data_egress_allowed
+from ..clock import local_today
 from ..db import get_db
 from ..governance import require_feature
 from ..identity import get_current_session
@@ -73,6 +75,7 @@ from ..models.schedule import ScheduleItem
 from ..models.skill import Skill, SkillClaim, StudentSkill
 from ..models.swoc import SwocEntry, SwocKind, SwocSource
 from ..models.resume_profile import ResumeProfile
+from ..models.time_ledger import TimeLedgerCell, TimeLedgerDay
 from ..models.timesheet import DayActivity, TimeSheetEntry
 from ..models.upload import Upload, UploadKind, UploadStatus
 from ..models.user import LoginDay, Mentor, Role, Student, User
@@ -982,20 +985,61 @@ def my_timesheet(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> TimeSheetSummaryOut:
-    """The self-learning time log over the last `days`, with per-activity totals
-    and the SKILLING-hours-vs-target the chart draws."""
+    """The time log over the last `days`, with per-activity totals and the
+    SKILLING-hours-vs-target the ledger's weekly strip draws.
+
+    THE LEDGER IS WHAT THE STUDENT FILLS IN, SO THE LEDGER IS WHAT THIS SUMS
+    (2026-09-22). `time_sheet_entries` was the old free-form time log's table,
+    and when the Time Allocation Ledger replaced that screen the only thing
+    left writing it was `POST /student/timesheet`, which no client posts to.
+    This endpoint went on reading it alone, so the "Skilling this week" strip
+    on the ledger read "0 h of a 12 h target" under a fortnight of ledger days
+    carrying three hours of skilling each — the student's own screen telling
+    them their filled-in record did not exist. Per calendar day, the ledger's
+    cells win where a ledger row exists (that is the record the student made
+    and can see), and a legacy row is counted only for a day that has no
+    ledger row, so the seed's demo data and any history from the old screen
+    still count once and never twice.
+    """
     student_id = _require_student(session)
     window = max(1, min(days, 90))
-    since = date.today() - timedelta(days=window - 1)
-    rows = db.scalars(
+    today = local_today()
+    since = today - timedelta(days=window - 1)
+
+    ledger_rows = db.execute(
+        select(TimeLedgerDay.day, TimeLedgerCell.activity, func.sum(TimeLedgerCell.half_hours))
+        .select_from(TimeLedgerDay)
+        .join(TimeLedgerCell, TimeLedgerCell.ledger_day_id == TimeLedgerDay.id)
+        .where(
+            TimeLedgerDay.student_id == student_id,
+            TimeLedgerDay.day >= since,
+            TimeLedgerDay.day <= today,
+        )
+        .group_by(TimeLedgerDay.day, TimeLedgerCell.activity)
+    ).all()
+    # minutes per (day, activity): a half hour is thirty minutes.
+    minutes: dict[tuple[date, str], int] = {}
+    for day, activity, halves in ledger_rows:
+        minutes[(day, activity.value)] = minutes.get((day, activity.value), 0) + int(halves) * 30
+    ledger_days = {day for day, _ in minutes}
+
+    legacy = db.scalars(
         select(TimeSheetEntry)
-        .where(TimeSheetEntry.student_id == student_id, TimeSheetEntry.day >= since)
+        .where(
+            TimeSheetEntry.student_id == student_id,
+            TimeSheetEntry.day >= since,
+            TimeSheetEntry.day <= today,
+        )
         .order_by(TimeSheetEntry.day)
     ).all()
+    for r in legacy:
+        if r.day in ledger_days:
+            continue
+        minutes[(r.day, r.activity.value)] = minutes.get((r.day, r.activity.value), 0) + r.minutes
 
     by_activity: dict[str, int] = {}
-    for r in rows:
-        by_activity[r.activity.value] = by_activity.get(r.activity.value, 0) + r.minutes
+    for (_day, activity), mins in minutes.items():
+        by_activity[activity] = by_activity.get(activity, 0) + mins
 
     stu = db.get(Student, student_id)
     return TimeSheetSummaryOut(
@@ -1004,7 +1048,8 @@ def my_timesheet(
         skilling_hours=round(by_activity.get("SKILLING", 0) / 60, 1),
         weekly_hour_target=stu.weekly_hour_target if stu else 12.0,
         entries=[
-            TimeSheetEntryOut(day=r.day, activity=r.activity.value, minutes=r.minutes) for r in rows
+            TimeSheetEntryOut(day=day, activity=activity, minutes=mins)
+            for (day, activity), mins in sorted(minutes.items())
         ],
     )
 
@@ -2644,8 +2689,44 @@ def put_resume_profile(
 
 
 # --- Leaderboards --------------------------------------------------------------
+#
+# THE BOARD IS THE BATCH (2026-09-22). A student who registered naming a batch,
+# was approved and seated in it, opened Leaderboards and saw none of their
+# batch mates. Two things did that, and both are fixed here rather than in the
+# client.
+#
+# ONE: a board listed only the students who already HELD something on it (the
+# 2026-09-17 rule, kept — a "Rank 2 of 30" over a zero is a lie), so a fresh
+# batch with no verified skills and no results yet drew "No ranking yet" for
+# everybody, and nothing on the screen said the classmates were there at all.
+# The board now carries the batch mates who are NOT yet ranked as a second,
+# unnumbered list, so the student sees their batch and sees who is ranked.
+#
+# TWO: a student with `students.cohort_id` NULL — provisioned before the form
+# copied the requested batch onto the row, or granted with `--department-id`
+# alone — was "ranked" among every other NULL-cohort student on the
+# deployment, which is not a batch and never was. The scope is resolved by
+# `_leaderboard_scope`: the batch where there is one, else the department
+# (`students.department_id`, the same second pointer `ancestry_of_student`
+# reads), else nobody — and the response SAYS which, in words the screen
+# prints, because "you are not seated in a batch yet" and "your batch has no
+# results yet" are different sentences with different fixes.
+#
+# And the boards rank ONE component each. `overall` is the rank across all of
+# them: skills, VTU results, streak and mocks, each worth up to
+# OVERALL_POINTS_PER_COMPONENT scaled against the best in the batch, summed to
+# a score out of 100. Scaled rather than summed raw because a CGPA is out of
+# 10 and a streak is out of however many days the term has run — added
+# unscaled, the streak would BE the leaderboard.
 
-_BOARDS = ("certificates", "skills", "vtu", "streak", "mocks")
+_BOARDS = ("overall", "certificates", "skills", "vtu", "streak", "mocks")
+
+#: The single-component boards `overall` is built from. `certificates` is not
+#: one of them for the reason the client dropped its tab: a certificate is
+#: evidence for a skill, and the skills board already ranks what those
+#: certificates were verified into — counting both would count it twice.
+OVERALL_COMPONENTS: tuple[str, ...] = ("skills", "vtu", "streak", "mocks")
+OVERALL_POINTS_PER_COMPONENT = 25
 
 
 def _initials(name: str) -> str:
@@ -2659,6 +2740,30 @@ def _initials(name: str) -> str:
 
 def _plural(n: int, noun: str) -> str:
     return f"{n} {noun}" if n == 1 else f"{n} {noun}s"
+
+
+def overall_points(components: dict[str, dict[str, float]]) -> dict[str, int]:
+    """student_id -> points out of 100, from `{board: {student_id: value}}`.
+
+    Each component is worth OVERALL_POINTS_PER_COMPONENT, scaled by the
+    student's value against the BEST value in the batch on that component —
+    the batch's top CGPA earns the full 25, a CGPA of 8 against a best of 9
+    earns 22.2 — and the components are added. Rounded half up to a whole
+    point, and RANKED ON THE ROUNDED NUMBER, so two students the label calls
+    "72 pts" are level rather than separated by a decimal the screen hides.
+    A student on no component at all is absent, like on every other board.
+
+    Pure, so the arithmetic is pinned without a database.
+    """
+    totals: dict[str, float] = defaultdict(float)
+    for values in components.values():
+        best = max(values.values(), default=0.0)
+        if best <= 0:
+            continue
+        for sid, value in values.items():
+            if value > 0:
+                totals[sid] += OVERALL_POINTS_PER_COMPONENT * value / best
+    return {sid: int(total + 0.5) for sid, total in totals.items() if total > 0}
 
 
 def _board_values(db: Session, board: str, roster: list[tuple[str, str]]) -> dict[str, tuple[float, str]]:
@@ -2678,6 +2783,13 @@ def _board_values(db: Session, board: str, roster: list[tuple[str, str]]) -> dic
     """
     sids = [sid for sid, _ in roster]
     uid_by_sid = {sid: uid for sid, uid in roster}
+
+    if board == "overall":
+        components = {
+            component: {sid: value for sid, (value, _label) in _board_values(db, component, roster).items()}
+            for component in OVERALL_COMPONENTS
+        }
+        return {sid: (float(pts), f"{pts} pts") for sid, pts in overall_points(components).items()}
 
     if board == "certificates":
         rows = db.execute(
@@ -2788,11 +2900,35 @@ class LeaderRow(BaseModel):
     is_me: bool
 
 
+class LeaderPeer(BaseModel):
+    """A batch mate who is on the roster but not yet ranked on this board:
+    a name and nothing else, because there is no number to print."""
+
+    student_id: str
+    name: str
+    initials: str
+    is_me: bool
+
+
 class LeaderboardOut(BaseModel):
     board: str
     opted_out: bool
+    #: "batch" — ranked within the caller's batch; "department" — the caller is
+    #: seated in no batch and is ranked within the department they named;
+    #: "none" — neither is recorded, and the screen says so instead of drawing
+    #: an empty board as if nobody had done anything.
+    scope: str
+    #: The batch ("General MBA - Finance · 2026-28") or department the board
+    #: covers, for the sentence under the title. None when `scope` is "none".
+    scope_label: str | None
+    #: Everybody in the scope who has not opted out — ranked or not.
+    classmates: int
     cohort_size: int  # number of ranked students on the board (for "Rank 8 of N")
     rows: list[LeaderRow]
+    #: Classmates with nothing on this board yet, by name. Capped; see
+    #: `_LEADERBOARD_UNRANKED_N`.
+    unranked: list[LeaderPeer]
+    unranked_total: int
 
 
 # How much of a board one response carries: the top of the table plus the
@@ -2800,23 +2936,86 @@ class LeaderboardOut(BaseModel):
 # 5,000-student cohort the full board was a ~600 KB JSON document per request,
 # and nobody scrolls to rank 4,000 — they look at the top and at themselves.
 _LEADERBOARD_TOP_N = 50
-# One ranked board per (cohort, board) is recomputed at most this often, per
+# The unranked list is names only, and a batch is dozens of people; the cap
+# exists for the department fallback, which can be every batch of a department.
+_LEADERBOARD_UNRANKED_N = 200
+# One ranked board per (scope, board) is recomputed at most this often, per
 # worker. Leaderboards tolerate staleness by definition — a rank that is 60 s
 # old is still today's rank — and this turns a deadline-week thundering herd
-# into at most one aggregate pass a minute per cohort per board.
+# into at most one aggregate pass a minute per scope per board.
 _LEADERBOARD_CACHE_TTL_S = 60.0
-_leaderboard_cache: dict[tuple[str | None, str], tuple[float, list[tuple]]] = {}
+_leaderboard_cache: dict[tuple[str, str | None, str], tuple[float, "_Board"]] = {}
 _leaderboard_cache_lock = threading.Lock()
 
 
-def _ranked_board(
-    db: Session, cohort_id: str | None, board: str
-) -> list[tuple[int, str, str, float, str]]:
-    """The whole ranked board — (rank, student_id, name, value, label) — for one
-    cohort, cached per worker for _LEADERBOARD_CACHE_TTL_S.
+def clear_leaderboard_cache() -> None:
+    """Drop every cached board on this worker.
+
+    For a write that changes WHO is on a board rather than what they hold: a
+    student's own visibility setting, and the office removing or restoring an
+    account (`routers/admin_deletion.py`). The WHOLE cache and never one
+    scope, because a student sits in a batch and a department at once and a
+    change like this is rare enough that recomputing every board once is
+    cheaper than getting the key set wrong. Per worker, like the cache itself:
+    another worker keeps its board for the rest of the TTL. And a board read
+    that began before the write committed can finish after this clear and put
+    the old board back for one TTL — the staleness the cache already declares.
+    """
+    with _leaderboard_cache_lock:
+        _leaderboard_cache.clear()
+
+
+@dataclass(frozen=True)
+class _Scope:
+    """Who the caller is ranked against — see the module note above."""
+
+    kind: str  # "batch" | "department" | "none"
+    key: str | None
+    label: str | None
+
+
+@dataclass(frozen=True)
+class _Board:
+    """One computed board: the ranked entries — (rank, student_id, name, value,
+    label) — the unranked classmates as (student_id, name), and the roster
+    size the two were drawn from."""
+
+    entries: list[tuple[int, str, str, float, str]]
+    unranked: list[tuple[str, str]]
+    classmates: int
+
+
+def _leaderboard_scope(db: Session, me: Student) -> _Scope:
+    """The batch, else the department, else nobody — and the words for it.
+
+    The label is `batch_labels.compose` over the same institution query the
+    profile card reads (`_INSTITUTION_Q`), never `cohorts.name` alone, which
+    is a year and not a batch ("A BATCH IS A YEAR", AGENTS.md).
+    """
+    if me.cohort_id:
+        cohort = db.get(Cohort, me.cohort_id)
+        if cohort is not None:
+            row = db.execute(_INSTITUTION_Q, {"cohort_id": cohort.id}).mappings().first()
+            label = batch_labels.compose(
+                row["course_name"] if row else None,
+                row["specialization_name"] if row else None,
+                cohort.name,
+                cohort.batch_label,
+            )
+            return _Scope("batch", cohort.id, label)
+    if me.department_id:
+        department = db.get(Department, me.department_id)
+        if department is not None:
+            return _Scope("department", department.id, department.name)
+    return _Scope("none", None, None)
+
+
+def _ranked_board(db: Session, scope: _Scope, board: str) -> _Board:
+    """The whole board for one scope, cached per worker for
+    _LEADERBOARD_CACHE_TTL_S.
 
     Cached WITHOUT the caller folded in: `is_me` is per-request decoration, so
-    one cached list serves every student in the cohort. The opt-out set is part
+    one cached board serves every student in the scope. The opt-out set is part
     of the cached computation and therefore up to 60 s stale FOR OTHERS — the
     student who opts out vanishes from their own screen immediately, because
     `leaderboards` checks their own profile fresh on every request. A stampede
@@ -2824,7 +3023,9 @@ def _ranked_board(
     than serialising every reader behind one computation; the work is idempotent
     and the last writer wins.
     """
-    key = (cohort_id, board)
+    if scope.kind == "none":
+        return _Board(entries=[], unranked=[], classmates=0)
+    key = (scope.kind, scope.key, board)
     now = time.monotonic()
     with _leaderboard_cache_lock:
         hit = _leaderboard_cache.get(key)
@@ -2838,14 +3039,27 @@ def _ranked_board(
             )
         ).all()
     )
-    cohort_filter = (
-        Student.cohort_id.is_(None) if cohort_id is None else Student.cohort_id == cohort_id
-    )
-    roster_rows = db.execute(
+    # A REMOVED account (`users.deleted_at`) is off every screen, classmates'
+    # boards included: the office is told "… is off every screen", and a name
+    # left ranked, or listed as not ranked yet, on a batch mate's board made
+    # that untrue. Every board, `overall`'s scaling and `classmates` read this
+    # roster, so the one filter reaches them all.
+    roster_q = (
         select(Student.id, Student.user_id, User.name)
+        .select_from(Student)
         .join(User, Student.user_id == User.id)
-        .where(cohort_filter)
-    ).all()
+        .where(User.deleted_at.is_(None))
+    )
+    if scope.kind == "batch":
+        roster_q = roster_q.where(Student.cohort_id == scope.key)
+    else:
+        # The department reaches BOTH pointers, as `ancestry_of_student` does:
+        # the students seated in one of its batches and the students who named
+        # it on the form and are seated nowhere yet.
+        roster_q = roster_q.outerjoin(Cohort, Student.cohort_id == Cohort.id).where(
+            (Student.department_id == scope.key) | (Cohort.department_id == scope.key)
+        )
+    roster_rows = db.execute(roster_q).all()
     roster = [(sid, uid, name) for sid, uid, name in roster_rows if sid not in opted_out]
 
     values = _board_values(db, board, [(sid, uid) for sid, uid, _ in roster])
@@ -2868,18 +3082,23 @@ def _ranked_board(
         if value != previous:
             rank, previous = position, value
         entries.append((rank, sid, name, value, label))
+    unranked = sorted(
+        ((sid, name) for sid, _uid, name in roster if sid not in values),
+        key=lambda r: (r[1].casefold(), r[0]),
+    )
+    computed = _Board(entries=entries, unranked=unranked, classmates=len(roster))
     with _leaderboard_cache_lock:
-        _leaderboard_cache[key] = (now, entries)
-    return entries
+        _leaderboard_cache[key] = (now, computed)
+    return computed
 
 
 @router.get("/leaderboards", response_model=LeaderboardOut)
 def leaderboards(
-    board: str = "certificates",
+    board: str = "overall",
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> LeaderboardOut:
-    """Rank the caller's cohort on one board. A student who opted out is excluded
+    """Rank the caller's batch on one board. A student who opted out is excluded
     from every board and — in both directions — sees no ranks themselves."""
     student_id = _require_student(session)
     require_feature(db, student_id, "student.leaderboards")
@@ -2896,15 +3115,26 @@ def leaderboards(
         # dereferences the caller's own Student answers 404 here (see
         # /dashboard); match them rather than inventing a third behaviour.
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
+    scope = _leaderboard_scope(db, me)
     my_profile = db.scalar(
         select(StudentProfile).where(StudentProfile.student_id == student_id)
     )
     if my_profile is not None and my_profile.leaderboard_opt_out:
-        return LeaderboardOut(board=board, opted_out=True, cohort_size=0, rows=[])
+        return LeaderboardOut(
+            board=board,
+            opted_out=True,
+            scope=scope.kind,
+            scope_label=scope.label,
+            classmates=0,
+            cohort_size=0,
+            rows=[],
+            unranked=[],
+            unranked_total=0,
+        )
 
     # The whole board, ranked, from the per-worker 60 s cache — see
     # _ranked_board for what is cached and what stays per-request.
-    entries = _ranked_board(db, me.cohort_id, board)
+    computed = _ranked_board(db, scope, board)
 
     def _row(entry: tuple[int, str, str, float, str]) -> LeaderRow:
         rank, sid, name, value, label = entry
@@ -2921,13 +3151,25 @@ def leaderboards(
     # Top of the table, plus the caller's own row with its TRUE rank when they
     # fall outside it — "Rank 1,247 of 4,890" is the sentence a student wants,
     # and shipping ranks 51-4,889 to render it was the 600 KB the audit flagged.
-    rows = [_row(e) for e in entries[: _LEADERBOARD_TOP_N]]
+    rows = [_row(e) for e in computed.entries[: _LEADERBOARD_TOP_N]]
     if not any(r.is_me for r in rows):
-        mine = next((e for e in entries if e[1] == student_id), None)
+        mine = next((e for e in computed.entries if e[1] == student_id), None)
         if mine is not None:
             rows.append(_row(mine))
+    unranked = [
+        LeaderPeer(student_id=sid, name=name, initials=_initials(name), is_me=(sid == student_id))
+        for sid, name in computed.unranked[:_LEADERBOARD_UNRANKED_N]
+    ]
     return LeaderboardOut(
-        board=board, opted_out=False, cohort_size=len(entries), rows=rows
+        board=board,
+        opted_out=False,
+        scope=scope.kind,
+        scope_label=scope.label,
+        classmates=computed.classmates,
+        cohort_size=len(computed.entries),
+        rows=rows,
+        unranked=unranked,
+        unranked_total=len(computed.unranked),
     )
 
 
@@ -2950,21 +3192,17 @@ def set_leaderboard_visibility(
         db.add(prof)
     prof.leaderboard_opt_out = body.hidden
     db.commit()
-    # Drop this cohort's cached boards so the toggle is visible on the very
-    # next read. Without this, opting BACK IN inside a still-fresh cache window
-    # answered "You're now visible on the leaderboards" and then rendered a
-    # board without them — the review of the 2026-08 fix wave caught the
+    # Drop the cached boards so the toggle is visible on the very next read.
+    # Without this, opting BACK IN inside a still-fresh cache window answered
+    # "You're now visible on the leaderboards" and then rendered a board
+    # without them — the review of the 2026-08 fix wave caught the
     # contradiction. (Opting OUT never had the problem only because the
     # caller's own opt-out is checked fresh, before the cache, in
-    # `leaderboards` above.) Per worker, like the cache itself: classmates on
-    # another worker may see the old board for the remaining TTL, which is the
-    # staleness the cache already declares acceptable — lying to the student
-    # about their own setting was not.
-    me = db.get(Student, student_id)
-    if me is not None:
-        with _leaderboard_cache_lock:
-            for b in _BOARDS:
-                _leaderboard_cache.pop((me.cohort_id, b), None)
+    # `leaderboards` above.) Classmates on another worker may see the old
+    # board for the remaining TTL, which is the staleness the cache already
+    # declares acceptable — lying to the student about their own setting was
+    # not.
+    clear_leaderboard_cache()
     return {"hidden": body.hidden}
 
 

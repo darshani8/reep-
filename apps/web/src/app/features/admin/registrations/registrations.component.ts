@@ -134,6 +134,7 @@ import type {
 } from 'ag-grid-community';
 
 import { environment } from '../../../../environments/environment';
+import { specializationLabel } from '../../../core/specializations';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme, reepGridThemeCompact } from '../../../shared/grid/reep-grid-theme';
 import { plural } from '../../../shared/text/plural.pipe';
@@ -259,6 +260,9 @@ interface RegistrationApiRow {
   department_name: string | null;
   course_name: string | null;
   specialization_name: string | null;
+  /** The other tick of a dual specialization (2026-09-22); null when the
+   *  applicant ticked one or none. The panel prints both as one line. */
+  second_specialization_name: string | null;
   /** The batch the APPLICANT asked for; `cohort_id` is the rule's, and wins. */
   requested_batch: string | null;
   /** B11.1. NULL MEANS NOT COMPUTED — only a row somebody can still decide gets
@@ -638,7 +642,16 @@ export class AdminRegistrationsComponent {
 
   readonly applications = signal<RegistrationApiRow[] | null>(null);
   readonly batchNames = signal<Map<string, string>>(new Map());
-  readonly seatingRules = signal<SeatingRuleLine[] | null>(null);
+  /** The rules as `GET /register/rules` answered them. The lines are DERIVED
+   *  from these and the batch names, as `rows` is from `applications`: the two
+   *  reads race when the screen opens, and a "Seats in" worked out once when
+   *  the rules landed read "Batch 9b799137" after the names had arrived. */
+  private readonly seatingRuleRows = signal<SeatingRuleApiRow[] | null>(null);
+  readonly seatingRules = computed<SeatingRuleLine[] | null>(() => {
+    const rules = this.seatingRuleRows();
+    if (rules === null) return null;
+    return rules.map((rule) => this.toSeatingRuleLine(rule));
+  });
   readonly seatingRulesError = signal<string | null>(null);
   /** `X-Reep-Scope` off the rules list: `programme`, `narrowed` or `none`. */
   readonly rulesScope = signal<string | null>(null);
@@ -789,6 +802,18 @@ export class AdminRegistrationsComponent {
   readonly canReopen = computed(
     () => this.activeTab() === 'HOLD' || this.activeTab() === 'REJECTED',
   );
+
+  /** The panel's Specialization line: both ticks of a dual specialization as
+   *  one sentence ("Finance and Marketing"), else the one tick, else the
+   *  course, else "Not named" — the same fallback the line had as a
+   *  one-name field. */
+  specializationOf(application: RegistrationApiRow): string {
+    return (
+      specializationLabel(application.specialization_name, application.second_specialization_name) ??
+      application.course_name ??
+      'Not named'
+    );
+  }
 
   /** THE BATCH IS THE PROGRAMME, when a rule chose one. With no batch, the
    *  degree level is all the application knows, and that is what is shown. */
@@ -1844,7 +1869,7 @@ export class AdminRegistrationsComponent {
       });
       if (!response.ok) {
         this.seatingRulesError.set('Could not load the rules.');
-        this.seatingRules.set([]);
+        this.seatingRuleRows.set([]);
         return;
       }
       // THE LIST IS NARROWED THE SAME WAY THE WRITES ARE (decision 3), and the
@@ -1852,11 +1877,10 @@ export class AdminRegistrationsComponent {
       // looking at: "no rules exist" and "no rules you can see" are opposite
       // facts. `programme` means the whole rule set.
       this.rulesScope.set(response.headers.get('X-Reep-Scope'));
-      const rules = (await response.json()) as SeatingRuleApiRow[];
-      this.seatingRules.set(rules.map((rule) => this.toSeatingRuleLine(rule)));
+      this.seatingRuleRows.set((await response.json()) as SeatingRuleApiRow[]);
     } catch {
       this.seatingRulesError.set('Could not reach the server.');
-      this.seatingRules.set([]);
+      this.seatingRuleRows.set([]);
     }
   }
 

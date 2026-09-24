@@ -29,15 +29,22 @@
       </button>
     </div>
 
+    @if (canCopyYesterday()) {
+      <button type="button" class="btn" [disabled]="saving()" (click)="copyYesterday()">
+        <span class="icon" aria-hidden="true">content_copy</span>
+        Copy yesterday
+      </button>
+    }
+
     <button
       type="button"
       class="btn primary"
-      [disabled]="saving() || submitted() || dayTotal() !== 24"
+      [disabled]="saving() || !editable() || dayTotal() !== 24"
       [attr.title]="ledger()?.submit_blocked_reason"
       (click)="submitDay()"
     >
-      <span class="icon" aria-hidden="true">task_alt</span>
-      {{ submitted() ? 'Submitted' : 'Submit day' }}
+      <span class="icon" aria-hidden="true">{{ locked() && !submitted() ? 'lock' : 'task_alt' }}</span>
+      {{ submitted() ? 'Submitted' : locked() ? 'Locked' : 'Submit day' }}
     </button>
   </div>
 </div>
@@ -49,15 +56,72 @@
   </div>
 }
 
+<!--
+  The record of what was filled in: the last fortnight, one chip per calendar
+  day, most recent first. Each chip is a button that opens that day. The
+  server says what each day is (submitted / draft / not logged) and whether it
+  is still open; the chip prints both as words, never as a colour alone.
+-->
+@if (history(); as h) {
+  <div class="card history-card">
+    <div class="history-head">
+      <div>
+        <div class="eyebrow">Last {{ h.window_days }} days</div>
+        <div class="history-sum">
+          <b>{{ h.days_submitted }}</b> submitted · <b>{{ h.days_logged }}</b> with entries
+        </div>
+      </div>
+      <div class="dt-sub history-rule">
+        <span class="icon" aria-hidden="true">schedule</span>
+        {{ windowSentence() }}
+      </div>
+    </div>
+    <div class="history-strip" role="list" aria-label="Recent days">
+      @for (d of h.days; track d.day) {
+        @let chip = historyChip(d);
+        <button
+          type="button"
+          class="day-chip"
+          role="listitem"
+          [class.active]="d.day === day()"
+          [class.is-locked]="d.locked"
+          [attr.aria-current]="d.day === day() ? 'date' : null"
+          [attr.aria-label]="(d.day | date: 'EEEE d MMMM') + ' — ' + chip.label"
+          (click)="open(d.day)"
+        >
+          <span class="day-chip__dow">{{ d.day === h.today ? 'Today' : (d.day | date: 'EEE') }}</span>
+          <span class="day-chip__num">{{ d.day | date: 'd MMM' }}</span>
+          <span
+            class="chip day-chip__state"
+            [class.good]="chip.tone === 'good'"
+            [class.warn]="chip.tone === 'warn'"
+            [class.risk]="chip.tone === 'risk'"
+            [class.neutral]="chip.tone === 'neutral'"
+          >
+            @if (d.locked && d.status !== 'SUBMITTED') {
+              <span class="icon" aria-hidden="true">lock</span>
+            }
+            {{ chip.label }}
+          </span>
+        </button>
+      }
+    </div>
+  </div>
+}
+
 @switch (state()) {
   @case ('loading') {
-    <p class="loading-line">Loading today’s time sheet…</p>
+    <p class="loading-line">Loading the time sheet…</p>
   }
 
   @case ('error') {
     <div class="notice ledger-notice" role="alert">
       <span class="icon" aria-hidden="true">info</span>
-      Could not load today’s time sheet.
+      @if (refusal(); as message) {
+        {{ message }}
+      } @else {
+        Could not load this day’s time sheet.
+      }
       <button type="button" class="btn ghost" (click)="load()">Retry</button>
     </div>
   }
@@ -92,7 +156,7 @@
       </div>
 
       <!-- The table: six slot rows × five activity columns, in its own card. -->
-      <div class="ledger-card table-card">
+      <div class="ledger-card table-card" [class.is-locked]="l.locked && l.status !== 'SUBMITTED'">
         <div class="table-scroll">
           <table class="ledger-table">
             <thead>
@@ -134,7 +198,7 @@
                         min="0"
                         step="0.5"
                         [max]="s.capacity_hours"
-                        [disabled]="submitted()"
+                        [disabled]="!l.editable"
                         [value]="cellValue(s, a.key) || ''"
                         [attr.aria-label]="s.label + ' · ' + a.label + ' hours'"
                         (input)="onCellInput(s, a.key, $any($event.target).value)"
@@ -194,10 +258,18 @@
         </div>
 
         <div class="footbar">
-          @if (submitted()) {
+          @if (l.status === 'SUBMITTED') {
             <span class="chip good">
               <span class="icon" aria-hidden="true">check_circle</span>
               Submitted — this day is closed
+            </span>
+          } @else if (l.locked) {
+            <!-- The server's sentence, verbatim: it names the day and the last
+                 day it could have been filled in, and it is the same sentence
+                 the 409 would carry if anything tried to write anyway. -->
+            <span class="chip risk" role="status">
+              <span class="icon" aria-hidden="true">lock</span>
+              {{ l.lock_reason }}
             </span>
           } @else {
             @if (l.submit_blocked_reason; as reason) {
@@ -206,6 +278,10 @@
                 {{ reason }}
               </span>
             }
+            <span class="chip neutral open-until">
+              <span class="icon" aria-hidden="true">schedule</span>
+              Open until {{ l.edit_until | date: 'EEE d MMM' }}
+            </span>
             <button type="button" class="btn" [disabled]="!dirty() || saving()" (click)="save()">
               <span class="icon" aria-hidden="true">save</span>
               {{ saving() ? 'Saving…' : 'Save draft' }}
@@ -218,8 +294,8 @@
         <span class="icon" aria-hidden="true">info</span>
         <span>
           Hours logged in a slot cannot exceed its capacity, and the six slots must reconcile to 24
-          h before the day can be submitted. Faculty review the weekly roll-up, not individual
-          entries.
+          h before the day can be submitted. {{ windowSentence() }} Faculty review the weekly
+          roll-up, not individual entries.
         </span>
       </div>
 

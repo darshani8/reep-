@@ -20,6 +20,7 @@
 
 import type {
   ColDef,
+  GetQuickFilterTextParams,
   ICellRendererParams,
   RowSelectionOptions,
   SelectionColumnDef,
@@ -78,16 +79,34 @@ function renderStudentCell(params: ICellRendererParams<RosterRow>): string {
   );
 }
 
+/** What the quick filter matches on the Student column: the name AND the
+ *  address the cell draws. The column's value is the name alone, so without
+ *  this an address typed into the box hid every row — including the one the
+ *  server had just found by that address. */
+export function quickFilterStudent(params: GetQuickFilterTextParams<RosterRow>): string {
+  const row = params.data;
+  if (row === undefined) return '';
+  return `${row.name} ${row.email}`;
+}
+
+function specializationChip(code: string, colour: string): string {
+  const dot =
+    `<span style="width: 7px; height: 7px; border-radius: 4px; display: inline-block; ` +
+    `margin-right: 6px; background: ${colour};"></span>`;
+  return `<span class="chip">${dot}${escapeHtml(code)}</span>`;
+}
+
+/** The batch's specialization, and beside it the second of a dual one. */
 function renderSpecializationCell(params: ICellRendererParams<RosterRow>): string {
   const row = params.data;
   if (!row) return '';
-  if (row.specializationCode === null) {
-    return `<span style="color: var(--faint);">${NOT_READABLE}</span>`;
+  const chips: string[] = [];
+  if (row.specializationCode !== null) chips.push(specializationChip(row.specializationCode, row.specializationColour));
+  if (row.secondSpecializationCode !== null) {
+    chips.push(specializationChip(row.secondSpecializationCode, row.secondSpecializationColour));
   }
-  const dot =
-    `<span style="width: 7px; height: 7px; border-radius: 4px; display: inline-block; ` +
-    `margin-right: 6px; background: ${row.specializationColour};"></span>`;
-  return `<span class="chip">${dot}${escapeHtml(row.specializationCode)}</span>`;
+  if (chips.length === 0) return `<span style="color: var(--faint);">${NOT_READABLE}</span>`;
+  return chips.join(' ');
 }
 
 function renderMentorCell(params: ICellRendererParams<RosterRow>): string {
@@ -177,6 +196,7 @@ export const ROSTER_COLUMNS: ColDef<RosterRow>[] = [
     flex: 1.4,
     cellStyle: { display: 'flex', alignItems: 'center', gap: '8px' },
     cellRenderer: renderStudentCell,
+    getQuickFilterText: quickFilterStudent,
   },
   {
     colId: 'specialization',
@@ -184,7 +204,7 @@ export const ROSTER_COLUMNS: ColDef<RosterRow>[] = [
     headerName: 'Spec.',
     minWidth: 110,
     cellRenderer: renderSpecializationCell,
-    headerTooltip: 'The specialization named on the student’s batch',
+    headerTooltip: 'The specialization named on the student’s batch, and the second of a dual one',
   },
   {
     colId: 'semester',

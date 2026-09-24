@@ -31,7 +31,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from sqlalchemy import delete, select
 
-from conftest import TEST_PASSWORD, requires_db
+from conftest import TEST_PASSWORD, application_files, requires_db
 
 from app import mail_transport
 from app.config import settings
@@ -41,6 +41,7 @@ from app.models.job import DegreeLevel
 from app.models.registration import EmailVerification, Registration, RegistrationRule, RegistrationStatus
 from app.models.student_profile import StudentProfile
 from app.models.user import LoginDay, Role, Student, User
+from app.routers import onboarding as onboarding_router
 from app.routers import passwords as passwords_router
 from app.routers.registration import SSO_ONLY_PASSWORD_HASH
 
@@ -170,6 +171,44 @@ def test_an_expired_activation_link_is_refused_with_the_right_words(client, make
     r = client.post("/api/auth/activate", json={"token": token, "password": GOOD})
     assert r.status_code == 410
     assert "expired" in r.json()["detail"]
+
+
+@requires_db
+@pytest.mark.parametrize("door", ["activate", "reset"])
+def test_a_shortened_link_is_refused_as_a_link(client, door):
+    """A link a mail client cut short is a DEAD LINK, and is answered as one.
+
+    The schema used to refuse a token under 16 characters as a 422 about the
+    request, and the set-password screen reads a 422 as a refused PASSWORD: the
+    person was asked for another one, and no password could ever get past it.
+    It now reaches the lookup like any other token nobody issued.
+    """
+    r = client.post(f"/api/auth/{door}", json={"token": "abc123", "password": GOOD})
+    assert r.status_code == 410, r.text
+    assert r.json()["detail"] == "This link is not valid. Ask for a new one."
+
+
+@requires_db
+@pytest.mark.parametrize(
+    "step, body",
+    [
+        ("start", {"email": "someone@bgscet.ac.in"}),
+        ("verify", {"code": "123456"}),
+    ],
+)
+def test_a_shortened_setup_link_is_refused_as_a_link(client, step, body):
+    """The /onboard walk's twin of the test above, on the link every approved
+    student is mailed and "Forgot password?" mails a student with no password.
+
+    Its first two steps carried the same 16-character floor on the token, and
+    that screen prints a 422's message under the address box as something to
+    fix: the student read "String should have at least 16 characters" each
+    time they retyped their address and was never told the link was dead. A
+    410 is what the screen draws as a dead link, with `_REFUSED`'s words.
+    """
+    r = client.post(f"/api/auth/onboard/{step}", json={"token": "abc123", **body})
+    assert r.status_code == 410, r.text
+    assert r.json()["detail"] == onboarding_router._REFUSED
 
 
 @requires_db
@@ -484,9 +523,12 @@ def test_change_password_refuses_a_google_only_account(client, make_user, login)
 
 
 @pytest.fixture
-def application():
+def application(tmp_document_store):
     """A public application by email, torn down whatever the test does —
-    including the User/Student a confirmed auto-approve may have minted."""
+    including the User/Student a confirmed auto-approve may have minted.
+
+    Multipart with both files, as the form posts it (2026-09-22); the store
+    is the per-test directory `tmp_document_store` points it at."""
     emails: list[str] = []
     rules: list[str] = []
 
@@ -499,7 +541,7 @@ def application():
         # (2026-09-16); a caller that names no USN gets a unique one.
         return client.post(
             "/api/register",
-            json={
+            data={
                 "name": name,
                 "email": email,
                 "usn": usn or f"1BG26PWD{uuid.uuid4().hex[:3].upper()}",
@@ -508,6 +550,7 @@ def application():
                 "linkedin_url": "https://www.linkedin.com/in/password-applicant",
                 "degree_level": "PG",
             },
+            files=application_files(),
         )
 
     def _rule(**kw) -> str:

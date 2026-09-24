@@ -247,7 +247,13 @@
 // --- academic history ------------------------------------------------------
 .qual-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  /* `min(Npx, 100%)` and not a bare `Npx`: a minmax() track whose minimum is a
+     fixed length does NOT collapse when the container is narrower than it — the
+     track keeps its minimum and the grid overflows. On a 320px handset the
+     content box inside a card is about 260px, so every one of these was wider
+     than the screen it was drawn on. `min()` caps the minimum at the container,
+     which changes nothing at any width where the track already fitted. */
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   gap: 16px;
   margin-bottom: 16px;
 }
@@ -379,5 +385,15 @@
 
   &:hover {
     text-decoration: underline;
+  }
+}
+
+/* Tap target at phone width (2026-09-22): Records' "Subject-by-subject progress" link, 208x18.
+   Block padding and not a min-height, because this is an inline link inside a
+   sentence — padding grows the hit area the thumb gets without moving the
+   words around it. Mobile only; the desktop link is unchanged. */
+@media (max-width: 760px) {
+  .rec-courses-link {
+    padding-block: 13px;
   }
 }

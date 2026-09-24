@@ -571,10 +571,16 @@ def badge_leaderboards(
         # is excluded from every board AND sees none — otherwise opting out
         # buys privacy from classmates who kept the visibility you still use.
         return LeaderboardOut(view=view, label=_LB_LABEL[view], unit="points", opted_out=True, rows=[])
+    # A REMOVED account (`users.deleted_at`) is on no board, these included,
+    # for the reason `_ranked_board` in routers/student.py gives: the office is
+    # told "… is off every screen". Only a named student is ranked below, so
+    # leaving them out of `names` leaves them off every view.
     names = {
         s_id: (name, usn)
         for s_id, name, usn in db.execute(
-            select(Student.id, User.name, Student.usn).join(User, Student.user_id == User.id)
+            select(Student.id, User.name, Student.usn)
+            .join(User, Student.user_id == User.id)
+            .where(User.deleted_at.is_(None))
         ).all()
     }
 

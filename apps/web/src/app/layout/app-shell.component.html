@@ -7,6 +7,20 @@
        and were removed on 2026-09-15: a control that can never work is the
        first one a first-day clerk presses. -->
   <header class="appbar">
+    <!-- The drawer's handle. Drawn only below 900px (reep-v2.scss hides it
+         above, with `display: none` rather than opacity, so it is not a tab
+         stop on a desktop where the sidebar is already on screen). -->
+    <button
+      type="button"
+      class="iconbtn appbar__nav-toggle"
+      [attr.aria-expanded]="navOpen()"
+      aria-controls="app-navigation"
+      [attr.aria-label]="navOpen() ? 'Close menu' : 'Open menu'"
+      (click)="toggleNav()"
+    >
+      <span class="icon" aria-hidden="true">{{ navOpen() ? 'close' : 'menu' }}</span>
+    </button>
+
     <a class="appbar__brand" routerLink="/" aria-label="REEP home">
       <span class="brandmark" aria-hidden="true">R</span>
       <span class="brandmark__word">REEP</span>
@@ -92,49 +106,65 @@
           </span>
         </span>
       </div>
-      <button type="button" class="btn secondary sm appbar__signout" (click)="signOut()">
-        <span class="icon" aria-hidden="true">logout</span>
-        Sign out
-      </button>
-    } @else {
-    <div class="account">
+      <!-- The label is a SPAN so it can be hidden on its own below 560px,
+           leaving the glyph and an aria-label. It was a bare text node, and a
+           bare text node has no element to hide — the `font-size: 0` trick
+           that works around that lost to `.btn.sm`, which sets a font size at
+           the same specificity further down the sheet. A class of its own
+           beats the problem instead of racing it. -->
       <button
         type="button"
-        class="account__button"
-        [attr.aria-expanded]="accountMenuOpen()"
-        aria-haspopup="menu"
-        (click)="toggleAccountMenu()"
+        class="btn secondary sm appbar__signout"
+        aria-label="Sign out"
+        (click)="signOut()"
       >
-        <span class="avatar" aria-hidden="true">{{ initials() }}</span>
-        <span class="account__who">
-          <span class="account__name">{{ displayName() }}</span>
-          <span class="account__role">{{ usn() || roleLabel() }}</span>
-        </span>
+        <span class="icon" aria-hidden="true">logout</span>
+        <span class="appbar__signout-label">Sign out</span>
       </button>
-
-      @if (accountMenuOpen()) {
-        <div class="account__menu" role="menu" (keydown.escape)="closeAccountMenu()">
-          <span class="account__menuhead">
-            {{ displayName() }}
-            <small>{{ roleLabel() }}</small>
+    } @else {
+      <div class="account">
+        <button
+          type="button"
+          class="account__button"
+          [attr.aria-expanded]="accountMenuOpen()"
+          aria-haspopup="menu"
+          (click)="toggleAccountMenu()"
+        >
+          <span class="avatar" aria-hidden="true">{{ initials() }}</span>
+          <span class="account__who">
+            <span class="account__name">{{ displayName() }}</span>
+            <span class="account__role">{{ usn() || roleLabel() }}</span>
           </span>
+        </button>
 
-          <a class="account__item" role="menuitem" routerLink="/account" (click)="closeAccountMenu()">
-            <span class="icon" aria-hidden="true">person</span>
-            My account
-          </a>
+        @if (accountMenuOpen()) {
+          <div class="account__menu" role="menu" (keydown.escape)="closeAccountMenu()">
+            <span class="account__menuhead">
+              {{ displayName() }}
+              <small>{{ roleLabel() }}</small>
+            </span>
 
-          <a
-            class="account__item"
-            role="menuitem"
-            routerLink="/account/password"
-            (click)="closeAccountMenu()"
-          >
-            <span class="icon" aria-hidden="true">lock</span>
-            Password
-          </a>
+            <a
+              class="account__item"
+              role="menuitem"
+              routerLink="/account"
+              (click)="closeAccountMenu()"
+            >
+              <span class="icon" aria-hidden="true">person</span>
+              My account
+            </a>
 
-          <!-- Signature is for the people who SIGN a leave paper: a faculty
+            <a
+              class="account__item"
+              role="menuitem"
+              routerLink="/account/password"
+              (click)="closeAccountMenu()"
+            >
+              <span class="icon" aria-hidden="true">lock</span>
+              Password
+            </a>
+
+            <!-- Signature is for the people who SIGN a leave paper: a faculty
                member on the request they apply on, the Main Admin on the one
                they sanction. The route is roleGuard('MENTOR', 'ADMIN') and this
                menu is everything that is not a student, so ALUMNI were being
@@ -143,30 +173,44 @@
                explanation, which reads as a broken app rather than as a screen
                that is not theirs. The two kinds named here are the two roles
                the guard admits; one fact, not a second mechanism. -->
-          @if (navKind() === 'staff' || navKind() === 'admin') {
-            <a
-              class="account__item"
-              role="menuitem"
-              routerLink="/mentor/signature"
-              (click)="closeAccountMenu()"
-            >
-              <span class="icon" aria-hidden="true">draw</span>
-              Signature
-            </a>
-          }
+            @if (navKind() === 'staff' || navKind() === 'admin') {
+              <a
+                class="account__item"
+                role="menuitem"
+                routerLink="/mentor/signature"
+                (click)="closeAccountMenu()"
+              >
+                <span class="icon" aria-hidden="true">draw</span>
+                Signature
+              </a>
+            }
 
-          <button type="button" class="account__item" role="menuitem" (click)="signOut()">
-            <span class="icon" aria-hidden="true">logout</span>
-            Sign out
-          </button>
-        </div>
-      }
-    </div>
+            <button type="button" class="account__item" role="menuitem" (click)="signOut()">
+              <span class="icon" aria-hidden="true">logout</span>
+              Sign out
+            </button>
+          </div>
+        }
+      </div>
     }
   </header>
 
   <div class="desktop-shell">
-    <nav class="desktop-nav" aria-label="Main">
+    <!-- The scrim. A real <button> and not a div: closing the drawer by
+         tapping beside it is an action, and a div with a click handler is one
+         no keyboard or screen reader can reach. Above 900px it is
+         `display: none`, so it is not in the tab order on a desktop. -->
+    @if (navOpen()) {
+      <button type="button" class="nav-scrim" aria-label="Close menu" (click)="closeNav()"></button>
+    }
+
+    <nav
+      id="app-navigation"
+      class="desktop-nav"
+      [class.is-open]="navOpen()"
+      aria-label="Main"
+      (keydown.escape)="closeNav()"
+    >
       <!-- The student's identity card. The one entry point to /student/profile:
            the sidebar list deliberately leaves Profile out as "a record rather
            than a task", and the card is where a person looks for their own
@@ -181,7 +225,12 @@
             <div class="usn">{{ studentUsn }}</div>
           }
           <div class="nav-profile__links">
-            <a class="nav-profile__link" routerLink="/student/profile" routerLinkActive="active">
+            <a
+              class="nav-profile__link"
+              routerLink="/student/profile"
+              routerLinkActive="active"
+              (click)="closeNav()"
+            >
               <!-- `person`, not `badge`: the icon font is SUBSET to
                    tools/fonts/icon-names.txt, so a glyph outside it renders as
                    nothing at all. -->
@@ -191,7 +240,12 @@
                  work, and this is the only route to the screen: the app bar
                  used to hide it from them under a comment saying they sign in
                  with Google and would meet a 409. They do not. -->
-            <a class="nav-profile__link" routerLink="/account/password" routerLinkActive="active">
+            <a
+              class="nav-profile__link"
+              routerLink="/account/password"
+              routerLinkActive="active"
+              (click)="closeNav()"
+            >
               <span class="icon" aria-hidden="true">lock</span> Password
             </a>
           </div>
@@ -204,10 +258,15 @@
         }
         @for (item of group.items; track item.label) {
           @if (item.path) {
+            <!-- (click) closes the drawer: on a phone the destination is
+                 behind it, and a drawer left standing over the screen the
+                 student just asked for reads as a link that did nothing.
+                 Above 900px `navOpen` is already false and this is a no-op. -->
             <a
               [routerLink]="item.path"
               routerLinkActive="active"
               [routerLinkActiveOptions]="{ exact: item.exact === true }"
+              (click)="closeNav()"
             >
               <span class="icon" aria-hidden="true">{{ item.icon }}</span> {{ item.label }}
             </a>

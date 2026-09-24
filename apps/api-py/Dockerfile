@@ -120,6 +120,15 @@ EXPOSE 3300
 #                             matters for /api/agent/chat/stream, which persists
 #                             the assistant turn only after the last delta — a
 #                             hard kill mid-stream loses the turn.
+#   --ws-per-message-deflate false
+#                             the mock interview's socket carries 24 kHz PCM
+#                             both ways, 25 frames a second each, and PCM barely
+#                             compresses. With deflate negotiated (browsers
+#                             offer it by default) every one of those frames was
+#                             zlib-compressed or -decompressed on the one event
+#                             loop that also relays the interviewer's voice, on
+#                             half a vCPU -- work that bought nothing and
+#                             competed with the downlink the student hears.
 # NEVER --reload (AGENTS.md: it wedges a stale worker on this platform).
 ENV FORWARDED_ALLOW_IPS="10.42.0.0/16"
 
@@ -137,4 +146,5 @@ ENV SENTRY_RELEASE=$GIT_SHA
 CMD ["python", "-m", "uvicorn", "app.main:app", \
      "--host", "0.0.0.0", "--port", "3300", \
      "--proxy-headers", \
-     "--timeout-graceful-shutdown", "110"]
+     "--timeout-graceful-shutdown", "110", \
+     "--ws-per-message-deflate", "false"]

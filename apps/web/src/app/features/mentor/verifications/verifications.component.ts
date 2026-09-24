@@ -4,55 +4,61 @@
  *
  * A student files a claim on Skilling; it lands here, for their assigned mentor
  * and nobody else. There is no admin queue, no escalation and no second
- * approver: `GET /mentor/skill-claims/pending` narrows to the mentor's own group
- * server-side, and the review endpoint re-checks scope, so the routing is a
- * property of the API rather than of this screen.
+ * approver: `GET /mentor/badge-evidence/pending` narrows to the mentor's own
+ * group server-side, and the review endpoint re-checks scope, so the routing is
+ * a property of the API rather than of this screen.
  *
- * THREE OUTCOMES, AND TWO OF THEM NEED WORDS. Verify grants the skill and lights
- * the badge on the student's board. Request changes sends it back to be redone.
- * Reject refuses it. The last two are indistinguishable from a broken screen if
- * they arrive without a reason — the student sees the note and nothing else — so
- * the note is required for both, enforced here for the message and again in the
- * API for the guarantee.
+ * THIS SCREEN READS THE QUEUE THE CLAIM FORM FILES INTO (2026-09-17). The
+ * Skilling claim card stores the certificate and posts
+ * `POST /student/badges/{code}/evidence` — a row in `badge_evidence`. This
+ * screen used to read `GET /mentor/skill-claims/pending`, a different table
+ * (`skill_claims`) that no client has written to since the Skilling screen
+ * replaced the per-skill claim form. So every claim a student filed went into
+ * a queue the mentor's screen never opened, and the mentor's screen showed a
+ * queue nothing could fill: "Nothing waiting for your review", for the life of
+ * the deployment, over a growing list of real claims. The `skill-claims`
+ * endpoints stay on the API for the resume builder's read; this screen no
+ * longer reads them.
  *
- * WHAT THIS SHOWS IS WHAT A CLAIM ACTUALLY CARRIES. The handoff's card also
- * lists a source/issuer, a date, a visibility and an outcome metric, from an
- * earlier version of the claim form that collected them; the form it settled on
- * collects a certificate, the skill it proves and a note. What the evidence IS
- * — its kind, its title and its file name — now travels with the claim, so the
- * card names it before the file is opened. Rendering the rest as empty labelled
- * rows would suggest the student left them blank rather than never being asked,
- * so they are omitted until the form asks.
+ * THREE OUTCOMES, AND TWO OF THEM NEED WORDS. Verify grants the badge and
+ * lights it — with the blue tick — on the student's board. Request changes
+ * sends it back to be redone. Reject refuses it. The last two are
+ * indistinguishable from a broken screen if they arrive without a reason — the
+ * student sees the note and nothing else, on screen and in the mail the API
+ * sends them — so the note is required for both, enforced here for the message
+ * and again in the API (422) for the guarantee.
  *
- * "Recently reviewed" is the same scope, read back: `GET /skill-claims/reviewed`
- * lists decided claims newest first, with the note the student was given, so a
- * decision does not vanish the moment it is made.
+ * ONE DECISION, BOTH ROWS. The certificate behind a claim was written
+ * PENDING_REVIEW by the upload and used to appear in the Documents queue below
+ * AS WELL, decidable separately and in the opposite direction. The review
+ * endpoint now writes the claim's verdict onto the certificate too, and the
+ * Documents queue leaves out a file a pending claim is standing on. A document
+ * listed below is therefore one no claim explains: a photo, an offer letter, a
+ * report — reviewed on its own.
  *
- * THE DOCUMENT QUEUE IS THE SAME SCOPE AND HAD NO CLIENT AT ALL. Every file a
- * student uploads — the certificate behind a claim, a profile photo, an offer
- * letter, an internship report — is written PENDING_REVIEW, and
- * `POST /mentor/uploads/{id}/review` is the only production writer of VERIFIED
- * or REJECTED on that row. Nothing in the app had ever called it. So the
- * student's own Uploads screen drew a three-step flow ending in "In review" and
- * a 'Pending review' chip that could never change, for the life of the
- * deployment. It is reviewed here rather than on a screen of its own because it
- * is the same reviewer, the same mentor group, the same `_assert_can_access_
- * student` gate and the same file the claim queue already opens with `fileUrl`.
+ * WHAT THIS SHOWS IS WHAT A CLAIM ACTUALLY CARRIES: the badge and its
+ * category, the kind of evidence, its title, who issued it, the file's name,
+ * the student's note. A level and an outcome metric were on an earlier form
+ * and are not collected, so they are not drawn as empty rows.
  *
- * TWO OUTCOMES HERE, NOT THREE. `UploadStatus` carries NEEDS_CHANGES and the
- * review endpoint does not accept it: the body is VERIFY or REJECT and anything
- * else is a 422. So this queue offers exactly the two decisions the API will
- * take. Adding "Request changes" for symmetry with the claim queue above would
- * be a button that always fails.
+ * "Recently reviewed" is the same scope, read back: `GET /badge-evidence/
+ * reviewed` lists decided claims newest first, with the note the student was
+ * given, so a decision does not vanish the moment it is made.
  *
- * THE NOTE IS THE WHOLE OF WHAT THE STUDENT IS TOLD. `review_note` is the one
- * sentence their Uploads card shows under a decision ("Reviewer: …"), so a
- * rejection without one is a red chip and no way to know what to fix or whether
- * to upload it again. It is required here before a REJECT — and, unlike the
- * claim queue above, that rule is NOT mirrored in the API (`UploadReviewIn.note`
- * is optional). This is therefore a prompt to the reviewer and never a
- * guarantee about the data; do not describe it to a student as enforced, and do
- * not delete it on the grounds that the server does not ask.
+ * THE DOCUMENT QUEUE IS THE SAME SCOPE. Every file a student uploads — a
+ * profile photo, an offer letter, an internship report — is written
+ * PENDING_REVIEW, and `POST /mentor/uploads/{id}/review` is the only production
+ * writer of VERIFIED or REJECTED on that row. It is reviewed here because it
+ * is the same reviewer, the same mentor group and the same
+ * `_assert_can_access_student` gate.
+ *
+ * TWO OUTCOMES THERE, NOT THREE. `UploadStatus` carries NEEDS_CHANGES and the
+ * upload review endpoint does not accept it: the body is VERIFY or REJECT and
+ * anything else is a 422. Adding "Request changes" for symmetry with the claim
+ * queue would be a button that always fails. The note is required here before
+ * a REJECT and — unlike the claim queue — that rule is NOT mirrored in the API
+ * (`UploadReviewIn.note` is optional); do not describe it to a student as
+ * enforced, and do not delete it on the grounds that the server does not ask.
  */
 
 import { DatePipe } from '@angular/common';
@@ -60,21 +66,27 @@ import { Component, computed, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
 
+/** A row of `GET /mentor/badge-evidence/{pending,reviewed}`
+ *  (`PendingEvidenceOut` in app/routers/badge_verification.py). */
 interface Claim {
   id: string;
   student_id: string;
   student_name: string;
-  skill_id: string;
-  skill_name: string;
-  upload_id: string;
-  claimed_level: number;
-  status: string;
+  usn: string | null;
+  badge_code: string;
+  badge_name: string;
+  category_label: string;
+  evidence_type: string;
+  status: string; // PENDING_VERIFICATION | APPROVED | REJECTED | MORE_INFO_REQUIRED
+  title: string;
+  provider: string | null;
+  completed_on: string | null;
   student_note: string | null;
+  from_catalogue: boolean;
+  upload_id: string | null;
+  created_at: string;
   review_note: string | null;
   reviewed_at: string | null;
-  created_at: string;
-  evidence_kind: string | null;
-  evidence_title: string | null;
   evidence_file_name: string | null;
 }
 
@@ -94,15 +106,21 @@ interface PendingUpload {
   uploaded_at: string;
 }
 
-type Decision = 'GRANT' | 'CHANGES' | 'REJECT';
+/** What `ReviewIn.decision` accepts. */
+type Decision = 'APPROVE' | 'MORE_INFO' | 'REJECT';
 
 /** What `UploadReviewIn.decision` accepts. VERIFY and REJECT and nothing else. */
 type UploadDecision = 'VERIFY' | 'REJECT';
 
-const LEVEL_NAMES = ['', 'Aware', 'Beginner', 'Working', 'Proficient', 'Expert'];
+/** EvidenceType -> the words on the card (models/badge.py §11). */
+const EVIDENCE_TYPE_LABEL: Record<string, string> = {
+  EXTERNAL_VERIFIED: 'Certificate',
+  BGSCET_ASSESSED: 'BGSCET assessment',
+  APPLIED: 'Applied work',
+};
 
 /** Upload.kind -> the words on the card. */
-const EVIDENCE_KIND_LABEL: Record<string, string> = {
+const UPLOAD_KIND_LABEL: Record<string, string> = {
   CERTIFICATE_PROOF: 'Certificate',
   DOCUMENT: 'Document',
   RESUME: 'Resume',
@@ -118,10 +136,12 @@ interface Outcome {
 /** Status -> chip. Text and colour together, never colour alone. */
 function outcomeFor(status: string): Outcome {
   switch (status) {
+    case 'APPROVED':
     case 'VERIFIED':
-      return { tone: 'good', icon: 'check_circle', label: 'Verified' };
+      return { tone: 'good', icon: 'verified', label: 'Verified' };
     case 'REJECTED':
       return { tone: 'risk', icon: 'cancel', label: 'Rejected' };
+    case 'MORE_INFO_REQUIRED':
     case 'NEEDS_CHANGES':
       return { tone: 'warn', icon: 'undo', label: 'Needs changes' };
     default:
@@ -175,17 +195,18 @@ export class MentorVerificationsComponent {
     void this.loadUploads();
   }
 
-  levelName(n: number): string {
-    return LEVEL_NAMES[n] ?? `Level ${n}`;
-  }
-
   evidenceKind(c: Claim): string {
-    return (c.evidence_kind && EVIDENCE_KIND_LABEL[c.evidence_kind]) || 'Uploaded file';
+    return EVIDENCE_TYPE_LABEL[c.evidence_type] ?? 'Evidence';
   }
 
   /** The same vocabulary as a claim's evidence, off the same column. */
   uploadKind(u: PendingUpload): string {
-    return EVIDENCE_KIND_LABEL[u.kind] ?? 'Uploaded file';
+    return UPLOAD_KIND_LABEL[u.kind] ?? 'Uploaded file';
+  }
+
+  /** The certificate behind a claim, through the claim's own scoped route. */
+  claimFileUrl(claimId: string): string {
+    return `${environment.apiBase}/mentor/badge-evidence/${claimId}/file`;
   }
 
   /** Mentor-scoped download — the student route 404s for anyone but the owner. */
@@ -225,16 +246,20 @@ export class MentorVerificationsComponent {
   async decide(claim: Claim, decision: Decision): Promise<void> {
     const note = this.note(claim.id).trim();
     // Checked here so the mentor gets the message next to the field they must
-    // fill; the API enforces the same rule so the guarantee does not depend on
-    // this component being the only caller.
-    if (decision !== 'GRANT' && !note) {
-      this.noteError.set('Add a note explaining what needs to change.');
+    // fill; the API enforces the same rule (422) so the guarantee does not
+    // depend on this component being the only caller.
+    if (decision !== 'APPROVE' && !note) {
+      this.noteError.set(
+        decision === 'REJECT'
+          ? 'Say why it is rejected — the reason is all the student is told, on screen and by email.'
+          : 'Say what needs to change — the note is all the student is told, on screen and by email.',
+      );
       return;
     }
     this.deciding.set(claim.id);
     this.error.set(null);
     try {
-      const res = await fetch(`${environment.apiBase}/mentor/skill-claims/${claim.id}/review`, {
+      const res = await fetch(`${environment.apiBase}/mentor/badge-evidence/${claim.id}/review`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -246,10 +271,11 @@ export class MentorVerificationsComponent {
       }
       this.openId.set(null);
       // Out of the queue locally — the server has already moved it out of
-      // PENDING_REVIEW — and into Recently reviewed, where the outcome and the
-      // note the student was given can be read back.
+      // PENDING_VERIFICATION — and into Recently reviewed, where the outcome and
+      // the note the student was given can be read back. The Documents queue
+      // is re-read too: the certificate behind this claim was decided with it.
       this.claims.update((list) => (list ?? []).filter((c) => c.id !== claim.id));
-      await this.loadHistory();
+      await Promise.all([this.loadHistory(), this.loadUploads()]);
     } catch {
       this.error.set('Could not reach the server.');
     } finally {
@@ -316,11 +342,11 @@ export class MentorVerificationsComponent {
 
   private async load(): Promise<void> {
     try {
-      const res = await fetch(`${environment.apiBase}/mentor/skill-claims/pending`, {
+      const res = await fetch(`${environment.apiBase}/mentor/badge-evidence/pending`, {
         credentials: 'include',
       });
       if (!res.ok) {
-        this.error.set('Could not load the verification queue.');
+        this.error.set(await detailOf(res, 'Could not load the verification queue.'));
         this.claims.set([]);
         return;
       }
@@ -333,7 +359,7 @@ export class MentorVerificationsComponent {
 
   private async loadHistory(): Promise<void> {
     try {
-      const res = await fetch(`${environment.apiBase}/mentor/skill-claims/reviewed?limit=8`, {
+      const res = await fetch(`${environment.apiBase}/mentor/badge-evidence/reviewed?limit=8`, {
         credentials: 'include',
       });
       if (!res.ok) {
@@ -382,11 +408,11 @@ export class MentorVerificationsComponent {
  *
  * FastAPI answers a schema error with `detail` as a LIST of objects, so
  * `body.detail` rendered raw reads "[object Object]" — the trap
- * leave.component.ts hit when `LeaveIn` grew a date check, and what this
- * component did until the document queue arrived. The refusals worth showing
- * here name the actual problem ("Only a pending upload can be reviewed.",
- * "decision must be VERIFY or REJECT."), which is the difference between a
- * reviewer pressing the button again and a reviewer filing a bug.
+ * leave.component.ts hit when `LeaveIn` grew a date check. The refusals worth
+ * showing here name the actual problem ("Say why. The note is the only thing
+ * the student is told…", "Only a pending upload can be reviewed."), which is
+ * the difference between a reviewer pressing the button again and a reviewer
+ * filing a bug.
  */
 async function detailOf(response: Response, fallback: string): Promise<string> {
   try {

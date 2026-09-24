@@ -30,6 +30,8 @@ from app.interview_matrix import (
     build_turn_instructions,
     classify_answer,
     get_specialization,
+    is_skip_request,
+    words_of,
 )
 from app.interview_core import _INTERVIEWER_PERSONA
 
@@ -280,6 +282,70 @@ class TestAnswerClassification:
         assert classify_answer("yes") == "accepted"
         # Still not an answer when there is no transcript at all.
         assert classify_answer("") == "empty"
+        # And still not an answer when the student asked for the next question:
+        # a skip is a different fact from a short answer, whatever the floor.
+        assert classify_answer("next question please") == "skipped"
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "next question",
+            "Next question, please.",
+            "can we skip this one",
+            "I'd like to skip this question",
+            "skip",
+            "I pass on this",
+            "let's move on",
+            "um, I don't know this one, next question",
+        ],
+    )
+    def test_asking_for_the_next_question_is_a_skip(self, text):
+        # Two words used to be `too_short`: the record said the student failed
+        # to answer while the model, which had heard them, moved on. A skip is
+        # its own verdict, does not count, and is not a failed answer.
+        assert is_skip_request(text) is True
+        assert classify_answer(text) == "skipped"
+
+    @pytest.mark.parametrize(
+        "text, verdict",
+        [
+            # What Nova 2 Sonic wrote, in Devanagari, for the first student who
+            # tried the interview with an Indian accent. The gate used to
+            # match `[a-z0-9']+`, so every one of these was `empty` -- "the
+            # transcriber returned nothing" about five audible answers.
+            ("हेलो हाई मैं दर्शन हूँ।", "accepted"),  # hello, hi, I'm Darshan: 5 words
+            ("हाँ।", "too_short"),  # yes: one word, and not on the English filler list
+            ("ओके, अगला प्रश्न।", "skipped"),  # ok, next question
+            ("अगला प्रश्न, कृपया।", "skipped"),  # next question, please
+            ("अगला सवाल", "skipped"),
+        ],
+    )
+    def test_a_transcript_in_another_script_is_read_word_for_word(self, text, verdict):
+        assert classify_answer(text) == verdict
+
+    def test_words_are_runs_of_letters_digits_and_marks_in_any_script(self):
+        # Python's \w excludes combining marks, and Hindi vowel signs and the
+        # virama ARE marks, so a \w-based pattern shatters one word into four.
+        assert words_of("अगला प्रश्न, कृपया।") == ["अगला", "प्रश्न", "कृपया"]
+        assert words_of("I don't know... really!") == ["i", "don't", "know", "really"]
+        assert words_of("'tis 'quoted'") == ["tis", "quoted"]
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            # An answer that happens to contain the word is still an answer.
+            "Let's skip the pleasantries: I led the campus fintech club and grew "
+            "it to eighty members over two years",
+            # "passed", not "pass"; a whole-word match, never a substring.
+            "I passed the CFA level one on my first attempt last year",
+            # A long answer about moving on is an answer.
+            "When the client asked us to move on from the pilot we first "
+            "measured retention across the three cohorts and then decided",
+        ],
+    )
+    def test_an_answer_that_mentions_skipping_is_not_a_skip(self, text):
+        assert is_skip_request(text) is False
+        assert classify_answer(text) == "accepted"
 
 
 class TestTurnInstructions:
@@ -287,7 +353,9 @@ class TestTurnInstructions:
     one has to be self-contained or the interviewer loses its conduct rules on
     exactly the turn where it is improvising."""
 
-    @pytest.mark.parametrize("kind", ["clarify", "unheard", "resume", "verdict", "invite_questions"])
+    @pytest.mark.parametrize(
+        "kind", ["clarify", "unheard", "resume", "skip", "verdict", "invite_questions"]
+    )
     def test_every_kind_keeps_the_persona_and_the_rule_1_disclosure(self, kind):
         instructions = build_turn_instructions(
             SPECIALIZATIONS["ba"], _INTERVIEWER_PERSONA, InterviewPhase.PROBING, kind

@@ -51,6 +51,7 @@ than in the relay ON PURPOSE:
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Final
@@ -497,26 +498,121 @@ _FILLER_WORDS: Final[frozenset[str]] = frozenset(
     }
 )
 
-# Apostrophes are kept so "don't" is ONE word, not two: the floor measures how
+# WORDS IN ANY SCRIPT (2026-09-17). This was `[a-z0-9']+`, which is not a
+# word pattern, it is an ENGLISH word pattern: a transcript in Devanagari --
+# which is what Nova 2 Sonic wrote for an Indian-accented "hello, hi, I'm
+# Darshan", because it auto-detects the language and the HR voice is also its
+# Hindi voice -- matched nothing at all, so every answer was recorded `empty`
+# ("the transcriber returned nothing"), a false fact about an interview that
+# had five audible answers in it, and `is_skip_request` could not hear "अगला
+# प्रश्न" ("next question"). A regex over `\w` is not the fix either: Python's
+# `\w` excludes combining marks, and Hindi vowel signs and the virama are
+# marks, so it shatters "प्रश्न" into four fragments. Words are runs of
+# letters, digits and marks by Unicode category, with an apostrophe kept
+# INSIDE a word so "don't" is one word and not two -- the floor measures how
 # much the student said, and splitting contractions inflates it.
-_WORD_RE: Final[re.Pattern[str]] = re.compile(r"[a-z0-9']+")
+_WORD_CATEGORIES: Final[frozenset[str]] = frozenset({"L", "N", "M"})
+
+
+def words_of(text: str) -> list[str]:
+    """The words of a transcript, casefolded, in any script. Pure."""
+    words: list[str] = []
+    current: list[str] = []
+    for char in text.casefold():
+        if unicodedata.category(char)[0] in _WORD_CATEGORIES:
+            current.append(char)
+        elif char == "'" and current:
+            current.append(char)
+        elif current:
+            words.append("".join(current).rstrip("'"))
+            current = []
+    if current:
+        words.append("".join(current).rstrip("'"))
+    return [word for word in words if word]
+
+# WHAT A STUDENT SAYS WHEN THEY WANT TO MOVE ON RATHER THAN ANSWER (2026-09-17).
+# "Next question" used to be two words -- `too_short` -- and was recorded as a
+# failed answer while the model, which had heard it, moved on anyway. So the
+# record said the student could not answer and the interviewer said "sure";
+# neither the transcript a mentor reads nor the engine's own count agreed with
+# what happened in the room. A skip is its own verdict now: it does not count
+# as an answer (the arc stays where it is, so the questioning is not shortened
+# by skipping), and the model is briefed to move on without pressing.
+#
+# Matched as WHOLE PHRASES on the normalised words, and only on a SHORT
+# transcript: "let's skip the pleasantries -- I led the fintech club to..." is
+# an answer that happens to contain the word. Kept small and literal on
+# purpose. A fuzzy match here would turn "I'll pass the figures on to the
+# board" into a skip, and every entry is a thing a student actually says to an
+# interviewer when they want the next question.
+_SKIP_PHRASES: Final[tuple[str, ...]] = (
+    "next question",
+    "next one",
+    "go to the next",
+    "skip this question",
+    "skip this one",
+    "skip this",
+    "skip that",
+    "skip it",
+    "can we skip",
+    "let's skip",
+    "i'd like to skip",
+    "i want to skip",
+    "skip",
+    "move on",
+    "moving on",
+    "i pass",
+    "pass on this",
+    "pass",
+    # Hindi, because that is what the transcriber wrote for the first student
+    # who tried it: "next question" and "next question (सवाल)". The interview
+    # is briefed to run in English, but the record must still be true when a
+    # student says it in Hindi.
+    "अगला प्रश्न",
+    "अगला सवाल",
+)
+# A skip is a sentence or two, never a paragraph. Above this many words the
+# student is answering, whatever words the answer happens to contain.
+_SKIP_MAX_WORDS: Final[int] = 12
+
+
+def is_skip_request(transcript: str) -> bool:
+    """Did the student ask for the next question rather than answer this one?
+
+    Pure and deterministic, like the rest of the gate. Exposed on its own so the
+    briefing, the local engine and the tests all read the same rule.
+    """
+    words = words_of(transcript)
+    if not words or len(words) > _SKIP_MAX_WORDS:
+        return False
+    padded = f" {' '.join(words)} "
+    return any(f" {phrase} " in padded for phrase in _SKIP_PHRASES)
 
 
 def classify_answer(transcript: str) -> str:
-    """'accepted' | 'empty' | 'filler' | 'too_short'. No I/O, no model call.
+    """'accepted' | 'empty' | 'skipped' | 'filler' | 'too_short'. No I/O, no
+    model call.
 
     This runs between the student finishing and the interviewer replying, which
     is why it is a word count and not a judgement: a round trip here would be
     latency on every single turn of every interview.
 
-    The four verdicts are kept distinct rather than collapsed to a bool because
+    The verdicts are kept distinct rather than collapsed to a bool because
     they are stored on the turn record and read by a human afterwards -- "the
-    transcriber returned nothing" and "the student said 'yeah'" are different
-    facts about an interview, and a single False loses that.
+    transcriber returned nothing", "the student said 'yeah'" and "the student
+    asked for the next question" are different facts about an interview, and a
+    single False loses that.
+
+    `skipped` is judged BEFORE the floor, and before the switch that turns the
+    floor off: a student who says "next question" has not answered whatever the
+    operator's word count is, and an engine that counted it would shorten the
+    interview by one question every time somebody said it.
     """
-    words = _WORD_RE.findall(transcript.casefold())
+    words = words_of(transcript)
     if not words:
         return "empty"
+    if is_skip_request(transcript):
+        return "skipped"
     floor = settings.interview_min_answer_words
     if floor <= 0:
         # 0 is a MEANING, not a typo (see config.py): the gate is off and every
@@ -554,6 +650,12 @@ _TURN_DIRECTIVES: Final[dict[str, str]] = {
         "The student spoke before you had finished asking. Do not treat what "
         "they said as their answer: finish the question you were asking, or "
         "put it more briefly, and then wait for them."
+    ),
+    "skip": (
+        "The student has asked to move on from this question. Do not press "
+        "them and do not treat it as a failed answer: say in a few words that "
+        "you will move on, then ask a different question at the same level. "
+        "Do not repeat the question they skipped."
     ),
     "verdict": (
         "Stop the interview here, regardless of how many questions have been "
@@ -732,6 +834,18 @@ def build_instructions(
     )
 
 
+# The skip rule as the model hears it, stated once and quoted by the arc
+# briefing so the model and `classify_answer` agree on what a skip is worth:
+# nothing, and no pressure. It names the same phrases the gate matches, so a
+# student is not told to say one thing by the interviewer and judged on another.
+SKIP_RULE: Final[str] = (
+    'If the student says "next question", "skip" or "pass", or otherwise asks '
+    "to move on, do not press them and do not treat it as a failed answer: say "
+    "in a few words that you will move on, and ask a different question at the "
+    "same level. A skipped question does not count as an answer."
+)
+
+
 def build_arc_briefing(spec: Specialization) -> str:
     """The question phases of the arc, briefed ONCE, for an engine that owns the turn.
 
@@ -771,7 +885,8 @@ def build_arc_briefing(spec: Specialization) -> str:
     return (
         "## How this interview unfolds\n"
         "You are in the opening phase now. The interview system counts the "
-        f"student's answers, and {counting_rule}.\n"
+        f"student's answers, and {counting_rule}. "
+        f"{SKIP_RULE}\n"
         "After the student's FIRST answer that counts, move to the probing "
         "phase and stay in it. In the probing phase: "
         f"{_phase_directive(spec, InterviewPhase.PROBING)}\n"

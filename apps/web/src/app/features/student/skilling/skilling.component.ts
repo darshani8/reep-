@@ -33,6 +33,7 @@ import { Component, computed, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
+import { failedReadMessage } from '../../../core/feature-refusal';
 
 interface EvidenceRow {
   id: string;
@@ -74,8 +75,14 @@ interface Dashboard {
 interface BoardBadge {
   code: string;
   name: string;
-  /** Held EARNED — the pill glows and nothing can dim it. */
+  /** Held EARNED — the pill glows, carries the blue verified tick, and nothing
+   *  can dim it. The tick is the mentor's approval and appears on no other
+   *  state: an unclaimed badge is unmarked, a claim in review is marked as
+   *  waiting, a tapped preview lights the tile but never wears the tick. */
   acquired: boolean;
+  /** A claim is with the mentor: the tile says so rather than reading as
+   *  unclaimed, because the student filed it and is waiting on somebody. */
+  pending: boolean;
   /** Tapped for a preview of the earned state; purely visual, never stored. */
   previewed: boolean;
   /** The status a hover/tap explains: what this pill is waiting on. */
@@ -132,6 +139,34 @@ const MAX_CERT_BYTES = 5 * 1024 * 1024;
 /** What the picker's `accept` attribute allows, said again where a DROPPED
  *  file can be checked against it. */
 const ACCEPTED_CERT_TYPES = ['application/pdf', 'image/jpeg'];
+
+/**
+ * The server's own sentence where there is one, and the STATUS where there is
+ * not — never the bare fallback alone.
+ *
+ * This screen printed "Certificate upload failed (PDF or JPEG, up to 5 MB)."
+ * for every refusal whose body was not JSON with a `detail` string, and one
+ * refusal was exactly that: the edge WAF answering a multipart POST 403 with
+ * an HTML body, before the API ever saw the file (infra/cdk/reep_core/edge.py,
+ * 2026-09-17). A student attaching a 2 MB JPEG was told their JPEG was the
+ * wrong kind of file, and the one fact that would have pointed at the edge —
+ * the status code — was the one thing the message left out. FastAPI's schema
+ * refusals arrive as a `detail` LIST, so those are read for their message too
+ * rather than rendering "[object Object]" (leave.component.ts's trap).
+ */
+async function detailOf(response: Response, fallback: string): Promise<string> {
+  try {
+    const body = await response.json();
+    const detail = body?.detail;
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail) && detail.length > 0 && typeof detail[0]?.msg === 'string') {
+      return String(detail[0].msg).replace(/^Value error,\s*/, '');
+    }
+  } catch {
+    /* not JSON — fall through to the status */
+  }
+  return `${fallback} (${response.status})`;
+}
 
 @Component({
   selector: 'app-student-skilling',
@@ -215,6 +250,7 @@ export class SkillingComponent {
         code: b.code,
         name: b.name,
         acquired: b.status === 'EARNED',
+        pending: b.status === 'VERIFICATION_PENDING',
         previewed: b.status !== 'EARNED' && previewed.has(b.code),
         hint: STATUS_HINT[b.status] ?? b.status,
       })),
@@ -379,8 +415,9 @@ export class SkillingComponent {
         body: form,
       });
       if (!up.ok) {
-        const d = await up.json().catch(() => null);
-        this.claimError.set(d?.detail ?? 'Certificate upload failed (PDF or JPEG, up to 5 MB).');
+        this.claimError.set(
+          await detailOf(up, 'The certificate could not be uploaded. Try again in a minute'),
+        );
         return;
       }
       const uploadId = (await up.json()).id as string;
@@ -400,8 +437,7 @@ export class SkillingComponent {
         }),
       });
       if (!claim.ok) {
-        const d = await claim.json().catch(() => null);
-        this.claimError.set(d?.detail ?? 'Could not file the claim. Please try again.');
+        this.claimError.set(await detailOf(claim, 'Could not file the claim. Please try again'));
         return;
       }
       // The response is the refreshed dashboard, so the board and the open
@@ -419,7 +455,7 @@ export class SkillingComponent {
     try {
       const res = await fetch(`${environment.apiBase}/student/badges`, { credentials: 'include' });
       if (!res.ok) {
-        this.boardError.set('Could not load the badge catalogue.');
+        this.boardError.set(await failedReadMessage(res, 'Could not load the badge catalogue.'));
         return;
       }
       this.dashboard.set((await res.json()) as Dashboard);

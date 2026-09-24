@@ -1174,6 +1174,50 @@ class TestTheTwoGates:
         assert isinstance(recorder, InterviewRecorder)
         assert recorder._max_bytes == settings.interview_recording_max_bytes
 
+    def test_every_closed_gate_is_named_and_an_open_one_is_not(self, store, monkeypatch):
+        """`recorder_or_reason` says WHICH gate refused (2026-09-17).
+
+        The four Nones used to be indistinguishable outside the API log, and
+        the Interview records screen rendered every one of them as "No audio"
+        beside a grey Download button -- on a deployment whose only missing
+        piece was the college's tick. The word is what the row carries and
+        the screen turns into the switch to flip, so each gate must produce
+        its own, in gate order, and a recorder must come with none.
+        """
+        from app.interview_audio import (
+            SKIP_NO_CONSENT,
+            SKIP_OPERATOR_OFF,
+            SKIP_POLICY_OFF,
+            SKIP_REASONS,
+            SKIP_STORE_FULL,
+            recorder_or_reason,
+        )
+
+        sid = uuid.uuid4().hex
+        monkeypatch.setattr(settings, "interview_recording_enabled", False)
+        assert recorder_or_reason(sid, "user-1") == (None, SKIP_OPERATOR_OFF)
+
+        monkeypatch.setattr(settings, "interview_recording_enabled", True)
+        assert recorder_or_reason(sid, "user-1", policy_allows_audio=False) == (
+            None,
+            SKIP_POLICY_OFF,
+        )
+
+        monkeypatch.setattr(interview_audio, "audio_consent_granted", lambda _u: False)
+        assert recorder_or_reason(sid, "user-1") == (None, SKIP_NO_CONSENT)
+
+        monkeypatch.setattr(interview_audio, "audio_consent_granted", lambda _u: True)
+        monkeypatch.setattr(interview_audio, "_store_has_headroom", lambda: False)
+        assert recorder_or_reason(sid, "user-1") == (None, SKIP_STORE_FULL)
+
+        monkeypatch.setattr(interview_audio, "_store_has_headroom", lambda: True)
+        recorder, reason = recorder_or_reason(sid, "user-1")
+        assert isinstance(recorder, InterviewRecorder) and reason is None
+        # The vocabulary the client maps to sentences: every word above is in it.
+        assert {SKIP_OPERATOR_OFF, SKIP_POLICY_OFF, SKIP_NO_CONSENT, SKIP_STORE_FULL} <= set(
+            SKIP_REASONS
+        )
+
     @requires_db
     def test_consent_is_read_from_the_row_and_fails_closed(self, store, consent_user):
         """The grant is a ROW, and every way of not having one reads as False.

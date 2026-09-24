@@ -68,6 +68,7 @@ from ..models.user import Role, Student, User
 from ..security import note_revocation
 from .mentor import require_admin
 from .passwords import _Throttle
+from .student import clear_leaderboard_cache
 
 log = logging.getLogger(__name__)
 
@@ -471,6 +472,8 @@ def _delete_account(
     )
     db.commit()
     note_revocation(user_id, 10**9, disabled=True)
+    if plan.doomed.student_id:
+        clear_leaderboard_cache()
     log.warning(
         "account %s (%s) PERMANENTLY DELETED by %s: %s (%d rows, %d files)",
         email, before["role"], session.get("email"), body.reason, plan.total_rows, plan.files,
@@ -528,6 +531,15 @@ def _removal_out(user: User, *, links_revoked: int = 0, mentees_released: int = 
     )
 
 
+def _holds_a_student_record(db: Session, user_id: str) -> bool:
+    """Whether the account has a `students` row, which is what puts it on a
+    classmate's leaderboard. The row and not the role: a graduate is ALUMNI
+    and keeps the row and its batch, and the boards' roster reads the row, so
+    removing one reaches the boards like removing a student does. The same
+    test the permanent delete makes with `plan.doomed.student_id`."""
+    return db.scalar(select(Student.id).where(Student.user_id == user_id).limit(1)) is not None
+
+
 def _remove_account(db: Session, user: User, body: RemoveIn, session: dict, request: Request) -> RemovalOut:
     _refuse_office_or_self(user, session)
     if user.deleted_at is not None:
@@ -563,6 +575,10 @@ def _remove_account(db: Session, user: User, body: RemoveIn, session: dict, requ
     )
     db.commit()
     note_revocation(user.id, user.token_version, disabled=True)
+    if _holds_a_student_record(db, user.id):
+        # Off every screen means off classmates' leaderboards on the next
+        # read, not after the board's cache has run out.
+        clear_leaderboard_cache()
     log.warning("account %s (%s) REMOVED by %s: %s", user.email, user.role.value, session.get("email"), body.reason)
     return _removal_out(
         user, links_revoked=revoked, mentees_released=len(released),
@@ -595,6 +611,8 @@ def _restore_account(db: Session, user: User, session: dict, request: Request) -
     db.commit()
     # Still refused while disabled underneath; the cache must learn either way.
     note_revocation(user.id, int(user.token_version or 0), disabled=user.disabled_at is not None)
+    if _holds_a_student_record(db, user.id):
+        clear_leaderboard_cache()
     log.warning("account %s (%s) RESTORED by %s", user.email, user.role.value, session.get("email"))
     return _removal_out(
         user,

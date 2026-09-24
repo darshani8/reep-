@@ -246,10 +246,6 @@
 .dot-open {
   border: 1.5px solid rgba(160, 138, 178, 0.6);
 }
-.dot-lit {
-  background: var(--purple-mid);
-  box-shadow: 0 0 0 2px rgba(122, 47, 158, 0.25);
-}
 
 .board-row {
   display: flex;
@@ -278,7 +274,13 @@
   flex: 1;
   min-width: 280px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  /* `min(Npx, 100%)` and not a bare `Npx`: a minmax() track whose minimum is a
+     fixed length does NOT collapse when the container is narrower than it — the
+     track keeps its minimum and the grid overflows. On a 320px handset the
+     content box inside a card is about 260px, so every one of these was wider
+     than the screen it was drawn on. `min()` caps the minimum at the container,
+     which changes nothing at any width where the track already fitted. */
+  grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr));
   gap: 10px;
   align-content: flex-start;
 }
@@ -368,9 +370,10 @@
   font-size: 12px;
 }
 
-/* EARNED: the hexagon fills, the glyph inverts, and a green seal is added —
-   three signals, not one, because this is the state the whole screen exists
-   to show. */
+/* EARNED: the hexagon fills, the glyph inverts, and the BLUE VERIFIED TICK is
+   added — three signals, not one, because this is the state the whole screen
+   exists to show. The tick is the mentor's approval and no other state wears
+   it; a preview lights the hexagon and stops there. */
 .badge-tile--lit {
   border-color: var(--purple-mid);
   box-shadow: 0 6px 16px rgba(85, 44, 126, 0.16);
@@ -382,24 +385,47 @@
   color: #fff;
   opacity: 1;
 }
-.badge-tile--lit .badge-tile__status {
-  color: var(--good);
+/* The one blue on this screen. Not a brand token on purpose: the design
+   system's palette is purple, and the verified mark is drawn in the blue every
+   student already reads as "verified" on the platforms they use, so it is
+   recognised rather than learned. Owned here, used nowhere else. */
+$verified-blue: #1a73e8;
+
+.badge-tile--verified .badge-tile__status {
+  color: $verified-blue;
 }
-.badge-tile .seal {
+.badge-tile .tick,
+.badge-tile .wait {
   position: absolute;
-  right: 0;
-  bottom: 6px;
-  width: 18px;
-  height: 18px;
+  right: -2px;
+  bottom: 4px;
+  width: 20px;
+  height: 20px;
   border-radius: var(--r-pill);
-  background: var(--good);
-  border: 2px solid var(--surface);
-  color: #fff;
+  background: var(--surface);
   display: grid;
   place-items: center;
 }
-.badge-tile .seal .icon {
-  font-size: 11px;
+.badge-tile .tick .icon {
+  font-size: 20px;
+  color: $verified-blue;
+  opacity: 1;
+}
+.badge-tile .wait .icon {
+  font-size: 15px;
+  color: var(--warn);
+  opacity: 1;
+}
+.badge-tile--pending .badge-tile__status {
+  color: var(--warn);
+}
+.legend-tick {
+  font-size: 15px;
+  color: $verified-blue;
+}
+.legend-wait {
+  font-size: 14px;
+  color: var(--warn);
 }
 
 /* A previewed tile is dashed and keeps the muted status word, so it cannot be
@@ -412,9 +438,6 @@
 }
 .badge-tile--preview .badge-tile__status {
   color: var(--muted);
-}
-.badge-tile--preview .seal {
-  background: var(--muted);
 }
 
 .board-foot {
@@ -469,4 +492,16 @@
 }
 .claims-note {
   color: var(--muted);
+}
+
+/* Tap target at phone width (2026-09-22): /student/skilling's "All my documents" link, 266x17.
+   Block padding and not a min-height, because this is an inline link inside a
+   sentence — padding grows the hit area the thumb gets without moving the
+   words around it. Mobile only; the desktop link is unchanged. */
+@media (max-width: 760px) {
+  .skl-all-docs {
+    /* 15px and not 13: measured at 43px tall with 13, which is short of the
+       44px floor by a hair. */
+    padding-block: 15px;
+  }
 }

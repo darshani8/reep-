@@ -379,96 +379,14 @@
             }
           } @else {
             <div class="card-empty">
-              Recommendations appear once you start a certification or claim a skill — take your
-              first action above and check back.
+              Recommendations appear once you claim a skill — take your first action above and
+              check back.
             </div>
           }
         } @else {
           <div class="card-empty">Recommendations are unavailable right now.</div>
         }
       </div>
-    </div>
-
-    <!-- The stat strip. -->
-    <div class="grid-3">
-      <div class="card">
-        <h4>Stage</h4>
-        <div class="donut" [style.background]="donutStyle()">
-          <span>{{ stagePct() }}%</span>
-        </div>
-        <div class="card-empty center">Reboot → Excel → Excel-Adv → Elevate</div>
-      </div>
-
-      <div class="card">
-        <h4>Skill badges</h4>
-        @if (badges(); as bs) {
-          @if (bs.length) {
-            <div class="badge-row">
-              @for (badge of bs; track badge.name) {
-                <div class="badge" [class.locked]="badge.locked" [attr.title]="badge.title">
-                  <div class="ico">
-                    <span class="icon" aria-hidden="true">{{ badge.icon }}</span>
-                  </div>
-                  {{ badge.name }}
-                  @if (badge.locked) {
-                    <span class="badge-locked"
-                      ><span class="icon" aria-hidden="true">lock</span>Locked</span
-                    >
-                  }
-                </div>
-              }
-            </div>
-          } @else {
-            <div class="card-empty">
-              No skills recorded yet — upload a certificate to claim one.
-            </div>
-          }
-        } @else {
-          <div class="card-empty">Skill badges are unavailable right now.</div>
-        }
-      </div>
-
-      <div class="card">
-        <h4>Mocks taken</h4>
-        @if (hasMocks()) {
-          <div class="dt-sub mock-summary">{{ mockSummary() }}</div>
-          <div class="bar-chart mock-chart">
-            @for (b of mockBars(); track b.label) {
-              <div class="bar" [style.height.%]="b.heightPct">
-                <span>{{ b.caption }}</span>
-              </div>
-            }
-          </div>
-          <div class="bar-labels">
-            @for (b of mockBars(); track b.label) {
-              <div>{{ b.label }}</div>
-            }
-          </div>
-        } @else {
-          <div class="card-empty">No mock assessments taken yet.</div>
-        }
-      </div>
-    </div>
-
-    <div class="card">
-      <h4>Login streak</h4>
-      @if (streak(); as s) {
-        @if (s.days_active > 0 || s.current > 0) {
-          <div class="streak-row">
-            @for (on of streakCells(); track $index) {
-              <div class="streak-day" [class.on]="on"></div>
-            }
-          </div>
-          <div class="dt-sub streak-sub">
-            Current {{ s.current }} day{{ s.current === 1 ? '' : 's' }} · Longest {{ s.longest }} ·
-            {{ s.days_active }} active day{{ s.days_active === 1 ? '' : 's' }}
-          </div>
-        } @else {
-          <div class="card-empty">No login history yet.</div>
-        }
-      } @else {
-        <div class="card-empty">No login history yet.</div>
-      }
     </div>
   }
 }

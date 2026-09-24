@@ -169,11 +169,58 @@ SILENCED_TEMPLATES = (
     # ENV=prod and Google is unconfigured — a static configuration state,
     # already reported in the endpoint's own 200 body and in the boot log.
     "GET /api/auth/sso/status -> 200 unavailable",
+    # AWSCRT'S OWN TEARDOWN, ARRIVING ON THE `asyncio` LOGGER (Sentry REEP-API-2,
+    # 30 events in 6 days and escalating, 0 users impacted).
+    #
+    # When a Nova bidirectional stream closes, awscrt's internal request-body
+    # task makes a final `_write_data(None, True)` on a stream the service has
+    # already completed, and raises 2080 AWS_ERROR_HTTP_STREAM_HAS_COMPLETED.
+    # Nobody awaits that task — it belongs to awscrt, not to this codebase — so
+    # CPython's `Task.__del__` hands it to the loop's default exception handler,
+    # which logs it at ERROR on the `asyncio` logger, and LoggingIntegration
+    # turns every ERROR into an event. `interview_nova.aclose` already swallows
+    # every teardown failure it can actually see; this one is raised inside the
+    # SDK, after the last line this process runs.
+    #
+    # It is not a defect and it is not silence. The CloudWatch line stays
+    # exactly as it is, so the record survives where an operator reads it; what
+    # is dropped is the ALERT, because a benign event arriving five times a day
+    # is how the reep-api project becomes one nobody opens.
+    #
+    # A TUPLE, SO BOTH HALVES MUST BE PRESENT. Matching
+    # `_set_request_body_generator` alone would also swallow a GENUINE failure
+    # in that coroutine — a real mid-interview write error would name a
+    # different awscrt code and must still report. And matching only the error
+    # code would swallow it wherever it appeared. Neither fragment can carry a
+    # student's words: the first is an SDK coroutine name and the second is a
+    # constant from awscrt's error table.
+    #
+    # The culprit Sentry shows for these events (`/api/register/hierarchy`) is
+    # not where they come from. `Task.__del__` runs on whatever thread and
+    # transaction happened to be live, so the transaction is incidental — which
+    # is itself a reason this cannot usefully be triaged from the issue.
+    (
+        "Task exception was never retrieved",
+        "AWS_ERROR_HTTP_STREAM_HAS_COMPLETED",
+    ),
 )
 
 
 def silenced(template: str | None) -> bool:
-    return isinstance(template, str) and any(fragment in template for fragment in SILENCED_TEMPLATES)
+    """True when this log TEMPLATE names a known-benign event.
+
+    An entry is either a fragment (drop when it appears) or a TUPLE of
+    fragments (drop only when every one of them appears). The tuple form exists
+    because the one event that needs it — awscrt's stream teardown above — is
+    identified by a coroutine name AND an error code, and either alone would
+    also silence a real failure.
+    """
+    if not isinstance(template, str):
+        return False
+    return any(
+        all(part in template for part in entry) if isinstance(entry, tuple) else entry in template
+        for entry in SILENCED_TEMPLATES
+    )
 
 
 def _before_send(event: dict[str, Any], hint: dict[str, Any], *, service: str) -> dict[str, Any] | None:

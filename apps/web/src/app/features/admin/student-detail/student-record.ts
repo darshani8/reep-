@@ -312,9 +312,51 @@ export interface PlacementReadinessOut {
 }
 
 /** `GET /api/admin/students/{id}/360` — `admin_student_360.Student360Out`. */
+/** `Profile360Out` — the profile as filled in. `on_record` false means the
+ *  student never saved one: every field is then null and the card says so,
+ *  rather than printing eight dashes that read as eight blanks they left. */
+export interface Profile360Out {
+  on_record: boolean;
+  phone: string | null;
+  contact_email: string | null;
+  linkedin_url: string | null;
+  github_url: string | null;
+  portfolio_url: string | null;
+  city: string | null;
+  career_summary: string | null;
+  placement_eligible: boolean | null;
+  interested_in_jobs: boolean | null;
+  interested_in_internships: boolean | null;
+  /** What the student typed on their profile, verbatim — not the verified list. */
+  skills: string[];
+  education_entries: number;
+  experience_entries: number;
+  project_entries: number;
+  achievement_entries: number;
+  updated_at: string | null;
+}
+
+/** `Document360Out` — one row of `uploads`, with its verdict. */
+export interface Document360Out {
+  id: string;
+  kind: string;
+  title: string;
+  original_name: string;
+  mime_type: string;
+  size_bytes: number;
+  status: string; // PENDING_REVIEW | VERIFIED | NEEDS_CHANGES | REJECTED
+  review_note: string | null;
+  reviewed_at: string | null;
+  uploaded_at: string;
+}
+
 export interface Student360Out {
   identity: AdminStudentOut;
   login: Login360Out;
+  /** Contact and profile details as the student filled them in (2026-09-17). */
+  profile: Profile360Out;
+  /** Every upload, with its verdict; the bytes are behind the mentor file route. */
+  documents: Document360Out[];
   /** The course's declared length, so the screen can say "semester 3 of 8".
    *  NULL on a batch whose course has not been given a shape — and the client
    *  must NOT fall back to 8 in the label, because a number nobody entered

@@ -2,7 +2,7 @@
 
     GET    /admin/students?cohort_id=&q=&unseated=   the roster, filtered
     PATCH  /admin/students/{id}                       name / email / USN / batch / faculty / stage / semester
-    POST   /admin/cohorts/{id}/students/bulk          move / assign faculty / set stage / set semester - every student in the batch
+    POST   /admin/cohorts/{id}/students/bulk          move / assign faculty / set stage / set semester - every student on the batch's roster
     DELETE /admin/cohorts/{id}                        remove an EMPTY batch
 
 NO CREATE (2026-09-10), and the absence is the design rather than an
@@ -42,7 +42,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session, aliased
 
-from .. import batch_labels
+from .. import batch_labels, dual_specialization
 from ..architecture_events import record_change
 from ..config import settings
 from ..db import get_db
@@ -115,6 +115,11 @@ class AdminStudentOut(BaseModel):
     mentor_name: str | None
     current_stage: str
     current_semester: int
+    #: The OTHER half of a dual specialization (2026-09-23). The first is the
+    #: batch's own and is already in `batch`; this is the second and nothing
+    #: else, null for a student who opted for one.
+    second_specialization_id: str | None = None
+    second_specialization: str | None = None
     enrolled_at: datetime
     last_login_at: datetime | None
     #: REMOVED from the roster (users.deleted_at, 2026-09-16): null on every
@@ -186,6 +191,10 @@ class AdminStudentPatch(BaseModel):
     mentor_user_id: str | None = None
     current_stage: str | None = None
     current_semester: int | None = Field(default=None, ge=1)
+    #: The second specialization of a dual (2026-09-23); an explicit null says
+    #: the student opted for one. Must sit under the batch's course and must
+    #: not be the batch's own (`dual_specialization.refusal`).
+    second_specialization_id: str | None = None
 
     validate_name = field_validator("name", mode="before")(classmethod(lambda cls, v: None if v is None else _clean_name(v)))
     validate_usn = field_validator("usn", mode="before")(classmethod(lambda cls, v: _clean_usn(v)))
@@ -264,6 +273,7 @@ def _snapshot(student: Student, user: User) -> dict:
         "name": user.name, "email": user.email, "usn": student.usn, "cohort_id": student.cohort_id,
         "mentor_id": student.mentor_id, "current_stage": student.current_stage.value,
         "current_semester": student.current_semester,
+        "second_specialization_id": student.second_specialization_id,
     }
 
 
@@ -318,6 +328,7 @@ def _rows(db: Session, *where) -> list[AdminStudentOut]:
     # student's own pointer; the batch's still wins where both resolve, which
     # is the same precedence `resolve_student_department` writes with.
     own_dept = aliased(Department)
+    second_spec = aliased(AcademicSpecialization)
     # THE BATCH'S SPINE COMES DOWN THE LINKS. `cohorts.name` is the YEAR and
     # nothing else (a4e7c92d1f38); which course and specialization the batch
     # belongs to are its own foreign keys, so the roster joins them rather than
@@ -328,7 +339,7 @@ def _rows(db: Session, *where) -> list[AdminStudentOut]:
             Student, User, Cohort.name, Cohort.batch_label,
             AcademicCourse.name, AcademicSpecialization.name,
             Department.name, Department.id, own_dept.name, own_dept.id,
-            Mentor.id, faculty.id, faculty.name,
+            Mentor.id, faculty.id, faculty.name, second_spec.name,
         )
         .join(User, Student.user_id == User.id)
         .outerjoin(Cohort, Cohort.id == Student.cohort_id)
@@ -338,12 +349,13 @@ def _rows(db: Session, *where) -> list[AdminStudentOut]:
         .outerjoin(own_dept, own_dept.id == Student.department_id)
         .outerjoin(Mentor, Mentor.id == Student.mentor_id)
         .outerjoin(faculty, faculty.id == Mentor.user_id)
+        .outerjoin(second_spec, second_spec.id == Student.second_specialization_id)
         .where(*where)
         .order_by(User.name, Student.usn)
     )
     out: list[AdminStudentOut] = []
     for (student, user, cohort_name, batch_label, course_name, spec_name, dept_name, dept_id,
-         own_name, own_id, mentor_id, f_id, f_name) in db.execute(stmt):
+         own_name, own_id, mentor_id, f_id, f_name, second_name) in db.execute(stmt):
         out.append(AdminStudentOut(
             student_id=student.id, user_id=user.id, name=user.name, email=user.email, usn=student.usn,
             cohort_id=student.cohort_id,
@@ -355,6 +367,8 @@ def _rows(db: Session, *where) -> list[AdminStudentOut]:
             department_id=dept_id or own_id,
             mentor_id=mentor_id, mentor_user_id=f_id, mentor_name=f_name,
             current_stage=student.current_stage.value, current_semester=student.current_semester,
+            second_specialization_id=student.second_specialization_id,
+            second_specialization=second_name,
             enrolled_at=student.enrolled_at, last_login_at=user.last_login_at,
             deleted_at=user.deleted_at, delete_reason=user.delete_reason,
         ))
@@ -550,6 +564,24 @@ def update_student(
             department_id=body.department_id if "department_id" in sent else previous_department,
             sent="department_id" in sent,
         )
+    # THE SECOND SPECIALIZATION, judged against the batch the student is in
+    # AFTER this patch, like the semester below: one request may move them and
+    # name the other stream together. Sent, it is checked and written; not
+    # sent, a move that makes it contradict the new batch clears it rather than
+    # leaving "Finance and Finance" or a stream of another course on the row.
+    if "second_specialization_id" in sent:
+        if body.second_specialization_id:
+            why = dual_specialization.refusal(
+                db,
+                second_id=body.second_specialization_id,
+                cohort_id=student.cohort_id,
+                department_id=student.department_id or department_of_cohort(db, student.cohort_id),
+            )
+            if why:
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=why)
+        student.second_specialization_id = body.second_specialization_id or None
+    elif "cohort_id" in sent:
+        dual_specialization.settle_after_move(db, student)
     if "mentor_user_id" in sent:
         # B1.5 AND B1.2 ON THIS PATH TOO, and until Phase 4 they were on the
         # single assignment endpoint only. `admin_mentoring.set_student_mentor`
@@ -633,7 +665,17 @@ def batch_action(
 ) -> BatchActionOut:
     require_capability(db, session, CAPABILITY)
     cohort = _cohort_or_404(db, cohort_id)
-    students = db.scalars(select(Student).where(Student.cohort_id == cohort.id)).all()
+    # THE BATCH'S ROSTER, NOT EVERY ROW SEATED IN IT. A student REMOVED from the
+    # roster (`users.deleted_at`) is still seated here, and `GET /admin/students`
+    # - the list the dialog counts - leaves them out. Writing to them anyway
+    # moved people the office had taken off every list, reported a count the
+    # dialog never showed, and made Restore bring back a student who was not as
+    # they were left. Removal promises every row stays exactly where it is.
+    students = db.scalars(
+        select(Student)
+        .join(User, Student.user_id == User.id)
+        .where(Student.cohort_id == cohort.id, User.deleted_at.is_(None))
+    ).all()
     # B1.4. A batch action is the single action repeated, so it is scoped the
     # same way — but ALL OR NOTHING rather than per student. See the helper.
     if students:
@@ -656,6 +698,9 @@ def batch_action(
             s.department_id = _department_or_422(
                 db, cohort_id=body.cohort_id, department_id=s.department_id, sent=False
             )
+            # The single path's rule, repeated: a second specialization the
+            # destination batch contradicts does not travel with the student.
+            dual_specialization.settle_after_move(db, s)
     elif body.action == "mentor":
         # B9.2/B9.3. THE FENCES, ASKED ONCE FOR THE BATCH AND NOT PER STUDENT,
         # to match the all-or-nothing reach check a few lines above: a batch
@@ -813,10 +858,22 @@ def delete_cohort(
     cohort = _cohort_or_404(db, cohort_id)
     seated = db.scalar(select(func.count()).select_from(Student).where(Student.cohort_id == cohort.id)) or 0
     if seated:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"{seated} student{'s are' if seated != 1 else ' is'} seated in this batch. Move or delete them first.",
-        )
+        detail = f"{seated} student{'s are' if seated != 1 else ' is'} seated in this batch. Move or delete them first."
+        # A REMOVED student is still seated here and on no roster, so the batch
+        # reads empty on screen and a batch move leaves them behind. Say where
+        # they are: the Removed list, where Restore makes them movable again.
+        removed = db.scalar(
+            select(func.count())
+            .select_from(Student)
+            .join(User, Student.user_id == User.id)
+            .where(Student.cohort_id == cohort.id, User.deleted_at.is_not(None))
+        ) or 0
+        if removed:
+            detail += (
+                f" {removed} of them {'are' if removed != 1 else 'is'} on the Removed list "
+                "and can be moved once restored."
+            )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
     _audit(db, session, request, "cohort", cohort.id, "DELETE",
            {"code": cohort.code, "name": cohort.name, "batch_label": cohort.batch_label}, None, {})
     db.delete(cohort)

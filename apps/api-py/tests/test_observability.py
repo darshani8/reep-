@@ -292,6 +292,75 @@ def test_the_silenced_templates_are_dropped_and_their_neighbours_are_not() -> No
     assert hook({"message": "x"}, {"log_record": Record("[conn=abc] Nova interview failed: %s")}) is not None
 
 
+def test_awscrt_stream_teardown_is_dropped_but_a_real_task_failure_is_not() -> None:
+    """Sentry REEP-API-2: 30 events in 6 days, escalating, nobody affected.
+
+    A Nova stream closing makes awscrt's own request-body task raise on an
+    already-completed HTTP/2 stream. Nothing in this codebase awaits that task,
+    so CPython's Task.__del__ routes it to asyncio's default handler, which
+    logs ERROR — and LoggingIntegration makes every ERROR an event.
+
+    The three negatives below matter more than the positive: this drop is a
+    TUPLE precisely so that a genuine failure in the same coroutine, the same
+    error code somewhere else, and any other orphaned task in this application
+    all keep reporting.
+    """
+
+    class Record:
+        def __init__(self, msg: str) -> None:
+            self.msg = msg
+
+    hook = _options()["before_send"]
+
+    # asyncio builds one string and passes no args, so record.msg is the whole
+    # thing — reproduced here as CPython's default_exception_handler emits it.
+    teardown = (
+        "Task exception was never retrieved\n"
+        "future: <Task finished name='Task-165538' "
+        "coro=<AIOHttp2ClientStream._set_request_body_generator() done, defined at "
+        "/usr/local/lib/python3.14/site-packages/awscrt/aio/http.py:527> "
+        "exception=RuntimeError('2080 (AWS_ERROR_HTTP_STREAM_HAS_COMPLETED): "
+        "HTTP-stream has completed, action cannot be performed.')>"
+    )
+    assert hook({"message": "x"}, {"log_record": Record(teardown)}) is None
+
+    # A REAL failure in the very same awscrt coroutine names a different code.
+    real_write_failure = (
+        "Task exception was never retrieved\n"
+        "future: <Task finished name='Task-9' "
+        "coro=<AIOHttp2ClientStream._set_request_body_generator() done> "
+        "exception=RuntimeError('2058 (AWS_ERROR_HTTP_CONNECTION_CLOSED)')>"
+    )
+    assert hook({"message": "x"}, {"log_record": Record(real_write_failure)}) is not None
+
+    # The error code on its own, somewhere that is not an orphaned task.
+    assert (
+        hook({"message": "x"}, {"log_record": Record("AWS_ERROR_HTTP_STREAM_HAS_COMPLETED")})
+        is not None
+    )
+
+    # An orphaned task of OUR OWN is the signal this silence must not cost.
+    ours = (
+        "Task exception was never retrieved\n"
+        "future: <Task finished coro=<sweep_login_codes() done> "
+        "exception=ValueError('boom')>"
+    )
+    assert hook({"message": "x"}, {"log_record": Record(ours)}) is not None
+
+
+def test_a_silenced_entry_is_a_fragment_or_a_tuple_of_fragments() -> None:
+    """The two forms of a SILENCED_TEMPLATES entry, pinned at the helper so the
+    tuple form cannot be quietly read as an any-of and widen every drop."""
+    from app.observability import silenced
+
+    assert silenced(None) is False
+    assert silenced(123) is False  # type: ignore[arg-type]
+    # A tuple entry needs every part; a partial match must not drop.
+    assert silenced("Task exception was never retrieved") is False
+    assert silenced("AWS_ERROR_HTTP_STREAM_HAS_COMPLETED") is False
+    assert silenced("Task exception was never retrieved AWS_ERROR_HTTP_STREAM_HAS_COMPLETED") is True
+
+
 def test_a_scrubber_that_raises_drops_the_event_rather_than_shipping_it(monkeypatch) -> None:
     def explode(event: Any, hint: Any) -> Any:
         raise RuntimeError("scrubber bug")

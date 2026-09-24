@@ -22,7 +22,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from sqlalchemy import delete, select
 
-from conftest import requires_db
+from conftest import application_files, requires_db
 
 from app.db import SessionLocal
 from app.models.redesign import AuditEvent, OutboxEvent
@@ -389,7 +389,7 @@ def test_an_oversized_export_refuses_rather_than_truncating(client, make_user, t
 
 
 @requires_db
-def test_approving_an_application_is_on_the_trail(client, make_user, trail):
+def test_approving_an_application_is_on_the_trail(client, make_user, trail, tmp_document_store):
     """The one path that mints a student account records that it did.
 
     It did not. `POST /api/register/{id}/decision` wrote no audit row at all,
@@ -406,9 +406,10 @@ def test_approving_an_application_is_on_the_trail(client, make_user, trail):
 
     created = client.post(
         "/api/register",
-        json={"name": "Audit Applicant", "email": email, "usn": f"1BG26AUD{uuid.uuid4().hex[:3].upper()}",
+        data={"name": "Audit Applicant", "email": email, "usn": f"1BG26AUD{uuid.uuid4().hex[:3].upper()}",
               "phone": "+91 90000 00000", "personal_email": f"personal.{uuid.uuid4().hex[:8]}@gmail.com",
               "linkedin_url": "https://www.linkedin.com/in/audit-applicant", "degree_level": "PG"},
+        files=application_files(),
     )
     assert created.status_code == 201, created.text
     reg_id = created.json()["id"]

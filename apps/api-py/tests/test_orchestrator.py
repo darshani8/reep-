@@ -42,7 +42,7 @@ from app.seed_kb import seed_knowledge
         ("How do I verify a Power BI skill?", orchestrator.POLICY),
         ("what does verified mean", orchestrator.POLICY),
         ("Is my profile complete?", orchestrator.PROFILE),
-        ("When is my next certification due?", orchestrator.DEADLINES),
+        ("What is due next on my courses?", orchestrator.DEADLINES),
         ("What documents do I need before placements?", orchestrator.POLICY),
         ("steps to apply for placements", orchestrator.POLICY),
         ("How are leaderboards calculated?", orchestrator.POLICY),

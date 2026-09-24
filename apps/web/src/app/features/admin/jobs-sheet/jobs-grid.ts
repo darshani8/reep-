@@ -24,6 +24,7 @@
 
 import type {
   ColDef,
+  GetQuickFilterTextParams,
   ICellRendererParams,
   RowSelectionOptions,
   SelectionColumnDef,
@@ -47,6 +48,17 @@ function renderPostingCell(params: ICellRendererParams<JobPostingRow>): string {
     `<span style="font-size: 11px; color: var(--faint); overflow: hidden; text-overflow: ellipsis;">${escapeHtml(row.companyAndLocation)}</span>` +
     `</span>`
   );
+}
+
+/** What the quick filter matches on the Posting column: the role AND the
+ *  company and location drawn under it. The column is keyed on the title and
+ *  the second line exists only in the renderer's HTML, so a box labelled
+ *  "Search postings by role, company or location" found a posting by its role
+ *  alone and answered "Rows: 0" for the company it is at. */
+function quickFilterPosting(params: GetQuickFilterTextParams<JobPostingRow>): string {
+  const row = params.data;
+  if (row === undefined) return '';
+  return `${row.title} ${row.companyAndLocation}`;
 }
 
 function renderStatusCell(params: ICellRendererParams<JobPostingRow>): string {
@@ -121,6 +133,7 @@ export const JOBS_COLUMNS: ColDef<JobPostingRow>[] = [
     flex: 1.6,
     cellStyle: { display: 'flex', alignItems: 'center' },
     cellRenderer: renderPostingCell,
+    getQuickFilterText: quickFilterPosting,
     headerTooltip: 'The role, with the company and location under it',
   },
   {

@@ -28,12 +28,13 @@ import re
 import time
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import NamedTuple, Sequence
+from typing import Annotated, NamedTuple, Sequence
 
 from fastapi import (
     APIRouter,
     Depends,
     File,
+    Form,
     HTTPException,
     Query,
     Request,
@@ -41,13 +42,13 @@ from fastapi import (
     UploadFile,
     status,
 )
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from fastapi.responses import RedirectResponse
 
-from .. import account_links, batch_labels
+from .. import account_links, batch_labels, dual_specialization
 from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
@@ -307,6 +308,15 @@ def _looks_like_email(value: str) -> bool:
     return "@" in value and "." in value.rsplit("@", 1)[-1]
 
 
+#: How many specializations one application may name. TWO, because the office's
+#: word for it is "dual specialization" and `registrations` has exactly two
+#: columns for it (`specialization_id`, `second_specialization_id`); a bigger
+#: number here would be a promise the row cannot keep. Served to the form by
+#: `GET /register/hierarchy` (`max_specializations`) so the checklist's cap and
+#: the schema's are one constant, not two.
+MAX_SPECIALIZATIONS_PER_APPLICATION = 2
+
+
 class RegisterIn(BaseModel):
     """EVERY FIELD THE FORM ASKS FOR IS REQUIRED HERE TOO (2026-09-16), except
     the claim of where the applicant belongs, which the hierarchy decides.
@@ -321,11 +331,21 @@ class RegisterIn(BaseModel):
     they land in stay NULLABLE, because requiredness is a rule about new rows
     and nullability is a promise about the ones already written.
 
-    The CV and the photo are required by the same rule and CANNOT be here:
-    they are posted to `attach_document` after the 201, keyed on the id this
-    endpoint mints. The form refuses to submit without both, and the reviewer's
-    checklist (`CHECK_DOCUMENTS`) names whichever is missing on a row that
-    arrived without them.
+    THE CV AND THE PHOTO ARE REQUIRED HERE TOO, SINCE 2026-09-22, on
+    `RegisterForm` below - the shape `POST /register` actually takes. They
+    used to be posted to `attach_document` AFTER the 201, keyed on the id this
+    endpoint minted, and the reviewer's checklist (`CHECK_DOCUMENTS`) named
+    whichever was missing. That is how the office came to hold applications
+    with no CV and no photo from students who had filled in every box: the
+    application existed the moment the JSON landed, and the two uploads that
+    followed could fail on their own - the edge refusing a body over its
+    limit, a phone losing its connection, the applicant closing the tab at
+    "Try attaching again" - and, for every application a rule AUTO-APPROVED
+    at submit time, they were refused by design, because `attach_document`
+    accepts no file on a decided application and the rule had decided it a
+    moment before the upload arrived. So the files travel IN the request that
+    creates the application, are judged before a row is written, and land in
+    the same transaction; an application cannot exist without them.
     """
 
     name: str = Field(min_length=1, max_length=200)
@@ -348,6 +368,20 @@ class RegisterIn(BaseModel):
         value = value.strip()
         if not value:
             raise ValueError("this field is required")
+        return value
+
+    @field_validator(
+        "college_id", "department_id", "course_id", "specialization_id", "requested_cohort_id",
+        mode="before",
+    )
+    @classmethod
+    def _blank_id_is_none(cls, value: object) -> object:
+        """A picker left on "Choose ..." arrives as `null` from a JSON client and
+        as `""` from a multipart one - the form's shape since 2026-09-22 - and
+        the second must not reach `_resolve_claim` as a college id that "does
+        not exist"."""
+        if isinstance(value, str) and not value.strip():
+            return None
         return value
 
     @field_validator("personal_email")
@@ -383,7 +417,60 @@ class RegisterIn(BaseModel):
     department_id: str | None = None
     course_id: str | None = None
     specialization_id: str | None = None
+    #: THE CHECKLIST (2026-09-22). The form's Specialization box is a list of
+    #: tick boxes now, because a student who opted for a DUAL specialization
+    #: has two to name and a <select> let them name one. At most
+    #: MAX_SPECIALIZATIONS_PER_APPLICATION, all under one course, in the order
+    #: ticked. `specialization_id` above is still accepted for an older client
+    #: and is folded in FIRST by `_merge_specialization_picks`, so after
+    #: validation THIS list is the whole claim and `_resolve_claim` reads
+    #: nothing else.
+    specialization_ids: list[str] = []
     requested_cohort_id: str | None = None
+
+    @model_validator(mode="after")
+    def _merge_specialization_picks(self) -> "RegisterIn":
+        """One list, stripped, de-duplicated in the order ticked, capped.
+
+        The legacy single field leads so that a client sending both (one pick
+        in each) reads as one pick, not two; a box ticked twice is one box.
+        The cap is a 422 here rather than a silent truncation, because a
+        student who ticked three and was recorded with two has been told a
+        different fact about themselves than they typed.
+        """
+        picks: list[str] = []
+        for raw in (self.specialization_id, *self.specialization_ids):
+            value = (raw or "").strip()
+            if value and value not in picks:
+                picks.append(value)
+        if len(picks) > MAX_SPECIALIZATIONS_PER_APPLICATION:
+            raise ValueError(
+                f"tick at most {MAX_SPECIALIZATIONS_PER_APPLICATION} specializations: one, "
+                "or two if you opted for a dual specialization"
+            )
+        self.specialization_ids = picks
+        self.specialization_id = picks[0] if picks else None
+        return self
+
+
+class RegisterForm(RegisterIn):
+    """What `POST /register` takes: every field of `RegisterIn` as a
+    `multipart/form-data` part, plus the two files, BOTH REQUIRED.
+
+    The files are fields of the model rather than separate `File()` parameters
+    on the endpoint because FastAPI embeds a form model under its parameter
+    name the moment a second body parameter appears, and the form would then
+    have to post `body[name]`. One model, one flat multipart body.
+
+    `RegisterIn` stays as the JSON-shaped schema for the two things that read
+    it without a request: `_resolve_claim`, which takes either, and the tests
+    that pin the field rules without a database.
+    """
+
+    #: The CV, a PDF (`_DOCUMENT_ROUTES["cv"]`), up to `MAX_BYTES`.
+    cv: UploadFile
+    #: The headshot, a PNG or a JPEG (`_DOCUMENT_ROUTES["photo"]`), same cap.
+    photo: UploadFile
 
 
 # --- the check vocabulary (B11.1) --------------------------------------------
@@ -434,12 +521,21 @@ CHECK_USN_PATTERN = "usn_pattern"
 #: the new application is the one person who needs to know it is not the first
 #: - and what the office said last time. Approve is not refused by it.
 CHECK_PRIOR_APPLICATIONS = "prior_applications"
-#: A WARN, never a block: the form requires both files (2026-09-16), so a row
-#: without them is one whose upload failed after the 201 or that was posted
-#: past the form. Approve still works - the office can hold it and ask for the
-#: file, which is what HOLD is for - but the reviewer must see the gap before
-#: pressing the button, not after the student has no resume.
+#: A WARN, never a block. Since 2026-09-22 `POST /register` refuses an
+#: application that does not carry both files, so this line can only fire on
+#: a row written BEFORE that - one whose upload failed after the 201, or was
+#: refused because a rule had already auto-approved it. Those rows are still in
+#: the queue and still decidable; the office can hold one and ask for the file
+#: (`attach_document` still takes a replacement on an undecided application),
+#: and the reviewer must see the gap before pressing the button, not after
+#: the student has no resume.
 CHECK_DOCUMENTS = "documents"
+#: A WARN, never a block, and only where a SECOND specialization is on the row
+#: (2026-09-22): the applicant ticked two on the form's checklist. It is on the
+#: list because seating is by BATCH and a batch hangs on one specialization at
+#: most, so the reviewer choosing where this person sits should know there are
+#: two choices to weigh and that the second stays on the application.
+CHECK_DUAL_SPECIALIZATION = "dual_specialization"
 
 
 class CheckOut(BaseModel):
@@ -492,11 +588,15 @@ class RegistrationOut(BaseModel):
     department_id: str | None = None
     course_id: str | None = None
     specialization_id: str | None = None
+    #: The other tick of a dual specialization (2026-09-22); null on every
+    #: application that named one or none. `specialization_id` is unchanged.
+    second_specialization_id: str | None = None
     requested_cohort_id: str | None = None
     college_name: str | None = None
     department_name: str | None = None
     course_name: str | None = None
     specialization_name: str | None = None
+    second_specialization_name: str | None = None
     requested_batch: str | None = None
     #: Kinds attached with the application - "CV", "PHOTO" - so the queue can
     #: show a reviewer what is there before they open anything.
@@ -560,11 +660,13 @@ class PublicRegistrationOut(BaseModel):
     department_id: str | None = None
     course_id: str | None = None
     specialization_id: str | None = None
+    second_specialization_id: str | None = None
     requested_cohort_id: str | None = None
     college_name: str | None = None
     department_name: str | None = None
     course_name: str | None = None
     specialization_name: str | None = None
+    second_specialization_name: str | None = None
     requested_batch: str | None = None
     documents: list[str] = []
 
@@ -649,12 +751,20 @@ def _move_documents_to_uploads(db: Session, reg: Registration, student: Student)
     return len(docs)
 
 
-_CLAIM_KEYS = ("college_id", "department_id", "course_id", "specialization_id", "requested_cohort_id")
+_CLAIM_KEYS = (
+    "college_id",
+    "department_id",
+    "course_id",
+    "specialization_id",
+    "second_specialization_id",
+    "requested_cohort_id",
+)
 _CLAIM_NOUN = {
     "college_id": "college",
     "department_id": "department",
     "course_id": "course",
     "specialization_id": "specialization",
+    "second_specialization_id": "second specialization",
     "requested_cohort_id": "batch",
 }
 
@@ -668,7 +778,10 @@ def _claim_names(db: Session, rows: Sequence[Registration]) -> dict[str, dict[st
     colleges = {c.id: c.name for c in db.scalars(select(College).where(College.id.in_(ids("college_id")))).all()} if ids("college_id") else {}
     departments = {d.id: d.name for d in db.scalars(select(Department).where(Department.id.in_(ids("department_id")))).all()} if ids("department_id") else {}
     courses = {c.id: c.name for c in db.scalars(select(AcademicCourse).where(AcademicCourse.id.in_(ids("course_id")))).all()} if ids("course_id") else {}
-    specs = {x.id: x.name for x in db.scalars(select(AcademicSpecialization).where(AcademicSpecialization.id.in_(ids("specialization_id")))).all()} if ids("specialization_id") else {}
+    # Both ticks of a dual specialization come out of the ONE query: the two
+    # columns name rows of the same table.
+    spec_ids = list({*ids("specialization_id"), *ids("second_specialization_id")})
+    specs = {x.id: x.name for x in db.scalars(select(AcademicSpecialization).where(AcademicSpecialization.id.in_(spec_ids))).all()} if spec_ids else {}
     # THE BATCH'S OWN course and specialization, not the application's. The two
     # dicts above are keyed on what the APPLICANT named, and a reviewer reading
     # "Approving seats them in ..." needs the words for the batch they will
@@ -693,6 +806,9 @@ def _claim_names(db: Session, rows: Sequence[Registration]) -> dict[str, dict[st
             "department_name": departments.get(r.department_id) if r.department_id else None,
             "course_name": courses.get(r.course_id) if r.course_id else None,
             "specialization_name": specs.get(r.specialization_id) if r.specialization_id else None,
+            "second_specialization_name": (
+                specs.get(r.second_specialization_id) if r.second_specialization_id else None
+            ),
             "requested_batch": batches.get(r.requested_cohort_id) if r.requested_cohort_id else None,
         }
         for r in rows
@@ -758,6 +874,7 @@ def _checks_for(
     rows: Sequence[Registration],
     *,
     docs: dict[str, list[str]] | None = None,
+    names: dict[str, dict[str, str | None]] | None = None,
 ) -> dict[str, list[CheckOut]]:
     """The pre-decision checklist for a whole page, in a handful of queries.
 
@@ -779,6 +896,9 @@ def _checks_for(
     # -- what was attached (the queue passes its own lookup; one query else) --
     if docs is None:
         docs = _doc_kinds(db, [r.id for r in rows])
+    # -- the claim by name (same rule: the queue already resolved these) ------
+    if names is None:
+        names = _claim_names(db, rows)
 
     # -- the college fence, per distinct college ------------------------------
     cohort_colleges = college_ids_for_cohorts(
@@ -865,9 +985,29 @@ def _checks_for(
             # the helper honest if that ever changes.
             prior=[p for p in prior_by_email.get((r.email or "").strip().lower(), []) if p.id != r.id],
             docs=docs.get(r.id, ()),
+            specializations=_specialization_names(r, names.get(r.id)),
         )
         for r in rows
     }
+
+
+def _specialization_names(r: Registration, names: dict[str, str | None] | None) -> list[str]:
+    """The ticked specializations by name, in the order the row holds them.
+
+    A pointer whose row has since been ARCHIVED resolves to no name and is left
+    out rather than printed as None: the claim is still on the row, but there
+    is no word to put on the screen for it.
+    """
+    names = names or {}
+    out: list[str] = []
+    for column, key in (
+        ("specialization_id", "specialization_name"),
+        ("second_specialization_id", "second_specialization_name"),
+    ):
+        name = names.get(key)
+        if getattr(r, column) and name:
+            out.append(name)
+    return out
 
 
 def _checks_for_one(
@@ -880,6 +1020,7 @@ def _checks_for_one(
     rule: RegistrationRule | None,
     prior: Sequence[Registration] = (),
     docs: Sequence[str] = (),
+    specializations: Sequence[str] = (),
 ) -> list[CheckOut]:
     """One application's checklist, from facts the caller already resolved.
 
@@ -889,6 +1030,8 @@ def _checks_for_one(
 
     `prior` is this address's REJECTED applications, newest decision first.
     `docs` is the kinds attached ("CV", "PHOTO"), from the queue's own lookup.
+    `specializations` is the ticked specializations BY NAME, in the row's
+    order; two of them is a dual specialization and earns a line.
     """
     checks: list[CheckOut] = []
     reason = (r.decision_reason or "").strip()
@@ -1147,6 +1290,24 @@ def _checks_for_one(
             )
         )
 
+    # ---- a dual specialization -----------------------------------------------
+    # Only where there are two: one is the ordinary case and earns no line, and
+    # a line reading "one specialization" on every row is noise in a panel
+    # meant to be read in two seconds.
+    if len(specializations) > 1:
+        checks.append(
+            CheckOut(
+                key=CHECK_DUAL_SPECIALIZATION,
+                status=CHECK_WARN,
+                label="Opted for a dual specialization",
+                detail=(
+                    "They ticked " + " and ".join(specializations) + ". A batch hangs on one "
+                    "specialization at most, so Approve seats them by the batch and keeps "
+                    "the other as their second specialization."
+                ),
+            )
+        )
+
     return checks
 
 
@@ -1183,11 +1344,13 @@ def _out(
         department_id=r.department_id,
         course_id=r.course_id,
         specialization_id=r.specialization_id,
+        second_specialization_id=r.second_specialization_id,
         requested_cohort_id=r.requested_cohort_id,
         college_name=names.get("college_name"),
         department_name=names.get("department_name"),
         course_name=names.get("course_name"),
         specialization_name=names.get("specialization_name"),
+        second_specialization_name=names.get("second_specialization_name"),
         requested_batch=names.get("requested_batch"),
         id=r.id,
         name=r.name,
@@ -1276,6 +1439,10 @@ class PublicLevelOut(BaseModel):
 class PublicHierarchyOut(BaseModel):
     levels: list[PublicLevelOut]
     colleges: list[PublicCollegeOut]
+    #: How many specializations the form's checklist may take -
+    #: MAX_SPECIALIZATIONS_PER_APPLICATION, served so the form and the schema
+    #: refuse at the same number.
+    max_specializations: int
 
 
 @router.get("/hierarchy", response_model=PublicHierarchyOut)
@@ -1363,6 +1530,7 @@ def hierarchy(db: Session = Depends(get_db)) -> PublicHierarchyOut:
             PublicCollegeOut(id=c.id, code=c.code, name=c.name, departments=depts_by_college.get(c.id, []))
             for c in colleges
         ],
+        max_specializations=MAX_SPECIALIZATIONS_PER_APPLICATION,
     )
 
 
@@ -1378,6 +1546,17 @@ def _resolve_claim(db: Session, body: RegisterIn) -> dict[str, str | None]:
     named that differs from what was derived is a 422 naming the deeper choice,
     never a silent pick. An id that does not exist is a 422 too: this is a
     public form, and "unknown college" is input validation, not a missing page.
+
+    THE SPECIALIZATION IS A LIST OF AT MOST TWO (2026-09-22), already merged
+    and capped by `RegisterIn`. The first tick goes into `specialization_id`
+    and settles the course exactly as one pick always has; the other into
+    `second_specialization_id`, which must sit under THE SAME course - two
+    specializations from two courses is not a dual specialization, it is two
+    applications. Where the requested batch pins a specialization, that one is
+    moved to the front so the column the batch has always been checked against
+    still agrees with it; a batch pinning a specialization the applicant did
+    not tick at all is the same contradiction it was when the box was a
+    <select>, refused by the same sentence.
     """
     chain: dict[str, str | None] = {k: None for k in _CLAIM_KEYS}
 
@@ -1412,10 +1591,26 @@ def _resolve_claim(db: Session, body: RegisterIn) -> dict[str, str | None]:
         settle("course_id", batch.course_id, "batch")
         settle("department_id", batch.department_id, "batch")
 
-    settle("specialization_id", body.specialization_id, "batch")
+    picks = list(body.specialization_ids)
+    pinned = chain["specialization_id"]
+    if pinned is not None and pinned in picks:
+        picks = [pinned, *[p for p in picks if p != pinned]]
+    if picks:
+        settle("specialization_id", picks[0], "batch")
+        if len(picks) > 1:
+            chain["second_specialization_id"] = picks[1]
     spec = load(AcademicSpecialization, chain["specialization_id"], "specialization")
     if spec is not None:
         settle("course_id", spec.course_id, "specialization")
+    second = load(AcademicSpecialization, chain["second_specialization_id"], "specialization")
+    if second is not None and second.course_id != chain["course_id"]:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                "The two specializations you ticked belong to different courses. "
+                "A dual specialization is two streams of one course - tick both under it."
+            ),
+        )
 
     settle("course_id", body.course_id, "specialization or batch")
     course = load(AcademicCourse, chain["course_id"], "course")
@@ -1433,10 +1628,29 @@ def _resolve_claim(db: Session, body: RegisterIn) -> dict[str, str | None]:
 
 
 @router.post("", response_model=PublicRegistrationOut, status_code=status.HTTP_201_CREATED)
-def submit(
-    body: RegisterIn, request: Request, db: Session = Depends(get_db)
+async def submit(
+    # `media_type` stated, or the spec documents this body as urlencoded, which
+    # cannot carry a file; the runtime parses multipart either way.
+    body: Annotated[RegisterForm, Form(media_type="multipart/form-data")],
+    request: Request,
+    db: Session = Depends(get_db),
 ) -> PublicRegistrationOut:
-    """Public: submit an application. No auth — the applicant is not a user yet."""
+    """Public: submit an application. No auth — the applicant is not a user yet.
+
+    ONE MULTIPART REQUEST, THE CV AND THE PHOTO IN IT, AND NOTHING IS WRITTEN
+    UNTIL BOTH HAVE BEEN JUDGED (2026-09-22). The application used to be
+    created from a JSON body and the two files posted afterwards, one request
+    each, keyed on the id the 201 handed back - and every way that second
+    half could fail left an application in the queue with no CV and no photo,
+    from a student who had filled in every compulsory box. The one that was
+    not even a failure: a rule that AUTO-APPROVES at submit time decided the
+    application before the uploads arrived, and `attach_document` refuses a
+    decided application, so every auto-admitted student's CV was rejected by
+    design. Now the row, its two document rows and their bytes land in one
+    transaction after both files have passed the size and type checks; a
+    refused file is a 413 or 415 with no application behind it, so the
+    applicant retries the same form and never meets the duplicate guard.
+    """
     # Limit BEFORE the database is touched: the point is that a flood never
     # reaches Postgres, not that Postgres survives it.
     client_ip = request.client.host if request.client else "unknown"
@@ -1522,6 +1736,13 @@ def submit(
     # HUMAN now sees the application first, and a provisioned-but-unconfirmed
     # row is inert — its password hash is the unusable sentinel, and Google
     # sign-in needs the Google account itself.
+    # THE FILES ARE JUDGED BEFORE ANYTHING IS WRITTEN - after the duplicate
+    # guard, so an address that cannot apply is refused without its bytes
+    # ever being read past the cap, and before the claim is resolved, so a
+    # wrong file and a contradictory batch both leave nothing behind.
+    cv = await _read_document(body.cv, "cv")
+    photo = await _read_document(body.photo, "photo")
+
     reg = Registration(
         name=body.name.strip(),
         email=email,
@@ -1537,7 +1758,25 @@ def submit(
         decision_reason=None,
     )
     db.add(reg)
-    db.commit()
+    db.flush()  # mints reg.id for the two document rows
+    stored: list[str] = []
+    try:
+        for kind, (content, original_name) in (("cv", cv), ("photo", photo)):
+            stored.append(_store_document(db, reg, kind, content, original_name))
+        db.commit()
+    except Exception:
+        # The row and both document rows roll back together; the bytes are on
+        # the volume already and would be a file nobody can name, so they go
+        # too. The archive copy `save_and_record` may have made is Object-Locked
+        # and stays, unnamed, which is the price of archiving before the commit
+        # and the reason the type is decided BEFORE the store is asked.
+        db.rollback()
+        for name in stored:
+            try:
+                delete_stored(name)
+            except FileNotFoundError:
+                pass
+        raise
     db.refresh(reg)
     _apply_rule(db, reg)
     db.commit()
@@ -1651,7 +1890,7 @@ def pending(
     names = _claim_names(db, rows)
     # Only a row somebody can still decide gets a checklist. See
     # DECIDABLE_STATUSES: null here means NOT COMPUTED, never "nothing wrong".
-    checks = _checks_for(db, rows, docs=kinds) if wanted in DECIDABLE_STATUSES else {}
+    checks = _checks_for(db, rows, docs=kinds, names=names) if wanted in DECIDABLE_STATUSES else {}
     return [_out(r, kinds.get(r.id, ()), names.get(r.id), checks.get(r.id)) for r in rows]
 
 
@@ -1921,6 +2160,13 @@ def _provision_student(db: Session, reg: Registration) -> Student:
             # because a stored application is not a human contradicting
             # themselves, so this derives and never refuses an approval.
             department_id=_provisioned_department(db, cohort_id, reg.department_id),
+            # THE DUAL SPECIALIZATION TRAVELS WITH THE STUDENT (2026-09-23).
+            # The batch is the first of the two; the application's other tick
+            # is written here, so the roster editor shows what the applicant
+            # opted for instead of it living on this row alone.
+            second_specialization_id=dual_specialization.second_for_seat(
+                db, cohort_id, (reg.specialization_id, reg.second_specialization_id)
+            ),
         )
         db.add(student)
         db.flush()
@@ -1996,6 +2242,15 @@ def _apply_rule(db: Session, reg: Registration) -> None:
         reg.decision_reason = f"Rule '{rule.name}' would auto-approve, but: {refused.detail}"
         log.warning("auto-approve of %s refused: %s", reg.email, refused.detail)
         return
+    db.flush()
+    # THE SAME ACT `decide` PERFORMS ON APPROVE, and it was missing here. The
+    # CV and the photo become the student's first uploads - moved, not copied.
+    # Until 2026-09-22 nothing reached this line with a document on the row:
+    # the files were posted after the 201, by which time this rule had already
+    # decided the application and `attach_document` refused them. Now they
+    # arrive with the application, and an auto-admitted student who still
+    # started with no resume would be the old defect wearing a new shape.
+    _move_documents_to_uploads(db, reg, student)
     reg.status = RegistrationStatus.AUTO_APPROVED
     reg.decision_reason = f"Auto-approved by rule '{rule.name}'."
     reg.reviewed_at = datetime.now(timezone.utc)
@@ -2160,94 +2415,24 @@ def decide(
     return _out_one(db, reg)
 
 
-@router.post(
-    "/{registration_id}/documents/{kind}",
-    response_model=PublicRegistrationOut,
-    status_code=status.HTTP_200_OK,
-)
-async def attach_document(
-    registration_id: str,
-    kind: str,
-    request: Request,
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-) -> PublicRegistrationOut:
-    """Attach the CV or the photo to an application that nobody has decided yet.
+async def _read_document(upload: UploadFile, kind: str) -> tuple[bytes, str]:
+    """Read one uploaded document and decide what it is, WITHOUT storing it.
 
-    PUBLIC, like the form that created the application - there is no account to
-    sign in with yet. The application id is the bearer: a uuid4 the client was
-    handed on the 201, unguessable, and the same trust the emailed confirmation
-    link carries. It is accepted only while the application is undecided
-    (PENDING_REVIEW or HOLD - and the dead PENDING_VERIFICATION; see the check
-    itself), so a file can never be slipped onto a record the Main Admin has
-    already ruled on.
-
-    The bytes go through app/document_store exactly as a student's own uploads
-    do - magic-sniffed, size-capped, no client path near the disk - and THEN
-    the sniffed mime is checked against what this kind may be, so a PNG posted
-    as a CV is a 415 and its bytes are removed, not a CV nobody can open. One
-    of each kind: a second CV replaces the first, old bytes deleted first.
-
-    Rate-limited per source address like POST /register: with no account on
-    the request there is nothing else to key on, and the limiter's own note
-    says why that is acceptable for this form and not for sign-in.
+    `(content, original_name)`, or a 413 / 415 naming the kind. The size cap
+    is enforced on `len(content)` after a `read(MAX+1)` - never `read()` - so
+    the process holds at most one byte past the cap of a body an anonymous
+    caller chose the size of; the type is decided by the store's sniff and
+    then narrowed to what THIS kind may be, so a PNG posted as a CV is a 415
+    and never bytes on the volume. Shared by `submit` (both files, before a
+    row exists) and `attach_document` (one replacement, on a row that does).
     """
-    route = _DOCUMENT_ROUTES.get(kind)
-    if route is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown document kind.")
-    doc_kind, allowed_mimes, wanted = route
-
-    client_ip = request.client.host if request.client else "unknown"
-    retry_after = _rate_limit_retry_after(client_ip)
-    if retry_after is not None:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many uploads from this connection. Wait a few minutes and try again.",
-            headers={"Retry-After": str(retry_after)},
-        )
-
-    reg = db.scalar(
-        select(Registration).where(Registration.id == registration_id).with_for_update()
-    )
-    if reg is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
-    # UNDECIDED, WHICH NOW INCLUDES HOLD. "Held for a missing document" is the
-    # main reason to hold an application at all, so an applicant who is told to
-    # send their CV must be able to send it; refusing here would make the hold
-    # note an instruction the product itself blocks.
-    #
-    # PENDING_VERIFICATION IS DEAD and is kept here only so a row written before
-    # migration 9b2d47f0ce15 — if any survived it — is not locked out by this
-    # check. Nothing has written it since; see `RegistrationStatus` for why the
-    # value cannot simply be removed. Read this tuple as "the three statuses
-    # nobody has ruled on", not as three live states.
-    if reg.status not in (
-        RegistrationStatus.PENDING_VERIFICATION,
-        RegistrationStatus.PENDING_REVIEW,
-        RegistrationStatus.HOLD,
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="This application has already been decided; documents can no longer be added.",
-        )
-
-    # read(MAX+1), never read(): the per-file cap is enforced on `len(content)`
-    # below, so reading one byte past it is enough to trip the refusal -- while
-    # an unbounded read loads a body only nginx's client_max_body_size bounds
-    # into RAM, and that bound does not exist when uvicorn is exposed directly
-    # (the documented dev setup, or a different ingress). Verbatim the rule
-    # routers/student.py states over its own upload, and it matters MORE here
-    # than there: this is the one upload in the product with no cookie in front
-    # of it, so the body that gets buffered is a body an anonymous caller chose
-    # the size of. The size check has to come after the read either way; what
-    # this decides is how much of the file the process ever holds.
-    content = await file.read(MAX_BYTES + 1)
+    _doc_kind, allowed_mimes, wanted = _DOCUMENT_ROUTES[kind]
+    content = await upload.read(MAX_BYTES + 1)
     if len(content) > MAX_BYTES:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="That file is larger than " + str(MAX_BYTES // (1024 * 1024)) + " MB.",
+            detail="The " + kind + " is larger than " + str(MAX_BYTES // (1024 * 1024)) + " MB.",
         )
-    quota = VolumeQuota.single_slot(noun=kind)
     # THE TYPE IS DECIDED BEFORE ANYTHING IS STORED. This used to store the
     # file, read the sniffed mime off the result and `delete_stored` it again
     # when the kind was wrong -- which stopped being survivable when
@@ -2264,18 +2449,35 @@ async def attach_document(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail="The " + kind + " must be " + wanted + ".",
         )
+    return content, (upload.filename or "document")
+
+
+def _store_document(
+    db: Session, reg: Registration, kind: str, content: bytes, original_name: str
+) -> str:
+    """Store judged bytes and write - or replace - the application's row of
+    that kind. Returns the stored name. NO COMMIT: `submit` writes two of
+    these beside the application row in one transaction, and `attach_document`
+    commits its one.
+
+    The bytes go through app/document_store exactly as a student's own uploads
+    do - magic-sniffed again on the way in, size-capped, no client path near
+    the disk - through `save_and_record`, the one spelling routers may use.
+    One of each kind: a second CV replaces the first, old bytes deleted first.
+    """
+    doc_kind, _allowed_mimes, _wanted = _DOCUMENT_ROUTES[kind]
     try:
         stored_name, mime, size = save_and_record(
             db,
             content,
-            quota=quota,
+            quota=VolumeQuota.single_slot(noun=kind),
             kind=DocumentOwnerKind.REGISTRATION_DOCUMENT,
             # NONE, AND STATED RATHER THAN OMITTED. An applicant has no account
             # yet -- that is the whole shape of the registration flow -- so the
             # address on the `registrations` row is the only identity there is,
             # and inventing an owner id here would be inventing a user.
             owner_id=None,
-            original_name=file.filename or "document",
+            original_name=original_name,
         )
     except QuotaRejected as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc))
@@ -2317,7 +2519,7 @@ async def attach_document(
             delete_stored(existing.stored_name)
         except FileNotFoundError:
             pass
-        existing.original_name = file.filename or stored_name
+        existing.original_name = original_name
         existing.stored_name = stored_name
         existing.mime_type = mime
         existing.size_bytes = size
@@ -2326,12 +2528,88 @@ async def attach_document(
             RegistrationDocument(
                 registration_id=reg.id,
                 kind=doc_kind,
-                original_name=file.filename or stored_name,
+                original_name=original_name,
                 stored_name=stored_name,
                 mime_type=mime,
                 size_bytes=size,
             )
         )
+    return stored_name
+
+
+@router.post(
+    "/{registration_id}/documents/{kind}",
+    response_model=PublicRegistrationOut,
+    status_code=status.HTTP_200_OK,
+)
+async def attach_document(
+    registration_id: str,
+    kind: str,
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+) -> PublicRegistrationOut:
+    """Replace the CV or the photo on an application that nobody has decided yet.
+
+    PUBLIC, like the form that created the application - there is no account to
+    sign in with yet. The application id is the bearer: a uuid4 the client was
+    handed on the 201, unguessable, and the same trust the emailed confirmation
+    link carries. It is accepted only while the application is undecided
+    (PENDING_REVIEW or HOLD - and the dead PENDING_VERIFICATION; see the check
+    itself), so a file can never be slipped onto a record the Main Admin has
+    already ruled on.
+
+    THE FORM NO LONGER CALLS THIS (2026-09-22). Both files arrive with the
+    application itself (`submit`), so an application cannot exist without
+    them; what remains here is the REPLACEMENT path - an applicant the office
+    has HELD and asked for a better scan, and the rows written before that
+    date that arrived without a file. The bytes are judged and stored by the
+    same two helpers `submit` uses, so the two doors cannot disagree about
+    what a CV is.
+
+    Rate-limited per source address like POST /register: with no account on
+    the request there is nothing else to key on, and the limiter's own note
+    says why that is acceptable for this form and not for sign-in.
+    """
+    if kind not in _DOCUMENT_ROUTES:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown document kind.")
+
+    client_ip = request.client.host if request.client else "unknown"
+    retry_after = _rate_limit_retry_after(client_ip)
+    if retry_after is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many uploads from this connection. Wait a few minutes and try again.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    reg = db.scalar(
+        select(Registration).where(Registration.id == registration_id).with_for_update()
+    )
+    if reg is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
+    # UNDECIDED, WHICH NOW INCLUDES HOLD. "Held for a missing document" is the
+    # main reason to hold an application at all, so an applicant who is told to
+    # send their CV must be able to send it; refusing here would make the hold
+    # note an instruction the product itself blocks.
+    #
+    # PENDING_VERIFICATION IS DEAD and is kept here only so a row written before
+    # migration 9b2d47f0ce15 — if any survived it — is not locked out by this
+    # check. Nothing has written it since; see `RegistrationStatus` for why the
+    # value cannot simply be removed. Read this tuple as "the three statuses
+    # nobody has ruled on", not as three live states.
+    if reg.status not in (
+        RegistrationStatus.PENDING_VERIFICATION,
+        RegistrationStatus.PENDING_REVIEW,
+        RegistrationStatus.HOLD,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This application has already been decided; documents can no longer be added.",
+        )
+
+    content, original_name = await _read_document(file, kind)
+    _store_document(db, reg, kind, content, original_name)
     db.commit()
     db.refresh(reg)
     return _public_out_one(db, reg)

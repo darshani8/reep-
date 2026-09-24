@@ -21,6 +21,7 @@ import { Component, computed, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 
 import { environment } from '../../../../environments/environment';
+import { failedReadMessage } from '../../../core/feature-refusal';
 
 interface UploadRow {
   id: string;
@@ -144,7 +145,7 @@ export class UploadsComponent {
     try {
       const res = await fetch(`${this.apiBase}/student/uploads`, { credentials: 'include' });
       if (!res.ok) {
-        this.error.set('Could not load your uploads.');
+        this.error.set(await failedReadMessage(res, 'Could not load your uploads.'));
         return;
       }
       this.rows.set((await res.json()) as UploadRow[]);

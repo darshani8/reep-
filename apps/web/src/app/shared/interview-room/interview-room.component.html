@@ -89,6 +89,10 @@
               whoever runs this deployment, so your <strong>Mock interviews</strong> screen marks
               each interview that actually has one — the policy is not the same fact as audio kept,
               and only that screen can tell you which happened.
+              @if (card.recording_enabled_on_server === false) {
+                <strong>Recording is switched off on this server today</strong>, so nothing is
+                captured until whoever runs it turns it on.
+              }
             </p>
           } @else {
             <p>
@@ -264,6 +268,30 @@
           }
         </div>
         <p class="picker__blurb">{{ briefing().blurb }}</p>
+        <!-- Speaker or earphones: decides whether the echo gate holds the
+             microphone while the interviewer is audible (audio-route.ts). -->
+        <div class="route" role="radiogroup" aria-label="Where you hear the interviewer">
+          <button
+            type="button"
+            class="picker__pill"
+            role="radio"
+            [attr.aria-checked]="audioRoute() === 'speaker'"
+            [class.picker__pill--active]="audioRoute() === 'speaker'"
+            (click)="chooseRoute('speaker')"
+          >
+            Speaker
+          </button>
+          <button
+            type="button"
+            class="picker__pill"
+            role="radio"
+            [attr.aria-checked]="audioRoute() === 'earphones'"
+            [class.picker__pill--active]="audioRoute() === 'earphones'"
+            (click)="chooseRoute('earphones')"
+          >
+            Earphones
+          </button>
+        </div>
       }
 
       <div class="stage__controls">
@@ -276,11 +304,10 @@
           <span class="icon" aria-hidden="true">mic</span>
           Start interview
         </button>
-        @if (isStudent() && consent(); as grant) {
+        @if (isStudent() && consent()) {
           <span class="terms">
             <span class="icon" aria-hidden="true">verified_user</span>
-            Terms accepted {{ consentGrantedLabel() }} · recording
-            {{ grant.scope_store_audio ? 'on' : 'off' }}
+            Terms accepted {{ consentGrantedLabel() }} · recording {{ recordingLabel() }}
             <button type="button" class="link-btn" (click)="openConsent()">Read again</button>
           </span>
         }
@@ -302,6 +329,30 @@
         @if (liveSpecialization(); as specLabel) {
           <span class="live-track">{{ specLabel }}</span>
         }
+        <!-- Switchable mid-interview: plugging earphones in should stop the
+             gate at once, without an End and a new Start. -->
+        <div class="route route--live" role="radiogroup" aria-label="Where you hear the interviewer">
+          <button
+            type="button"
+            class="picker__pill"
+            role="radio"
+            [attr.aria-checked]="audioRoute() === 'speaker'"
+            [class.picker__pill--active]="audioRoute() === 'speaker'"
+            (click)="chooseRoute('speaker')"
+          >
+            Speaker
+          </button>
+          <button
+            type="button"
+            class="picker__pill"
+            role="radio"
+            [attr.aria-checked]="audioRoute() === 'earphones'"
+            [class.picker__pill--active]="audioRoute() === 'earphones'"
+            (click)="chooseRoute('earphones')"
+          >
+            Earphones
+          </button>
+        </div>
         <button type="button" class="cta cta--end" aria-pressed="true" (click)="toggle()">
           <span class="icon" aria-hidden="true">stop</span>
           End interview

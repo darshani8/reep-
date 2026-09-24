@@ -141,4 +141,18 @@ export class AgentDockComponent {
   keepGoing(): void {
     this.dock.dismissCloseQuestion();
   }
+
+  /**
+   * The `@error` blocks' button. A deferred chunk 404s when this tab was opened
+   * before a deploy and `outputHashing: "all"` has since renamed every file, so
+   * the fix is to fetch index.html again and with it the current names —
+   * `location.reload()` and not a retry of the import, which would ask for the
+   * same dead URL and fail the same way.
+   *
+   * Destroying the room ends a live interview, so this is deliberately reached
+   * only from a block that FAILED TO LOAD: there is no room to end.
+   */
+  reload(): void {
+    location.reload();
+  }
 }

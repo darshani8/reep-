@@ -176,6 +176,28 @@ class Settings(BaseSettings):
     # that killed PENDING_VERIFICATION. No screen may say "the applicant has
     # been emailed" while this is false.
     leave_mail_enabled: bool = False
+    # Skill-claim notifications (2026-09-17): the mentor is mailed when one of
+    # their mentees files a badge claim, and the student is mailed when it is
+    # decided (app/badge_mail.py). THREE STATES, `password_login`'s idiom, and
+    # NOT `leave_mail_enabled`'s plain boolean, on purpose:
+    #
+    #   "true"          on, whatever the transport -- a developer reading the
+    #                   outbox, and the test suite;
+    #   "false"         off, whatever the transport -- the incident switch;
+    #   anything else   DERIVED: on exactly when a real transport exists
+    #                   (`mail_configured`, i.e. SES_FROM_ADDRESS is set).
+    #
+    # `leave_mail_enabled`'s own comment says what its false default protects:
+    # a machine with NO transport, where a notification switched on writes a
+    # `mail_logs` row reading SENT about a message that reached nobody. On such
+    # a machine the derived answer here is off, so the same machine is
+    # protected -- and on the production task, which already carries
+    # SES_FROM_ADDRESS, the notifications are on without a second variable
+    # that has to be remembered in a task definition. That is the password
+    # door's argument ("two sources of truth for one door is how a login form
+    # ends up 403ing over keys in circulation") applied to mail: the act that
+    # gives this deployment a transport is the decision to use it.
+    badge_mail_enabled: str = ""
     # Link lifetimes, from the agreed plan: activation 7 days (a new staff
     # member may not check mail today); reset 1 hour (the account exists and
     # may already be under attack); an application's confirmation 24 hours.
@@ -332,6 +354,26 @@ class Settings(BaseSettings):
     # (nothing refuses an assignment past it), because an admin who chooses
     # to overload one mentor in a thin year should not have to edit .env first.
     mentor_capacity: int = 20
+
+    # --- the programme's clock, and the Time Allocation Ledger's lock ---
+    #
+    # THE ZONE THE STUDENTS' DAY RUNS IN. The container runs UTC and India is
+    # five and a half hours ahead, so `date.today()` in a handler is yesterday
+    # for the whole of 00:00–05:30 IST — which is when a student who fills the
+    # ledger in last thing at night presses Save. app/clock.py reads this; see
+    # its docstring for the two rules that depend on it. An unknown name falls
+    # back to UTC with a warning rather than refusing to boot.
+    programme_timezone: str = "Asia/Kolkata"
+    # HOW LONG A LEDGER DAY STAYS OPEN AFTER IT ENDS, in calendar days of the
+    # zone above. 2 means Monday can be written until the end of Wednesday;
+    # 0 means the day itself and nothing later. After that the day is LOCKED:
+    # its figures cannot be saved, submitted or overwritten by "copy
+    # yesterday", and the screen says so. The ledger is a daily record and the
+    # faculty read the weekly roll-up off it; with no lock at all a student
+    # could type the whole semester in on the last night and the roll-up
+    # would be fiction. It is a setting and not a policy row because it is
+    # one number for the programme, like `mentor_capacity`.
+    ledger_edit_window_days: int = 2
 
     # Universal LLM adapter (see app/ai/llm.py). Same names as the Next.js app,
     # so one set of keys drives both stacks. Any OpenAI-compatible provider.
@@ -620,12 +662,19 @@ class Settings(BaseSettings):
     # log rather than failing the session.
     nova_sonic_voice: str = "matthew"
     # HIGH | MEDIUM | LOW: how fast Nova decides the student has stopped
-    # speaking. MEDIUM is AWS's recommended default and the right one HERE for a
-    # reason of its own — an interview answer contains thinking pauses that a
-    # HIGH setting reads as the end of the turn, and being cut off mid-answer is
-    # the single most damaging thing a mock interviewer can do to a nervous
-    # student.
-    nova_sonic_endpointing: str = "MEDIUM"
+    # speaking. AWS documents the three as the pause Nova waits for before it
+    # takes the turn — HIGH 1.5 s, MEDIUM 1.75 s, LOW ~2 s — and describes LOW
+    # as "maximum patience ... minimizing interruptions of users who pause
+    # while thinking ... best for thoughtful conversations". An interview
+    # answer IS that conversation: a student gathering a STAR example stops for
+    # a breath, and every setting faster than LOW read that breath as the end
+    # of the answer, so the next question landed on top of the second half
+    # (reported as the interviewer "recording the answer very rigidly", and it
+    # was). Being cut off mid-answer is the single most damaging thing a mock
+    # interviewer can do to a nervous student; a quarter of a second of extra
+    # latency on every turn is what it costs to stop doing it. This shipped as
+    # MEDIUM ("AWS's recommended default") until 2026-09-17.
+    nova_sonic_endpointing: str = "LOW"
     # What the uplink is resampled to. The browser captures at 24 kHz (the
     # client link is unchanged from the OpenAI relay) and Nova accepts 8/16/24
     # kHz; 16 kHz is what every AWS sample streams and what the model is
@@ -889,6 +938,7 @@ class Settings(BaseSettings):
         "db_max_overflow",
         "db_pool_timeout_s",
         "mentor_capacity",
+        "ledger_edit_window_days",
         "interview_max_seconds",
         "interview_idle_seconds",
         "interview_local_num_ctx",
@@ -986,6 +1036,7 @@ class Settings(BaseSettings):
     @field_validator(
         "interview_min_answer_words",
         "auth_revocation_cache_seconds",
+        "ledger_edit_window_days",
     )
     @classmethod
     def _must_not_be_negative(cls, value: int, info: ValidationInfo) -> int:
@@ -1082,6 +1133,25 @@ class Settings(BaseSettings):
     def mail_configured(self) -> bool:
         """Is there a real outbound transport? Blank means log-and-keep."""
         return bool(self.ses_from_address.strip())
+
+    @property
+    def badge_mail_active(self) -> bool:
+        """Whether skill-claim notifications go out (app/badge_mail.py).
+
+        Only the exact words count, as with `password_login_forced`: "true"
+        forces them on over whatever transport exists (the console outbox on a
+        development machine), "false" forces them off even with SES configured,
+        and anything else -- blank, absent, a typo -- derives the answer from
+        `mail_configured`. A typo therefore degrades to the derived default,
+        which on a machine with no transport is OFF: never to a SENT row about
+        a message nobody received.
+        """
+        text = self.badge_mail_enabled.strip().lower()
+        if text == "true":
+            return True
+        if text == "false":
+            return False
+        return self.mail_configured
 
     @property
     def provisionable_email_domains(self) -> frozenset[str]:

@@ -5,7 +5,7 @@
       <h1 class="dt-title">Verifications</h1>
       <div class="dt-sub vq-lede">
         Skill claims and uploaded documents from your assigned mentees. Nothing here goes to Admin —
-        you are the only approver.
+        you are the only approver, and the student is emailed your decision.
       </div>
     </div>
     <div class="head-actions">
@@ -39,8 +39,8 @@
       <div class="card claim">
         <div class="claim-head">
           <div>
-            <strong>{{ c.skill_name }}</strong>
-            <span class="claim-lvl"> · {{ evidenceKind(c) }}</span>
+            <strong>{{ c.badge_name }}</strong>
+            <span class="claim-lvl"> · {{ c.category_label }} · {{ evidenceKind(c) }}</span>
             <div class="claim-who">
               {{ c.student_name }} · submitted {{ c.created_at | date: 'd MMM y' }}
             </div>
@@ -61,24 +61,24 @@
           <div class="claim-body">
             <div class="claim-grid">
               <div>
-                <div class="fld">Mapped skill</div>
-                <div class="val val--strong">{{ c.skill_name }}</div>
+                <div class="fld">Badge claimed</div>
+                <div class="val val--strong">{{ c.badge_name }}</div>
               </div>
               <div>
-                <div class="fld">Evidence type</div>
-                <div class="val">{{ evidenceKind(c) }}</div>
+                <div class="fld">Category</div>
+                <div class="val">{{ c.category_label }}</div>
               </div>
               <div>
-                <div class="fld">Title</div>
-                <div class="val">{{ c.evidence_title || 'Untitled upload' }}</div>
+                <div class="fld">Evidence</div>
+                <div class="val">{{ evidenceKind(c) }} · {{ c.title || 'Untitled' }}</div>
               </div>
               <div>
-                <div class="fld">Level claimed</div>
-                <div class="val">{{ levelName(c.claimed_level) }}</div>
+                <div class="fld">Issued by</div>
+                <div class="val">{{ c.provider || 'Not stated' }}</div>
               </div>
               <div>
                 <div class="fld">Student</div>
-                <div class="val">{{ c.student_name }}</div>
+                <div class="val">{{ c.student_name }}{{ c.usn ? ' · ' + c.usn : '' }}</div>
               </div>
               <div>
                 <div class="fld">Submitted</div>
@@ -93,12 +93,12 @@
 
             <div class="claim-file">
               @if (c.upload_id) {
-                <a class="btn" [href]="fileUrl(c.upload_id)" target="_blank" rel="noopener">
+                <a class="btn" [href]="claimFileUrl(c.id)" target="_blank" rel="noopener">
                   <span class="icon" aria-hidden="true">open_in_new</span>
                   {{ c.evidence_file_name || 'Open the certificate' }}
                 </a>
               } @else {
-                <span class="chip neutral">No file or link attached</span>
+                <span class="chip neutral">No file attached</span>
               }
             </div>
 
@@ -106,28 +106,30 @@
               <div class="fld">Verification rubric</div>
               <ul>
                 <li>
-                  The certificate names this student, and the skill it evidences is the one claimed.
+                  The certificate names this student, and the skill it evidences is the badge
+                  claimed.
                 </li>
                 <li>The issuer is identifiable and the assessment is more than attendance.</li>
                 <li>
-                  The level claimed is consistent with what the evidence demonstrates — grant a
-                  lower one if not.
+                  Verifying lights the badge on the student's board and verifies the certificate
+                  in their documents; rejecting refuses both, with your reason.
                 </li>
               </ul>
             </div>
 
             <label class="note-field">
               <span class="fld">
-                Mentor note
+                Note to the student
                 <span class="fld-hint"
-                  >(required for Request changes / Reject, optional for Verify)</span
+                  >(required for Request changes and Reject — it is emailed to them; optional
+                  for Verify)</span
                 >
               </span>
               <input
                 type="text"
                 [value]="note(c.id)"
                 (input)="setNote(c.id, $any($event.target).value)"
-                placeholder="e.g. Great dashboard — approving."
+                placeholder="e.g. The certificate is in another student's name."
               />
             </label>
             @if (noteError()) {
@@ -139,15 +141,15 @@
                 type="button"
                 class="btn primary"
                 [disabled]="deciding() === c.id"
-                (click)="decide(c, 'GRANT')"
+                (click)="decide(c, 'APPROVE')"
               >
-                <span class="icon" aria-hidden="true">check_circle</span> Verify
+                <span class="icon" aria-hidden="true">verified</span> Verify
               </button>
               <button
                 type="button"
                 class="btn btn-changes"
                 [disabled]="deciding() === c.id"
-                (click)="decide(c, 'CHANGES')"
+                (click)="decide(c, 'MORE_INFO')"
               >
                 <span class="icon" aria-hidden="true">undo</span> Request changes
               </button>
@@ -168,9 +170,10 @@
   }
 
   <!--
-    Documents: the same mentor group, the same file route the claim cards open,
-    and until now no client at all — every upload sat at PENDING_REVIEW for the
-    life of the deployment. Verify and Reject are the only two decisions
+    Documents: the same mentor group and the same reviewer. A certificate a
+    pending claim stands on is NOT listed here — it is decided with the claim
+    above — so what appears is a file no claim explains: a photo, an offer
+    letter, a report. Verify and Reject are the only two decisions
     POST /mentor/uploads/{id}/review accepts, so they are the only two offered.
   -->
   <div style="margin-top: 26px">
@@ -269,7 +272,7 @@
               <span class="icon" aria-hidden="true">{{ outcome(h.status).icon }}</span> {{ outcome(h.status).label }}
             </span>
             <div class="history-text">
-              <strong>{{ h.skill_name }}</strong>
+              <strong>{{ h.badge_name }}</strong>
               <span class="history-meta">
                 · {{ h.student_name }}
                 @if (h.reviewed_at) { · {{ h.reviewed_at | date: 'd MMM y' }} }

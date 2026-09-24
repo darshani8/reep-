@@ -24,6 +24,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
+import { failedReadMessage } from '../../../core/feature-refusal';
 import { ResumeBuilderService } from './resume-builder.service';
 
 export interface JobRow {
@@ -149,7 +150,7 @@ export class ResumeGoalService {
     try {
       const res = await fetch(`${environment.apiBase}/student/jobs`, { credentials: 'include' });
       if (!res.ok) {
-        this.jobsError.set('Could not load opportunities.');
+        this.jobsError.set(await failedReadMessage(res, 'Could not load opportunities.'));
         this.jobs.set([]);
         return;
       }

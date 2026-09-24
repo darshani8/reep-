@@ -65,9 +65,12 @@ GOLDEN: list[dict] = [
         "expect_source_type": STUDENT_RECORD,
     },
     # --- Deadlines -----------------------------------------------------------
+    # Was "When is my next certification due?" until 2026-09-17, when the
+    # Certification Tracker went and the deadlines answer became the courses'
+    # next tasks.
     {
-        "id": "deadlines-next-cert",
-        "question": "When is my next certification due?",
+        "id": "deadlines-next-course-task",
+        "question": "What is due next on my courses?",
         "expect_intent": "deadlines",
         "expect_resolved": True,
         "expect_source_type": STUDENT_RECORD,

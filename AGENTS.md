@@ -31,7 +31,7 @@ Seeded logins: `student@bgscet.ac.in` / `student123`, `mentor@bgscet.ac.in` / `m
 - `python -m app.seed_kb` is the production-safe seed: the grounded assistant's Knowledge Base, no accounts. Production needs it (without it the assistant has nothing to ground against) and never needs the demo users, which is why they no longer travel together.
 - `python -m app.seed_catalogue --college 1MP` is the **third** seed and the same kind of thing: the institutional spine -- college, department, courses, specializations and one batch per LEAF -- as code, reviewed in a pull request, written by pressing one button on the Ops task menu. Production-safe (no accounts, nothing to refuse on `ENV=prod`), **idempotent**, **dry run by default** and **ADDITIVE ONLY**: an existing row is returned untouched even where its fields differ, because the office renames things on screen and a seeder that reasserted its own names would undo that work on every press -- divergence is REPORTED, never corrected. Before it, the only route into a real deployment was about fifteen Catalogue forms per college. **THE FIELD THAT MATTERS IS A LEAF'S `code`**, because `_default_track` preselects the interview track by exact match on it: `fa` gets the Financial Analytics interviewer and `FIN` -- which the model's own column comment suggests -- gets nothing at all, so that college's students meet "General interview", which has no wrap-up phase and CANNOT BE SCORED. That is `grant_access --department-id`'s dead end reached from the catalogue instead of the account, and closing one door while leaving the other open is closing neither. A code matching no track is LEGITIMATE (BGSCET's Marketing and Logistics & Supply Chain have none, and the office can add one on the Interview Tracks screen whenever it likes, at which point the match starts working with no change to the file) -- so every run prints, per leaf, whether a student there is preselected today and names the exact string that would fix it. `tests/test_seed_catalogue.py` pins the codes BY NAME, including that **Marketing is deliberately not mapped to `dm`**: the only marketing track in the matrix is DIGITAL marketing, a different discipline and one of that college's own courses, so the tempting "fix" would sit a Marketing student in front of a growth CMO asking about CAC/LTV ratios and score them against it.
 
-**Handing a deployment over: `python -m app.purge_people`.** The counterpart to the seeds — it empties a deployment of PEOPLE (every account except the Main Admin, every record those accounts produced, every transcript and every recording, and the documents and audio on the volume) while leaving the institution and the catalogues standing: colleges, departments, courses, specializations, batches, job postings, the badge and certification catalogues and the Knowledge Base. It exists because nothing else can do it: `grant_access` creates and updates accounts and cannot remove one, the Main Admin console has no screen at all for deleting a faculty account, and the Ops task menu is a FIXED LIST because free text there is RCE on the cluster. **Every one of the 111 tables carries a written verdict in `VERDICTS`, and a table nobody classified ABORTS THE RUN** — not kept (which leaves a student's records behind) and not emptied (which destroys a catalogue somebody added last week); `tests/test_purge_people.py` fails in CI first, so the next person to add a table is made to decide. **That question is asked of the DATABASE and not of `app/models/`** (`known_tables`), and until `e1c4b7a209d6` it was not: every reader here walked `Base.metadata`, so a table created by a MIGRATION and deliberately given no model was invisible to the coverage check AND to the delete pass. `students_orphaned_cohort_ids` — migration `d5a1c8b30f47`'s rescue table, model-less on purpose (`_PRESERVED_DATA_TABLES` in `migrations/env.py`: it is an operator's receipt, not part of the schema) — sat outside both destructors that way, so a pass whose whole purpose is removing every trace of people left a list of their `students.id`s standing, in the one table nobody thinks to look at because it is not in `app/models/`. It is `EMPTY` in `VERDICTS` and `ALL` in `STUDENT_VERDICTS` now, and reflecting the live database is what makes the refusal cover the NEXT one even if nobody remembers to add it to the tuple. **Files go before rows**, because a row is the last pointer to a student's resume and a named student's recorded voice, and a delete that loses the pointer first leaves bytes nobody can find — `retention._delete_interview_audio`'s reasoning, applied to the five document stores and the S3 recordings. It refuses unless there is EXACTLY ONE ADMIN: zero would lock every human out of the console, and picking between two would be this module choosing which colleague keeps their account. **Dry run is the default**; `--apply` also demands `--i-understand-this-is-permanent`, and the Ops task's `purge-people` demands a typed sentence of its own on top of the menu's `confirm: run`, because that box is muscle memory by the time anyone reaches this task and nothing else on the menu destroys anything. The delete order satisfies 181 real foreign keys — several with no `ON DELETE` at all (`login_days.user_id`, `mentors.user_id`, `students.user_id`, and the four `created_by_user_id` columns on the KEPT institutional spine, which are nulled first) — and the test proves it by running the real delete against the real schema inside a transaction it rolls back, which is why `_delete_rows` is factored out of `execute` without a commit.
+**Handing a deployment over: `python -m app.purge_people`.** The counterpart to the seeds — it empties a deployment of PEOPLE (every account except the Main Admin, every record those accounts produced, every transcript and every recording, and the documents and audio on the volume) while leaving the institution and the catalogues standing: colleges, departments, courses, specializations, batches, job postings, the badge and certification catalogues and the Knowledge Base. It exists because nothing else can do it: `grant_access` creates and updates accounts and cannot remove one, the Main Admin console has no screen at all for deleting a faculty account, and the Ops task menu is a FIXED LIST because free text there is RCE on the cluster. **Every one of the 111 tables carries a written verdict in `VERDICTS`, and a table nobody classified ABORTS THE RUN** — not kept (which leaves a student's records behind) and not emptied (which destroys a catalogue somebody added last week); `tests/test_purge_people.py` fails in CI first, so the next person to add a table is made to decide. **That question is asked of the DATABASE and not of `app/models/`** (`known_tables`), and until `e1c4b7a209d6` it was not: every reader here walked `Base.metadata`, so a table created by a MIGRATION and deliberately given no model was invisible to the coverage check AND to the delete pass. `students_orphaned_cohort_ids` — migration `d5a1c8b30f47`'s rescue table, model-less on purpose (`_PRESERVED_DATA_TABLES` in `migrations/env.py`: it is an operator's receipt, not part of the schema) — sat outside both destructors that way, so a pass whose whole purpose is removing every trace of people left a list of their `students.id`s standing, in the one table nobody thinks to look at because it is not in `app/models/`. It is `EMPTY` in `VERDICTS` and `ALL` in `STUDENT_VERDICTS` now, and reflecting the live database is what makes the refusal cover the NEXT one even if nobody remembers to add it to the tuple. **Files go before rows**, because a row is the last pointer to a student's resume and a named student's recorded voice, and a delete that loses the pointer first leaves bytes nobody can find — `retention._delete_interview_audio`'s reasoning, applied to the five document stores and the S3 recordings. It refuses unless there is EXACTLY ONE ADMIN: zero would lock every human out of the console, and picking between two would be this module choosing which colleague keeps their account. **Dry run is the default**; `--apply` also demands `--i-understand-this-is-permanent`, and the Ops task's `purge-people` demands a typed sentence of its own on top of the menu's `confirm: run`, because that box is muscle memory by the time anyone reaches this task and nothing else on the menu destroys anything. The delete order satisfies 183 real foreign keys — several with no `ON DELETE` at all (`login_days.user_id`, `mentors.user_id`, `students.user_id`, and the four `created_by_user_id` columns on the KEPT institutional spine, which are nulled first) — and the test proves it by running the real delete against the real schema inside a transaction it rolls back, which is why `_delete_rows` is factored out of `execute` without a commit.
 
 **Clearing a demonstration cohort: `python -m app.purge_students`.** The narrow counterpart, and the one that gets run on a deployment that is STAYING IN USE: it deletes every account whose role is STUDENT, everything those accounts produced, and everything staff wrote ABOUT them — while every MENTOR, ALUMNI and ADMIN account, their signatures, their upskilling shelf, their governance grants and their own leave requests stay exactly where they are. `purge_people` cannot express that, because its verdicts are whole-table (`students: EMPTY`, `users: SURVIVOR`): running it to clear a cohort deletes every faculty account on the way through. So here a verdict is THREE values and not two — "delete the student rows" is a different sentence in a table only a student can own (`resumes`) and in one shared with staff (`leave_requests`, `conversations`, `agent_runs`, `login_days`). 47 tables are emptied outright, 40 are untouched, 24 are scoped, and **`STUDENT_VERDICTS`'s key set is checked against `purge_people.VERDICTS`**, so the next person to add a model is stopped by BOTH destructors rather than the one they happened to read. **The doomed set is read ONCE, before anything is deleted**, and held as literal ids: as a live subquery over `users` it would be right only by accident, because the accounts go near the END of the pass and any table ordered after them would match nothing and silently leave its rows behind. `registrations` is the one table scoped by something other than an account — an application that was APPROVED, or that carries a doomed address, goes; the office's PENDING queue survives, because an approved application left behind makes `POST /api/register`'s duplicate guard refuse that address forever with no account left to explain why. The three file stores are `purge_people`'s own functions handed a subset, never a copy. Dry run is the default, the Ops task's `purge-students` demands the typed sentence `DELETE EVERY STUDENT` (deliberately NOT `purge-people`'s, so the words name the act), and `execute` refuses to commit if the number of non-student accounts changed.
 
@@ -56,6 +56,8 @@ Seeded logins: `student@bgscet.ac.in` / `student123`, `mentor@bgscet.ac.in` / `m
 **A task definition is immutable, and that is why `SES_FROM_ADDRESS` and `IDENTITY_LEDGER_BUCKET` are gated on `harden_ecs` while their IAM grants are gated on `harden`.** It reads like two gates for one feature and it is not. Adding an environment variable registers a NEW REVISION that the service rolls onto, and step 9a of the cutover (`hardenEcs=false`) exists so an ECS circuit-breaker rollback cannot undo a Multi-AZ conversion in the same update -- so the task definition has to leave that phase byte-identical to the import mirror. The grant can go early because it is INERT without the variable: a task holding `s3:PutObject` that does not know the bucket name writes nothing. `test_the_database_half_does_not_touch_the_ecs_trio` is the guard, and it caught the ledger's variable when it was first written on `harden`. **`SES_CONFIGURATION_SET` and `LEAVE_MAIL_ENABLED` ride the same gate and are NESTED INSIDE the `SES_FROM_ADDRESS` branch rather than merely ordered after it** — a configuration set with no sender is inert noise, and a leave switch with no sender is the `mail_logs` lie below, so the invariant is a shape in the code and not a second rule to remember. `leaveMailEnabled` without `sesFromAddress` is refused at synth outright.
 
 **Tests:** `cd apps/api-py && .venv/Scripts/python -m pytest` (the backend suite). Front end: `cd apps/web && npx ng build`.
+
+**THE END-TO-END SUITE IS AT THE ROOT, COVERS THE WHOLE APP, AND EVERY TEST IN IT IS A MANUAL CASE'S TWIN (2026-09-22).** `npm ci && npm run test:e2e` from the repository root runs Playwright (`playwright.config.ts`, `tests/*.spec.ts`) against the RUNNING app: the SPA on 4200 in front of the API on 3300, `ENV=dev`, dev seed applied, nothing mocked. Install the browser once with `npx playwright install chromium`. The suite lives at the root and not in `apps/web` because the Angular unit-test builder collects every `**/*.spec.ts` under its project root, so a Playwright spec there would be run by vitest. **Eight modules, one case file and one spec each.** `test-management/manual-test-cases.md` is the index (the modules with their ID ranges and screens, setup, the seeded accounts, what each CSV status means), and the cases are in `test-management/cases/0N-*.md`. The specs are `tests/auth-sync.spec.ts` (module 01, the name the suite started with) and `tests/0N-*.spec.ts`. **The numbers are the run order, and one of them is load-bearing:** module 08 gives the seeded student a mock-interview record and a consent, which module 04's "before any interview" cases need to be absent, so 04 must run first. **Each test is linked to one case by the `@TC-NNN` tag in its title.** Its `test.step()` titles are that case's numbered steps, and every assertion message names the expected result it checks (`TC-001 ER-4: ...`). `tests/reporters/manual-csv-reporter.ts` reads every case file and writes `manual-test-results.csv` with a row for every case. It **fails the run when the two drift**: an untagged test, a tag naming no case, a step list or step number that differs, an ID in two files, a case marked not automated that a test automates, or, on an unfiltered run, a case whose field names a tag no test carries. The problem is also written into that case's "Sync Problems" cell, so a drifted case never reads as a clean Passed. `npx playwright test --list` runs the tag checks without the app and leaves the CSV alone. **That reporter is a local file because `playwright-csv-reporter` does not exist on npm** (a 404 on 2026-09-22). Do not install whatever is published under that name later: a reporter runs in-process on every run. **Every spec imports `test` and `expect` from `tests/support/reep.ts`, never from `@playwright/test`,** because that `test` carries the auto fixture that checks the environment before each test and the `signIn(account)` fixture (the API sets the session cookie in the page's own context, so only the cases about the login screen type into it). **BLOCKED, SKIPPED AND KNOWN FAILURE ARE THREE DIFFERENT ANSWERS, AND WHICH ONE A TEST GIVES IS A DECISION.** Blocked is a broken environment (API down, database down, seed missing, account locked out): the test fails with the reason, so a run against a stopped API is red rather than a green row of skips. Skipped is the absence of something the environment is allowed not to have: an optional feature switched off (Google sign-in, TC-034 and TC-039) or test data earlier runs used up for good (a submitted ledger day cannot be reopened, an interview record cannot be deleted); the reason is in the CSV's Error column and a fresh database runs them all. Known failure is a `test.fail(true, 'BUG: ...')` that asserts the CORRECT behaviour of a product bug the suite found, so the test starts passing, and must be unmarked, the day the bug is fixed. **One worker, and never beside pytest:** the cases sign in as the seeded accounts, and REEP keeps one live session per account, so a second worker, or pytest's `login` fixture, would sign the suite out mid-test; for the same reason a run signs out any browser a developer has signed in as a seeded account. Cases that need more than one person use a second browser context or an API context of their own. It is **not a CI job**: it needs a live stack, and a sixth job would have to be added to all four files §34 compares. The runs leave data behind by design where the product keeps it (removed accounts, decided leave, archived test colleges), each case's post-conditions say what, and nothing asserts a count other cases can change.
 
 **ONE THING AT A TIME TOUCHES ONE DATABASE.** `tests/conftest.py` says it in its first paragraph and the consequence is nowhere: the integration tests hit the SEEDED DEV DATABASE — the same `reep_py` a running `uvicorn` is using, the same one `python -m app.seed` wrote. So **two pytest runs at once, or a pytest run beside a live API, corrupt each other's fixtures**, and the failures that come out of it are the expensive kind: they look completely real, they name a plausible cause, and every one of them passes when you re-run it on its own. The two that cost an afternoon were a purge-plan count off by one (the other run's throwaway student was in the table when the plan was taken) and a fixture student answering 404 (the other run's teardown had deleted them mid-test). Nothing in the suite is isolated by a transaction — `make_user` and its friends commit, because the endpoints under test commit.
 
@@ -172,21 +174,99 @@ columns (`registrations.personal_email` / `linkedin_url`, migration
 `a3f9c2e17b48`) are NULLABLE because the rule is about new applications and
 the column is a promise about the rows already written; approval copies phone
 and LinkedIn onto `student_profiles`, where the placement record already asks
-for both. The two files CANNOT be required there: they are posted to
-`attach_document` after the 201, keyed on the id `submit` mints. So the form
-refuses to submit without both, checks each file's TYPE AND SIZE before the
-application is created (a 413 or 415 after the 201 would leave an application
-in the queue with no way for the applicant to retry), states the accepted
-format and the cap on the dropzone itself (PDF, and PNG or JPG, each up to
-`document_store.MAX_BYTES`), and a file that still fails to land is retried
-from the result card against the SAME application — "Submit another" would
-meet the duplicate guard. The reviewer's checklist gained `CHECK_DOCUMENTS`, a
-WARN and never a block, naming whichever file is missing on a row that
-arrived without it. Course and Batch are required on the form WHENEVER THE
-OFFICE HAS LISTED ANY under the chosen department, and not otherwise: a box
-that cannot be filled cannot be compulsory, and a half-set-up college must not
-refuse every applicant. `tests/test_registration_required.py` pins the API
-half.
+for both. **THE TWO FILES ARE REQUIRED BY THE API TOO, SINCE 2026-09-22, AND
+THE REQUEST IS ONE MULTIPART POST.** Until then they were posted to
+`attach_document` AFTER the 201, keyed on the id `submit` minted, with the
+form refusing to submit without them and a retry button on the result card —
+and the office's queue still filled with applications that had neither, from
+students who had filled in every box. Every way the second half could fail
+left one behind (the edge refusing a body over its limit, a phone losing its
+connection, the applicant closing the tab at "Try attaching again"), and one
+case failed BY DESIGN: a rule that auto-approves decides the application at
+submit time, `attach_document` refuses a decided application, so every
+auto-admitted student's CV and photo were rejected a second after the 201.
+`POST /register` now takes `RegisterForm` — `RegisterIn`'s fields as
+multipart parts plus `cv` and `photo`, both required, as fields of the ONE
+form model because FastAPI embeds a form model under its parameter name the
+moment a second body parameter appears — and `_read_document` judges both
+files (size after a `read(MAX+1)`, then the sniff, then the kind's own mime
+list) BEFORE a row is written; the row, its two `registration_documents` and
+their bytes land in one transaction, bytes unlinked on a rollback, and only
+then does `_apply_rule` run, so `_provision_student` finds the documents it
+moves onto the new student's uploads. A refused file is a 413 or 415 with no
+application behind it, so the applicant resubmits the same form and never
+meets the duplicate guard. `attach_document` stays as the REPLACEMENT path
+(a held applicant asked for a better scan, and the rows from before), built
+on the same two helpers so the two doors cannot disagree about what a CV is.
+The form still checks each file's type and size before it posts and states
+the accepted format and the cap on the dropzone itself (PDF, and PNG or JPG,
+each up to `document_store.MAX_BYTES`). The reviewer's checklist keeps
+`CHECK_DOCUMENTS`, a WARN and never a block, which can now fire only on a row
+written before the rule. Course and Batch are required on the form WHENEVER
+THE OFFICE HAS LISTED ANY under the chosen department, and not otherwise: a
+box that cannot be filled cannot be compulsory, and a half-set-up college must
+not refuse every applicant. `tests/test_registration_required.py` pins the
+API half, `test_an_application_cannot_exist_without_its_cv_and_photo` and
+`test_registration_documents.py::test_an_auto_approved_application_keeps_its_files`
+the two halves of this rule.
+
+**SPECIALIZATION IS A CHECKLIST, AND A STUDENT MAY TICK TWO (2026-09-22).**
+Some students opt for a DUAL specialization, and the box was a `<select>`, so
+they could name one of their two and the office learned of the other by phone
+or not at all. `RegisterIn` takes `specialization_ids` — the ticks in order,
+capped at `MAX_SPECIALIZATIONS_PER_APPLICATION` (two, because the office's
+word is "dual" and the row has two columns; the cap is served to the form as
+`max_specializations` on `GET /register/hierarchy` so the checklist and the
+schema refuse at the same number) — and the legacy `specialization_id` is
+folded in first, so an older client still works and a client sending both
+with one pick has ticked one box. `_resolve_claim` writes the first tick into
+`specialization_id`, which every reader that column already had (the scope
+clause, the queue, the batch settling) goes on reading unchanged, and the
+other into `registrations.second_specialization_id` (migration
+`d4c8e1f7a2b9`, a sixth nullable SET NULL FK beside `c5f9a3e7d2b4`'s five —
+a COLUMN and not a table, because two is the definition and a table would need
+a verdict in both purge modules and both deletion walks before it could hold a
+row). Both must sit under ONE course, refused otherwise; where the requested
+batch pins one of the two, that one is moved to the front so the batch and
+the column it has always been checked against still agree, and a batch
+pinning a specialization the applicant did not tick is the contradiction it
+always was. The reviewer's queue prints both ("Finance and Marketing", the
+same " and " on the applicant's card, `core/specializations.ts`'s
+`specializationLabel`) and gains a `dual_specialization` WARN, never a block,
+because seating is by batch and a batch hangs on one specialization at most;
+`registration_scope_clause` reads BOTH columns, so a reviewer scoped to the
+second stream still lists the row.
+`tests/test_registration_dual_specialization.py` pins all of it.
+
+**THE SECOND CHOICE REACHES THE STUDENT NOW, AND THE MAIN ADMIN CAN SET IT
+(2026-09-23).** Until then nothing on `students` carried it, so after approval
+the dual choice lived on the application alone and the roster editor had no
+way to assign one to a student whose second stream reached the office by
+phone. `students.second_specialization_id` (migration `e2b7c4d9f1a6`, nullable
+SET NULL FK, backfilled from approved dual applications) is the SECOND and
+nothing else: the first is still the batch's own, read through the cohort
+join, because a batch hangs on one specialization. `app/dual_specialization.py`
+holds the three rules every writer shares — approval copies the tick the batch
+does not already say (`second_for_seat`); `PATCH /admin/students/{id}` takes
+`second_specialization_id` and refuses the batch's own stream or one of another
+course (`refusal`); and any move into another batch, single or bulk, clears a
+second the new batch contradicts (`settle_after_move`), so a row never reads
+"Finance and Finance". The roster draws it as a second chip and the
+Specialization filter matches either; the edit dialog offers the batch
+course's other streams (`secondSpecializationOptions`, mirroring `refusal`).
+The profile card and the 360 still read the batch alone.
+`tests/test_student_dual_specialization.py` pins it.
+
+**THE REGISTER FORM'S BATCH BOX IS THE YEAR AND NOTHING ELSE (2026-09-23).** It
+drew each batch's `display_label` — "General MBA - Finance · 2026-28" — which
+repeated the Course and Specialization boxes above it and, for a dual pick,
+listed one year twice. `features/register/batch-years.ts` draws each year once
+and turns the picked year back into the batch of the FIRST ticked
+specialization, else the second, else a course-level batch, else a
+department-level one; two streams in one year with nothing ticked is resolved
+by asking for the specialization, never by guessing. The result card prints
+the year too. `display_label` on `GET /api/register/hierarchy` is unchanged,
+because the console's Registrations, Imports and Students screens read it.
 
 **Why the confirmation link moved.** It used to run BEFORE the rule engine: `POST /register` wrote `PENDING_VERIFICATION` and waited. The reasoning was sound (approval mints a `users` row, so no address should auto-approve itself onto the roster) and the mail is the half that fails. On a deployment whose SES account is still sandboxed nothing can reach a student address at all, so **every** applicant sat invisible — the student saw a 201, the admin saw an empty queue, and the retry hit the duplicate guard's deliberately opaque 409, which reads as a broken form. Verified on production 2026-09-10: not one `GET /api/register/verify` in 30 days. A gate nobody can pass is not a gate, it is an outage. Migration `9b2d47f0ce15` moved the stuck rows into the queue; `/api/register/verify`, `EmailVerification`'s three helpers and `retention.sweep_unverified_registrations` are gone with the status that fed them.
 
@@ -289,7 +369,7 @@ is what makes Restore exact.
 **DELETE FOR GOOD is `app/account_deletion.py` over `app/deletion_walk.py`,
 and the walk is the design.** `purge_people` and `purge_students` empty
 TABLES; one person is a ROW and its dependants, and the schema already
-answers "which rows go with it" for 150 of its 181 foreign keys with an ON
+answers "which rows go with it" for 147 of its 183 foreign keys with an ON
 DELETE clause. The walk starts at the account's own rows (`users`,
 `students`, `mentors`, the `registrations` that became or named it, its
 `mail_logs`, its idempotency keys), follows every CASCADE, counts every SET
@@ -356,6 +436,27 @@ and the `second_*` columns stay for the rows that carry them. The faculty
 leave screen no longer has an approver's queue at all; the admin screen's
 "Sanction" is the whole chain.
 
+**AND THE OFFICE MAY HAND THAT ONE SIGNATURE TO A FACULTY MEMBER
+(2026-09-17).** `admin.leave_approvals` ("Approve leave") is a PROGRAMME
+capability in the catalogue: the Main Admin holds it by baseline (nothing about
+the office's path moved) and grants it in Governance to a named faculty
+account, with a reason, on the trail, revocable the same hour.
+`_require_leave_approver` is `require_mentor` plus `require_capability` on
+that key; `_assert_can_decide` admits a holder as `SIGNED_AS_DELEGATE`, which
+the paper prints beside the name. A delegate sees the office's whole queue
+(minus their own requests, which nobody may decide) — the reach is the
+programme, because a leave request hangs on no rung this router narrows by.
+**It is NOT `mentor.leave_approve` coming back**: that key was DERIVED from
+mentoring somebody, reached one group's queue and was one half of the chain
+that deadlocked; this one is a decision the office makes about a person, and a
+stray row still naming the retired key opens nothing, which
+`tests/test_leave_chain.py` pins beside the delegate's own walk. `carries_pii`
+(a leave reason is routinely medical), so a DEPUTY's grant waits for a second
+signature and the Main Admin's is live at once. The route guard on
+`/admin/leave-approvals` is `capabilityGuard`, the row is under "Granted
+access" for a faculty holder, and the policy and calendar buttons on that
+screen stay the Main Admin's (`require_admin`) and say so.
+
 **The signature image: normalised on the way in, never silent on the way
 out.** `PUT /api/staff/signature` re-encodes what the sniffer accepted as a
 flat, upright RGBA PNG through Pillow (EXIF rotation applied) before it is
@@ -400,9 +501,19 @@ The interview now leaves a **record of its own**, in four tables (`app/models/in
 
 **THE TRACK IS READ FROM THE COURSE RUNG TOO, AND `interview_tracks.course_id` HAD BEEN DEAD THE WHOLE TIME (2026-09-15).** `_default_track` matched a batch's SPECIALIZATION and nothing else -- a track mapped to it, then the specialization's own `code`. The column `interview_tracks.course_id` was written by the admin screen, returned by the track API and rendered as a mapping, and **no reader ever looked at it**: a track mapped to a course reported itself mapped and preselected nothing. B6.6's shape exactly, found the same way, by trying to file a real catalogue. It is not a rare shape either -- a specialization is OPTIONAL (`HIERARCHY_LEVELS`), and a two-year programme that IS the qualification (BGSCET's Digital Marketing and Logistics & Supply Chain MBAs) has no specialization under it to hang a track on, because there is nothing to specialise into. So every student on such a course fell through to the generic interview and could never be scored. It now tries four rungs, most specific first -- track mapped to the specialization, the specialization's `code`, track mapped to the COURSE, the course's `code` -- and **none of them is a guess**: every one is an exact, case-folded match on a code somebody typed on purpose, and no match still means None and the picker stays. Specialization still wins where a batch names one, the same precedence `ancestry_of_student` applies to the two department pointers.
 
+**THE STUDENT GETS TO FINISH, AND A COUGH GETS THE QUESTION BACK (2026-09-17).** Three things arrived together after real interviews reported "the voice drops, and it goes to the next question". `NOVA_SONIC_ENDPOINTING` defaults to `LOW` — AWS documents the levels as the pause Nova waits for before taking the turn (HIGH 1.5 s, MEDIUM 1.75 s, LOW ~2 s), and at MEDIUM a student gathering an example was answered over the second half of the answer. `classify_answer` has a `skipped` verdict (`is_skip_request`: "next question", "skip", "pass" and friends on a transcript of at most twelve words) that counts for nothing and is not a failed answer; the arc briefing and the persona's turn-taking note (`_TURN_TAKING_NOTE`, both interviews) tell the model to move on without pressing, so the record and the room agree. And when Nova's interruption marker is followed by a transcript that was `empty`, `filler` or `too_short` — a chair, a "hmm", not the first word of an answer — the engine steers `resume` (HELD like every note, sent in the gap after the reply) so the question Nova abandoned and the browser flushed comes back; a transcript that is the interviewer's own last sentence (`_looks_like_echo`, a run of six or more consecutive words covering 80% of it) is recorded `echo`, counts for nothing and gets the same recovery, because loud speakers were making the model answer its own question and advance the arc on it. The client's local barge-in needs 200 ms of sustained level now rather than 120 — a cough is 120 ms. `tests/test_interview_nova.py::TestAnInterruptionThatWasNotAnAnswer` pins all of it.
+
+**THE INTERVIEW IS IN ENGLISH, AND THE PROMPT IS THE ONLY PLACE THAT CAN SAY SO (2026-09-17, the same evening).** The first interview after that deploy came back with five student turns in Devanagari — "हेलो हाई मैं दर्शन हूँ" for an Indian-accented "hello, hi, I'm Darshan" — and no interviewer turns at all. Nova 2 Sonic "supports multilingual with automatic language detection and switching", `kiara` and `arjun` (HR, BA) are its en-IN AND its hi-IN voices, and there is no language parameter on the session, so `_TURN_TAKING_NOTE` (now "## Language and turn-taking") pins English and tells the model to ask, in English, for English. The same note says to ALWAYS answer out loud: its first draft said "wait for the student", which a model can read as permission to say nothing, and an interviewer that says nothing is a student saying "next question" into silence. And `classify_answer`'s word pattern was `[a-z0-9']+` — an ENGLISH word pattern — so every Hindi answer was recorded `empty`, a false fact about five audible answers; `words_of` tokenises by Unicode category (letters, digits AND marks — Python's `\w` drops Hindi vowel signs and shatters "प्रश्न"), and the skip phrases carry "अगला प्रश्न" so the record is true whichever language the student used. `GET /api/mentor/students/{id}/interviews` serves `turns_emitted` / `turns_persisted` now and the open record prints "Ended: … · N turns, M saved", because that pair is the runbook's way of telling "the interviewer never spoke" from "its turns were dropped" and it was reachable only from a database client.
+
+**THE ECHO GATE IS REFERENCED TO THE PLAYBACK NOW, AND THE ROOM HAS A SPEAKER / EARPHONES SWITCH (2026-09-22).** "The voice drops on speakers, and even on earphones it breaks" was the browser's echo gate, not the network and not the relay. The gate holds the uplink while the interviewer is audible so Nova never hears its own voice as a barge-in (it abandons the question, the relay flushes the browser's queue, the question is gone). It decided "audible" from `isPlaying`, which is true the moment a buffer is SCHEDULED, a 140–300 ms jitter-buffer lead plus the device's output latency before any sound; it spent its five calibration chunks measuring that silence, learned an echo level near zero, and then opened on the interviewer's own first syllables — on nearly every question on a phone, and again after every resume, which is the chop. Its echo reference was also capped at 0.03 RMS, below a speaking voice, so a loud speaker cleared it even when calibration worked. A replica of that gate driven through the spec's simulated room fires 5–20 times per 20 s of interviewer speech at speaker-level coupling and never at earphone-level coupling — the symptom exactly. `apps/web/src/app/core/echo-gate.ts` replaces it: the player records the level of every buffer it puts on the clock (`FarEndTimeline`), the worklet stamps each microphone chunk with its capture time, and `EchoGate` judges the chunk against the loudest playback that can be in it — reaching back by the device's `outputLatency` — times an echo **coupling** learned once per session from a conservative prior (2.0), so the bar follows the interviewer's loudness and nothing is measured at the top of a response. **The timeline is pruned against the query clock, never its newest entry**: Nova delivers twenty seconds of speech in three, and pruning against the newest entry discarded audio that had not played — the spec caught it. Earphones need no gate, and `setEchoSuppression` had **no caller**, so a breath on a headset mic paused the interviewer: `shared/interview-room/audio-route.ts` is the switch, defaulting to Speaker, remembered on the device, preselected to Earphones from the browser's device names, and read from the service so the page and the dock agree. A device-paused `AudioContext` is resumed (visibility, tap) instead of flushed, because a suspended clock loses nothing; the context asks for `'balanced'` latency, not `'interactive'`. The browser sends its counters as `reep.client.stats` after every interviewer turn and on End, and the relay prints them in the `Interview ended …` line as `client=` — until now they were a console line on the student's own machine. Server side, `stopReason: INTERRUPTED` without the text marker now stamps the interruption (so `resume` fires), the echo check falls back to the SPECULATIVE text of a turn cut before its FINAL text (so the echo of that question is `echo`, not an answer that advances the arc), the `reep.mic.gate` counter reads the `state` the browser actually sends, and uvicorn runs with `--ws-per-message-deflate false` because zlib over every PCM frame on half a vCPU bought nothing. `docs/interview-assistant.md` has the diagnosis.
+
 **Two ceilings, not one (B6.4).** `daily_cap` counts **completed** interviews in the rolling 24 h — a dropped call no longer costs a student a turn — and `attempt_cap` counts **every session row**, because each one billed an upstream handshake and "a cap that only counts clean finishes is a cap a crash loop never hits". `ck_interview_policy_bounds` refuses `attempt_cap < daily_cap`, which would make the allowance unreachable. The deployment defaults are `INTERVIEW_MAX_PER_STUDENT_PER_DAY` (8) and `INTERVIEW_MAX_ATTEMPTS_PER_STUDENT_PER_DAY` (20). `POST /api/admin/students/{id}/interview-cap/reset {reason}` writes `interview_cap_resets` (reason mandatory, in words, B3.1's rule — this is the other console action whose effect is invisible a day later) and the count's window becomes `GREATEST(now - 24 h, the latest reset)` — an **extra lower bound**, so a second reset can only move it forward and a student mid-day never loses attempts already counted.
 
 **Audio: off, and "off" is now THREE independent switches** (it was two until B6.1). Nothing is captured unless `INTERVIEW_RECORDING_ENABLED=true` (the operator's), *and* the college's `interview_policies.store_audio` is true, *and* the student holds a live grant whose `scope_store_audio` is true — which since B6.1 is a copy of the college's decision that the student was shown and acknowledged, no longer a checkbox they tick. All three are read in `recorder_for`, the one function that answers "when does REEP record a student's voice"; the college's is passed in from the advisory-locked transaction that opened the interview rather than re-read, so an edit landing mid-handshake cannot build a recorder the rest of the session does not expect. The panel's copy says plainly that staff can listen. NONE of the three is true in a default deployment. When all three are, `app/interview_audio.py` writes two WAV files per interview (one per speaker, never mixed — the two directions are not time-aligned), capped by `INTERVIEW_RECORDING_MAX_BYTES` with a truncation flag rather than a silent cut, retrievable only by whoever holds `admin.interview_audio` (the Main Admin by baseline; a MENTOR only by an explicit grant) and deleted on the same 180-day clock. Branch on `interview_sessions.audio_recorded`, **never** on `audio_path IS NOT NULL` — a NULL path collapses four different facts into one. This overrides `docs/interview-engine-v3.md` §8.4, which argued against capture; read that section anyway, because it is why every guard above exists.
+
+**WHICH OF THE THREE CLOSED IS WRITTEN ON THE ROW (2026-09-17).** `recorder_or_reason` (`recorder_for` is the same decision with the reason thrown away) returns one of `SKIP_OPERATOR_OFF` / `SKIP_POLICY_OFF` / `SKIP_NO_CONSENT` / `SKIP_STORE_FULL` / `SKIP_OPEN_FAILED`, the socket hands it to `_make_finalizer`, and the finalizer writes `interview_sessions.audio_skipped_reason` (migration `b7d2e4f9a1c3`; `nothing_captured` for a recorder that closed with nothing; NULL on a recorded interview and on every older row, never a guess). It exists because on the AWS deployment the operator's switch is TRUE (`infra/cdk/reep_core/stack.py` defaults `interviewRecordingEnabled` to `"true"`), no policy row is ever seeded, and "Allow voice recording" on the Interview records screen's policy card is unticked until somebody ticks it — so every interview read "No audio" beside a grey Download button, the only line saying why was an INFO in the API log, and the office reported the recording feature as broken. The records API serves the word, the open record spells it out with a button to the policy card when the fix is the college's own tick, the Download button is drawn only when there is a file, and the policy sheet carries `recording_enabled_on_server` so the card says when the box it offers can do nothing.
+
+**THE ROOM'S "RECORDING ON" IS A STATEMENT ABOUT THE NEXT INTERVIEW, NOT ABOUT THE DAY THE STUDENT AGREED (2026-09-17, the same evening).** The Start line read `scope_store_audio` off the student's own consent row, and a consent row is a COPY of the college's policy taken when "I agree" was pressed and never edited again (`grant_consent`'s "a grant is a row and a row is never edited"). The room started straight away whenever it held a row, so after the first agreement nothing ever compared that copy with the policy: a student whose row said "on" from the day they agreed read "recording on" beside a Start button whose interview the recorder then refused, and the office's screen said "No audio" for the same interview. The other direction is the one that matters more and was equally live: the office ticks "Allow voice recording", every existing student's row still says `false`, the recorder answers `no_consent`, and the record's own explanation ("they are shown the terms again at their next Start") was untrue, because nothing showed them. `shared/interview-room/consent-sync.ts` is the fix and it is two pure functions with a spec: `grantMatchesPolicy` is the server's `acknowledged` comparison made on the client, and Start proceeds on the standing row ONLY while the policy still says what the row says — otherwise the terms are shown again and "I agree" posts the acknowledgement `POST /api/interview/consent` was always written to supersede. It is judged on the policy card already loaded and NOT on a fetch, because `InterviewService.start()` must run inside the click's user gesture (getUserMedia and `ctx.resume()`); the card is re-read in the background after each Start so the next press judges fresh data. `recordingLabel` reads the policy AND `recording_enabled_on_server`, which `StudentPolicyOut` carries now (the admin sheet already did), so a college that ticked the box on a server that cannot record does not tell its students they are being recorded; an absent flag reads as unknown and falls back to the policy alone, never to "off".
 
 **The LiveKit voice stack was REMOVED in 2026-09.** `voice_agent.py`, `app/routers/voice.py` (`/api/voice/*`), `requirements-voice.txt`, the `chat-voice.service.ts` client, the orb's voice overlay, the CI `worker-imports` job and both `livekit-*` dependencies are gone, along with the fourth process and its separate Python 3.12 venv. It was a four-stage cascade (Groq Whisper -> Groq Llama -> TTS) over LiveKit's WebRTC transport, and it was superseded by the mock interviewer, which is genuinely speech-to-speech. **The one voice experience now is `/student/assistant`** (Amazon Nova 2 Sonic, in-process, no extra venv). Three things survived the removal on purpose: `Message.channel` is still a plain String column, so historical `voice` rows read back unchanged and the runbook query above still groups by it; `conversations.append_message`'s `provider_turn_id` dedup is still the interview's first dedup layer, now pinned by `tests/test_conversation_dedup.py` instead of through the deleted endpoint; and `AgentHistoryService` (`apps/web/src/app/core/`) carries the three non-voice members the interview screen needs — `chatHistory`, `loadHistory()`, `clearConversation()` — out of the 840-line service that was deleted.
 
@@ -1111,6 +1222,122 @@ report.
 `python -m app.seed` seeds all four, including a ledger deliberately 0.5 h short
 so the "0.5 h to reconcile" state is the one you see on a fresh database.
 
+**THE LANDING LOST ITS STAT STRIP AND ITS "SPECIALIZATION CERT" ROW
+(2026-09-17).** At the owner's request the four cards under the readiness /
+recommendations row — the stage donut, the skill-badge row, "Mocks taken" and
+the "Login streak" card — are gone from `features/student/home`, and the
+Elevate card's "Specialization Cert" item (`spec_cert`) went with the whole
+screen behind it: `features/student/certifications/` (the "Certification
+Tracker"), its route, `GET /api/student/certifications`, and the
+`student.certifications` feature switch — a row that gates nothing is the state
+B2.2 exists to end, so the switch left with the endpoint. The two
+"Finish <certification>" nudges that routed there (`/student/next-actions`
+and the landing's recommendations fallback) went too, because a button to a
+route that no longer resolves is worse than no button. **Deliberately NOT
+removed:** the `certifications` / `certification_progress` tables, their seed
+rows, the admin Catalogue screen that maintains them, and the readiness check
+and analytics that read them — the "Certification completion" factor on the
+student's readiness card still counts the same rows. That is the institution's
+catalogue, not the student screen that was asked for, and the readiness score
+would change on every deployment if it went. No migration: a stale
+`student_milestones` row for `spec_cert` and a stale `feature_overrides` row
+for the old key are both inert by construction (the milestone reader ignores
+unknown keys; the override resolver skips them and the console lists them
+under the bare key). The header's login-streak chip stays; only the card went.
+The global `.donut`, `.bar-chart`, `.bar-labels` and `.streak-*` classes had
+no other consumer and left `reep-v2.scss` with it. **The assistant read that
+endpoint too**: `assistant_tools.deadlines` projected the tracker's due-dates
+and `_deadlines` in the orchestrator read them out with a "View certifications"
+action — found by the golden-set gate in CI, not by `api-imports`, because a
+deleted function reached through a module attribute is a crash at call time
+and not at import. The DEADLINES intent answers the courses' next tasks now
+(`/student/courses`), and the readiness "Certification completion" factor's
+`_FACTOR_ACTION` points at Uploads, where the tracker's own "Continue" button
+already sent the student — `test_readiness_is_deterministic_with_score_and_weakest_factor`
+indexes that map directly, so every measurable factor must name a live route.
+
+**THE LEDGER LOCKS, THE STEPPER WALKED THROUGH UTC, AND THE WEEKLY STRIP SUMMED
+A TABLE NOBODY WRITES (2026-09-22).** Three defects reported as one — "the time
+sheet is completely broken, the filled data shows nothing, and a student can
+enter any old day" — and each is a different fix in a different place.
+
+  * **The date stepper.** `step()` did `new Date(`${day}T00:00:00`)`, added
+    the days, and printed `toISOString().slice(0, 10)`. The first parses LOCAL
+    midnight; the last prints UTC. In India — UTC+5:30, every student this
+    app has — local midnight is 18:30 the previous day in UTC, so "Previous
+    day" went back TWO days and "Next day" landed on the day it started from,
+    every time. A student who filled Monday in, opened the screen on Tuesday
+    and pressed the back arrow saw Sunday, empty, and reported their record
+    gone. It never was; the stepper could not reach it, `ng build` cannot see
+    it, and a test run in UTC cannot either. `features/student/ledger/ledger-days.ts`
+    does the calendar arithmetic through `Date.UTC` and never touches local
+    time; its spec walks forty days back and forty forward.
+  * **"Today" is the SERVER's, in the college's zone.** The container runs UTC,
+    so `date.today()` in a handler is yesterday for the whole of 00:00–05:30
+    IST, and a student pressing Save at 00:30 was told the day "has not
+    happened yet". `app/clock.py` (`local_today`, `PROGRAMME_TIMEZONE`,
+    default `Asia/Kolkata`) is what the ledger reads now, the first load asks
+    for no day so the server picks it, every `LedgerOut` carries `today`, and
+    the client steps from THAT rather than from the handset's clock. An unknown
+    zone name falls back to UTC with a warning rather than refusing to boot.
+  * **The lock.** `LEDGER_EDIT_WINDOW_DAYS` (2) is how long a day stays open
+    after it ends — Monday can be written until the end of Wednesday. Past
+    that it is LOCKED in every direction: no save, no submit, no "copy
+    yesterday" onto it, 409 with a sentence naming the day and the last day it
+    could have been filled in. `_day_window` in `routers/student_programme.py`
+    is the ONE function that decides open/future/locked; the read, the history,
+    the save, the copy and the submit all ask it, so the chip on the screen and
+    the 409 are one sentence. The inputs enable off `editable` alone.
+  * **The record.** `GET /api/student/ledger/history?days=14` is one entry per
+    calendar day — EMPTY / DRAFT / SUBMITTED, hours, locked or open — padded to
+    every day in the window, because "Not logged" and "Locked" are things the
+    strip must be able to say rather than things a student infers from a gap.
+    The screen draws it as a strip of day chips, each a button onto that day.
+  * **The weekly strip.** "Skilling this week" read `time_sheet_entries`, the
+    old free-form time log's table, which nothing has written since the ledger
+    replaced that screen — so it sat at "0 h" under the very cells it should
+    have been adding up. `GET /student/timesheet` sums the ledger's SKILLING
+    cells now, per day, and counts a legacy row only for a day that has no
+    ledger row, so the seed's demo data and any old-screen history count once.
+
+`tests/test_time_ledger.py` pins the lock's inclusive boundary (today minus N
+is open, minus N+1 is not), the history's shape and the strip's sum;
+`tests/test_clock.py` the zone and its fallback. Every `TODAY` in that module
+is `local_today()`, so the tests mean the same thing at 01:00 IST as at noon.
+
+**THE LEADERBOARD IS THE BATCH, AND THE BATCH IS ON THE SCREEN (2026-09-22).**
+A student who registered naming a batch, was approved and seated, opened
+Leaderboards and saw none of their batch mates. Two causes, both in
+`routers/student.py`'s leaderboard section. A board listed only the students
+who already HELD something on it (the 2026-09-17 rule, kept — "Rank 2 of 30"
+over a zero is a lie), so a fresh batch drew "No ranking yet" for everybody and
+nothing said the classmates were there; the board now carries the batch mates
+who are NOT yet ranked as a second, unnumbered list (`unranked`, names only,
+capped at 200), so the student sees their batch and sees who is ranked. And a
+student with `students.cohort_id` NULL was "ranked" among every other
+NULL-cohort student on the deployment, which is not a batch. `_leaderboard_scope`
+resolves the batch where there is one, else the DEPARTMENT
+(`students.department_id`, the second pointer `ancestry_of_student` reads —
+every batch of it plus its unseated students), else nobody — and the response
+SAYS which (`scope`, `scope_label`, composed by `batch_labels.compose` and
+never `cohorts.name`), because "your batch has no results yet" and "you are not
+seated in a batch" are different sentences with different fixes and used to be
+one empty table. `overall` is the new default board: skills, VTU results,
+streak and mocks each worth up to `OVERALL_POINTS_PER_COMPONENT` (25), SCALED
+against the best in the batch — added raw, a streak of eighty days would BE the
+leaderboard — summed to a score out of 100 and ranked on the ROUNDED number so
+two students the label calls "72 pts" are level. `overall_points` is pure and
+pinned without a database; a fresh account is on it through its sign-in streak
+alone, which `test_board_values_leave_out_a_student_with_nothing_recorded` now
+says out loud. Certificates are not a component: the skills board already ranks
+what a certificate was verified into. The cache key is `(scope kind, scope id,
+board)`, and a visibility change, or the office removing, restoring or deleting
+an account with a `students` row, clears the whole cache
+(`clear_leaderboard_cache`) rather than guessing which scopes a student is in.
+A REMOVED account (`users.deleted_at`) is on no board, the badge boards on
+Skilling (`routers/badges.py`) included; those keep their own programme-wide
+scope and were otherwise not touched.
+
 **Staff read these through rule 2's gate**, in `app/routers/mentee_records.py`:
 `GET /api/mentor/students/{id}/ledger`, `.../ledger/summary` and
 `.../english-baseline`. Every one names a student in the PATH, so every one goes
@@ -1177,6 +1404,93 @@ cohort CSV at `/api/admin/badges/export.csv`). Staff reads reuse
 `compose_badges`/`compose_growth` — the mentor sees exactly the student's own
 screen. Rule 1 untouched (nothing here calls a model); rule 2 via
 `_assert_can_access_student`, with the pending queue narrowed in SQL.
+
+### The claim-to-verification walk, and the day every upload was refused at the edge (2026-09-17)
+
+**EVERY FILE UPLOAD IN THE PRODUCT WAS ANSWERED 403 BY THE WAF, AND THE SCREEN
+SAID THE FILE WAS THE WRONG KIND.** `infra/cdk/reep_core/edge.py` applies
+`AWSManagedRulesCommonRuleSet` to the CloudFront distribution, and that group's
+`SizeRestrictions_BODY` rule blocks any request body over 8 KB. A certificate
+on Skilling, the CV and photo `/register` requires, a leave attachment, a
+faculty signature, an alumni resume, an upskilling certificate — every one is a
+multipart POST far past 8 KB, refused before CloudFront, the ALB or the API saw
+it, with a body that is not JSON. The Skilling client read no `detail` and
+printed its fallback, "Certificate upload failed (PDF or JPEG, up to 5 MB)", so
+a student attaching a 2 MB JPEG was told their JPEG was the wrong file, and the
+one fact that pointed at the edge — the status code — was the one thing the
+message left out. Nothing in the API could catch it and nothing in the suite:
+the WAF exists only in front of the deployment. The rule is COUNTED now
+(`COMMON_RULE_SET_COUNTED`, harden phase only, so the import mirror stays
+byte-identical), pinned by `test_the_common_rule_set_counts_the_body_size_rule_
+so_uploads_reach_the_api`, and **it takes a deploy of the `edge-waf` option in
+`cdk-deploy.yml` to take effect** — a merged infra fix that is never deployed
+costs exactly as much as never writing it. The API bounds every body itself
+(`document_store.MAX_BYTES`, the per-handler `read(MAX + 1)`), which is why the
+edge rule is counted and not scoped down to a hand-kept list of upload paths.
+Every upload client now prints the server's sentence or the STATUS
+(`detailOf`, the verifications screen's helper copied where it was missing), so
+the next refusal at the edge reads "(403)" and not a sentence about JPEGs.
+
+**THE CLAIM FORM FILED INTO A QUEUE THE MENTOR'S SCREEN NEVER OPENED.**
+`/student/skilling` stores the certificate through `POST /student/uploads` and
+files `badge_evidence` against it (`POST /student/badges/{code}/evidence`);
+`/mentor/verifications` read `GET /mentor/skill-claims/pending` — the legacy
+`skill_claims` table, which no client has written to since the Skilling screen
+replaced the per-skill claim form. Every claim a student filed went into a
+queue nobody's screen listed, and the mentor saw "Nothing waiting for your
+review" over a growing list of real claims. The screen reads
+`/mentor/badge-evidence/{pending,reviewed}` now, with the file name on each
+row, and the `skill-claims` endpoints stay only for the resume builder's read.
+Three decisions: APPROVE lights the badge, MORE_INFO sends it back, REJECT
+refuses it — **and the last two are 422 without a note**, because the note is
+the whole of what the student is told, on screen and by mail. **One decision
+writes both rows**: the certificate behind a claim was PENDING_REVIEW in the
+Documents queue on the same screen, decidable in the opposite direction, so
+`review_evidence` now writes the claim's verdict onto the upload too (VERIFIED /
+NEEDS_CHANGES / REJECTED, same reviewer, same note — never over a verdict the
+document already carries), and `pending_uploads` leaves out a file a pending
+claim stands on. The board draws the mentor's approval as a BLUE `verified`
+tick on an EARNED tile and nothing else: an unclaimed badge is unmarked, a
+claim in review wears a clock, and the tap-to-preview lights the hexagon
+without the tick, because a preview that wore it would be indistinguishable
+from a verified badge. `tests/test_skill_claim_flow.py` walks all of it.
+
+**MAIL: THE MENTOR HEARS OF THE CLAIM, THE STUDENT OF THE DECISION, AND THE
+SWITCH IS DERIVED.** `app/badge_mail.py`, through `mailer.deliver_once` — keys
+`badge-claim:{id}` (one message per claim, however often it is retried) and
+`badge-decision:{id}:{status}` (stable per transition, different per
+transition). Both run AFTER the commit and never raise. The student's mail
+carries the reviewer's note: unlike a leave approver's note, which is written
+for the office's file and stays out of the mail, this one is written TO the
+student and the API refuses a rejection without it. Nothing from the record
+travels — no USN, no marks, no certificate. `settings.badge_mail_active` is
+`password_login`'s three-state idiom and deliberately NOT `leave_mail_enabled`'s
+boolean: `BADGE_MAIL_ENABLED=true` forces on (the console outbox), `false`
+forces off, and blank DERIVES the answer from `mail_configured`. That protects
+the machine `leave_mail_enabled`'s false default protects — no transport, no
+SENT row about a message nobody received — and turns the notifications on for
+the production task, which already carries `SES_FROM_ADDRESS`, with no second
+variable in a task definition to remember. `app.badge_mail` is muted from
+Sentry beside `app.leave_mail`.
+
+**A CANDIDATE'S COMPLETE DETAILS ARE THE OFFICE'S, AND THE OFFICE MAY HAND THE
+READ TO A FACULTY MEMBER.** `admin.student_records` ("View student records",
+PROGRAMME, `carries_pii`) is the read side of the roster, split off
+`admin.students`, which is the EDITOR. `GET /admin/students/{id}/360` and the
+route `/admin/students/:id` hang on it; the Main Admin holds both keys by
+baseline and sees no difference, a faculty member holds whichever Governance
+granted, and rule 2 still runs underneath — a granted MENTOR opens their OWN
+mentees' records and nobody else's. Two panels were missing from "complete":
+the profile as FILLED IN (the open-items card named only the gaps) and the
+student's DOCUMENTS, which had no by-id read anywhere; both are on the
+composite read now (`profile`, `documents`), the Documents tab is real, and
+the bytes stream through `GET /mentor/uploads/{id}/file` — rule 2's gate
+applied to a file. The way in: a **View** eye beside the pencil in the
+roster's pinned actions column (the Student column's link was the only route
+to a record and that column can be hidden — the office had), and a **Full
+record** link on the Mentee Log for a faculty holder. The key has NO sidebar
+row on purpose — it opens a per-student screen, and `GRANTABLE_ADMIN_SCREENS`
+says so where the next reader will look for it.
 
 ## Reachability and keyboard access — what a full browser audit found (2026-09-10)
 
@@ -1627,6 +1941,109 @@ names DECLARED rather than discovered, unioned in after the denylist filter, one
 per line with a comment saying which screen will want it. Put a glyph there when
 you are about to build the screen that uses it; the alternative is discovering
 on the day that the button is blank.
+
+### The phone (2026-09-22)
+
+Three Sentry issues and one request, and they turned out to be one subject: the
+student reaches REEP on a handset and almost nothing here was built for one.
+
+**THE APP DID NOT PAINT AT ALL ON AN OLD PHONE BROWSER.** `Object.hasOwn` is
+ES2022 (Chromium 93) and Angular 22 calls it in the ROUTER and in core's
+`__ngSimpleChanges__` reader during `bootstrapApplication` — so on a Chromium
+fork below that the app dies before its first frame, with no screen left to
+explain itself on and no login form to reach. `src/polyfills.ts` fills it,
+along with `Array/String.prototype.at` and `String.replaceAll`, which sit in
+the same 85–93 band; every entry was chosen by grepping the BUILT bundle, and
+`structuredClone`, `findLast` and `toSorted` are deliberately absent because
+nothing calls them. All four installs go through `define`, which is what makes
+them non-enumerable — a bare `Array.prototype.at = fn` appears in every
+`for...in` over an array in every dependency. **There is deliberately no
+`.browserslistrc`**: one was written (Chrome 87) and removed, because the
+bundle had already PARSED on that browser — syntax was never the gap — and it
+cost ~4 kB of lowering plus an Angular-support warning on every build, which is
+a warning nobody reads by the second week. The spec tests the exported
+implementations against the RUNTIME'S OWN native method as an oracle; that
+caught the first `replaceAll`, which used split/join to avoid misreading `$&`
+and was wrong about the spec (replaceAll runs GetSubstitution exactly as
+replace does). Deleting a native and re-importing to reach the guarded branch
+is what the spec did first, and it took vitest down with it — eleven unrelated
+files failing on `this.executionStack.at is not a function`, because the runner
+shares the realm.
+
+**THE SHELL PUT A FIXED 220px SIDEBAR BESIDE THE CONTENT**, which on a 360px
+handset is two thirds of the screen for navigation. Below 900px it is an
+off-canvas drawer behind a hamburger — the SAME `<nav>` and the same
+`navigation()` groups, because a second mobile menu is a second list to keep in
+step with `ADMIN_NAVIGATION` and its three siblings. Closed is
+`visibility: hidden` and not only a transform, or the drawer stays in the focus
+order and tabbing from the app bar walks every row of an invisible panel first
+— the `hidden` file-input defect from the reachability audit, arriving again.
+`height: 100dvh` sits beside the `100vh` fallback because `vh` is the viewport
+with the URL bar scrolled AWAY, and the frame is `overflow: hidden`, so the
+bottom of every screen was unreachable rather than scrollable.
+
+**TABLES WERE CLIPPED, NOT OVERFLOWING**, which is why no scroll bar ever hinted
+at it: `body` is `overflow-x: hidden` and `.desktop-frame` is
+`overflow: hidden`, so a student at 390px saw the first three columns of their
+marks and had no gesture to reach the rest. Tables inside `.desktop-main`
+scroll now. Jobs, Records and the Ledger already did this properly with their
+own wrappers and are EXCLUDED — `.jobs-table` is `table-layout: fixed` with six
+weighted percentage columns that the block treatment would drop. **The
+exclusion lists WRAPPERS and not tables**, because the two lists fail in
+opposite directions: forget a wrapper and its table merely gets both
+treatments, forget a table and it clips again. It is written as a specificity
+override rather than `:not(.jobs-frame *, …)` — a `:not()` holding COMPLEX
+selectors is Selectors 4, and a parser that cannot read it drops the whole
+rule, putting the clipping back on exactly the browsers `polyfills.ts` exists
+for. And `minmax(Npx, 1fr)` does not collapse below its own minimum: the track
+keeps the Npx and the grid overflows, so six student grids and the global
+`.dense-grid` cap it with `min(Npx, 100%)`.
+
+**IT INSTALLS, AND THE MANIFEST IS THE STUDENT'S.** `public/manifest.webmanifest`
+is "REEP Student" starting at `/student`; `tools/icons/make-app-icons.py`
+redraws the four icons from `--primary-gradient`'s own stops and the app's own
+Plus Jakarta Sans, which is a VARIABLE font whose default instance is 400 — the
+first icons came out at Regular beside an app bar drawing 800, so the axis is
+pinned with `instancer`. `scope` is `/` and CANNOT be narrowed to `/student`:
+scope is what the installed window keeps, and narrowing it opens every
+`/account` and `/login` URL in the browser instead, which signs the student out
+of the app they just installed. The apple-touch-icon is a separate `<link>`
+because iOS ignores the manifest's icons, and the one opaque icon of the four
+because iOS composites transparency against black.
+
+**`ngsw-config.json` HAS NO `dataGroups`, AND THAT ABSENCE IS RULE 1.** A
+dataGroup is how ngsw caches API responses, and every interesting response here
+is marks, attendance, a USN or an interview transcript. Cached, they are
+written to the handset's disk by the BROWSER, outliving the httpOnly
+`reep_session` cookie, surviving sign-out and surviving `_retire_other_sessions`
+— and unreachable from `purge_students` and `purge_people`, which can empty a
+database and cannot touch Cache Storage on a phone in Bengaluru. The file is
+strict JSON and cannot hold that reasoning, so it lives beside
+`provideServiceWorker` in `app.config.ts`. `navigationUrls` excludes `/api/**`
+for the neighbouring reason. The asset groups are split so INSTALL costs 243 kB
+and not 4 MB: prefetching `/*.js` took every admin chunk, ag-grid and echarts
+onto a student's metered connection, which is the bill "Routes are lazy" was
+written to avoid.
+
+**TWO DEPLOY BUGS CAME WITH IT AND BOTH WOULD HAVE BEEN SILENT.** `ngsw.json`
+and `ngsw-worker.js` are fetched at FIXED names and were inside the
+`max-age=31536000,immutable` pass, so an installed student's app would have been
+frozen on its install build for a year — index.html's own bug, but worse,
+because a service worker survives a tab close. They are a third pass with
+`no-cache` now, and in the CloudFront invalidation. And ngsw validates every
+file against a SHA-1 taken at build time, while `sentry-cli sourcemaps inject`
+runs AFTER `ng build`: a file changed in that window makes the worker refuse the
+new version and keep serving the old one forever, with the bucket and CloudFront
+both holding the new build and nothing in any log saying so.
+`tools/ci/check_ngsw_integrity.py` fails the deploy there instead, and also
+refuses a `.map` in the hashTable — deploy deletes maps before upload, so a
+worker expecting one could never install.
+
+**Regenerating the icon subset for `menu` found `refresh` missing**, which
+`/register` had been rendering as a blank space. `collect-icon-names.py` reads
+templates, so an icon is only ever as discoverable as its markup; `running` was
+a state value it mistook for a glyph inside an interpolation and is denylisted
+beside `draft` and `completed`.
 
 The floating **agent orb** and the **dock** it opens live in the SHELL
 (`layout/agent-orb.component.ts`, `layout/agent-dock.component.ts`), not in a

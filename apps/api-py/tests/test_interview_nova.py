@@ -932,6 +932,61 @@ class TestTheUplink:
         assert session._gate_closes == 1
         assert session._last_audio_at == before
 
+    def test_the_gate_frame_the_browser_actually_sends_is_counted(self):
+        """The browser says `{"state": "suppressed"}`. Counting only the
+        `{"open": false}` spelling left this counter at zero on every
+        interview, and an opening of the gate is not a close."""
+        session, _upstream, _browser = make_session("hr")
+        session._handle_client_control(json.dumps({"type": "reep.mic.gate", "state": "suppressed"}))
+        session._handle_client_control(json.dumps({"type": "reep.mic.gate", "state": "open"}))
+        assert session._gate_closes == 1
+
+    def test_the_browsers_audio_counters_reach_the_end_line_and_nothing_else_does(self):
+        """`reep.client.stats` is the only way a "the voice kept breaking"
+        report can be read without the student's own console. Whitelisted and
+        clamped: a frame from anybody's devtools can put a bounded number or a
+        known word into the log line, and nothing else."""
+        session, _upstream, _browser = make_session("hr")
+        session._handle_client_control(
+            json.dumps(
+                {
+                    "type": "reep.client.stats",
+                    "route": "speaker",
+                    "local_barge_ins": 3,
+                    "confirmed_barge_ins": 3,
+                    "underruns": 2,
+                    "lead_ms": 180,
+                    "coupling": 0.31234,
+                    "transcript": "a student's words must never be logged",
+                    "dropped": -5,
+                    "judged": 10**12,
+                    "suppressed": True,
+                    "keepalive": "7",
+                }
+            )
+        )
+        stats = session._client_stats
+        assert stats["route"] == "speaker"
+        assert stats["local_barge_ins"] == 3 and stats["underruns"] == 2
+        assert stats["coupling"] == 0.312
+        assert stats["dropped"] == 0
+        assert stats["judged"] == 1_000_000
+        assert "transcript" not in stats
+        assert "suppressed" not in stats, "a boolean is not a count"
+        assert "keepalive" not in stats, "a string is not a count"
+        line = nova._format_client_stats(stats)
+        assert line.startswith("route=speaker,")
+        assert "transcript" not in line
+        assert nova._format_client_stats({}) == "-"
+
+    def test_a_malformed_stats_frame_changes_nothing_and_raises_nothing(self):
+        session, _upstream, _browser = make_session("hr")
+        session._handle_client_control(json.dumps({"type": "reep.client.stats", "route": "moon"}))
+        assert session._client_stats == {}
+        session._handle_client_control("not json")
+        session._handle_client_control(json.dumps(["reep.client.stats"]))
+        assert session._client_stats == {}
+
     def test_reep_end_stops_the_session_with_1000(self):
         session, _upstream, _browser = make_session("hr")
         session._handle_client_control(json.dumps({"type": "reep.end"}))
@@ -1221,14 +1276,384 @@ class TestEngineSelection:
         assert stranded.interview_ready is False
         assert "region" in stranded.interview_unready_reason
 
-    def test_the_endpointing_default_is_not_the_fastest_one(self):
+    def test_the_endpointing_default_is_the_most_patient_one(self):
         """An interview answer contains thinking pauses.
 
-        HIGH reads them as the end of the turn, and being cut off mid-answer is
-        the most damaging thing a mock interviewer can do to a nervous student.
+        AWS documents the three levels as the pause Nova waits for before
+        taking the turn: HIGH 1.5 s, MEDIUM 1.75 s, LOW ~2 s. This shipped at
+        MEDIUM and a student gathering an example was answered over the second
+        half of their answer -- "it records the answer very rigidly". Being cut
+        off mid-answer is the most damaging thing a mock interviewer can do to
+        a nervous student, so the default is the slowest one, and a typo still
+        falls back rather than failing the handshake.
         """
         session, _upstream, _browser = make_session("hr")
-        assert session._endpointing() == "MEDIUM"
+        assert session._endpointing() == "LOW"
+
+
+# ---------------------------------------------------------------------------
+# An interruption that was not an answer
+# ---------------------------------------------------------------------------
+
+
+async def interrupted(session, cid: str = "i1") -> None:
+    """Nova's barge-in marker, inside the turn being interrupted, and the end
+    of that turn: the audio block stops INTERRUPTED and the completion ends."""
+    await session._on_upstream_event(
+        {
+            "event": {
+                "contentStart": {
+                    "contentId": f"{cid}-marker",
+                    "type": "TEXT",
+                    "role": "ASSISTANT",
+                    "additionalModelFields": _FINAL,
+                }
+            }
+        }
+    )
+    await session._on_upstream_event(
+        {"event": {"textOutput": {"contentId": f"{cid}-marker", "content": '{ "interrupted" : true }'}}}
+    )
+    await session._on_upstream_event(
+        {"event": {"contentEnd": {"contentId": cid, "type": "AUDIO", "stopReason": "INTERRUPTED"}}}
+    )
+    await session._on_upstream_event({"event": {"completionEnd": {"stopReason": "INTERRUPTED"}}})
+
+
+def last_student_turn(session) -> tuple[str, str, str, str | None, bool]:
+    """The most recent STUDENT turn the engine emitted -- after `spoken_reply`
+    the last emitted turn is the interviewer's, whose quality is always None."""
+    return [turn for turn in session.emitted if turn[0] == nova._SENDER_STUDENT][-1]
+
+
+class TestAnInterruptionThatWasNotAnAnswer:
+    """"The voice drops and it goes to the next question."
+
+    Nova stops speaking the moment it hears the student, and cannot tell a
+    cough from the first word of an answer. It abandons the question, the
+    browser flushes it, and the model then answers whatever it heard. These
+    pin the recovery: when the thing that interrupted turns out not to have
+    been an answer, the model is told to finish the question it was asking --
+    in the gap after its reply, never on top of it.
+    """
+
+    def test_a_cough_that_interrupted_gets_the_question_resumed_after_the_reply(self):
+        session, upstream, browser = make_session("hr")
+
+        async def scenario():
+            # The interviewer is mid-question; the student's chair scrapes.
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c1"}}})
+            await session._on_upstream_event(
+                {"event": {"contentStart": {"contentId": "a1", "type": "AUDIO", "role": "ASSISTANT"}}}
+            )
+            await interrupted(session, "a1")
+            assert browser.of_type("reep.audio.flush"), "the browser's queue is flushed on the marker"
+            before = len(upstream.notes)
+
+            # Nova replies to the noise: the transcript lands inside that reply.
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c2"}}})
+            await student_says(session, "u1", "hmm")
+            assert session.emitted[-1][3] == "filler"
+            assert session.emitted[-1][4] is False
+            assert session._machine.phase is InterviewPhase.OPENING
+            # Held, not sent: a note now would barge in on the reply in flight.
+            assert len(upstream.notes) == before
+            assert len(session._pending_notes) == 1
+            assert "finish the question you were asking" in session._pending_notes[0]
+
+            await spoken_reply(session, "a2", "Sorry, I didn't catch that.")
+            sent = upstream.notes[before:]
+            assert any("finish the question you were asking" in note for note in sent), (
+                "the resume directive must go upstream once the reply has finished"
+            )
+            assert session._pending_notes == []
+
+        run(scenario())
+
+    def test_a_real_answer_given_over_the_interviewer_is_still_an_answer(self):
+        """Barge-in with content is what barge-in is for; nothing is resumed."""
+        session, upstream, _browser = make_session("hr")
+
+        async def scenario():
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c1"}}})
+            await session._on_upstream_event(
+                {"event": {"contentStart": {"contentId": "a1", "type": "AUDIO", "role": "ASSISTANT"}}}
+            )
+            await interrupted(session, "a1")
+            before = len(upstream.notes)
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c2"}}})
+            await student_says(session, "u1", _GOOD_ANSWER)
+            await spoken_reply(session, "a2")
+            assert last_student_turn(session)[3] == "accepted"
+            assert session._machine.phase is InterviewPhase.PROBING
+            assert len(upstream.notes) == before
+            assert session._pending_notes == []
+
+        run(scenario())
+
+    def test_a_short_answer_that_did_not_interrupt_is_not_resumed(self):
+        """The documented no-clarification rule still holds when nothing was
+        cut off: a short answer in the ordinary gap steers nothing."""
+        session, upstream, _browser = make_session("hr")
+
+        async def scenario():
+            await interviewer_turn(session, "a1")
+            before = len(upstream.notes)
+            await exchange(session, 1, "yes it was")
+            assert last_student_turn(session)[3] == "too_short"
+            assert len(upstream.notes) == before
+            assert session._pending_notes == []
+
+        run(scenario())
+
+    def test_the_interruption_stamp_is_consumed_by_one_transcript_and_expires(self, monkeypatch):
+        """A marker is answered by exactly one transcript. A stale stamp must
+        not make a later short answer look like a barge-in, and a marker whose
+        transcript never came must not outlive its turn."""
+        session, _upstream, _browser = make_session("hr")
+        session._interrupted_at = 1000.0
+        monkeypatch.setattr(nova.time, "monotonic", lambda: 1000.0 + nova._INTERRUPTION_ANSWER_WINDOW_S + 1)
+        assert session._took_interruption() is False
+        session._interrupted_at = 1000.0
+        monkeypatch.setattr(nova.time, "monotonic", lambda: 1005.0)
+        assert session._took_interruption() is True
+        assert session._took_interruption() is False, "consumed on first read"
+
+    def test_the_interviewers_own_words_coming_back_are_echo_not_an_answer(self):
+        """Loud speakers play the question into the microphone; Nova transcribes
+        it as the student and, long enough for the word gate, it would advance
+        the arc on an answer nobody gave -- and the model would answer its own
+        question. It is recorded as `echo`, counts for nothing, and the model is
+        asked to put the question again."""
+        session, upstream, _browser = make_session("hr")
+        question = "Tell me about a time you led a team through a difficult change at work."
+
+        async def scenario():
+            await interviewer_turn(session, "a1", question)
+            assert session._last_interviewer_text == question
+            before = len(upstream.notes)
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c2"}}})
+            await student_says(session, "u1", "about a time you led a team through a difficult change at work")
+            assert session.emitted[-1][3] == "echo"
+            assert session.emitted[-1][4] is False
+            assert session._machine.phase is InterviewPhase.OPENING
+            assert len(session._pending_notes) == 1
+            await spoken_reply(session, "a2")
+            assert any("finish the question you were asking" in note for note in upstream.notes[before:])
+
+        run(scenario())
+
+    def test_an_interruption_reported_only_as_a_stop_reason_is_still_resumed(self):
+        """Nova can end the audio block INTERRUPTED without the text marker.
+        It is the same barge-in: the browser is told to flush and the
+        transcript that follows is judged as the thing that interrupted, so a
+        cough gets the question back rather than losing it."""
+        session, _upstream, browser = make_session("hr")
+
+        async def scenario():
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c1"}}})
+            await session._on_upstream_event(
+                {"event": {"contentStart": {"contentId": "a1", "type": "AUDIO", "role": "ASSISTANT"}}}
+            )
+            await session._on_upstream_event(
+                {"event": {"contentEnd": {"contentId": "a1", "type": "AUDIO", "stopReason": "INTERRUPTED"}}}
+            )
+            await session._on_upstream_event({"event": {"completionEnd": {"stopReason": "INTERRUPTED"}}})
+            assert len(browser.of_type("reep.audio.flush")) == 1
+            assert session._interruptions == 1
+
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c2"}}})
+            await student_says(session, "u1", "hmm")
+            assert len(session._pending_notes) == 1
+            assert "finish the question you were asking" in session._pending_notes[0]
+
+        run(scenario())
+
+    def test_the_marker_and_the_stop_reason_are_one_interruption(self):
+        session, _upstream, browser = make_session("hr")
+
+        async def scenario():
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c1"}}})
+            await session._on_upstream_event(
+                {"event": {"contentStart": {"contentId": "a1", "type": "AUDIO", "role": "ASSISTANT"}}}
+            )
+            await interrupted(session, "a1")
+
+        run(scenario())
+        assert session._interruptions == 1
+        assert len(browser.of_type("reep.audio.flush")) == 1
+
+    def test_a_stale_stamp_does_not_swallow_the_next_interruption(self):
+        """A marker whose transcript never arrived leaves its stamp behind.
+        The NEXT turn cut off by a stop reason alone must still flush the
+        browser: holding the flush on the old stamp would leave the student
+        talking over the rest of an abandoned question."""
+        session, _upstream, browser = make_session("hr")
+
+        async def scenario():
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c1"}}})
+            await session._on_upstream_event(
+                {"event": {"contentStart": {"contentId": "a1", "type": "AUDIO", "role": "ASSISTANT"}}}
+            )
+            await interrupted(session, "a1")  # no transcript follows
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c2"}}})
+            await session._on_upstream_event(
+                {"event": {"contentStart": {"contentId": "a2", "type": "AUDIO", "role": "ASSISTANT"}}}
+            )
+            await session._on_upstream_event(
+                {"event": {"contentEnd": {"contentId": "a2", "type": "AUDIO", "stopReason": "INTERRUPTED"}}}
+            )
+
+        run(scenario())
+        assert session._interruptions == 2
+        assert len(browser.of_type("reep.audio.flush")) == 2
+
+    def test_an_echo_of_a_question_cut_before_its_final_text_is_still_echo(self):
+        """A barge-in can end a turn before Nova sends any FINAL text for it.
+        The echo of THAT question must be compared with it -- compared with the
+        question before, it matches nothing, counts as an answer, and the arc
+        moves on: "the voice drops and it goes to the next question"."""
+        session, _upstream, _browser = make_session("hr")
+        cut = "Walk me through how you would evaluate a new market before a product launch."
+
+        async def scenario():
+            await interviewer_turn(session, "a0", "Tell me about yourself.")
+            await exchange(session, 1)  # an accepted answer: the arc moves to PROBING
+            phase = session._machine.phase
+
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c2"}}})
+            await session._on_upstream_event(
+                {
+                    "event": {
+                        "contentStart": {
+                            "contentId": "s2",
+                            "type": "TEXT",
+                            "role": "ASSISTANT",
+                            "additionalModelFields": _SPECULATIVE,
+                        }
+                    }
+                }
+            )
+            await session._on_upstream_event({"event": {"textOutput": {"contentId": "s2", "content": cut}}})
+            await session._on_upstream_event(
+                {"event": {"contentStart": {"contentId": "a2", "type": "AUDIO", "role": "ASSISTANT"}}}
+            )
+            await interrupted(session, "a2")
+            assert session._last_interviewer_text == cut
+
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c3"}}})
+            await student_says(session, "u2", "how you would evaluate a new market before a product launch")
+            assert last_student_turn(session)[3] == "echo"
+            assert last_student_turn(session)[4] is False
+            assert session._machine.phase is phase, "an echo must not advance the arc"
+
+        run(scenario())
+
+    def test_the_speculative_text_is_never_the_record(self):
+        """It is only a fallback for the echo comparison. The interviewer's
+        recorded turn is still what it actually said."""
+        session, _upstream, _browser = make_session("hr")
+
+        async def scenario():
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c1"}}})
+            await session._on_upstream_event(
+                {
+                    "event": {
+                        "contentStart": {
+                            "contentId": "s1",
+                            "type": "TEXT",
+                            "role": "ASSISTANT",
+                            "additionalModelFields": _SPECULATIVE,
+                        }
+                    }
+                }
+            )
+            await session._on_upstream_event(
+                {"event": {"textOutput": {"contentId": "s1", "content": "What I planned to say."}}}
+            )
+            await spoken_reply(session, "a1", "What I said.")
+
+        run(scenario())
+        interviewer = [t for t in session.emitted if t[0] == nova._SENDER_INTERVIEWER]
+        assert interviewer[-1][1] == "What I said."
+
+    def test_an_answer_that_reuses_the_questions_words_is_not_echo(self):
+        session, _upstream, _browser = make_session("hr")
+
+        async def scenario():
+            await interviewer_turn(session, "a1", "What is the role of a manager in a difficult change?")
+            await exchange(session, 1, "The role of a manager in a difficult change is to keep the team focused on the outcome and to absorb the uncertainty")
+
+        run(scenario())
+        assert last_student_turn(session)[3] == "accepted"
+        assert session._machine.phase is InterviewPhase.PROBING
+
+    def test_next_question_is_a_skip_and_nothing_is_steered(self):
+        """The model heard "next question" and the briefing tells it to move on
+        without pressing; a resume note here would fight the skip, and a
+        clarification would refuse to take it for an answer."""
+        session, upstream, _browser = make_session("hr")
+
+        async def scenario():
+            await interviewer_turn(session, "a1")
+            before = len(upstream.notes)
+            # Even said over the interviewer, a skip is a skip.
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c2"}}})
+            await session._on_upstream_event(
+                {"event": {"contentStart": {"contentId": "a2", "type": "AUDIO", "role": "ASSISTANT"}}}
+            )
+            await interrupted(session, "a2")
+            await session._on_upstream_event({"event": {"completionStart": {"completionId": "c3"}}})
+            await student_says(session, "u1", "next question please")
+            await spoken_reply(session, "a3")
+            assert last_student_turn(session)[3] == "skipped"
+            assert last_student_turn(session)[4] is False
+            assert session._machine.phase is InterviewPhase.OPENING
+            assert len(upstream.notes) == before
+            assert session._pending_notes == []
+
+        run(scenario())
+
+    def test_nothing_is_resumed_once_the_scorecard_has_been_asked_for(self):
+        """After the verdict the student cannot hear; the only turn left is the
+        tool call, and a resume note would put a spoken turn in front of it."""
+        session, upstream, _browser = make_session("hr")
+
+        async def scenario():
+            for index in range(5):
+                await student_says(session, f"u{index}", _GOOD_ANSWER)
+            await student_says(session, "u-final", "no thanks")
+            await interviewer_turn(session, "v1", "Two strengths, one improvement, one drill. Thank you.")
+            assert session._report_requested is True
+            before = len(upstream.notes)
+            session._interrupted_at = nova.time.monotonic()
+            await student_says(session, "u-late", "thank you")
+            assert session._pending_notes == []
+            assert len(upstream.notes) == before
+
+        run(scenario())
+
+    def test_the_model_is_briefed_on_interruptions_and_skips_for_every_interview(self):
+        """Nova decides WHEN the student has stopped; what it does with a turn
+        that was not an answer is the briefing's job, generic interview
+        included -- a cough interrupts a generic interview exactly as it does a
+        specialized one."""
+        for spec in ("hr", None):
+            session, _upstream, _browser = make_session(spec)
+            composed = session._instructions()
+            assert "## Language and turn-taking" in composed
+            assert "pick up the question you were asking" in composed
+            assert "next question" in composed and "skip" in composed
+            # Nova auto-detects the language and kiara/arjun are also its Hindi
+            # voices: an Indian-accented greeting was transcribed in Devanagari
+            # and the interview followed the student into Hindi. The prompt is
+            # the only lever, so it pins English.
+            assert "conducted in English" in composed
+            assert "Speak only English" in composed
+            # And it can never be read as permission to say nothing.
+            assert "never answer with silence" in composed
+            assert composed.endswith(nova._CONTROL_CHANNEL_NOTE)
+            assert composed.startswith(_INTERVIEWER_PERSONA)
 
 
 # ---------------------------------------------------------------------------

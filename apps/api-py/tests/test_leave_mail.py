@@ -68,7 +68,9 @@ def request_row(client, make_user):
     mail_transport.outbox.clear()
     yield leave_id
     with SessionLocal() as db:
-        db.execute(delete(MailLog).where(MailLog.dedupe_key.like(f"leave:{leave_id}:%")))
+        # `leave%:` and not `leave:`: the approvers' and the colleagues'
+        # mails (test_leave_on_leave_today.py) are keyed on the request too.
+        db.execute(delete(MailLog).where(MailLog.dedupe_key.like(f"leave%:{leave_id}:%")))
         db.commit()
 
 
@@ -200,9 +202,12 @@ def test_the_submit_endpoint_sends_the_submission_mail(client, make_user, monkey
     assert r.status_code == 201, r.text
     leave_id = r.json()["id"]
     try:
-        assert len(mail_transport.outbox) == 1, "submitting must reach the applicant"
-        sent = mail_transport.outbox[0]
-        assert REASON not in sent.text and REASON not in sent.subject
+        # The applicant's own mail. The approvers are told too (2026-09-24,
+        # test_leave_on_leave_today.py), so the outbox holds more than this one.
+        mine = [m for m in mail_transport.outbox if m.to == applicant.email]
+        assert len(mine) == 1, "submitting must reach the applicant"
+        for sent in mail_transport.outbox:
+            assert REASON not in sent.text and REASON not in sent.subject
         with SessionLocal() as db:
             row = db.scalar(
                 select(MailLog).where(MailLog.dedupe_key == f"leave:{leave_id}:SUBMITTED")
@@ -210,7 +215,7 @@ def test_the_submit_endpoint_sends_the_submission_mail(client, make_user, monkey
             assert row is not None and row.kind == MAIL_KIND
     finally:
         with SessionLocal() as db:
-            db.execute(delete(MailLog).where(MailLog.dedupe_key.like(f"leave:{leave_id}:%")))
+            db.execute(delete(MailLog).where(MailLog.dedupe_key.like(f"leave%:{leave_id}:%")))
             db.commit()
 
 
@@ -244,8 +249,12 @@ def test_the_one_signature_sends_the_sanction_mail_and_it_carries_no_reason(
         )
         assert one.status_code == 200, one.text
         assert one.json()["status"] == "APPROVED"
-        assert len(mail_transport.outbox) == 1
-        assert "sanctioned" in mail_transport.outbox[0].subject.lower()
+        # The applicant's own mail. A leave that covers today is also
+        # announced to the other faculty at approval (2026-09-24), so the
+        # outbox may hold those too; the reason check below reads them all.
+        mine = [m for m in mail_transport.outbox if m.to == applicant.email]
+        assert len(mine) == 1
+        assert "sanctioned" in mine[0].subject.lower()
 
         for sent in mail_transport.outbox:
             assert REASON not in sent.text and REASON not in sent.subject
@@ -266,5 +275,5 @@ def test_the_one_signature_sends_the_sanction_mail_and_it_carries_no_reason(
         }
     finally:
         with SessionLocal() as db:
-            db.execute(delete(MailLog).where(MailLog.dedupe_key.like(f"leave:{leave_id}:%")))
+            db.execute(delete(MailLog).where(MailLog.dedupe_key.like(f"leave%:{leave_id}:%")))
             db.commit()

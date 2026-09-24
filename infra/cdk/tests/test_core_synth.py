@@ -1341,6 +1341,53 @@ def test_the_archive_schedule_runs_the_sweep(hardened: Template) -> None:
     assert "app.archive_documents" in sched["Properties"]["Target"]["Input"]
 
 
+# ----------------------------------------- "<name> is on leave today" (leave) --
+
+LEAVE_TODAY_SCHEDULE = "reep-leave-today-daily"
+
+
+def _schedule_names(t: Template) -> set[str]:
+    return {
+        r["Properties"]["Name"]
+        for r in t.to_json()["Resources"].values()
+        if r["Type"] == "AWS::Scheduler::Schedule"
+    }
+
+
+def test_the_leave_today_schedule_runs_the_announcement_before_the_working_day(hardened: Template) -> None:
+    """The mail says "this person is on leave TODAY", so it must land on the
+    leave day, in India's morning, before the first class a colleague might
+    have to cover -- and the cron is UTC, so the check converts it. Not at
+    approval time either, which is the whole reason this is a schedule. A
+    schedule pointing at the wrong module is a green job that tells nobody."""
+    res = hardened.to_json()["Resources"]
+    sched = next(
+        r
+        for r in res.values()
+        if r["Type"] == "AWS::Scheduler::Schedule" and r["Properties"]["Name"] == LEAVE_TODAY_SCHEDULE
+    )
+    assert "app.leave_today_job" in sched["Properties"]["Target"]["Input"]
+
+    utc = _cron_minutes(sched["Properties"]["ScheduleExpression"])
+    ist = (utc + 5 * 60 + 30) % (24 * 60)
+    assert 6 * 60 <= ist <= 8 * 60 + 30, f"runs at {ist // 60:02d}:{ist % 60:02d} IST, not the morning of the leave day"
+
+    db = next(r for r in res.values() if r["Type"] == "AWS::RDS::DBInstance")
+    start, end = db["Properties"]["PreferredBackupWindow"].split("-")
+    to_min = lambda hm: int(hm[:2]) * 60 + int(hm[3:])
+    assert not (to_min(start) <= utc <= to_min(end)), "lands inside the RDS backup window"
+
+
+def test_the_leave_today_schedule_exists_only_where_leave_mail_can_be_sent(imported: Template) -> None:
+    """Gated on exactly what puts LEAVE_MAIL_ENABLED in the task definition. A
+    schedule without it wakes every morning and announces nothing; one in the
+    import mirror is a resource `cdk import` cannot adopt; one at step 9a rides
+    along with the Multi-AZ conversion for no reason."""
+    assert LEAVE_TODAY_SCHEDULE not in _schedule_names(imported)
+    assert LEAVE_TODAY_SCHEDULE not in _schedule_names(_core("harden", leaveMailEnabled=False))
+    assert LEAVE_TODAY_SCHEDULE not in _schedule_names(_core("harden", hardenEcs="false", leaveMailEnabled=True))
+
+
 def test_the_interview_audio_directory_is_named_and_not_inferred(hardened: Template) -> None:
     """`interview_audio._store_root()`'s fallback derives the audio store from
     UPLOAD_DIR's PARENT, so it lands on the EFS mount only because UPLOAD_DIR

@@ -457,6 +457,31 @@ signature and the Main Admin's is live at once. The route guard on
 access" for a faculty holder, and the policy and calendar buttons on that
 screen stay the Main Admin's (`require_admin`) and say so.
 
+**LEAVE MAIL HAS TWO MORE AUDIENCES, AND "ON LEAVE TODAY" GOES ON THE LEAVE DAY
+(2026-09-24).** Both are in `app/leave_mail.py`, both run only where
+`LEAVE_MAIL_ENABLED` is on, and both are for FACULTY (role MENTOR) requests
+only, because a student's absence is not something to broadcast. (1) A faculty
+application is mailed to everybody who can decide it (`leave_approvers`: every
+ADMIN, plus every faculty member `has_capability` says holds a live
+`admin.leave_approvals`, so the list and `_assert_can_decide` agree), never to
+the applicant. (2) **An approved faculty leave is announced to every other
+active faculty member ON EACH DAY OF THE LEAVE, and never when the office
+approves it.** The owner's words: the mail says "this person is on leave
+today", so it goes on that day, not at approval. `python -m app.leave_today_job`
+sends it at 07:00 IST (`reep-leave-today-daily`, `cron(30 1 * * ? *)`, gated on
+exactly what puts `LEAVE_MAIL_ENABLED` in the task definition). The one other
+sender is `decide_leave`, and only when the approval lands on a day the leave
+already covers, because the morning run has passed by then. Every mail is keyed
+`leave-today:{id}:{day}:{recipient}`, so the approval and the job never both
+send one, and a rerun sends nothing twice (and retries nothing: a FAILED row
+holds its key). **The broadcast carries the name and the dates and NOT the
+printed option**: the applicant's own mail says "casual leave", but a mail to
+forty colleagues must not say "loss-of-pay" or "restricted holiday". Neither
+mail carries the `reason`. Both are background tasks with their own session, so
+neither the Apply button nor Sanction waits on SES.
+`tests/test_leave_on_leave_today.py` pins it, including that an approval ahead
+of time writes no `leave-today:` row at all.
+
 **The signature image: normalised on the way in, never silent on the way
 out.** `PUT /api/staff/signature` re-encodes what the sniffer accepted as a
 flat, upright RGBA PNG through Pillow (EXIF rotation applied) before it is

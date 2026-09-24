@@ -57,7 +57,7 @@ to open the record.
 
 from datetime import date, datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -65,7 +65,11 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..governance import has_capability, require_capability
 from ..identity import get_current_session
-from ..leave_mail import notify_transition
+from ..leave_mail import (
+    announce_if_on_leave_today,
+    notify_approvers_in_background,
+    notify_transition,
+)
 from ..leave_policy import submit_refusal
 from ..scope_views import SCOPE_HEADER
 from ..models.leave import (
@@ -312,6 +316,7 @@ def _require_leave_approver(db: Session, session: dict) -> None:
 @router.post("", response_model=LeaveOut, status_code=status.HTTP_201_CREATED)
 def submit_leave(
     body: LeaveIn,
+    background: BackgroundTasks,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> LeaveOut:
@@ -365,6 +370,10 @@ def submit_leave(
     # when the feature is off, so this line cannot change what this endpoint
     # answers — which is the whole point, on an endpoint that must not change.
     notify_transition(db, lr)
+    # And everybody who can decide it (2026-09-24), when the applicant is
+    # faculty. After the response, in its own session: there can be several
+    # approvers, and the applicant's button must not wait on a mail server.
+    background.add_task(notify_approvers_in_background, lr.id)
     return _leave_out(lr, db)
 
 
@@ -592,6 +601,7 @@ class LeaveDecisionIn(BaseModel):
 def decide_leave(
     leave_id: str,
     body: LeaveDecisionIn,
+    background: BackgroundTasks,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> LeaveOut:
@@ -655,4 +665,12 @@ def decide_leave(
     # has no message at all: the applicant withdrew it themselves and does not
     # need telling what they just did.
     notify_transition(db, lr)
+    if lr.status == LeaveStatus.APPROVED:
+        # "X is on leave today" goes to the other faculty ON THE LEAVE DAY,
+        # never because the office pressed Sanction (2026-09-24). This sends
+        # only when today is already one of the leave's days — the morning
+        # job (`python -m app.leave_today_job`) has run by then and would not
+        # otherwise reach it until tomorrow. A leave approved ahead of time
+        # sends nothing here.
+        background.add_task(announce_if_on_leave_today, lr.id)
     return _leave_out(lr, db)

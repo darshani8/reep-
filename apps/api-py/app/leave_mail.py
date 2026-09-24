@@ -1,9 +1,10 @@
 """Leave notifications (B10.5) — and the DEFAULT is off, not the deployment.
 
-One function, `notify_transition(db, lr)`, which mails the APPLICANT that their
-request has moved. Three transitions are worth a message and they are the three
-04 names: it was submitted, somebody gave the first signature, somebody decided
-it.
+`notify_transition(db, lr)` mails the APPLICANT that their request has moved.
+Three transitions are worth a message and they are the three 04 names: it was
+submitted, somebody gave the first signature, somebody decided it. The mails to
+the APPROVERS and to the applicant's COLLEAGUES are at the foot of this module
+and have their own section below.
 
 ==============================================================================
 OFF BY DEFAULT, AND THE DEFAULT IS ABOUT THE TRANSPORT, NOT ABOUT THE FEATURE
@@ -69,24 +70,63 @@ one that grows a debug line under pressure. The cost is honest: a failure here
 is visible in the `mail_logs` row and the CloudWatch line, not as a Sentry
 breadcrumb.
 
-RULE 1 is not in play (nothing here reaches a model), and rule 2 is satisfied by
-construction: the only recipient this module can address is the applicant's own
-account.
+RULE 1 is not in play (nothing here reaches a model). Rule 2 is why the two
+mails below that go to somebody OTHER than the applicant carry less than the
+applicant's own mail does.
+
+==============================================================================
+TWO MORE AUDIENCES (2026-09-24): THE APPROVERS, AND THE FACULTY ON THE DAY
+==============================================================================
+
+A FACULTY MEMBER'S APPLICATION IS MAILED TO EVERYBODY WHO CAN DECIDE IT —
+the Main Admin, and every faculty account holding a live grant of
+`admin.leave_approvals` (`leave_approvers`). Until this the queue was found by
+opening the screen, and a delegate the office had handed the queue to had no
+way to learn that anything was waiting. The mail names the applicant and the
+dates and sends them to the screen; the `reason` stays out, for the reason
+above, and so does the printed option, which the approver reads on the screen
+anyway.
+
+AN APPROVED FACULTY LEAVE IS ANNOUNCED TO EVERY OTHER FACULTY MEMBER ON EACH
+DAY OF THE LEAVE, AND NEVER ON THE DAY IT IS APPROVED — unless that is one of
+the leave days. The owner's words: the mail says "this person is on leave
+today", so it goes on the leave day, not when the office presses Sanction.
+A leave approved on Monday for Friday sends nothing on Monday; Friday
+morning's `python -m app.leave_today_job` sends it. A leave approved on its own
+first day (or in the middle of it) is announced at approval, because the
+morning run has already passed and that day is a leave day. The key is
+`leave-today:{id}:{day}:{recipient}`, so the morning run and the approval
+cannot both send the same day's mail, and a rerun of the job sends nothing
+twice.
+
+THE BROADCAST CARRIES THE NAME AND THE DATES AND NOTHING ELSE — not the
+printed option either. The applicant's own mail says "casual leave"; a mail to
+forty colleagues must not say "loss-of-pay leave" (pay) or "restricted
+holiday" (which is how the form spells a religious observance). Colleagues
+need to know WHO is away and UNTIL WHEN; why, and on what terms, is between the
+applicant and the office.
 """
 
 from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import date
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .clock import local_today
 from .config import settings
+from .db import SessionLocal
+from .governance import has_capability
 from .mail_transport import send as transport_send
 from .mailer import deliver_once
+from .models.governance import AccessGroupMember, CapabilityGrant, SubjectKind
 from .models.leave import LeaveRequest, LeaveStatus
-from .models.mail import MailLog
-from .models.user import User
+from .models.mail import MailLog, MailStatus
+from .models.user import Role, User
 
 log = logging.getLogger(__name__)
 
@@ -205,3 +245,271 @@ def notify_transition(db: Session, lr: LeaveRequest) -> MailLog | None:
         # way account_links.py's `_driver` does it.
         send=lambda to, subj: transport_send(to, subj or "", text),
     )
+
+
+# ---------------------------------------------------------------------------
+# The approvers, when a faculty member applies.
+# ---------------------------------------------------------------------------
+
+#: `kind` on the rows below, so the office can tell the three leave mails apart
+#: on the Email delivery screen.
+APPROVER_MAIL_KIND = "leave-approval-needed"
+ON_LEAVE_MAIL_KIND = "leave-on-leave-today"
+
+#: Whose leave the two mails below are about. "Faculty" is the MENTOR role: a
+#: STUDENT's absence is not their teachers' business to be broadcast, and the
+#: office's own leave is decided by a delegate who already sees the queue.
+FACULTY_ROLES: tuple[Role, ...] = (Role.MENTOR,)
+
+#: The approver's capability. The same string `routers/leave.py` names as
+#: `LEAVE_APPROVAL_CAPABILITY`, restated rather than imported because that
+#: router imports this module; `test_leave_mail` compares the two.
+LEAVE_APPROVAL_CAPABILITY = "admin.leave_approvals"
+
+
+def _is_active(user: User | None) -> bool:
+    return user is not None and user.barred_at is None and bool((user.email or "").strip())
+
+
+def _is_faculty(user: User | None) -> bool:
+    return user is not None and user.role in FACULTY_ROLES
+
+
+def approver_dedupe_key(lr: LeaveRequest, approver: User) -> str:
+    return f"leave-approval:{lr.id}:{approver.id}"
+
+
+def on_leave_dedupe_key(lr: LeaveRequest, day: date, recipient: User) -> str:
+    return f"leave-today:{lr.id}:{day.isoformat()}:{recipient.id}"
+
+
+def leave_approvers(db: Session) -> list[User]:
+    """Every live account that can decide a leave request today.
+
+    The Main Admin by role, and every faculty member holding a live grant of
+    `admin.leave_approvals` — asked through `has_capability`, the same question
+    `_assert_can_decide` asks, so this list and the gate cannot disagree about
+    who may press Sanction. The SQL only narrows the candidates to accounts a
+    grant NAMES; liveness (revoked, expired, pending, role changed) is decided
+    by `has_capability`, never restated here.
+    """
+    direct = select(CapabilityGrant.subject_user_id).where(
+        CapabilityGrant.capability == LEAVE_APPROVAL_CAPABILITY,
+        CapabilityGrant.subject_kind == SubjectKind.USER,
+    )
+    via_group = (
+        select(AccessGroupMember.user_id)
+        .join(CapabilityGrant, CapabilityGrant.subject_group_id == AccessGroupMember.group_id)
+        .where(
+            CapabilityGrant.capability == LEAVE_APPROVAL_CAPABILITY,
+            CapabilityGrant.subject_kind == SubjectKind.GROUP,
+        )
+    )
+    candidates = db.scalars(
+        select(User)
+        .where(
+            User.deleted_at.is_(None),
+            User.disabled_at.is_(None),
+            (User.role == Role.ADMIN)
+            | ((User.role == Role.MENTOR) & (User.id.in_(direct) | User.id.in_(via_group))),
+        )
+        .order_by(User.email)
+    ).all()
+    return [
+        u
+        for u in candidates
+        if _is_active(u)
+        and has_capability(db, {"role": u.role.value, "userId": u.id}, LEAVE_APPROVAL_CAPABILITY)
+    ]
+
+
+def notify_approvers(db: Session, lr: LeaveRequest) -> list[MailLog]:
+    """Tell everybody who can decide a FACULTY member's new application that
+    it is waiting. Never the applicant, even when they hold the grant: nobody
+    decides their own request. Returns the rows written; empty when the feature
+    is off, the request is not a submission, or the applicant is not faculty.
+
+    Never raises, and commits only its own `mail_logs` rows — call it after the
+    submission's commit, `notify_transition`'s rule.
+    """
+    if not settings.leave_mail_enabled or lr.status is not LeaveStatus.SUBMITTED:
+        return []
+    applicant = db.get(User, lr.requester_user_id)
+    if not _is_faculty(applicant) or applicant.barred_at is not None:
+        return []
+    subject = f"Leave request from {applicant.name} needs your decision"
+    rows: list[MailLog] = []
+    for approver in leave_approvers(db):
+        if approver.id == applicant.id:
+            continue
+        text = (
+            f"Hello {approver.name},\n\n"
+            f"{applicant.name} has applied for leave covering {_span(lr)}. It is "
+            f"waiting for a decision on the Leave Approvals screen.\n"
+        )
+        rows.append(
+            deliver_once(
+                db,
+                kind=APPROVER_MAIL_KIND,
+                recipient=approver.email,
+                dedupe_key=approver_dedupe_key(lr, approver),
+                subject=subject,
+                send=lambda to, subj, text=text: transport_send(to, subj or "", text),
+            )
+        )
+    return rows
+
+
+# ---------------------------------------------------------------------------
+# Every other faculty member, on each day of an approved faculty leave.
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class OnLeaveSummary:
+    """What one announcement pass did, for the job's log line."""
+
+    day: date
+    enabled: bool = True
+    leaves: int = 0
+    #: SENT rows on record for this day — sent by this run, or by an earlier
+    #: run or a same-day approval (a dedupe hit is not a second mail).
+    mailed: int = 0
+    failed: int = 0
+
+
+def faculty_on_leave(db: Session, day: date) -> list[LeaveRequest]:
+    """Approved leave, of a faculty member still on the roster, covering `day`."""
+    return list(
+        db.scalars(
+            select(LeaveRequest)
+            .join(User, User.id == LeaveRequest.requester_user_id)
+            .where(
+                LeaveRequest.status == LeaveStatus.APPROVED,
+                LeaveRequest.from_date <= day,
+                LeaveRequest.to_date >= day,
+                User.role.in_(FACULTY_ROLES),
+                User.deleted_at.is_(None),
+                User.disabled_at.is_(None),
+            )
+            .order_by(LeaveRequest.from_date, LeaveRequest.id)
+        ).all()
+    )
+
+
+def _faculty_recipients(db: Session) -> list[User]:
+    return [
+        u
+        for u in db.scalars(
+            select(User)
+            .where(User.role.in_(FACULTY_ROLES), User.deleted_at.is_(None), User.disabled_at.is_(None))
+            .order_by(User.email)
+        ).all()
+        if _is_active(u)
+    ]
+
+
+def _on_leave_text(recipient: User, applicant: User, lr: LeaveRequest, day: date) -> str:
+    if lr.from_date == lr.to_date:
+        when = "today only"
+    else:
+        when = f"from {lr.from_date.isoformat()} to {lr.to_date.isoformat()}"
+    return (
+        f"Hello {recipient.name},\n\n"
+        f"{applicant.name} is on leave today, {day.strftime('%A')} {day.isoformat()} "
+        f"({when}).\n"
+    )
+
+
+def announce_on_leave(
+    db: Session, lr: LeaveRequest, day: date, *, recipients: list[User] | None = None
+) -> list[MailLog]:
+    """Mail every other active faculty member that the applicant of `lr` is on
+    leave on `day`. Sends NOTHING unless `day` is one of the leave's own days
+    and the leave is an approved faculty leave — that check is here and not
+    only in the callers, so no caller can announce a leave early.
+
+    Once per (leave, day, recipient): `deliver_once` on
+    `leave-today:{id}:{day}:{recipient}`, so the morning job and a same-day
+    approval never both send, and a rerun sends nothing twice.
+    """
+    if not settings.leave_mail_enabled:
+        return []
+    if lr.status is not LeaveStatus.APPROVED or not (lr.from_date <= day <= lr.to_date):
+        return []
+    applicant = db.get(User, lr.requester_user_id)
+    if not _is_faculty(applicant) or applicant.barred_at is not None:
+        return []
+    subject = f"{applicant.name} is on leave today"
+    rows: list[MailLog] = []
+    for recipient in recipients if recipients is not None else _faculty_recipients(db):
+        if recipient.id == applicant.id:
+            continue
+        text = _on_leave_text(recipient, applicant, lr, day)
+        rows.append(
+            deliver_once(
+                db,
+                kind=ON_LEAVE_MAIL_KIND,
+                recipient=recipient.email,
+                dedupe_key=on_leave_dedupe_key(lr, day, recipient),
+                subject=subject,
+                send=lambda to, subj, text=text: transport_send(to, subj or "", text),
+            )
+        )
+    return rows
+
+
+def announce_faculty_on_leave(db: Session, *, day: date) -> OnLeaveSummary:
+    """The morning pass (`python -m app.leave_today_job`): every approved
+    faculty leave covering `day`, announced to every other faculty member."""
+    summary = OnLeaveSummary(day=day, enabled=settings.leave_mail_enabled)
+    if not summary.enabled:
+        return summary
+    leaves = faculty_on_leave(db, day)
+    summary.leaves = len(leaves)
+    if not leaves:
+        return summary
+    recipients = _faculty_recipients(db)
+    for lr in leaves:
+        for row in announce_on_leave(db, lr, day, recipients=recipients):
+            if row is None:
+                continue
+            if row.status is MailStatus.FAILED:
+                summary.failed += 1
+            elif row.status is MailStatus.SENT:
+                summary.mailed += 1
+    return summary
+
+
+# ---------------------------------------------------------------------------
+# The request-path entry points. Each opens its OWN session, because they run
+# as FastAPI background tasks after the response, when the request's session
+# is already closed — and so a slow mail server never holds up the button.
+# ---------------------------------------------------------------------------
+
+
+def _in_own_session(what: str, leave_id: str, work: Callable[[Session, LeaveRequest], object]) -> None:
+    """Run `work` against a fresh session, and never let it raise: the response
+    has already gone, so an exception here reaches nobody who can act on it.
+    Logged by TYPE only, `mailer.deliver_once`'s rule — a database error's text
+    carries its bound parameters, which here are email addresses."""
+    if not settings.leave_mail_enabled:
+        return
+    try:
+        with SessionLocal() as db:
+            lr = db.get(LeaveRequest, leave_id)
+            if lr is not None:
+                work(db, lr)
+    except Exception as exc:  # noqa: BLE001 - see the docstring
+        log.error("Leave mail pass failed: %s for request %s (%s)", what, leave_id, type(exc).__name__)
+
+
+def notify_approvers_in_background(leave_id: str) -> None:
+    _in_own_session("approvers", leave_id, notify_approvers)
+
+
+def announce_if_on_leave_today(leave_id: str) -> None:
+    """After an approval: announce the leave now ONLY if today is one of its
+    days. A leave approved ahead of time sends nothing here; the morning job
+    sends it on the day."""
+    _in_own_session("on leave today", leave_id, lambda db, lr: announce_on_leave(db, lr, local_today()))

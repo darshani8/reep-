@@ -165,3 +165,113 @@
 .weekly-body .meter {
   margin-top: 6px;
 }
+
+/* --- the record: the last fortnight as a strip of day chips ---------------
+   One chip per calendar day, most recent first, each a button that opens the
+   day. The state is printed on the chip ("Submitted", "Draft · 7 h", "Not
+   logged", "Locked") with the shared .chip tones behind the words, so a
+   student reads the fortnight at a glance and never has to step through it
+   one day at a time to find out what they filled in. */
+.history-card {
+  padding: 14px 18px 12px;
+  margin-bottom: 14px;
+}
+.history-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.history-sum {
+  font-size: 14px;
+  color: var(--ink);
+  margin-top: 2px;
+}
+.history-sum b {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.history-rule {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.history-rule .icon {
+  font-size: 16px;
+  color: var(--muted);
+}
+.history-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px 2px 6px;
+  scroll-snap-type: x proximity;
+}
+.day-chip {
+  flex: 0 0 auto;
+  min-width: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.day-chip:hover {
+  border-color: var(--brand-purple);
+}
+.day-chip:focus-visible {
+  outline: 2px solid var(--brand-purple);
+  outline-offset: 2px;
+}
+.day-chip.active {
+  border-color: var(--brand-purple);
+  background: var(--tint-1);
+  box-shadow: inset 0 0 0 1px var(--brand-purple);
+}
+.day-chip.is-locked {
+  background: var(--tint-3);
+}
+.day-chip__dow {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-soft);
+}
+.day-chip__num {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.day-chip__state {
+  font-size: 10.5px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+.day-chip__state .icon {
+  font-size: 12px;
+}
+
+/* a locked day's table: the figures stay legible, the inputs read as closed */
+.table-card.is-locked .ledger-table input:disabled {
+  background: var(--tint-3);
+  color: var(--ink-soft);
+}
+.table-card .footbar .open-until {
+  margin-right: auto;
+}

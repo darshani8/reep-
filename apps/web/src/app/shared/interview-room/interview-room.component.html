@@ -268,6 +268,30 @@
           }
         </div>
         <p class="picker__blurb">{{ briefing().blurb }}</p>
+        <!-- Speaker or earphones: decides whether the echo gate holds the
+             microphone while the interviewer is audible (audio-route.ts). -->
+        <div class="route" role="radiogroup" aria-label="Where you hear the interviewer">
+          <button
+            type="button"
+            class="picker__pill"
+            role="radio"
+            [attr.aria-checked]="audioRoute() === 'speaker'"
+            [class.picker__pill--active]="audioRoute() === 'speaker'"
+            (click)="chooseRoute('speaker')"
+          >
+            Speaker
+          </button>
+          <button
+            type="button"
+            class="picker__pill"
+            role="radio"
+            [attr.aria-checked]="audioRoute() === 'earphones'"
+            [class.picker__pill--active]="audioRoute() === 'earphones'"
+            (click)="chooseRoute('earphones')"
+          >
+            Earphones
+          </button>
+        </div>
       }
 
       <div class="stage__controls">
@@ -305,6 +329,30 @@
         @if (liveSpecialization(); as specLabel) {
           <span class="live-track">{{ specLabel }}</span>
         }
+        <!-- Switchable mid-interview: plugging earphones in should stop the
+             gate at once, without an End and a new Start. -->
+        <div class="route route--live" role="radiogroup" aria-label="Where you hear the interviewer">
+          <button
+            type="button"
+            class="picker__pill"
+            role="radio"
+            [attr.aria-checked]="audioRoute() === 'speaker'"
+            [class.picker__pill--active]="audioRoute() === 'speaker'"
+            (click)="chooseRoute('speaker')"
+          >
+            Speaker
+          </button>
+          <button
+            type="button"
+            class="picker__pill"
+            role="radio"
+            [attr.aria-checked]="audioRoute() === 'earphones'"
+            [class.picker__pill--active]="audioRoute() === 'earphones'"
+            (click)="chooseRoute('earphones')"
+          >
+            Earphones
+          </button>
+        </div>
         <button type="button" class="cta cta--end" aria-pressed="true" (click)="toggle()">
           <span class="icon" aria-hidden="true">stop</span>
           End interview

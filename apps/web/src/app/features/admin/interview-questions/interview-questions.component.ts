@@ -134,6 +134,8 @@ interface BankQuestion {
 interface QuestionRow {
   question: BankQuestion;
   number: number;
+  /** How many times this row has been put back; part of its `track` key. */
+  generation: number;
 }
 
 const PHASE_LABEL: Record<string, string> = {
@@ -257,16 +259,23 @@ export class InterviewQuestionsComponent {
   readonly pageIndex = signal(0);
   readonly selectedQuestionIds = signal<ReadonlySet<string>>(new Set<string>());
 
-  /** Bumped when an inline edit was REFUSED, and read by the grid's `track`
-   *  expression so the row is rebuilt from the server's copy.
+  /** Bumped for a question when an inline edit on it was REFUSED, and carried
+   *  on its row into the grid's `track` expression so that row is rebuilt from
+   *  the server's copy.
    *
    *  The two inline editors write straight into the DOM — a `<select>` the
    *  browser has already moved, a `<textarea>` the reader has already typed in
    *  — and their bindings (`[value]`, `[selected]`) are unchanged when the
    *  PATCH fails, so Angular has nothing to re-apply and the row keeps showing
    *  an edit the bank never took. That is the worst kind of lie a console can
-   *  tell: it looks saved. Rebuilding the row is what puts the truth back. */
-  readonly rowGeneration = signal(0);
+   *  tell: it looks saved. Rebuilding the row is what puts the truth back.
+   *
+   *  It rides ON THE ROW and not beside it. `@for` keys the row it drew and
+   *  the row it is handed with the same track expression, evaluated now, so a
+   *  counter read from the component moves both keys together and rebuilds
+   *  nothing. Per question, so putting one row back leaves alone the row the
+   *  reader has just clicked into. */
+  private readonly rowGenerations = signal<ReadonlyMap<string, number>>(new Map());
 
   // ----------------------------------------------------------- the rail --
 
@@ -359,9 +368,14 @@ export class InterviewQuestionsComponent {
 
   // ---------------------------------------------------------- the table --
 
-  readonly rows = computed<QuestionRow[]>(() =>
-    (this.questions() ?? []).map((question, index) => ({ question, number: index + 1 })),
-  );
+  readonly rows = computed<QuestionRow[]>(() => {
+    const generations = this.rowGenerations();
+    return (this.questions() ?? []).map((question, index) => ({
+      question,
+      number: index + 1,
+      generation: generations.get(question.id) ?? 0,
+    }));
+  });
 
   readonly matchingRows = computed<QuestionRow[]>(() => {
     const needle = this.quickFilter().trim().toLowerCase();
@@ -603,6 +617,7 @@ export class InterviewQuestionsComponent {
   async addQuestion(): Promise<void> {
     if (!this.canAddQuestion()) return;
     const text = this.newQuestionText().trim();
+    const read = this.questionsRead;
     await this.whileBusy(async () => {
       const response = await this.postJson(`${environment.apiBase}/admin/interview-questions`, {
         track: this.selectedTrackKey(),
@@ -611,7 +626,7 @@ export class InterviewQuestionsComponent {
       });
       if (!response.ok) throw new Error(await this.detailOf(response));
       const added = (await response.json()) as BankQuestion;
-      this.questions.update((list) => [...(list ?? []), added]);
+      if (read === this.questionsRead) this.questions.update((list) => [...(list ?? []), added]);
       this.newQuestionText.set('');
       this.flash.set('Question added.');
       await this.loadTracks();
@@ -638,14 +653,20 @@ export class InterviewQuestionsComponent {
   async addBulk(): Promise<void> {
     if (!this.canAddBulk()) return;
     const lines = this.bulkText().trim();
+    const read = this.questionsRead;
     await this.whileBusy(async () => {
-      const response = await this.postJson(`${environment.apiBase}/admin/interview-questions/bulk`, {
-        track: this.selectedTrackKey(),
-        lines,
-      });
+      const response = await this.postJson(
+        `${environment.apiBase}/admin/interview-questions/bulk`,
+        {
+          track: this.selectedTrackKey(),
+          lines,
+        },
+      );
       if (!response.ok) throw new Error(await this.detailOf(response));
       const result = (await response.json()) as { added: BankQuestion[]; skipped: string[] };
-      this.questions.update((list) => [...(list ?? []), ...result.added]);
+      if (read === this.questionsRead) {
+        this.questions.update((list) => [...(list ?? []), ...result.added]);
+      }
       this.bulkSkipped.set(result.skipped);
       this.flash.set(this.bulkFlashFor(result.added.length, result.skipped.length));
       if (result.skipped.length === 0) this.bulkText.set('');
@@ -672,13 +693,13 @@ export class InterviewQuestionsComponent {
   async saveText(question: BankQuestion, text: string): Promise<void> {
     const trimmed = text.trim();
     if (trimmed === question.text) {
-      this.refreshRows();
+      this.refreshRow(question.id);
       return;
     }
     if (trimmed.length < MINIMUM_QUESTION_CHARS) {
       // Silently declining would leave the reader's too-short text sitting in
       // the grid as though the bank held it.
-      this.refreshRows();
+      this.refreshRow(question.id);
       this.error.set(
         `A question needs at least ${MINIMUM_QUESTION_CHARS} characters. Put back as it was.`,
       );
@@ -821,13 +842,15 @@ export class InterviewQuestionsComponent {
     const moved = ordered[from];
     ordered[from] = ordered[to];
     ordered[to] = moved;
+    const read = this.questionsRead;
     await this.whileBusy(async () => {
       const response = await this.postJson(
         `${environment.apiBase}/admin/interview-questions/reorder`,
         { track: this.selectedTrackKey(), ids: ordered.map((row) => row.id) },
       );
       if (!response.ok) throw new Error(await this.detailOf(response));
-      this.questions.set((await response.json()) as BankQuestion[]);
+      const reordered = (await response.json()) as BankQuestion[];
+      if (read === this.questionsRead) this.questions.set(reordered);
     });
   }
 
@@ -845,7 +868,7 @@ export class InterviewQuestionsComponent {
       },
     );
     if (!response.ok) {
-      this.refreshRows();
+      this.refreshRow(question.id);
       throw new Error(await this.detailOf(response));
     }
     const updated = (await response.json()) as BankQuestion;
@@ -854,9 +877,11 @@ export class InterviewQuestionsComponent {
     );
   }
 
-  /** Rebuild every row in the grid from the questions signal. */
-  private refreshRows(): void {
-    this.rowGeneration.update((generation) => generation + 1);
+  /** Rebuild one question's row from the questions signal. */
+  private refreshRow(questionId: string): void {
+    this.rowGenerations.update((generations) =>
+      new Map(generations).set(questionId, (generations.get(questionId) ?? 0) + 1),
+    );
   }
 
   private forgetSelection(questionId: string): void {
@@ -927,7 +952,20 @@ export class InterviewQuestionsComponent {
     }
   }
 
+  /** Which read of the list is the one on screen. Every `loadQuestions()`
+   *  takes the next number, and an answer under an older one is dropped: the
+   *  list it describes is no longer the one being looked at.
+   *
+   *  THE LAST ANSWER IS NOT THE LAST TRACK PICKED. The screen reads the first
+   *  track's questions as it opens, and a tab pressed before that read answers
+   *  used to be overwritten by it: "Questions · 0" under a track whose tab
+   *  said 1. An add or a reorder carries the number it started under for the
+   *  same reason — its answer belongs to the list it was made against, and a
+   *  track picked meanwhile has already been read from the server. */
+  private questionsRead = 0;
+
   private async loadQuestions(): Promise<void> {
+    const read = ++this.questionsRead;
     this.questions.set(null);
     const track = encodeURIComponent(this.selectedTrackKey());
     try {
@@ -935,9 +973,13 @@ export class InterviewQuestionsComponent {
         `${environment.apiBase}/admin/interview-questions?track=${track}`,
         { credentials: 'include' },
       );
+      if (read !== this.questionsRead) return;
       if (!response.ok) throw new Error(String(response.status));
-      this.questions.set((await response.json()) as BankQuestion[]);
+      const loaded = (await response.json()) as BankQuestion[];
+      if (read !== this.questionsRead) return;
+      this.questions.set(loaded);
     } catch {
+      if (read !== this.questionsRead) return;
       this.error.set('Could not load the questions for this track.');
       this.questions.set([]);
     }

@@ -7,8 +7,8 @@ whole-table, and that is the right shape for "hand this deployment over" and
 "clear this cohort". It is the wrong shape for the Main Admin pressing Delete
 on ONE student, ONE faculty account or ONE college, which is what this module
 exists for (2026-09-16). Here the unit is a row, and the question is "which
-other rows go with it" — a question the schema already answers for 150 of its
-181 foreign keys with an ON DELETE clause. This module reads those clauses
+other rows go with it" — a question the schema already answers for 147 of its
+183 foreign keys with an ON DELETE clause. This module reads those clauses
 and REFUSES TO GUESS about the rest.
 
 HOW A ROW'S DEPENDANTS ARE FOUND. Start from the root row(s) — `users.id = ?`

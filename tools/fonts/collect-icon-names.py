@@ -39,6 +39,13 @@ NOT_GLYPHS = {
     "speaking", "dawn", "morning", "midday", "afternoon", "evening", "night",
     "sleeping", "leisure", "lectures", "coursework", "skilling", "draft",
     "submitted", "scored", "pending_review", "hr", "dm", "ba", "fa",
+    # college-setup's "Create everything" button:
+    # `{{ runState() === 'running' ? 'hourglass_empty' : 'check' }}`. The
+    # interpolation branch takes every quoted glyph-shaped token inside a
+    # {{ }} on an `.icon`, which is what finds the two real names — and takes
+    # the value being COMPARED against with them. Same category as `draft` and
+    # `completed` above: a state, never something anybody renders.
+    "running",
 }
 
 GLYPH = r"[a-z][a-z0-9_]{2,}"

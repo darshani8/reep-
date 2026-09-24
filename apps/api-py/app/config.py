@@ -355,6 +355,26 @@ class Settings(BaseSettings):
     # to overload one mentor in a thin year should not have to edit .env first.
     mentor_capacity: int = 20
 
+    # --- the programme's clock, and the Time Allocation Ledger's lock ---
+    #
+    # THE ZONE THE STUDENTS' DAY RUNS IN. The container runs UTC and India is
+    # five and a half hours ahead, so `date.today()` in a handler is yesterday
+    # for the whole of 00:00–05:30 IST — which is when a student who fills the
+    # ledger in last thing at night presses Save. app/clock.py reads this; see
+    # its docstring for the two rules that depend on it. An unknown name falls
+    # back to UTC with a warning rather than refusing to boot.
+    programme_timezone: str = "Asia/Kolkata"
+    # HOW LONG A LEDGER DAY STAYS OPEN AFTER IT ENDS, in calendar days of the
+    # zone above. 2 means Monday can be written until the end of Wednesday;
+    # 0 means the day itself and nothing later. After that the day is LOCKED:
+    # its figures cannot be saved, submitted or overwritten by "copy
+    # yesterday", and the screen says so. The ledger is a daily record and the
+    # faculty read the weekly roll-up off it; with no lock at all a student
+    # could type the whole semester in on the last night and the roll-up
+    # would be fiction. It is a setting and not a policy row because it is
+    # one number for the programme, like `mentor_capacity`.
+    ledger_edit_window_days: int = 2
+
     # Universal LLM adapter (see app/ai/llm.py). Same names as the Next.js app,
     # so one set of keys drives both stacks. Any OpenAI-compatible provider.
     llm_base_url: str = ""
@@ -918,6 +938,7 @@ class Settings(BaseSettings):
         "db_max_overflow",
         "db_pool_timeout_s",
         "mentor_capacity",
+        "ledger_edit_window_days",
         "interview_max_seconds",
         "interview_idle_seconds",
         "interview_local_num_ctx",
@@ -1015,6 +1036,7 @@ class Settings(BaseSettings):
     @field_validator(
         "interview_min_answer_words",
         "auth_revocation_cache_seconds",
+        "ledger_edit_window_days",
     )
     @classmethod
     def _must_not_be_negative(cls, value: int, info: ValidationInfo) -> int:

@@ -202,7 +202,11 @@
       } @else {
         <!-- Mounted once and never torn down: an @if around the grid destroys
              the GridApi the toolbar and the status bar hold, so the empty case
-             is main's own words in the no-rows overlay instead. -->
+             is main's own words in the no-rows overlay instead.
+             Hidden columns stay in the quick filter: the server's `q` reads
+             the name, the address and the USN whichever columns are shown,
+             and a filter that read only the shown ones emptied the grid
+             under a row the server had just matched. -->
         <ag-grid-angular
           class="roster-ag"
           [theme]="gridTheme"
@@ -215,6 +219,7 @@
           [overlayNoRowsTemplate]="emptyOverlay()"
           [getRowId]="rowId"
           [quickFilterText]="quickFilter()"
+          [includeHiddenColumnsInQuickFilter]="true"
           [rowHeight]="rowHeight()"
           [pagination]="true"
           [paginationPageSize]="pageSize()"
@@ -444,6 +449,25 @@
                   <option [value]="batch.id" [selected]="batch.id === draft().cohortId">{{ batch.displayLabel }}</option>
                 }
               </select>
+            </label>
+            <!-- DUAL SPECIALIZATION (2026-09-23): the batch is the first of the
+                 two; this is the other. Offered from the batch's course, minus
+                 the batch's own - `secondSpecializationOptions`. -->
+            <label class="field">
+              <span>Second specialization</span>
+              <select
+                class="ctrl"
+                [disabled]="!secondSpecializationChoices().length"
+                (change)="setDraft('secondSpecializationId', selectValue($event))"
+              >
+                <option value="">{{ secondSpecializationChoices().length ? 'None' : 'None available' }}</option>
+                @for (spec of secondSpecializationChoices(); track spec.id) {
+                  <option [value]="spec.id" [selected]="spec.id === draft().secondSpecializationId">{{ spec.name }}</option>
+                }
+              </select>
+              @if (draftBatchSpecialization(); as first) {
+                <span class="help">Dual with {{ first }}, from the batch.</span>
+              }
             </label>
             <label class="field">
               <span>Department</span>

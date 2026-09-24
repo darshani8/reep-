@@ -647,8 +647,13 @@ export class AdminCollegeSetupComponent {
       this.record('college', { status: 'existed' });
       return existing.id;
     }
+    // Written by an earlier press: the plan says so, as it does for every
+    // other row the re-run reuses, rather than falling back to "New".
     const known = this.resolved.get('college');
-    if (known) return known;
+    if (known) {
+      this.record('college', { status: 'existed' });
+      return known;
+    }
     const body = {
       code: this.code().trim(),
       name: this.name().trim(),

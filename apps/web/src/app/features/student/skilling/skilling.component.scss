@@ -274,7 +274,13 @@
   flex: 1;
   min-width: 280px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  /* `min(Npx, 100%)` and not a bare `Npx`: a minmax() track whose minimum is a
+     fixed length does NOT collapse when the container is narrower than it — the
+     track keeps its minimum and the grid overflows. On a 320px handset the
+     content box inside a card is about 260px, so every one of these was wider
+     than the screen it was drawn on. `min()` caps the minimum at the container,
+     which changes nothing at any width where the track already fitted. */
+  grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr));
   gap: 10px;
   align-content: flex-start;
 }
@@ -486,4 +492,16 @@ $verified-blue: #1a73e8;
 }
 .claims-note {
   color: var(--muted);
+}
+
+/* Tap target at phone width (2026-09-22): /student/skilling's "All my documents" link, 266x17.
+   Block padding and not a min-height, because this is an inline link inside a
+   sentence — padding grows the hit area the thumb gets without moving the
+   words around it. Mobile only; the desktop link is unchanged. */
+@media (max-width: 760px) {
+  .skl-all-docs {
+    /* 15px and not 13: measured at 43px tall with 13, which is short of the
+       44px floor by a hair. */
+    padding-block: 15px;
+  }
 }

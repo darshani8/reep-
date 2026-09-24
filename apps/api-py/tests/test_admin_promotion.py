@@ -35,7 +35,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 
 import pytest
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 
 from conftest import TEST_PASSWORD, requires_db
 from test_admin_institution import (  # noqa: F401 - fixtures by name
@@ -615,3 +615,67 @@ def test_a_graduated_batch_is_not_promoted_and_promote_is_still_not_a_bulk_actio
     # well as in test_admin_students because the two facts are one contract.
     assert client.post(f"/api/admin/cohorts/{cid}/students/bulk", headers=h,
                        json={"action": "promote"}).status_code == 422
+
+
+@requires_db
+def test_a_removed_student_is_not_promoted_graduated_or_counted(client, make_user, chain, tracker, swept):
+    """A student REMOVED from the roster is still seated in their batch, and the
+    list both dialogs count (`GET /admin/students?cohort_id=`) leaves them out.
+    Promote and graduate must leave them out too, `batch_action`'s rule: a dry
+    run that counted them read "2" under a dialog that said "1 student", the
+    promotion moved their semester, and graduation turned them into an ALUMNI
+    account - so Restore brought back an alumnus, not the student as left."""
+    h = chain["headers"]
+    cid = chain["cohort"]["id"]
+    _make_course(client, h, chain, tracker, swept, total_semesters=4)
+    live, sid_live = _seeded_student(client, make_user, swept, chain, "rmv-live", semester=3)
+    gone, sid_gone = _seeded_student(client, make_user, swept, chain, "rmv-gone", semester=3)
+    swept["emails"] += [live.email, gone.email]
+    r = client.post(
+        f"/api/admin/students/{sid_gone}/remove", headers=h, json={"reason": "Withdrew from the programme"}
+    )
+    assert r.status_code == 200, r.text
+
+    def as_left() -> tuple:
+        with SessionLocal() as db:
+            s = db.get(Student, sid_gone)
+            u = db.get(User, gone.user_id)
+            history = db.scalar(
+                select(func.count()).select_from(StudentSemesterHistory)
+                .where(StudentSemesterHistory.student_id == sid_gone)
+            )
+            return (
+                s.cohort_id, s.current_semester, s.current_stage, s.status,
+                u.role, u.token_version, u.deleted_at is not None, history,
+            )
+
+    before = as_left()
+    assert [x["student_id"] for x in client.get(f"/api/admin/students?cohort_id={cid}", headers=h).json()] == [sid_live]
+
+    for verb in ("promote", "graduate"):
+        body = {"effective_on": "2026-08-01"}
+        dry = client.post(f"/api/admin/cohorts/{cid}/{verb}?dry_run=true", headers=h, json=body)
+        assert dry.status_code == 200, dry.text
+        assert dry.json()["affected"] == 1, f"{verb}: the dry run counts the roster, not the seats"
+        assert [x["student_id"] for x in dry.json()["students"]] == [sid_live]
+        out = client.post(f"/api/admin/cohorts/{cid}/{verb}", headers=h, json=body)
+        assert out.status_code == 200, out.text
+        assert out.json()["affected"] == 1, f"{verb}: the count is the roster's, not the seats'"
+        assert as_left() == before, f"{verb} wrote to a removed student"
+
+    with SessionLocal() as db:
+        assert db.get(Student, sid_live).current_semester == 4
+        assert db.get(User, live.user_id).role is Role.ALUMNI
+
+    # The reversal is a batch act too, and reads the same roster.
+    back = client.post(f"/api/admin/cohorts/{cid}/ungraduate", headers=h, json={"reason": "Wrong batch."})
+    assert back.status_code == 200, back.text
+    assert back.json()["affected"] == 1
+    assert as_left() == before
+
+    # Restore brings back the student the office took off the list.
+    assert client.post(f"/api/admin/students/{sid_gone}/restore", headers=h).status_code == 200
+    with SessionLocal() as db:
+        s = db.get(Student, sid_gone)
+        u = db.get(User, gone.user_id)
+        assert (s.current_semester, s.status, u.role) == (3, STUDENT_STATUS_ACTIVE, Role.STUDENT)

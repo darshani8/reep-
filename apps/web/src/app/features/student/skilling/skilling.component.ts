@@ -33,6 +33,7 @@ import { Component, computed, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
+import { failedReadMessage } from '../../../core/feature-refusal';
 
 interface EvidenceRow {
   id: string;
@@ -454,7 +455,7 @@ export class SkillingComponent {
     try {
       const res = await fetch(`${environment.apiBase}/student/badges`, { credentials: 'include' });
       if (!res.ok) {
-        this.boardError.set('Could not load the badge catalogue.');
+        this.boardError.set(await failedReadMessage(res, 'Could not load the badge catalogue.'));
         return;
       }
       this.dashboard.set((await res.json()) as Dashboard);

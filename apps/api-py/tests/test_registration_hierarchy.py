@@ -20,7 +20,7 @@ import uuid
 import pytest
 from sqlalchemy import delete, select
 
-from conftest import requires_db
+from conftest import application_files, requires_db
 from test_admin_institution import (  # noqa: F401 — fixtures by name
     _code,
     chain,
@@ -49,10 +49,11 @@ def _fresh_limiter(monkeypatch):
 
 
 @pytest.fixture
-def applicant():
+def applicant(tmp_document_store):
     """POST /api/register with any extra fields, and tear down whatever it and
     an approval created — the same sweep test_passwords' `application` does,
-    reimplemented because that fixture's payload has no room for the claim."""
+    reimplemented because that fixture's payload has no room for the claim.
+    Multipart with both files, as the form posts it (2026-09-22)."""
     emails: list[str] = []
     rules: list[str] = []
 
@@ -65,7 +66,7 @@ def applicant():
         # (2026-09-16); a caller that names no USN gets a unique one.
         return client.post(
             "/api/register",
-            json={
+            data={
                 "name": "Hierarchy Applicant",
                 "email": email,
                 "usn": usn or f"1BG26HIE{uuid.uuid4().hex[:3].upper()}",
@@ -75,6 +76,7 @@ def applicant():
                 "degree_level": "PG",
                 **claim,
             },
+            files=application_files(),
         )
 
     def rule(**kw) -> str:

@@ -26,9 +26,9 @@ import uuid
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 
-from conftest import requires_db
+from conftest import application_files, requires_db
 
-from app import mail_transport
+from app import document_store, mail_transport
 from app.db import SessionLocal
 from app.models.job import DegreeLevel
 from app.models.registration import Registration, RegistrationStatus
@@ -73,10 +73,17 @@ def address():
         db.commit()
 
 
+@pytest.fixture(autouse=True)
+def _tmp_store(tmp_path, monkeypatch):
+    """Every submission carries both files now (2026-09-22); they land here."""
+    monkeypatch.setattr(document_store, "_store_dir", lambda: tmp_path)
+    return tmp_path
+
+
 def _submit(client, email: str, usn: str):
     return client.post(
         "/api/register",
-        json={
+        data={
             "name": "Reapply Test",
             "email": email,
             "usn": usn,
@@ -85,6 +92,7 @@ def _submit(client, email: str, usn: str):
             "linkedin_url": "https://www.linkedin.com/in/reapply-test",
             "degree_level": "PG",
         },
+        files=application_files(),
     )
 
 

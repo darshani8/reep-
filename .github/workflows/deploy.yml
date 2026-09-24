@@ -322,28 +322,58 @@ jobs:
           find dist/web/browser -name '*.map' -delete
           test "$(find dist/web/browser -name '*.map' | wc -l)" = "0"
 
+      # AFTER both steps above, because both of them touch the built directory
+      # and the service worker validates every file against a SHA-1 recorded at
+      # build time. A file that changed since then does not make the worker
+      # update slowly — it makes it refuse the new version and keep serving the
+      # old one to every installed student, forever, with the bucket and
+      # CloudFront both holding the new build. Fail here instead.
+      - name: The service worker's manifest still matches the build
+        run: python3 tools/ci/check_ngsw_integrity.py apps/web/dist/web/browser
+
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN || 'arn:aws:iam::445363794125:role/reep-github-deploy' }}
           aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
           role-session-name: reep-deploy-web-${{ github.run_id }}
 
-      # Two passes on purpose. Hashed assets are immutable, so they get a year;
+      # THREE passes. Hashed assets are immutable, so they get a year;
       # index.html must NOT be cached, or a browser keeps loading the old app
       # shell that points at chunks the new deploy has already deleted.
+      #
+      # THE SERVICE WORKER'S CONTROL FILES ARE THE THIRD PASS, AND THEY ARE NOT
+      # HASHED. `ngsw.json` is how an installed app learns a new version
+      # exists, and `ngsw-worker.js` is the worker that reads it — both are
+      # fetched at fixed names. Served with `immutable` and a year, as the
+      # first pass would, an installed student's browser never re-requests
+      # them, so the app on their home screen is frozen on the build they
+      # installed for as long as that entry lives: a permanent freeze with a
+      # green deploy, which is the same shape of failure as the immutable
+      # index.html this step already guards against, but worse, because a
+      # service worker survives a tab close and a reboot.
       - name: Publish
         working-directory: apps/web/dist/web/browser
         run: |
           aws s3 sync . "s3://${{ vars.WEB_BUCKET || 'reep-web-20260827213147410900000003' }}" --delete \
-            --exclude "index.html" --cache-control "public,max-age=31536000,immutable"
+            --exclude "index.html" \
+            --exclude "ngsw.json" --exclude "ngsw-worker.js" \
+            --exclude "safety-worker.js" --exclude "worker-basic.min.js" \
+            --cache-control "public,max-age=31536000,immutable"
           aws s3 cp index.html "s3://${{ vars.WEB_BUCKET || 'reep-web-20260827213147410900000003' }}/index.html" \
             --cache-control "no-cache,no-store,must-revalidate"
+          # --exclude above also excludes these from --delete, which is what we
+          # want: they are overwritten here every time and never orphaned.
+          for f in ngsw.json ngsw-worker.js safety-worker.js worker-basic.min.js; do
+            [ -f "$f" ] || continue
+            aws s3 cp "$f" "s3://${{ vars.WEB_BUCKET || 'reep-web-20260827213147410900000003' }}/$f" \
+              --cache-control "no-cache,no-store,must-revalidate"
+          done
 
       - name: Invalidate the entry point
         run: |
           aws cloudfront create-invalidation \
             --distribution-id "${{ vars.CLOUDFRONT_ID || 'EW482RJIK9CVE' }}" \
-            --paths "/" "/index.html" >/dev/null
+            --paths "/" "/index.html" "/ngsw.json" "/ngsw-worker.js" >/dev/null
           echo "SPA deployed: ${{ github.sha }}"
 
   release:

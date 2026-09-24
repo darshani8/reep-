@@ -16,7 +16,7 @@ from __future__ import annotations
 import uuid
 
 import pytest
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 
 from conftest import requires_db
 from test_admin_institution import (  # noqa: F401 - fixtures by name
@@ -257,3 +257,71 @@ def test_a_batch_action_is_the_single_action_repeated_and_a_batch_deletes_only_e
     assert client.delete(f"/api/admin/cohorts/{b}", headers=h).status_code == 204
     tracker["cohorts"].remove(b)
     assert client.delete(f"/api/admin/cohorts/{b}", headers=h).status_code == 404
+
+
+@requires_db
+def test_a_batch_action_leaves_a_removed_student_exactly_as_they_were(client, make_user, chain, tracker, swept):
+    """A student REMOVED from the roster is still seated in their batch, and the
+    list the batch dialog counts (`GET /admin/students?cohort_id=`) leaves them
+    out. The action must leave them out too: writing to them reported a count
+    the dialog never showed ("2 students" under "all 1 student") and moved a
+    person the office had taken off every list, so Restore brought back a
+    student who was not as they were left. Removal keeps every row exactly
+    where it is - `students.mentor_id` included."""
+    emails, faculty_ids = swept
+    h = chain["headers"]
+    a = chain["cohort"]["id"]
+    b = client.post(
+        f"/api/admin/departments/{chain['department']['id']}/cohorts", headers=h,
+        json={"code": _code("RMV"), "name": "Removed Batch", "batch_label": "2026-28", "degree_level": "PG",
+              "entry_date": "2026-08-01", "expected_completion": "2028-07-31"},
+    ).json()["id"]
+    tracker["cohorts"].append(b)
+    faculty = make_user("as-rmv-fac", Role.MENTOR)
+    faculty_ids.append(faculty.user_id)
+
+    live = _seed_student(emails, _email("rmv-live"), cohort_id=a, name="Still Here")
+    gone = _seed_student(emails, _email("rmv-gone"), cohort_id=a, name="Taken Off")
+    r = client.post(f"/api/admin/students/{gone}/remove", headers=h, json={"reason": "Withdrew from the programme"})
+    assert r.status_code == 200, r.text
+
+    def as_left(sid: str) -> tuple:
+        with SessionLocal() as db:
+            s = db.get(Student, sid)
+            spells = db.scalar(
+                select(func.count()).select_from(MentorAssignment).where(MentorAssignment.student_id == sid)
+            )
+            return (s.cohort_id, s.department_id, s.mentor_id, s.current_stage, s.current_semester, spells)
+
+    before = as_left(gone)
+    assert [x["student_id"] for x in client.get(f"{API}?cohort_id={a}", headers=h).json()] == [live]
+
+    bulk = f"/api/admin/cohorts/{a}/students/bulk"
+    for action in (
+        {"action": "semester", "current_semester": 3},
+        {"action": "stage", "current_stage": "elevate"},
+        {"action": "mentor", "mentor_user_id": faculty.user_id},
+        {"action": "move", "cohort_id": b},
+    ):
+        out = client.post(bulk, headers=h, json=action)
+        assert out.status_code == 200, out.text
+        assert out.json()["affected"] == 1, f"{action['action']}: the count is the roster's, not the seats'"
+        assert as_left(gone) == before, f"{action['action']} wrote to a removed student"
+
+    moved = {x["student_id"]: x for x in client.get(f"{API}?cohort_id={b}", headers=h).json()}
+    assert list(moved) == [live]
+    assert moved[live]["current_semester"] == 3 and moved[live]["current_stage"] == "ELEVATE"
+    assert moved[live]["mentor_user_id"] == faculty.user_id
+
+    # The roster reads empty now and the batch is not: the removed student is
+    # still seated in it, and the refusal says where they are.
+    assert client.get(f"{API}?cohort_id={a}", headers=h).json() == []
+    refused = client.delete(f"/api/admin/cohorts/{a}", headers=h)
+    assert refused.status_code == 409
+    assert "1 of them is on the Removed list" in refused.json()["detail"]
+
+    # Still on the batch's Removed list, and Restore brings them back as left.
+    assert [x["student_id"] for x in client.get(f"{API}?cohort_id={a}&removed=true", headers=h).json()] == [gone]
+    assert client.post(f"/api/admin/students/{gone}/restore", headers=h).status_code == 200
+    assert [x["student_id"] for x in client.get(f"{API}?cohort_id={a}", headers=h).json()] == [gone]
+    assert as_left(gone) == before

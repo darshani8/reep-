@@ -175,16 +175,19 @@
      separate itself from the wash. The ring was a cut-out line rather than
      anything light does, and it was the single thing making the orb read as a
      sticker pasted on the screen. */
-  --sh-orb: 0 1px 1px rgba(30, 12, 48, 0.12), 0 4px 8px rgba(58, 31, 82, 0.14),
+  --sh-orb:
+    0 1px 1px rgba(30, 12, 48, 0.12), 0 4px 8px rgba(58, 31, 82, 0.14),
     0 12px 24px rgba(58, 31, 82, 0.18), 0 22px 44px rgba(58, 31, 82, 0.16);
-  --sh-orb-hover: 0 1px 1px rgba(30, 12, 48, 0.14), 0 6px 12px rgba(58, 31, 82, 0.18),
+  --sh-orb-hover:
+    0 1px 1px rgba(30, 12, 48, 0.14), 0 6px 12px rgba(58, 31, 82, 0.18),
     0 16px 32px rgba(58, 31, 82, 0.22), 0 30px 60px rgba(58, 31, 82, 0.2);
   /* The rim, and it is a separate token because it does not move on hover
      while the four above all do: a hairline all round, a lit top edge and a
      shaded bottom one, so the silhouette has a material thickness where it
      meets the page instead of a cut edge. */
-  --sh-orb-rim: inset 0 0 0 1px rgba(255, 255, 255, 0.16),
-    inset 0 1.5px 1px rgba(255, 255, 255, 0.32), inset 0 -3px 8px rgba(24, 8, 40, 0.18);
+  --sh-orb-rim:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16), inset 0 1.5px 1px rgba(255, 255, 255, 0.32),
+    inset 0 -3px 8px rgba(24, 8, 40, 0.18);
 
   /* --- motion ----------------------------------------------------------- */
   /* TWO CURVES, AND NEITHER IS `ease`. A control answering a press should
@@ -370,7 +373,16 @@ html.fonts-ready .icon {
 .desktop-frame {
   display: flex;
   flex-direction: column;
+  /* 100vh FIRST AND 100dvh SECOND, both deliberately. On a phone `vh` is the
+     LARGEST viewport — the height the page has once the URL bar has scrolled
+     away — so a 100vh frame is taller than the visible area for as long as the
+     bar is showing, and the bottom of the sidebar and the last row of every
+     table sit under it with nothing to scroll them into view, because the
+     frame itself is `overflow: hidden`. `dvh` is the height as it actually is
+     at this moment. The vh line stays as the fallback for a browser that does
+     not know dvh — the same browsers polyfills.ts is written for. */
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background: transparent;
 }
@@ -786,6 +798,313 @@ html.fonts-ready .icon {
 }
 
 /* ==========================================================================
+ * THE SHELL AT PHONE WIDTH (2026-09-22)
+ *
+ * `.desktop-shell` is a flex row with a fixed 220px `.desktop-nav` beside
+ * `.desktop-main`, and that is the whole problem on a handset: 220px of a
+ * 360px screen is the navigation, and the 140px left over is where a student
+ * was expected to read their marks. Every student screen inherited it,
+ * whatever its own stylesheet said.
+ *
+ * At 900px the sidebar leaves the flow and becomes an off-canvas drawer behind
+ * a hamburger in the app bar. The number is a literal and not a token because
+ * a media query cannot read a custom property — `@media (max-width: var(--x))`
+ * is invalid and fails open, which is a breakpoint that silently never fires. It is the SAME `<nav>` with the
+ * same items in the same order — no second navigation to keep in step with
+ * `ADMIN_NAVIGATION` and its three siblings, which is the whole point of the
+ * navigation being data.
+ *
+ * CLOSED MEANS `visibility: hidden`, NOT ONLY `translateX(-100%)`. A drawer
+ * moved off-screen with a transform is still in the focus order: tabbing from
+ * the app bar walks every nav row of an invisible panel before reaching the
+ * page, which is the same class of defect as the `hidden` file inputs in
+ * AGENTS.md's reachability audit. `visibility` takes it out of the focus order
+ * and still transitions, because it is animatable between its two keywords.
+ * ======================================================================= */
+
+.nav-scrim {
+  display: none;
+}
+
+/* The hamburger. Absent above the breakpoint rather than merely invisible, so
+   it is not a tab stop on a desktop where the sidebar is already on screen.
+
+   QUALIFIED BY `.appbar`, AND THAT IS NOT DECORATION. The button also carries
+   `.iconbtn`, which is declared ~600 lines further down and sets
+   `display: grid`. Two single-class selectors have the same specificity, so
+   SOURCE ORDER decides and `.iconbtn` wins: a bare `.appbar__nav-toggle` rule
+   here is overruled and the hamburger renders at every width, beside a sidebar
+   that is already on screen. Measured in Chromium at 1280px before this was
+   written down. */
+.appbar .appbar__nav-toggle {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .appbar .appbar__nav-toggle {
+    display: inline-flex;
+  }
+
+  .desktop-nav {
+    position: fixed;
+    top: var(--appbar-height);
+    left: 0;
+    bottom: 0;
+    /* Never the full width: the strip of page still showing is what says the
+       drawer is a layer over the screen rather than a screen of its own. */
+    width: min(280px, 82vw);
+    z-index: 45;
+    background: var(--surface);
+    border-right: 1px solid var(--hairline);
+    box-shadow: var(--sh-card);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition:
+      transform 0.2s ease,
+      visibility 0.2s ease;
+  }
+
+  .desktop-nav.is-open {
+    transform: none;
+    visibility: visible;
+  }
+
+  .nav-scrim {
+    display: block;
+    position: fixed;
+    inset: var(--appbar-height) 0 0;
+    z-index: 44;
+    border: 0;
+    padding: 0;
+    width: 100%;
+    background: rgb(28 18 44 / 38%);
+    cursor: pointer;
+  }
+
+  .desktop-main,
+  .desktop-main--admin {
+    padding: 14px 16px 88px;
+  }
+}
+
+/* The app bar's own contents. The brand block is three elements — mark, word,
+   console name — and on a 360px screen the account block and Sign out have to
+   share the row with them, so the two that are decoration give way first. The
+   MARK stays at every width: it is the link home. */
+@media (max-width: 760px) {
+  .appbar {
+    gap: 8px;
+    padding: 0 10px;
+  }
+
+  .appbar__scope {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .brandmark__console {
+    display: none;
+  }
+
+  /* The name and USN under the avatar. The avatar itself stays, because it is
+     what the account menu hangs off for staff. */
+  .appbar .account__who {
+    display: none;
+  }
+
+  /* Sign out keeps its glyph and loses its word — still a real target beside
+     the avatar, and the button carries an aria-label so the name survives for
+     anyone who cannot see the icon. */
+  .appbar__signout-label {
+    display: none;
+  }
+
+  .appbar .appbar__signout {
+    padding: 0 10px;
+  }
+}
+
+/* The last thing to go, and only on a genuinely tiny screen. Once the console
+   name, the identity block and Sign out's label are gone the bar has room to
+   spare at 390px, so hiding the word there — as this first did at 420 — took
+   the product's name off the screen for nothing. Measured, not guessed. */
+@media (max-width: 340px) {
+  .brandmark__word {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+ * TOUCH AND TYPING AT PHONE WIDTH (2026-09-22)
+ *
+ * Found by driving the real app in Chromium at 320/360/390 rather than by
+ * reading this file: 50 form fields across six screens and every icon button
+ * in the shell were below the sizes a phone needs. Both rules are INSIDE this
+ * query and nothing above 760px is touched — the desktop console keeps its
+ * 12.5px controls exactly as they are.
+ *
+ * 16px IS NOT A PREFERENCE, IT IS THE NUMBER iOS WATCHES. Safari zooms the
+ * whole page in when a focused input's font-size is under 16px, and it does
+ * not zoom back out when the field blurs — so on /register, the most public
+ * form in the product, every tap into a box left the applicant on a page
+ * wider than their screen, panning sideways to find the next field. Fourteen
+ * fields there, sixteen on the resume builder, twelve on the profile. The
+ * element selectors are deliberate: a class list would have to name every
+ * bespoke input class on every screen, and the one somebody adds next month
+ * is the one that keeps the bug.
+ *
+ * 44px is Apple's floor and 48 is Material's; `min-height` and `min-width`
+ * rather than `height`, so a control that is already bigger is left alone and
+ * one with an explicit `width` (the 28px `.iconbtn`) still grows — the used
+ * value is max(min-width, width).
+ * ======================================================================= */
+
+@media (max-width: 760px) {
+  /* `!important` IS LOAD-BEARING HERE AND WAS ADDED AFTER MEASURING. Without
+     it this rule fixed two screens and lost on the other six: Angular scopes a
+     component's styles by appending an attribute, so `input` written in a
+     component sheet is `input[_ngcontent-x]` at (0,1,1) and beats a global
+     `input` at (0,0,1) — and a class like `.ctrl` or `.field input` beats it
+     from the global resume sheet too. Re-measured in Chromium: 50 fields still
+     under 16px. This is the same case as the `prefers-reduced-motion` block
+     above, which carries `!important` for the same reason — a platform floor
+     that no component may opt out of by accident. */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* A checkbox is not a button: its label is the real target, so this is a
+     modest bump rather than 44px, which would draw a box bigger than the
+     words beside it. */
+  input[type='checkbox'],
+  input[type='radio'] {
+    min-width: 20px;
+    min-height: 20px;
+  }
+
+  .btn,
+  .dt-btn,
+  .iconbtn,
+  .tabs .tab,
+  .seg button,
+  select {
+    min-height: 44px;
+  }
+
+  .iconbtn {
+    min-width: 44px;
+  }
+
+  /* The app bar's two remaining small targets. Sign out is icon-only below
+     560px, so it needs a width as well as the height `.btn` now gives it; the
+     brand is a 26px-tall link and is the way home from every screen. */
+  .appbar .appbar__signout {
+    min-width: 44px;
+  }
+
+  .appbar__brand {
+    min-height: 44px;
+  }
+}
+
+/* ==========================================================================
+ * TABLES AT PHONE WIDTH
+ *
+ * A REEP screen is mostly tables — marks, attendance, the ledger, jobs, the
+ * leaderboard, interview records — and at 390px a six-column table is wider
+ * than the screen. It did not overflow the DOCUMENT, which is why this is easy
+ * to miss from a scroll bar: `body` is `overflow-x: hidden` and
+ * `.desktop-frame` is `overflow: hidden`, so the columns past the edge were
+ * CLIPPED. The student saw the first three columns of their marks and had no
+ * way — no scroll bar, no gesture, nothing on screen — to reach the other
+ * three. Measured in Chromium: .dt-table's right edge at 414px sits outside
+ * the viewport at every width below 768.
+ *
+ * `display: block` turns the table into a scroll container (its rows still lay
+ * out through an anonymous table box), and the nowrap on the cells is what
+ * gives it something to scroll: without it the columns squeeze to one word per
+ * line and the table "fits" while being unreadable.
+ *
+ * SCOPED TO `.desktop-main` AND TO THE ELEMENT, on purpose. To the element,
+ * because student screens use four different table classes (.dt-table, .tbl,
+ * .ledger-table, .jobs-table) and the fifth somebody adds next month must not
+ * have to be remembered here. To `.desktop-main`, because the screens OUTSIDE
+ * the shell — login, register, and the resume PREVIEW, which is laid out to
+ * paper width on purpose — must not be touched.
+ *
+ * THIS IS THE FALLBACK. THE WRAPPER IS THE PATTERN. Three screens already do
+ * this properly and did it first: Jobs (`.jobs-frame`), Records
+ * (`.rec-scroll`) and the Ledger (`.table-scroll`) each put the table in a
+ * scrolling box and give the table a `min-width`, which is better than this
+ * rule because the table stays a table — `.jobs-table` is `table-layout:
+ * fixed` with six percentage columns the design weights, and turning it into a
+ * block with nowrap cells would both drop the fixed layout and stop the role
+ * and company names wrapping inside their columns. So those three are excluded
+ * BY THEIR WRAPPER.
+ *
+ * The exclusion is a list of WRAPPERS and deliberately not a list of tables.
+ * Both lists need maintaining; they fail in opposite directions. Forget to add
+ * a new wrapper here and its table merely gets this treatment as well as its
+ * own — redundant, still readable, still scrollable. Forget to add a new table
+ * to a list of tables and it CLIPS, which is the bug this whole section
+ * exists for and the one nobody reports because there is nothing on screen to
+ * report.
+ *
+ * IT IS WRITTEN AS AN OVERRIDE AND NOT AS `:not(.jobs-frame *, …)`, WHICH IS
+ * WHAT IT SAID FIRST. A `:not()` holding COMPLEX selectors is Selectors 4, and
+ * a browser that cannot parse it drops THE WHOLE RULE — so on exactly the old
+ * handset browsers src/polyfills.ts exists for, the tables would go back to
+ * clipping, silently, with the stylesheet looking correct in every devtools
+ * anyone would open. Two plain rules and specificity do the same job on every
+ * engine that can parse a descendant selector.
+ * ======================================================================= */
+
+@media (max-width: 760px) {
+  .desktop-main table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    /* The scroll container is the table itself, so a sticky header would have
+       nothing to stick to; no student screen sets one, and the three that come
+       closest are the wrapper-based three restored below. */
+    overscroll-behavior-x: contain;
+  }
+
+  .desktop-main table th,
+  .desktop-main table td {
+    white-space: nowrap;
+  }
+
+  /* The three that scroll themselves stay real tables. One class deeper than
+     the rules above, so this wins wherever it applies without !important. */
+  .desktop-main .jobs-frame table,
+  .desktop-main .rec-scroll table,
+  .desktop-main .table-scroll table {
+    display: table;
+    max-width: none;
+    overflow: visible;
+  }
+
+  .desktop-main .jobs-frame table th,
+  .desktop-main .jobs-frame table td,
+  .desktop-main .rec-scroll table th,
+  .desktop-main .rec-scroll table td,
+  .desktop-main .table-scroll table th,
+  .desktop-main .table-scroll table td {
+    white-space: normal;
+  }
+
+  /* The card is the table's frame, and at this width its 20px sides are 10% of
+     the screen. */
+  .desktop-main .card {
+    padding: 14px;
+  }
+}
+
+/* ==========================================================================
  * Page furniture
  * ======================================================================= */
 
@@ -979,7 +1298,12 @@ html.fonts-ready .icon {
 
 .dense-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  /* `min(160px, 100%)`: a minmax() minimum that is a fixed length does not
+     collapse when the container is narrower than it — the track keeps the
+     160px and the grid overflows its card. This is the most reused grid in the
+     app and it nests, so the container is not always the page. No effect at
+     any width where 160px already fitted. */
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
   gap: 14px;
   margin-bottom: 16px;
 }
@@ -1091,6 +1415,11 @@ html.fonts-ready .icon {
 /* The UG / PG style level toggle. */
 .seg {
   display: inline-flex;
+  /* Wraps, because this is a filter switcher whose buttons are words: three or
+     four of them on one line is wider than a handset, and an inline-flex row
+     that cannot wrap pushes its tail off the screen with nothing to scroll it
+     back. `.rb-tabs` and `.dt-header` already wrap for the same reason. */
+  flex-wrap: wrap;
   gap: 6px;
 }
 .seg button {
@@ -2362,7 +2691,9 @@ html.fonts-ready .icon {
   background: var(--ink);
   border: 1px solid rgba(255, 255, 255, 0.14);
   color: #fff;
-  box-shadow: 0 2px 6px rgba(30, 12, 48, 0.18), 0 10px 22px rgba(58, 31, 82, 0.16);
+  box-shadow:
+    0 2px 6px rgba(30, 12, 48, 0.18),
+    0 10px 22px rgba(58, 31, 82, 0.16);
   white-space: nowrap;
 }
 /* TWO TYPE ROLES, NOT ONE STRING. "Live" is a micro-label -- uppercase,
@@ -3182,7 +3513,9 @@ textarea.ctrl {
   background: radial-gradient(60% 60% at 40% 32%, rgba(255, 255, 255, 0.3), rgba(85, 44, 126, 0.8));
   border: 2px solid transparent;
   background-origin: border-box;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.14), 0 18px 44px rgba(12, 4, 22, 0.45);
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.14),
+    0 18px 44px rgba(12, 4, 22, 0.45);
   display: grid;
   place-items: center;
 }

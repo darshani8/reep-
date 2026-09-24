@@ -1173,15 +1173,31 @@ export class InterviewRecordsComponent implements OnDestroy {
 
   // --- the reads -------------------------------------------------------------
 
+  /** Which filters the answers on screen must belong to. Every reload takes
+   *  the next number; a read that comes back under an older one describes
+   *  filters no longer chosen and is dropped.
+   *
+   *  THE LAST ANSWER IS NOT THE LAST QUESTION. Status to "All" and then at
+   *  once Track to "Digital Marketing" puts two reads in flight, and the
+   *  slower "All" used to land second and fill the grid and the tiles with
+   *  every interview under a Track filter reading "Digital Marketing". */
+  private listGeneration = 0;
+
   /** The grid and its tiles, together, because they are one answer. */
   private async reload(): Promise<void> {
     this.clearOpenRecord();
-    await Promise.all([this.loadRecords(), this.loadSummary()]);
+    const generation = ++this.listGeneration;
+    await Promise.all([this.loadRecords(null, generation), this.loadSummary(generation)]);
   }
 
   /** One page of `GET /api/admin/interviews`. `cursor` continues the list; its
-   *  absence starts it again. */
-  private async loadRecords(cursor: string | null = null): Promise<void> {
+   *  absence starts it again. A page that answers after the filters changed
+   *  touches nothing, not even the spinners: the read that replaced it owns
+   *  them. */
+  private async loadRecords(
+    cursor: string | null = null,
+    generation = this.listGeneration,
+  ): Promise<void> {
     if (cursor === null) {
       this.loading.set(true);
       this.error.set(null);
@@ -1197,11 +1213,15 @@ export class InterviewRecordsComponent implements OnDestroy {
         credentials: 'include',
       });
       if (!response.ok) {
-        this.error.set(
-          await detailOf(response, 'Could not load interview records. Reload the page to try again.'),
+        const message = await detailOf(
+          response,
+          'Could not load interview records. Reload the page to try again.',
         );
+        if (generation !== this.listGeneration) return;
+        this.error.set(message);
       } else {
         const page = (await response.json()) as InterviewGridPage;
+        if (generation !== this.listGeneration) return;
         this.records.update((loaded) =>
           cursor === null ? page.rows : [...(loaded ?? []), ...page.rows],
         );
@@ -1209,6 +1229,7 @@ export class InterviewRecordsComponent implements OnDestroy {
         this.rememberTracks(page.rows);
       }
     } catch {
+      if (generation !== this.listGeneration) return;
       this.error.set('Could not load interview records. Reload the page to try again.');
     }
     this.loading.set(false);
@@ -1237,13 +1258,14 @@ export class InterviewRecordsComponent implements OnDestroy {
 
   /** The tiles. Same gate, same reach, same filters, same query builder — so a
    *  tile can never report a number the grid below it cannot produce. */
-  private async loadSummary(): Promise<void> {
+  private async loadSummary(generation = this.listGeneration): Promise<void> {
     const query = this.filterQuery();
     if (this.recordingFilter() === 'recorded') query.set('recorded_only', 'true');
     try {
       const response = await fetch(`${environment.apiBase}/admin/interviews/summary?${query}`, {
         credentials: 'include',
       });
+      if (generation !== this.listGeneration) return;
       if (!response.ok) {
         // A DASH, NOT A STALE NUMBER. The tiles left showing the previous
         // filter's counts would be four confident numbers about a list nobody
@@ -1251,8 +1273,11 @@ export class InterviewRecordsComponent implements OnDestroy {
         this.kpis.set(null);
         return;
       }
-      this.kpis.set((await response.json()) as InterviewKpis);
+      const kpis = (await response.json()) as InterviewKpis;
+      if (generation !== this.listGeneration) return;
+      this.kpis.set(kpis);
     } catch {
+      if (generation !== this.listGeneration) return;
       this.kpis.set(null);
     }
   }

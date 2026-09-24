@@ -122,7 +122,13 @@
   margin: 4px 0 0;
 }
 
+/* `flex: none`, or a short window squeezes the table to nothing. It is the one
+   child of `.dialog-body` that is itself a scroll container, which makes its
+   minimum height 0, so it took the whole shortfall before the body scrolled:
+   0 px of a 106 px table at 1280 x 600, and the rows could not be clicked. At
+   its own height, up to the 300 px below, it is the body that scrolls. */
 .table-scroll {
+  flex: none;
   max-height: 300px;
   overflow: auto;
   border: 1px solid var(--hairline);

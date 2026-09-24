@@ -110,3 +110,126 @@ describe('Interview questions · tracks and their questions', () => {
     ]);
   });
 });
+
+/**
+ * An inline edit the bank did not take is put back in the grid: the text box
+ * and the phase select hold what the reader did to them, so the row is rebuilt
+ * from the stored question — and only that row, so the reader's next box is
+ * left alone.
+ */
+describe('Interview questions · a refused inline edit is put back', () => {
+  const calls: string[] = [];
+  const realFetch = globalThis.fetch;
+
+  beforeEach(async () => {
+    calls.length = 0;
+    const scripted = scriptedFetch(calls);
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === 'PATCH') {
+        calls.push(`PATCH ${String(input).slice(String(input).indexOf('/api') + 4)}`);
+        return {
+          ok: false,
+          status: 422,
+          json: async () => ({ detail: 'That phase is not on this track.' }),
+        } as unknown as Response;
+      }
+      return scripted(input, init);
+    }) as typeof fetch;
+    await TestBed.configureTestingModule({
+      imports: [InterviewQuestionsComponent],
+    }).compileComponents();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  async function rendered() {
+    const fixture = TestBed.createComponent(InterviewQuestionsComponent);
+    const c = fixture.componentInstance;
+    await until(() => c.questionCount() === 2);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    return {
+      fixture,
+      c,
+      texts: () => [...root.querySelectorAll<HTMLTextAreaElement>('textarea.bank-question-text')],
+      phases: () => [...root.querySelectorAll<HTMLSelectElement>('select.bank-phase-select')],
+    };
+  }
+
+  it('puts back a question typed below 8 characters, and saves nothing', async () => {
+    const { fixture, c, texts } = await rendered();
+    const [first, second] = texts();
+    expect(first.value).toBe('Describe a conflict you resolved at work.');
+
+    first.value = 'Why?';
+    first.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(c.error()).toBe('A question needs at least 8 characters. Put back as it was.');
+    expect(texts()[0].value).toBe('Describe a conflict you resolved at work.');
+    expect(texts()[1]).toBe(second);
+    expect(calls.filter((k) => k.startsWith('PATCH'))).toEqual([]);
+  });
+
+  it('puts back a phase the server refused', async () => {
+    const { fixture, c, phases } = await rendered();
+    const [first, second] = phases();
+    expect(first.value).toBe('probing');
+
+    first.value = 'deep_dive';
+    first.dispatchEvent(new Event('change'));
+    await until(() => c.error() !== null && !c.busy());
+    fixture.detectChanges();
+
+    expect(c.error()).toBe('That phase is not on this track.');
+    expect(phases()[0].value).toBe('probing');
+    expect(phases()[1]).toBe(second);
+    expect(calls.filter((k) => k.startsWith('PATCH'))).toEqual([
+      'PATCH /admin/interview-questions/q1',
+    ]);
+  });
+});
+
+/**
+ * A track picked while the screen is still reading the first one's questions
+ * keeps its own list, whichever read answers last.
+ */
+describe('Interview questions · the list belongs to the track picked last', () => {
+  const realFetch = globalThis.fetch;
+  const held: Array<() => void> = [];
+
+  beforeEach(async () => {
+    held.length = 0;
+    const scripted = scriptedFetch([]);
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      // The first track's questions answer late: after the reader has moved on.
+      if (String(input).endsWith('/admin/interview-questions?track=hr')) {
+        await new Promise<void>((resolve) => held.push(resolve));
+      }
+      return scripted(input, init);
+    }) as typeof fetch;
+    await TestBed.configureTestingModule({
+      imports: [InterviewQuestionsComponent],
+    }).compileComponents();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  it('keeps the picked track’s questions when the first track’s read answers after them', async () => {
+    const c = TestBed.createComponent(InterviewQuestionsComponent).componentInstance;
+    await until(() => c.tracks() !== null && held.length === 1);
+
+    await c.selectTrack('fa');
+    expect(c.questionCount()).toBe(1);
+
+    held.splice(0).forEach((release) => release());
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(c.selectedTrackKey()).toBe('fa');
+    expect(c.questionCount()).toBe(1);
+    expect(c.pageRows().map((row) => row.question.id)).toEqual(['q3']);
+  });
+});

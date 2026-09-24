@@ -718,7 +718,7 @@ def require_feature(db: Session, student_id: str | None, feature: str) -> None:
         student.english       GET /student/english-baseline, POST .../start
         student.skilling      GET /student/badges, GET /student/growth,
                               POST /student/badges/{code}/{start,evidence}
-        student.time_log      GET + PUT /student/ledger,
+        student.time_log      GET + PUT /student/ledger, GET /student/ledger/history,
                               POST /student/ledger/{copy-yesterday,submit}
         student.mentor_log    GET /student/mentor-meetings,
                               POST /student/mentor-meetings/request

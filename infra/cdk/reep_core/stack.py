@@ -1490,6 +1490,42 @@ class CoreStack(Stack):
                         ],
                     )
                 )
+            # WHETHER SES WILL DELIVER TO ONE ADDRESS, AND LIFTING IT WHEN IT
+            # WILL NOT (app/mail_transport.suppression_for, 2026-09-17).
+            #
+            # A hard bounce or a complaint puts an address on the ACCOUNT
+            # SUPPRESSION LIST. SES then ACCEPTS every later send for it --
+            # message id returned, `mail_logs` written SENT, every screen saying
+            # "we have emailed you a code" -- and delivers nothing, for ever. A
+            # student in that state can sign in with Google and reach a password
+            # by no path at all, and until this grant existed the product had no
+            # way to ask the question, so it read to the office as an unexplained
+            # "the code never came".
+            #
+            # THE SAME SHAPE AS THE INCIDENT ABOVE, and the reason this is worth
+            # writing out: a mail failure whose only symptom is that nothing
+            # happens will not be found by watching for errors. There are none.
+            #
+            # `ses:ListSuppressedDestinations` IS DELIBERATELY ABSENT. The
+            # application only ever asks about an address it already holds --
+            # the recipient of a message it is about to send, or one the office
+            # typed into the mail screen. List would let a compromised task
+            # enumerate every address the deployment has ever bounced, which is
+            # a roster of people and nothing this feature needs.
+            #
+            # Resource `*` because both are account-level operations: SESv2
+            # supports no resource-level permission for either, so a narrower
+            # ARN here would not restrict the call, it would refuse it.
+            send_mail_statements.append(
+                iam.PolicyStatement(
+                    sid="ReadAndLiftOneSuppression",
+                    actions=[
+                        "ses:GetSuppressedDestination",
+                        "ses:DeleteSuppressedDestination",
+                    ],
+                    resources=["*"],
+                )
+            )
             inline["send-mail"] = iam.PolicyDocument(statements=send_mail_statements)
         api_task_role = iam.Role(self, "ApiTaskRole", role_name=f"{project}-api-task", assumed_by=ecs_tasks, inline_policies=inline)
 

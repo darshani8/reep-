@@ -1,0 +1,649 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "REEP runtime architecture",
+    "locale": "en",
+    "visual_preset": "signal-flow",
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/darshani8/reep-",
+      "revision": "408b629280c2ecca0390e881a9a15ebfd7f036f4"
+    },
+    "viewBox": [
+      1380,
+      700
+    ],
+    "views": [
+      {
+        "id": "student-request",
+        "label": "Student request path",
+        "focus": [
+          "spa",
+          "edge",
+          "alb",
+          "api",
+          "db",
+          "efs"
+        ],
+        "note": "Browser to CloudFront, WAF and ALB, into the FastAPI task, then Postgres and the EFS document store."
+      },
+      {
+        "id": "mock-interview",
+        "label": "Mock interview",
+        "focus": [
+          "spa",
+          "edge",
+          "alb",
+          "api",
+          "bedrock",
+          "efs"
+        ],
+        "note": "The /api/interview WebSocket is relayed in-process to Nova 2 Sonic; no student record enters it."
+      },
+      {
+        "id": "mail-sign-in",
+        "label": "Mail and sign-in",
+        "focus": [
+          "spa",
+          "api",
+          "google",
+          "ses",
+          "db"
+        ],
+        "note": "Google ID tokens are verified against JWKS; mail goes out through SESv2 after a suppression check."
+      },
+      {
+        "id": "egress-gate",
+        "label": "Student-data egress gate",
+        "focus": [
+          "api",
+          "gate",
+          "bedrock"
+        ],
+        "note": "A prompt carrying a student's record reaches a remote model only through student_data_egress_allowed."
+      },
+      {
+        "id": "nightly-protection",
+        "label": "Nightly protection",
+        "focus": [
+          "jobs",
+          "db",
+          "efs",
+          "archive"
+        ],
+        "note": "Scheduled tasks on the api image copy rows and files into Object-Locked S3 before the retention sweep."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "spa",
+      "type": "frontend",
+      "label": "Angular 22 SPA",
+      "sublabel": "student browser · /api",
+      "brand": "angular",
+      "pos": [
+        24,
+        210
+      ],
+      "size": [
+        140,
+        64
+      ],
+      "sources": [
+        {
+          "path": "apps/web/src/environments/environment.ts",
+          "line": 12,
+          "end_line": 16,
+          "label": "apiBase '/api'"
+        },
+        {
+          "path": "apps/web/proxy.conf.json",
+          "line": 1,
+          "end_line": 8,
+          "label": "dev proxy /api to :3300"
+        },
+        {
+          "path": "apps/web/package.json",
+          "line": 16,
+          "end_line": 16,
+          "label": "@angular/core ^22"
+        }
+      ]
+    },
+    {
+      "id": "edge",
+      "type": "security",
+      "label": "CloudFront + WAF",
+      "sublabel": "SPA from S3 via OAC",
+      "tag": "edge",
+      "pos": [
+        228,
+        210
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 2263,
+          "end_line": 2318,
+          "label": "distribution: S3 + /api/*"
+        },
+        {
+          "path": "infra/cdk/reep_core/edge.py",
+          "line": 101,
+          "end_line": 125,
+          "label": "WAF ACL rules"
+        },
+        {
+          "path": "infra/cdk/reep_core/edge.py",
+          "line": 18,
+          "end_line": 43,
+          "label": "SizeRestrictions_BODY counted"
+        }
+      ]
+    },
+    {
+      "id": "google",
+      "type": "external",
+      "label": "Google sign-in",
+      "sublabel": "OIDC · RS256",
+      "pos": [
+        228,
+        66
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "apps/api-py/app/google_auth.py",
+          "line": 55,
+          "end_line": 74,
+          "label": "token + JWKS endpoints"
+        },
+        {
+          "path": "apps/api-py/app/google_auth.py",
+          "line": 451,
+          "end_line": 470,
+          "label": "exchange_code"
+        },
+        {
+          "path": "apps/api-py/app/google_auth.py",
+          "line": 511,
+          "end_line": 540,
+          "label": "verify_id_token"
+        }
+      ]
+    },
+    {
+      "id": "ses",
+      "type": "cloud",
+      "label": "Amazon SES",
+      "sublabel": "SESv2 · task-role auth",
+      "pos": [
+        228,
+        406
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "apps/api-py/app/mail_transport.py",
+          "line": 215,
+          "end_line": 264,
+          "label": "send() via sesv2"
+        },
+        {
+          "path": "apps/api-py/app/mail_transport.py",
+          "line": 163,
+          "end_line": 186,
+          "label": "suppression_for"
+        },
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 1430,
+          "end_line": 1442,
+          "label": "SendFromVerifiedIdentity"
+        }
+      ]
+    },
+    {
+      "id": "alb",
+      "type": "cloud",
+      "label": "ALB",
+      "sublabel": "public subnets",
+      "pos": [
+        502,
+        210
+      ],
+      "size": [
+        120,
+        64
+      ],
+      "sources": [
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 1533,
+          "end_line": 1566,
+          "label": "ALB, idle 300 s, :3300 /ready"
+        },
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 1616,
+          "end_line": 1631,
+          "label": "HTTPS listener"
+        }
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "FastAPI API",
+      "sublabel": "ECS Fargate · interview relay",
+      "tag": "ARM64",
+      "brand": "fastapi",
+      "pos": [
+        714,
+        196
+      ],
+      "size": [
+        180,
+        92
+      ],
+      "sources": [
+        {
+          "path": "apps/api-py/app/main.py",
+          "line": 346,
+          "end_line": 361,
+          "label": "routers under /api"
+        },
+        {
+          "path": "apps/api-py/app/routers/interview.py",
+          "line": 1183,
+          "end_line": 1196,
+          "label": "WebSocket /api/interview"
+        },
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 1775,
+          "end_line": 1790,
+          "label": "Fargate task, ARM64"
+        }
+      ]
+    },
+    {
+      "id": "gate",
+      "type": "security",
+      "label": "Egress gate",
+      "sublabel": "student_data_egress_allowed",
+      "tag": "rule 1",
+      "pos": [
+        984,
+        66
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "apps/api-py/app/ai/llm.py",
+          "line": 114,
+          "end_line": 124,
+          "label": "loopback or explicit flag"
+        },
+        {
+          "path": "apps/api-py/app/ai/llm.py",
+          "line": 205,
+          "end_line": 227,
+          "label": "complete_chat refusal"
+        },
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 508,
+          "end_line": 518,
+          "label": "prod env sets the flag"
+        }
+      ]
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL 17",
+      "sublabel": "RDS · pgvector KB",
+      "brand": "postgresql",
+      "pos": [
+        984,
+        406
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 1115,
+          "end_line": 1142,
+          "label": "RDS instance, private"
+        },
+        {
+          "path": "apps/api-py/app/knowledge.py",
+          "line": 157,
+          "end_line": 170,
+          "label": "pgvector <=> retrieval"
+        }
+      ]
+    },
+    {
+      "id": "efs",
+      "type": "database",
+      "label": "EFS document store",
+      "sublabel": "/data uploads · audio",
+      "pos": [
+        714,
+        406
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "sources": [
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 845,
+          "end_line": 864,
+          "label": "encrypted EFS + access point"
+        },
+        {
+          "path": "apps/api-py/app/document_store.py",
+          "line": 220,
+          "end_line": 256,
+          "label": "save_bytes"
+        },
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 509,
+          "end_line": 511,
+          "label": "UPLOAD_DIR=/data/uploads"
+        }
+      ]
+    },
+    {
+      "id": "jobs",
+      "type": "backend",
+      "label": "Scheduled tasks",
+      "sublabel": "EventBridge Scheduler",
+      "tag": "nightly",
+      "pos": [
+        984,
+        546
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 1981,
+          "end_line": 2003,
+          "label": "retention schedule"
+        },
+        {
+          "path": "apps/api-py/app/backup_database.py",
+          "line": 154,
+          "end_line": 176,
+          "label": "pg_dump -Fc"
+        },
+        {
+          "path": "apps/api-py/app/retention_job.py",
+          "line": 67,
+          "end_line": 82,
+          "label": "jobs Sentry DSN"
+        }
+      ]
+    },
+    {
+      "id": "bedrock",
+      "type": "cloud",
+      "label": "Amazon Bedrock",
+      "sublabel": "Nova 2 Sonic · Nova Pro",
+      "pos": [
+        1210,
+        196
+      ],
+      "size": [
+        150,
+        92
+      ],
+      "sources": [
+        {
+          "path": "apps/api-py/app/interview_nova.py",
+          "line": 1,
+          "end_line": 24,
+          "label": "Nova 2 Sonic, SigV4, no key"
+        },
+        {
+          "path": "apps/api-py/app/ai/llm.py",
+          "line": 92,
+          "end_line": 102,
+          "label": "BEDROCK_MODEL converse"
+        },
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 1338,
+          "end_line": 1351,
+          "label": "invoke-nova grant"
+        }
+      ]
+    },
+    {
+      "id": "archive",
+      "type": "database",
+      "label": "S3 archive buckets",
+      "sublabel": "versioned · Object Lock",
+      "pos": [
+        1210,
+        606
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 876,
+          "end_line": 899,
+          "label": "identity ledger bucket"
+        },
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 1022,
+          "end_line": 1040,
+          "label": "document archive bucket"
+        },
+        {
+          "path": "apps/api-py/app/document_archive.py",
+          "line": 152,
+          "end_line": 200,
+          "label": "archive_bytes PUT"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "reep-core VPC · ap-south-1",
+      "wraps": [
+        "alb",
+        "api",
+        "gate",
+        "db",
+        "efs",
+        "jobs"
+      ],
+      "pad": 36
+    },
+    {
+      "kind": "security-group",
+      "label": "private subnets · no public IP",
+      "wraps": [
+        "api",
+        "gate",
+        "db",
+        "efs",
+        "jobs"
+      ],
+      "pad": 14
+    }
+  ],
+  "connections": [
+    {
+      "id": "c-spa-edge",
+      "from": "spa",
+      "to": "edge",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c-edge-alb",
+      "from": "edge",
+      "to": "alb",
+      "label": "/api/* uncached",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c-alb-api",
+      "from": "alb",
+      "to": "api",
+      "label": ":3300 · WS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c-api-db",
+      "from": "api",
+      "to": "db",
+      "label": "SQL · pgvector",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "c-api-efs",
+      "from": "api",
+      "to": "efs",
+      "label": "NFS /data",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 100
+    },
+    {
+      "id": "c-api-bedrock",
+      "from": "api",
+      "to": "bedrock",
+      "label": "Nova 2 Sonic · HTTP/2 bidi",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "c-api-gate",
+      "from": "api",
+      "to": "gate",
+      "label": "carries_student_data",
+      "variant": "security",
+      "fromSide": "top",
+      "toSide": "left"
+    },
+    {
+      "id": "c-gate-bedrock",
+      "from": "gate",
+      "to": "bedrock",
+      "label": "converse · Nova Pro",
+      "variant": "security",
+      "fromSide": "right",
+      "toSide": "top"
+    },
+    {
+      "id": "c-api-google",
+      "from": "api",
+      "to": "google",
+      "label": "code exchange · JWKS",
+      "fromSide": "top",
+      "toSide": "right"
+    },
+    {
+      "id": "c-api-ses",
+      "from": "api",
+      "to": "ses",
+      "label": "SESv2 · suppression check",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDx": 44
+    },
+    {
+      "id": "c-jobs-db",
+      "from": "jobs",
+      "to": "db",
+      "label": "pg_dump · sweep",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelDy": -28
+    },
+    {
+      "id": "c-jobs-efs",
+      "from": "jobs",
+      "to": "efs",
+      "label": "read files · delete audio",
+      "variant": "dashed",
+      "fromSide": "left",
+      "toSide": "bottom"
+    },
+    {
+      "id": "c-jobs-archive",
+      "from": "jobs",
+      "to": "archive",
+      "label": "write-only PUT",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "top"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Edge and network",
+      "items": [
+        "WAF: AWS common and bad-inputs rules, 2000-request IP rate limit",
+        "SizeRestrictions_BODY is counted, so uploads reach the API"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Student-data egress gate",
+      "items": [
+        "Off-machine models need LLM_ALLOW_REMOTE_STUDENT_DATA=true",
+        "reep-core sets it, so production opens the gate to Bedrock"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Nightly protection",
+      "items": [
+        "IST: 23:30 ledger, 01:00 pg_dump, 02:00 files, 03:00 retention",
+        "Object-Locked buckets: tasks write and list, never read"
+      ]
+    }
+  ]
+}

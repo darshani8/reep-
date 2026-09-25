@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Mock interview stack: September 2026",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "legend": { "mode": "hidden" },
+    "repository": {
+      "url": "https://github.com/darshani8/reep-",
+      "revision": "408b629280c2ecca0390e881a9a15ebfd7f036f4"
+    }
+  },
+  "components": [
+    {
+      "id": "dock",
+      "type": "frontend",
+      "label": "Agent dock",
+      "sublabel": "Mock interview tab",
+      "pos": [40, 80],
+      "size": [180, 64],
+      "sources": [
+        { "path": "apps/web/src/app/layout/agent-dock.component.ts", "line": 1, "end_line": 38, "label": "two tabs, one panel, room hidden" },
+        { "path": "apps/web/src/app/layout/agent-dock.component.ts", "line": 74, "end_line": 80, "label": "STUDENT, or ADMIN rehearsal" }
+      ]
+    },
+    {
+      "id": "spa",
+      "type": "frontend",
+      "label": "Angular SPA",
+      "sublabel": "shared/interview-room",
+      "tag": "InterviewService",
+      "pos": [40, 230],
+      "size": [180, 64],
+      "sources": [
+        { "path": "apps/web/src/app/features/assistant/assistant.component.ts", "line": 1, "end_line": 10, "label": "/student/assistant renders the room" },
+        { "path": "apps/web/src/app/shared/interview-room/interview-room.component.ts", "line": 294, "end_line": 302, "label": "app-interview-room" },
+        { "path": "apps/web/src/app/core/interview.service.ts", "line": 55, "label": "SAMPLE_RATE = 24000" }
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "FastAPI API",
+      "sublabel": "routers/interview.py",
+      "tag": "picks the engine",
+      "pos": [380, 230],
+      "size": [180, 64],
+      "sources": [
+        { "path": "apps/api-py/app/routers/interview.py", "line": 1650, "end_line": 1667, "label": "engine chosen here and nowhere else" },
+        { "path": "apps/api-py/app/routers/interview.py", "line": 314, "label": "_is_rehearsal: ADMIN, no records" },
+        { "path": "apps/api-py/app/config.py", "line": 22, "end_line": 29, "label": "INTERVIEW_ENGINE: nova | local" }
+      ]
+    },
+    {
+      "id": "nova",
+      "type": "backend",
+      "label": "Nova engine",
+      "sublabel": "interview_nova.py",
+      "tag": "default",
+      "pos": [720, 80],
+      "size": [180, 64],
+      "sources": [
+        { "path": "apps/api-py/app/interview_nova.py", "line": 1, "end_line": 24, "label": "hosted default, no API key" },
+        { "path": "apps/api-py/app/interview_nova.py", "line": 852, "label": "class NovaSonicSession" },
+        { "path": "apps/api-py/app/interview_core.py", "line": 49, "label": "InterviewEngine protocol" }
+      ]
+    },
+    {
+      "id": "local",
+      "type": "backend",
+      "label": "Local engine",
+      "sublabel": "interview_local.py",
+      "tag": "opt-in",
+      "pos": [720, 380],
+      "size": [180, 64],
+      "sources": [
+        { "path": "apps/api-py/app/interview_local.py", "line": 1, "end_line": 8, "label": "faster-whisper, Ollama, Piper" },
+        { "path": "apps/api-py/app/interview_core.py", "line": 1, "end_line": 16, "label": "contracts shared, imported" }
+      ]
+    },
+    {
+      "id": "bedrock",
+      "type": "cloud",
+      "label": "Amazon Bedrock",
+      "sublabel": "Nova 2 Sonic",
+      "tag": "8-min stream",
+      "pos": [1060, 80],
+      "size": [180, 64],
+      "sources": [
+        { "path": "apps/api-py/app/config.py", "line": 31, "end_line": 36, "label": "amazon.nova-2-sonic-v1:0" },
+        { "path": "apps/api-py/app/config.py", "line": 683, "end_line": 690, "label": "stream closed after 8 minutes" }
+      ]
+    },
+    {
+      "id": "audio",
+      "type": "database",
+      "label": "Interview audio",
+      "sublabel": "EFS /data/interview-audio",
+      "tag": "3 switches, off",
+      "pos": [380, 80],
+      "size": [180, 64],
+      "sources": [
+        { "path": "apps/api-py/app/interview_audio.py", "line": 1301, "end_line": 1359, "label": "operator, college, student switches" },
+        { "path": "infra/cdk/reep_core/stack.py", "line": 1748, "end_line": 1767, "label": "INTERVIEW_AUDIO_DIR on EFS" },
+        { "path": "apps/api-py/app/config.py", "line": 892, "label": "cap 128 MB per session" }
+      ]
+    },
+    {
+      "id": "postgres",
+      "type": "database",
+      "label": "PostgreSQL 17",
+      "sublabel": "+ interview_policies",
+      "pos": [380, 380],
+      "size": [180, 64],
+      "sources": [
+        { "path": "apps/api-py/app/models/interview_policy.py", "line": 97, "label": "college decides storage (B6.1)" },
+        { "path": "apps/api-py/app/models/interview.py", "line": 93, "label": "interview_sessions and siblings" },
+        { "path": "apps/api-py/app/conversations.py", "line": 127, "end_line": 135, "label": "append_message, provider_turn_id" }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "InterviewEngine",
+      "wraps": ["nova", "local"]
+    }
+  ],
+  "connections": [
+    { "id": "dock-room", "from": "dock", "to": "spa", "label": "same room", "labelAt": [130, 187] },
+    { "id": "interview-socket", "from": "spa", "to": "api", "label": "WS /api/interview", "variant": "emphasis" },
+    { "id": "run-engine", "from": "api", "to": "nova", "label": "nova (default)" },
+    { "id": "run-local-engine", "from": "api", "to": "local", "label": "local (opt-in)", "variant": "dashed" },
+    { "id": "upstream-model", "from": "nova", "to": "bedrock", "label": "SigV4, no key" },
+    { "id": "persist-turns", "from": "api", "to": "postgres", "label": "turns + records", "labelAt": [470, 337] },
+    { "id": "record-audio", "from": "api", "to": "audio", "label": "recorder" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "One setting, one contract",
+      "items": [
+        "INTERVIEW_ENGINE picks nova (default) or local; a typo falls back to nova with a warning",
+        "Both engines satisfy interview_core.InterviewEngine: same constructor, same (code, reason)",
+        "Nova owns the turn; the engine owns the phase"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Removed in 2026-09",
+      "items": [
+        "interview_relay.py and OPENAI_API_KEY",
+        "voice_agent.py, /api/voice/*, the fourth process and its venv",
+        "chat-voice.service.ts and the orb's voice overlay"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Kept on purpose",
+      "items": [
+        "messages.channel stays a plain string: old voice rows still read",
+        "provider_turn_id dedup in conversations.append_message",
+        "Audio needs operator, college policy and student grant"
+      ]
+    }
+  ]
+}

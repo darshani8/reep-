@@ -480,7 +480,12 @@ forty colleagues must not say "loss-of-pay" or "restricted holiday". Neither
 mail carries the `reason`. Both are background tasks with their own session, so
 neither the Apply button nor Sanction waits on SES.
 `tests/test_leave_on_leave_today.py` pins it, including that an approval ahead
-of time writes no `leave-today:` row at all.
+of time writes no `leave-today:` row at all. **The applicant's own three mails
+(received, sanctioned, not approved) name NOBODY (2026-09-25)** — not the
+placement office, not an approver, not a department, and the greeting is a
+bare "Hello,": a rejection that read as a named office turning somebody down
+was reported, and the owner's rule is to say what happened to the request and
+nothing about who. `test_leave_mail.py::test_the_applicants_mail_names_nobody`.
 
 **The signature image: normalised on the way in, never silent on the way
 out.** `PUT /api/staff/signature` re-encodes what the sniffer accepted as a

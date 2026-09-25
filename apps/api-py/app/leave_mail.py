@@ -156,13 +156,23 @@ def _kind_phrase(lr: LeaveRequest) -> str:
     }.get(lr.leave_kind, "leave")
 
 
+# THE THREE MAILS TO THE APPLICANT NAME NOBODY (2026-09-25). Not the office,
+# not an approver, not a department, and not the applicant either — the
+# greeting is a bare "Hello,". The owner's words, after a rejection mail that
+# read as though a named office had turned the person down: say what happened
+# to the request and nothing about who. The screen is where the decision, its
+# date and any note are read in context. `test_leave_mail.py::
+# test_the_applicants_mail_names_nobody` holds every one of them to it.
+_GREETING = "Hello,\n\n"
+
+
 def _submitted(user: User, lr: LeaveRequest) -> tuple[str, str]:
     return (
         "Your leave request has been received",
-        f"Hello {user.name},\n\n"
-        f"REEP has recorded your application for {_kind_phrase(lr)} covering "
-        f"{_span(lr)}. It is now waiting for the placement office's decision.\n\n"
-        f"You can follow it, or withdraw it while it is still unsigned, on your "
+        f"{_GREETING}"
+        f"Your leave request for {_kind_phrase(lr)} covering {_span(lr)} has been "
+        f"received and is waiting for a decision.\n\n"
+        f"You can follow it, or withdraw it while it is still undecided, on your "
         f"Leave Requests screen.\n",
     )
 
@@ -170,23 +180,22 @@ def _submitted(user: User, lr: LeaveRequest) -> tuple[str, str]:
 def _approved(user: User, lr: LeaveRequest) -> tuple[str, str]:
     return (
         "Your leave request has been sanctioned",
-        f"Hello {user.name},\n\n"
-        f"Your application for {_kind_phrase(lr)} covering {_span(lr)} has been "
+        f"{_GREETING}"
+        f"Your leave request for {_kind_phrase(lr)} covering {_span(lr)} has been "
         f"sanctioned. The signed form is on your Leave Requests screen.\n",
     )
 
 
 def _rejected(user: User, lr: LeaveRequest) -> tuple[str, str]:
-    # THE APPROVER'S NOTE IS NOT IN HERE EITHER. `first_note`/`second_note` are
-    # free text written by a member of staff ABOUT this person, and a note
-    # written for the office's file is not a note written to the applicant.
-    # The screen shows it to them in context; the mail sends them to the screen.
+    # The decider's note stays out too. `first_note`/`second_note` are free
+    # text written by a member of staff ABOUT this person, for the office's
+    # file; the screen shows it to them in context, and the mail only says
+    # where to look.
     return (
-        "A decision has been made on your leave request",
-        f"Hello {user.name},\n\n"
-        f"Your application for {_kind_phrase(lr)} covering {_span(lr)} was not "
-        f"approved. Your Leave Requests screen carries the decision and any note "
-        f"the approver left.\n",
+        "Your leave request was not approved",
+        f"{_GREETING}"
+        f"Your leave request for {_kind_phrase(lr)} covering {_span(lr)} was not "
+        f"approved. You can see it on your Leave Requests screen.\n",
     )
 
 

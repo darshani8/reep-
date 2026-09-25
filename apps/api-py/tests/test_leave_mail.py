@@ -277,3 +277,31 @@ def test_the_one_signature_sends_the_sanction_mail_and_it_carries_no_reason(
         with SessionLocal() as db:
             db.execute(delete(MailLog).where(MailLog.dedupe_key.like(f"leave%:{leave_id}:%")))
             db.commit()
+
+
+def test_the_applicants_mail_names_nobody() -> None:
+    """The three mails to the applicant say what happened to the request and
+    nothing about WHO (2026-09-25): not the placement office, not an approver,
+    not a department, and not the applicant's own name either. A rejection
+    that read "not approved by the placement office" was the report that
+    started this."""
+    from app.models.user import User
+
+    applicant = User(name="Asha Rao", email="asha@bgscet.ac.in", role=Role.MENTOR)
+    day = date(2026, 9, 25)
+    for status, builder in leave_mail._BODIES.items():
+        lr = LeaveRequest(
+            id="lr-1", from_date=day, to_date=day, leave_kind="CASUAL", status=status, reason=REASON
+        )
+        subject, text = builder(applicant, lr)
+        whole = f"{subject}\n{text}".lower()
+        for word in ("placement", "office", "approver", "department", "mentor", "asha", "rao"):
+            assert word not in whole, f"{status.value} mail names {word!r}: {subject!r} / {text!r}"
+        assert REASON.lower() not in whole
+        assert text.startswith("Hello,\n"), "the greeting names nobody either"
+        assert day.isoformat() in text, "the dates still say which request it was"
+
+    lr = LeaveRequest(id="lr-2", from_date=day, to_date=day, leave_kind="CASUAL", status=LeaveStatus.REJECTED, reason=REASON)
+    subject, text = leave_mail._BODIES[LeaveStatus.REJECTED](applicant, lr)
+    assert subject == "Your leave request was not approved"
+    assert "was not approved" in text

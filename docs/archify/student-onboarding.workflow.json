@@ -1,0 +1,370 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Student registration to first sign-in",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "animation": "trace",
+    "views": [
+      {
+        "id": "apply",
+        "label": "Apply",
+        "focus": [
+          "apply",
+          "submit",
+          "rules"
+        ],
+        "note": "One multipart POST: both files are judged before a row exists, then the rule engine routes the application."
+      },
+      {
+        "id": "decide",
+        "label": "Decide",
+        "focus": [
+          "rules",
+          "review",
+          "hold",
+          "rejectMail",
+          "provision"
+        ],
+        "note": "Approve provisions the account; Hold needs a note; Reject needs a reason, which is mailed."
+      },
+      {
+        "id": "mailbox",
+        "label": "Prove the mailbox",
+        "focus": [
+          "invite",
+          "start",
+          "verify"
+        ],
+        "note": "The link is peeked, the address typed back, and a six-digit code proves the inbox is readable now."
+      },
+      {
+        "id": "password",
+        "label": "Set password",
+        "focus": [
+          "verify",
+          "setpw",
+          "login"
+        ],
+        "note": "Only the 15-minute ticket sets the password; the walk ends at /login and signs nobody in."
+      }
+    ],
+    "legend": {
+      "entries": {
+        "frontend": {
+          "label": "Browser screen"
+        },
+        "backend": {
+          "label": "API step"
+        },
+        "security": {
+          "label": "Gate or decision"
+        },
+        "cloud": {
+          "label": "Email sent"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "applicant",
+      "label": "Applicant (browser)"
+    },
+    {
+      "id": "api",
+      "label": "REEP API"
+    },
+    {
+      "id": "admin",
+      "label": "Main Admin"
+    },
+    {
+      "id": "mail",
+      "label": "Mail (SES or console)"
+    }
+  ],
+  "phases": [
+    {
+      "id": "ph-apply",
+      "label": "Apply + route",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "ph-approve",
+      "label": "Approve + invite",
+      "fromCol": 2,
+      "toCol": 2,
+      "variant": "emphasis"
+    },
+    {
+      "id": "ph-mailbox",
+      "label": "Prove the mailbox",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "security"
+    },
+    {
+      "id": "ph-password",
+      "label": "Set password",
+      "fromCol": 5,
+      "toCol": 5
+    }
+  ],
+  "groups": [
+    {
+      "id": "onboard-walk",
+      "label": "POST /api/auth/onboard/*",
+      "lane": "api",
+      "fromCol": 3,
+      "toCol": 5,
+      "variant": "dashed"
+    }
+  ],
+  "mainPath": [
+    "apply",
+    "submit",
+    "rules",
+    "review",
+    "provision",
+    "invite",
+    "start",
+    "verify",
+    "setpw",
+    "login"
+  ],
+  "semanticChecks": {
+    "allowedRoots": [
+      "apply"
+    ],
+    "allowedTerminals": [
+      "login",
+      "hold",
+      "rejectMail"
+    ],
+    "requiredPaths": [
+      {
+        "from": "apply",
+        "to": "login"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "apply",
+      "lane": "applicant",
+      "col": 0,
+      "type": "frontend",
+      "label": "/register form",
+      "sublabel": "every box + CV + photo",
+      "width": 150
+    },
+    {
+      "id": "login",
+      "lane": "applicant",
+      "col": 5,
+      "type": "frontend",
+      "label": "/login",
+      "sublabel": "the ordinary sign-in door",
+      "width": 150
+    },
+    {
+      "id": "submit",
+      "lane": "api",
+      "col": 0,
+      "type": "backend",
+      "label": "POST /api/register",
+      "sublabel": "files judged: 413 / 415 = no row",
+      "width": 164
+    },
+    {
+      "id": "rules",
+      "lane": "api",
+      "col": 1,
+      "type": "backend",
+      "label": "_apply_rule",
+      "sublabel": "rule engine at submit",
+      "width": 150
+    },
+    {
+      "id": "provision",
+      "lane": "api",
+      "col": 2,
+      "type": "backend",
+      "label": "Provision",
+      "sublabel": "User + Student, no password",
+      "width": 150
+    },
+    {
+      "id": "start",
+      "lane": "api",
+      "col": 3,
+      "type": "backend",
+      "label": "onboard/start",
+      "sublabel": "checks address, mails code",
+      "width": 150
+    },
+    {
+      "id": "verify",
+      "lane": "api",
+      "col": 4,
+      "type": "security",
+      "label": "onboard/verify",
+      "sublabel": "code in, 15-min ticket out",
+      "width": 150
+    },
+    {
+      "id": "setpw",
+      "lane": "api",
+      "col": 5,
+      "type": "backend",
+      "label": "onboard/password",
+      "sublabel": "ticket, never the link",
+      "width": 156
+    },
+    {
+      "id": "rejectMail",
+      "lane": "mail",
+      "col": 1,
+      "type": "cloud",
+      "label": "Rejection mail",
+      "sublabel": "the required reason, mailed",
+      "width": 150
+    },
+    {
+      "id": "invite",
+      "lane": "mail",
+      "col": 2,
+      "type": "cloud",
+      "label": "Setup link",
+      "sublabel": "/onboard?token=, 7 days",
+      "width": 150
+    },
+    {
+      "id": "review",
+      "lane": "admin",
+      "col": 1,
+      "type": "security",
+      "label": "Review queue",
+      "sublabel": "PENDING_REVIEW",
+      "width": 150
+    },
+    {
+      "id": "hold",
+      "lane": "admin",
+      "col": 0,
+      "type": "security",
+      "label": "Hold",
+      "sublabel": "note required, never mailed",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-apply",
+      "from": "apply",
+      "to": "submit",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "e-rule",
+      "from": "submit",
+      "to": "rules",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "e-queue",
+      "from": "rules",
+      "to": "review",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "e-auto",
+      "from": "rules",
+      "to": "provision",
+      "label": "auto-approve rule",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "e-approve",
+      "from": "review",
+      "to": "provision",
+      "label": "APPROVE",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "e-hold",
+      "from": "review",
+      "to": "hold",
+      "label": "HOLD",
+      "variant": "dashed",
+      "role": "branch",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "e-reject",
+      "from": "review",
+      "to": "rejectMail",
+      "variant": "security",
+      "role": "error",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "e-invite",
+      "from": "provision",
+      "to": "invite"
+    },
+    {
+      "id": "e-start",
+      "from": "invite",
+      "to": "start"
+    },
+    {
+      "id": "e-verify",
+      "from": "start",
+      "to": "verify",
+      "label": "code"
+    },
+    {
+      "id": "e-ticket",
+      "from": "verify",
+      "to": "setpw",
+      "label": "ticket",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-login",
+      "from": "setpw",
+      "to": "login"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Apply and decide",
+      "items": [
+        "A live application blocks the address; a REJECTED one does not",
+        "Hold is internal; Approve or Reject still end it"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Three proofs, one walk",
+      "items": [
+        "The link is peeked at steps 1-2 and spent only at step 3",
+        "Step 3 sets the password and signs nobody in"
+      ]
+    }
+  ]
+}

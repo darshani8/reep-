@@ -1,0 +1,315 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "A mock interview, turn by turn",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "animation": "trace",
+    "viewBox": [
+      1084,
+      699
+    ],
+    "views": [
+      {
+        "id": "open-the-room",
+        "label": "Open the room",
+        "focus": [
+          "room",
+          "router",
+          "db"
+        ],
+        "note": "Consent and both caps are checked in one advisory-locked transaction before any row is written."
+      },
+      {
+        "id": "turn-loop",
+        "label": "The turn loop",
+        "focus": [
+          "gate",
+          "engine",
+          "bedrock"
+        ],
+        "note": "Nova owns the turn; the word gate owns the phase. Only accepted answers move the arc."
+      },
+      {
+        "id": "wrap-up",
+        "label": "Wrap-up & scorecard",
+        "focus": [
+          "engine",
+          "bedrock",
+          "db"
+        ],
+        "note": "Held notes invite questions and the verdict; the scorecard is a tool call, never spoken."
+      }
+    ]
+  },
+  "participants": [
+    {
+      "id": "room",
+      "type": "frontend",
+      "label": "Interview room",
+      "sublabel": "browser · 24 kHz PCM",
+      "brand": "angular"
+    },
+    {
+      "id": "router",
+      "type": "backend",
+      "label": "/api/interview",
+      "sublabel": "FastAPI socket router",
+      "brand": "fastapi"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "interview_* · messages",
+      "brand": "postgresql"
+    },
+    {
+      "id": "gate",
+      "type": "backend",
+      "label": "Word gate",
+      "sublabel": "classify_answer · phases"
+    },
+    {
+      "id": "engine",
+      "type": "backend",
+      "label": "Nova engine",
+      "sublabel": "NovaSonicSession, in-process"
+    },
+    {
+      "id": "bedrock",
+      "type": "cloud",
+      "label": "Nova 2 Sonic",
+      "sublabel": "Amazon Bedrock"
+    }
+  ],
+  "segments": [
+    {
+      "from": 154,
+      "to": 294,
+      "label": "Open the room"
+    },
+    {
+      "from": 300,
+      "to": 468,
+      "label": "The turn loop · once per answer"
+    },
+    {
+      "from": 474,
+      "to": 611,
+      "label": "Wrap-up & scorecard"
+    }
+  ],
+  "messages": [
+    {
+      "id": "m_consent",
+      "from": "room",
+      "to": "router",
+      "y": 172,
+      "label": "POST consent {version}",
+      "variant": "security",
+      "note": "POST /api/interview/consent sends the version string only; the server copies the college policy's storage scopes, and returns the standing row when nothing changed."
+    },
+    {
+      "id": "m_ws",
+      "from": "room",
+      "to": "router",
+      "y": 200,
+      "label": "WS ?specialization=",
+      "variant": "emphasis",
+      "note": "Origin and the reep_session cookie are checked on the accepted socket, then the per-user limiter (4012) and the track lookup (unknown key: 4010)."
+    },
+    {
+      "id": "m_open",
+      "from": "router",
+      "to": "db",
+      "y": 228,
+      "label": "_open_records: consent · caps",
+      "variant": "security",
+      "note": "pg_advisory_xact_lock per student. No live consent: close 4013. Daily or attempt cap: close 4015. Otherwise INSERT interview_sessions (running)."
+    },
+    {
+      "id": "m_run",
+      "from": "router",
+      "to": "engine",
+      "y": 256,
+      "label": "NovaSonicSession.run()",
+      "variant": "emphasis",
+      "note": "Built with the turn writer, report writer, finalizer and heartbeat hooks, and the college's time limit."
+    },
+    {
+      "id": "m_hand",
+      "from": "engine",
+      "to": "bedrock",
+      "y": 284,
+      "label": "sessionStart + arc briefing",
+      "variant": "emphasis",
+      "note": "InvokeModelWithBidirectionalStream over HTTP/2, SigV4 from the AWS chain. Persona + build_arc_briefing + the submit_scorecard tool; no student record."
+    },
+    {
+      "id": "m_mic",
+      "from": "room",
+      "to": "engine",
+      "y": 318,
+      "label": "mic PCM16 · 24 kHz",
+      "note": "Binary frames on the same socket; recorded as captured only when all three audio switches are on."
+    },
+    {
+      "id": "m_audin",
+      "from": "engine",
+      "to": "bedrock",
+      "y": 318,
+      "label": "audioInput · 16 kHz",
+      "note": "Resampled from 24 kHz and sent base64 into the open USER audio content."
+    },
+    {
+      "id": "m_asr",
+      "from": "bedrock",
+      "to": "engine",
+      "y": 346,
+      "label": "completionStart · transcript",
+      "variant": "return",
+      "note": "Nova owns the turn: the ASR transcript is the first block of a reply it is already composing. Notes are held from here."
+    },
+    {
+      "id": "m_gate",
+      "from": "engine",
+      "to": "gate",
+      "y": 374,
+      "label": "classify_answer(text)"
+    },
+    {
+      "id": "m_tick",
+      "from": "gate",
+      "to": "engine",
+      "y": 402,
+      "label": "accepted → phase tick",
+      "variant": "return",
+      "note": "Only accepted answers count: probing after 1, deep_dive after 3, wrap_up after 5. Filler, too_short, skipped and echo never advance."
+    },
+    {
+      "id": "m_audout",
+      "from": "bedrock",
+      "to": "engine",
+      "y": 430,
+      "label": "audioOutput … completionEnd",
+      "variant": "return",
+      "note": "The reply streams as audioOutput at 24 kHz; completionEnd closes the model turn and releases any held note."
+    },
+    {
+      "id": "m_voice",
+      "from": "engine",
+      "to": "room",
+      "y": 430,
+      "label": "interviewer PCM · 24 kHz",
+      "note": "Forwarded as it arrives, in 40 ms chunks, with no resampling; response.done at completionEnd."
+    },
+    {
+      "id": "m_turn",
+      "from": "engine",
+      "to": "db",
+      "y": 458,
+      "label": "turn writes · fire-and-forget",
+      "variant": "dashed",
+      "note": "Student and interviewer turns go to interview_turns + messages on a worker thread; a failure logs 'Dropped interview turn' and never ends the call."
+    },
+    {
+      "id": "m_invite",
+      "from": "engine",
+      "to": "bedrock",
+      "y": 492,
+      "label": "held note: invite → verdict",
+      "variant": "emphasis",
+      "note": "[INTERVIEW CONTROL] notes wait for completionEnd. The watchdog forces the verdict at the effective cap (≤ 480 s − 20 s) minus 90 s."
+    },
+    {
+      "id": "m_ask",
+      "from": "engine",
+      "to": "bedrock",
+      "y": 520,
+      "label": "scorecard request note",
+      "variant": "emphasis",
+      "note": "Sent only at the verdict's completionEnd: the student can no longer hear, plus REPORT_DIRECTIVE verbatim."
+    },
+    {
+      "id": "m_tool",
+      "from": "bedrock",
+      "to": "engine",
+      "y": 548,
+      "label": "toolUse submit_scorecard",
+      "variant": "return",
+      "note": "The arguments are the scorecard: never spoken, never written into the chat history, parsed by _parse_report."
+    },
+    {
+      "id": "m_eval",
+      "from": "engine",
+      "to": "db",
+      "y": 548,
+      "label": "interview_evaluations row",
+      "variant": "emphasis",
+      "note": "Awaited, not fired; nullable scores, and a row is written for every outcome."
+    },
+    {
+      "id": "m_report",
+      "from": "engine",
+      "to": "room",
+      "y": 576,
+      "label": "reep.report · scorecard"
+    },
+    {
+      "id": "m_final",
+      "from": "engine",
+      "to": "db",
+      "y": 604,
+      "label": "close row · turns emitted / persisted",
+      "variant": "emphasis",
+      "note": "UPDATE … AND status = 'running', layer 1 of 3. Then the router closes the socket 1000 'Interview complete'."
+    }
+  ],
+  "activations": [
+    {
+      "participant": "router",
+      "from": 194,
+      "to": 610,
+      "type": "backend"
+    },
+    {
+      "participant": "db",
+      "from": 222,
+      "to": 234,
+      "type": "database"
+    },
+    {
+      "participant": "engine",
+      "from": 250,
+      "to": 610,
+      "type": "backend"
+    },
+    {
+      "participant": "bedrock",
+      "from": 278,
+      "to": 554,
+      "type": "cloud"
+    },
+    {
+      "participant": "gate",
+      "from": 368,
+      "to": 408,
+      "type": "backend"
+    },
+    {
+      "participant": "db",
+      "from": 542,
+      "to": 554,
+      "type": "database"
+    },
+    {
+      "participant": "db",
+      "from": 598,
+      "to": 610,
+      "type": "database"
+    }
+  ]
+}

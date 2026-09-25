@@ -1,0 +1,590 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "REEP production deployment on AWS",
+    "locale": "en",
+    "visual_preset": "blueprint",
+    "quality_profile": "showcase",
+    "engineering_profile": "deployment-ownership",
+    "repository": {
+      "url": "https://github.com/darshani8/reep-",
+      "revision": "408b629280c2ecca0390e881a9a15ebfd7f036f4"
+    },
+    "viewBox": [
+      1380,
+      716
+    ],
+    "views": [
+      {
+        "id": "request-path",
+        "label": "Request path",
+        "focus": [
+          "users",
+          "edge",
+          "spa",
+          "alb",
+          "api",
+          "rds",
+          "efs"
+        ],
+        "note": "Public HTTPS stops at CloudFront; only the ALB sits in a public subnet, and it admits CloudFront alone."
+      },
+      {
+        "id": "state-backup-dr",
+        "label": "Data and DR",
+        "focus": [
+          "api",
+          "rds",
+          "efs",
+          "archives",
+          "voice",
+          "vault",
+          "drvault"
+        ],
+        "note": "The database and EFS are backed up in ap-south-1 and copied to a locked vault in ap-southeast-1."
+      },
+      {
+        "id": "deploy-path",
+        "label": "Deploy path",
+        "focus": [
+          "github",
+          "spa",
+          "api",
+          "edge"
+        ],
+        "note": "One OIDC role pinned to main ships the api image to ECS and the SPA to S3 + CloudFront."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "github",
+      "type": "external",
+      "label": "GitHub Actions",
+      "sublabel": "OIDC · main only",
+      "tag": "repo workflows",
+      "pos": [
+        689,
+        34
+      ],
+      "size": [
+        160,
+        62
+      ],
+      "sources": [
+        {
+          "path": ".github/workflows/deploy.yml",
+          "line": 46,
+          "label": "id-token: write"
+        },
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 2734,
+          "label": "OIDC subject pinned to main"
+        }
+      ]
+    },
+    {
+      "id": "users",
+      "type": "external",
+      "label": "Students & staff",
+      "sublabel": "browser · PWA",
+      "tag": "public internet",
+      "pos": [
+        24,
+        314
+      ],
+      "size": [
+        130,
+        62
+      ]
+    },
+    {
+      "id": "edge",
+      "type": "cloud",
+      "label": "CloudFront + WAF",
+      "sublabel": "ACL reep-edge",
+      "tag": "reep-core + reep-edge-waf",
+      "pos": [
+        218,
+        314
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "sources": [
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 2263,
+          "end_line": 2270,
+          "label": "Distribution + web_acl_id"
+        },
+        {
+          "path": "infra/cdk/reep_core/edge.py",
+          "line": 101,
+          "end_line": 124,
+          "label": "CLOUDFRONT-scope ACL"
+        }
+      ]
+    },
+    {
+      "id": "spa",
+      "type": "frontend",
+      "label": "S3 SPA bucket",
+      "sublabel": "private · OAC",
+      "tag": "reep-core",
+      "pos": [
+        452,
+        170
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "sources": [
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 866,
+          "end_line": 872,
+          "label": "web bucket, block all"
+        },
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 2252,
+          "label": "origin access control"
+        }
+      ]
+    },
+    {
+      "id": "alb",
+      "type": "security",
+      "label": "ALB reep-alb",
+      "sublabel": "public subnets · :443",
+      "tag": "reep-core",
+      "pos": [
+        452,
+        314
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "sources": [
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 1533,
+          "end_line": 1542,
+          "label": "internet-facing ALB"
+        },
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 789,
+          "end_line": 795,
+          "label": "CloudFront prefix list ingress"
+        }
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "ECS Fargate api",
+      "sublabel": "ARM64 · 2–10 tasks",
+      "tag": "reep-core",
+      "pos": [
+        694,
+        314
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "sources": [
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 1955,
+          "label": "service api"
+        },
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 1785,
+          "label": "ARM64 runtime platform"
+        },
+        {
+          "path": "infra/cdk/cdk.json",
+          "line": 32,
+          "label": "apiArm64: true"
+        }
+      ]
+    },
+    {
+      "id": "rds",
+      "type": "database",
+      "label": "RDS PostgreSQL 17",
+      "sublabel": "Multi-AZ · not public",
+      "tag": "reep-core",
+      "pos": [
+        932,
+        314
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "sources": [
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 1115,
+          "end_line": 1133,
+          "label": "reep-postgres"
+        },
+        {
+          "path": "infra/cdk/cdk.json",
+          "line": 33,
+          "label": "dbMultiAz: true"
+        }
+      ]
+    },
+    {
+      "id": "efs",
+      "type": "database",
+      "label": "EFS reep-data",
+      "sublabel": "/data · encrypted",
+      "tag": "reep-core",
+      "pos": [
+        932,
+        464
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "sources": [
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 845,
+          "end_line": 854,
+          "label": "file system + mount targets"
+        }
+      ]
+    },
+    {
+      "id": "archives",
+      "type": "cloud",
+      "label": "Object-Locked S3",
+      "sublabel": "ledger · dumps · documents",
+      "tag": "reep-core",
+      "pos": [
+        560,
+        594
+      ],
+      "size": [
+        170,
+        62
+      ],
+      "sources": [
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 876,
+          "end_line": 890,
+          "label": "identity ledger bucket"
+        },
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 919,
+          "end_line": 990,
+          "label": "db-dumps + db-archive"
+        },
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 1022,
+          "end_line": 1036,
+          "label": "documents archive"
+        }
+      ]
+    },
+    {
+      "id": "voice",
+      "type": "cloud",
+      "label": "S3 recordings",
+      "sublabel": "+ SQS · Lambda · DynamoDB",
+      "tag": "reep-voice-platform",
+      "pos": [
+        800,
+        594
+      ],
+      "size": [
+        170,
+        62
+      ],
+      "sources": [
+        {
+          "path": "infra/cdk/reep_voice_platform/stack.py",
+          "line": 95,
+          "end_line": 127,
+          "label": "recordings bucket, versioned"
+        },
+        {
+          "path": "infra/cdk/cdk.json",
+          "line": 17,
+          "label": "recordingRetentionDays: 0"
+        }
+      ]
+    },
+    {
+      "id": "vault",
+      "type": "cloud",
+      "label": "AWS Backup reep-vault",
+      "sublabel": "daily 35 d · monthly 365 d",
+      "tag": "reep-core",
+      "pos": [
+        1174,
+        184
+      ],
+      "size": [
+        150,
+        62
+      ],
+      "sources": [
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 1159,
+          "label": "locked vault"
+        },
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 1175,
+          "end_line": 1215,
+          "label": "daily plan: DB + EFS"
+        },
+        {
+          "path": "infra/cdk/reep_core/stack.py",
+          "line": 1250,
+          "end_line": 1290,
+          "label": "monthly archive plan: DB only"
+        }
+      ]
+    },
+    {
+      "id": "drvault",
+      "type": "cloud",
+      "label": "reep-vault-dr",
+      "sublabel": "locked copy target",
+      "tag": "reep-dr-vault",
+      "pos": [
+        1164,
+        34
+      ],
+      "size": [
+        170,
+        62
+      ],
+      "sources": [
+        {
+          "path": "infra/cdk/reep_core/dr.py",
+          "line": 40,
+          "end_line": 46,
+          "label": "DR vault + lock"
+        },
+        {
+          "path": "infra/cdk/app.py",
+          "line": 95,
+          "end_line": 103,
+          "label": "stack in ap-southeast-1"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Global edge · WAF us-east-1",
+      "wraps": [
+        "edge"
+      ],
+      "pad": 20
+    },
+    {
+      "kind": "region",
+      "label": "AWS ap-south-1 · production",
+      "wraps": [
+        "spa",
+        "alb",
+        "api",
+        "rds",
+        "efs",
+        "archives",
+        "voice",
+        "vault"
+      ],
+      "pad": 36
+    },
+    {
+      "kind": "security-group",
+      "label": "VPC 10.42.0.0/16 · 2 AZs",
+      "wraps": [
+        "alb",
+        "api",
+        "rds",
+        "efs"
+      ],
+      "pad": 24
+    },
+    {
+      "kind": "security-group",
+      "label": "private subnets · no public IP",
+      "wraps": [
+        "api",
+        "rds",
+        "efs"
+      ],
+      "pad": 12
+    },
+    {
+      "kind": "region",
+      "label": "AWS ap-southeast-1 · DR",
+      "wraps": [
+        "drvault"
+      ],
+      "pad": 18
+    }
+  ],
+  "connections": [
+    {
+      "from": "users",
+      "to": "edge",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "from": "edge",
+      "to": "alb",
+      "label": "HTTPS",
+      "variant": "security"
+    },
+    {
+      "from": "edge",
+      "to": "spa",
+      "label": "OAC SigV4",
+      "variant": "security",
+      "fromSide": "top",
+      "toSide": "left",
+      "via": [
+        [
+          293,
+          201
+        ]
+      ]
+    },
+    {
+      "from": "alb",
+      "to": "api",
+      "label": "HTTP :3300",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "rds",
+      "label": "SQL :5432"
+    },
+    {
+      "from": "api",
+      "to": "efs",
+      "label": "NFS :2049"
+    },
+    {
+      "from": "api",
+      "to": "archives",
+      "label": "nightly PutObject",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "api",
+      "to": "voice",
+      "label": "call recordings",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "rds",
+      "to": "vault",
+      "label": "AWS Backup",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "left",
+      "via": [
+        [
+          1007,
+          215
+        ]
+      ]
+    },
+    {
+      "from": "efs",
+      "to": "vault",
+      "label": "daily",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "bottom"
+    },
+    {
+      "from": "vault",
+      "to": "drvault",
+      "label": "cross-region copy",
+      "variant": "security",
+      "labelAt": [
+        1249,
+        159
+      ]
+    },
+    {
+      "from": "github",
+      "to": "spa",
+      "label": "s3 sync + invalidate",
+      "variant": "dashed"
+    },
+    {
+      "from": "github",
+      "to": "api",
+      "label": "ECR push · roll ECS",
+      "variant": "dashed",
+      "labelAt": [
+        769,
+        110
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Ownership notes",
+      "items": [
+        "WAF ACL: reep-edge-waf; distribution: reep-core",
+        "Secrets and the SES identity sit outside every stack",
+        "reep-core retains every resource"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Crossings not drawn",
+      "items": [
+        "WAF: managed rules + 2,000-per-IP rate block",
+        "Private egress: one NAT gateway, no VPC endpoints",
+        "Nova 2 Sonic is called in ap-northeast-1"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Deploy path",
+      "items": [
+        "OIDC trusts refs/heads/main only",
+        "Image: amd64 + arm64; migrations as a one-off task",
+        "Infra: cdk-deploy.yml core-9a, then core-9b"
+      ]
+    }
+  ]
+}

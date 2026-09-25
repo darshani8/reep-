@@ -1,0 +1,358 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "How REEP's data outlives the database",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "visual_preset": "editorial",
+    "animation": "trace",
+    "viewBox": [
+      1080,
+      660
+    ],
+    "views": [
+      {
+        "id": "the-ledger",
+        "label": "The ledger",
+        "focus": [
+          "rds",
+          "ledger",
+          "ledgerBucket"
+        ],
+        "note": "23:30 IST: one JSON line per account, institution as labels not FKs; an empty export is refused."
+      },
+      {
+        "id": "the-dump",
+        "label": "The dump and snapshots",
+        "focus": [
+          "rds",
+          "dump",
+          "dumpDaily",
+          "dumpMonthly",
+          "backup",
+          "drVault"
+        ],
+        "note": "01:00 pg_dump, TOC verified before upload; 00:30 AWS Backup snapshots, copied to Singapore."
+      },
+      {
+        "id": "the-files",
+        "label": "The files",
+        "focus": [
+          "efs",
+          "sweep",
+          "docArchive"
+        ],
+        "note": "Best-effort PUT on upload, then the 02:00 sweep; archived_documents in Postgres names each archived file."
+      },
+      {
+        "id": "the-sweep",
+        "label": "The sweep",
+        "focus": [
+          "retention",
+          "rds",
+          "efs"
+        ],
+        "note": "03:00 IST, after every copy job: expired conversations, interviews and audio go. Never users or students."
+      }
+    ],
+    "legend": {
+      "entries": {
+        "default": {
+          "label": "PII read"
+        },
+        "security": {
+          "label": "write-only PUT"
+        },
+        "dashed": {
+          "label": "scheduled delete"
+        },
+        "emphasis": {
+          "label": "DR copy"
+        }
+      }
+    }
+  },
+  "stages": [
+    {
+      "label": "The destructor"
+    },
+    {
+      "label": "Live · ap-south-1"
+    },
+    {
+      "label": "Nightly jobs · IST"
+    },
+    {
+      "label": "Object-Locked S3"
+    },
+    {
+      "label": "DR · ap-southeast-1"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "retention",
+      "type": "security",
+      "label": "Retention sweep",
+      "sublabel": "app.retention_job",
+      "stage": 0,
+      "row": 2,
+      "tag": "03:00 · deletes",
+      "yOffset": -38
+    },
+    {
+      "id": "rds",
+      "type": "database",
+      "label": "PostgreSQL 17",
+      "sublabel": "RDS · reep_py",
+      "stage": 1,
+      "row": 0,
+      "tag": "student PII",
+      "yOffset": 47.5
+    },
+    {
+      "id": "backup",
+      "type": "cloud",
+      "label": "AWS Backup",
+      "sublabel": "reep-vault",
+      "stage": 1,
+      "row": 3,
+      "tag": "00:30",
+      "yOffset": -57
+    },
+    {
+      "id": "efs",
+      "type": "database",
+      "label": "EFS data volume",
+      "sublabel": "uploads + audio",
+      "stage": 1,
+      "row": 4,
+      "tag": "student PII",
+      "yOffset": -76
+    },
+    {
+      "id": "ledger",
+      "type": "backend",
+      "label": "Identity ledger",
+      "sublabel": "app.export_identity",
+      "stage": 2,
+      "row": 0,
+      "tag": "23:30"
+    },
+    {
+      "id": "dump",
+      "type": "backend",
+      "label": "Logical backup",
+      "sublabel": "pg_dump -Fc",
+      "stage": 2,
+      "row": 1,
+      "tag": "01:00",
+      "yOffset": -19
+    },
+    {
+      "id": "sweep",
+      "type": "backend",
+      "label": "Archive sweep",
+      "sublabel": "app.archive_documents",
+      "stage": 2,
+      "row": 4,
+      "tag": "02:00",
+      "yOffset": -76
+    },
+    {
+      "id": "ledgerBucket",
+      "type": "database",
+      "label": "Ledger bucket",
+      "sublabel": "identity-ledger",
+      "stage": 3,
+      "row": 0,
+      "tag": "10 y · no lifecycle"
+    },
+    {
+      "id": "dumpDaily",
+      "type": "database",
+      "label": "Daily dumps",
+      "sublabel": "db-dumps",
+      "stage": 3,
+      "row": 1,
+      "tag": "lock 90 d · expire 97",
+      "yOffset": -19
+    },
+    {
+      "id": "dumpMonthly",
+      "type": "database",
+      "label": "Monthly archive",
+      "sublabel": "db-archive",
+      "stage": 3,
+      "row": 2,
+      "tag": "10 y · no lifecycle",
+      "yOffset": -38
+    },
+    {
+      "id": "docArchive",
+      "type": "database",
+      "label": "Document archive",
+      "sublabel": "documents-archive",
+      "stage": 3,
+      "row": 4,
+      "tag": "10 y · no lifecycle",
+      "yOffset": -76
+    },
+    {
+      "id": "drVault",
+      "type": "cloud",
+      "label": "reep-vault-dr",
+      "sublabel": "Singapore copy",
+      "stage": 4,
+      "row": 3,
+      "tag": "min 35 d lock",
+      "yOffset": -57
+    }
+  ],
+  "flows": [
+    {
+      "id": "read-accounts",
+      "from": "rds",
+      "to": "ledger",
+      "label": "every account",
+      "classification": "hash · sub · USN"
+    },
+    {
+      "id": "read-tables",
+      "from": "rds",
+      "to": "dump",
+      "label": "all tables",
+      "classification": "schema + data"
+    },
+    {
+      "id": "snapshot-db",
+      "from": "rds",
+      "to": "backup",
+      "label": "daily + monthly",
+      "classification": "35 d · 365 d",
+      "labelAt": [
+        315,
+        347
+      ]
+    },
+    {
+      "id": "snapshot-efs",
+      "from": "efs",
+      "to": "backup",
+      "label": "daily only",
+      "classification": "35 d",
+      "labelAt": [
+        315,
+        489.5
+      ]
+    },
+    {
+      "id": "walk-disk",
+      "from": "efs",
+      "to": "sweep",
+      "label": "files on disk",
+      "classification": "audio quiet 2 h"
+    },
+    {
+      "id": "inline-put",
+      "from": "efs",
+      "to": "docArchive",
+      "label": "inline PUT on upload",
+      "classification": "save_bytes · best-effort",
+      "variant": "security",
+      "route": "bottom-channel",
+      "toSide": "bottom"
+    },
+    {
+      "id": "put-ledger",
+      "from": "ledger",
+      "to": "ledgerBucket",
+      "label": "DD.jsonl",
+      "classification": "PutObject only",
+      "variant": "security"
+    },
+    {
+      "id": "put-daily",
+      "from": "dump",
+      "to": "dumpDaily",
+      "label": "verified .dump",
+      "classification": "PutObject only",
+      "variant": "security"
+    },
+    {
+      "id": "put-monthly",
+      "from": "dump",
+      "to": "dumpMonthly",
+      "label": "month's first",
+      "classification": "Put + List monthly/*",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "via": [
+        [
+          530,
+          347
+        ]
+      ]
+    },
+    {
+      "id": "put-missing",
+      "from": "sweep",
+      "to": "docArchive",
+      "label": "missing keys",
+      "classification": "Put + List, no Get",
+      "variant": "security"
+    },
+    {
+      "id": "copy-dr",
+      "from": "backup",
+      "to": "drVault",
+      "label": "cross-region copy",
+      "classification": "same lifecycle",
+      "variant": "emphasis"
+    },
+    {
+      "id": "expire-rows",
+      "from": "retention",
+      "to": "rds",
+      "label": "expired rows",
+      "classification": "not users/students",
+      "variant": "dashed"
+    },
+    {
+      "id": "expire-audio",
+      "from": "retention",
+      "to": "efs",
+      "label": "expired audio",
+      "classification": "files before rows",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Which copy outlives what",
+      "items": [
+        "Snapshots + Singapore copy: 35 days",
+        "Monthly DB-only snapshot: 365 days"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Write, never read",
+      "items": [
+        "PutObject only; no GetObject, Delete",
+        "Existence via ListBucket, not Head"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Order of the night (IST)",
+      "items": [
+        "Every copy runs before 03:00",
+        "03:00 sweep spares users, students"
+      ]
+    }
+  ]
+}

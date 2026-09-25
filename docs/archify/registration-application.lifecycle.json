@@ -1,0 +1,261 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "A registration application's life",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "review",
+        "label": "Review",
+        "focus": [
+          "submitted",
+          "rule",
+          "pending",
+          "hold",
+          "auto"
+        ],
+        "note": "Submit writes the row as PENDING_REVIEW; the rule engine either queues it for a human or auto-approves it."
+      },
+      {
+        "id": "decisions",
+        "label": "Decisions",
+        "focus": [
+          "pending",
+          "hold",
+          "decide",
+          "approved",
+          "rejected"
+        ],
+        "note": "POST /{id}/decision ends a pending or held application: APPROVE provisions, REJECT needs a reason."
+      },
+      {
+        "id": "reapply",
+        "label": "Re-apply",
+        "focus": [
+          "rejected",
+          "pending",
+          "reapply"
+        ],
+        "note": "A rejection is recoverable: reopen puts the same row back in the queue, or the address applies again as a new row."
+      }
+    ],
+    "viewBox": [
+      1030,
+      630
+    ]
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "Application path"
+    },
+    {
+      "id": "hold",
+      "label": "Parked"
+    },
+    {
+      "id": "refused",
+      "label": "Refused"
+    },
+    {
+      "id": "terminal",
+      "label": "Other outcomes"
+    }
+  ],
+  "states": [
+    {
+      "id": "submitted",
+      "type": "start",
+      "label": "Submitted",
+      "sublabel": "POST /api/register",
+      "lane": "main",
+      "col": 0,
+      "step": "01",
+      "tag": "multipart"
+    },
+    {
+      "id": "rule",
+      "type": "decision",
+      "label": "Rule engine",
+      "sublabel": "_apply_rule",
+      "lane": "main",
+      "col": 1,
+      "step": "02",
+      "tag": "gate"
+    },
+    {
+      "id": "pending",
+      "type": "waiting",
+      "label": "Pending review",
+      "sublabel": "the review queue",
+      "lane": "main",
+      "col": 2,
+      "step": "03",
+      "tag": "PENDING_REVIEW",
+      "width": 128
+    },
+    {
+      "id": "decide",
+      "type": "decision",
+      "label": "Decision",
+      "sublabel": "/{id}/decision",
+      "lane": "main",
+      "col": 3,
+      "step": "04",
+      "tag": "gate"
+    },
+    {
+      "id": "approved",
+      "type": "success",
+      "label": "Approved",
+      "sublabel": "account + setup link",
+      "lane": "main",
+      "col": 4,
+      "step": "05",
+      "tag": "APPROVED"
+    },
+    {
+      "id": "hold",
+      "type": "waiting",
+      "label": "On hold",
+      "sublabel": "note, no mail",
+      "lane": "hold",
+      "col": 0,
+      "tag": "HOLD"
+    },
+    {
+      "id": "rejected",
+      "type": "failure",
+      "label": "Rejected",
+      "sublabel": "reason mailed",
+      "lane": "refused",
+      "col": 2,
+      "tag": "REJECTED"
+    },
+    {
+      "id": "auto",
+      "type": "success",
+      "label": "Auto-approved",
+      "sublabel": "account + setup link",
+      "lane": "terminal",
+      "col": 0,
+      "tag": "AUTO_APPROVED"
+    },
+    {
+      "id": "reapply",
+      "type": "neutral",
+      "label": "Applies again",
+      "sublabel": "a new row",
+      "lane": "terminal",
+      "col": 2,
+      "tag": "address free",
+      "width": 128
+    }
+  ],
+  "transitions": [
+    {
+      "id": "t_auto",
+      "from": "rule",
+      "to": "auto",
+      "label": "auto_approve rule",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "left"
+    },
+    {
+      "id": "t_hold",
+      "from": "pending",
+      "to": "hold",
+      "label": "/hold + note",
+      "variant": "dashed",
+      "labelDx": -45,
+      "labelDy": 58
+    },
+    {
+      "id": "t_release",
+      "from": "hold",
+      "to": "pending",
+      "label": "/reopen",
+      "labelDx": 37,
+      "labelDy": -32
+    },
+    {
+      "id": "t_hold_decide",
+      "from": "hold",
+      "to": "decide",
+      "label": "decide",
+      "fromSide": "right",
+      "toSide": "bottom",
+      "labelSegment": 0
+    },
+    {
+      "id": "t_reject",
+      "from": "decide",
+      "to": "rejected",
+      "label": "REJECT + reason",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "left"
+    },
+    {
+      "id": "t_reopen",
+      "from": "rejected",
+      "to": "pending",
+      "label": "/reopen",
+      "fromSide": "right",
+      "toSide": "top",
+      "via": [
+        [
+          830,
+          307
+        ],
+        [
+          830,
+          88
+        ],
+        [
+          402,
+          88
+        ]
+      ]
+    },
+    {
+      "id": "t_again",
+      "from": "rejected",
+      "to": "reapply",
+      "label": "POST /api/register",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 70
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "At submit",
+      "items": [
+        "409/413/415 refusals write no row",
+        "Other rule outcomes stay in review"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Decisions",
+      "items": [
+        "REJECT mails its required reason",
+        "An APPROVED row can't be reopened"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Re-apply",
+      "items": [
+        "Live-email index skips REJECTED",
+        "DRAFT, PENDING_VERIFICATION unused"
+      ]
+    }
+  ]
+}

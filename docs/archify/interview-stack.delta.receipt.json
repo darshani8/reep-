@@ -1,0 +1,402 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "compare",
+  "type": "architecture",
+  "comparatorVersion": 1,
+  "canonicalVersion": 1,
+  "completeness": "complete",
+  "proofLevel": "revision-pinned",
+  "base": {
+    "title": "Mock interview stack: August 2026",
+    "rawSha256": "beb04a4e73db0896f0bc68ee7e82d63bc0726e73b90f312907b456564593e6d3",
+    "semanticSha256": "4ca600ef5f104e2386fff5a611fcaed62d0decc018d0e1a99e8b2a4a6b5a4b3e",
+    "bytes": 7496,
+    "revision": "408b629280c2ecca0390e881a9a15ebfd7f036f4"
+  },
+  "head": {
+    "title": "Mock interview stack: September 2026",
+    "rawSha256": "e48fbef8ff33659bf7ab656309a6f41e93b8a9c5665b75afd42226cd5d264836",
+    "semanticSha256": "fa01c4b50a299441419d4037229878e064af592537a15728ce052d90b114284d",
+    "bytes": 6636,
+    "revision": "408b629280c2ecca0390e881a9a15ebfd7f036f4"
+  },
+  "summary": {
+    "components": {
+      "added": 4,
+      "changed": 4,
+      "evidenceChanged": 0,
+      "removed": 7,
+      "moved": 0
+    },
+    "connections": {
+      "added": 2,
+      "changed": 2,
+      "removed": 6,
+      "rerouted": 0
+    },
+    "boundaries": {
+      "added": 1,
+      "changed": 0,
+      "removed": 1,
+      "geometryChanged": 0
+    },
+    "presentationChanged": true,
+    "provenanceChanged": false
+  },
+  "changes": {
+    "components": [
+      {
+        "id": "api",
+        "baseLabel": "FastAPI API",
+        "headLabel": "FastAPI API",
+        "status": "changed",
+        "classifications": [
+          "evidence",
+          "semantic"
+        ],
+        "changedFields": [
+          "/sources",
+          "/tag"
+        ]
+      },
+      {
+        "id": "audio",
+        "baseLabel": "Interview audio",
+        "headLabel": "Interview audio",
+        "status": "changed",
+        "classifications": [
+          "evidence",
+          "semantic"
+        ],
+        "changedFields": [
+          "/sources",
+          "/sublabel",
+          "/tag"
+        ]
+      },
+      {
+        "id": "bedrock",
+        "headLabel": "Amazon Bedrock",
+        "status": "added",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "dock",
+        "headLabel": "Agent dock",
+        "status": "added",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "groq",
+        "baseLabel": "Groq",
+        "status": "removed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "livekit",
+        "baseLabel": "LiveKit Cloud",
+        "status": "removed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "local",
+        "headLabel": "Local engine",
+        "status": "added",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "nova",
+        "headLabel": "Nova engine",
+        "status": "added",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "openai",
+        "baseLabel": "OpenAI Realtime API",
+        "status": "removed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "postgres",
+        "baseLabel": "PostgreSQL 17",
+        "headLabel": "PostgreSQL 17",
+        "status": "changed",
+        "classifications": [
+          "evidence",
+          "semantic"
+        ],
+        "changedFields": [
+          "/sources",
+          "/sublabel"
+        ]
+      },
+      {
+        "id": "relay",
+        "baseLabel": "OpenAI relay",
+        "status": "removed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "spa",
+        "baseLabel": "Angular SPA",
+        "headLabel": "Angular SPA",
+        "status": "changed",
+        "classifications": [
+          "evidence",
+          "semantic"
+        ],
+        "changedFields": [
+          "/sources",
+          "/sublabel"
+        ]
+      },
+      {
+        "id": "voice-overlay",
+        "baseLabel": "Orb voice overlay",
+        "status": "removed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "voice-router",
+        "baseLabel": "Voice router",
+        "status": "removed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "voice-worker",
+        "baseLabel": "Voice worker",
+        "status": "removed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": []
+      }
+    ],
+    "connections": [
+      {
+        "id": "dock-room",
+        "head": {
+          "from": "dock",
+          "to": "spa",
+          "label": "same room"
+        },
+        "status": "added",
+        "classifications": [
+          "topology"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "overlay-webrtc",
+        "base": {
+          "from": "voice-overlay",
+          "to": "livekit",
+          "label": "WebRTC"
+        },
+        "status": "removed",
+        "classifications": [
+          "topology"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "run-engine",
+        "base": {
+          "from": "api",
+          "to": "relay",
+          "label": ""
+        },
+        "head": {
+          "from": "api",
+          "to": "nova",
+          "label": "nova (default)"
+        },
+        "status": "changed",
+        "classifications": [
+          "semantic",
+          "topology"
+        ],
+        "changedFields": [
+          "/label",
+          "/to"
+        ]
+      },
+      {
+        "id": "run-local-engine",
+        "head": {
+          "from": "api",
+          "to": "local",
+          "label": "local (opt-in)"
+        },
+        "status": "added",
+        "classifications": [
+          "topology"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "upstream-model",
+        "base": {
+          "from": "relay",
+          "to": "openai",
+          "label": "wss, API key"
+        },
+        "head": {
+          "from": "nova",
+          "to": "bedrock",
+          "label": "SigV4, no key"
+        },
+        "status": "changed",
+        "classifications": [
+          "semantic",
+          "topology"
+        ],
+        "changedFields": [
+          "/from",
+          "/label",
+          "/to"
+        ]
+      },
+      {
+        "id": "voice-cascade",
+        "base": {
+          "from": "voice-worker",
+          "to": "groq",
+          "label": "STT, LLM, TTS"
+        },
+        "status": "removed",
+        "classifications": [
+          "topology"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "voice-persist",
+        "base": {
+          "from": "voice-router",
+          "to": "postgres",
+          "label": "channel=voice"
+        },
+        "status": "removed",
+        "classifications": [
+          "topology"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "voice-token",
+        "base": {
+          "from": "voice-overlay",
+          "to": "voice-router",
+          "label": "POST /token"
+        },
+        "status": "removed",
+        "classifications": [
+          "topology"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "voice-transcript",
+        "base": {
+          "from": "voice-worker",
+          "to": "voice-router",
+          "label": "POST /transcript"
+        },
+        "status": "removed",
+        "classifications": [
+          "topology"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "worker-webrtc",
+        "base": {
+          "from": "voice-worker",
+          "to": "livekit",
+          "label": "agent reep-voice"
+        },
+        "status": "removed",
+        "classifications": [
+          "topology"
+        ],
+        "changedFields": []
+      }
+    ],
+    "boundaries": [
+      {
+        "key": "region:InterviewEngine",
+        "kind": "region",
+        "label": "InterviewEngine",
+        "status": "added",
+        "classifications": [
+          "scope"
+        ],
+        "changedFields": []
+      },
+      {
+        "key": "region:LiveKit voice stack (rollback path)",
+        "kind": "region",
+        "label": "LiveKit voice stack (rollback path)",
+        "status": "removed",
+        "classifications": [
+          "scope"
+        ],
+        "changedFields": []
+      }
+    ]
+  },
+  "identity": {
+    "components": "components[].id",
+    "connections": "connections[].id (required)",
+    "boundaries": "boundaries[].kind + boundaries[].label (derived)"
+  },
+  "view": {
+    "visualPreset": "classic"
+  },
+  "limitations": [
+    "Authored Architecture IR only; no runtime impact, causality, risk, or mergeability is inferred.",
+    "Boundary identity is conservatively derived from kind + label."
+  ],
+  "artifact": {
+    "sha256": "2b196723718844d8cd96b3bb9b80dc16d9e6239ccee976f86b01777a74cc61d2",
+    "bytes": 2264435
+  },
+  "validation": {
+    "checksPassed": 28,
+    "checkCount": 28,
+    "baseComposition": "pass",
+    "headComposition": "pass"
+  }
+}

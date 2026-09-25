@@ -1,0 +1,198 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Mock interview stack: August 2026",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "legend": { "mode": "hidden" },
+    "repository": {
+      "url": "https://github.com/darshani8/reep-",
+      "revision": "408b629280c2ecca0390e881a9a15ebfd7f036f4"
+    }
+  },
+  "components": [
+    {
+      "id": "spa",
+      "type": "frontend",
+      "label": "Angular SPA",
+      "sublabel": "/student/assistant",
+      "tag": "InterviewService",
+      "pos": [40, 230],
+      "size": [180, 64],
+      "sources": [
+        { "path": "docs/architecture.md", "line": 142, "label": "interview.service.ts (Aug)" },
+        { "path": "docs/architecture.md", "line": 96, "label": "WS /api/interview, PCM16" }
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "FastAPI API",
+      "sublabel": "routers/interview.py",
+      "tag": "consent 4013",
+      "pos": [380, 230],
+      "size": [180, 64],
+      "sources": [
+        { "path": "docs/architecture.md", "line": 459, "end_line": 466, "label": "socket gates, then hand-off" },
+        { "path": "AGENTS.md", "line": 528, "label": "consent row enforced at socket" }
+      ]
+    },
+    {
+      "id": "relay",
+      "type": "backend",
+      "label": "OpenAI relay",
+      "sublabel": "interview_relay.py",
+      "tag": "create_response: false",
+      "pos": [720, 230],
+      "size": [180, 64],
+      "sources": [
+        { "path": "AGENTS.md", "line": 524, "label": "v3: relay owns the turn" },
+        { "path": "AGENTS.md", "line": 518, "label": "3 968 lines, deleted 2026-09" },
+        { "path": "docs/interview-engine-v3.md", "line": 1, "end_line": 10, "label": "design record, engine deleted" }
+      ]
+    },
+    {
+      "id": "openai",
+      "type": "external",
+      "label": "OpenAI Realtime API",
+      "sublabel": "OPENAI_API_KEY",
+      "pos": [1060, 230],
+      "size": [180, 64],
+      "sources": [
+        { "path": "docs/architecture.md", "line": 87, "label": "wss realtime, PCM16 24 kHz" },
+        { "path": "docs/architecture.md", "line": 100, "label": "Bearer OPENAI_API_KEY" }
+      ]
+    },
+    {
+      "id": "audio",
+      "type": "database",
+      "label": "Interview audio",
+      "sublabel": "2 WAV per interview",
+      "tag": "2 switches, off",
+      "pos": [380, 80],
+      "size": [180, 64],
+      "sources": [
+        { "path": "docs/architecture.md", "line": 562, "end_line": 572, "label": "two switches, 64 MB cap" },
+        { "path": "apps/api-py/app/routers/interview.py", "line": 64, "end_line": 67, "label": "recorder built in the router" }
+      ]
+    },
+    {
+      "id": "postgres",
+      "type": "database",
+      "label": "PostgreSQL 17",
+      "sublabel": "messages + 4 interview_*",
+      "pos": [380, 380],
+      "size": [180, 64],
+      "sources": [
+        { "path": "docs/architecture.md", "line": 574, "end_line": 581, "label": "4 interview record tables" },
+        { "path": "docs/audit-backend-voice-2026-08.md", "line": 113, "end_line": 119, "label": "v3 wave: tables, consent, audio" },
+        { "path": "docs/architecture.md", "line": 311, "label": "messages channel text|voice|interview" }
+      ]
+    },
+    {
+      "id": "voice-overlay",
+      "type": "frontend",
+      "label": "Orb voice overlay",
+      "sublabel": "chat-voice.service.ts",
+      "tag": "no UI caller",
+      "pos": [40, 540],
+      "size": [180, 64],
+      "sources": [
+        { "path": "AGENTS.md", "line": 548, "label": "client and overlay removed 2026-09" },
+        { "path": "docs/architecture.md", "line": 97, "label": "WebRTC, retained, no UI caller" }
+      ]
+    },
+    {
+      "id": "voice-router",
+      "type": "backend",
+      "label": "Voice router",
+      "sublabel": "/api/voice/*",
+      "tag": "in API process",
+      "pos": [380, 540],
+      "size": [180, 64],
+      "sources": [
+        { "path": "docs/codebase-mahabharath/11-voice.md", "line": 85, "end_line": 99, "label": "four parties, four credentials" },
+        { "path": "docs/architecture.md", "line": 600, "end_line": 608, "label": "token, transcript, channel=voice" }
+      ]
+    },
+    {
+      "id": "voice-worker",
+      "type": "backend",
+      "label": "Voice worker",
+      "sublabel": "voice_agent.py",
+      "tag": "4th process, Py 3.12",
+      "pos": [720, 540],
+      "size": [180, 64],
+      "sources": [
+        { "path": "docs/architecture.md", "line": 73, "end_line": 75, "label": "process 4, own venv" },
+        { "path": "docs/architecture.md", "line": 110, "label": "POST /transcript, /heartbeat" },
+        { "path": "AGENTS.md", "line": 548, "label": "removed with its venv 2026-09" }
+      ]
+    },
+    {
+      "id": "groq",
+      "type": "external",
+      "label": "Groq",
+      "sublabel": "Whisper, Llama, TTS",
+      "pos": [1060, 540],
+      "size": [180, 64],
+      "sources": [
+        { "path": "docs/codebase-mahabharath/11-voice.md", "line": 339, "end_line": 350, "label": "cascade, not speech-to-speech" },
+        { "path": "docs/audit-backend-voice-2026-08.md", "line": 44, "label": "M11: VOICE_TTS defaults to groq" }
+      ]
+    },
+    {
+      "id": "livekit",
+      "type": "cloud",
+      "label": "LiveKit Cloud",
+      "sublabel": "WebRTC SFU rooms",
+      "pos": [380, 690],
+      "size": [180, 64],
+      "sources": [
+        { "path": "docs/codebase-mahabharath/11-voice.md", "line": 58, "end_line": 62, "label": "hosted SFU, WebRTC rooms" },
+        { "path": "docs/architecture.md", "line": 88, "label": "LiveKit SFU / Cloud" }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "LiveKit voice stack (rollback path)",
+      "wraps": ["voice-overlay", "voice-router", "voice-worker", "groq", "livekit"]
+    }
+  ],
+  "connections": [
+    { "id": "interview-socket", "from": "spa", "to": "api", "label": "WS /api/interview", "variant": "emphasis" },
+    { "id": "run-engine", "from": "api", "to": "relay" },
+    { "id": "upstream-model", "from": "relay", "to": "openai", "label": "wss, API key" },
+    { "id": "persist-turns", "from": "api", "to": "postgres", "label": "turns + records", "labelAt": [470, 337] },
+    { "id": "record-audio", "from": "api", "to": "audio", "label": "recorder" },
+    { "id": "voice-token", "from": "voice-overlay", "to": "voice-router", "label": "POST /token" },
+    { "id": "voice-transcript", "from": "voice-worker", "to": "voice-router", "label": "POST /transcript" },
+    { "id": "voice-cascade", "from": "voice-worker", "to": "groq", "label": "STT, LLM, TTS" },
+    { "id": "voice-persist", "from": "voice-router", "to": "postgres", "label": "channel=voice", "labelAt": [470, 492] },
+    { "id": "overlay-webrtc", "from": "voice-overlay", "to": "livekit", "label": "WebRTC", "variant": "dashed" },
+    { "id": "worker-webrtc", "from": "voice-worker", "to": "livekit", "label": "agent reep-voice" }
+  ],
+  "cards": [
+    {
+      "dot": "violet",
+      "title": "Mock interview (in-process)",
+      "items": [
+        "interview_relay.py relays 24 kHz PCM to the OpenAI Realtime API",
+        "Relay owns the turn: one response.create call site",
+        "Consent row gates the socket (4013 / 4014)"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "LiveKit voice stack",
+      "items": [
+        "Retained as the rollback path, with no UI caller",
+        "voice_agent.py: a fourth process in its own Python 3.12 venv",
+        "Worker has no database: turns POST back to /api/voice/transcript"
+      ]
+    }
+  ]
+}

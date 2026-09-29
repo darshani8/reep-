@@ -703,10 +703,14 @@ def test_a_rejection_tells_the_applicant_why(client, make_user, application):
 
 @requires_db
 def test_an_auto_approve_that_provisioning_refuses_lands_in_the_queue(client, application):
-    """The domain fence beats the rule, and the human sees why."""
+    """The domain fence beats the rule, and the human sees why.
+
+    Off the college's domains but not a public mail provider: a Gmail address in
+    the college box is refused at the form itself since 2026-09-29, before any
+    rule runs, which would leave this fence untested."""
     submit, rule = application
-    email = "pw.attacker@gmail.com"
-    rule(name="pw-test-bad-rule", email_domain="gmail.com", auto_approve=True, priority=0, enabled=True)
+    email = "pw.attacker@attacker.example"
+    rule(name="pw-test-bad-rule", email_domain="attacker.example", auto_approve=True, priority=0, enabled=True)
     submit(client, email, name="Priya Sharma")
 
     with SessionLocal() as db:

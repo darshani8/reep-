@@ -54,6 +54,7 @@ import { RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { MAX_SPECIALIZATIONS_FALLBACK, specializationLabel, togglePick } from '../../core/specializations';
 import { batchForYear, batchYear, yearOptions } from './batch-years';
+import { collegeEmailProblem, describeValidationError } from './form-checks';
 
 type DegreeLevel = 'UG' | 'PG';
 
@@ -381,6 +382,11 @@ export class RegistrationComponent {
       );
       return;
     }
+    const emailProblem = collegeEmailProblem(this.collegeEmail, this.personalEmail);
+    if (emailProblem) {
+      this.error.set(emailProblem);
+      return;
+    }
 
     // `missing()` above has just refused a form without either file.
     const cv = this.cvFile();
@@ -438,6 +444,9 @@ export class RegistrationComponent {
     try {
       const body = (await res.json()) as { detail?: unknown };
       if (typeof body?.detail === 'string') return body.detail;
+      // A schema refusal is a LIST naming each field; say which box it was.
+      const listed = describeValidationError(body?.detail);
+      if (listed) return listed;
     } catch {
       /* no JSON body — fall through to the status-based message */
     }

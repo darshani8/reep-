@@ -107,6 +107,46 @@ def test_the_personal_email_and_linkedin_have_a_shape(client, cleanup):
     assert r.status_code == 422, "a bare linkedin.com with no profile path names nobody"
 
 
+def test_linkedin_accepts_the_links_the_app_hands_out():
+    """2026-09-29: `in.linkedin.com`, `m.linkedin.com` and `lnkd.in` links were
+    refused 422, and the form showed that only as "(422)". A subdomain is the
+    same profile and is folded onto www; a short link is kept as given."""
+    shape = registration_router.RegisterIn._linkedin_shape
+    assert shape("https://in.linkedin.com/in/asha-rao") == "https://www.linkedin.com/in/asha-rao"
+    assert shape("m.linkedin.com/in/asha-rao/") == "https://www.linkedin.com/in/asha-rao"
+    assert shape("https://www.linkedin.com/in/asha?utm_source=share") == "https://www.linkedin.com/in/asha"
+    assert shape("https://lnkd.in/gAbC12x") == "https://lnkd.in/gAbC12x"
+    for refused in ("notlinkedin.com/in/asha", "linkedin.com.evil.example/in/asha", "lnkd.in/", "in.linkedin.com"):
+        with pytest.raises(ValueError):
+            shape(refused)
+
+
+@requires_db
+@pytest.mark.parametrize("college", ["same", "gmail"])
+def test_a_personal_address_in_the_college_box_is_refused_in_words(client, cleanup, college):
+    """2026-09-29: the college box autofilled with the student's Gmail, so the
+    office saw only that address and approval could never admit it. Both
+    certain mistakes are a 422 naming the box, with no application written."""
+    personal = f"req.{uuid.uuid4().hex[:8]}@gmail.com"
+    email = personal if college == "same" else f"other.{uuid.uuid4().hex[:8]}@gmail.com"
+    cleanup.append(email)
+    r = _post(client, email, personal_email=personal)
+    assert r.status_code == 422, r.text
+    assert "college email" in r.json()["detail"]
+    with SessionLocal() as db:
+        assert db.scalar(select(Registration).where(Registration.email == email)) is None
+
+
+@requires_db
+def test_an_address_merely_off_the_domain_list_still_reaches_the_reviewer(client, cleanup):
+    """Only the two certain mistakes are refused at the form: a college whose
+    domains are not listed yet must not lose every applicant."""
+    email = f"req.{uuid.uuid4().hex[:8]}@some-college.example"
+    cleanup.append(email)
+    r = _post(client, email)
+    assert r.status_code == 201, r.text
+
+
 @requires_db
 def test_the_contact_fields_are_stored_normalised_and_shown_to_staff_only(client, make_user, cleanup):
     admin = make_user("req-staff", Role.ADMIN)

@@ -18,7 +18,7 @@ import pytest
 from aws_cdk.assertions import Match, Template
 
 from reep_core import DEREGISTRATION_DELAY_SECONDS, STOP_TIMEOUT_SECONDS, CoreStack, DrVaultStack, EdgeWafStack
-from reep_core.edge import COMMON_RULE_SET_COUNTED
+from reep_core.edge import BODY_RULES_OUTSIDE_UPLOADS, COMMON_RULE_SET_BODY_LABELS, COMMON_RULE_SET_COUNTED
 
 TF_DIR = Path(__file__).resolve().parents[2] / "aws"
 
@@ -1476,23 +1476,56 @@ def test_invalid_phase_is_refused() -> None:
 # ------------------------------------------------------ companion stacks --
 
 
-def test_edge_waf_has_the_three_terraform_rules() -> None:
-    app = cdk.App()
+def _edge_rules(phase: str | None = None) -> list[dict]:
+    app = cdk.App(context={"phase": phase} if phase else None)
     t = Template.from_stack(EdgeWafStack(app, "test-edge", env=cdk.Environment(account="123456789012", region="us-east-1")))
     t.has_resource_properties("AWS::WAFv2::WebACL", {"Name": "reep-edge", "Scope": "CLOUDFRONT"})
-    rules = next(r for r in t.to_json()["Resources"].values() if r["Type"] == "AWS::WAFv2::WebACL")["Properties"]["Rules"]
+    return next(r for r in t.to_json()["Resources"].values() if r["Type"] == "AWS::WAFv2::WebACL")["Properties"]["Rules"]
+
+
+def test_edge_waf_has_the_three_terraform_rules() -> None:
+    """The import mirror carries exactly Terraform's three rules; harden adds
+    the re-block for the counted body rules after them."""
+    rules = _edge_rules("import")
     assert [r["Name"] for r in rules] == ["aws-common", "aws-bad-inputs", "rate-limit"]
     assert rules[2]["Statement"]["RateBasedStatement"]["Limit"] == 2000
     # Priorities are what WAF evaluates by; the live ACL lists them in a
     # different array order and that is not a difference.
     assert sorted((r["Priority"], r["Name"]) for r in rules) == [(1, "aws-common"), (2, "aws-bad-inputs"), (3, "rate-limit")]
+    harden = _edge_rules()  # the default phase
+    assert sorted((r["Priority"], r["Name"]) for r in harden) == [
+        (1, "aws-common"), (2, "aws-bad-inputs"), (3, "rate-limit"), (4, BODY_RULES_OUTSIDE_UPLOADS),
+    ]
 
 
 def _common_rule_set(phase: str) -> dict:
-    app = cdk.App(context={"phase": phase})
-    t = Template.from_stack(EdgeWafStack(app, "test-edge", env=cdk.Environment(account="123456789012", region="us-east-1")))
-    rules = next(r for r in t.to_json()["Resources"].values() if r["Type"] == "AWS::WAFv2::WebACL")["Properties"]["Rules"]
-    return next(r for r in rules if r["Name"] == "aws-common")["Statement"]["ManagedRuleGroupStatement"]
+    return next(r for r in _edge_rules(phase) if r["Name"] == "aws-common")["Statement"]["ManagedRuleGroupStatement"]
+
+
+def test_the_body_injection_rules_still_block_everything_but_a_file_upload() -> None:
+    """INCIDENT (2026-09-29): CrossSiteScripting_BODY read compressed bytes in
+    CVs and photos as markup and refused the registration 403, on every retry.
+    The four body rules are counted in the group and re-blocked here by their
+    LABELS for any request that is not multipart/form-data, so a JSON body is
+    exactly as protected as before. A mistyped label matches nothing and would
+    turn that rule into a count everywhere, so the documented casing is pinned.
+    """
+    rule = next(r for r in _edge_rules("harden") if r["Name"] == BODY_RULES_OUTSIDE_UPLOADS)
+    assert rule["Action"] == {"Block": {}}
+    labelled, not_multipart = rule["Statement"]["AndStatement"]["Statements"]
+    keys = {s["LabelMatchStatement"]["Key"] for s in labelled["OrStatement"]["Statements"]}
+    assert keys == {
+        "awswaf:managed:aws:core-rule-set:CrossSiteScripting_Body",
+        "awswaf:managed:aws:core-rule-set:GenericLFI_Body",
+        "awswaf:managed:aws:core-rule-set:GenericRFI_Body",
+        "awswaf:managed:aws:core-rule-set:EC2MetaDataSSRF_Body",
+    }
+    assert set(COMMON_RULE_SET_BODY_LABELS) <= set(COMMON_RULE_SET_COUNTED)
+    match = not_multipart["NotStatement"]["Statement"]["ByteMatchStatement"]
+    assert match["FieldToMatch"] == {"SingleHeader": {"Name": "content-type"}}
+    assert match["PositionalConstraint"] == "STARTS_WITH"
+    assert match["SearchString"] == "multipart/form-data"
+    assert match["TextTransformations"] == [{"Priority": 0, "Type": "LOWERCASE"}]
 
 
 def test_the_common_rule_set_counts_the_body_size_rule_so_uploads_reach_the_api() -> None:

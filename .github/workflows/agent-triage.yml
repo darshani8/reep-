@@ -54,6 +54,9 @@ jobs:
         with:
           fetch-depth: 100
 
+      # The owner is the only commit author; see the action's header.
+      - uses: ./.github/actions/sole-author
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"

@@ -1461,6 +1461,32 @@ Every upload client now prints the server's sentence or the STATUS
 (`detailOf`, the verifications screen's helper copied where it was missing), so
 the next refusal at the edge reads "(403)" and not a sentence about JPEGs.
 
+**THE REGISTRATION COMPLAINTS OF 2026-09-29 WERE FOUR BUGS, NOT ONE.**
+Sixteen students mailed about `/register`. (1) **403**: the size rule above
+was counted, but `CrossSiteScripting_BODY` and its three siblings still
+blocked, and they read compressed bytes in a CV or a photo as markup. About
+half of realistic generated CVs were refused, and the same file was refused
+on every retry. The four body rules are counted in the group and re-blocked
+by LABEL (`body-rules-outside-uploads`) for every request that is not
+`multipart/form-data`, so a JSON body is exactly as protected as before.
+The label casing is `_Body`, not `_BODY`; a wrong label matches nothing.
+Needs the `edge-waf` deploy. (2) **504**: `submit` and `attach_document`
+were `async def` doing blocking database, EFS and S3 work, so one save froze
+the whole process past CloudFront's 60 s timeout. They are plain `def` on
+the threadpool now, the per-address limiter has a lock, and
+`tests/test_registration_concurrency.py` fails if the loop blocks again.
+(3) **422**: the LinkedIn check refused `in.linkedin.com`, `m.linkedin.com`
+and `lnkd.in`, and the form printed FastAPI's list `detail` as "(422)". Both
+are fixed; the form names the box (`features/register/form-checks.ts`).
+(4) **Only a Gmail on the admin side**: the college-email box had
+`autocomplete="email"`, so phones filled it with the saved Gmail, and the
+panel labelled only the personal address. The form and the API now refuse
+the same address in both boxes, and a public-mail domain in the college box.
+They deliberately do NOT refuse an address merely off the college's list,
+because a college that has not listed its domains must not lose every
+applicant; the reviewer's domain check still covers that. The panel has a
+"College email" row.
+
 **THE CLAIM FORM FILED INTO A QUEUE THE MENTOR'S SCREEN NEVER OPENED.**
 `/student/skilling` stores the certificate through `POST /student/uploads` and
 files `badge_evidence` against it (`POST /student/badges/{code}/evidence`);

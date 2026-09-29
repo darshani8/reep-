@@ -25,6 +25,7 @@ otherwise — here, or on the applicant's own result card — is wrong.
 
 import logging
 import re
+import threading
 import time
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -262,11 +263,21 @@ _RATE_WINDOW_SECONDS = 600
 _RATE_MAX_PER_WINDOW = 20
 _RATE_MAX_KEYS = 4096
 _rate_windows: dict[str, tuple[float, int]] = {}
+#: `submit` and `attach_document` are plain `def` handlers since 2026-09-29, so
+#: they run on the threadpool and two of them can count at once. The
+#: read-modify-write below is not atomic, and without the lock two attempts
+#: can both read `count` and both write `count + 1`.
+_rate_lock = threading.Lock()
 
 
 def _rate_limit_retry_after(client_ip: str) -> int | None:
     """Count this attempt. Returns None to proceed, or seconds until the window
     resets when the caller has spent it."""
+    with _rate_lock:
+        return _count_attempt(client_ip)
+
+
+def _count_attempt(client_ip: str) -> int | None:
     now = time.monotonic()
     window_start, count = _rate_windows.get(client_ip, (now, 0))
     if now - window_start >= _RATE_WINDOW_SECONDS:
@@ -306,6 +317,49 @@ def _looks_like_email(value: str) -> bool:
     an `@` with a dotted domain after it. Deliberately not the email-validator
     dependency; the domain is what the rule engine keys on."""
     return "@" in value and "." in value.rsplit("@", 1)[-1]
+
+
+#: Domains that hand an address to anybody who asks, so one of them is never a
+#: college's. Only the big providers, and deliberately not a complete list: the
+#: point is the common mistake, not a directory of free mail.
+PUBLIC_MAIL_DOMAINS = frozenset(
+    {
+        "gmail.com", "googlemail.com", "yahoo.com", "yahoo.co.in", "yahoo.in",
+        "outlook.com", "hotmail.com", "live.com", "msn.com", "icloud.com",
+        "me.com", "rediffmail.com", "proton.me", "protonmail.com", "aol.com",
+    }
+)
+
+
+def _college_email_problem(college_email: str, personal_email: str) -> str | None:
+    """Why the COLLEGE box cannot be what the student meant, or None.
+
+    Reported 2026-09-29: the office saw only a Gmail address on applications
+    whose students said they had given both. The college box carried
+    `autocomplete="email"`, so a phone filled it with the student's saved
+    address - their Gmail - and the application reached the queue with that
+    address in both places. Approval refuses an address off the college's
+    domains, so such an application could never be approved, and the student
+    was told nothing.
+
+    Only the two cases that are certainly wrong are refused here. An address
+    merely off THIS college's domain list is left to the reviewer's
+    domain check, as before, because a college that has not listed its
+    domains yet must not have every applicant refused at the form.
+    """
+    if college_email == (personal_email or "").strip().lower():
+        return (
+            "Your college email and personal email are the same. Enter your college "
+            "address (for example, your USN at your college's domain) in the college "
+            "email box."
+        )
+    if domain_of(college_email) in PUBLIC_MAIL_DOMAINS:
+        return (
+            f"{college_email} is a personal address. Enter the email your college "
+            "gave you in the college email box, and your personal address in the "
+            "personal email box."
+        )
+    return None
 
 
 #: How many specializations one application may name. TWO, because the office's
@@ -398,7 +452,15 @@ class RegisterIn(BaseModel):
         """Accepts `linkedin.com/in/asha`, `www.linkedin.com/in/asha` or the
         full https URL and stores the https form; anything without a
         linkedin.com path is refused, because a free-text box labelled LinkedIn
-        collects Instagram handles otherwise."""
+        collects Instagram handles otherwise.
+
+        The app's Share button hands out `in.linkedin.com/in/...` (the India
+        subdomain), `m.linkedin.com/...` or a `lnkd.in/...` short link, and all
+        three were refused with a 422 the form showed only as "(422)" - which
+        is how students with a real profile were stopped at the last box
+        (2026-09-29). Any linkedin.com subdomain is folded onto www, since it is
+        the same profile; a short link is kept as given, because only
+        LinkedIn can say where it points."""
         bare = value.strip()
         lowered = bare.lower()
         if lowered.startswith("http://"):
@@ -406,9 +468,15 @@ class RegisterIn(BaseModel):
         elif lowered.startswith("https://"):
             bare = bare[len("https://"):]
         host, _, path = bare.partition("/")
-        if host.lower() not in {"linkedin.com", "www.linkedin.com"} or not path.strip("/"):
+        host = host.lower()
+        path = path.split("?", 1)[0].split("#", 1)[0].strip("/")
+        if not path:
             raise ValueError("enter your LinkedIn profile link, e.g. linkedin.com/in/your-name")
-        return "https://www.linkedin.com/" + path.strip("/")
+        if host == "lnkd.in":
+            return "https://lnkd.in/" + path
+        if host == "linkedin.com" or host.endswith(".linkedin.com"):
+            return "https://www.linkedin.com/" + path
+        raise ValueError("enter your LinkedIn profile link, e.g. linkedin.com/in/your-name")
     # WHERE THE APPLICANT SAYS THEY BELONG, from the hierarchy the admin built.
     # Send the DEEPEST level known; the API derives the ancestors and refuses a
     # contradiction. All optional at the API - the form requires College and
@@ -1628,7 +1696,7 @@ def _resolve_claim(db: Session, body: RegisterIn) -> dict[str, str | None]:
 
 
 @router.post("", response_model=PublicRegistrationOut, status_code=status.HTTP_201_CREATED)
-async def submit(
+def submit(
     # `media_type` stated, or the spec documents this body as urlencoded, which
     # cannot carry a file; the runtime parses multipart either way.
     body: Annotated[RegisterForm, Form(media_type="multipart/form-data")],
@@ -1650,6 +1718,15 @@ async def submit(
     transaction after both files have passed the size and type checks; a
     refused file is a 413 or 415 with no application behind it, so the
     applicant retries the same form and never meets the duplicate guard.
+
+    A PLAIN `def`, NOT `async def` (2026-09-29). Everything below is blocking
+    I/O - the database, the file write to EFS, the archive PUT to S3 - and in
+    an `async def` it ran ON the event loop, so while one student's files were
+    being saved the whole API process answered nobody. On a results-day rush
+    the queue behind it passed CloudFront's 60 s origin timeout and students
+    were shown 504 for an application that often landed anyway. As a `def`
+    FastAPI runs it on the threadpool, and the loop keeps serving everyone
+    else; `tests/test_registration_concurrency.py` pins that.
     """
     # Limit BEFORE the database is touched: the point is that a flood never
     # reaches Postgres, not that Postgres survives it.
@@ -1672,6 +1749,11 @@ async def submit(
     if "@" not in email or "." not in email.rsplit("@", 1)[-1]:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="A valid email is required."
+        )
+    college_email_problem = _college_email_problem(email, body.personal_email)
+    if college_email_problem is not None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=college_email_problem
         )
     # A LIVE application on the address blocks a new one; a REJECTED one does
     # not (2026-09-16). Until then this read every row, and `registrations.email`
@@ -1740,8 +1822,8 @@ async def submit(
     # guard, so an address that cannot apply is refused without its bytes
     # ever being read past the cap, and before the claim is resolved, so a
     # wrong file and a contradictory batch both leave nothing behind.
-    cv = await _read_document(body.cv, "cv")
-    photo = await _read_document(body.photo, "photo")
+    cv = _read_document(body.cv, "cv")
+    photo = _read_document(body.photo, "photo")
 
     reg = Registration(
         name=body.name.strip(),
@@ -2415,7 +2497,7 @@ def decide(
     return _out_one(db, reg)
 
 
-async def _read_document(upload: UploadFile, kind: str) -> tuple[bytes, str]:
+def _read_document(upload: UploadFile, kind: str) -> tuple[bytes, str]:
     """Read one uploaded document and decide what it is, WITHOUT storing it.
 
     `(content, original_name)`, or a 413 / 415 naming the kind. The size cap
@@ -2427,7 +2509,10 @@ async def _read_document(upload: UploadFile, kind: str) -> tuple[bytes, str]:
     row exists) and `attach_document` (one replacement, on a row that does).
     """
     _doc_kind, allowed_mimes, wanted = _DOCUMENT_ROUTES[kind]
-    content = await upload.read(MAX_BYTES + 1)
+    # `upload.file` and not `await upload.read`: the callers are sync handlers
+    # on the threadpool (see `submit`), and the spooled file under an
+    # UploadFile reads synchronously.
+    content = upload.file.read(MAX_BYTES + 1)
     if len(content) > MAX_BYTES:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
@@ -2542,7 +2627,7 @@ def _store_document(
     response_model=PublicRegistrationOut,
     status_code=status.HTTP_200_OK,
 )
-async def attach_document(
+def attach_document(
     registration_id: str,
     kind: str,
     request: Request,
@@ -2608,7 +2693,7 @@ async def attach_document(
             detail="This application has already been decided; documents can no longer be added.",
         )
 
-    content, original_name = await _read_document(file, kind)
+    content, original_name = _read_document(file, kind)
     _store_document(db, reg, kind, content, original_name)
     db.commit()
     db.refresh(reg)

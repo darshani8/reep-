@@ -37,10 +37,80 @@ from constructs import Construct
 #: router adds a store. Counting keeps the metric -- the sampled requests still
 #: show what would have been blocked -- and blocks nothing.
 #:
-#: The other body rules stay as they are: they inspect the first 16 KB of a
-#: body for injection patterns, which a certificate does not carry, and none
-#: of them refuses a request for being large.
-COMMON_RULE_SET_COUNTED: tuple[str, ...] = ("SizeRestrictions_BODY",)
+#: The four injection rules below (2026-09-29). The note that stood here said
+#: they could stay because they "inspect the first 16 KB of a body for
+#: injection patterns, which a certificate does not carry". A certificate does
+#: not carry them ON PURPOSE, and carries them BY CHANCE all the time: a JPEG
+#: or a PDF is compressed binary, and somewhere in 16 KB of it the XSS
+#: detector finds bytes that read as markup. Probed against production with
+#: realistic generated CVs: 23 of 30 with an embedded headshot and 16 of 30
+#: plain ones were refused 403 at the edge by `CrossSiteScripting_BODY`, and a
+#: file that trips it trips it on EVERY retry. So a
+#: student's CV was refused by content nobody chose, with "(403)" as the whole
+#: explanation, and "try again" could never work. That was the 403 in the
+#: registration complaints of 2026-09-29.
+#:
+#: Counted in the group, and RE-BLOCKED by `body-rules-outside-uploads` for
+#: every request that is not `multipart/form-data`, so a JSON or urlencoded
+#: body is exactly as protected as before and only a file upload is let
+#: through. What a multipart body reaches is the API's own gate: every file is
+#: magic-sniffed to PDF/PNG/JPEG before it is stored and served as an
+#: `attachment`, never rendered, and a JSON endpoint handed a multipart body
+#: answers 422 without reading it. The label is what carries the verdict from
+#: the group to the rule, so the names below are the documented labels, casing
+#: included (`_Body`, not `_BODY`) — a mistyped one matches nothing and quietly
+#: turns that rule into a count everywhere.
+COMMON_RULE_SET_BODY_LABELS: dict[str, str] = {
+    "CrossSiteScripting_BODY": "awswaf:managed:aws:core-rule-set:CrossSiteScripting_Body",
+    "GenericLFI_BODY": "awswaf:managed:aws:core-rule-set:GenericLFI_Body",
+    "GenericRFI_BODY": "awswaf:managed:aws:core-rule-set:GenericRFI_Body",
+    "EC2MetaDataSSRF_BODY": "awswaf:managed:aws:core-rule-set:EC2MetaDataSSRF_Body",
+}
+COMMON_RULE_SET_COUNTED: tuple[str, ...] = ("SizeRestrictions_BODY", *COMMON_RULE_SET_BODY_LABELS)
+
+#: The rule that puts the four body rules back in front of everything that is
+#: not an upload. Evaluated after `aws-common`, which is what makes its labels
+#: visible here.
+BODY_RULES_OUTSIDE_UPLOADS = "body-rules-outside-uploads"
+
+
+def _body_rules_outside_uploads(priority: int, metric: str) -> wafv2.CfnWebACL.RuleProperty:
+    labelled = wafv2.CfnWebACL.StatementProperty(
+        or_statement=wafv2.CfnWebACL.OrStatementProperty(
+            statements=[
+                wafv2.CfnWebACL.StatementProperty(
+                    label_match_statement=wafv2.CfnWebACL.LabelMatchStatementProperty(scope="LABEL", key=label)
+                )
+                for label in COMMON_RULE_SET_BODY_LABELS.values()
+            ]
+        )
+    )
+    multipart = wafv2.CfnWebACL.StatementProperty(
+        byte_match_statement=wafv2.CfnWebACL.ByteMatchStatementProperty(
+            field_to_match=wafv2.CfnWebACL.FieldToMatchProperty(single_header={"Name": "content-type"}),
+            positional_constraint="STARTS_WITH",
+            search_string="multipart/form-data",
+            text_transformations=[wafv2.CfnWebACL.TextTransformationProperty(priority=0, type="LOWERCASE")],
+        )
+    )
+    return wafv2.CfnWebACL.RuleProperty(
+        name=BODY_RULES_OUTSIDE_UPLOADS,
+        priority=priority,
+        action=wafv2.CfnWebACL.RuleActionProperty(block={}),
+        statement=wafv2.CfnWebACL.StatementProperty(
+            and_statement=wafv2.CfnWebACL.AndStatementProperty(
+                statements=[
+                    labelled,
+                    wafv2.CfnWebACL.StatementProperty(
+                        not_statement=wafv2.CfnWebACL.NotStatementProperty(statement=multipart)
+                    ),
+                ]
+            )
+        ),
+        visibility_config=wafv2.CfnWebACL.VisibilityConfigProperty(
+            cloud_watch_metrics_enabled=True, metric_name=metric, sampled_requests_enabled=True
+        ),
+    )
 
 
 def _managed(
@@ -97,6 +167,10 @@ class EdgeWafStack(Stack):
         # since the cutover, so `cdk-deploy.yml`'s `edge-waf` option is the
         # deploy that turns uploads back on.
         counted = COMMON_RULE_SET_COUNTED if phase == "harden" else ()
+        # The re-block rides the same phase as the counts it restores: the two
+        # are one change, and counting the body rules without it would open
+        # every JSON body to them.
+        harden_rules = [_body_rules_outside_uploads(4, f"{project}-waf-body-outside-uploads")] if phase == "harden" else []
 
         acl = wafv2.CfnWebACL(
             self,
@@ -121,6 +195,7 @@ class EdgeWafStack(Stack):
                         cloud_watch_metrics_enabled=True, metric_name=f"{project}-waf-rate", sampled_requests_enabled=True
                     ),
                 ),
+                *harden_rules,
             ],
         )
         # The production ACL. A delete-stack must forget it, never delete it.

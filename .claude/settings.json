@@ -13,7 +13,15 @@
       "Bash(terraform output *)",
       "Bash(terraform state list)",
       "Bash(terraform apply)",
-      "Bash(terraform apply *)"
+      "Bash(terraform apply *)",
+      "Bash(python tools/ci/check_*)",
+      "Bash(./tools/ci/preflight.sh*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(npx ng build*)",
+      "Bash(npx ng test*)",
+      "Bash(npx tsc --noEmit*)"
     ]
   }
 }

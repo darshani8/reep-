@@ -13,14 +13,37 @@ the decisions: what to build, whether to merge, and every deploy.
                           @claude "fix this" on the PR ◀──────┘  (as many rounds as needed)
 ```
 
-## What is in the repository
+## The whole lifecycle, and who does each step
 
-| Piece | File | What it does |
-|---|---|---|
-| Issue → PR | `.github/workflows/claude.yml` | `@claude` on an issue or PR, or the `agent` label on an issue, starts Claude in Actions. It implements, runs the fast checks, and opens a PR that fills in the template. |
-| Auto review | `.github/workflows/claude-review.yml` | Every non-draft PR gets a review against rule 1, rule 2, schema and frontend guards. Advisory: comments only, never approves, not a required check. |
-| Agent-ready issues | `.github/ISSUE_TEMPLATE/agent_task.md` | Four sections (what, where, done-when, rules touched) — the agent does what the issue says, so this is where quality comes from. |
-| House skills | `.claude/skills/ship`, `steward`, `new-migration` | How to finish a change, drive a PR to green, and add a migration *here*. Loaded by Claude Code locally, on the web and in Actions. |
+| Phase | Agent / workflow | What it does | Human |
+|---|---|---|---|
+| Plan | Agent task issue template | Four sections the agent works from | You write the issue |
+| Code | `claude.yml` | `agent` label or `@claude` → branch, code, checks, draft PR | — |
+| Test | `ci.yml` (unchanged) | The five required checks | — |
+| Review | `claude-review.yml` | Advisory review against rule 1, rule 2, schema, frontend | You merge |
+| Release | `agent-release.yml` + `tools/ci/release_gate.py` | After green CI on `main`: gate, release notes in a `release` issue | — |
+| Deploy | `agent-release.yml` → `deploy.yml` | Ships safe changes automatically when `AGENT_AUTODEPLOY=true` | Anything the gate refuses |
+| Verify | `agent-release.yml` | Watches the deploy; closes the release issue or triages the failure | — |
+| Operate | `agent-ops.yml` → `agent-triage.yml` | Infra drift, failed human deploys, `incident` issues → diagnosis + draft fix PR | `cdk-deploy.yml`, console checks |
+| Maintain | `agent-maintenance.yml` | Weekly: vulnerabilities, outdated deps, stale PRs/issues, AGENTS.md drift | Merges the bump PR |
+
+Skills the agents follow: `.claude/skills/ship`, `steward`, `new-migration`,
+`ops-triage`, `maintenance`.
+
+### What an agent may deploy on its own
+
+Decided by `tools/ci/release_gate.py` — code, not a model, pinned by
+`apps/api-py/tests/test_release_gate.py`. It compares `main` with the last
+**successful** production deploy and refuses the automatic path for:
+migrations and models, `infra/`, rule 1 / rule 2 / auth / deletion code, the
+service worker and PWA manifest, dependency manifests and the Dockerfile, the
+deploy pipeline or the gate itself, unknown paths, and more than 40 files.
+Automatic deploys always run with `run_migrations=false`, which is safe only
+because any migration in the change set already refuses the automatic path.
+Refused releases still get notes and the exact button to press.
+
+It also refuses to dispatch when `main` has moved past the commit that was
+gated (`deploy.yml` builds whatever `main` is at that moment).
 
 ## Setup (once, about five minutes)
 
@@ -31,7 +54,13 @@ the decisions: what to build, whether to merge, and every deploy.
    - `CLAUDE_CODE_OAUTH_TOKEN` — uses your Claude subscription; get it with
      `claude setup-token`; **or**
    - `ANTHROPIC_API_KEY` — pay-per-use from console.anthropic.com.
-3. **Create the `agent` label** (Issues → Labels → New label).
+3. **Create the labels** `agent`, `release`, `incident`, `maintenance`
+   (Issues → Labels → New label).
+4. **Turn on automatic deploys** when you are ready: Settings → Secrets and
+   variables → Actions → **Variables** → `AGENT_AUTODEPLOY` = `true`. Leave it
+   unset and everything else still runs; releases wait for your click.
+5. **Optional — Sentry to incidents:** in Sentry, add an alert rule whose
+   action creates a GitHub issue in this repository with the label `incident`.
 
 Nothing else changes: the ruleset, the five required checks and CODEOWNERS are
 untouched, and neither workflow can merge or deploy.
@@ -54,8 +83,11 @@ untouched, and neither workflow can merge or deploy.
 - **No production credentials in either workflow.** Rule 1 applies to agents:
   a run that can read student records can paste them into a comment. Keep AWS
   keys and real `DATABASE_URL`s out of `claude.yml` and `claude-review.yml`.
-- **Deploys stay human.** `deploy.yml`, `cdk-deploy.yml` and `ops-task.yml`
-  are untouched and the agent is told never to run them.
+- **Only the release workflow deploys, and only what the gate allows.**
+  `cdk-deploy.yml` (AWS infrastructure) and `ops-task.yml` (seeds, purges)
+  stay human-only: no agent can run them.
+- **No agent can see AWS or the database.** Triage works from GitHub Actions
+  logs and code. A read-only AWS role for CloudWatch is a separate decision.
 - **The agent stops on judgement calls.** Auth, migrations that rewrite rows
   and `infra/` get a proposal, not a push.
 - **Not CI jobs.** §34 pins `ci.yml`'s five job names; these live in their own
@@ -67,4 +99,8 @@ Each run spends tokens on your key or subscription; the review is skipped on
 drafts and cancelled when a newer push arrives to keep that down. The agent in
 Actions has no Postgres, so the `API (FastAPI + Postgres)` check is left to
 CI — the PR says which checks it ran and which it could not. It is a first
-reviewer, not a second maintainer: merging is still yours.
+reviewer, not a second maintainer: merging, infrastructure changes and anything the gate refuses are still yours.
+
+`workflow_run` and `schedule` triggers only fire for workflows on the default
+branch, so the release, ops and maintenance agents start working once this is
+merged to `main`.

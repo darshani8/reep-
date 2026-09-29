@@ -45,6 +45,12 @@ jobs:
         with:
           node-version: "22"
 
+      # package.json pins npm@11.16.0; the runner's npm 10 crashes on this
+      # lockfile ("reading 'edgesOut'"), which is why the first maintenance
+      # run could not regenerate it.
+      - name: Use the npm version package.json pins
+        run: npm install -g npm@11.16.0
+
       # Facts first, gathered by tools, so the agent reports measurements and
       # not recollections. Every step tolerates failure: a report with one
       # section saying "could not run" beats no report.

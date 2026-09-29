@@ -31,6 +31,7 @@
     "archiveRetentionDays": 365,
     "apiArm64": true,
     "dbMultiAz": true,
+    "dbInstanceClassTarget": "db.t4g.small",
     "vaultLockCompliance": false,
     "blueGreen": false,
     "liveColour": "blue",

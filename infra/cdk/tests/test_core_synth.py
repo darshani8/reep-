@@ -18,7 +18,12 @@ import pytest
 from aws_cdk.assertions import Match, Template
 
 from reep_core import DEREGISTRATION_DELAY_SECONDS, STOP_TIMEOUT_SECONDS, CoreStack, DrVaultStack, EdgeWafStack
-from reep_core.edge import BODY_RULES_OUTSIDE_UPLOADS, COMMON_RULE_SET_BODY_LABELS, COMMON_RULE_SET_COUNTED
+from reep_core.edge import (
+    BODY_RULES_OUTSIDE_UPLOADS,
+    COMMON_RULE_SET_BODY_LABELS,
+    COMMON_RULE_SET_COUNTED,
+    UPTIME_CHECK_PATH,
+)
 
 TF_DIR = Path(__file__).resolve().parents[2] / "aws"
 
@@ -1732,6 +1737,41 @@ def test_the_import_mirror_keeps_terraforms_tag_and_the_eip_keeps_it_forever(imp
     assert tag(vpc_h, "ManagedBy") == "cdk"
 
 
+def _edge_with_uptime(phase: str = "harden") -> dict:
+    app = cdk.App(context={"phase": phase, "domainName": "reep.example.edu", "alertEmail": "ops@example.edu"})
+    stack = EdgeWafStack(app, "test-edge-uptime", env=cdk.Environment(account="123456789012", region="us-east-1"))
+    return Template.from_stack(stack).to_json()["Resources"]
+
+
+def test_the_uptime_check_knocks_from_outside_through_the_public_name() -> None:
+    """2026-09-29: every reep-core alarm watches from inside the account, so a
+    broken certificate, DNS record or distribution left the ALB healthy and
+    nobody told. Route 53 asks from outside, through the name a student types,
+    on an /api path so the answer covers CloudFront, the WAF, the ALB, a task
+    and the database; the alarm treats silence as down and mails someone."""
+    res = _edge_with_uptime()
+    check = next(r for r in res.values() if r["Type"] == "AWS::Route53::HealthCheck")["Properties"]["HealthCheckConfig"]
+    assert check["Type"] == "HTTPS" and check["Port"] == 443 and check["EnableSNI"] is True
+    assert check["FullyQualifiedDomainName"] == "reep.example.edu"
+    assert check["ResourcePath"] == UPTIME_CHECK_PATH and UPTIME_CHECK_PATH.startswith("/api/")
+    alarm = next(r for r in res.values() if r["Type"] == "AWS::CloudWatch::Alarm")["Properties"]
+    assert alarm["Namespace"] == "AWS/Route53" and alarm["MetricName"] == "HealthCheckStatus"
+    assert alarm["ComparisonOperator"] == "LessThanThreshold" and alarm["Threshold"] == 1
+    assert alarm["TreatMissingData"] == "breaching", "a checker that stopped reporting is not an up site"
+    assert alarm["AlarmActions"] and alarm["OKActions"]
+    sub = next(r for r in res.values() if r["Type"] == "AWS::SNS::Subscription")["Properties"]
+    assert sub == {**sub, "Protocol": "email", "Endpoint": "ops@example.edu"}
+    for lid, r in res.items():
+        assert r.get("DeletionPolicy") == "Retain", lid
+
+
+def test_the_import_mirror_grows_no_uptime_check() -> None:
+    """The import phase is a byte-identical mirror of the adopted ACL; a new
+    resource in it is a template CloudFormation refuses to import."""
+    types = {r["Type"] for r in _edge_with_uptime("import").values()}
+    assert types == {"AWS::WAFv2::WebACL"}
+
+
 def test_all_three_stacks_retain_everything() -> None:
     app = cdk.App()
     for stack in (
@@ -2006,3 +2046,39 @@ def test_the_deploy_role_still_has_no_codedeploy_cloudformation_or_rds(hardened:
     assert ce == ["ce:GetCostAndUsage"], (
         f"the deploy role's Cost Explorer grant changed to {ce!r}; only ce:GetCostAndUsage is intended"
     )
+
+
+def _db_class(t: Template) -> str:
+    return next(r for r in t.to_json()["Resources"].values() if r["Type"] == "AWS::RDS::DBInstance")["Properties"]["DBInstanceClass"]
+
+
+def test_harden_moves_the_database_to_its_target_size_and_the_mirror_keeps_the_live_one() -> None:
+    """2026-09-29: the live db.t4g.micro allows roughly 80-110 connections, too
+    few for the api tasks autoscaling may start. The target is its own key in
+    cdk.json (dbInstanceClassTarget); `dbInstanceClass` stays what the import
+    tool read from the live instance, so the mirror never describes a database
+    that does not exist yet -- the dbMultiAz / liveDbMultiAz split, again."""
+    assert CDK_JSON_CONTEXT["dbInstanceClassTarget"] == "db.t4g.small"
+    assert _db_class(_core("import", dbInstanceClass="db.t4g.micro")) == "db.t4g.micro"
+    assert _db_class(_core("harden", dbInstanceClass="db.t4g.micro")) == "db.t4g.small"
+
+
+def test_the_api_pool_times_the_task_ceiling_fits_the_database(hardened: Template) -> None:
+    """Every task may hold DB_POOL_SIZE + DB_MAX_OVERFLOW connections, and
+    autoscaling may run apiMaxTasks of them. Left at app/config.py's 20 + 20,
+    ten tasks would ask for 400 -- the refusal would land on the busiest day."""
+    from reep_core.stack import API_DB_MAX_OVERFLOW, API_DB_POOL_SIZE
+
+    envs = [
+        {e["Name"]: e["Value"] for e in c.get("Environment", [])}
+        for r in hardened.to_json()["Resources"].values()
+        if r["Type"] == "AWS::ECS::TaskDefinition"
+        for c in r["Properties"]["ContainerDefinitions"]
+    ]
+    api = [e for e in envs if e.get("ENV") == "prod"]
+    assert api, "no api container found"
+    for env in api:
+        assert env["DB_POOL_SIZE"] == str(API_DB_POOL_SIZE)
+        assert env["DB_MAX_OVERFLOW"] == str(API_DB_MAX_OVERFLOW)
+    # db.t4g.small (2 GiB): max_connections is LEAST(DBInstanceClassMemory/9531392, 5000), about 200.
+    assert (API_DB_POOL_SIZE + API_DB_MAX_OVERFLOW) * 10 <= 200

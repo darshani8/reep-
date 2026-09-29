@@ -69,5 +69,10 @@ jobs:
             MEASUREMENTS: ${{ runner.temp }}/maint
             Follow .claude/skills/maintenance/SKILL.md. The measurements are
             JSON files in MEASUREMENTS, outside the repository.
+          # In automation mode the agent may run only what is listed here; the
+          # first run was denied nine times and wrote no report. --add-dir lets
+          # it read the measurements, which live outside the checkout.
           claude_args: |
             --max-turns 100
+            --add-dir ${{ runner.temp }}/maint
+            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(ls:*),Bash(cat:*),Bash(git:*),Bash(gh issue:*),Bash(gh pr:*),Bash(gh label:*),Bash(python:*),Bash(python3:*),Bash(pip:*),Bash(npm:*),Bash(npx:*)"

@@ -69,6 +69,19 @@ router = APIRouter(prefix="/admin", tags=["admin-mail"])
 MAX_ROWS = 200
 
 
+def _office(session: dict = Depends(get_current_session)) -> dict:
+    """The Main Admin's session, as a DEPENDENCY.
+
+    `require_admin` takes a plain `session: dict`, so handing it to `Depends`
+    directly made FastAPI read that parameter as a required JSON BODY: every
+    request to all three endpoints below answered 422 "body: Field required",
+    before any authentication, for everybody. A GET cannot usefully carry a
+    body, so the Email delivery screen could never load. Found by the Swagger
+    contract suite (testing/api); pinned by tests/test_admin_mail_log.py.
+    """
+    return require_admin(session)
+
+
 class MailRowOut(BaseModel):
     id: str
     kind: str
@@ -97,7 +110,7 @@ def mail_log(
     recipient: str | None = Query(default=None),
     failed_only: bool = Query(default=False),
     limit: int = Query(default=100, ge=1, le=MAX_ROWS),
-    session: dict = Depends(require_admin),
+    session: dict = Depends(_office),
     db: Session = Depends(get_db),
 ) -> list[MailRowOut]:
     """The last `limit` messages, newest first, narrowed by the office.
@@ -135,7 +148,7 @@ def mail_log(
 @router.get("/mail-log/suppression", response_model=SuppressionOut)
 def suppression(
     email: str = Query(min_length=3, max_length=254),
-    session: dict = Depends(require_admin),
+    session: dict = Depends(_office),
 ) -> SuppressionOut:
     """Ask SES, right now, whether it will deliver to this address.
 
@@ -177,7 +190,7 @@ def suppression(
 def lift_suppression(
     request: Request,
     email: str = Query(min_length=3, max_length=254),
-    session: dict = Depends(require_admin),
+    session: dict = Depends(_office),
     db: Session = Depends(get_db),
 ) -> SuppressionOut:
     """Take this address off SES's suppression list so mail can reach it again.

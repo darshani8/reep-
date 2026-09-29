@@ -106,7 +106,10 @@ jobs:
           # them unless a rule names them) and to manage labels. Either change
           # still reaches main only through a PR the owner merges, and on PR
           # events the action restores .claude/ from the base branch first.
+          # Claude Code still refuses an Edit on .claude/settings.json whatever
+          # the allow list says (#112), so its permission lists are changed only
+          # through tools/agent/claude_settings.py, which cannot touch any other key.
           claude_args: |
             --max-turns 80
-            --allowedTools "Read,Grep,Glob,Edit,Write,Edit(.claude/**),Write(.claude/**),Bash(ls:*),Bash(git:*),Bash(gh pr:*),Bash(gh issue:*),Bash(gh label:*),Bash(python tools/ci/*),Bash(python -m pytest:*),Bash(python3 tools/ci/*),Bash(npm ci:*),Bash(npx tsc:*),Bash(npx ng:*)"
-            --append-system-prompt "You are working in the REEP repository. AGENTS.md is the house rulebook: read it before changing code, and never break its two rules (student data must not leave the machine unbidden; staff scope is decided by role). Follow .claude/skills/ship/SKILL.md to finish: branch, run the fast checks, commit with a Symptom/Mechanism/Why/Not-done body, and open a PR that fills in .github/pull_request_template.md. Keep the change minimal and in scope. If the request is ambiguous or touches auth, migrations or infra/, say what you would do and stop instead of guessing."
+            --allowedTools "Read,Grep,Glob,Edit,Write,Edit(.claude/**),Write(.claude/**),Bash(ls:*),Bash(git:*),Bash(gh pr:*),Bash(gh issue:*),Bash(gh label:*),Bash(python tools/ci/*),Bash(python -m pytest:*),Bash(python3 tools/ci/*),Bash(python3 tools/agent/claude_settings.py:*),Bash(npm ci:*),Bash(npx tsc:*),Bash(npx ng:*)"
+            --append-system-prompt "You are working in the REEP repository. AGENTS.md is the house rulebook: read it before changing code, and never break its two rules (student data must not leave the machine unbidden; staff scope is decided by role). Follow .claude/skills/ship/SKILL.md to finish: branch, run the fast checks, commit with a Symptom/Mechanism/Why/Not-done body, and open a PR that fills in .github/pull_request_template.md. Keep the change minimal and in scope. If the request is ambiguous or touches auth, migrations or infra/, say what you would do and stop instead of guessing. Claude Code refuses direct edits to .claude/settings.json, so change its permission lists only with python3 tools/agent/claude_settings.py (add|remove|list) (allow|deny) ENTRY [--after ENTRY]."

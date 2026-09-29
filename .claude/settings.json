@@ -1,19 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Bash(terraform init)",
-      "Bash(terraform init *)",
-      "Bash(terraform validate)",
-      "Bash(terraform fmt)",
-      "Bash(terraform fmt *)",
-      "Bash(terraform plan)",
-      "Bash(terraform plan *)",
-      "Bash(terraform show *)",
-      "Bash(terraform output)",
-      "Bash(terraform output *)",
-      "Bash(terraform state list)",
-      "Bash(terraform apply)",
-      "Bash(terraform apply *)",
       "Bash(python tools/ci/check_*)",
       "Bash(./tools/ci/preflight.sh*)",
       "Bash(git status*)",

@@ -86,6 +86,9 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           track_progress: true
+          # The action reacts to a label named `claude` by default; ours is `agent`.
+          # Without this the labelled path runs and skips: "No trigger was met".
+          label_trigger: agent
           additional_permissions: |
             actions: read
           # The checks the ship skill tells it to run must be allowed, or it

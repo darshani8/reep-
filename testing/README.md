@@ -65,7 +65,7 @@ jmeter/run.sh smoke|load|stress|spike|soak|all     # → results/jmeter/<scenari
 
 # Playwright
 (cd playwright && npx playwright test)       # non-functional → results/playwright-nfr/html
-(cd .. && npm run test:e2e)                  # functional e2e (existing, 255 cases) → manual-test-results.csv
+(cd .. && npm run test:e2e)                  # functional e2e (existing, 256 tests) → manual-test-results.csv
 ```
 
 Environment knobs: `REEP_API` (default `http://localhost:3300`), `REEP_WEB` /

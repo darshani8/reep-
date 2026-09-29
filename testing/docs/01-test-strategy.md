@@ -41,7 +41,7 @@ Likelihood (L) and impact (I) are scored 1–3, and the exposure is L × I.
 |---|---|---|---|---|
 | **Unit (component)** | Function contracts, docstrings, business rules | Pure functions, models, Angular components/services | `pytest` (backend, 135 modules), Vitest via `ng test` (32 web specs) | Existing in the repository |
 | **Integration (component integration)** | API/database interaction, router ↔ ORM ↔ Postgres | FastAPI routers on a real migrated PostgreSQL through `TestClient` | `pytest` + a real database (`reep_test`) | Existing in the repository |
-| **System** | Requirements (`test-management/cases`), OpenAPI document, AGENTS.md rules | The deployed stack: SPA :4200 → API :3300 → Postgres | Playwright e2e (255 cases), Selenium WebDriver, `requests`+`pytest` API suite, Schemathesis | Playwright e2e existing; the rest added in `testing/` |
+| **System** | Requirements (`test-management/cases`), OpenAPI document, AGENTS.md rules | The deployed stack: SPA :4200 → API :3300 → Postgres | Playwright e2e (256 tests, 273 manual cases), Selenium WebDriver, `requests`+`pytest` API suite, Schemathesis | Playwright e2e existing; the rest added in `testing/` |
 | **System (non-functional)** | ISO/IEC 25010 characteristics, performance budgets | Same deployed stack | Apache JMeter 5.6.3, Selenium ×100, Playwright + axe-core | Added in `testing/` |
 | **Acceptance** | User stories and manual cases | Staging with real users | The manual cases in `test-management/` are the acceptance test basis | Out of scope for automation here (§6) |
 
@@ -135,7 +135,7 @@ a follow-up.
 | Swagger UI / ReDoc | FastAPI built-in (`/docs`, `/redoc`) | The human-facing API documentation; the same `/openapi.json` drives the automated contract tests |
 | Apache JMeter | 5.6.3 | Load, stress, spike and soak; millisecond-resolution JTL; HTML dashboard |
 | Selenium WebDriver | 4.49.0, ChromeDriver 141 | Browser automation with the Page Object Model; 1 and 100 concurrent instances; Grid config for scale-out |
-| Playwright | 1.63.0 | The existing functional e2e suite (255 cases) and the new non-functional suite |
+| Playwright | 1.63.0 | The existing functional e2e suite (256 tests, 273 manual cases) and the new non-functional suite |
 | axe-core (@axe-core/playwright) | 4.13 | WCAG 2.x A/AA automated checks |
 | Vitest (Angular unit builder) | via `ng test` | Web unit tests |
 

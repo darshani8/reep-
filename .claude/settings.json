@@ -23,5 +23,10 @@
       "Bash(npx ng test*)",
       "Bash(npx tsc --noEmit*)"
     ]
+  },
+  "includeCoAuthoredBy": false,
+  "attribution": {
+    "commit": "",
+    "pr": ""
   }
 }

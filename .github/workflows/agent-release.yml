@@ -75,6 +75,14 @@ jobs:
             echo "::warning::No successful deploy found; nothing to compare against. A human must do the first deploy."
             BASE="$HEAD_SHA"
           fi
+          # A deployed commit that is no longer in main's history (a history
+          # rewrite, a force-push) cannot be diffed against. Nothing is known
+          # about what is waiting, so nothing ships automatically until a
+          # human deploys once and records a commit that exists.
+          if ! git merge-base --is-ancestor "$BASE" "$HEAD_SHA" 2>/dev/null; then
+            echo "::warning::Last deployed commit $BASE is not in main's history. A human must deploy once before automatic releases resume."
+            BASE="$HEAD_SHA"
+          fi
           CURRENT=$(git ls-remote origin refs/heads/main | cut -f1)
           echo "base=$BASE"       >> "$GITHUB_OUTPUT"
           echo "head=$HEAD_SHA"   >> "$GITHUB_OUTPUT"

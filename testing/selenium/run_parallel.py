@@ -14,6 +14,7 @@ records, in milliseconds:
     total           the whole journey
 
     python selenium/run_parallel.py --instances 100 --concurrency 100
+    python selenium/run_parallel.py --instances 100 --barrier         # all 100 journeys at the same moment
     python selenium/run_parallel.py --instances 1                     # the single-instance baseline
 
 --concurrency caps how many browsers are alive at once. On a Selenium Grid
@@ -50,6 +51,7 @@ USERS = ROOT / "jmeter" / "data" / "users.csv"
 OUT = ROOT / "results" / "selenium"
 H1 = (By.TAG_NAME, "h1")
 _start_gate = threading.Lock()
+_barrier: threading.Barrier | None = None
 
 
 def journey(idx: int, email: str, password: str) -> dict:
@@ -61,6 +63,12 @@ def journey(idx: int, email: str, password: str) -> dict:
         with _start_gate:  # chromedriver start-up is serialised; the journeys are not
             driver = make_driver()
         rec["browser_start"] = round((time.perf_counter() - t) * 1000)
+        if _barrier is not None:
+            # --barrier: nobody signs in until EVERY browser is up, so all N
+            # journeys genuinely overlap instead of trickling in behind the
+            # serialised start-up.
+            _barrier.wait(timeout=900)
+            rec["barrier_released_at"] = time.time()
 
         t = time.perf_counter()
         page = LoginPage(driver).load()
@@ -110,8 +118,15 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--instances", type=int, default=100)
     ap.add_argument("--concurrency", type=int, default=None, help="default: = instances")
+    ap.add_argument("--barrier", action="store_true",
+                    help="start all browsers first, then release every journey at once (needs concurrency == instances)")
     args = ap.parse_args()
     conc = args.concurrency or args.instances
+    global _barrier
+    if args.barrier:
+        if conc != args.instances:
+            sys.exit("--barrier needs --concurrency equal to --instances")
+        _barrier = threading.Barrier(args.instances)
     users = list(csv.DictReader(open(USERS)))
     if len(users) < args.instances:
         sys.exit(f"{USERS} has {len(users)} accounts; need {args.instances}. Run testing/tools/create_load_users.py")
@@ -129,7 +144,7 @@ def main() -> None:
     results.sort(key=lambda r: r["instance"])
 
     OUT.mkdir(parents=True, exist_ok=True)
-    stem = OUT / f"parallel-{args.instances}x{conc}"
+    stem = OUT / f"parallel-{args.instances}x{conc}{'-barrier' if args.barrier else ''}"
     stem.with_suffix(".json").write_text(json.dumps(results, indent=2))
     keys = ["instance", "email", "ok", "browser_start", "login_page", "login_to_home", "jobs_page", "ledger_page", "total", "error"]
     with open(stem.with_suffix(".csv"), "w", newline="") as fh:
@@ -139,12 +154,15 @@ def main() -> None:
             w.writerow({k: r.get(k, "") for k in keys})
 
     ok = [r for r in results if r["ok"]]
-    lines = [f"# Selenium parallel run: {args.instances} instances, {conc} concurrent", "",
+    mode = "all released together after start-up (--barrier)" if args.barrier else "each starts its journey as soon as its browser is up"
+    lines = [f"# Selenium parallel run: {args.instances} instances, {conc} concurrent", "", f"- Mode: {mode}",
              f"- Wall clock: {wall:.1f} s",
              f"- Passed: {len(ok)}/{len(results)} ({100 * len(ok) / len(results):.1f} %)",
              f"- Throughput: {len(ok) / wall:.2f} complete journeys / s", "",
              "| Step (ms) | Mean | Median | p90 | p95 | Max |", "|---|---:|---:|---:|---:|---:|"]
     for k in keys[3:9]:
+        if args.barrier and k == "total":
+            continue  # includes the wait for the slowest browser to start; not a user-facing time
         v = [r[k] for r in ok if k in r]
         if v:
             lines.append(f"| {k} | {statistics.fmean(v):.0f} | {pct(v, 50)} | {pct(v, 90)} | {pct(v, 95)} | {max(v)} |")

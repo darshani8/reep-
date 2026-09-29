@@ -1,0 +1,116 @@
+# 05 — Incident Reports
+
+| | |
+|---|---|
+| Standard followed | ISO/IEC/IEEE 29119-3:2021 §11 *Test Incident Report* (IEEE 829's "anomaly report") |
+| Cycle | 2026-09-29, build `main@1685e67` |
+| Severity scale | **Critical**: data loss or a security breach · **Major**: a feature unusable, no workaround · **Medium**: wrong behaviour with a workaround, or a 500 reachable from a normal client · **Low**: cosmetic, a documentation or contract mismatch |
+| Priority scale | P1 fix now · P2 next release · P3 when convenient |
+
+Incidents are in four groups. **DEF** is a product defect. **OBS** is an
+observation that is not a defect but that a reader of the numbers needs.
+**TW** is a defect in the testware or test environment. Each TW is recorded
+because it produced misleading results before it was caught, which is the
+lesson worth keeping.
+
+## Product defects
+
+### DEF-001: The whole "Email delivery" screen answers 422 to everyone · Major · P1 · **FIXED on this branch**
+
+| Field | Value |
+|---|---|
+| Found by | API-02-owner `/api/admin/mail-log` (Swagger contract suite), and API-02-anon on the same path (anonymous got 422, not 401) |
+| Endpoints | `GET /api/admin/mail-log`, `GET /api/admin/mail-log/suppression`, `DELETE /api/admin/mail-log/suppression` |
+| Steps | Sign in as the Main Admin → `GET /api/admin/mail-log` |
+| Expected | 200 with the log (the office's only view of `mail_logs`) |
+| Actual | `422 {"detail":[{"loc":["body"],"msg":"Field required"}]}` for the admin, a mentor, a student and an anonymous caller alike |
+| Root cause | `routers/admin_mail.py` passed `require_admin`, a plain function `require_admin(session: dict)`, straight to `Depends(...)`. FastAPI reads its un-annotated `session: dict` parameter as a **required JSON request body**. Validation fails before any authentication runs. A browser `fetch` GET sends no body, so `/admin/mail` could never load a row. No test called these endpoints. |
+| Impact | The feature AGENTS.md describes as the answer to "the code never came" (the mail log plus the SES suppression lookup and lift) has been unusable since it shipped |
+| Fix | A `_office` dependency (`Depends(get_current_session)` → `require_admin`) used by all three endpoints |
+| Confirmation | The live API returns 422 before the fix and 200 after it (`mail-log after fix: 200`). The new `apps/api-py/tests/test_admin_mail_log.py` **fails on the old code and passes on the fix**. The codebase guards (`test_codebase_guards.py`, `test_capability_enforcement.py`) are still green |
+
+### DEF-002: `PUT /api/student/profile` answers 500 when a boolean is sent as `null` · Medium · P2
+
+| Field | Value |
+|---|---|
+| Found by | Schemathesis (run 1) |
+| Reproduce | `PUT /api/student/profile` as a student, body `{"interested_in_jobs": null}` (also `interested_in_internships`, `leaderboard_opt_out`) |
+| Expected | 422 (or the field ignored) |
+| Actual | 500. `IntegrityError: NotNullViolation: null value in column "interested_in_jobs" of relation "student_profiles"`. There were 120 occurrences in one run |
+| Root cause | The Pydantic input model declares these fields `bool \| None` and the handler copies `None` onto NOT NULL columns |
+| Suggested fix | Skip `None` for the NOT NULL booleans (as `exclude_none` would), or type them `bool` with a default |
+
+### DEF-003: `POST /api/student/checkin` answers 500 for an unknown course code · Medium · P2
+
+| Field | Value |
+|---|---|
+| Reproduce | As a student: `{"course_code": "", "module": ""}` |
+| Actual | 500. `ForeignKeyViolation ... "lab_sessions_course_code_fkey"` (14 occurrences) |
+| Expected | 404 or 422 naming the course |
+| Suggested fix | Look the course up first and refuse it in words |
+
+### DEF-004: `POST /api/admin/jobs` and `POST /api/admin/criteria` answer 500 for an empty or unknown `course_id` · Medium · P2
+
+| Field | Value |
+|---|---|
+| Reproduce | As the Main Admin: `POST /api/admin/jobs` with `"course_id": ""` (the same for `/api/admin/criteria`) |
+| Actual | 500. `ForeignKeyViolation "fk_jobs_course"` / `"fk_placement_criteria_course"` |
+| Expected | 422, like the handler's other checks (for example, the `apply_url` check) |
+| Note | An empty string is exactly what an HTML `<select>` with a blank option posts, so a real client can reach this |
+| Suggested fix | Treat `""` as `None`, and resolve the id through the existing spine resolver before insert |
+
+### DEF-005: `PATCH /api/admin/swoc/entries/{id}` answers 500 for an unknown `linked_*_id` · Medium · P2
+
+| Field | Value |
+|---|---|
+| Reproduce | As the Main Admin: `{"linked_job_id": ""}` (or `linked_skill_id` / `linked_session_id`) |
+| Actual | 500. `ForeignKeyViolation "fk_swoc_linked_job"` (and the same for skill and session) |
+| Expected | 422 |
+
+### DEF-006: GET list endpoints answer 500 for out-of-range integers in the query string · Medium · P2
+
+| Field | Value |
+|---|---|
+| Found by | Schemathesis run 2 (**GET only**, so reachable by a read-only admin screen or a crafted URL) |
+| Reproduce | `GET /api/admin/audit?page=92917030724915670548480` · `GET /api/admin/swoc?semester=-954555328274038435872768&page=3214` · `GET /api/admin/placement?...` |
+| Actual | 500. `DataError: NumericValueOutOfRange: integer out of range` / `bigint out of range` |
+| Expected | 422 from the query schema |
+| Suggested fix | Bound the `Query(...)` parameters (`ge=1, le=…`) as `/admin/mail-log`'s `limit` already is |
+
+### DEF-007: Text containing a NUL byte or an invalid `\u` escape answers 500 · Low · P3
+
+| Field | Value |
+|---|---|
+| Endpoints seen | `POST /api/admin/catalogue/copy`, `POST /api/admin/catalogue/subjects/import` |
+| Actual | 500. `DataError: PostgreSQL text fields cannot contain NUL (0x00) bytes`, and `UntranslatableCharacter: unsupported Unicode escape sequence` |
+| Expected | 422 |
+| Suggested fix | One shared validator that rejects `\x00` in free text, applied in the input models or the import parser |
+
+### DEF-008: Many 422 responses break the documented error schema · Low · P3
+
+| Field | Value |
+|---|---|
+| Found by | Schemathesis `response_schema_conformance`: 41 violations in run 1 and 6 in run 2 |
+| Example | `GET /api/student/leaderboards?board=__main__` → `422 {"detail": "Unknown board. One of: …"}`, while the document declares 422 as `HTTPValidationError` whose `detail` is an **array** |
+| Impact | A client generated from the Swagger document (or the SPA's `detailOf` helper) must handle two shapes. The SPA already does, which is why this is Low |
+| Suggested fix | Either raise these as 400 (a business-rule refusal, not schema validation), or declare `responses={422: {"model": ErrorOut}}` on those routes |
+
+## Observations (not defects)
+
+| ID | Observation | Evidence | Why it matters |
+|---|---|---|---|
+| OBS-001 | With 2 API workers, a session retired by a newer sign-in keeps working on the **other** worker for up to `AUTH_REVOCATION_CACHE_SECONDS` (60 s) | API-03-007 measured **60.4 s** | This is by design (a per-process cache that saves one query per request). But "one device at a time" is only eventually consistent, within 60 s. The test asserts the window, not immediacy |
+| OBS-002 | Sign-in is the one CPU-heavy request: scrypt (N=16384) per login | Login mean 51 ms at 50 VUs; **1,884 ms mean at a 100-user spike** (all other endpoints stayed at a 73 ms median) | On a results-day spike, logins queue behind each other on the workers' CPU. That argues for autoscaling on CPU and for keeping sessions long, not for a weaker hash |
+| OBS-003 | FastAPI does not add 401 or 403 to the OpenAPI document | Schemathesis "Undocumented HTTP status code" (≈250 per admin run), almost all 401 or 403 | The contract is incomplete, not wrong. A global `responses={401: …, 403: …}` would make it complete |
+| OBS-004 | Sign-in happily accepts a 5,000-character email and password (401, no 422) | API-03-005 | Harmless (the password is not hashed before lookup fails), but a length bound would be cheap defence in depth |
+
+## Testware and environment incidents
+
+| ID | What happened | Effect before it was caught | Fix |
+|---|---|---|---|
+| TW-001 | The JMeter plan fed accounts from a CSV Data Set. JMeter hands out a **new line on every iteration**, so later virtual users signed in as accounts earlier ones were still using, and REEP's one-session rule retired them | The first stress run reported **44.9 % errors** (all 401). That was a scripting fault, not a capacity result | Virtual user N signs in as `loadtestNNN` (a JSR223 pre-processor, deterministic). All scenarios were re-run on a freshly restarted API: **0 HTTP errors** |
+| TW-002 | The API suite ran during the first load run and signed in as two of JMeter's accounts | 810 401s in that load run | Disjoint account pools: 101–110 are reserved and never in the CSV. The load run was repeated |
+| TW-003 | Schemathesis 4.28 filter semantics: include filters of different kinds are OR'ed and exclude filters are **AND'ed**, and `--exclude-method-regex` is case-sensitive against lower-case method names | Two runs meant to be GET-only also fuzzed POST/PUT/PATCH/DELETE against the **local dev database** (≈5,700 writes). That is how DEF-002..005 and 007 were found | One case-insensitive method exclude, path exclusions moved into a lookahead on the include, no stateful phase. Verified by the API log: **0 writes** besides the two logins. The dev database was dropped and rebuilt before any later suite ran. It was never a shared or production database |
+| TW-004 | Selenium: one of 100 journeys hit `StaleElementReferenceException` (Angular re-rendered the login form between find and type) | 99/100 | `LoginPage.sign_in` re-finds and retries on a stale element |
+| TW-005 | `apps/api-py/.env` copied verbatim from `.env.example` has inline `# comments` after bare values, and pydantic-settings reads them as the value (for example, an AWS region of `# falls back to …`) | 41 backend tests failed on the first run, all in mail sending | Use only the quoted `KEY="value"` lines (or no `.env` at all, as CI does). Worth a follow-up in `.env.example` |
+| TW-006 | 100 default Chromium instances did not fit the 16 GB test bed (≈800 Chrome processes, 14.9 GB used) | The first all-at-once run was stopped before the out-of-memory killer reached Postgres. The API and DB were verified healthy afterwards | `LIGHT_CHROME=1` (one renderer, no site isolation) plus a memory watchdog; the Grid compose file is for real scale-out |

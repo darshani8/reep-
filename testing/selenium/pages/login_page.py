@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -30,6 +31,17 @@ class LoginPage(BasePage):
         return self
 
     def sign_in(self, email: str, password: str) -> None:
+        # Angular can re-render the form between find and type (seen once in
+        # 100 concurrent browsers: StaleElementReferenceException). Re-find
+        # and retry rather than fail the journey on a DOM swap.
+        for attempt in range(3):
+            try:
+                return self._sign_in(email, password)
+            except StaleElementReferenceException:
+                if attempt == 2:
+                    raise
+
+    def _sign_in(self, email: str, password: str) -> None:
         field = self.driver.find_element(*self.ID)
         field.clear()
         field.send_keys(email)

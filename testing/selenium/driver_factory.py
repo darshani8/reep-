@@ -8,6 +8,7 @@ instead; see testing/selenium/grid/docker-compose.yml.
     CHROME_BIN          browser binary   (default: Playwright's Chromium in /opt/pw-browsers)
     CHROMEDRIVER        driver binary    (default: Selenium Manager resolves one)
     HEADLESS            1 (default) / 0
+    LIGHT_CHROME        1 = fewer processes per browser (for 100 browsers on one host)
 """
 from __future__ import annotations
 
@@ -38,6 +39,14 @@ def make_driver(width: int = 1366, height: int = 900, mobile: bool = False) -> w
             "deviceMetrics": {"width": width, "height": height, "pixelRatio": 3.0},
             "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 "
                          "(KHTML, like Gecko) Chrome/141.0 Mobile Safari/537.36"})
+    if os.environ.get("LIGHT_CHROME") == "1":
+        # For many browsers on one host: one renderer, no per-site process
+        # isolation. ~800 Chrome processes / 15 GB for 100 default browsers
+        # did not fit a 16 GB test bed; this is what made 100 simultaneous fit.
+        for arg in ("--disable-features=site-per-process,IsolateOrigins,Translate,OptimizationHints",
+                    "--renderer-process-limit=1", "--disable-background-networking",
+                    "--disable-component-update", "--js-flags=--max-old-space-size=256"):
+            opts.add_argument(arg)
     opts.set_capability("goog:loggingPrefs", {"browser": "SEVERE"})
 
     remote = os.environ.get("SELENIUM_REMOTE_URL")

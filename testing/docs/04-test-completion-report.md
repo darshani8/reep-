@@ -10,8 +10,8 @@
 
 ## 1. Summary
 
-REEP's functional behaviour is in good shape. Across **2,781 automated tests at
-four levels**, the only product failures are the ten defects listed in §5. Every
+REEP's functional behaviour is in good shape. Across **2,882 automated test executions
+at four levels**, the only product failures are the ten defects listed in §5. Every
 one of them sits at an edge: a malformed input, an outage, contrast, or an
 endpoint no test had called. None is in a main user journey. Under load the API
 is fast and error-free: **118,725 JMeter requests, 100 % HTTP 200**. At a
@@ -52,12 +52,37 @@ a production build before a results-day capacity sign-off (§6).
 | TS-SEL-02: Selenium, 100 instances | System, performance | Selenium | 100 | **100** | 0 | — | ✅ (≥ 95 % required) |
 | TS-SEL-02: Selenium, 50 simultaneous (`--barrier`) | System, performance | Selenium | 50 | 46 | 4 timeouts | — | ⚠️ load-generator saturation (§4.3) |
 | TS-PW-NFR: Playwright non-functional | System, NFR | Playwright 1.63 + axe 4.13 | 32 | 31 | 0 | 1 known failure (DEF-009) | ✅ gate; serious a11y → DEF-010 |
-| TS-PW-E2E: Playwright functional e2e (existing) | System, functional | Playwright 1.63 | 256 | _see §2.1_ | | | |
+| TS-PW-E2E: Playwright functional e2e (existing, 273 manual cases) | System, functional | Playwright 1.63 | 256 | 242 → **256** | 14 → 0 | 17 cases are manual-only | ✅ after isolating the test data (TW-008) |
 | TS-PERF: JMeter (5 scenarios) | System, performance | JMeter 5.6.3 | 118,725 requests | 118,693 | 0 HTTP errors | 32 over the 1 s SLA | ✅ (§4) |
 
 ### 2.1 Functional end-to-end (existing Playwright suite)
 
-_Filled in from `manual-test-results.csv` when the run completes; see below._
+The suite's own reporter linked every test to its manual case
+(`test-management/cases/`) and wrote `manual-test-results.csv` (273 rows).
+
+| Run | Environment | Passed | Failed / timed out | Not automated |
+|---|---|---:|---:|---:|
+| Full run (11.5 min) | Shared DB with 110 load-test students; API with 2 workers | 242 | 10 / 4 | 17 |
+| Re-run of the 14 | Fresh `reep_e2e` DB (seed only); API with 1 worker, the documented dev setup | **14** | 0 | — |
+
+**All 256 automated cases pass in the documented environment.** The 14 were
+test-environment effects (TW-008): the roster grid virtualises rows, so the
+seeded student fell outside the rendered window among 110 extra students; and
+three auth cases assume one API process. Those three are worth reading as
+product information too. On a multi-process deployment, the reset-link
+limiter and the "signed out on another device" note are per-process
+(**OBS-005**), and production runs two or more tasks.
+
+| Module | Cases | Result |
+|---|---:|---|
+| 01 Authentication and access | 41 | all automated pass (TC-022, 025, 038 on a single worker) |
+| 02 Registration and onboarding | 24 | pass |
+| 03 Student home and progress | 28 | pass |
+| 04 Student profile, jobs and tools | 30 | pass |
+| 05 Faculty and alumni | 32 | pass |
+| 06 Admin people and access | 40 | pass (11 needed the isolated DB) |
+| 07 Admin daily operations | 35 | pass |
+| 08 Admin college setup and interviews | 43 | pass |
 
 ## 3. API: Swagger / OpenAPI results
 
@@ -193,8 +218,7 @@ against this.
 | DEF-010 | WCAG AA colour contrast (2.75–4.34 : 1) on login and student screens | Medium | Open |
 
 Details, reproduction steps and suggested fixes are in
-[05-incident-reports.md](05-incident-reports.md), together with OBS-001…004
-and the seven testware incidents (TW-001…007). The testware incidents are part
+[05-incident-reports.md](05-incident-reports.md), together with OBS-001…005 and the eight testware incidents (TW-001…008). The testware incidents are part
 of this report on purpose. TW-001 alone would have reported a **44.9 % error
 rate** as a capacity result if the per-thread 401 pattern had not been
 investigated before it was believed.
@@ -203,6 +227,7 @@ investigated before it was believed.
 
 | Deviation | Consequence | Residual risk and follow-up |
 |---|---|---|
+| The root e2e suite run through a temporary config pointing Playwright 1.63 at the installed Chromium 141 (its own headless-shell build was not installed, and `playwright install` is unavailable in this sandbox) | None seen: the same binary ran the NFR suite | None |
 | PostgreSQL 16 instead of 17 (the container had no Docker daemon) | The schema is identical; the planner may differ slightly | Low |
 | The Angular dev server, not a production build | Page timings are pessimistic; the bundle size is not representative | Re-run TS-PW-NFR against `ng build` output |
 | Load generator on the same 4-vCPU host as the system under test | The stress and spike numbers are **lower bounds on capacity** | Re-run TS-PERF from a separate host against a staging environment with production sizing |
@@ -220,6 +245,7 @@ investigated before it was believed.
 | Selenium single: 0 failures; ×100 ≥ 95 % | ✅ 14/14; ✅ 100/100 |
 | JMeter load: errors < 1 %, p95 < 1000 ms | ✅ 0 %, p95 21 ms |
 | No critical axe violation | ✅ none (serious ones raised as DEF-010) |
+| Functional e2e (existing suite) | ✅ 256/256 automated cases in the documented environment |
 | Every defect logged | ✅ DEF-001…010 |
 
 **Exit criteria met for this cycle**, with the open defects above carried into the next one.
@@ -236,4 +262,4 @@ investigated before it was believed.
 | JMeter dashboards and summaries | `results/jmeter/dashboards/<scenario>.zip` (unzip, open `index.html`), `results/jmeter/<scenario>-summary.md`, `results/jmeter-<scenario>-console.txt` |
 | Selenium | `results/selenium/report.html`, `junit.xml`, `parallel-*.{md,csv,json}`, `*-memory.txt` |
 | Playwright NFR | `results/playwright-nfr/html/index.html`, `junit.xml`, `results.json` |
-| Playwright e2e | `results/playwright-e2e-console.txt`, `manual-test-results.csv` (copied to `results/`) |
+| Playwright e2e | `results/playwright-e2e-console.txt`, `results/manual-test-results-full-run.csv` (full run), `results/manual-test-results-rerun-14.csv` (isolated re-run) |

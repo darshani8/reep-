@@ -80,6 +80,11 @@ untouched, and neither workflow can merge or deploy.
 
 - **Only owner/members/collaborators can start a run.** The agent has write
   access and reads issue text as instructions.
+- **Every agent commit is authored by Darshan Gowda B B, with no co-author.**
+  `.github/actions/sole-author` sets the git identity through environment
+  variables (which beat the action's own `git config`) and installs a
+  commit-msg hook that deletes Co-authored-by / Claude-Session lines. Every
+  agent workflow that can commit runs it right after checkout.
 - **No production credentials in either workflow.** Rule 1 applies to agents:
   a run that can read student records can paste them into a comment. Keep AWS
   keys and real `DATABASE_URL`s out of `claude.yml` and `claude-review.yml`.

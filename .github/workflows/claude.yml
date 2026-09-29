@@ -72,6 +72,9 @@ jobs:
         with:
           fetch-depth: 50
 
+      # The owner is the only commit author; see the action's header.
+      - uses: ./.github/actions/sole-author
+
       # The fast, database-free checks the agent is told to run before it
       # pushes. The pytest suite needs Postgres and is left to CI's `api` job.
       - uses: actions/setup-python@v5

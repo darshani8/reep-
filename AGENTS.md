@@ -1501,12 +1501,16 @@ in `cdk.json` moves harden to `db.t4g.small`; `dbInstanceClass` in
 `cdk.context.json` stays the LIVE value the import tool read, the
 `dbMultiAz`/`liveDbMultiAz` split again. The task sets the pool to 10 + 10
 (`API_DB_POOL_SIZE`, gated on `harden_ecs` like every variable). (2) Every
-alarm watched from INSIDE the account, so a broken certificate, DNS record or
-distribution would leave the ALB healthy and nobody told. A Route 53 health
-check on `/api/auth/sso/status` through the public name, with an alarm that
-treats silence as down, lives in the edge stack because Route 53 publishes its
-metric in us-east-1 only. Its SNS email must be CONFIRMED from the inbox before
-it delivers anything.
+alarm watched from INSIDE the account, so a broken DNS record or distribution
+would leave the ALB healthy and nobody told. A Route 53 health check through
+the public name, with an alarm that treats silence as down, lives in the edge
+stack because Route 53 publishes its metric in us-east-1 only. **It is a TCP
+connect to 443, not an HTTPS request**, and the first deploy is why: the
+distribution is TLS 1.3 only and Route 53's checkers speak TLS 1.2 at most, so
+the HTTPS version failed all sixteen checkers with `protocol_version` against a
+site answering 200. Do not "fix" that by relaxing the viewer policy; a
+Synthetics canary is the upgrade if the certificate ever needs watching. Its
+SNS email must be CONFIRMED from the inbox before it delivers anything.
 
 **THE CLAIM FORM FILED INTO A QUEUE THE MENTOR'S SCREEN NEVER OPENED.**
 `/student/skilling` stores the certificate through `POST /student/uploads` and

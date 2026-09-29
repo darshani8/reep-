@@ -11,7 +11,19 @@ from __future__ import annotations
 
 from typing import Any
 
-from aws_cdk import CfnOutput, RemovalPolicy, Stack, Tags, aws_wafv2 as wafv2
+from aws_cdk import (
+    CfnOutput,
+    Duration,
+    RemovalPolicy,
+    Stack,
+    Tags,
+    aws_cloudwatch as cloudwatch,
+    aws_cloudwatch_actions as cw_actions,
+    aws_route53 as route53,
+    aws_sns as sns,
+    aws_sns_subscriptions as subs,
+    aws_wafv2 as wafv2,
+)
 from constructs import Construct
 
 
@@ -72,6 +84,13 @@ COMMON_RULE_SET_COUNTED: tuple[str, ...] = ("SizeRestrictions_BODY", *COMMON_RUL
 #: not an upload. Evaluated after `aws-common`, which is what makes its labels
 #: visible here.
 BODY_RULES_OUTSIDE_UPLOADS = "body-rules-outside-uploads"
+
+
+#: Where the outside uptime check knocks. An /api path on purpose: it passes
+#: through CloudFront, the WAF, the ALB, a task and (through the password-door
+#: query) the database, so "healthy" means a student could actually use it,
+#: not just that the static page is cached somewhere.
+UPTIME_CHECK_PATH = "/api/auth/sso/status"
 
 
 def _body_rules_outside_uploads(priority: int, metric: str) -> wafv2.CfnWebACL.RuleProperty:
@@ -202,6 +221,67 @@ class EdgeWafStack(Stack):
         acl.apply_removal_policy(RemovalPolicy.RETAIN)
         self.acl = acl
         CfnOutput(self, "WebAclArn", value=acl.attr_arn, description="Pass to the core stack as -c wafWebAclArn=…")
+
+        # THE OUTSIDE UPTIME CHECK (2026-09-29). Every alarm in reep-core
+        # watches from INSIDE the account -- ALB 5xx, healthy hosts, CPU -- so
+        # a broken certificate, DNS record or CloudFront distribution leaves the
+        # load balancer perfectly healthy and every student unable to connect,
+        # with nothing firing. A Route 53 health check asks from Route 53's own
+        # checkers around the world, through the public name, the way a student
+        # does. It lives here because Route 53 publishes HealthCheckStatus in
+        # us-east-1 only, and this is the stack that is already there. Harden
+        # only, and only with both a domain and somebody to tell: the import
+        # mirror must not grow resources, and an alarm with no subscriber is a
+        # dashboard nobody opens.
+        domain = self.node.try_get_context("domainName") or ""
+        alert_email = self.node.try_get_context("alertEmail") or ""
+        if phase == "harden" and domain and alert_email:
+            check = route53.CfnHealthCheck(
+                self,
+                "UptimeCheck",
+                health_check_config=route53.CfnHealthCheck.HealthCheckConfigProperty(
+                    type="HTTPS",
+                    fully_qualified_domain_name=domain,
+                    resource_path=UPTIME_CHECK_PATH,
+                    port=443,
+                    enable_sni=True,
+                    request_interval=30,
+                    failure_threshold=3,
+                ),
+                health_check_tags=[route53.CfnHealthCheck.HealthCheckTagProperty(key="Name", value=f"{project}-uptime")],
+            )
+            topic = sns.Topic(self, "UptimeAlerts", topic_name=f"{project}-uptime-alerts")
+            # SNS mails a confirmation link first; nothing is delivered until
+            # it is clicked. That is AWS's rule, not a missing step here.
+            subscription = topic.add_subscription(subs.EmailSubscription(alert_email))
+            alarm = cloudwatch.Alarm(
+                self,
+                "UptimeAlarm",
+                alarm_name=f"{project}-site-unreachable",
+                alarm_description=(
+                    f"https://{domain}{UPTIME_CHECK_PATH} failed Route 53's health checkers "
+                    "for two minutes: students cannot reach REEP from outside AWS."
+                ),
+                metric=cloudwatch.Metric(
+                    namespace="AWS/Route53",
+                    metric_name="HealthCheckStatus",
+                    dimensions_map={"HealthCheckId": check.attr_health_check_id},
+                    statistic="Minimum",
+                    period=Duration.minutes(1),
+                ),
+                comparison_operator=cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+                threshold=1,
+                evaluation_periods=2,
+                # No datapoints means the checker itself has stopped reporting,
+                # which is not evidence that the site is up.
+                treat_missing_data=cloudwatch.TreatMissingData.BREACHING,
+            )
+            alarm.add_alarm_action(cw_actions.SnsAction(topic))
+            alarm.add_ok_action(cw_actions.SnsAction(topic))
+            # Retain like everything else in the three stacks
+            # (test_all_three_stacks_retain_everything).
+            for resource in (check, topic, subscription, alarm):
+                resource.apply_removal_policy(RemovalPolicy.RETAIN)
 
         # On the CHILDREN, never on the stack — see the long note at the end of
         # stack.py. `Tags.of(stack)` makes CDK send stack-level tags, and

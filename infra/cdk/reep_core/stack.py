@@ -150,6 +150,12 @@ STOP_TIMEOUT_SECONDS = 120
 #: the api's number by tests/test_codebase_guards.py.
 DEREGISTRATION_DELAY_SECONDS = 600
 
+#: Each api task's SQLAlchemy pool: this many kept open, plus this many more
+#: under burst. Times apiMaxTasks it must stay under the database's
+#: max_connections, which a db.t4g.small puts near 200.
+API_DB_POOL_SIZE = 10
+API_DB_MAX_OVERFLOW = 10
+
 #: The one retention number. RDS automated backups and the AWS Backup rule both
 #: read it, and the vault lock's minimum is derived from it.
 DEFAULT_BACKUP_RETENTION_DAYS = 35
@@ -305,6 +311,20 @@ class CoreStack(Stack):
         # to refuse. None renders nothing, which is what the mirror holds.
         api_arm64 = flag("apiArm64", False)
         db_class: str = opt("dbInstanceClass", "db.t4g.small")
+        # `dbInstanceClass` is the LIVE size tools/import_map.py wrote into
+        # cdk.context.json, which the import mirror must carry; the size harden
+        # MOVES the database to is its own key in cdk.json, the dbMultiAz /
+        # liveDbMultiAz split below applied to the instance class (2026-09-29).
+        # One key read by both phases would make the import mirror describe a
+        # database that does not exist yet.
+        #
+        # db.t4g.small and not the micro the import found: a micro's
+        # max_connections is roughly 80-110, and every api task may open
+        # DB_POOL_SIZE + DB_MAX_OVERFLOW connections, so a third task started by
+        # autoscaling on a busy day could exhaust it. Changing this on a live
+        # Multi-AZ instance is a failover of about a minute, not an outage.
+        if harden:
+            db_class = opt("dbInstanceClassTarget", db_class)
         # THE IMPORT MIRROR CARRIES THE LIVE VALUES, the harden template the
         # targets — and they must come from DIFFERENT context keys. cdk.json
         # sets the harden targets (dbMultiAz, backupRetentionDays) and the CLI
@@ -1765,6 +1785,16 @@ class CoreStack(Stack):
             # database is converting to Multi-AZ. A variable whose value is a
             # constant is still a new revision.
             api_environment["INTERVIEW_AUDIO_DIR"] = "/data/interview-audio"
+            # THE CONNECTION POOL, SIZED AGAINST THE DATABASE AND NOT LEFT TO
+            # THE DEFAULT (2026-09-29). app/config.py's default is 20 + 20
+            # overflow, so each task may hold 40 connections and autoscaling may
+            # run apiMaxTasks of them: at ten tasks that is 400, several times
+            # what the instance allows, and the refusal would arrive on the
+            # busiest day. 10 + 10 per task keeps ten tasks at 200 while the
+            # observed peak over thirty days was fifteen connections in all.
+            # Same `harden_ecs` gate as every variable above.
+            api_environment["DB_POOL_SIZE"] = str(API_DB_POOL_SIZE)
+            api_environment["DB_MAX_OVERFLOW"] = str(API_DB_MAX_OVERFLOW)
 
         def _api_task_def(cid: str, family: str, image_tag: str) -> tuple[ecs.FargateTaskDefinition, ecs.ContainerDefinition]:
             """One api task definition. ONE helper for the three families

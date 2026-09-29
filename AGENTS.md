@@ -1489,6 +1489,25 @@ because a college that has not listed its domains must not lose every
 applicant; the reviewer's domain check still covers that. The panel has a
 "College email" row.
 
+**AND THE HEADROOM FOR A RESULTS DAY, THE SAME EVENING.** A load test and 30
+days of CloudWatch found ceilings nothing had hit yet, each worst on the
+busiest day. The WAF's per-IP rate rule (2000 per 5 minutes, about 6.7 a
+second for a whole campus or a carrier-NAT'd mobile network behind one
+address) is one of them and is deliberately LEFT for the owner to decide,
+because raising it loosens a security control. (1) The live database was `db.t4g.micro` (about 80-110
+connections) while each api task may hold `DB_POOL_SIZE + DB_MAX_OVERFLOW`,
+which defaulted to 40, for up to `apiMaxTasks` tasks. `dbInstanceClassTarget`
+in `cdk.json` moves harden to `db.t4g.small`; `dbInstanceClass` in
+`cdk.context.json` stays the LIVE value the import tool read, the
+`dbMultiAz`/`liveDbMultiAz` split again. The task sets the pool to 10 + 10
+(`API_DB_POOL_SIZE`, gated on `harden_ecs` like every variable). (2) Every
+alarm watched from INSIDE the account, so a broken certificate, DNS record or
+distribution would leave the ALB healthy and nobody told. A Route 53 health
+check on `/api/auth/sso/status` through the public name, with an alarm that
+treats silence as down, lives in the edge stack because Route 53 publishes its
+metric in us-east-1 only. Its SNS email must be CONFIRMED from the inbox before
+it delivers anything.
+
 **THE CLAIM FORM FILED INTO A QUEUE THE MENTOR'S SCREEN NEVER OPENED.**
 `/student/skilling` stores the certificate through `POST /student/uploads` and
 files `badge_evidence` against it (`POST /student/badges/{code}/evidence`);

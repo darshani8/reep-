@@ -55,7 +55,7 @@ def test_sel_003_wrong_password_shows_the_invalid_credentials_alert(driver):
 
 def test_sel_004_student_signs_in_and_lands_on_the_student_home(driver):
     shell = sign_in_student(driver)
-    assert shell.h1().startswith("Welcome back"), shell.h1()
+    assert shell.student_home_outcome() == "data", "the home screen showed its error state"
 
 
 def test_sel_005_every_student_sidebar_screen_opens_with_a_heading(driver):

@@ -77,10 +77,10 @@ def journey(idx: int, email: str, password: str) -> dict:
         t = time.perf_counter()
         page.sign_in(email, password)
         page.wait_path_startswith("/student")
-        heading = page.wait.until(EC.visibility_of_element_located(H1)).text
+        outcome = page.student_home_outcome()
         rec["login_to_home"] = round((time.perf_counter() - t) * 1000)
-        if not heading.startswith("Welcome back"):
-            raise AssertionError(f"unexpected home heading {heading!r}")
+        if outcome != "data":
+            raise AssertionError("student home showed its error state: 'Could not load your overview.'")
 
         for key, path in (("jobs_page", "/student/jobs"), ("ledger_page", "/student/time-log")):
             t = time.perf_counter()

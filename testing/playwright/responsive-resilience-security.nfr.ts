@@ -25,14 +25,23 @@ for (const vp of VIEWPORTS) {
   }
 }
 
-test('NFR-REL-01 login with the API unreachable shows a message, not a blank or a hang', async ({ page }) => {
+test('NFR-REL-01 login with the API unreachable still renders the sign-in screen, not a blank or a hang', async ({ page }) => {
   await page.route('**/api/**', (route) => route.abort('connectionrefused'));
   await page.goto('/login');
-  await page.locator('input[name="id"]').fill('loadtest104@bgscet.ac.in');
-  await page.locator('input[name="password"]').fill('LoadTest#2026');
-  await page.locator('form button.btn-primary[type="submit"]').click();
-  await expect(page.getByRole('alert').first()).toBeVisible({ timeout: 15_000 });
-  await expect(page).toHaveURL(/\/login/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Welcome back' })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('link', { name: 'Continue with Google' })).toBeVisible();
+});
+
+test('NFR-REL-01b with the API unreachable the screen does not claim the server is Google-only', async ({ page }) => {
+  // KNOWN FAILURE - DEF-009 (testing/docs/05-incident-reports.md). The login
+  // probe fails closed for the password form by design, but the copy then says
+  // "This server signs in with Google only" - a statement about the server made
+  // when the server could not be asked. Remove test.fail() when the copy is fixed.
+  test.fail(true, 'BUG DEF-009: unreachable API is reported as "Google only"');
+  await page.route('**/api/**', (route) => route.abort('connectionrefused'));
+  await page.goto('/login');
+  await expect(page.getByRole('heading', { level: 1, name: 'Welcome back' })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('This server signs in with Google only')).toHaveCount(0, { timeout: 3_000 });
 });
 
 test('NFR-REL-02 a 500 from one student endpoint does not take the whole screen down', async ({ page }) => {

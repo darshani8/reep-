@@ -72,7 +72,7 @@ lesson worth keeping.
 | Field | Value |
 |---|---|
 | Found by | Schemathesis run 2 (**GET only**, so reachable by a read-only admin screen or a crafted URL) |
-| Reproduce | `GET /api/admin/audit?page=92917030724915670548480` · `GET /api/admin/swoc?semester=-954555328274038435872768&page=3214` · `GET /api/admin/placement?...` |
+| Reproduce | `GET /api/admin/audit?page=92917030724915670548480` · `GET /api/admin/swoc?semester=-954555328274038435872768&page=3214` · `GET /api/admin/placement?year=-5466912982786` |
 | Actual | 500. `DataError: NumericValueOutOfRange: integer out of range` / `bigint out of range` |
 | Expected | 422 from the query schema |
 | Suggested fix | Bound the `Query(...)` parameters (`ge=1, le=…`) as `/admin/mail-log`'s `limit` already is |
@@ -95,6 +95,27 @@ lesson worth keeping.
 | Impact | A client generated from the Swagger document (or the SPA's `detailOf` helper) must handle two shapes. The SPA already does, which is why this is Low |
 | Suggested fix | Either raise these as 400 (a business-rule refusal, not schema validation), or declare `responses={422: {"model": ErrorOut}}` on those routes |
 
+### DEF-009: With the API unreachable, the login screen says "This server signs in with Google only" · Low · P3
+
+| Field | Value |
+|---|---|
+| Found by | NFR-REL-01 (Playwright, `page.route('**/api/**', abort)`). Kept as the **known failure** NFR-REL-01b (`test.fail`, per the repository's convention) |
+| Steps | Make `/api` unreachable (a network drop, an API restart, a deploy) → open `/login` |
+| Expected | The sign-in screen renders, **and** says the server could not be reached (or says nothing about which doors exist) |
+| Actual | The screen renders, but the password form is hidden and the copy reads *"This server signs in with Google only. A REEP password, when one is issued to you, comes from the placement cell."* (screenshot: `results/playwright-nfr/…/test-failed-1.png`, first run) |
+| Root cause | `LoginComponent.probe()` fails **closed** for the password form when `/api/auth/sso/status` cannot be fetched. That is deliberate, and it is right. But the template's `@else` branch uses the copy for "the server told us passwords are off", so "we could not ask" is printed as a fact about the server. That is the `X-Reep-Scope` rule in AGENTS.md ("we asked and it is fine" and "we could not ask" are opposite facts) applied to the login screen |
+| Impact | During an outage or a deploy, a student with a password is told they do not have one and is sent to the placement cell |
+| Suggested fix | A third state for the probe, `unknown`, with its own sentence ("We could not reach REEP just now — try again in a minute") |
+
+### DEF-010: Text below the WCAG 2.2 AA contrast ratio on the login and student screens · Medium · P2
+
+| Field | Value |
+|---|---|
+| Found by | NFR-A11Y-01 (axe-core 4.13, rule `color-contrast`, impact **serious**). No *critical* violation anywhere, so the gate passed. `/register` had none at all |
+| Where (element · foreground/background · ratio, need ≥ 4.5:1) | `/login` `.google__sub`, `.or > span`, `.field__help` · `#a596b3` on `#ffffff` · **2.75** · `/student`, `/student/jobs`, `/student/time-log` sidebar `.sec-label` · `#7c7891` on `#ece4f5` · **3.42** · `/student` `.swoc-empty` · `#8a8894` on `#fff` · **3.48** · `/student` header `.chip.good` · `#137a4a` on `#ece4f5` · **4.34** |
+| Impact | Low-vision users (WCAG 1.4.3 Contrast (Minimum), Level AA). The sidebar labels appear on every student screen |
+| Suggested fix | Darken the muted-ink tokens in `reep-v2.scss` (for example, `#a596b3` → about `#76688a` reaches 4.5:1 on white) and re-run `testing/playwright/accessibility.nfr.ts` |
+
 ## Observations (not defects)
 
 | ID | Observation | Evidence | Why it matters |
@@ -113,4 +134,5 @@ lesson worth keeping.
 | TW-003 | Schemathesis 4.28 filter semantics: include filters of different kinds are OR'ed and exclude filters are **AND'ed**, and `--exclude-method-regex` is case-sensitive against lower-case method names | Two runs meant to be GET-only also fuzzed POST/PUT/PATCH/DELETE against the **local dev database** (≈5,700 writes). That is how DEF-002..005 and 007 were found | One case-insensitive method exclude, path exclusions moved into a lookahead on the include, no stateful phase. Verified by the API log: **0 writes** besides the two logins. The dev database was dropped and rebuilt before any later suite ran. It was never a shared or production database |
 | TW-004 | Selenium: one of 100 journeys hit `StaleElementReferenceException` (Angular re-rendered the login form between find and type) | 99/100 | `LoginPage.sign_in` re-finds and retries on a stale element |
 | TW-005 | `apps/api-py/.env` copied verbatim from `.env.example` has inline `# comments` after bare values, and pydantic-settings reads them as the value (for example, an AWS region of `# falls back to …`) | 41 backend tests failed on the first run, all in mail sending | Use only the quoted `KEY="value"` lines (or no `.env` at all, as CI does). Worth a follow-up in `.env.example` |
-| TW-006 | 100 default Chromium instances did not fit the 16 GB test bed (≈800 Chrome processes, 14.9 GB used) | The first all-at-once run was stopped before the out-of-memory killer reached Postgres. The API and DB were verified healthy afterwards | `LIGHT_CHROME=1` (one renderer, no site isolation) plus a memory watchdog; the Grid compose file is for real scale-out |
+| TW-006 | 100 Chromium instances **alive at the same moment** (`--barrier`) do not fit the 16 GB test bed: 14.9 GB and ≈800 Chrome processes with default flags, and 13.6 GB and 639 processes with `LIGHT_CHROME=1` before the watchdog stopped it | Two all-at-once runs were stopped before the out-of-memory killer reached Postgres. The API and DB were checked healthy after each | 100 instances are run with 100 concurrent threads and a serialised launch (100/100 passed), and **50 truly simultaneous** browsers run with `--barrier` (46/50; the 4 timeouts came from host CPU saturation, load average 128 on 4 vCPU, while the API's own p50 stayed at 10 ms). Genuinely simultaneous 100: `selenium/grid/docker-compose.yml` on a larger host |
+| TW-007 | The Selenium runner read the student home's `<h1>` as soon as one was visible. That is the LOADING placeholder, "Landing", so 4/100 journeys "failed" on a heading that was about to become "Welcome back" | 96/100, then 98/100 (a stale read inside the new wait) | `BasePage.student_home_outcome()` waits for the terminal state (data or error), tolerates the `@switch` swapping the node, and counts the error state as a real failure: **100/100** |

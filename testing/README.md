@@ -54,7 +54,7 @@ cd testing
 api/run_schemathesis.sh                      # property-based, GET only (see the script for why)
 
 # Performance (JMeter, non-GUI)
-jmeter/run.sh smoke|load|stress|spike|soak|all     # → results/jmeter/<scenario>/index.html + <scenario>-summary.md
+jmeter/run.sh smoke|load|stress|spike|soak|all     # → results/jmeter/<scenario>/index.html (zipped copies of this cycle: results/jmeter/dashboards/) + <scenario>-summary.md
 
 # Selenium
 .venv/bin/python -m pytest selenium/test_single_instance.py --html=results/selenium/report.html --self-contained-html

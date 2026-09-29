@@ -86,11 +86,19 @@ COMMON_RULE_SET_COUNTED: tuple[str, ...] = ("SizeRestrictions_BODY", *COMMON_RUL
 BODY_RULES_OUTSIDE_UPLOADS = "body-rules-outside-uploads"
 
 
-#: Where the outside uptime check knocks. An /api path on purpose: it passes
-#: through CloudFront, the WAF, the ALB, a task and (through the password-door
-#: query) the database, so "healthy" means a student could actually use it,
-#: not just that the static page is cached somewhere.
-UPTIME_CHECK_PATH = "/api/auth/sso/status"
+#: How the outside uptime check knocks: a TCP connect to 443 on the public
+#: name, and NOT an HTTPS request. The distribution's viewer policy is
+#: TLSv1.3_2025 (set in the console on 2026-09-02, mirrored in stack.py), and
+#: Route 53's health checkers negotiate TLS 1.2 at most, so an HTTPS check
+#: fails every handshake with "protocol_version" while the site answers 200 to
+#: every browser -- which is what the first deploy of this check did, on all
+#: sixteen checkers. Relaxing the viewer policy to suit a monitor would be
+#: weakening a security control to make an alarm green, so the check asks the
+#: question it CAN ask: does the name resolve and does CloudFront accept a
+#: connection. The application behind it is watched from inside by reep-core's
+#: ALB alarms; a certificate is not, and a CloudWatch Synthetics canary (a real
+#: browser, TLS 1.3) is the upgrade if that gap ever matters.
+UPTIME_CHECK_TYPE = "TCP"
 
 
 def _body_rules_outside_uploads(priority: int, metric: str) -> wafv2.CfnWebACL.RuleProperty:
@@ -240,11 +248,9 @@ class EdgeWafStack(Stack):
                 self,
                 "UptimeCheck",
                 health_check_config=route53.CfnHealthCheck.HealthCheckConfigProperty(
-                    type="HTTPS",
+                    type=UPTIME_CHECK_TYPE,
                     fully_qualified_domain_name=domain,
-                    resource_path=UPTIME_CHECK_PATH,
                     port=443,
-                    enable_sni=True,
                     request_interval=30,
                     failure_threshold=3,
                 ),
@@ -259,7 +265,7 @@ class EdgeWafStack(Stack):
                 "UptimeAlarm",
                 alarm_name=f"{project}-site-unreachable",
                 alarm_description=(
-                    f"https://{domain}{UPTIME_CHECK_PATH} failed Route 53's health checkers "
+                    f"{domain}:443 refused Route 53's health checkers a connection "
                     "for two minutes: students cannot reach REEP from outside AWS."
                 ),
                 metric=cloudwatch.Metric(

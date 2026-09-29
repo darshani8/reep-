@@ -22,7 +22,7 @@ from reep_core.edge import (
     BODY_RULES_OUTSIDE_UPLOADS,
     COMMON_RULE_SET_BODY_LABELS,
     COMMON_RULE_SET_COUNTED,
-    UPTIME_CHECK_PATH,
+    UPTIME_CHECK_TYPE,
 )
 
 TF_DIR = Path(__file__).resolve().parents[2] / "aws"
@@ -1746,14 +1746,17 @@ def _edge_with_uptime(phase: str = "harden") -> dict:
 def test_the_uptime_check_knocks_from_outside_through_the_public_name() -> None:
     """2026-09-29: every reep-core alarm watches from inside the account, so a
     broken certificate, DNS record or distribution left the ALB healthy and
-    nobody told. Route 53 asks from outside, through the name a student types,
-    on an /api path so the answer covers CloudFront, the WAF, the ALB, a task
-    and the database; the alarm treats silence as down and mails someone."""
+    nobody told. Route 53 asks from outside, through the name a student types;
+    the alarm treats silence as down and mails someone.
+
+    TCP and not HTTPS: the distribution is TLS 1.3 only and Route 53's checkers
+    speak TLS 1.2 at most, so an HTTPS check failed every handshake against a
+    site answering 200 -- a permanent false alarm on the first deploy."""
     res = _edge_with_uptime()
     check = next(r for r in res.values() if r["Type"] == "AWS::Route53::HealthCheck")["Properties"]["HealthCheckConfig"]
-    assert check["Type"] == "HTTPS" and check["Port"] == 443 and check["EnableSNI"] is True
+    assert UPTIME_CHECK_TYPE == "TCP" and check["Type"] == "TCP" and check["Port"] == 443
+    assert "ResourcePath" not in check and "EnableSNI" not in check, "TCP checks take neither"
     assert check["FullyQualifiedDomainName"] == "reep.example.edu"
-    assert check["ResourcePath"] == UPTIME_CHECK_PATH and UPTIME_CHECK_PATH.startswith("/api/")
     alarm = next(r for r in res.values() if r["Type"] == "AWS::CloudWatch::Alarm")["Properties"]
     assert alarm["Namespace"] == "AWS/Route53" and alarm["MetricName"] == "HealthCheckStatus"
     assert alarm["ComparisonOperator"] == "LessThanThreshold" and alarm["Threshold"] == 1

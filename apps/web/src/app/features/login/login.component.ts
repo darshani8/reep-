@@ -488,6 +488,11 @@ export class LoginComponent {
       : 'Sign in to continue to your REEP workspace.';
   }
 
+  /** "Try again" on the unreachable-server note. */
+  retryProbe(): void {
+    void this.probe();
+  }
+
   /**
    * Ask the API whether Google sign-in is actually configured.
    *
@@ -498,14 +503,13 @@ export class LoginComponent {
    * 404s (endpoint not deployed), times out, or answers something unexpected
    * leaves the button enabled, because a broken probe must never become the
    * reason nobody can sign in.
+   *
+   * `probeFailed` is set true on any failure and false ONLY once an answer
+   * arrives, never before the request: resetting it first would flash the
+   * "Google only" sentence (the very claim DEF-009 removed) while a retry is
+   * in flight.
    */
-  /** "Try again" on the unreachable-server note. */
-  retryProbe(): void {
-    void this.probe();
-  }
-
   private async probe(): Promise<void> {
-    this.probeFailed.set(false);
     try {
       const res = await fetch(`${environment.apiBase}/auth/sso/status`, {
         credentials: 'include',
@@ -515,6 +519,7 @@ export class LoginComponent {
         return;
       }
       const status = (await res.json()) as SsoStatus;
+      this.probeFailed.set(false);
       if (status.domain) {
         this.domain.set(status.domain);
         // Re-render the refusal now the real domain is known: `sso_not_enrolled`

@@ -1486,7 +1486,9 @@ def update_profile(
     refused = [
         field
         for field, value in changes.items()
-        if value is None and not StudentProfile.__table__.c[field].nullable
+        if value is None
+        and (column := StudentProfile.__table__.c.get(field)) is not None
+        and not column.nullable
     ]
     if refused:
         raise HTTPException(

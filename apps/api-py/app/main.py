@@ -356,7 +356,10 @@ async def _unstorable_value(request: Request, exc: DataError) -> JSONResponse:
     server fault, so it is a 422 rather than a 500.
 
     Postgres raises DataError only for the value itself: a NUL byte or an
-    invalid escape in text, a number past its column's range. Before this, a
+    invalid escape in text, a number past its column's range, a string longer
+    than its column, text that is not a valid date or number. If a value the
+    SERVER computed ever trips one of these, this handler would blame the
+    caller for it; the warning below is logged so that case is still visible. Before this, a
     student profile or a catalogue import carrying one came back as an Internal
     Server Error, and the office read that as REEP being down (DEF-007,
     testing/docs/05-incident-reports.md; found by Schemathesis). Handlers that
@@ -376,8 +379,9 @@ async def _unstorable_value(request: Request, exc: DataError) -> JSONResponse:
     return JSONResponse(
         status_code=422,
         content={
-            "detail": "A value in this request cannot be stored: text containing a NUL "
-            "character, or a number outside the allowed range. Check the values you sent."
+            "detail": "A value in this request cannot be stored: it may be too long, "
+            "outside the allowed range, in the wrong format, or contain a NUL character. "
+            "Check the values you sent."
         },
     )
 

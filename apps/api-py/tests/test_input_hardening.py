@@ -118,7 +118,7 @@ def test_a_nul_byte_in_text_is_422_and_the_log_carries_no_value(client, make_use
     with caplog.at_level("WARNING", logger="reep.data_error"):
         r = client.put("/api/student/profile", json={"city": "Bengal\u0000uru"}, headers=student.headers)
     assert r.status_code == 422, r.text
-    assert "NUL" in r.json()["detail"]
+    assert "NUL character" in r.json()["detail"]
     logged = " ".join(rec.getMessage() for rec in caplog.records if rec.name == "reep.data_error")
     assert "/api/student/profile" in logged
     assert "Bengal" not in logged, "the refused value must never reach a log line"

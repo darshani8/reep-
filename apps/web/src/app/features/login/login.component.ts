@@ -351,6 +351,16 @@ export class LoginComponent {
    */
   readonly passwordAvailable = signal(false);
 
+  /**
+   * The probe could not get an answer (network down, a 5xx, a 404 from an
+   * older API). The password form still stays HIDDEN, for the reason above,
+   * but the screen must not then claim "this server signs in with Google
+   * only": that is a statement about the server made when the server could
+   * not be asked, and during an outage it told students who hold a password
+   * that they do not (DEF-009, testing/docs/05-incident-reports.md).
+   */
+  readonly probeFailed = signal(false);
+
   /** The password form's own refusal, kept apart from the `?error=` one so a
    *  stale Google refusal is not re-rendered above a fresh 401. */
   readonly formError = signal<string | null>(null);
@@ -489,12 +499,21 @@ export class LoginComponent {
    * leaves the button enabled, because a broken probe must never become the
    * reason nobody can sign in.
    */
+  /** "Try again" on the unreachable-server note. */
+  retryProbe(): void {
+    void this.probe();
+  }
+
   private async probe(): Promise<void> {
+    this.probeFailed.set(false);
     try {
       const res = await fetch(`${environment.apiBase}/auth/sso/status`, {
         credentials: 'include',
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        this.probeFailed.set(true);
+        return;
+      }
       const status = (await res.json()) as SsoStatus;
       if (status.domain) {
         this.domain.set(status.domain);
@@ -518,6 +537,7 @@ export class LoginComponent {
       this.passwordAvailable.set(status.password_login_available === true);
     } catch {
       // Fail open for Google, closed for the password form. See both docstrings.
+      this.probeFailed.set(true);
     }
   }
 

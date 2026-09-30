@@ -29,10 +29,11 @@ lesson worth keeping.
 | Fix | A `_office` dependency (`Depends(get_current_session)` → `require_admin`) used by all three endpoints |
 | Confirmation | The live API returns 422 before the fix and 200 after it (`mail-log after fix: 200`). The new `apps/api-py/tests/test_admin_mail_log.py` **fails on the old code and passes on the fix**. The codebase guards (`test_codebase_guards.py`, `test_capability_enforcement.py`) are still green |
 
-### DEF-002: `PUT /api/student/profile` answers 500 when a boolean is sent as `null` · Medium · P2
+### DEF-002: `PUT /api/student/profile` answers 500 when a boolean is sent as `null` · Medium · P2 · **FIXED 2026-09-30**
 
 | Field | Value |
 |---|---|
+| **Fix (2026-09-30)** | `update_profile` refuses `null` on any column the table marks NOT NULL, with a 422 naming the field. Regression test: `apps/api-py/tests/test_input_hardening.py` |
 | Found by | Schemathesis (run 1) |
 | Reproduce | `PUT /api/student/profile` as a student, body `{"interested_in_jobs": null}` (also `interested_in_internships`, `leaderboard_opt_out`) |
 | Expected | 422 (or the field ignored) |
@@ -40,65 +41,72 @@ lesson worth keeping.
 | Root cause | The Pydantic input model declares these fields `bool \| None` and the handler copies `None` onto NOT NULL columns |
 | Suggested fix | Skip `None` for the NOT NULL booleans (as `exclude_none` would), or type them `bool` with a default |
 
-### DEF-003: `POST /api/student/checkin` answers 500 for an unknown course code · Medium · P2
+### DEF-003: `POST /api/student/checkin` answers 500 for an unknown course code · Medium · P2 · **FIXED 2026-09-30**
 
 | Field | Value |
 |---|---|
+| **Fix (2026-09-30)** | `check_in` looks the course up first and answers 422 naming the code. Regression test: `apps/api-py/tests/test_input_hardening.py` |
 | Reproduce | As a student: `{"course_code": "", "module": ""}` |
 | Actual | 500. `ForeignKeyViolation ... "lab_sessions_course_code_fkey"` (14 occurrences) |
 | Expected | 404 or 422 naming the course |
 | Suggested fix | Look the course up first and refuse it in words |
 
-### DEF-004: `POST /api/admin/jobs` and `POST /api/admin/criteria` answer 500 for an empty or unknown `course_id` · Medium · P2
+### DEF-004: `POST /api/admin/jobs` and `POST /api/admin/criteria` answer 500 for an empty or unknown `course_id` · Medium · P2 · **FIXED 2026-09-30**
 
 | Field | Value |
 |---|---|
+| **Fix (2026-09-30)** | `JobIn` and `CriteriaIn` turn a blank id into `None` (`_blank_is_none`), so the existing existence checks run. Regression test: `apps/api-py/tests/test_input_hardening.py` |
 | Reproduce | As the Main Admin: `POST /api/admin/jobs` with `"course_id": ""` (the same for `/api/admin/criteria`) |
 | Actual | 500. `ForeignKeyViolation "fk_jobs_course"` / `"fk_placement_criteria_course"` |
 | Expected | 422, like the handler's other checks (for example, the `apply_url` check) |
 | Note | An empty string is exactly what an HTML `<select>` with a blank option posts, so a real client can reach this |
 | Suggested fix | Treat `""` as `None`, and resolve the id through the existing spine resolver before insert |
 
-### DEF-005: `PATCH /api/admin/swoc/entries/{id}` answers 500 for an unknown `linked_*_id` · Medium · P2
+### DEF-005: `PATCH /api/admin/swoc/entries/{id}` answers 500 for an unknown `linked_*_id` · Medium · P2 · **FIXED 2026-09-30**
 
 | Field | Value |
 |---|---|
+| **Fix (2026-09-30)** | `_Linkable` turns a blank link into `None`; it is still in `model_fields_set`, so a blank PATCH still removes the link. Regression test: `apps/api-py/tests/test_input_hardening.py` |
 | Reproduce | As the Main Admin: `{"linked_job_id": ""}` (or `linked_skill_id` / `linked_session_id`) |
 | Actual | 500. `ForeignKeyViolation "fk_swoc_linked_job"` (and the same for skill and session) |
 | Expected | 422 |
 
-### DEF-006: GET list endpoints answer 500 for out-of-range integers in the query string · Medium · P2
+### DEF-006: GET list endpoints answer 500 for out-of-range integers in the query string · Medium · P2 · **FIXED 2026-09-30**
 
 | Field | Value |
 |---|---|
+| **Fix (2026-09-30)** | `page` bounded at `MAX_PAGE` (100,000) on audit, SWOC and mentor-load; SWOC `semester` 1–20; placement `year` 1900–9999. Regression test: `apps/api-py/tests/test_input_hardening.py` |
 | Found by | Schemathesis run 2 (**GET only**, so reachable by a read-only admin screen or a crafted URL) |
 | Reproduce | `GET /api/admin/audit?page=92917030724915670548480` · `GET /api/admin/swoc?semester=-954555328274038435872768&page=3214` · `GET /api/admin/placement?year=-5466912982786` |
 | Actual | 500. `DataError: NumericValueOutOfRange: integer out of range` / `bigint out of range` |
 | Expected | 422 from the query schema |
 | Suggested fix | Bound the `Query(...)` parameters (`ge=1, le=…`) as `/admin/mail-log`'s `limit` already is |
 
-### DEF-007: Text containing a NUL byte or an invalid `\u` escape answers 500 · Low · P3
+### DEF-007: Text containing a NUL byte or an invalid `\u` escape answers 500 · Low · P3 · **FIXED 2026-09-30**
 
 | Field | Value |
 |---|---|
+| **Fix (2026-09-30)** | one `DataError` handler in `app/main.py` answers 422 and logs only the error class and path, never the value. Regression test: `apps/api-py/tests/test_input_hardening.py` |
 | Endpoints seen | `POST /api/admin/catalogue/copy`, `POST /api/admin/catalogue/subjects/import` |
 | Actual | 500. `DataError: PostgreSQL text fields cannot contain NUL (0x00) bytes`, and `UntranslatableCharacter: unsupported Unicode escape sequence` |
 | Expected | 422 |
 | Suggested fix | One shared validator that rejects `\x00` in free text, applied in the input models or the import parser |
 
-### DEF-008: Many 422 responses break the documented error schema · Low · P3
+### DEF-008: Many 422 responses break the documented error schema · Low · P3 · **FIXED 2026-09-30**
 
 | Field | Value |
 |---|---|
+| **Fix (2026-09-30)** | the published `HTTPValidationError.detail` is `anyOf [array, string]`, which is what the API sends. Regression test: `apps/api-py/tests/test_input_hardening.py` |
 | Found by | Schemathesis `response_schema_conformance`: 41 violations in run 1 and 6 in run 2 |
 | Example | `GET /api/student/leaderboards?board=__main__` → `422 {"detail": "Unknown board. One of: …"}`, while the document declares 422 as `HTTPValidationError` whose `detail` is an **array** |
 | Impact | A client generated from the Swagger document (or the SPA's `detailOf` helper) must handle two shapes. The SPA already does, which is why this is Low |
 | Suggested fix | Either raise these as 400 (a business-rule refusal, not schema validation), or declare `responses={422: {"model": ErrorOut}}` on those routes |
 
-### DEF-009: With the API unreachable, the login screen says "This server signs in with Google only" · Low · P3
+### DEF-009: With the API unreachable, the login screen says "This server signs in with Google only" · Low · P3 · **FIXED 2026-09-30**
 
 | Field | Value |
 |---|---|
+| **Fix (2026-09-30)** | the login probe has a `probeFailed` state with its own sentence and a Try again button; NFR-REL-01b is no longer a known failure. Regression test: `testing/playwright/responsive-resilience-security.nfr.ts` NFR-REL-01b |
 | Found by | NFR-REL-01 (Playwright, `page.route('**/api/**', abort)`). Kept as the **known failure** NFR-REL-01b (`test.fail`, per the repository's convention) |
 | Steps | Make `/api` unreachable (a network drop, an API restart, a deploy) → open `/login` |
 | Expected | The sign-in screen renders, **and** says the server could not be reached (or says nothing about which doors exist) |
@@ -107,10 +115,11 @@ lesson worth keeping.
 | Impact | During an outage or a deploy, a student with a password is told they do not have one and is sent to the placement cell |
 | Suggested fix | A third state for the probe, `unknown`, with its own sentence ("We could not reach REEP just now — try again in a minute") |
 
-### DEF-010: Text below the WCAG 2.2 AA contrast ratio on the login and student screens · Medium · P2
+### DEF-010: Text below the WCAG 2.2 AA contrast ratio on the login and student screens · Medium · P2 · **FIXED 2026-09-30**
 
 | Field | Value |
 |---|---|
+| **Fix (2026-09-30)** | `--faint` `#67637c` (4.65:1 on the wash), `--good` `#107045` (4.96:1), login helper text `#716484` (5.44:1), the SWOC empty note uses `--faint` instead of opacity; axe now gates `color-contrast`. Regression test: `testing/playwright/accessibility.nfr.ts` NFR-A11Y-01 |
 | Found by | NFR-A11Y-01 (axe-core 4.13, rule `color-contrast`, impact **serious**). No *critical* violation anywhere, so the gate passed. `/register` had none at all |
 | Where (element · foreground/background · ratio, need ≥ 4.5:1) | `/login` `.google__sub`, `.or > span`, `.field__help` · `#a596b3` on `#ffffff` · **2.75** · `/student`, `/student/jobs`, `/student/time-log` sidebar `.sec-label` · `#7c7891` on `#ece4f5` · **3.42** · `/student` `.swoc-empty` · `#8a8894` on `#fff` · **3.48** · `/student` header `.chip.good` · `#137a4a` on `#ece4f5` · **4.34** |
 | Impact | Low-vision users (WCAG 1.4.3 Contrast (Minimum), Level AA). The sidebar labels appear on every student screen |

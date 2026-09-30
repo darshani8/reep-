@@ -67,6 +67,10 @@ router = APIRouter(prefix="/admin/audit", tags=["audit"])
 #: table into one JSON response.
 DEFAULT_PAGE_SIZE = 50
 MAX_PAGE_SIZE = 200
+#: The highest page any list here will serve. Unbounded, a crafted `?page=` made
+#: `(page - 1) * page_size` overflow Postgres' bigint OFFSET and the request a 500
+#: (DEF-006, testing/docs/05-incident-reports.md). A value past it is a 422.
+MAX_PAGE = 100_000
 
 #: The most rows one CSV may carry. Over this the export REFUSES and names the
 #: count, rather than silently returning the first N — a truncated audit export
@@ -241,7 +245,7 @@ def list_events(
     target_id: str | None = None,
     from_: datetime | None = Query(default=None, alias="from"),
     to: datetime | None = None,
-    page: int = Query(default=1, ge=1),
+    page: int = Query(default=1, ge=1, le=MAX_PAGE),
     page_size: int = Query(default=DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),

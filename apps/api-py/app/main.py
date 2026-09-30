@@ -11,6 +11,8 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI, Request
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import DataError
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import retention
@@ -315,6 +317,69 @@ app.add_middleware(
 # app/traceability.py. Added AFTER CORSMiddleware so it runs INSIDE it and the
 # echoed header rides on responses CORS has already stamped.
 app.add_middleware(RequestTraceMiddleware)
+
+
+_generate_openapi = app.openapi
+
+
+def _openapi_with_honest_422() -> dict:
+    """The published contract, with 422's `detail` as it is actually sent.
+
+    FastAPI documents every 422 as `HTTPValidationError`, whose `detail` is an
+    ARRAY of validation errors. That is what a schema failure sends, but about
+    150 handlers also raise `HTTPException(422, "a sentence")`, whose `detail`
+    is a STRING, so the document described half of what the API returns
+    (DEF-008; Schemathesis `response_schema_conformance`). The SPA's `detailOf`
+    already reads both. Changing 150 responses would have broken nobody's
+    reading and fixed nothing; saying so in the contract fixes the contract.
+    """
+    schema = _generate_openapi()
+    error = schema.get("components", {}).get("schemas", {}).get("HTTPValidationError")
+    detail = (error or {}).get("properties", {}).get("detail")
+    if detail is not None and "anyOf" not in detail:
+        error["properties"]["detail"] = {
+            "title": "Detail",
+            "anyOf": [
+                {"type": "array", "items": {"$ref": "#/components/schemas/ValidationError"}},
+                {"type": "string"},
+            ],
+        }
+    return schema
+
+
+app.openapi = _openapi_with_honest_422
+
+
+@app.exception_handler(DataError)
+async def _unstorable_value(request: Request, exc: DataError) -> JSONResponse:
+    """A value the database refused to STORE is the caller's input, never a
+    server fault, so it is a 422 rather than a 500.
+
+    Postgres raises DataError only for the value itself: a NUL byte or an
+    invalid escape in text, a number past its column's range. Before this, a
+    student profile or a catalogue import carrying one came back as an Internal
+    Server Error, and the office read that as REEP being down (DEF-007,
+    testing/docs/05-incident-reports.md; found by Schemathesis). Handlers that
+    can validate earlier still should: this is the floor, not the fix.
+
+    The log line names the error class and the path and NOTHING ELSE.
+    `str(exc)` carries the statement's bound parameters, which here can be a
+    student's marks or address, so it must never reach a log (rule 1 applies
+    to telemetry too). The session is rolled back by `get_db`'s close.
+    """
+    logging.getLogger("reep.data_error").warning(
+        "422 for an unstorable value: %s on %s %s",
+        type(getattr(exc, "orig", exc)).__name__,
+        request.method,
+        request.url.path,
+    )
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": "A value in this request cannot be stored: text containing a NUL "
+            "character, or a number outside the allowed range. Check the values you sent."
+        },
+    )
 
 
 # Response hardening on every HTTP response this process serves. These belong

@@ -60,9 +60,11 @@
   --ink-soft: #4a2668;
   --ink-nav: #5b3080;
   --muted: #585566;
-  /* #a08cb2 was ~2.9:1 on the card fill and failed WCAG AA; #7c7891 is ~5.4:1
-     against the same surface and is the only tertiary text colour. */
-  --faint: #7c7891;
+  /* #a08cb2 was ~2.9:1 on the card fill and failed WCAG AA. Its successor
+     #7c7891 passed on white but measured 3.42:1 on the lavender sidebar and
+     page wash (#ece4f5), where the nav's section labels sit (axe, DEF-010).
+     #67637c is 4.65:1 there and 5.75:1 on white: the only tertiary text colour. */
+  --faint: #67637c;
 
   /* --- series (the ledger's five heads) ---------------------------------
      ONE ORDERED RAMP, NOT FIVE HUES. These were violet, pale violet, purple,
@@ -94,7 +96,10 @@
   --hairline-26: rgba(160, 138, 178, 0.26); /* table + metric rules */
 
   /* --- status. Text colour AND fill, so a chip is never colour alone ---- */
-  --good: #137a4a;
+  /* #137a4a was 4.34:1 on the page wash, where a transparent .chip.good sits
+     (the home header's status chip); #107045 is 4.96:1 (DEF-010). The chart
+     theme's copy is --st-good, which is on white and is unchanged. */
+  --good: #107045;
   --good-bg: rgba(19, 122, 74, 0.12);
   --warn: #8f6100;
   --warn-dot: #d99a00;

@@ -45,7 +45,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
@@ -84,6 +84,10 @@ TOTAL_HEADER = "X-Reep-Total"
 #: A page size is a query parameter, and an unbounded one is "give me
 #: everything" with extra steps.
 MAX_PAGE_SIZE = 500
+#: The highest page any list here will serve. Unbounded, a crafted `?page=` made
+#: `(page - 1) * page_size` overflow Postgres' bigint OFFSET and the request a 500
+#: (DEF-006, testing/docs/05-incident-reports.md). A value past it is a 422.
+MAX_PAGE = 100_000
 
 
 def _page_headers(response: Response, *, total: int, page: int, page_size: int | None) -> None:
@@ -199,6 +203,18 @@ class _Linkable(BaseModel):
     linked_skill_id: str | None = None
     linked_session_id: str | None = None
     linked_job_id: str | None = None
+
+    @field_validator("linked_skill_id", "linked_session_id", "linked_job_id", mode="before")
+    @classmethod
+    def _blank_is_none(cls, v: object) -> object:
+        """"" means "no link". Kept as "", it slipped past every check in
+        `_assert_links_belong` (each is an `if body.x:` truth test) and reached
+        the UPDATE as a foreign key to nothing: a 500 (DEF-005). A blank sent
+        on a PATCH still lands in `model_fields_set`, so it still REMOVES the
+        link, which is what a cleared box means."""
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
 
 
 class SwocEntryIn(_Linkable):
@@ -368,9 +384,9 @@ def _assert_links_belong(db: Session, student_id: str, body: _Linkable) -> None:
 def list_swoc(
     response: Response,
     cohort_id: str | None = None,
-    semester: int | None = None,
+    semester: int | None = Query(default=None, ge=1, le=20),
     q: str | None = None,
-    page: int = 1,
+    page: int = Query(default=1, ge=1, le=MAX_PAGE),
     page_size: int | None = None,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),

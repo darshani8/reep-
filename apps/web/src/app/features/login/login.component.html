@@ -257,6 +257,12 @@
           </button>
         </form>
         }
+      } @else if (probeFailed()) {
+        <p class="note" role="status">
+          REEP could not be reached just now, so password sign-in is not shown. Check your
+          connection and try again in a minute.
+          <button type="button" class="linkish" (click)="retryProbe()">Try again</button>
+        </p>
       } @else {
         <p class="field__help centered">
           This server signs in with Google only. A REEP password, when one is issued to you,

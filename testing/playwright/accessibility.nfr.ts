@@ -3,7 +3,8 @@
  *
  * Automated checks find roughly a third to a half of WCAG issues; they are a
  * floor, not an audit. The gate is: no CRITICAL violation. SERIOUS and below
- * are recorded in the report (attached JSON) as findings to triage.
+ * are recorded in the report (attached JSON) as findings to triage, except
+ * colour contrast, which is gated since DEF-010 was fixed.
  */
 import AxeBuilder from '@axe-core/playwright';
 import { test, expect } from '@playwright/test';
@@ -27,6 +28,8 @@ for (const [path, auth] of PAGES) {
     await info.attach('axe-violations', { body: JSON.stringify(summary, null, 2), contentType: 'application/json' });
     console.log(`A11Y ${path} ${JSON.stringify(summary)}`);
     expect(r.violations.filter((v) => v.impact === 'critical'), JSON.stringify(summary)).toEqual([]);
+    // DEF-010, fixed 2026-09-30: colour contrast is now held to AA here as well.
+    expect(r.violations.filter((v) => v.id === 'color-contrast'), JSON.stringify(summary)).toEqual([]);
   });
 }
 

@@ -24,19 +24,16 @@ The most important findings:
 1. **DEF-001 (Major, fixed):** the admin *Email delivery* screen had never
    worked. All three endpoints answered 422 to everyone. The Swagger contract
    suite found it by calling every documented GET, which no existing test did.
-2. **DEF-002…007 (Medium/Low, open):** seven endpoints turn bad input into a
+2. **DEF-002…007 (Medium/Low, fixed in the follow-up, §5.1):** seven endpoints turn bad input into a
    **500** (database constraint and range errors) instead of a 422. Schemathesis
    found them from the OpenAPI document alone.
-3. **DEF-010 (Medium, open):** WCAG AA colour-contrast failures on the sidebar
+3. **DEF-010 (Medium, fixed in the follow-up, §5.1):** WCAG AA colour-contrast failures on the sidebar
    labels of every student screen and on the login helper text.
 4. **Capacity note (OBS-002):** sign-in is the one CPU-bound request (scrypt).
    When 100 students arrive within 2 seconds, sign-in averages **1.9 s** while
    every other endpoint stays at a 73 ms median.
 
-**Recommendation:** release-ready for its current functional scope once DEF-001
-is merged (on this branch). Schedule DEF-002…008 and DEF-010 as one hardening
-change (P2). Re-run the performance scenarios from a separate load host against
-a production build before a results-day capacity sign-off (§6).
+**Recommendation:** release-ready for its current functional scope. All ten defects are fixed on this branch, each with a regression test (§5.1). Re-run the performance scenarios from a separate load host against a production build before a results-day capacity sign-off (§6).
 
 ## 2. Results by suite
 
@@ -207,21 +204,35 @@ against this.
 | ID | Title | Severity | Status |
 |---|---|---|---|
 | DEF-001 | `/admin/mail-log` + suppression endpoints answer 422 to everyone | Major | **Fixed** on this branch, with a regression test |
-| DEF-002 | `PUT /student/profile` with a `null` boolean → 500 | Medium | Open |
-| DEF-003 | `POST /student/checkin` with an unknown course → 500 | Medium | Open |
-| DEF-004 | `POST /admin/jobs`, `/admin/criteria` with an empty or unknown `course_id` → 500 | Medium | Open |
-| DEF-005 | `PATCH /admin/swoc/entries/{id}` with an unknown linked id → 500 | Medium | Open |
-| DEF-006 | GET `audit` / `swoc` / `placement` with huge integers → 500 | Medium | Open |
-| DEF-007 | A NUL byte or an invalid escape in text → 500 | Low | Open |
-| DEF-008 | 422s with a string `detail` break the documented schema | Low | Open |
-| DEF-009 | An unreachable API is shown as "This server signs in with Google only" | Low | Open (known-failure test NFR-REL-01b) |
-| DEF-010 | WCAG AA colour contrast (2.75–4.34 : 1) on login and student screens | Medium | Open |
+| DEF-002 | `PUT /student/profile` with a `null` boolean → 500 | Medium | **Fixed** (follow-up, 2026-09-30) |
+| DEF-003 | `POST /student/checkin` with an unknown course → 500 | Medium | **Fixed** (follow-up, 2026-09-30) |
+| DEF-004 | `POST /admin/jobs`, `/admin/criteria` with an empty or unknown `course_id` → 500 | Medium | **Fixed** (follow-up, 2026-09-30) |
+| DEF-005 | `PATCH /admin/swoc/entries/{id}` with an unknown linked id → 500 | Medium | **Fixed** (follow-up, 2026-09-30) |
+| DEF-006 | GET `audit` / `swoc` / `placement` with huge integers → 500 | Medium | **Fixed** (follow-up, 2026-09-30) |
+| DEF-007 | A NUL byte or an invalid escape in text → 500 | Low | **Fixed** (follow-up, 2026-09-30) |
+| DEF-008 | 422s with a string `detail` break the documented schema | Low | **Fixed** (follow-up, 2026-09-30) |
+| DEF-009 | An unreachable API is shown as "This server signs in with Google only" | Low | **Fixed** (follow-up, 2026-09-30) |
+| DEF-010 | WCAG AA colour contrast (2.75–4.34 : 1) on login and student screens | Medium | **Fixed** (follow-up, 2026-09-30) |
 
 Details, reproduction steps and suggested fixes are in
 [05-incident-reports.md](05-incident-reports.md), together with OBS-001…005 and the eight testware incidents (TW-001…008). The testware incidents are part
 of this report on purpose. TW-001 alone would have reported a **44.9 % error
 rate** as a capacity result if the per-thread 401 pattern had not been
 investigated before it was believed.
+
+### 5.1 Follow-up: DEF-002…010 fixed (2026-09-30)
+
+All nine open defects were fixed on the same branch, each with a test that
+**fails on the old code and passes on the fix** (checked by stashing the fix):
+
+| Evidence | Before | After |
+|---|---|---|
+| `apps/api-py/tests/test_input_hardening.py` (DEF-002…008) | 8 failed | 8 passed |
+| Full backend suite | — | 0 failures, 3 skipped |
+| Schemathesis, GET only (`results/api/schemathesis-after-fixes/`) | 3 server errors, 6 schema violations | **0 and 0** (2,130 generated requests; what remains is OBS-003, the undocumented 401/403) |
+| Playwright NFR-REL-01b (DEF-009) | known failure | passed |
+| axe `color-contrast` on /login, /register, /student, /student/jobs, /student/time-log (DEF-010) | 12 elements, 2.75–4.34 : 1 | **0**, and now a gate |
+| Web unit (`ng test`) / production build / four style guards | — | 221/221 · built · all pass |
 
 ## 6. Deviations from the plan, and residual risk
 

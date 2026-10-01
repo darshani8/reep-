@@ -43,7 +43,7 @@ this phase.
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, aliased
@@ -199,6 +199,10 @@ TOTAL_HEADER = "X-Reep-Total"
 #: a query parameter, and an unbounded one is "give me everything" with extra
 #: steps.
 MAX_PAGE_SIZE = 500
+#: The highest page any list here will serve. Unbounded, a crafted `?page=` made
+#: `(page - 1) * page_size` overflow Postgres' bigint OFFSET and the request a 500
+#: (DEF-006, testing/docs/05-incident-reports.md). A value past it is a 422.
+MAX_PAGE = 100_000
 
 
 def _page_headers(response: Response, *, total: int, page: int, page_size: int | None) -> None:
@@ -260,7 +264,7 @@ def mentor_load(
     department_id: str | None = None,
     cohort_id: str | None = None,
     q: str | None = None,
-    page: int = 1,
+    page: int = Query(default=1, ge=1, le=MAX_PAGE),
     page_size: int | None = None,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
@@ -531,7 +535,7 @@ def unassigned_students(
     department_id: str | None = None,
     cohort_id: str | None = None,
     q: str | None = None,
-    page: int = 1,
+    page: int = Query(default=1, ge=1, le=MAX_PAGE),
     page_size: int | None = None,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),

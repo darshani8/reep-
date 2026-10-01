@@ -1477,7 +1477,25 @@ def update_profile(
     if prof is None:
         prof = StudentProfile(student_id=student_id)
         db.add(prof)
-    for field, value in body.model_dump(exclude_unset=True).items():
+    changes = body.model_dump(exclude_unset=True)
+    # An explicit `null` on a column that cannot hold one is a bad request, not
+    # a database error: it used to reach the INSERT/UPDATE and come back as an
+    # IntegrityError 500 (DEF-002, testing/docs/05-incident-reports.md). Asked
+    # of the table rather than listed here, so a column made NOT NULL later is
+    # covered without anybody remembering this handler.
+    refused = [
+        field
+        for field, value in changes.items()
+        if value is None
+        and (column := StudentProfile.__table__.c.get(field)) is not None
+        and not column.nullable
+    ]
+    if refused:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"{', '.join(sorted(refused))} cannot be empty; leave the field out to keep its value.",
+        )
+    for field, value in changes.items():
         setattr(prof, field, value)
     db.commit()
     db.refresh(prof)
@@ -2204,6 +2222,13 @@ def check_in(
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid activity or mode."
+        )
+    # `course_code` is a foreign key to courses.code; an unknown one used to
+    # reach the INSERT and come back as a 500 (DEF-003).
+    if db.get(Course, body.course_code) is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"There is no course with the code {body.course_code!r}.",
         )
     ls = LabSession(
         student_id=student_id,

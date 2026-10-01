@@ -5,8 +5,8 @@ an admin.* capability per screen (Governance). Compute-only over existing data.
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy import true as sa_true
 from sqlalchemy.orm import Session
@@ -248,6 +248,17 @@ def criteria(
     return _criteria_out(resolved)
 
 
+def _blank_is_none(value: str | None) -> str | None:
+    """An empty or whitespace id is "not chosen", which is what a form's blank
+    <select> option posts. Left as "", it skipped the existence checks below
+    (`if body.course_id and ...` is falsy) and reached the INSERT as a foreign
+    key to nothing: a 500 (DEF-004, testing/docs/05-incident-reports.md)."""
+    if value is None:
+        return None
+    value = value.strip()
+    return value or None
+
+
 class CriteriaIn(BaseModel):
     """A new set of gates. Every threshold is optional and falls back to the
     RESOLVED set it replaces, so the screen can save one changed number without
@@ -264,6 +275,8 @@ class CriteriaIn(BaseModel):
     min_reep_completion_pct: float | None = Field(default=None, ge=0, le=100)
     min_cert_completion_pct: float | None = Field(default=None, ge=0, le=100)
     require_core_certs: bool | None = None
+
+    _ids = field_validator("college_id", "course_id")(_blank_is_none)
 
 
 @router.post("/criteria", response_model=CriteriaOut, status_code=status.HTTP_201_CREATED)
@@ -768,6 +781,8 @@ class JobIn(BaseModel):
     college_id: str | None = None
     course_id: str | None = None
     tracks: list[str] = Field(default_factory=list, max_length=20)
+
+    _ids = field_validator("college_id", "course_id")(_blank_is_none)
 
 
 @router.post("/jobs", response_model=JobSheetOut, status_code=status.HTTP_201_CREATED)
@@ -2048,7 +2063,9 @@ def _placement_by_track(db: Session, students, in_year) -> list[TrackSplitOut]:
 def placement(
     response: Response,
     cohort_id: str | None = None,
-    year: int | None = None,
+    # Bounded (DEF-006): `?year=-5466912982786` overflowed the comparison with
+    # EXTRACT(year ...) and was a 500. A calendar year, or a 422.
+    year: int | None = Query(default=None, ge=1900, le=9999),
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> PlacementOut:

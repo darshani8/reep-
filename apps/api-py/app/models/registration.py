@@ -163,6 +163,17 @@ class Registration(Base):
     personal_email: Mapped[str | None] = mapped_column(String, nullable=True)
     linkedin_url: Mapped[str | None] = mapped_column(String, nullable=True)
 
+    # THE FORM'S OWN NAME FOR THIS APPLICATION, HASHED (migration f4a2c9e7b1d3,
+    # 2026-10-01). The register form mints one random key per filled-in form
+    # and sends it with every submit; a retry after a reply lost on a phone
+    # carries the same key, and `submit` answers it with this row's original
+    # 201 instead of the duplicate guard's opaque 409, which reads as a
+    # refusal to somebody who has just applied. sha256 hex, never the key:
+    # it is the bearer for reading this application back, and every other
+    # bearer in this schema (`auth_tokens`) is stored the same way. NULL on
+    # every row written before the column, and on any client that sends none.
+    submission_key_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
     degree_level: Mapped[DegreeLevel] = mapped_column(
         _DEGREE_LEVEL, default=DegreeLevel.PG, server_default="PG"
     )

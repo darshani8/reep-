@@ -29,6 +29,7 @@
     "leaveMailEnabled": true,
     "backupRetentionDays": 35,
     "archiveRetentionDays": 365,
+    "cloudfrontLogDays": 30,
     "apiArm64": true,
     "dbMultiAz": true,
     "dbInstanceClassTarget": "db.t4g.small",

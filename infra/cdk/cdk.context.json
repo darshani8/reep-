@@ -17,6 +17,7 @@
   ],
   "bedrockModel": "apac.amazon.nova-pro-v1:0",
   "cloudfrontAcmCertificateArn": "arn:aws:acm:us-east-1:445363794125:certificate/d206fc76-8ee8-43fb-80be-2a82a1d34feb",
+  "cloudfrontDistributionId": "EW482RJIK9CVE",
   "cloudfrontPrefixListId": "pl-9aa247f3",
   "dbInstanceClass": "db.t4g.micro",
   "dbSecurityGroupName": "reep-db-20260827213543888000000003",

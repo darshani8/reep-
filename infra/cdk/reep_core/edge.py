@@ -19,7 +19,10 @@ from aws_cdk import (
     Tags,
     aws_cloudwatch as cloudwatch,
     aws_cloudwatch_actions as cw_actions,
+    aws_iam as iam,
+    aws_logs as logs,
     aws_route53 as route53,
+    aws_s3 as s3,
     aws_sns as sns,
     aws_sns_subscriptions as subs,
     aws_wafv2 as wafv2,
@@ -99,6 +102,56 @@ BODY_RULES_OUTSIDE_UPLOADS = "body-rules-outside-uploads"
 #: ALB alarms; a certificate is not, and a CloudWatch Synthetics canary (a real
 #: browser, TLS 1.3) is the upgrade if that gap ever matters.
 UPTIME_CHECK_TYPE = "TCP"
+
+
+#: CLOUDFRONT'S REQUEST LOG, AND THE THREE FIELDS IT MUST NEVER CARRY
+#: (2026-10-01). A student was shown "(504)" on /register and the question
+#: "did CloudFront send that?" could only be answered by reasoning from
+#: per-minute metrics, because the distribution logged nothing at all: no
+#: standard log, no real-time log. It had not — the service worker on the phone
+#: made the 504 up (apps/web/public/reep-sw.js) — but the next incident should
+#: be settled by a line, not an inference.
+#:
+#: STANDARD LOGGING v2, NOT THE LEGACY KIND, BECAUSE ONLY v2 LETS FIELDS BE
+#: LEFT OUT. The legacy log writes every field, and three of them are bearer
+#: material on this deployment:
+#:
+#:   cs-uri-query  the setup, reset and activation links are `?token=…`, and
+#:                 the Google callback carries `?code=…` — each one a way in.
+#:   cs(Cookie)    `reep_session` IS the signed-in session.
+#:   cs(Referer)   the page a request came FROM, query string included, so a
+#:                 token page's first chunk request would carry the token.
+#:
+#: Everything else a 4xx/5xx investigation needs stays: the path (no route
+#: puts a secret in its path), the status, the edge's own result type, the
+#: timings and the client address. `c-ip` IS personal data, which is why the
+#: bucket expires objects after `cloudfrontLogDays` and nothing else reads it.
+CLOUDFRONT_LOG_FIELDS: tuple[str, ...] = (
+    "date",
+    "time",
+    "x-edge-location",
+    "x-edge-request-id",
+    "c-ip",
+    "c-country",
+    "cs-method",
+    "cs(Host)",
+    "cs-uri-stem",
+    "cs-protocol",
+    "cs-protocol-version",
+    "cs(User-Agent)",
+    "cs-bytes",
+    "sc-status",
+    "sc-bytes",
+    "sc-content-type",
+    "time-taken",
+    "time-to-first-byte",
+    "x-edge-result-type",
+    "x-edge-response-result-type",
+    "x-edge-detailed-result-type",
+    "cache-behavior-path-pattern",
+    "ssl-protocol",
+)
+CLOUDFRONT_LOG_FIELDS_NEVER: tuple[str, ...] = ("cs-uri-query", "cs(Cookie)", "cs(Referer)")
 
 
 def _body_rules_outside_uploads(priority: int, metric: str) -> wafv2.CfnWebACL.RuleProperty:
@@ -287,6 +340,79 @@ class EdgeWafStack(Stack):
             # Retain like everything else in the three stacks
             # (test_all_three_stacks_retain_everything).
             for resource in (check, topic, subscription, alarm):
+                resource.apply_removal_policy(RemovalPolicy.RETAIN)
+
+        # CloudFront's request log (see CLOUDFRONT_LOG_FIELDS for what it may
+        # carry). Here and not in reep-core because the delivery source for a
+        # distribution must be created in us-east-1, which is this stack's
+        # region. The distribution is reep-core's, so its id arrives as context
+        # (`cloudfrontDistributionId`, the live value, in cdk.context.json) for
+        # `wafWebAclArn`'s reason in the other direction. Harden only, and only
+        # with a retention: 0 or absent is OFF, so a synth with no context
+        # renders exactly what was deployed before.
+        dist_id = (self.node.try_get_context("cloudfrontDistributionId") or "").strip()
+        log_days = int(self.node.try_get_context("cloudfrontLogDays") or 0)
+        if phase == "harden" and dist_id and log_days > 0:
+            bucket = s3.Bucket(
+                self,
+                "CloudFrontLogs",
+                bucket_name=f"{project}-cloudfront-logs-{self.account}",
+                encryption=s3.BucketEncryption.S3_MANAGED,
+                block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+                object_ownership=s3.ObjectOwnership.BUCKET_OWNER_ENFORCED,
+                enforce_ssl=True,
+                lifecycle_rules=[s3.LifecycleRule(id="expire-request-logs", expiration=Duration.days(log_days))],
+                removal_policy=RemovalPolicy.RETAIN,
+            )
+            # CloudWatch's log-delivery service writes the objects; it may write
+            # under this account's prefix, for a delivery source in this account,
+            # and nothing else. CloudFront appends AWSLogs/<account>/CloudFront
+            # itself when the destination names no prefix.
+            bucket.add_to_resource_policy(
+                iam.PolicyStatement(
+                    sid="CloudFrontLogDeliveryWrite",
+                    principals=[iam.ServicePrincipal("delivery.logs.amazonaws.com")],
+                    actions=["s3:PutObject"],
+                    resources=[bucket.arn_for_objects(f"AWSLogs/{self.account}/*")],
+                    conditions={
+                        "StringEquals": {
+                            "aws:SourceAccount": self.account,
+                            "s3:x-amz-acl": "bucket-owner-full-control",
+                        },
+                        "ArnLike": {"aws:SourceArn": f"arn:aws:logs:us-east-1:{self.account}:delivery-source:*"},
+                    },
+                )
+            )
+            source = logs.CfnDeliverySource(
+                self,
+                "CloudFrontLogSource",
+                name=f"{project}-cloudfront-access",
+                log_type="ACCESS_LOGS",
+                resource_arn=f"arn:aws:cloudfront::{self.account}:distribution/{dist_id}",
+            )
+            destination = logs.CfnDeliveryDestination(
+                self,
+                "CloudFrontLogDestination",
+                name=f"{project}-cloudfront-access-s3",
+                destination_resource_arn=bucket.bucket_arn,
+                output_format="json",
+            )
+            delivery = logs.CfnDelivery(
+                self,
+                "CloudFrontLogDelivery",
+                delivery_source_name=source.name,
+                delivery_destination_arn=destination.attr_arn,
+                record_fields=list(CLOUDFRONT_LOG_FIELDS),
+            )
+            # The source name is a plain string, so CloudFormation cannot see the
+            # order on its own; the bucket POLICY must exist before the first
+            # delivery is attempted or the service is refused the write.
+            delivery.node.add_dependency(source, bucket)
+            if bucket.policy is not None:
+                delivery.node.add_dependency(bucket.policy)
+                bucket.policy.apply_removal_policy(RemovalPolicy.RETAIN)
+            # Retain like everything else in the three stacks.
+            for resource in (source, destination, delivery):
                 resource.apply_removal_policy(RemovalPolicy.RETAIN)
 
         # On the CHILDREN, never on the stack — see the long note at the end of

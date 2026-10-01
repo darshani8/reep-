@@ -57,6 +57,8 @@ REFUSE = {
     ".github/workflows/agent-release.yml": "the auto-release pipeline changed",
     "tools/ci/release_gate.py": "this gate changed",
     "apps/web/ngsw-config.json": "a bad service worker freezes installed phones",
+    "apps/web/public/reep-sw.js": "a bad service worker freezes installed phones",
+    "apps/web/src/app/app.config.ts": "it registers the service worker every installed phone runs",
     "apps/web/public/manifest.webmanifest": "the installed-app manifest changed",
     "apps/web/src/polyfills.ts": "the old-browser polyfills changed",
     "apps/web/package.json": "a front-end dependency changed",

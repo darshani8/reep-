@@ -88,6 +88,9 @@ jobs:
           echo "head=$HEAD_SHA"   >> "$GITHUB_OUTPUT"
           echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
           echo "Live: $BASE  Waiting: $HEAD_SHA  main now: $CURRENT"
+          # The switch is a repository variable, which no agent tool can read;
+          # printing it here is how its value is checked without the settings page.
+          echo "AGENT_AUTODEPLOY=${{ vars.AGENT_AUTODEPLOY || '(not set)' }}"
 
       - name: Release gate (deterministic)
         id: gate

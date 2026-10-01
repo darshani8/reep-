@@ -11,6 +11,8 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI, Request
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import DataError
 from fastapi.middleware.cors import CORSMiddleware
@@ -411,6 +413,20 @@ async def _security_headers(request: Request, call_next):  # type: ignore[no-unt
             "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
         )
     return response
+
+# WHY THE PUBLIC FORM REFUSED SOMEBODY, IN THE LOG (2026-10-01). About seventy
+# POST /api/register calls on one morning were refused with 422 in two
+# milliseconds, and nothing anywhere said which box: the access line carries
+# the status and the reason went back to the phone alone. Field NAMES and
+# pydantic's error TYPE only — never `input`, which is the value the applicant
+# typed (an address, a phone number, a USN). Every other route keeps FastAPI's
+# own handler untouched; the response body is unchanged for this one too.
+@app.exception_handler(RequestValidationError)
+async def _validation_error(request: Request, exc: RequestValidationError):  # type: ignore[no-untyped-def]
+    if request.method == "POST" and request.url.path == "/api/register":
+        registration.log_form_refusal(exc.errors())
+    return await request_validation_exception_handler(request, exc)
+
 
 # Health is infra liveness — unprefixed at /health.
 app.include_router(health.router)

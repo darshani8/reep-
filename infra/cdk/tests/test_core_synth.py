@@ -20,6 +20,8 @@ from aws_cdk.assertions import Match, Template
 from reep_core import DEREGISTRATION_DELAY_SECONDS, STOP_TIMEOUT_SECONDS, CoreStack, DrVaultStack, EdgeWafStack
 from reep_core.edge import (
     BODY_RULES_OUTSIDE_UPLOADS,
+    CLOUDFRONT_LOG_FIELDS,
+    CLOUDFRONT_LOG_FIELDS_NEVER,
     COMMON_RULE_SET_BODY_LABELS,
     COMMON_RULE_SET_COUNTED,
     UPTIME_CHECK_TYPE,
@@ -2085,3 +2087,70 @@ def test_the_api_pool_times_the_task_ceiling_fits_the_database(hardened: Templat
         assert env["DB_MAX_OVERFLOW"] == str(API_DB_MAX_OVERFLOW)
     # db.t4g.small (2 GiB): max_connections is LEAST(DBInstanceClassMemory/9531392, 5000), about 200.
     assert (API_DB_POOL_SIZE + API_DB_MAX_OVERFLOW) * 10 <= 200
+
+
+def _edge_with_logs(phase: str = "harden", days: int | None = 30) -> dict:
+    ctx: dict = {"phase": phase, "cloudfrontDistributionId": "E2TESTDIST"}
+    if days is not None:
+        ctx["cloudfrontLogDays"] = days
+    stack = EdgeWafStack(cdk.App(context=ctx), "test-edge-logs", env=cdk.Environment(account="123456789012", region="us-east-1"))
+    return Template.from_stack(stack).to_json()["Resources"]
+
+
+def _one(res: dict, kind: str) -> dict:
+    (found,) = [r for r in res.values() if r["Type"] == kind]
+    return found
+
+
+def test_cloudfront_logs_every_request_and_never_a_token_or_a_session() -> None:
+    """2026-10-01: "did CloudFront send that 504?" could only be answered by
+    reasoning from per-minute metrics, because the distribution logged
+    nothing. Standard logging v2 to S3, harden only — and v2 because only it
+    can leave fields out: the query string carries the setup, reset and
+    activation tokens, the cookie IS the session, and the referer carries the
+    previous page's query string."""
+    res = _edge_with_logs()
+    fields = _one(res, "AWS::Logs::Delivery")["Properties"]["RecordFields"]
+    assert fields == list(CLOUDFRONT_LOG_FIELDS)
+    for never in CLOUDFRONT_LOG_FIELDS_NEVER:
+        assert never not in fields, f"{never} would put bearer material in a log"
+    assert {"cs-uri-query", "cs(Cookie)", "cs(Referer)"} <= set(CLOUDFRONT_LOG_FIELDS_NEVER)
+    for needed in ("date", "time", "sc-status", "cs-uri-stem", "x-edge-detailed-result-type", "x-edge-request-id"):
+        assert needed in fields, f"{needed} is what settles an incident"
+    source = _one(res, "AWS::Logs::DeliverySource")["Properties"]
+    assert source["LogType"] == "ACCESS_LOGS"
+    assert source["ResourceArn"] == "arn:aws:cloudfront::123456789012:distribution/E2TESTDIST"
+
+
+def test_the_log_bucket_is_private_expires_and_admits_only_log_delivery() -> None:
+    res = _edge_with_logs(days=30)
+    bucket = _one(res, "AWS::S3::Bucket")["Properties"]
+    assert bucket["BucketName"] == "reep-cloudfront-logs-123456789012"
+    assert bucket["PublicAccessBlockConfiguration"] == {
+        "BlockPublicAcls": True, "BlockPublicPolicy": True, "IgnorePublicAcls": True, "RestrictPublicBuckets": True,
+    }
+    rules = bucket["LifecycleConfiguration"]["Rules"]
+    assert [r["ExpirationInDays"] for r in rules] == [30], "c-ip is personal data; the log must expire"
+    statements = _one(res, "AWS::S3::BucketPolicy")["Properties"]["PolicyDocument"]["Statement"]
+    writes = [s for s in statements if s.get("Sid") == "CloudFrontLogDeliveryWrite"]
+    assert len(writes) == 1
+    (write,) = writes
+    assert write["Principal"] == {"Service": "delivery.logs.amazonaws.com"}
+    assert write["Action"] == "s3:PutObject"
+    assert write["Condition"]["StringEquals"]["aws:SourceAccount"] == "123456789012"
+    for lid, r in res.items():
+        assert r.get("DeletionPolicy") == "Retain", lid
+
+
+def test_cloudfront_logging_is_off_without_a_retention_and_in_the_import_mirror() -> None:
+    for res in (_edge_with_logs(days=None), _edge_with_logs(days=0), _edge_with_logs(phase="import")):
+        types = {r["Type"] for r in res.values()}
+        assert not types & {"AWS::Logs::Delivery", "AWS::Logs::DeliverySource", "AWS::S3::Bucket"}, types
+
+
+def test_the_repository_carries_the_logging_the_edge_deploy_should_ship() -> None:
+    """Written down, not passed with -c: a flag set at deploy time and not
+    persisted is not configuration (see the apiArm64 test above)."""
+    here = Path(__file__).resolve().parents[1]
+    assert json.loads((here / "cdk.json").read_text())["context"].get("cloudfrontLogDays", 0) > 0
+    assert json.loads((here / "cdk.context.json").read_text()).get("cloudfrontDistributionId")

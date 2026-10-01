@@ -23,6 +23,8 @@ steps). "Approved" and "active" are two different facts and any copy that says
 otherwise — here, or on the applicant's own result card — is wrong.
 """
 
+import hashlib
+import hmac
 import logging
 import re
 import threading
@@ -45,6 +47,7 @@ from fastapi import (
 )
 from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from fastapi.responses import RedirectResponse
@@ -539,6 +542,11 @@ class RegisterForm(RegisterIn):
     cv: UploadFile
     #: The headshot, a PNG or a JPEG (`_DOCUMENT_ROUTES["photo"]`), same cap.
     photo: UploadFile
+    #: The form's own random name for this application, the same on every
+    #: submit of one filled-in form (`newSubmissionKey` in the client's
+    #: form-checks.ts). OPTIONAL, so an older bundle still works: without it a
+    #: retry meets the opaque 409 exactly as before. See `_duplicate_answer`.
+    submission_key: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{16,64}$")
 
 
 # --- the check vocabulary (B11.1) --------------------------------------------
@@ -1695,6 +1703,96 @@ def _resolve_claim(db: Session, body: RegisterIn) -> dict[str, str | None]:
     return chain
 
 
+def log_form_refusal(errors: Sequence[dict]) -> None:
+    """Log WHICH boxes a schema refusal named, and nothing they held.
+
+    Called by app/main.py's RequestValidationError handler for POST /register
+    only. Each error contributes `field:type` — the last string in its `loc`
+    and pydantic's error type ("missing", "value_error",
+    "string_pattern_mismatch") — and never `input` or `msg`, which carry what
+    the applicant typed. Without this a run of 422s was a count with no cause
+    (2026-10-01): the reason went back to the phone and nowhere else.
+    """
+    parts: list[str] = []
+    for err in errors:
+        loc = [p for p in err.get("loc", ()) if isinstance(p, str) and p != "body"]
+        part = f"{loc[-1] if loc else '?'}:{err.get('type', '?')}"
+        if part not in parts:
+            parts.append(part)
+    log.info("POST /api/register refused (422, schema): %s", ", ".join(parts) or "?")
+
+
+def _submission_key_hash(key: str | None) -> str | None:
+    """sha256 hex of the form's submission key, or None when it sent none."""
+    return hashlib.sha256(key.encode("ascii")).hexdigest() if key else None
+
+
+def _duplicate_answer(
+    db: Session, email: str, key_hash: str | None
+) -> PublicRegistrationOut | None:
+    """None when no LIVE application holds this address; otherwise the answer.
+
+    THE SAME FORM'S RETRY IS ANSWERED WITH ITS OWN APPLICATION (2026-10-01). A
+    phone that loses its signal can lose the REPLY after the row was saved,
+    and the student's only move is to press Submit again. Until this, that
+    press met the opaque 409 below, which reads as a refusal to somebody who
+    has just applied. A repeat carrying the key the first submit carried gets
+    the original application's 201 instead, built exactly as the first reply
+    was. Only the browser that filled in the form holds that key (random, 128
+    bits, never shown), and the row only ever stores its hash, so this reveals
+    nothing to anybody who did not already submit the application.
+
+    Everything else — no key, an older row with none, a different key — gets
+    the 409 exactly as before; its reasoning follows. Called from the guard
+    before anything is written, and again when a concurrent submit of the same
+    address loses the race at the unique index, so the loser is told the same
+    thing as a later retry rather than meeting a 500.
+    """
+    existing = db.scalar(
+        select(Registration).where(
+            Registration.email == email,
+            Registration.status != RegistrationStatus.REJECTED,
+        )
+    )
+    if existing is None:
+        return None
+    if (
+        key_hash is not None
+        and existing.submission_key_hash is not None
+        and hmac.compare_digest(existing.submission_key_hash, key_hash)
+    ):
+        log.info(
+            "POST /api/register: a retry of application %s with its own submission key; "
+            "answered with the original application",
+            existing.id,
+        )
+        return _public_out_one(db, existing)
+    # Deliberately does NOT confirm that an application exists for this
+    # address. The old wording ("An application with this email already
+    # exists.") turned the public form into a "has X applied to this college"
+    # lookup for anyone with a list of names, and applying somewhere is not
+    # something an applicant chose to publish.
+    #
+    # Be honest about what is left: the STATUS CODE still separates the two
+    # cases — a fresh submission 201s, this 409s — and the only complete fix
+    # is to answer every submission identically and send the real outcome out
+    # of band by email, which this endpoint does not do. The rate limit in
+    # `submit` is what makes walking a roster through the remaining tell slow rather
+    # than free. The real application id goes to the log, not the response, so
+    # support can still find it.
+    log.info(
+        "POST /api/register refused a duplicate application (registration id=%s)",
+        existing.id,
+    )
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=(
+            "This application could not be accepted. If you have already applied, "
+            "or you think this is a mistake, contact the placement office."
+        ),
+    )
+
+
 @router.post("", response_model=PublicRegistrationOut, status_code=status.HTTP_201_CREATED)
 def submit(
     # `media_type` stated, or the spec documents this body as urlencoded, which
@@ -1747,11 +1845,19 @@ def submit(
 
     email = body.email.strip().lower()
     if "@" not in email or "." not in email.rsplit("@", 1)[-1]:
+        log.info("POST /api/register refused (422): email:invalid")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="A valid email is required."
         )
     college_email_problem = _college_email_problem(email, body.personal_email)
     if college_email_problem is not None:
+        # The reason code, never the address: which of the two refusals it was
+        # is all support needs to tell a phone's autofill from a typo.
+        same = email == (body.personal_email or "").strip().lower()
+        log.info(
+            "POST /api/register refused (422): email:%s",
+            "same_as_personal" if same else "public_mail_domain",
+        )
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=college_email_problem
         )
@@ -1766,37 +1872,10 @@ def submit(
     # `status <> 'REJECTED'`) is the same rule in the database, so two
     # submissions racing this read cannot both land. Reviewers see the history:
     # `_checks_for` puts a `prior_applications` line on the new row.
-    existing = db.scalar(
-        select(Registration).where(
-            Registration.email == email,
-            Registration.status != RegistrationStatus.REJECTED,
-        )
-    )
-    if existing is not None:
-        # Deliberately does NOT confirm that an application exists for this
-        # address. The old wording ("An application with this email already
-        # exists.") turned the public form into a "has X applied to this college"
-        # lookup for anyone with a list of names, and applying somewhere is not
-        # something an applicant chose to publish.
-        #
-        # Be honest about what is left: the STATUS CODE still separates the two
-        # cases — a fresh submission 201s, this 409s — and the only complete fix
-        # is to answer every submission identically and send the real outcome out
-        # of band by email, which this endpoint does not do. The rate limit above
-        # is what makes walking a roster through the remaining tell slow rather
-        # than free. The real application id goes to the log, not the response, so
-        # support can still find it.
-        log.info(
-            "POST /api/register refused a duplicate application (registration id=%s)",
-            existing.id,
-        )
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=(
-                "This application could not be accepted. If you have already applied, "
-                "or you think this is a mistake, contact the placement office."
-            ),
-        )
+    key_hash = _submission_key_hash(body.submission_key)
+    duplicate = _duplicate_answer(db, email, key_hash)
+    if duplicate is not None:
+        return duplicate
 
     # THE RULE IS APPLIED HERE, and the application reaches the review queue
     # immediately (2026-09-10).
@@ -1838,9 +1917,23 @@ def submit(
         **_resolve_claim(db, body),
         matched_rule_id=None,
         decision_reason=None,
+        submission_key_hash=key_hash,
     )
     db.add(reg)
-    db.flush()  # mints reg.id for the two document rows
+    try:
+        db.flush()  # mints reg.id for the two document rows
+    except IntegrityError:
+        # Two submits of one address raced past the guard above, and the
+        # partial unique index `uq_registration_live_email` refused the second
+        # INSERT once the first committed. That used to escape as a 500. The
+        # loser is answered as a retry would be: its own application if it
+        # carried the winner's key (a double-tapped Submit), the opaque 409
+        # otherwise. Nothing has been stored yet, so a rollback is all of it.
+        db.rollback()
+        duplicate = _duplicate_answer(db, email, key_hash)
+        if duplicate is not None:
+            return duplicate
+        raise
     stored: list[str] = []
     try:
         for kind, (content, original_name) in (("cv", cv), ("photo", photo)):

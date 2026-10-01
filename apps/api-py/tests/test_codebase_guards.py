@@ -2229,3 +2229,76 @@ def test_every_sidebar_row_and_home_button_is_gated_exactly_as_its_route() -> No
         "bounces; on more, a screen the account may open but cannot find:\n  "
         + "\n  ".join(offenders)
     )
+
+
+# ---------------------------------------------------------------------------#
+# §38  The API never passes through the service worker                       #
+# ---------------------------------------------------------------------------#
+#
+# ngsw answers a network failure with a `504 Gateway Timeout` it MAKES UP, so a
+# phone that lost its signal mid-upload showed a student "(504)" for a request
+# no server ever saw (2026-10-01). `apps/web/public/reep-sw.js` takes every
+# `/api/` request away from ngsw before importing it, and that only holds
+# while four things stay true at once, in four different files:
+#
+#   * the app registers the wrapper, not ngsw-worker.js;
+#   * the wrapper's listener is added BEFORE importScripts — listeners run in
+#     the order they were added, so after it the bypass never runs;
+#   * deploy.yml serves the wrapper no-cache and invalidates it, as it does
+#     ngsw-worker.js, or an installed phone keeps the first copy for a year;
+#   * the release gate refuses the wrapper and its registration, so no agent
+#     ships a worker change to every phone without a human.
+
+_WEB = REPO / "apps" / "web"
+_SW = _WEB / "public" / "reep-sw.js"
+
+
+def test_the_app_registers_the_wrapper_and_not_ngsw_directly() -> None:
+    config = (_WEB / "src" / "app" / "app.config.ts").read_text(encoding="utf-8")
+    assert "provideServiceWorker('reep-sw.js'" in config, (
+        "app.config.ts must register reep-sw.js; registering ngsw-worker.js "
+        "directly puts every /api/ request back behind ngsw's made-up 504"
+    )
+
+
+def test_the_wrapper_bypasses_the_api_before_importing_ngsw() -> None:
+    text = _SW.read_text(encoding="utf-8")
+    listener = text.find("addEventListener('fetch'")
+    bypass = text.find("stopImmediatePropagation()")
+    imported = text.find("importScripts('./ngsw-worker.js')")
+    assert -1 not in (listener, bypass, imported), (
+        "reep-sw.js must add a fetch listener that calls stopImmediatePropagation() "
+        "for /api/ and then importScripts('./ngsw-worker.js')"
+    )
+    assert "'/api/'" in text, "the bypass must be scoped to /api/"
+    assert listener < imported and bypass < imported, (
+        "the bypass listener must be added BEFORE importScripts: ngsw's listener "
+        "is added when the import runs, and listeners fire in the order added"
+    )
+    assert "respondWith" not in text.replace("`respondWith`", ""), (
+        "the wrapper must not answer the request itself; the point is that the "
+        "browser performs it and a real network error reaches the page"
+    )
+
+
+def test_the_deploy_treats_the_wrapper_like_the_worker_it_wraps() -> None:
+    deploy = (REPO / ".github" / "workflows" / "deploy.yml").read_text(encoding="utf-8")
+    missing = [
+        where
+        for where, needle in (
+            ("the --exclude on the immutable year-long pass", '--exclude "reep-sw.js"'),
+            ("the no-cache upload loop", "ngsw-worker.js reep-sw.js"),
+            ("the CloudFront invalidation", '"/reep-sw.js"'),
+        )
+        if needle not in deploy
+    ]
+    assert not missing, (
+        "deploy.yml must handle reep-sw.js exactly as ngsw-worker.js; missing from: "
+        + "; ".join(missing)
+    )
+
+
+def test_the_release_gate_refuses_the_wrapper_and_its_registration() -> None:
+    gate = (REPO / "tools" / "ci" / "release_gate.py").read_text(encoding="utf-8")
+    for path in ('"apps/web/public/reep-sw.js"', '"apps/web/src/app/app.config.ts"'):
+        assert path in gate, f"tools/ci/release_gate.py REFUSE must list {path}"

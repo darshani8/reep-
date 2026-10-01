@@ -1512,6 +1512,45 @@ site answering 200. Do not "fix" that by relaxing the viewer policy; a
 Synthetics canary is the upgrade if the certificate ever needs watching. Its
 SNS email must be CONFIRMED from the inbox before it delivers anything.
 
+**THE 504 OF 2026-10-01 WAS MADE ON THE PHONE, AND NOTHING ON THE SERVER COULD
+HAVE SEEN IT.** A student pressed Submit on `/register` over weak mobile data
+and was shown "(504)". CloudFront's 5xx rate was zero at one-minute resolution,
+the ALB's too, and the API had no request at all — an upload cut on its way IN
+does reach the app as a `ClientDisconnect` 400 (one exists, 2026-09-29), and
+there was none. The Angular service worker had answered it: ngsw intercepts
+every fetch, POSTs included, and its `safeFetch` turns a network error into a
+`504 Gateway Timeout` it makes up, empty body. Reproduced in Chromium against
+the exact ngsw-worker.js the app ships. Four things changed together. (1)
+**`/api/` never passes through ngsw** — `apps/web/public/reep-sw.js` is the
+registered worker; see "The phone". (2) **The form tells the truth**:
+`fetch` throwing now says the connection dropped and that pressing Submit again
+is safe, where it used to say "Is the API running on :3300?" — a developer's
+sentence on the most public screen — and a bodiless 502/503/504 says the
+application may still have arrived (`form-checks.ts`). (3) **A retry of the
+same form is the same application.** The reply can be lost AFTER the row is
+saved, and the retry then met the duplicate guard's opaque 409, which reads as
+a refusal to somebody who has just applied. The form mints one random key per
+filled-in form (`newSubmissionKey`, re-minted only by `reset()`), sends it as
+`submission_key` on every submit, and `registrations.submission_key_hash`
+(migration `f4a2c9e7b1d3`, sha256, never the key, no backfill) lets
+`_duplicate_answer` answer a repeat with the ORIGINAL 201. A different key, no
+key, or an older row still meets the opaque 409, so the form is no more of a
+"has X applied" lookup than before. Two submits racing past the guard used to
+500 at the unique index on `db.flush()`; the loser is now answered exactly as
+a retry would be. `tests/test_registration_retry.py`. (4) **Visibility**: the
+browser reports a registration network failure to Sentry through Angular's
+`ErrorHandler` (a fixed sentence, nothing from the form), because it is the
+one failure no log or triage agent can otherwise see; a 422 on
+`POST /api/register` logs the refused field NAMES and error types and never
+their values (`log_form_refusal`, `tests/test_registration_refusal_log.py`) —
+seventy fast 422s that morning had no recorded cause; and CloudFront writes a
+request log (standard logging v2 to `reep-cloudfront-logs-<account>`, edge
+stack, harden only, `cloudfrontLogDays` 30) whose field list deliberately
+LEAVES OUT `cs-uri-query`, `cs(Cookie)` and `cs(Referer)`: the setup, reset
+and activation links are `?token=`, the cookie is the session, and a referer
+carries the previous page's query string. The legacy log cannot omit fields,
+which is why it is not used. Takes an `edge-waf` deploy to exist.
+
 **THE CLAIM FORM FILED INTO A QUEUE THE MENTOR'S SCREEN NEVER OPENED.**
 `/student/skilling` stores the certificate through `POST /student/uploads` and
 files `badge_evidence` against it (`POST /student/badges/{code}/evidence`);
@@ -2119,6 +2158,25 @@ both holding the new build and nothing in any log saying so.
 `tools/ci/check_ngsw_integrity.py` fails the deploy there instead, and also
 refuses a `.map` in the hashTable — deploy deletes maps before upload, so a
 worker expecting one could never install.
+
+**THE REGISTERED WORKER IS `reep-sw.js`, AND ngsw NEVER SEES AN `/api/`
+REQUEST (2026-10-01).** ngsw answers a network failure with a 504 it makes up,
+so a phone that lost its signal mid-upload showed "(504)" for a request no
+server ever received. `apps/web/public/reep-sw.js` adds a `fetch` listener that
+calls `stopImmediatePropagation()` for same-origin `/api/` and only THEN
+`importScripts('./ngsw-worker.js')` — listeners run in the order they were
+added, so the import must come second, and nobody calls `respondWith`, so the
+browser performs the request itself and a real network error reaches the page.
+ngsw served nothing under `/api/` anyway (no `dataGroups`, rule 1), so this
+costs nothing it did. It is a fixed name like ngsw-worker.js: in the no-cache
+pass and the invalidation in deploy.yml (ngsw-worker.js stays there too — it is
+imported, and browsers byte-compare imported scripts for updates), matched by
+no asset group so `check_ngsw_integrity.py` never hashes it, and refused by
+the release gate together with `app.config.ts`, so no agent auto-ships a worker
+change to every installed phone. Installed phones move over on their next app
+load. `ngsw-bypass` per request was the alternative and was rejected: it must
+be on every fetch in the app, and the one somebody forgets brings this back.
+`tests/test_codebase_guards.py` §38 pins all four files.
 
 **Regenerating the icon subset for `menu` found `refresh` missing**, which
 `/register` had been rendering as a blank space. `collect-icon-names.py` reads

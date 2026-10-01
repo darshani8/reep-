@@ -43,15 +43,23 @@ export const appConfig: ApplicationConfig = {
      * index.html out of the cache, and a student would get the app shell where
      * a document download or an error should have been.
      *
+     * THE REGISTERED SCRIPT IS `reep-sw.js`, NOT `ngsw-worker.js` (2026-10-01).
+     * It is a few lines in `public/` that take every `/api/` request away from
+     * ngsw and then `importScripts` ngsw unchanged. ngsw answers a network
+     * failure with a 504 it makes up, so a phone that lost its signal during
+     * an upload was shown "(504)" for a request no server ever saw; the
+     * wrapper's own comment has the evidence. Registering `ngsw-worker.js`
+     * here again brings that back on every screen.
+     *
      * ENABLED ONLY WHERE A WORKER IS BUILT. `ng build` writes ngsw-worker.js
-     * under the production configuration only, so registering it in dev would
-     * be a permanent 404 in the console on every developer's machine.
+     * under the production configuration only, so registering the wrapper in
+     * dev would import a file that is not there, on every developer's machine.
      * `registerWhenStable:30000` keeps the registration off the critical path —
      * the worker is fetched once the app goes stable, or after 30s if it never
      * does (a long-poll or an open WebSocket can keep it unstable, and this app
      * holds one open for the whole of a mock interview).
      */
-    provideServiceWorker('ngsw-worker.js', {
+    provideServiceWorker('reep-sw.js', {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',
     }),

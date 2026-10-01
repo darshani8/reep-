@@ -71,6 +71,8 @@ def test_rule_1_rule_2_and_auth_files_need_a_human() -> None:
 def test_the_service_worker_and_dependencies_need_a_human() -> None:
     for path in (
         "apps/web/ngsw-config.json",
+        "apps/web/public/reep-sw.js",
+        "apps/web/src/app/app.config.ts",
         "apps/web/package.json",
         "apps/api-py/requirements.txt",
         "apps/api-py/Dockerfile",

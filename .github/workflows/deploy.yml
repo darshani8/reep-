@@ -351,19 +351,26 @@ jobs:
       # green deploy, which is the same shape of failure as the immutable
       # index.html this step already guards against, but worse, because a
       # service worker survives a tab close and a reboot.
+      #
+      # `reep-sw.js` IS THE REGISTERED SCRIPT SINCE 2026-10-01 and goes with
+      # them: it takes /api/ away from ngsw and then importScripts
+      # ngsw-worker.js, so BOTH are fixed names a browser byte-compares when
+      # it checks for a worker update. Leave either out of this pass, the loop
+      # or the invalidation and that update never reaches an installed phone.
+      # apps/api-py/tests/test_codebase_guards.py §38 fails the build on a missing one.
       - name: Publish
         working-directory: apps/web/dist/web/browser
         run: |
           aws s3 sync . "s3://${{ vars.WEB_BUCKET || 'reep-web-20260827213147410900000003' }}" --delete \
             --exclude "index.html" \
-            --exclude "ngsw.json" --exclude "ngsw-worker.js" \
+            --exclude "ngsw.json" --exclude "ngsw-worker.js" --exclude "reep-sw.js" \
             --exclude "safety-worker.js" --exclude "worker-basic.min.js" \
             --cache-control "public,max-age=31536000,immutable"
           aws s3 cp index.html "s3://${{ vars.WEB_BUCKET || 'reep-web-20260827213147410900000003' }}/index.html" \
             --cache-control "no-cache,no-store,must-revalidate"
           # --exclude above also excludes these from --delete, which is what we
           # want: they are overwritten here every time and never orphaned.
-          for f in ngsw.json ngsw-worker.js safety-worker.js worker-basic.min.js; do
+          for f in ngsw.json ngsw-worker.js reep-sw.js safety-worker.js worker-basic.min.js; do
             [ -f "$f" ] || continue
             aws s3 cp "$f" "s3://${{ vars.WEB_BUCKET || 'reep-web-20260827213147410900000003' }}/$f" \
               --cache-control "no-cache,no-store,must-revalidate"
@@ -373,7 +380,7 @@ jobs:
         run: |
           aws cloudfront create-invalidation \
             --distribution-id "${{ vars.CLOUDFRONT_ID || 'EW482RJIK9CVE' }}" \
-            --paths "/" "/index.html" "/ngsw.json" "/ngsw-worker.js" >/dev/null
+            --paths "/" "/index.html" "/ngsw.json" "/ngsw-worker.js" "/reep-sw.js" >/dev/null
           echo "SPA deployed: ${{ github.sha }}"
 
   release:

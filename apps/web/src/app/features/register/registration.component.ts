@@ -46,7 +46,7 @@
  * ticked specialization when the form is sent (`batch-years.ts`, with a spec).
  */
 
-import { Component, computed, signal } from '@angular/core';
+import { Component, ErrorHandler, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -54,7 +54,13 @@ import { RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { MAX_SPECIALIZATIONS_FALLBACK, specializationLabel, togglePick } from '../../core/specializations';
 import { batchForYear, batchYear, yearOptions } from './batch-years';
-import { collegeEmailProblem, describeValidationError } from './form-checks';
+import {
+  CONNECTION_DROPPED_MESSAGE,
+  collegeEmailProblem,
+  describeValidationError,
+  edgeTimeoutMessage,
+  newSubmissionKey,
+} from './form-checks';
 
 type DegreeLevel = 'UG' | 'PG';
 
@@ -154,6 +160,13 @@ export class RegistrationComponent {
   readonly pending = signal(false);
   readonly error = signal<string | null>(null);
   readonly result = signal<RegistrationResult | null>(null);
+
+  /** Sent with every submit of THIS filled-in form, so a retry after a lost
+   *  reply is recognised as the same application (`newSubmissionKey`). A new
+   *  one is minted only by `reset()`, never per press of Submit. */
+  private submissionKey = newSubmissionKey();
+  /** Sentry's handler where Sentry is configured, the console otherwise. */
+  private readonly errorHandler = inject(ErrorHandler);
 
   /// Files staged on the form, sent WITH the application in the one multipart
   /// request the submit handler builds. (The handler is not named as a call
@@ -421,6 +434,7 @@ export class RegistrationComponent {
       for (const id of this.specializationIds()) fd.append('specialization_ids', id);
       fd.append('cv', cv, cv.name);
       fd.append('photo', photo, photo.name);
+      fd.append('submission_key', this.submissionKey);
 
       const res = await fetch(`${environment.apiBase}/register`, {
         method: 'POST',
@@ -433,7 +447,15 @@ export class RegistrationComponent {
       }
       this.result.set((await res.json()) as RegistrationResult);
     } catch {
-      this.error.set('Could not reach the registration service. Is the API running on :3300?');
+      this.error.set(CONNECTION_DROPPED_MESSAGE);
+      // Reported, because this is the one failure no server can see: the
+      // request never reached CloudFront, so no log, alarm or triage agent
+      // ever learns it happened (2026-10-01). A fixed sentence and nothing
+      // from the form — no name, address, USN or file — so the report carries
+      // the fact and the browser's own context, never the applicant.
+      this.errorHandler.handleError(
+        new Error('Registration submit failed: no HTTP response (network error on the device)')
+      );
     } finally {
       this.pending.set(false);
     }
@@ -465,6 +487,8 @@ export class RegistrationComponent {
       );
     }
     if (res.status === 422) return 'Please check the form — some details are not valid (422).';
+    const edge = edgeTimeoutMessage(res.status);
+    if (edge) return edge;
     // The status stays in the sentence: a body with no `detail` is the shape
     // an edge refusal has, and "(403)" points at the edge where a sentence
     // about the form points at the applicant.
@@ -480,5 +504,8 @@ export class RegistrationComponent {
     this.photoError.set(null);
     this.setCollege('');
     this.error.set(null);
+    // A fresh form is a fresh application: an old key would make the server
+    // answer this one with the previous application's 201.
+    this.submissionKey = newSubmissionKey();
   }
 }

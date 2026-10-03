@@ -400,6 +400,38 @@ This swap does not make availability worse; it makes the same topology cheaper.
 Two gateways, the genuinely-HA answer, would be ~$87/month.
 
 
+### 3c. The middle option — chosen 2026-10-03, before 3,000 students join
+
+The owner weighed three shapes (everything as it is, ~₹20,000/month; one EC2
+box running `docker-compose.prod.yml`, ~₹7,000; and this) and chose the middle
+one: **keep every managed piece and take only the two rows above that give up
+the least.** Expected run rate ~₹13,000–14,000/month gross with GST.
+
+| Change | Saves/mo | Given up |
+|---|---:|---|
+| NAT gateway → NAT instance (§3b, already built) | ~$50 incl. data processing | a `t4g.nano` somebody patches |
+| RDS Multi-AZ → Single-AZ, `dbMultiAz: false` in `cdk.json` | ~$15–25 at `db.t4g.small` | a ~1 min failover becomes a ~20–30 min recovery; backups, PITR and the 35-day retention are unchanged |
+
+Fargate (2–10 tasks), the ALB, the WAF, the Singapore copy, the archive tier
+and every alarm stay exactly as they are.
+
+**The order is the whole safety of it**, because both changes ride `reep-core`
+and the NAT flags are not in `cdk.json` yet:
+
+1. Merge the `dbMultiAz: false` change, then run `cdk-deploy.yml` →
+   `core-9b` → `deploy` (the full harden — the cutover is long done). Do it
+   at night: if `dbInstanceClassTarget` (`db.t4g.small`) has not been applied
+   yet, the same update resizes the instance, and on a single-AZ instance a
+   class change is a reboot of a few minutes rather than a failover.
+2. `core-nat-instance` → prove egress → `core-nat-retire` (`EGRESS IS PROVEN`).
+3. **Then** write `natInstance: true` and `natGateway: false` into `cdk.json`
+   in a follow-up. Until that lands, any bare `core-9b` deploy re-renders the
+   NAT gateway and re-points the route at it — a NEW gateway with a NEW public
+   address — and `infra-drift.yml` reports the repo-vs-AWS difference every
+   morning. Persisting the flags before step 2 would be the opposite mistake:
+   the next `core-9b` would build the instance and delete the gateway in one
+   update, which is exactly the single step §3b splits in two.
+
 ### 4. Two things I declined to change
 
 **`apiCpu` stays at 512.** Dropping to 256 would save about $16/month and it is

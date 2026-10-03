@@ -504,10 +504,36 @@ def test_an_alarm_reports_a_plan_that_stopped_running(hardened: Template) -> Non
     )
 
 
-def test_multi_az_defaults_on_in_harden_and_can_be_opted_out(hardened: Template) -> None:
-    hardened.has_resource_properties("AWS::RDS::DBInstance", {"MultiAZ": True})
+def test_multi_az_follows_the_flag_in_harden() -> None:
+    """The flag is spelled out on BOTH sides, because cdk.json now turns it
+    off: a bare `_core("harden")` reads the repository's decision, not the
+    code default, and the code default (on) is still what a context-free
+    synth renders."""
+    on = _core("harden", dbMultiAz="true")
+    on.has_resource_properties("AWS::RDS::DBInstance", {"MultiAZ": True})
     opted_out = _core("harden", dbMultiAz="false")
     opted_out.has_resource_properties("AWS::RDS::DBInstance", {"MultiAZ": False})
+
+
+def test_cdk_json_carries_the_single_az_database_the_owner_chose(hardened: Template) -> None:
+    """2026-10-03: the owner chose the "middle option" of the cost review —
+    one managed database instance rather than two. A database failure becomes
+    a ~20-30 minute RDS recovery instead of a ~1 minute failover; backups,
+    point-in-time restore and the 35-day retention are unchanged.
+
+    WRITTEN DOWN, not passed with -c: a flag set at deploy time and not
+    persisted is not configuration (the apiArm64 lesson). If this flips back
+    to true, the next reep-core deploy converts the database to Multi-AZ again
+    and roughly doubles its line on the bill, with nothing on any screen
+    saying so — so the flip must be a decision in a diff, not an accident."""
+    assert CDK_JSON_CONTEXT.get("dbMultiAz") is False, (
+        "cdk.json no longer holds dbMultiAz=false — the next reep-core deploy would "
+        "convert the database back to Multi-AZ (docs/cost-review-2026-09.md §3c)"
+    )
+    hardened.has_resource_properties(
+        "AWS::RDS::DBInstance",
+        {"MultiAZ": False, "BackupRetentionPeriod": 35, "DBInstanceClass": "db.t4g.small"},
+    )
 
 
 def test_task_role_may_send_mail_only_for_the_verified_identity(hardened: Template) -> None:
@@ -1629,7 +1655,7 @@ def test_nothing_in_the_stack_deletes_on_removal(imported: Template, hardened: T
 
 
 def test_import_phase_carries_the_live_database_values_not_the_harden_targets(imported: Template) -> None:
-    """cdk.json sets dbMultiAz=true and backupRetentionDays=35 — the HARDEN
+    """cdk.json sets dbMultiAz and backupRetentionDays=35 — the HARDEN
     targets. The import mirror must ignore them: import does not compare
     properties, so a mirror saying Multi-AZ against a single-AZ instance
     imports fine and then harden, carrying the same value, sends no change.
@@ -1669,7 +1695,7 @@ def test_the_ecs_half_of_harden_can_be_held_back(hardened: Template) -> None:
     """hardenEcs=false: RDS/backup/vault/alarms without the task-definition,
     target-group and service changes, so a circuit-breaker rollback cannot
     also undo a Multi-AZ conversion in the same stack update."""
-    t = _core("harden", hardenEcs="false", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    t = _core("harden", hardenEcs="false", dbMultiAz="true", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
     t.has_resource_properties("AWS::RDS::DBInstance", {"MultiAZ": True, "BackupRetentionPeriod": 35})
     t.has_resource_properties(
         "AWS::ElasticLoadBalancingV2::TargetGroup",

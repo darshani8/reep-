@@ -220,7 +220,7 @@ jobs:
             # stack name, never left to whoever is running the workflow.
             core-nat-instance)
                             echo "stacks=reep-core" >> "$GITHUB_OUTPUT"
-                            echo "context=-c natInstance=true" >> "$GITHUB_OUTPUT" ;;
+                            echo "context=-c natInstance=true -c natGateway=true" >> "$GITHUB_OUTPUT" ;;
             core-nat-retire)
                             echo "stacks=reep-core" >> "$GITHUB_OUTPUT"
                             echo "context=-c natInstance=true -c natGateway=false" >> "$GITHUB_OUTPUT" ;;

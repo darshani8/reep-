@@ -96,7 +96,11 @@ def test_import_phase_is_a_strict_subset_of_harden(imported: Template, hardened:
     nothing."""
     imp = set(imported.to_json()["Resources"])
     hard = set(hardened.to_json()["Resources"])
-    assert imp <= hard, f"import-phase resources missing from harden: {sorted(imp - hard)}"
+    # The one deliberate exception: the managed NAT gateway and its EIP were
+    # retired on 2026-10-03 (natGateway=false in cdk.json) after the NAT
+    # instance was proven. Anything else missing is still a replacement.
+    retired = {"Nat", "NatEip"} if CDK_JSON_CONTEXT.get("natGateway") is False else set()
+    assert imp - hard <= retired, f"import-phase resources missing from harden: {sorted(imp - hard - retired)}"
     added = sorted(hard - imp)
     assert added, "harden must add something, or it is not a hardening"
 
@@ -1759,7 +1763,8 @@ def test_the_import_mirror_keeps_terraforms_tag_and_the_eip_keeps_it_forever(imp
 
     vpc = next(r for r in imported.to_json()["Resources"].values() if r["Type"] == "AWS::EC2::VPC")
     assert tag(vpc, "ManagedBy") == "terraform"
-    eip = next(r for r in hardened.to_json()["Resources"].values() if r["Type"] == "AWS::EC2::EIP")
+    with_gateway = _core("harden", natGateway="true", natInstance="false", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    eip = next(r for r in with_gateway.to_json()["Resources"].values() if r["Type"] == "AWS::EC2::EIP")
     assert tag(eip, "ManagedBy") == "terraform", "a tag update on an EIP may reassociate the address"
     vpc_h = next(r for r in hardened.to_json()["Resources"].values() if r["Type"] == "AWS::EC2::VPC")
     assert tag(vpc_h, "ManagedBy") == "cdk"
@@ -1941,11 +1946,13 @@ def test_graviton_changes_nothing_but_the_platform() -> None:
     }, "apiArm64 changed more than the platform"
 
 
-def test_nat_egress_is_unchanged_by_default(hardened: Template) -> None:
-    """No flag set means the managed gateway, exactly as it is live today."""
-    hardened.resource_count_is("AWS::EC2::NatGateway", 1)
-    hardened.resource_count_is("AWS::EC2::Instance", 0)
-    route = hardened.to_json()["Resources"]["PrivateDefaultRoute"]["Properties"]
+def test_nat_gateway_egress_when_the_flags_ask_for_it() -> None:
+    """natGateway=true, natInstance=false: the managed gateway, as it was live
+    until 2026-10-03. Spelled out, because cdk.json now says otherwise."""
+    t = _core("harden", natGateway="true", natInstance="false", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    t.resource_count_is("AWS::EC2::NatGateway", 1)
+    t.resource_count_is("AWS::EC2::Instance", 0)
+    route = t.to_json()["Resources"]["PrivateDefaultRoute"]["Properties"]
     assert "NatGatewayId" in route, "the private subnets stopped routing through the gateway"
     assert "InstanceId" not in route
 
@@ -1958,7 +1965,7 @@ def test_nat_instance_does_not_remove_the_gateway() -> None:
     never went away — no re-create, and so no new public address for anything
     that allowlisted the old one.
     """
-    t = _core("harden", natInstance="true", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+    t = _core("harden", natInstance="true", natGateway="true", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
     t.resource_count_is("AWS::EC2::NatGateway", 1)
     t.resource_count_is("AWS::EC2::Instance", 1)
     route = t.to_json()["Resources"]["PrivateDefaultRoute"]["Properties"]
@@ -1986,6 +1993,9 @@ def test_nat_instance_forwards_at_all() -> None:
     # unit is started.
     assert "dnf install -y iptables-nft" in user_data
     assert user_data.index("dnf install -y iptables-nft") < user_data.index("systemctl enable --now reep-nat.service")
+    # ...and swap before the install: dnf was OOM-killed on the 512 MB box.
+    assert "swapon /swapfile" in user_data
+    assert user_data.index("swapon /swapfile") < user_data.index("dnf install -y iptables-nft")
     assert "MASQUERADE" in user_data
     # A systemd unit, not an inline apply: cloud-init runs user data on FIRST
     # BOOT ONLY, so rules applied inline vanish on the first reboot and the
@@ -2014,7 +2024,7 @@ def test_retiring_the_gateway_needs_the_instance_first() -> None:
     covers them. Refused at synth rather than discovered at 3am.
     """
     with pytest.raises(ValueError, match="NO route to the internet"):
-        _core("harden", natGateway="false", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
+        _core("harden", natGateway="false", natInstance="false", drVaultArn="arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr")
 
 
 def test_the_money_only_stops_when_the_gateway_goes() -> None:
@@ -2027,6 +2037,17 @@ def test_the_money_only_stops_when_the_gateway_goes() -> None:
     t.resource_count_is("AWS::EC2::Instance", 1)
     route = t.to_json()["Resources"]["PrivateDefaultRoute"]["Properties"]
     assert "InstanceId" in route
+
+
+def test_cdk_json_carries_the_nat_instance_the_deployment_is_actually_running(hardened: Template) -> None:
+    """2026-10-03: core-nat-instance, then the egress probe, then core-nat-retire.
+    WRITTEN DOWN, not passed with -c (the apiArm64 lesson): without these two
+    keys every bare core-9b deploy would re-create the NAT gateway with a NEW
+    public address and point the route back at it, silently."""
+    assert CDK_JSON_CONTEXT.get("natInstance") is True
+    assert CDK_JSON_CONTEXT.get("natGateway") is False
+    hardened.resource_count_is("AWS::EC2::NatGateway", 0)
+    hardened.resource_count_is("AWS::EC2::Instance", 1)
 
 
 def test_the_deploy_role_still_has_no_codedeploy_cloudformation_or_rds(hardened: Template) -> None:

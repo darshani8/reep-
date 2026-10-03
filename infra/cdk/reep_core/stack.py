@@ -641,8 +641,14 @@ class CoreStack(Stack):
         # it would make the rollback a re-create, and a re-created gateway gets
         # a NEW public address — so anything that ever allowlisted the old one
         # breaks on the worst possible day. Hence the middle state.
-        use_nat_gateway = flag("natGateway", True)
-        use_nat_instance = flag("natInstance", False)
+        #
+        # HARDEN-ONLY, like every other target cdk.json sets (dbMultiAz,
+        # backupRetentionDays). Since 2026-10-03 cdk.json carries
+        # natInstance=true / natGateway=false because that is what is live; the
+        # import phase is a mirror of what Terraform handed over, which had the
+        # gateway and no instance, and it must keep describing that.
+        use_nat_gateway = flag("natGateway", True) if harden else True
+        use_nat_instance = flag("natInstance", False) if harden else False
         if not use_nat_gateway and not use_nat_instance:
             raise ValueError(
                 "natGateway=false with natInstance=false leaves the private subnets with NO route to "
@@ -726,6 +732,12 @@ class CoreStack(Stack):
                         # it could not reach Secrets Manager. Installed here, at
                         # first boot, because a package persists across reboots
                         # and the unit only has to apply the rules.
+                        # A t4g.nano has 512 MB and dnf's AL2023 metadata
+                        # is ~80 MB: on 2026-10-03 the OOM killer took dnf on
+                        # the second attempt too ("Killed"), the script stopped
+                        # and the instance again forwarded nothing. Swap first.
+                        "fallocate -l 1G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile",
+                        "echo '/swapfile none swap defaults 0 0' >>/etc/fstab",
                         "dnf install -y iptables-nft",
                         "echo 'net.ipv4.ip_forward = 1' >/etc/sysctl.d/90-reep-nat.conf",
                         "cat >/usr/local/sbin/reep-nat.sh <<'NATEOF'",

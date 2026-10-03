@@ -104,9 +104,8 @@ def feature_row(lane: str, feature: str, eps: list[dict], routes: dict) -> tuple
             f'<span class="verb">{E(n8n.verb_in(e, lane))}{api_only}</span></li>')
         search += [e["path"], n8n.verb_in(e, lane)]
     modules = sorted({e["module"] for e in eps})
-    gates = sorted({re.sub(r"\s+", " ", e["guard"]).strip() for e in eps})
-    caps = sorted({e["capability"] for e in eps
-                   if e.get("capability") and e["capability"] != e.get("delegate_capability")})
+    gates = sorted({n8n.gate_in(e["guard"], lane) for e in eps})
+    caps = n8n.caps_in(eps, lane)
     tables = sorted({t for e in eps for t in e["tables"]})
     ext = [n8n.EXTERNAL[x]["label"] for x in sorted({x for e in eps for x in e["external"]}) if x in n8n.EXTERNAL]
     search += modules + tables + ext

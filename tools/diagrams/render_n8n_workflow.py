@@ -286,6 +286,38 @@ def guard_short(guard: str) -> str:
     return g if len(g) <= 60 else g[:57] + "..."
 
 
+LANE_ROLE_WORDS = {"STUDENT": {"STUDENT"}, "FACULTY": {"MENTOR", "FACULTY"}, "MAIN_ADMIN": {"ADMIN"},
+                   "ALUMNI": {"ALUMNI"}}
+ROLE_CLAUSE = re.compile(r" for ([A-Z]+(?:/[A-Z]+)*)$")
+
+
+def gate_in(guard: str, lane: str) -> str:
+    """The gate as this lane meets it.
+
+    A guard written as "name: X for MENTOR/ADMIN; Y for STUDENT; Z" keeps only the
+    clauses for this lane's role (and the unconditional ones), so the student lane
+    does not print the staff capability as the student's gate. A lane that matches
+    no clause sees them all.
+    """
+    g = re.sub(r"\s+", " ", guard or "").strip()
+    head, sep, rest = g.partition(": ")
+    clauses = rest.split("; ")
+    tagged = [c for c in clauses if ROLE_CLAUSE.search(c)]
+    words = LANE_ROLE_WORDS.get(lane, set())
+    mine = [c for c in tagged if set(ROLE_CLAUSE.search(c).group(1).split("/")) & words]
+    if not sep or not mine:
+        return g
+    return head + ": " + "; ".join(c for c in clauses if c in mine or c not in tagged)
+
+
+def caps_in(eps: list[dict], lane: str) -> list[str]:
+    """Capabilities on a card: staff hold capabilities, students and alumni hold none."""
+    if lane not in ("FACULTY", "MAIN_ADMIN"):
+        return []
+    return sorted({e["capability"] for e in eps
+                   if e.get("capability") and e["capability"] != e.get("delegate_capability")})
+
+
 def plural(n: int, word: str) -> str:
     if n == 1:
         return f"{n} {word}"
@@ -444,9 +476,8 @@ def feature_table(lane: str, feature: str, eps: list[dict], routes) -> tuple[str
         rows.append(f"| {op_label} | {e['method']} | `{md_escape(e['path'])}` | "
                     f"{md_escape(verb_in(e, lane))}{mark} |")
     modules = sorted({e["module"] for e in eps})
-    guards = sorted({guard_short(e["guard"]) for e in eps})
-    caps = sorted({e["capability"] for e in eps
-                   if e.get("capability") and e["capability"] != e.get("delegate_capability")})
+    guards = sorted({guard_short(gate_in(e["guard"], lane)) for e in eps})
+    caps = caps_in(eps, lane)
     tables = sorted({t for e in eps for t in e["tables"]})
     ext = sorted({x for e in eps for x in e["external"]})
     lines = [
@@ -465,13 +496,27 @@ def feature_table(lane: str, feature: str, eps: list[dict], routes) -> tuple[str
     ]
     if (lane, feature) in CROSS_REFERENCES:
         lines.append(f"**Also** {CROSS_REFERENCES[(lane, feature)]}")
-    if api_only and screens:
+    if api_only:
         lines.append("† no screen in this role's navigation calls it (API or typed URL only)")
     longest = max([len(e["path"]) for e in eps] + [0])
     longest_verb = max([len(e["verb"]) for e in eps] + [0])
     width = max(900, 7.4 * (longest + longest_verb) + 260)
     footer = lines[5 + len(rows) + 1:]  # title, flags, blank, header, rule, rows, blank
     return "\n".join(lines), int(width), table_height(len(rows), footer, int(width))
+
+
+def short_output(feature: str, area: str, siblings) -> str:
+    """A switch output's label: what is left once the words every sibling shares are gone.
+
+    n8n cuts an output label at about fourteen characters, so "Voice platform call
+    sessions" and "Skill Verifications: badge claims" would read like their siblings.
+    """
+    if feature.startswith(area + " "):
+        return feature[len(area) + 1:]
+    head, sep, tail = feature.partition(": ")
+    if sep and sum(1 for f in siblings if f.startswith(head + ": ")) > 1:
+        return tail
+    return feature
 
 
 def render_lane(wf: Workflow, lane: str, groups, lx: int, top: int, routes, grants=None,
@@ -525,7 +570,8 @@ def render_lane(wf: Workflow, lane: str, groups, lx: int, top: int, routes, gran
             outputs = CRUD + (["ACTION"] if "ACTION" in ops else [])
             labels = [o if o in ops else f"{o} ✗" for o in outputs]
             sw = wf.switch(f"{tag} · {f}", col_feature, center, labels,
-                           notes="CRUD " + " ".join(CRUD_SHORT[o] + ("✓" if o in ops else "✗") for o in CRUD))
+                           notes="CRUD " + " ".join(CRUD_SHORT[o] + ("✓" if o in ops else "✗") for o in CRUD)
+                           + (" A✓" if "ACTION" in ops else ""))
             feature_switches.append(sw)
 
             code_lines = [f"# {f} -- FastAPI handlers ({ROLES[lane]['title']})"]
@@ -533,10 +579,12 @@ def render_lane(wf: Workflow, lane: str, groups, lx: int, top: int, routes, gran
                 for e in sel:
                     code_lines.append(f"# {op:<6} {e['method']:<6} {e['path']}  ->  "
                                       f"{e['module']}::{e['handler']}" + (f" (line {e['line']})" if e.get("line") else ""))
-            code_lines.append("# gate: " + " | ".join(sorted({guard_short(e['guard']) for e in eps})))
+            code_lines.append("# gate: " + " | ".join(sorted({gate_in(e['guard'], lane) for e in eps})))
             code_lines.append("return _input.all()")
             modules = sorted({e["module"] for e in eps})
-            code = wf.node(f"{tag} · {f} · FastAPI", "code", 2, col_code, center,
+            # The distinguishing word goes first: n8n clamps a label to two lines, and a
+            # long feature name used to push "· UPDATE" or "· PostgreSQL" off the end.
+            code = wf.node(f"{tag} · FastAPI · {f}", "code", 2, col_code, center,
                            {"language": "python", "pythonCode": "\n".join(code_lines)},
                            notes=", ".join(m.replace("routers/", "") for m in modules)[:60])
 
@@ -549,7 +597,7 @@ def render_lane(wf: Workflow, lane: str, groups, lx: int, top: int, routes, gran
                 method = "GET" if first["method"] == "WS" else first["method"]
                 params = {"method": method, "url": origin + first["path"], "options": {}}
                 more = f" +{len(sel) - 1}" if len(sel) > 1 else ""
-                name = wf.node(f"{tag} · {f} · {op}", "httpRequest", 4.2, col_op, op_y0 + i * PITCH,
+                name = wf.node(f"{tag} · {op} · {f}", "httpRequest", 4.2, col_op, op_y0 + i * PITCH,
                                params, notes=f"{first['method']} {first['path']}{more}")
                 wf.link(sw, name, outputs.index(op))
                 wf.link(name, code)
@@ -565,24 +613,29 @@ def render_lane(wf: Workflow, lane: str, groups, lx: int, top: int, routes, gran
                             by_op[op] = ts
                     query = ["-- RDS PostgreSQL 17 (reep-postgres, db reep_py) via SQLAlchemy 2.0 + psycopg 3"]
                     query += [f"-- {op:<6} {', '.join(ts)}" for op, ts in by_op.items()]
-                    name = wf.node(f"{tag} · {f} · PostgreSQL", "postgres", 2.5, col_data, ty,
+                    name = wf.node(f"{tag} · PostgreSQL · {f}", "postgres", 2.5, col_data, ty,
                                    {"operation": "executeQuery", "query": "\n".join(query), "options": {}},
                                    notes=", ".join(tables_used)[:60], cred="postgres")
                 else:
                     spec = EXTERNAL[t]
-                    name = wf.node(f"{tag} · {f} · {spec['label']}", spec["type"], spec["v"], col_data, ty,
+                    name = wf.node(f"{tag} · {spec['label']} · {f}", spec["type"], spec["v"], col_data, ty,
                                    json.loads(json.dumps(spec["params"])), notes=spec["note"], cred=spec.get("cred"))
                 wf.link(code, name)
 
             wf.sticky(f"Endpoints · {tag} · {f}", col_table, y - 60, table_w, th, role["color"], md)
             y += block_h + 70
 
-        wf.sticky(f"Area · {tag} · {g}", col_domain - 60, dom_top, lane_w - (col_domain - 60 - lx) - 40,
+        # The hub sits at the area's left edge: the lane root's edge reaches it almost
+        # horizontally, below the heading, instead of cutting down through the heading.
+        wf.sticky(f"Area · {tag} · {g}", col_domain - 20, dom_top, lane_w - (col_domain - 20 - lx) - 40,
                   y - dom_top - 20, 7,
                   f"## {g}\n{plural(len(feats), 'feature')} · "
                   f"{plural(sum(len(v) for v in feats.values()), 'endpoint')}")
         hub = f"{tag} · {g}" if g not in feats else f"{tag} · {g} · feature area"
-        dsw = wf.switch(hub, col_domain, dom_switch_y, list(feats.keys()),
+        # An output label drops the area's own name ("Voice platform call sessions" reads
+        # "call sessions"): n8n cuts output labels short, and seven of them read alike.
+        outs = [short_output(f, g, feats) for f in feats]
+        dsw = wf.switch(hub, col_domain, dom_switch_y, outs,
                         notes=plural(len(feats), "feature"))
         for i, fs in enumerate(feature_switches):
             wf.link(dsw, fs, i)
@@ -593,7 +646,9 @@ def render_lane(wf: Workflow, lane: str, groups, lx: int, top: int, routes, gran
         y = render_grants(wf, lane, grants, lx, y, lane_w, domain_entries, routes)
 
     first_y = top + 260
-    lane_switch = wf.switch(f"{role['title']}{title_suffix} · feature areas", lx, first_y,
+    # The role's short name: the full title ("... the placement office") pushed
+    # "feature areas" past n8n's two-line label.
+    lane_switch = wf.switch(f"{role['title'].split(' (')[0]}{title_suffix} · feature areas", lx, first_y,
                             [g for g, _ in domain_entries], notes=plural(len(domain_entries), "area"))
     for i, (_, dsw) in enumerate(domain_entries):
         wf.link(lane_switch, dsw, i)
@@ -650,12 +705,13 @@ def render_grants(wf, lane, grants, lx, y, lane_w, domain_entries, routes):
     table_w = lane_w - (col_table - lx) - 100
     table_h = 360 + 78 * (len(keys) + 1)
     wf.sticky(f"Endpoints · {tag} · granted", col_table, dom_top + 50, table_w, table_h, ROLES[lane]["color"], md)
-    sw = wf.switch(f"{tag} · Granted by the Main Admin", col_domain, y, keys,
+    sw = wf.switch(f"{tag} · Granted by the Main Admin", col_domain, y,
+                   [k.removeprefix("admin.") if k != "admin.*" else k for k in keys],
                    notes=plural(len(keys), "capability"))
     for i, t in enumerate(targets):
         wf.link(sw, t, i)
     bottom = max(y + len(keys) * PITCH, dom_top + 50 + table_h) + 40
-    wf.sticky(f"Area · {tag} · granted", col_domain - 60, dom_top, lane_w - 340, bottom - dom_top, 7,
+    wf.sticky(f"Area · {tag} · granted", col_domain - 20, dom_top, lane_w - 380, bottom - dom_top, 7,
               f"## Granted console screens (Governance)\n{plural(len(keys), 'capability')} · "
               f"{plural(sum(len(v) for v in grants.values()), 'endpoint')}")
     domain_entries.append(("Granted by the Main Admin", sw))
@@ -752,7 +808,7 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict, edge: di
         "DELETE** (+ ACTION for a sign-in, a code, a socket); an output written `DELETE ✗` is an operation "
         "**that role is not offered**. |",
         "| **HTTP Request** (globe) | one offered operation: the method and path of its first endpoint; the "
-        "subtitle says how many more. The feature's yellow-green-blue card lists every endpoint. |",
+        "subtitle says how many more. The feature's card, in its lane's colour, lists every endpoint. |",
         "| **Code** `{ }` | the FastAPI handler(s): file, function, line and the gate it runs |",
         "| **Postgres** (elephant) | the RDS tables that feature reads or writes, per operation |",
         "| **S3 · SES · DynamoDB · SQS · Lambda · ELB** | the AWS service by its own icon; Bedrock, Google, "
@@ -852,6 +908,7 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict, edge: di
                    notes="expire 90 d", cred="aws")
     edge_src = wf.node("Edge request logs", "noOp", 1, c3, r(0) + 110, notes="CloudFront + ALB access logs")
     wf.link(edge_src, cfl); wf.link(edge_src, albl)
+    wf.link(edge["cloudfront"], edge_src, 0)  # the CloudFront log is distribution-wide
     wf.link(edge["cloudfront"], edge_src, 1); wf.link(edge["alb"], edge_src)
 
     # ---- schedules
@@ -935,16 +992,20 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict, edge: di
                      {"language": "python", "pythonCode": "# python -m app.voice_platform.queue.worker --degree UG|PG\n"
                       "# would upsert platform_candidates on external_id\nreturn _input.all()"},
                      notes="no service or schedule runs it", disabled=True)
-    ddb = wf.node("DynamoDB reep-voice-sessions-ug / -pg", "awsDynamoDb", 1, c1, vy + 480,
+    # The api task's calls into this section start from a node here, with no edge back to
+    # the task in section 2: that edge ran through the headings of sections 3 and 4.
+    media = wf.node("api task: media bridge + bulk upload", "noOp", 1, c0 + 300, vy + 520,
+                    notes="/api/platform/* inside reep-api (section 2)")
+    ddb = wf.node("DynamoDB reep-voice-sessions-ug / -pg", "awsDynamoDb", 1, c2 + 600, vy + 520,
                   {"operation": "upsert", "tableName": "reep-voice-sessions-ug"}, notes="TTL 180 d, PITR", cred="aws")
-    rec = wf.node("S3 recordings/ (versioned)", "awsS3", 2, c2, vy + 480,
+    rec = wf.node("S3 recordings/ (versioned)", "awsS3", 2, c3 + 400, vy + 520,
                   {"operation": "upload", "bucketName": "reep-voice-platform recordings",
                    "fileName": "recordings/<session_id>.wav"}, notes="no lifecycle; presigned GET", cred="aws")
-    ssm = wf.node("SSM /reep/voice-platform/PLATFORM_*", "httpRequest", 4.2, c0, vy + 480,
+    ssm = wf.node("SSM /reep/voice-platform/PLATFORM_*", "httpRequest", 4.2, c1 + 300, vy + 520,
                   EXTERNAL["SSM"]["params"], notes="read by the api at boot")
     wf.link(ing, lam); wf.link(lam, sqs); wf.link(sqs, dlq); wf.link(sqs, worker)
     for t in (ssm, ddb, rec, sqs):
-        wf.link(task, t)  # SSM read once at boot; SQS only for bulk mode=queue
+        wf.link(media, t)  # SSM read once at boot; SQS only for bulk mode=queue
 
     # ---- CI/CD
     gy = vy + 820
@@ -979,7 +1040,7 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict, edge: di
     for row, chain in enumerate((api_steps, web_steps)):
         prev = oidc
         for i, (label, note) in enumerate(chain):
-            name = wf.node(label, "noOp", 1, c3 + 300, gy + 200 + row * 640 + i * 200, {}, notes=note)
+            name = wf.node(label, "noOp", 1, c3 + 300 + i * 300, gy + 200 + row * 640 + i * 200, {}, notes=note)
             wf.link(prev, name)
             prev = name
     wf.link(push, ci); wf.link(ci, rel); wf.link(rel, dep); wf.link(dep, oidc)
@@ -1099,7 +1160,7 @@ def main() -> int:
                     break
             for part, chunk in enumerate([items[:cut], items[cut:]]):
                 entry, _bottom, width = render_lane(wf, lane, OrderedDict(chunk), lx, top, routes,
-                                                    title_suffix=f" ({part + 1} of 2)")
+                                                    title_suffix=f", part {part + 1}")
                 wf.link(role_sw, entry, outputs[lane])
                 lx += width + 400
             continue

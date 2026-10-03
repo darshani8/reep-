@@ -1980,6 +1980,12 @@ def test_nat_instance_forwards_at_all() -> None:
     assert p["InstanceType"] == "t4g.nano"
     user_data = p["UserData"]["Fn::Base64"]
     assert "net.ipv4.ip_forward=1" in user_data
+    # AL2023 has no iptables until it is installed; without this line every
+    # rule below fails with "command not found" and the box forwards nothing
+    # (what happened on the first deploy, 2026-10-03). It must come BEFORE the
+    # unit is started.
+    assert "dnf install -y iptables-nft" in user_data
+    assert user_data.index("dnf install -y iptables-nft") < user_data.index("systemctl enable --now reep-nat.service")
     assert "MASQUERADE" in user_data
     # A systemd unit, not an inline apply: cloud-init runs user data on FIRST
     # BOOT ONLY, so rules applied inline vanish on the first reboot and the

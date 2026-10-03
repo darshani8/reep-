@@ -432,6 +432,19 @@ and the NAT flags are not in `cdk.json` yet:
    the next `core-9b` would build the instance and delete the gateway in one
    update, which is exactly the single step §3b splits in two.
 
+**What happened on the first attempt (2026-10-03, 05:16–05:34 UTC).** Step 1
+was deployed and the instance forwarded NOTHING: the proof task (an ops-task
+dry run, which can only start if it reaches Secrets Manager through the route)
+died with `ResourceInitializationError ... connection issue between the task and
+AWS Secrets Manager`. Rolled back with a bare `core-9b` (the gateway had never
+gone away, which is the whole point of the two-flag split), and the same dry run
+then passed. About 13 minutes in which the api tasks had no outbound route, so
+Google sign-in callbacks, mail and new interviews would have failed. The cause is
+in the user data: **Amazon Linux 2023 does not ship `iptables`**, so the unit's
+first rule failed with "command not found". The fix installs `iptables-nft` at
+first boot; the synth guard pins it. Prove egress the same way next time: the
+dry run is the check, and `core-nat-retire` waits until it passes.
+
 ### 4. Two things I declined to change
 
 **`apiCpu` stays at 512.** Dropping to 256 would save about $16/month and it is

@@ -30,7 +30,7 @@ import html
 import json
 import re
 import sys
-from collections import Counter, OrderedDict
+from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -243,6 +243,15 @@ def stack_panel(wf: dict, inv: dict) -> str:
         members = [n for n in wf["nodes"] if not n["type"].endswith("stickyNote") and inside(st, n)]
         members.sort(key=lambda n: (n["position"][1] // 100, n["position"][0]))
         names = {n["name"] for n in members}
+        # Reading order, then never a node before one that feeds it: a fan-out is drawn
+        # centred on its source, so its first target sits above the source.
+        feeds = {name: {s for s in names if name in out_edges.get(s, [])} for name in names}
+        ordered, done = [], set()
+        while members:
+            i = next((i for i, n in enumerate(members) if feeds[n["name"]] <= done), 0)
+            ordered.append(members.pop(i))
+            done.add(ordered[-1]["name"])
+        members = ordered
         items = []
         for n in members:
             targets = [t for t in out_edges.get(n["name"], []) if t in names or nodes[t]["position"][0] < 0]
@@ -285,6 +294,7 @@ def stack_panel(wf: dict, inv: dict) -> str:
 GITHUB_RAW = "https://github.com/darshani8/reep-/raw/ccr-ea6bd00d-nusgh3/docs/diagrams/n8n/"
 DOWNLOADS = [  # (published path, saved name, label); an Artifact cannot host a .zip
     ("reep-roles-features-crud.pdf", "reep-roles-features-crud.pdf", "Printable PDF (.pdf)"),
+    ("reep-n8n-canvas.pdf", "reep-n8n-canvas.pdf", "The n8n diagram as n8n draws it (.pdf)"),
     ("reep-roles-features-crud.n8n.json", "reep-roles-features-crud.n8n.json", "n8n workflow (.json)"),
     ("reep-roles-features-crud.html", "reep-roles-features-crud.html", "This page (.html)"),
     ("reep-feature-inventory.json", "reep-feature-inventory.json", "Endpoint inventory (.json)"),
@@ -296,7 +306,7 @@ def downloads_block() -> str:
     buttons = "".join(f'<button type="button" class="dlb" data-file="{E(path)}" data-name="{E(name)}">{E(label)}</button>'
                       for path, name, label in DOWNLOADS)
     links = "".join(f'<li><a href="{GITHUB_RAW}{E(name)}" target="_blank" rel="noopener">{E(name)}</a></li>'
-                    for _path, name, _label in DOWNLOADS[:4])
+                    for _path, name, _label in DOWNLOADS[:5])
     return (f'<section class="dl" id="downloads" aria-label="Download the files"><h2 class="dl-h">Download</h2>'
             f'<div class="dl-row" data-dl-buttons hidden>{buttons}</div>'
             '<p class="dl-note" data-dl-status role="status">Checking whether this view can save files…</p>'

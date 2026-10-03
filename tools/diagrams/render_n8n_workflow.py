@@ -287,7 +287,9 @@ def guard_short(guard: str) -> str:
 
 
 def plural(n: int, word: str) -> str:
-    return f"{n} {word}" + ("" if n == 1 else "s")
+    if n == 1:
+        return f"{n} {word}"
+    return f"{n} {word[:-1]}ies" if word.endswith("y") and word[-2:-1] not in "aeiou" else f"{n} {word}s"
 
 
 # ---------------------------------------------------------- lane building ---
@@ -416,10 +418,12 @@ TABLE_ROW = 31
 
 def table_height(n_rows: int, footer: list[str], width: int) -> int:
     """Measured off n8n's renderer: a table row is ~40 units, a footer line ~18
-    units and wraps at about one character per 5.6 units of sticky width."""
+    units and wraps at about one character per 5.6 units of sticky width. The
+    last 24 units are a spare line: measured in n8n 2.41.6, six cards ran 2-12
+    units past this estimate and clipped their last line."""
     per_line = max(40, int(width / 5.6))
     wrapped = sum(max(1, -(-len(line) // per_line)) for line in footer)
-    return 130 + 40 * n_rows + 18 * wrapped + 30
+    return 130 + 40 * n_rows + 18 * wrapped + 54
 
 
 def feature_table(lane: str, feature: str, eps: list[dict], routes) -> tuple[str, int, int]:
@@ -475,8 +479,10 @@ def render_lane(wf: Workflow, lane: str, groups, lx: int, top: int, routes, gran
     """Draw one lane; returns (entry switch name, bottom y, width)."""
     role = ROLES[lane]
     tag = role["tag"]
-    col_domain, col_feature = lx + 300, lx + 600
-    col_op, col_code, col_data, col_table = lx + 900, lx + 1180, lx + 1440, lx + 1700
+    # The area hubs sit 400 in, so the lane root's edges down to them curve through the
+    # gap left of the area stickies rather than through the area headings.
+    col_domain, col_feature = lx + 400, lx + 700
+    col_op, col_code, col_data, col_table = lx + 1000, lx + 1280, lx + 1540, lx + 1800
 
     # Measure first, so the table column can be as wide as the widest table.
     tables = {}
@@ -534,7 +540,9 @@ def render_lane(wf: Workflow, lane: str, groups, lx: int, top: int, routes, gran
                            {"language": "python", "pythonCode": "\n".join(code_lines)},
                            notes=", ".join(m.replace("routers/", "") for m in modules)[:60])
 
-            op_y0 = center - (len(ops) - 1) * PITCH / 2
+            # Snap the first row once: snapping each row separately rounds half to even
+            # and leaves some neighbours 160 apart, where labels touch the node below.
+            op_y0 = snap(center - (len(ops) - 1) * PITCH / 2)
             for i, (op, sel) in enumerate(ops.items()):
                 first = sel[0]
                 origin = DEV_ORIGIN.replace("http", "ws") if first["method"] == "WS" else DEV_ORIGIN
@@ -546,7 +554,7 @@ def render_lane(wf: Workflow, lane: str, groups, lx: int, top: int, routes, gran
                 wf.link(sw, name, outputs.index(op))
                 wf.link(name, code)
 
-            t_y0 = center - (len(targets) - 1) * PITCH / 2
+            t_y0 = snap(center - (len(targets) - 1) * PITCH / 2)
             for i, t in enumerate(targets):
                 ty = t_y0 + i * PITCH
                 if t == "PG":
@@ -573,7 +581,8 @@ def render_lane(wf: Workflow, lane: str, groups, lx: int, top: int, routes, gran
                   y - dom_top - 20, 7,
                   f"## {g}\n{plural(len(feats), 'feature')} · "
                   f"{plural(sum(len(v) for v in feats.values()), 'endpoint')}")
-        dsw = wf.switch(f"{tag} · {g}", col_domain, dom_switch_y, list(feats.keys()),
+        hub = f"{tag} · {g}" if g not in feats else f"{tag} · {g} · feature area"
+        dsw = wf.switch(hub, col_domain, dom_switch_y, list(feats.keys()),
                         notes=plural(len(feats), "feature"))
         for i, fs in enumerate(feature_switches):
             wf.link(dsw, fs, i)
@@ -609,7 +618,7 @@ GRANT_NOTES = {
 def render_grants(wf, lane, grants, lx, y, lane_w, domain_entries, routes):
     """The faculty lane's branch for console screens reached only by a grant."""
     tag = ROLES[lane]["tag"]
-    col_domain, col_feature, col_table = lx + 300, lx + 600, lx + 1700
+    col_domain, col_feature, col_table = lx + 400, lx + 700, lx + 1800
     dom_top = y
     y += 110
     keys = list(grants.keys())
@@ -762,7 +771,7 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict, edge: di
     ]))
 
     # ---- request path label
-    wf.sticky("Request path", x0, y0 + 1460, W + 400, 640, 2,
+    wf.sticky("Request path", x0, y0 + 1460, W + 400, 800, 2,
               "## 1 · One request, phone to role decision\n"
               "Same origin under `/api`, so the httpOnly `reep_session` cookie rides every call. CloudFront's "
               "default behaviour serves the SPA from S3; `/api/*` (HTTP and the interview WebSockets) goes to the "
@@ -770,7 +779,7 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict, edge: di
               "the account's `token_version` (one live session per account), then the role decides the lane.")
 
     # ---- AWS estate
-    ay = y0 + 2120
+    ay = y0 + 2300
     wf.sticky("AWS estate", x0, ay, W, 2780, 2,
               "## 2 · The AWS estate behind the api task (ap-south-1 unless noted)\n"
               "Every call to AWS APIs or the internet leaves the private subnets through the NAT instance "
@@ -848,14 +857,18 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict, edge: di
     # ---- schedules
     sy = ay + 2840
     jobs = [j for j in inv["jobs"] if j.get("diagram") == "schedule"]
-    wf.sticky("Schedules", x0, sy, W, 300 + 240 * max(len(jobs), 1), 1,
+    # Each job's targets are stacked one above the other: in a row, the edges to the
+    # second and third ran straight behind the first and read as one chain.
+    heights = [200 * max(len(j["targets"]), 1) + 40 for j in jobs]
+    wf.sticky("Schedules", x0, sy, W, 200 + sum(heights) + 60, 1,
               "## 3 · What runs with nobody watching (EventBridge Scheduler -> ECS RunTask on reep-api)\n"
               "Same image, roles and EFS mount as the api. Order is load-bearing: the ledger (23:30) and the dump "
               "(01:00) and the archive sweep (02:00) all run BEFORE retention (03:00), the one scheduled "
               "destructor -- a copy taken after it never saw what it removed. Writers may PutObject and List, "
               "never Get or Delete.")
-    for i, j in enumerate(jobs):
-        jy = sy + 200 + i * 240
+    jy0 = sy + 200
+    for j, height in zip(jobs, heights):
+        jy = jy0 + 100 * (max(len(j["targets"]), 1) - 1)
         trig = wf.node(f"{j['schedule_label']}", "scheduleTrigger", 1.2, c0, jy,
                        {"rule": {"interval": [{"field": "cronExpression", "expression": j["cron_n8n"]}]}},
                        notes=j["rule"], disabled=bool(j.get("disabled")))
@@ -865,12 +878,13 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict, edge: di
         wf.link(trig, run)
         for k, tgt in enumerate(j["targets"]):
             spec = tgt
-            name = wf.node(f"{j['name']} -> {spec['label']}", spec["type"], spec["v"], c2 + k * 520, jy,
+            name = wf.node(f"{j['name']} -> {spec['label']}", spec["type"], spec["v"], c2, jy0 + k * 200,
                            spec.get("params", {}), notes=spec.get("note"), cred=spec.get("cred"))
             wf.link(run, name)
+        jy0 += height
 
     # ---- backups and DR
-    by = sy + 300 + 240 * max(len(jobs), 1) + 60
+    by = sy + 200 + sum(heights) + 60 + 60
     wf.sticky("Backups", x0, by, W, 980, 3,
               "## 4 · Backups and disaster recovery\n"
               "PHYSICAL copies (AWS Backup, 35 days = RDS's ceiling, plus a monthly 365-day archive of RDS only) "
@@ -934,7 +948,7 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict, edge: di
 
     # ---- CI/CD
     gy = vy + 820
-    wf.sticky("CI/CD", x0, gy, W, 1560, 7,
+    wf.sticky("CI/CD", x0, gy, W, 1600, 7,
               "## 6 · Shipping it (GitHub Actions; agents hold no AWS credentials)\n"
               "`ci.yml` runs the five checks the (not yet applied) ruleset in `.github/rulesets/main.json` will "
               "require. `deploy.yml` assumes `reep-github-deploy` by OIDC and runs two jobs in PARALLEL: api (push "
@@ -965,7 +979,7 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict, edge: di
     for row, chain in enumerate((api_steps, web_steps)):
         prev = oidc
         for i, (label, note) in enumerate(chain):
-            name = wf.node(label, "noOp", 1, c3 + 300 + i * 0, gy + 200 + row * 520 + i * 170, {}, notes=note)
+            name = wf.node(label, "noOp", 1, c3 + 300, gy + 200 + row * 640 + i * 200, {}, notes=note)
             wf.link(prev, name)
             prev = name
     wf.link(push, ci); wf.link(ci, rel); wf.link(rel, dep); wf.link(dep, oidc)
@@ -987,14 +1001,14 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict, edge: di
             wf.link(gh, oidc)
 
     menu = inv.get("ops_task_menu", [])
-    wf.sticky("Ops task menu", c0 + 2100, gy + 1180, 1700, 320, 7,
+    wf.sticky("Ops task menu", c0 + 2100, gy + 1240, 1660, 320, 7,
               "**`ops-task.yml` is a FIXED menu** (free text there would be RCE on the cluster): "
               + ", ".join(f"`{m}`" for m in menu)
               + ". Each runs `python -m app.<module>` as a one-off Fargate task on the api image; a purge also "
                 "demands its own typed sentence (`DELETE EVERY STUDENT` for purge-students).")
 
     # ---- data model
-    dy = gy + 1620
+    dy = gy + 1660
     tables = inv["tables"]
     by_dom: dict[str, list[str]] = defaultdict(list)
     for t in tables:

@@ -14,6 +14,9 @@ It is a **diagram, not an automation**:
 
 ## Open it
 
+No n8n to hand? Open `reep-n8n-canvas.pdf`: the same canvas as n8n draws it,
+in a file any phone opens (see [below](#the-diagram-itself-without-n8n)).
+
 1. In n8n, go to **Workflows → Import from File** (or paste the file's contents
    onto an empty canvas).
 2. Press **1** (zoom to fit) and zoom into a lane.
@@ -51,6 +54,32 @@ reprint it, run Playwright's Chromium after `npm ci` at the root:
 ```bash
 node tools/diagrams/print_roles_crud_pdf.cjs
 ```
+
+## The diagram itself, without n8n
+
+`reep-n8n-canvas.pdf` is the n8n canvas itself, drawn by n8n at 100% zoom and
+cut into pages that a phone can show:
+
+- **Page 1 is a map** of the whole canvas. Tap a numbered box, or a line of the
+  contents, to go to that page.
+- **One column per lane.** Every page after that is one column of the canvas:
+  - the left-hand column (request path, AWS estate, schedules, backups, pipeline, tables);
+  - one column per role lane.
+- **Pages never split a feature area**, so each one holds whole areas. Its title
+  band names the lane and the areas on it.
+
+The pages are vector, the way n8n draws them, so text stays sharp however far
+you zoom. To render it again, run n8n locally. Use Node 24, and set
+`N8N_SECURE_COOKIE=false` because the session cookie travels over plain http:
+start it with `npx n8n`, then create the owner account. Then run:
+
+```bash
+N8N_EMAIL=you@example.com N8N_PASSWORD=... python tools/diagrams/render_n8n_canvas.py
+```
+
+It imports the workflow into that n8n as a new, inactive workflow. Use
+`--workflow-id` to reuse an existing one. Add `--tiles DIR` to also write a
+deep-zoom tile pyramid of the whole canvas at 100%, for a pan-and-zoom viewer.
 
 ## What it looks like
 

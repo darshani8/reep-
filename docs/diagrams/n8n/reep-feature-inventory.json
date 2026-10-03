@@ -12,7 +12,8 @@
   },
   "counts": {
    "endpoints": 379,
-   "corrections_applied": 25
+   "corrections_applied": 25,
+   "review_corrections_applied": 20
   }
  },
  "endpoints": [
@@ -184,7 +185,7 @@
    "handler": "analytics_summary",
    "line": 1005,
    "feature_group": "Imports & analytics",
-   "feature": "Programme analytics",
+   "feature": "Charts & numbers (analytics)",
    "crud": "READ",
    "verb": "read analytics header counts",
    "roles": [
@@ -215,7 +216,7 @@
    "handler": "analytics_kpis",
    "line": 1593,
    "feature_group": "Imports & analytics",
-   "feature": "Programme analytics",
+   "feature": "Charts & numbers (analytics)",
    "crud": "READ",
    "verb": "read KPI strip",
    "roles": [
@@ -248,7 +249,7 @@
    "handler": "analytics_series",
    "line": 1350,
    "feature_group": "Imports & analytics",
-   "feature": "Programme analytics",
+   "feature": "Charts & numbers (analytics)",
    "crud": "READ",
    "verb": "read weekly trend lines",
    "roles": [
@@ -371,7 +372,7 @@
    "handler": "list_events",
    "line": 240,
    "feature_group": "Governance & audit",
-   "feature": "Audit log",
+   "feature": "What changed (audit log)",
    "crud": "READ",
    "verb": "list audit events",
    "roles": [
@@ -397,7 +398,7 @@
    "handler": "export_csv",
    "line": 280,
    "feature_group": "Governance & audit",
-   "feature": "Audit log",
+   "feature": "What changed (audit log)",
    "crud": "READ",
    "verb": "export audit log CSV",
    "roles": [
@@ -424,7 +425,7 @@
    "handler": "read_event",
    "line": 393,
    "feature_group": "Governance & audit",
-   "feature": "Audit log",
+   "feature": "What changed (audit log)",
    "crud": "READ",
    "verb": "open audit event",
    "roles": [
@@ -473,8 +474,8 @@
    "module": "routers/badge_verification.py",
    "handler": "cohort_view",
    "line": 638,
-   "feature_group": "Skills, badges & certifications",
-   "feature": "Cohort skill report",
+   "feature_group": "Imports & analytics",
+   "feature": "Download reports",
    "crud": "READ",
    "verb": "read cohort badge summary",
    "roles": [
@@ -498,8 +499,8 @@
    "module": "routers/badge_verification.py",
    "handler": "export_cohort_csv",
    "line": 678,
-   "feature_group": "Skills, badges & certifications",
-   "feature": "Cohort skill report",
+   "feature_group": "Imports & analytics",
+   "feature": "Download reports",
    "crud": "READ",
    "verb": "download cohort skill CSV",
    "roles": [
@@ -1826,7 +1827,7 @@
    "handler": "list_faculty",
    "line": 411,
    "feature_group": "Identity & sign-in",
-   "feature": "Faculty accounts",
+   "feature": "Faculty (accounts)",
    "crud": "READ",
    "verb": "list faculty accounts",
    "roles": [
@@ -1854,7 +1855,7 @@
    "handler": "create_faculty",
    "line": 350,
    "feature_group": "Identity & sign-in",
-   "feature": "Faculty accounts",
+   "feature": "Faculty (accounts)",
    "crud": "CREATE",
    "verb": "add faculty member",
    "roles": [
@@ -1887,7 +1888,7 @@
    "handler": "update_faculty",
    "line": 500,
    "feature_group": "Identity & sign-in",
-   "feature": "Faculty accounts",
+   "feature": "Faculty (accounts)",
    "crud": "UPDATE",
    "verb": "edit faculty member",
    "roles": [
@@ -2449,7 +2450,7 @@
    "handler": "import_history",
    "line": 147,
    "feature_group": "Imports & analytics",
-   "feature": "Data imports",
+   "feature": "Upload spreadsheets (imports)",
    "crud": "READ",
    "verb": "list recent imports",
    "roles": [
@@ -2478,7 +2479,7 @@
    "handler": "preview_import",
    "line": 387,
    "feature_group": "Imports & analytics",
-   "feature": "Data imports",
+   "feature": "Upload spreadsheets (imports)",
    "crud": "CREATE",
    "verb": "check import file",
    "roles": [
@@ -2514,7 +2515,7 @@
    "handler": "import_template",
    "line": 973,
    "feature_group": "Imports & analytics",
-   "feature": "Data imports",
+   "feature": "Upload spreadsheets (imports)",
    "crud": "READ",
    "verb": "download import template",
    "roles": [
@@ -2538,7 +2539,7 @@
    "handler": "apply_import",
    "line": 796,
    "feature_group": "Imports & analytics",
-   "feature": "Data imports",
+   "feature": "Upload spreadsheets (imports)",
    "crud": "CREATE",
    "verb": "import rows into records",
    "roles": [
@@ -2570,7 +2571,7 @@
    "handler": "import_errors_csv",
    "line": 901,
    "feature_group": "Imports & analytics",
-   "feature": "Data imports",
+   "feature": "Upload spreadsheets (imports)",
    "crud": "READ",
    "verb": "download error report",
    "roles": [
@@ -3337,7 +3338,7 @@
    "feature_group": "Leave",
    "feature": "College leave calendar",
    "crud": "UPDATE",
-   "verb": "record calendar day",
+   "verb": "add or change calendar day",
    "roles": [
     "MAIN_ADMIN"
    ],
@@ -3354,7 +3355,10 @@
    "frontend": [
     "/admin/leave-approvals"
    ],
-   "summary": "Records or corrects one day on a college's academic calendar (holiday or working day, with a label), which the leave submit path counts working days against."
+   "summary": "Records or corrects one day on a college's academic calendar (holiday or working day, with a label), which the leave submit path counts working days against.",
+   "also_crud": [
+    "CREATE"
+   ]
   },
   {
    "method": "DELETE",
@@ -3534,7 +3538,7 @@
    "handler": "placement",
    "line": 2062,
    "feature_group": "Jobs & placement",
-   "feature": "Placement dashboard",
+   "feature": "Placement & offers",
    "crud": "READ",
    "verb": "read placement funnel",
    "roles": [
@@ -3855,7 +3859,7 @@
    "handler": "reset_interview_cap",
    "line": 756,
    "feature_group": "Interviews",
-   "feature": "Interview policy",
+   "feature": "Daily interview cap reset",
    "crud": "CREATE",
    "verb": "reset student's interview cap",
    "roles": [
@@ -4006,7 +4010,7 @@
    "handler": "student_resume_pdf",
    "line": 1839,
    "feature_group": "Imports & analytics",
-   "feature": "Programme analytics",
+   "feature": "Charts & numbers (analytics)",
    "crud": "READ",
    "verb": "download student CV PDF",
    "roles": [
@@ -4035,7 +4039,7 @@
    "handler": "student_weekly",
    "line": 1143,
    "feature_group": "Imports & analytics",
-   "feature": "Programme analytics",
+   "feature": "Charts & numbers (analytics)",
    "crud": "READ",
    "verb": "read student six-week trend",
    "roles": [
@@ -4258,7 +4262,7 @@
    "handler": "issue_activation_link",
    "line": 1665,
    "feature_group": "Identity & sign-in",
-   "feature": "Faculty accounts",
+   "feature": "Faculty (accounts)",
    "crud": "CREATE",
    "verb": "mint activation link",
    "roles": [
@@ -4434,7 +4438,7 @@
    "handler": "set_institutional_identity",
    "line": 1719,
    "feature_group": "Identity & sign-in",
-   "feature": "Faculty accounts",
+   "feature": "Faculty designation & department",
    "crud": "UPDATE",
    "verb": "set designation and department",
    "roles": [
@@ -4574,7 +4578,8 @@
    "frontend": [
     "/student/agent",
     "/mentor/agent",
-    "/admin/agent"
+    "/admin/agent",
+    "(agent dock on every screen)"
    ],
    "summary": "Runs the structured, tool-backed assistant on a question (student-record intents only for students, grounded KB answers for everyone), persists both turns and one agent run, and returns answer, actions, sources and a run_id."
   },
@@ -4664,7 +4669,8 @@
     "/student/agent",
     "/mentor/agent",
     "/admin/agent",
-    "/student/assistant"
+    "/student/assistant",
+    "(agent dock on every screen)"
    ],
    "summary": "Soft-clears the caller's own assistant conversation (the thread both the typed agent and the mock interviewer write into) so the next chat starts fresh."
   },
@@ -4692,7 +4698,8 @@
    "frontend": [
     "/student/agent",
     "/mentor/agent",
-    "/admin/agent"
+    "/admin/agent",
+    "(agent dock on every screen)"
    ],
    "summary": "Records (upserts) a helpful / not helpful / report rating with a PII-redacted note against one of the caller's own agent runs."
   },
@@ -4721,7 +4728,8 @@
     "/student/agent",
     "/mentor/agent",
     "/admin/agent",
-    "/student/assistant"
+    "/student/assistant",
+    "(agent dock on every screen)"
    ],
    "summary": "Returns the caller's own current conversation turns, typed agent and mock-interview turns alike."
   },
@@ -4862,7 +4870,7 @@
    "feature_group": "Alumni",
    "feature": "Alumni profile",
    "crud": "CREATE",
-   "verb": "create or update profile",
+   "verb": "create (first login) or edit profile",
    "roles": [
     "ALUMNI"
    ],
@@ -4880,7 +4888,10 @@
    "frontend": [
     "/alumni"
    ],
-   "summary": "Creates the alumnus's profile on first sign-in (company plus a required resume) and updates it afterwards, replacing the single resume in place and recording the old file as released in the document manifest."
+   "summary": "Creates the alumnus's profile on first sign-in (company plus a required resume) and updates it afterwards, replacing the single resume in place and recording the old file as released in the document manifest.",
+   "also_crud": [
+    "UPDATE"
+   ]
   },
   {
    "method": "GET",
@@ -4916,9 +4927,9 @@
    "handler": "activate",
    "line": 140,
    "feature_group": "Identity & sign-in",
-   "feature": "Account activation",
+   "feature": "Staff account activation",
    "crud": "UPDATE",
-   "verb": "set first password",
+   "verb": "set first password (staff link)",
    "roles": [
     "PUBLIC"
    ],
@@ -5005,7 +5016,8 @@
    "crud": "ACTION",
    "verb": "request password reset link",
    "roles": [
-    "PUBLIC"
+    "PUBLIC",
+    "ANY_SIGNED_IN"
    ],
    "faculty_access": "ALWAYS",
    "guard": "none (rate-limited per address and globally)",
@@ -5022,7 +5034,13 @@
     "/login",
     "/account/password"
    ],
-   "summary": "Always answers the same 202 sentence, and in the background mails a reset link to an active password account or, for a password-less student, the onboarding setup link; staff without a password and barred accounts get nothing."
+   "summary": "Always answers the same 202 sentence, and in the background mails a reset link to an active password account or, for a password-less student, the onboarding setup link; staff without a password and barred accounts get nothing.",
+   "feature_by_lane": {
+    "ACCOUNT": "Change password"
+   },
+   "verb_by_lane": {
+    "ACCOUNT": "email me a setup link (no password yet)"
+   }
   },
   {
    "method": "GET",
@@ -5291,9 +5309,9 @@
    "handler": "set_first_password",
    "line": 188,
    "feature_group": "Registration & onboarding",
-   "feature": "Account setup (onboarding)",
+   "feature": "Student account setup (onboarding)",
    "crud": "UPDATE",
-   "verb": "set first password",
+   "verb": "set first password (after code)",
    "roles": [
     "PUBLIC"
    ],
@@ -5317,7 +5335,7 @@
    "handler": "start",
    "line": 119,
    "feature_group": "Registration & onboarding",
-   "feature": "Account setup (onboarding)",
+   "feature": "Student account setup (onboarding)",
    "crud": "ACTION",
    "verb": "confirm address, send code",
    "roles": [
@@ -5346,7 +5364,7 @@
    "handler": "verify",
    "line": 155,
    "feature_group": "Registration & onboarding",
-   "feature": "Account setup (onboarding)",
+   "feature": "Student account setup (onboarding)",
    "crud": "ACTION",
    "verb": "verify emailed code",
    "roles": [
@@ -5819,7 +5837,7 @@
    "handler": "submit_leave",
    "line": 316,
    "feature_group": "Leave",
-   "feature": "Leave requests",
+   "feature": "My own leave (apply / withdraw)",
    "crud": "CREATE",
    "verb": "apply for leave",
    "roles": [
@@ -5931,7 +5949,7 @@
    "handler": "decided_leaves",
    "line": 529,
    "feature_group": "Leave",
-   "feature": "Leave approvals",
+   "feature": "Leave requests (approve)",
    "crud": "READ",
    "verb": "list decided leave",
    "roles": [
@@ -5959,7 +5977,7 @@
    "handler": "my_leaves",
    "line": 380,
    "feature_group": "Leave",
-   "feature": "Leave requests",
+   "feature": "My own leave (apply / withdraw)",
    "crud": "READ",
    "verb": "list my leave",
    "roles": [
@@ -5985,7 +6003,7 @@
    "handler": "pending_leaves",
    "line": 489,
    "feature_group": "Leave",
-   "feature": "Leave approvals",
+   "feature": "Leave requests (approve)",
    "crud": "READ",
    "verb": "list pending leave",
    "roles": [
@@ -6023,7 +6041,7 @@
     "FACULTY",
     "MAIN_ADMIN"
    ],
-   "faculty_access": "GRANT",
+   "faculty_access": "OWN_ONLY",
    "guard": "get_current_session; applicant OR leave._assert_can_decide (require_mentor, then ADMIN or has_capability(admin.leave_approvals))",
    "capability": "admin.leave_approvals",
    "tables": [
@@ -6035,7 +6053,9 @@
    "frontend": [
     "/admin/leave-approvals"
    ],
-   "summary": "Returns a leave request's whole alternate-arrangement table (every named colleague and whether each accepted) to the applicant or to whoever may decide the request."
+   "summary": "Returns a leave request's whole alternate-arrangement table (every named colleague and whether each accepted) to the applicant or to whoever may decide the request.",
+   "delegate_capability": "admin.leave_approvals",
+   "grant_feature": "Leave requests (approve)"
   },
   {
    "method": "POST",
@@ -6121,7 +6141,8 @@
     "/mentor/leave",
     "/admin/leave-approvals"
    ],
-   "summary": "Lists the documents attached to a leave request for the applicant or anyone who may decide it, with uploader and a server-computed can_delete flag."
+   "summary": "Lists the documents attached to a leave request for the applicant or anyone who may decide it, with uploader and a server-computed can_delete flag.",
+   "delegate_capability": "admin.leave_approvals"
   },
   {
    "method": "POST",
@@ -6156,7 +6177,8 @@
    "frontend": [
     "/mentor/leave"
    ],
-   "summary": "Attaches a PDF/PNG/JPEG (up to 10 MB, per-request file count and per-uploader byte quota) to a leave request, by the applicant or by an approver adding the office's own letter."
+   "summary": "Attaches a PDF/PNG/JPEG (up to 10 MB, per-request file count and per-uploader byte quota) to a leave request, by the applicant or by an approver adding the office's own letter.",
+   "delegate_capability": "admin.leave_approvals"
   },
   {
    "method": "DELETE",
@@ -6188,7 +6210,8 @@
    "frontend": [
     "/mentor/leave"
    ],
-   "summary": "Removes one file from a leave request (only its uploader, or the Main Admin for any), stamping the manifest released before deleting the bytes from the volume and then the row."
+   "summary": "Removes one file from a leave request (only its uploader, or the Main Admin for any), stamping the manifest released before deleting the bytes from the volume and then the row.",
+   "delegate_capability": "admin.leave_approvals"
   },
   {
    "method": "GET",
@@ -6221,7 +6244,8 @@
     "/mentor/leave",
     "/admin/leave-approvals"
    ],
-   "summary": "Streams one leave attachment from the document store, always as a download (never inline) and no-store."
+   "summary": "Streams one leave attachment from the document store, always as a download (never inline) and no-store.",
+   "delegate_capability": "admin.leave_approvals"
   },
   {
    "method": "GET",
@@ -6238,7 +6262,7 @@
     "MAIN_ADMIN",
     "FACULTY"
    ],
-   "faculty_access": "GRANT",
+   "faculty_access": "OWN_ONLY",
    "guard": "requester themselves, else _assert_can_decide (require_mentor; ADMIN, or has_capability(admin.leave_approvals); other refusals flattened to 404)",
    "capability": "admin.leave_approvals",
    "tables": [
@@ -6250,7 +6274,9 @@
    "frontend": [
     "/admin/leave-approvals"
    ],
-   "summary": "Returns the applicant's leave allowances for the year the request falls in, to the applicant or to whoever may decide it (the Main Admin or a faculty member granted Approve leave)."
+   "summary": "Returns the applicant's leave allowances for the year the request falls in, to the applicant or to whoever may decide it (the Main Admin or a faculty member granted Approve leave).",
+   "delegate_capability": "admin.leave_approvals",
+   "grant_feature": "Leave requests (approve)"
   },
   {
    "method": "POST",
@@ -6259,7 +6285,7 @@
    "handler": "cancel_leave",
    "line": 400,
    "feature_group": "Leave",
-   "feature": "Leave requests",
+   "feature": "My own leave (apply / withdraw)",
    "crud": "UPDATE",
    "verb": "withdraw my leave",
    "roles": [
@@ -6284,7 +6310,7 @@
    "handler": "decide_leave",
    "line": 600,
    "feature_group": "Leave",
-   "feature": "Leave approvals",
+   "feature": "Leave requests (approve)",
    "crud": "UPDATE",
    "verb": "approve or reject leave",
    "roles": [
@@ -6315,7 +6341,7 @@
    "handler": "leave_paper",
    "line": 54,
    "feature_group": "Leave",
-   "feature": "Leave requests",
+   "feature": "My own leave (apply / withdraw)",
    "crud": "READ",
    "verb": "download leave PDF",
    "roles": [
@@ -6323,7 +6349,7 @@
     "MAIN_ADMIN",
     "FACULTY"
    ],
-   "faculty_access": "GRANT",
+   "faculty_access": "OWN_ONLY",
    "guard": "requester themselves, else _assert_can_decide (require_mentor; ADMIN, or has_capability(admin.leave_approvals); other refusals flattened to 404)",
    "capability": "admin.leave_approvals",
    "tables": [
@@ -6340,7 +6366,9 @@
     "/mentor/leave",
     "/admin/leave-approvals"
    ],
-   "summary": "Renders the leave request onto the college's own leave-form PDF with the applicant's and the sanctioning approver's uploaded signature images, for the applicant or whoever may decide it."
+   "summary": "Renders the leave request onto the college's own leave-form PDF with the applicant's and the sanctioning approver's uploaded signature images, for the applicant or whoever may decide it.",
+   "delegate_capability": "admin.leave_approvals",
+   "grant_feature": "Leave requests (approve)"
   },
   {
    "method": "GET",
@@ -6403,7 +6431,7 @@
    "handler": "pending_evidence",
    "line": 155,
    "feature_group": "Skills, badges & certifications",
-   "feature": "Skill claim verifications",
+   "feature": "Skill Verifications: badge claims",
    "crud": "READ",
    "verb": "list pending claims",
    "roles": [
@@ -6431,7 +6459,7 @@
    "handler": "reviewed_evidence",
    "line": 209,
    "feature_group": "Skills, badges & certifications",
-   "feature": "Skill claim verifications",
+   "feature": "Skill Verifications: badge claims",
    "crud": "READ",
    "verb": "list recently reviewed claims",
    "roles": [
@@ -6459,7 +6487,7 @@
    "handler": "evidence_file",
    "line": 236,
    "feature_group": "Skills, badges & certifications",
-   "feature": "Skill claim verifications",
+   "feature": "Skill Verifications: badge claims",
    "crud": "READ",
    "verb": "download claim certificate",
    "roles": [
@@ -6487,7 +6515,7 @@
    "handler": "review_evidence",
    "line": 310,
    "feature_group": "Skills, badges & certifications",
-   "feature": "Skill claim verifications",
+   "feature": "Skill Verifications: badge claims",
    "crud": "UPDATE",
    "verb": "decide badge claim",
    "roles": [
@@ -6628,7 +6656,7 @@
    "handler": "pending_offers",
    "line": 406,
    "feature_group": "Jobs & placement",
-   "feature": "Offer verification",
+   "feature": "Placement & offers",
    "crud": "READ",
    "verb": "list offers awaiting approval",
    "roles": [
@@ -6656,7 +6684,7 @@
    "handler": "decide_offer",
    "line": 440,
    "feature_group": "Jobs & placement",
-   "feature": "Offer verification",
+   "feature": "Placement & offers",
    "crud": "UPDATE",
    "verb": "approve or reject offer",
    "roles": [
@@ -6683,7 +6711,7 @@
    "handler": "pending_skill_claims",
    "line": 720,
    "feature_group": "Skills, badges & certifications",
-   "feature": "Skill claims (legacy)",
+   "feature": "Skill claims (legacy queue, no screen)",
    "crud": "READ",
    "verb": "list pending skill claims",
    "roles": [
@@ -6711,7 +6739,7 @@
    "handler": "reviewed_skill_claims",
    "line": 737,
    "feature_group": "Skills, badges & certifications",
-   "feature": "Skill claims (legacy)",
+   "feature": "Skill claims (legacy queue, no screen)",
    "crud": "READ",
    "verb": "list reviewed skill claims",
    "roles": [
@@ -6739,7 +6767,7 @@
    "handler": "review_skill_claim",
    "line": 806,
    "feature_group": "Skills, badges & certifications",
-   "feature": "Skill claims (legacy)",
+   "feature": "Skill claims (legacy queue, no screen)",
    "crud": "UPDATE",
    "verb": "review skill claim",
    "roles": [
@@ -6770,7 +6798,7 @@
    "feature_group": "Skills, badges & certifications",
    "feature": "Capability assessments",
    "crud": "CREATE",
-   "verb": "record capability scores",
+   "verb": "record or correct scores",
    "roles": [
     "FACULTY",
     "MAIN_ADMIN"
@@ -6783,7 +6811,10 @@
    ],
    "external": [],
    "frontend": [],
-   "summary": "Upserts a student's 1-10 capability scores for one checkpoint (T0-T4); no screen calls it today."
+   "summary": "Upserts a student's 1-10 capability scores for one checkpoint (T0-T4); no screen calls it today.",
+   "also_crud": [
+    "UPDATE"
+   ]
   },
   {
    "method": "GET",
@@ -7288,7 +7319,7 @@
    "handler": "pending_uploads",
    "line": 566,
    "feature_group": "Skills, badges & certifications",
-   "feature": "Document verification",
+   "feature": "Skill Verifications: documents",
    "crud": "READ",
    "verb": "list documents to review",
    "roles": [
@@ -7317,7 +7348,7 @@
    "handler": "download_student_upload",
    "line": 763,
    "feature_group": "Skills, badges & certifications",
-   "feature": "Document verification",
+   "feature": "Skill Verifications: documents",
    "crud": "READ",
    "verb": "download student document",
    "roles": [
@@ -7347,7 +7378,7 @@
    "handler": "review_upload",
    "line": 609,
    "feature_group": "Skills, badges & certifications",
-   "feature": "Document verification",
+   "feature": "Skill Verifications: documents",
    "crud": "UPDATE",
    "verb": "verify or reject document",
    "roles": [
@@ -8107,7 +8138,7 @@
    "handler": "pending",
    "line": 1992,
    "feature_group": "Registration & onboarding",
-   "feature": "Registration review queue",
+   "feature": "New applications (review queue)",
    "crud": "READ",
    "verb": "list applications",
    "roles": [
@@ -8144,7 +8175,7 @@
    "handler": "rules",
    "line": 3315,
    "feature_group": "Registration & onboarding",
-   "feature": "Seating rules",
+   "feature": "Auto-approve rules",
    "crud": "READ",
    "verb": "list seating rules",
    "roles": [
@@ -8171,7 +8202,7 @@
    "handler": "create_rule",
    "line": 3343,
    "feature_group": "Registration & onboarding",
-   "feature": "Seating rules",
+   "feature": "Auto-approve rules",
    "crud": "CREATE",
    "verb": "create seating rule",
    "roles": [
@@ -8200,7 +8231,7 @@
    "handler": "delete_rule",
    "line": 3475,
    "feature_group": "Registration & onboarding",
-   "feature": "Seating rules",
+   "feature": "Auto-approve rules",
    "crud": "DELETE",
    "verb": "delete seating rule",
    "roles": [
@@ -8229,7 +8260,7 @@
    "handler": "update_rule",
    "line": 3395,
    "feature_group": "Registration & onboarding",
-   "feature": "Seating rules",
+   "feature": "Auto-approve rules",
    "crud": "UPDATE",
    "verb": "edit seating rule",
    "roles": [
@@ -8258,7 +8289,7 @@
    "handler": "decide",
    "line": 2483,
    "feature_group": "Registration & onboarding",
-   "feature": "Registration review queue",
+   "feature": "New applications (review queue)",
    "crud": "UPDATE",
    "verb": "approve or reject application",
    "roles": [
@@ -8324,7 +8355,7 @@
    "handler": "download_document",
    "line": 2796,
    "feature_group": "Registration & onboarding",
-   "feature": "Registration review queue",
+   "feature": "New applications (review queue)",
    "crud": "READ",
    "verb": "download applicant document",
    "roles": [
@@ -8353,7 +8384,7 @@
    "handler": "hold",
    "line": 2884,
    "feature_group": "Registration & onboarding",
-   "feature": "Registration review queue",
+   "feature": "New applications (review queue)",
    "crud": "UPDATE",
    "verb": "hold application",
    "roles": [
@@ -8381,7 +8412,7 @@
    "handler": "reopen",
    "line": 2968,
    "feature_group": "Registration & onboarding",
-   "feature": "Registration review queue",
+   "feature": "New applications (review queue)",
    "crud": "UPDATE",
    "verb": "reopen application",
    "roles": [
@@ -8469,7 +8500,7 @@
    "feature_group": "Staff self-service",
    "feature": "Staff signature",
    "crud": "UPDATE",
-   "verb": "upload my signature",
+   "verb": "upload or replace signature",
    "roles": [
     "FACULTY",
     "MAIN_ADMIN"
@@ -8489,7 +8520,10 @@
     "/mentor/signature",
     "/account"
    ],
-   "summary": "Uploads or replaces in place the caller's one signature image (PNG/JPEG under 2 MB, normalised to an upright RGBA PNG), which is drawn on every leave paper they apply on or sanction."
+   "summary": "Uploads or replaces in place the caller's one signature image (PNG/JPEG under 2 MB, normalised to an upright RGBA PNG), which is drawn on every leave paper they apply on or sanction.",
+   "also_crud": [
+    "CREATE"
+   ]
   },
   {
    "method": "GET",
@@ -9195,7 +9229,7 @@
    "feature_group": "Programme (ledger, English, milestones)",
    "feature": "Time Allocation Ledger",
    "crud": "UPDATE",
-   "verb": "save ledger draft",
+   "verb": "start or save ledger day",
    "roles": [
     "STUDENT"
    ],
@@ -9211,7 +9245,10 @@
    "frontend": [
     "/student/time-log"
    ],
-   "summary": "Saves a whole day's ledger cells as a draft (half-hour units, slot capacities enforced), refusing future, locked or already-submitted days."
+   "summary": "Saves a whole day's ledger cells as a draft (half-hour units, slot capacities enforced), refusing future, locked or already-submitted days.",
+   "also_crud": [
+    "CREATE"
+   ]
   },
   {
    "method": "POST",
@@ -9301,7 +9338,7 @@
    "handler": "read_mentor_meetings",
    "line": 1127,
    "feature_group": "Mentoring & SWOC",
-   "feature": "Mentor Meeting Log",
+   "feature": "Faculty / TPO Log (meeting notes)",
    "crud": "READ",
    "verb": "list my mentor meetings",
    "roles": [
@@ -9332,7 +9369,7 @@
    "handler": "request_mentor_meeting",
    "line": 1288,
    "feature_group": "Mentoring & SWOC",
-   "feature": "Mentor Meeting Log",
+   "feature": "Faculty / TPO Log (meeting notes)",
    "crud": "CREATE",
    "verb": "request mentor meeting",
    "roles": [
@@ -10079,7 +10116,7 @@
    "handler": "log_timesheet",
    "line": 1544,
    "feature_group": "Programme (ledger, English, milestones)",
-   "feature": "Time Allocation Ledger",
+   "feature": "Time sheet (legacy, no screen)",
    "crud": "CREATE",
    "verb": "log activity minutes",
    "roles": [
@@ -10564,7 +10601,7 @@
    "handler": "list_mentees",
    "line": 209,
    "feature_group": "Mentoring & SWOC",
-   "feature": "Mentor notebook",
+   "feature": "Mentee list (notebook picker)",
    "crud": "READ",
    "verb": "list my mentees",
    "roles": [
@@ -10814,7 +10851,7 @@
    "handler": "student_notebook",
    "line": 657,
    "feature_group": "Mentoring & SWOC",
-   "feature": "Mentor notebook",
+   "feature": "Published notebook entries",
    "crud": "READ",
    "verb": "read published notes",
    "roles": [

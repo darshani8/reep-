@@ -24,6 +24,15 @@ nodes the canvas takes a few seconds to open. Clicking a node shows the full
 detail: the URL, the SQL comment listing the tables per operation, and the
 handler file, function and line.
 
+## What it looks like
+
+These are renders from n8n 2.41.6 of the whole canvas, the request path and the
+AWS estate, and the top of the Student lane:
+
+![Whole canvas, zoomed to fit](preview-overview.png)
+![Request path and AWS estate](preview-request-path-and-aws.png)
+![Top of the Student lane](preview-student-lane.png)
+
 ## How to read it
 
 The **top left** is one request, from phone to role decision:
@@ -46,16 +55,16 @@ The **top left** is one request, from phone to role decision:
 | 4 | HTTP Request | one offered operation: the method and path of its first endpoint; the subtitle says how many more |
 | 5 | Code | the FastAPI handler(s): file, function, line, and the gate they run |
 | 6 | Postgres / S3 / SES / DynamoDB / SQS / Lambda / Read-Write Files / HTTP | the RDS tables per operation, and every AWS or third-party service the feature reaches (EFS is the Read/Write Files node; Bedrock, Google, SSM and CloudWatch are HTTP nodes on their real endpoints) |
-| 7 | Sticky note | **the feature's card**: the C/R/U/D flags, every endpoint with its method, path and what it does, the screens that call it, the code, the gate, the tables and the AWS services. A `†` marks an endpoint that no screen of that role calls (API only) |
+| 7 | Sticky note | **the feature's card**: the C/R/U/D flags, every endpoint with its method, path and what it does, the screens that call it, the code, the gate, the tables and the AWS services. A `†` marks an endpoint that no screen in that role's navigation calls (API, or a typed URL, only). `C/U` marks an upsert |
 
 The lanes are:
 
 | Lane | Colour | Gate | Feature areas | Features | Endpoints drawn |
 |---|---|---|---|---|---|
 | PUBLIC | grey | no session | 3 | 9 | 29 |
-| EVERY SIGNED-IN ACCOUNT | yellow | any session | 2 | 5 | 12 |
-| STUDENT | green | `require_student` | 9 | 36 | 95 |
-| FACULTY (role MENTOR) | blue | `require_mentor` + rule 2 | 9 (+ granted) | 24 (+ 17 grantable capabilities) | 72 (+ 133 by grant) |
+| EVERY SIGNED-IN ACCOUNT | yellow | any session | 2 | 5 | 13 |
+| STUDENT | green | `require_student` | 9 | 37 | 95 |
+| FACULTY (role MENTOR) | blue | `require_mentor` + rule 2 | 9 (+ granted) | 25 (+ 17 grantable capabilities) | 75 (+ 137 by grant or as a delegate) |
 | ALUMNI | pink | `require_alumni` | 6 | 11 | 28 |
 | MAIN ADMIN (role ADMIN) | purple, two columns | `require_admin` / baseline capabilities | 17 | 62 | 245 |
 
@@ -94,7 +103,14 @@ read from the running app (`app.routes`), not from a grep. Each handler was
 classified from its source, and then re-checked against the same guards by a
 second, independent pass that tried to refute it. That second pass applied 25
 corrections, for example a role that was missing or a table the close path also
-writes. The inventory was taken at the commit named in its `about` block.
+writes. A third review compared the finished diagram with the screens, the
+navigation and AGENTS.md, and applied 20 more corrections. For example, it:
+
+- gave upserts both C and U;
+- moved a faculty member's own leave PDF out of the granted branch;
+- renamed cards to the office's sidebar words.
+
+The inventory was taken at the commit named in its `about` block.
 
 ## Keeping it true
 

@@ -292,6 +292,27 @@ def plural(n: int, word: str) -> str:
 
 # ---------------------------------------------------------- lane building ---
 
+def ops_of(ep: dict) -> list[str]:
+    """The CRUD operations one endpoint performs: an upsert is CREATE and UPDATE."""
+    return [ep["crud"]] + [op for op in ep.get("also_crud", []) if op != ep["crud"]]
+
+
+def feature_in(ep: dict, lane: str) -> str:
+    return ep.get("feature_by_lane", {}).get(lane, ep["feature"])
+
+
+def verb_in(ep: dict, lane: str) -> str:
+    return ep.get("verb_by_lane", {}).get(lane, ep["verb"])
+
+
+# Where a card's DELETE lives on another card of the same lane.
+CROSS_REFERENCES = {
+    ("MAIN_ADMIN", "Faculty (accounts)"): "remove, restore and delete a faculty account: see **Remove / delete people**",
+    ("MAIN_ADMIN", "Colleges"): "delete a college: see **Delete a college**",
+    ("MAIN_ADMIN", "Students & batches"): "remove, restore and delete a student: see **Remove / delete people**; "
+                                          "DELETE here is an EMPTY batch only",
+}
+
 def lane_membership(ep: dict) -> list[tuple[str, str]]:
     """Which lanes draw this endpoint, and how: [(lane, how)].
 
@@ -315,6 +336,10 @@ def lane_membership(ep: dict) -> list[tuple[str, str]]:
             out.append(("FACULTY", "grant"))
         else:
             out.append((role, "direct"))
+    # A faculty member reaches some rows two ways: as the applicant on their own
+    # request (direct) and as a delegate holding a capability (granted).
+    if ep.get("delegate_capability") and "FACULTY" in roles:
+        out.append(("FACULTY", "grant"))
     seen, uniq = set(), []
     for item in out:
         if item not in seen:
@@ -330,9 +355,9 @@ def build_lanes(endpoints: list[dict]):
     for ep in endpoints:
         for lane, how in lane_membership(ep):
             if how == "grant":
-                grants[ep.get("capability") or "admin.*"].append(ep)
+                grants[ep.get("delegate_capability") or ep.get("capability") or "admin.*"].append(ep)
             else:
-                lanes[lane][ep["feature_group"]][ep["feature"]].append(ep)
+                lanes[lane][ep["feature_group"]][feature_in(ep, lane)].append(ep)
     ordered = {}
     for lane, groups in lanes.items():
         ordered[lane] = OrderedDict(
@@ -342,15 +367,45 @@ def build_lanes(endpoints: list[dict]):
     return ordered, OrderedDict(sorted(grants.items()))
 
 
-def screens_for(ep: dict, lane: str, route_roles: dict[str, set[str]]) -> list[str]:
-    """The Angular routes calling this endpoint that THIS lane's role can open."""
-    want = {"ACCOUNT": {"ANY_SIGNED_IN", "STUDENT", "FACULTY", "ALUMNI", "MAIN_ADMIN"}}.get(lane, {lane})
+PSEUDO_SCREENS = {"(agent dock on every screen)", "(app shell, every signed-in screen)"}
+
+
+def screens_for(ep: dict, lane: str, routes: dict[str, dict]) -> list[str]:
+    """The Angular routes calling this endpoint that THIS lane's role can open from
+    its own navigation.
+
+    A route the role's guard admits is not enough: a /mentor/* screen the Main
+    Admin can only reach by typing its URL is not the Main Admin's screen, and an
+    /admin/* screen a faculty member opens only with an admin.* grant belongs to
+    the faculty lane's granted card, not to the faculty lane proper."""
     out = []
-    for route in ep.get("frontend") or []:
-        roles = route_roles.get(route)
-        if roles is None or roles & want or ("ANY_SIGNED_IN" in roles and lane in HUMAN_ROLES):
-            out.append(route)
+    for path in ep.get("frontend") or []:
+        if path in PSEUDO_SCREENS:
+            if lane != "PUBLIC":
+                out.append(path)
+            continue
+        route = routes.get(path)
+        if route is None:
+            continue
+        roles = set(route["roles"])
+        if lane == "PUBLIC":
+            ok = "PUBLIC" in roles
+        elif lane == "ACCOUNT":
+            ok = "ANY_SIGNED_IN" in roles
+        elif lane == "MAIN_ADMIN":
+            ok = ("MAIN_ADMIN" in roles or "ANY_SIGNED_IN" in roles) and (
+                path.startswith(("/admin", "/account")) or route.get("nav_group") == "Account menu")
+        elif lane == "FACULTY":
+            ok = ("FACULTY" in roles or "ANY_SIGNED_IN" in roles) and not (route.get("capability") or "").startswith("admin.")
+        else:
+            ok = lane in roles or "ANY_SIGNED_IN" in roles
+        if ok:
+            out.append(path)
     return out
+
+
+def faculty_screens_for_capability(key: str, routes: dict[str, dict]) -> list[str]:
+    return [p for p, r in routes.items() if r.get("capability") == key and "FACULTY" in r["roles"]]
 
 
 # Heights used by the layout (n8n draws a node about 100 px square with a
@@ -367,25 +422,27 @@ def table_height(n_rows: int, footer: list[str], width: int) -> int:
     return 130 + 40 * n_rows + 18 * wrapped + 30
 
 
-def feature_table(lane: str, feature: str, eps: list[dict], route_roles) -> tuple[str, int, int]:
-    ops = {e["crud"] for e in eps}
+def feature_table(lane: str, feature: str, eps: list[dict], routes) -> tuple[str, int, int]:
+    ops = {op for e in eps for op in ops_of(e)}
     flags = " · ".join(f"**{CRUD_SHORT[op]}** {'✓' if op in ops else '✗'}" for op in CRUD)
     if "ACTION" in ops:
         flags += " · **A** ✓"
     rows, api_only, screens = [], False, []
     order = {op: i for i, op in enumerate(CRUD + ["ACTION"])}
     for e in sorted(eps, key=lambda e: (order[e["crud"]], e["path"], e["method"])):
-        sc = screens_for(e, lane, route_roles)
+        op_label = "/".join(CRUD_SHORT[o] for o in ops_of(e))
+        sc = screens_for(e, lane, routes)
         for s in sc:
             if s not in screens:
                 screens.append(s)
         mark = "" if sc else " †"
         api_only = api_only or not sc
-        rows.append(f"| {CRUD_SHORT[e['crud']]} | {e['method']} | `{md_escape(e['path'])}` | "
-                    f"{md_escape(e['verb'])}{mark} |")
+        rows.append(f"| {op_label} | {e['method']} | `{md_escape(e['path'])}` | "
+                    f"{md_escape(verb_in(e, lane))}{mark} |")
     modules = sorted({e["module"] for e in eps})
     guards = sorted({guard_short(e["guard"]) for e in eps})
-    caps = sorted({e["capability"] for e in eps if e.get("capability")})
+    caps = sorted({e["capability"] for e in eps
+                   if e.get("capability") and e["capability"] != e.get("delegate_capability")})
     tables = sorted({t for e in eps for t in e["tables"]})
     ext = sorted({x for e in eps for x in e["external"]})
     lines = [
@@ -402,16 +459,18 @@ def feature_table(lane: str, feature: str, eps: list[dict], route_roles) -> tupl
         f"**Tables** {' '.join(f'`{t}`' for t in tables) if tables else '—'}",
         f"**AWS / external** {' · '.join(EXTERNAL[x]['label'] for x in ext if x in EXTERNAL) or '—'}",
     ]
+    if (lane, feature) in CROSS_REFERENCES:
+        lines.append(f"**Also** {CROSS_REFERENCES[(lane, feature)]}")
     if api_only and screens:
-        lines.append("† no screen this role can open calls it (API only)")
+        lines.append("† no screen in this role's navigation calls it (API or typed URL only)")
     longest = max([len(e["path"]) for e in eps] + [0])
     longest_verb = max([len(e["verb"]) for e in eps] + [0])
     width = max(900, 7.4 * (longest + longest_verb) + 260)
-    footer = lines[len(lines) - (6 if api_only and screens else 5):]
+    footer = lines[5 + len(rows) + 1:]  # title, flags, blank, header, rule, rows, blank
     return "\n".join(lines), int(width), table_height(len(rows), footer, int(width))
 
 
-def render_lane(wf: Workflow, lane: str, groups, lx: int, top: int, route_roles, grants=None,
+def render_lane(wf: Workflow, lane: str, groups, lx: int, top: int, routes, grants=None,
                 title_suffix: str = "") -> tuple[str, int, int]:
     """Draw one lane; returns (entry switch name, bottom y, width)."""
     role = ROLES[lane]
@@ -424,7 +483,7 @@ def render_lane(wf: Workflow, lane: str, groups, lx: int, top: int, route_roles,
     table_w = 900
     for g, feats in groups.items():
         for f, eps in feats.items():
-            md, w, h = feature_table(lane, f, eps, route_roles)
+            md, w, h = feature_table(lane, f, eps, routes)
             tables[(g, f)] = (md, w, h)
             table_w = max(table_w, w)
     lane_w = (col_table - lx) + table_w + 140
@@ -443,7 +502,7 @@ def render_lane(wf: Workflow, lane: str, groups, lx: int, top: int, route_roles,
             n_eps += len(eps)
             ops = OrderedDict()
             for op in CRUD + ["ACTION"]:
-                sel = [e for e in eps if e["crud"] == op]
+                sel = [e for e in eps if op in ops_of(e)]
                 if sel:
                     ops[op] = sel
                     crud_count[op] += 1
@@ -522,7 +581,7 @@ def render_lane(wf: Workflow, lane: str, groups, lx: int, top: int, route_roles,
         y += 40
 
     if grants:
-        y = render_grants(wf, lane, grants, lx, y, lane_w, domain_entries)
+        y = render_grants(wf, lane, grants, lx, y, lane_w, domain_entries, routes)
 
     first_y = top + 260
     lane_switch = wf.switch(f"{role['title']}{title_suffix} · feature areas", lx, first_y,
@@ -538,20 +597,34 @@ def render_lane(wf: Workflow, lane: str, groups, lx: int, top: int, route_roles,
     return lane_switch, y + 40, lane_w
 
 
-def render_grants(wf, lane, grants, lx, y, lane_w, domain_entries):
+GRANT_NOTES = {
+    "admin.governance": "API only for a faculty deputy: both Governance screens are `roleGuard('ADMIN')`",
+    "admin.mentors": "the Faculty screen opens, but listing and adding faculty stay `require_admin`; "
+                     "the holder reaches designation & department and faculty assignment",
+    "admin.leave_approvals": "as a delegate: decide anybody's request and read its paper, alternates, "
+                             "allowance and attachments (their own request is in the lane above)",
+}
+
+
+def render_grants(wf, lane, grants, lx, y, lane_w, domain_entries, routes):
     """The faculty lane's branch for console screens reached only by a grant."""
     tag = ROLES[lane]["tag"]
     col_domain, col_feature, col_table = lx + 300, lx + 600, lx + 1700
     dom_top = y
     y += 110
     keys = list(grants.keys())
-    rows = ["| Capability | Main Admin features it opens | C | R | U | D | Endpoints |", "|---|---|---|---|---|---|---|"]
+    rows = ["| Capability | Main Admin features it opens | Faculty screen | C | R | U | D | Endpoints |",
+            "|---|---|---|---|---|---|---|---|"]
     targets = []
     for i, key in enumerate(keys):
         eps = grants[key]
-        feats = sorted({e["feature"] for e in eps})
-        ops = Counter(e["crud"] for e in eps)
-        rows.append(f"| `{key}` | {md_escape(', '.join(feats))} | " +
+        feats = sorted({e.get("grant_feature") or feature_in(e, "MAIN_ADMIN") for e in eps})
+        ops = Counter(op for e in eps for op in ops_of(e))
+        screens = faculty_screens_for_capability(key, routes)
+        screen_txt = " ".join(f"`{p}`" for p in screens) or "— (API only)"
+        if key in GRANT_NOTES:
+            screen_txt += f" · {GRANT_NOTES[key]}"
+        rows.append(f"| `{key}` | {md_escape(', '.join(feats))} | {screen_txt} | " +
                     " | ".join(str(ops.get(o, 0) or "—") for o in CRUD) + f" | {len(eps)} |")
         name = wf.node(f"{tag} · granted {key}", "noOp", 1, col_feature, y + i * PITCH, {},
                        notes=("→ " + ", ".join(feats))[:60])
@@ -566,7 +639,7 @@ def render_grants(wf, lane, grants, lx, y, lane_w, domain_entries):
         *rows,
     ])
     table_w = lane_w - (col_table - lx) - 100
-    table_h = 330 + 58 * (len(keys) + 1)
+    table_h = 360 + 78 * (len(keys) + 1)
     wf.sticky(f"Endpoints · {tag} · granted", col_table, dom_top + 50, table_w, table_h, ROLES[lane]["color"], md)
     sw = wf.switch(f"{tag} · Granted by the Main Admin", col_domain, y, keys,
                    notes=plural(len(keys), "capability"))
@@ -682,7 +755,8 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict, edge: di
         "| greyed (deactivated) node | exists in code, not deployed / not running |",
         "",
         "**Lanes**: PUBLIC grey · ACCOUNT yellow · STUDENT green · FACULTY blue · ALUMNI pink · MAIN ADMIN purple. "
-        "A '†' in a card marks an endpoint no screen of that role calls (API only).",
+        "A '†' in a card marks an endpoint no screen in that role's navigation calls (API or typed URL only); "
+        "`C/U` marks an upsert.",
         "**Two fences, checked separately**: the role gate / capability decides WHICH SCREENS; rule 2 "
         "(`_assert_can_access_student`) decides WHICH STUDENTS. A capability never relaxes the student filter.",
     ]))
@@ -752,22 +826,22 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict, edge: di
         wf.link(task, t)
     wf.link(ses, sesn); wf.link(cwl, alarms); wf.link(alarms, alerts)
     wf.link(edge["spa"], sen)  # the browser reports to reep-web directly
-    up = wf.node("Route 53 health check reep-uptime", "scheduleTrigger", 1.2, c0, r(10),
+    up = wf.node("Route 53 health check reep-uptime", "scheduleTrigger", 1.2, c0, r(9) + 60,
                  {"rule": {"interval": [{"field": "seconds", "secondsInterval": 30}]}},
                  notes="TCP 443 every 30 s (us-east-1)")
-    upa = wf.node("Alarm reep-site-unreachable", "noOp", 1, c1, r(10),
+    upa = wf.node("Alarm reep-site-unreachable", "noOp", 1, c1, r(9) + 60,
                   notes="missing data = BREACHING (us-east-1)")
-    ups = wf.node("SNS reep-uptime-alerts", "awsSns", 1, c2, r(10),
+    ups = wf.node("SNS reep-uptime-alerts", "awsSns", 1, c2, r(9) + 60,
                   {"topic": "reep-uptime-alerts", "subject": "REEP down", "message": "<alarm>"},
                   notes="email, confirm subscription (us-east-1)", cred="aws")
     wf.link(up, upa); wf.link(upa, ups)
-    cfl = wf.node("S3 reep-cloudfront-logs", "awsS3", 2, c3, r(0),
+    cfl = wf.node("S3 reep-cloudfront-logs", "awsS3", 2, c3 + 650, r(0),
                   {"operation": "upload", "bucketName": "reep-cloudfront-logs-<account>", "fileName": "AWSLogs/..."},
                   notes="no query/cookie/referer; 30 d (us-east-1)", cred="aws")
-    albl = wf.node("S3 reep-alb-logs", "awsS3", 2, c3, r(1),
+    albl = wf.node("S3 reep-alb-logs", "awsS3", 2, c3 + 650, r(1),
                    {"operation": "upload", "bucketName": "reep-alb-logs-20260827213148167800000004", "fileName": "AWSLogs/..."},
                    notes="expire 90 d", cred="aws")
-    edge_src = wf.node("Edge request logs", "noOp", 1, c1, r(0), notes="CloudFront + ALB access logs")
+    edge_src = wf.node("Edge request logs", "noOp", 1, c3, r(0) + 110, notes="CloudFront + ALB access logs")
     wf.link(edge_src, cfl); wf.link(edge_src, albl)
     wf.link(edge["cloudfront"], edge_src, 1); wf.link(edge["alb"], edge_src)
 
@@ -985,7 +1059,7 @@ def main() -> int:
     if "--check-routes" in sys.argv[1:]:
         return check_routes(inv)
     endpoints = inv["endpoints"]
-    route_roles = {r["path"]: set(r["roles"]) for r in inv["routes"]}
+    routes = {r["path"]: r for r in inv["routes"]}
     lanes, grants = build_lanes(endpoints)
     feature_count = sum(len(f) for groups in lanes.values() for f in groups.values()) + len(grants)
 
@@ -1010,12 +1084,12 @@ def main() -> int:
                     cut = i + 1
                     break
             for part, chunk in enumerate([items[:cut], items[cut:]]):
-                entry, _bottom, width = render_lane(wf, lane, OrderedDict(chunk), lx, top, route_roles,
+                entry, _bottom, width = render_lane(wf, lane, OrderedDict(chunk), lx, top, routes,
                                                     title_suffix=f" ({part + 1} of 2)")
                 wf.link(role_sw, entry, outputs[lane])
                 lx += width + 400
             continue
-        entry, _bottom, width = render_lane(wf, lane, groups, lx, top, route_roles,
+        entry, _bottom, width = render_lane(wf, lane, groups, lx, top, routes,
                                             grants=grants if lane == "FACULTY" else None)
         wf.link(role_sw, entry, outputs[lane])
         lx += width + 400

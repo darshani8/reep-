@@ -43,6 +43,15 @@ python tools/diagrams/render_n8n_workflow.py
 python tools/diagrams/render_roles_crud_page.py
 ```
 
+`reep-roles-features-crud.pdf` is the same page printed to A4, with every feature
+open and the n8n renders at the end. Use it wherever an `.html` file would be
+shown as source code, for example in a phone's file viewer or on GitHub. To
+reprint it, run Playwright's Chromium after `npm ci` at the root:
+
+```bash
+node tools/diagrams/print_roles_crud_pdf.cjs
+```
+
 ## What it looks like
 
 These are renders from n8n 2.41.6 of the whole canvas, the request path and the

@@ -284,6 +284,7 @@ def stack_panel(wf: dict, inv: dict) -> str:
 
 GITHUB_RAW = "https://github.com/darshani8/reep-/raw/ccr-ea6bd00d-nusgh3/docs/diagrams/n8n/"
 DOWNLOADS = [  # (published path, saved name, label); an Artifact cannot host a .zip
+    ("reep-roles-features-crud.pdf", "reep-roles-features-crud.pdf", "Printable PDF (.pdf)"),
     ("reep-roles-features-crud.n8n.json", "reep-roles-features-crud.n8n.json", "n8n workflow (.json)"),
     ("reep-roles-features-crud.html", "reep-roles-features-crud.html", "This page (.html)"),
     ("reep-feature-inventory.json", "reep-feature-inventory.json", "Endpoint inventory (.json)"),
@@ -295,7 +296,7 @@ def downloads_block() -> str:
     buttons = "".join(f'<button type="button" class="dlb" data-file="{E(path)}" data-name="{E(name)}">{E(label)}</button>'
                       for path, name, label in DOWNLOADS)
     links = "".join(f'<li><a href="{GITHUB_RAW}{E(name)}" target="_blank" rel="noopener">{E(name)}</a></li>'
-                    for _path, name, _label in DOWNLOADS[:3])
+                    for _path, name, _label in DOWNLOADS[:4])
     return (f'<section class="dl" id="downloads" aria-label="Download the files"><h2 class="dl-h">Download</h2>'
             f'<div class="dl-row" data-dl-buttons hidden>{buttons}</div>'
             '<p class="dl-note" data-dl-status role="status">Checking whether this view can save files…</p>'

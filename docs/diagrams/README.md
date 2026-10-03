@@ -17,7 +17,8 @@ n8n workflow. It draws every role's every feature with its CREATE / READ /
 UPDATE / DELETE operations and the endpoint, handler, tables and AWS services
 behind each one, plus the request path and the AWS estate. It is generated from
 `n8n/reep-feature-inventory.json`; [`n8n/README.md`](n8n/README.md) says how to
-open it, read it and keep it true.
+open it, read it and keep it true. `n8n/reep-roles-features-crud.html` is the same map as a
+phone-friendly page.
 
 Three A3 sheets, each as `.svg` (source of truth), `.pdf` (print) and `.png`
 (150 dpi preview):

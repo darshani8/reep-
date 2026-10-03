@@ -24,6 +24,25 @@ nodes the canvas takes a few seconds to open. Clicking a node shows the full
 detail: the URL, the SQL comment listing the tables per operation, and the
 handler file, function and line.
 
+## On a phone
+
+`reep-roles-features-crud.html` is the same map as one self-contained page that
+works at phone width, in light and dark. Open it in any browser; it needs no
+n8n and no network beyond the web fonts, which fall back to system fonts.
+
+- There is one tab per role, and every feature is a row showing its C/R/U/D. Tap a row to open its endpoints, screens, code, gate, tables and AWS services.
+- The search box filters the current tab by feature name, path, table or service.
+- **Stack & AWS** walks the request path, then lists the AWS estate, schedules, backups, voice platform, deploy pipeline and every table.
+
+The page is built from the same inventory, with the same lane rules, as the
+workflow. Its Stack & AWS tab is read out of the generated workflow itself, so
+regenerate the workflow first:
+
+```bash
+python tools/diagrams/render_n8n_workflow.py
+python tools/diagrams/render_roles_crud_page.py
+```
+
 ## What it looks like
 
 These are renders from n8n 2.41.6 of the whole canvas, the request path and the

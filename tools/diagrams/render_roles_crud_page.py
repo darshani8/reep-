@@ -276,6 +276,67 @@ def stack_panel(wf: dict, inv: dict) -> str:
             'pipeline.</p></header>' + "".join(parts))
 
 
+# -------------------------------------------------------------- downloads ---
+# Only the published (Artifact) variant carries these: the viewer's frame blocks
+# a page-started download, so saving goes through the `downloads` capability,
+# and the files are published next to the page and fetched on the tap. The
+# repository copy IS the file, so it has nothing to offer.
+
+GITHUB_RAW = "https://github.com/darshani8/reep-/raw/ccr-ea6bd00d-nusgh3/docs/diagrams/n8n/"
+DOWNLOADS = [  # (published path, saved name, label); an Artifact cannot host a .zip
+    ("reep-roles-features-crud.n8n.json", "reep-roles-features-crud.n8n.json", "n8n workflow (.json)"),
+    ("reep-roles-features-crud.html", "reep-roles-features-crud.html", "This page (.html)"),
+    ("reep-feature-inventory.json", "reep-feature-inventory.json", "Endpoint inventory (.json)"),
+    ("README.md", "reep-n8n-diagram-README.md", "How to read it (.md)"),
+]
+
+
+def downloads_block() -> str:
+    buttons = "".join(f'<button type="button" class="dlb" data-file="{E(path)}" data-name="{E(name)}">{E(label)}</button>'
+                      for path, name, label in DOWNLOADS)
+    links = "".join(f'<li><a href="{GITHUB_RAW}{E(name)}" target="_blank" rel="noopener">{E(name)}</a></li>'
+                    for _path, name, _label in DOWNLOADS[:3])
+    return (f'<section class="dl" id="downloads" aria-label="Download the files"><h2 class="dl-h">Download</h2>'
+            f'<div class="dl-row" data-dl-buttons hidden>{buttons}</div>'
+            '<p class="dl-note" data-dl-status role="status">Checking whether this view can save files…</p>'
+            '<div class="dl-alt" data-dl-alt hidden><p class="dl-note">This view can\'t save files. The same files '
+            f'are in the repository (sign in to GitHub first):</p><ul>{links}</ul></div></section>')
+
+
+DOWNLOAD_SCRIPT = r"""
+(async function () {
+  var box = document.getElementById('downloads'); if (!box) return;
+  var row = box.querySelector('[data-dl-buttons]'), status = box.querySelector('[data-dl-status]');
+  var alt = box.querySelector('[data-dl-alt]');
+  var GONE = ['unavailable', 'not_granted', 'capability_disabled', 'capability_removed'];
+  function fallback() { row.hidden = true; status.hidden = true; alt.hidden = false; }
+  var dl = null;
+  try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dl = null; }
+  if (!dl) { fallback(); return; }
+  row.hidden = false; status.textContent = 'Tap a file. Your device asks before it saves anything.';
+  row.querySelectorAll('button').forEach(function (b) {
+    b.addEventListener('click', async function () {
+      var name = b.dataset.name; b.disabled = true; status.textContent = 'Preparing ' + name + '…';
+      try {
+        var r = await fetch(b.dataset.file);
+        if (!r.ok) throw { code: 'fetch', message: String(r.status) };
+        await dl.save({ filename: name, data: await r.blob() });
+        status.textContent = 'Saved ' + name + '.';
+      } catch (e) {
+        var c = e && e.code;
+        if (GONE.indexOf(c) !== -1) { fallback(); return; }
+        status.textContent = c === 'declined' ? name + ' was not saved.'
+          : c === 'rate_limited' ? 'Another save prompt is still open. Finish it, then tap again.'
+          : c === 'too_large' ? name + ' is too large for this destination.'
+          : c === 'fetch' ? 'Could not load ' + name + ' (' + e.message + '). Reload the page and try again.'
+          : 'Could not save ' + name + '. Reload the page and try again.';
+      } finally { b.disabled = false; }
+    });
+  });
+})();
+"""
+
+
 # ------------------------------------------------------------------- page ---
 
 STYLE = r"""
@@ -438,6 +499,16 @@ a { color: var(--brand); }
 .chip { font: 600 0.8rem/1 var(--font-display); text-decoration: none; color: var(--role);
   background: var(--role-bg); padding: 7px 10px; border-radius: 999px; }
 .empty { color: var(--faint); margin: 0; }
+.dl { margin-top: 16px; display: grid; gap: 8px; }
+.dl-h { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
+.dl-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.dlb { font: 600 0.85rem/1 var(--font-display); color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 12px; padding: 11px 14px; cursor: pointer; box-shadow: var(--shadow); }
+.dlb:first-child { background: var(--grad); color: var(--on-grad); border-color: transparent; }
+.dlb:disabled { opacity: 0.6; cursor: progress; }
+.dlb:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.dl-note { margin: 0; color: var(--faint); font-size: 0.82rem; }
+.dl-alt ul { margin: 4px 0 0; padding-left: 18px; font-size: 0.85rem; overflow-wrap: anywhere; }
 .legend { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--faint);
   font-size: 0.82rem; display: grid; gap: 8px; }
 .legend .crud { vertical-align: middle; }
@@ -542,6 +613,7 @@ def build(fragment: bool) -> str:
       <li><b>{len(inv['tables'])}</b> tables</li>
       <li>taken {E(about['taken_on'])} at <code>{E(about['commit'])}</code></li>
     </ul>
+    {downloads_block() if fragment else ""}
   </header>
   <div class="bar">
     <div class="tabs" role="tablist" aria-label="Role">{''.join(tabs)}</div>
@@ -558,6 +630,7 @@ def build(fragment: bool) -> str:
   </footer>
 </main>
 <script>{SCRIPT}</script>
+{f"<script>{DOWNLOAD_SCRIPT}</script>" if fragment else ""}
 """
     if fragment:
         return head + body

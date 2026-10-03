@@ -719,6 +719,15 @@ class CoreStack(Stack):
                     [
                         "#!/bin/bash",
                         "set -euxo pipefail",
+                        # AL2023 SHIPS WITHOUT iptables. Found the hard way on
+                        # 2026-10-03: the unit below failed on its first
+                        # `iptables` with "command not found", the instance
+                        # forwarded nothing, and the first task started behind
+                        # it could not reach Secrets Manager. Installed here, at
+                        # first boot, because a package persists across reboots
+                        # and the unit only has to apply the rules.
+                        "dnf install -y iptables-nft",
+                        "echo 'net.ipv4.ip_forward = 1' >/etc/sysctl.d/90-reep-nat.conf",
                         "cat >/usr/local/sbin/reep-nat.sh <<'NATEOF'",
                         "#!/bin/bash",
                         "set -eu",

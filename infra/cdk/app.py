@@ -15,7 +15,7 @@ Context (cdk.json or `-c key=value`), the ones that change behaviour:
     wafWebAclArn             reep-edge-waf's output, pasted into the core stack
     drVaultArn               reep-dr-vault's output, pasted into the core stack
     backupRetentionDays      the ONE retention number (default 35 in harden)
-    dbMultiAz                default true in harden; -c dbMultiAz=false to opt out
+    dbMultiAz                default true in harden; cdk.json sets false (2026-10-03 cost decision)
     sesIdentityDomain        the SES-verified sending domain (grants ses:SendEmail)
     sesFromAddress           SES_FROM_ADDRESS for the api
     vaultLockCompliance      irreversible compliance-mode lock (default false)

@@ -31,6 +31,8 @@
     "archiveRetentionDays": 365,
     "cloudfrontLogDays": 30,
     "apiArm64": true,
+    "natInstance": true,
+    "natGateway": false,
     "dbMultiAz": false,
     "dbInstanceClassTarget": "db.t4g.small",
     "vaultLockCompliance": false,

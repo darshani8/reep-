@@ -445,6 +445,21 @@ first rule failed with "command not found". The fix installs `iptables-nft` at
 first boot; the synth guard pins it. Prove egress the same way next time: the
 dry run is the check, and `core-nat-retire` waits until it passes.
 
+**Second attempt, same day (13:19–13:45 UTC), and the swap is DONE.** The
+first rerun failed at change-set validation, harmlessly: every resource here is
+`Retain`, so the rollback had left the morning's instance, its security group,
+role and instance profile in the account, and the named role collided. They were
+deleted by hand after checking nothing referenced them. The next deploy then
+built the instance and the route moved to it, and it forwarded nothing AGAIN,
+for a second reason: **dnf was OOM-killed on the 512 MB `t4g.nano`** while
+loading AL2023's ~80 MB metadata, so the user data stopped before the unit
+existed. Fixed in place over SSM (1 GB swap, install, unit), MASQUERADE counters
+moving within the minute, two ops-task dry runs green, then `core-nat-retire`.
+**`Retain` struck a third time**: the retire removed `Nat` and `NatEip` from the
+stack and left both RUNNING AND BILLING; deleted and released by hand. The
+lesson for every future removal in this stack: a resource leaving the template
+is not a resource leaving the bill. Check the account afterwards.
+
 ### 4. Two things I declined to change
 
 **`apiCpu` stays at 512.** Dropping to 256 would save about $16/month and it is

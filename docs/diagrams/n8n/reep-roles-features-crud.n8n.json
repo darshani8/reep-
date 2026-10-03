@@ -223,7 +223,7 @@
   {
    "parameters": {
     "language": "python",
-    "pythonCode": "# Dockerfile CMD: python -m uvicorn app.main:app --port 3300 --proxy-headers\n# app.include_router(<router>, prefix='/api') for 41 routers + voice_platform\nreturn _input.all()"
+    "pythonCode": "# Dockerfile CMD: python -m uvicorn app.main:app --host 0.0.0.0 --port 3300 --proxy-headers\n#   --timeout-graceful-shutdown 110 --ws-per-message-deflate false\n# 35 routers under prefix='/api', 7 self-prefixed /api/..., 2 under /api/v1,\n# plus /health, /ready and the voice_platform routers\nreturn _input.all()"
    },
    "id": "c79244f5-5d7f-5234-97cc-9fe42bb5488c",
    "name": "uvicorn -> FastAPI app.main",
@@ -239,7 +239,7 @@
   {
    "parameters": {
     "language": "python",
-    "pythonCode": "# outermost first: security headers (nosniff, DENY, HSTS) -> RequestTraceMiddleware\n# (X-Request-ID, access line) -> Sentry (scrubbed: app/telemetry_scrub.py) -> CORS\nreturn _input.all()"
+    "pythonCode": "# outermost first: Sentry ASGI wrapper (scrubbed: app/telemetry_scrub.py)\n# -> security headers (nosniff, DENY, HSTS) -> RequestTraceMiddleware\n# (X-Request-ID, access line, tags the Sentry scope) -> CORS\nreturn _input.all()"
    },
    "id": "c808f699-ba63-587f-9ed9-886d9eb5aa11",
    "name": "Middleware chain",
@@ -249,7 +249,7 @@
     -1600,
     1840
    ],
-   "notes": "headers, X-Request-ID, Sentry scrub, CORS",
+   "notes": "Sentry wrap, headers, X-Request-ID, CORS",
    "notesInFlow": true
   },
   {
@@ -455,7 +455,7 @@
   },
   {
    "parameters": {
-    "content": "## How to read it\n| Node | Means |\n|---|---|\n| **Switch** (role, area, feature) | a choice. A feature's outputs are always **CREATE · READ · UPDATE · DELETE** (+ ACTION for a sign-in, a code, a socket); an output written `DELETE ✗` is an operation **that role is not offered**. |\n| **HTTP Request** (globe) | one offered operation: the method and path of its first endpoint; the subtitle says how many more. The feature's yellow-green-blue card lists every endpoint. |\n| **Code** `{ }` | the FastAPI handler(s): file, function, line and the gate it runs |\n| **Postgres** (elephant) | the RDS tables that feature reads or writes, per operation |\n| **S3 · SES · DynamoDB · SQS · Lambda · ELB** | the AWS service by its own icon; Bedrock, Google, SSM and CloudWatch are HTTP nodes on their real endpoints |\n| **Read/Write Files** | the EFS `/data` volume (uploads, interview WAVs) |\n| **Schedule Trigger** | EventBridge Scheduler / AWS Backup cron, in IST |\n| **GitHub** | a GitHub Actions workflow |\n| greyed (deactivated) node | exists in code, not deployed / not running |\n\n**Lanes**: PUBLIC grey · ACCOUNT yellow · STUDENT green · FACULTY blue · ALUMNI pink · MAIN ADMIN purple. A '†' in a card marks an endpoint no screen of that role calls (API only).\n**Two fences, checked separately**: the role gate / capability decides WHICH SCREENS; rule 2 (`_assert_can_access_student`) decides WHICH STUDENTS. A capability never relaxes the student filter.",
+    "content": "## How to read it\n| Node | Means |\n|---|---|\n| **Switch** (role, area, feature) | a choice. A feature's outputs are always **CREATE · READ · UPDATE · DELETE** (+ ACTION for a sign-in, a code, a socket); an output written `DELETE ✗` is an operation **that role is not offered**. |\n| **HTTP Request** (globe) | one offered operation: the method and path of its first endpoint; the subtitle says how many more. The feature's yellow-green-blue card lists every endpoint. |\n| **Code** `{ }` | the FastAPI handler(s): file, function, line and the gate it runs |\n| **Postgres** (elephant) | the RDS tables that feature reads or writes, per operation |\n| **S3 · SES · DynamoDB · SQS · Lambda · ELB** | the AWS service by its own icon; Bedrock, Google, SSM and CloudWatch are HTTP nodes on their real endpoints |\n| **Read/Write Files** | the EFS `/data` volume (uploads, interview WAVs) |\n| **Schedule Trigger** | EventBridge Scheduler / AWS Backup cron, in IST, or the Route 53 health checker's 30 s interval |\n| **GitHub** | a GitHub Actions workflow |\n| greyed (deactivated) node | exists in code, not deployed / not running |\n\n**Lanes**: PUBLIC grey · ACCOUNT yellow · STUDENT green · FACULTY blue · ALUMNI pink · MAIN ADMIN purple. A '†' in a card marks an endpoint no screen of that role calls (API only).\n**Two fences, checked separately**: the role gate / capability decides WHICH SCREENS; rule 2 (`_assert_can_access_student`) decides WHICH STUDENTS. A capability never relaxes the student filter.",
     "height": 1380,
     "width": 1900,
     "color": 7
@@ -487,7 +487,7 @@
   },
   {
    "parameters": {
-    "content": "## 2 · The AWS estate behind the api task (ap-south-1 unless noted)\nEvery arrow leaves the private subnets through the NAT instance -- there are no VPC endpoints. Stacks: `reep-core` (ap-south-1), `reep-edge-waf` (us-east-1), `reep-dr-vault` (ap-southeast-1), `reep-voice-platform`. Every resource is DeletionPolicy Retain.",
+    "content": "## 2 · The AWS estate behind the api task (ap-south-1 unless noted)\nEvery call to AWS APIs or the internet leaves the private subnets through the NAT instance (t4g.nano) -- there are no VPC endpoints; RDS and EFS traffic stays inside the VPC. Stacks: `reep-core` (ap-south-1), `reep-edge-waf` (us-east-1), `reep-dr-vault` (ap-southeast-1), `reep-voice-platform` (ap-south-1). Every resource in reep-core, reep-edge-waf and reep-dr-vault is DeletionPolicy Retain; reep-voice-platform retains only its two S3 buckets and two DynamoDB tables.",
     "height": 2780,
     "width": 3900,
     "color": 2
@@ -650,7 +650,7 @@
      "name": "REEP AWS task role (diagram stub - no secret)"
     }
    },
-   "notes": "bounce / complaint alarms",
+   "notes": "SES event stream + rate alarms; hand-made, no stack",
    "notesInFlow": true
   },
   {
@@ -708,7 +708,7 @@
    "parameters": {
     "resource": "issue",
     "operation": "getAll",
-    "organizationSlug": "reep",
+    "organizationSlug": "bgs-college-of-engineering-and",
     "projectSlug": "reep-api"
    },
    "id": "e1e0d21e-a97c-5561-9846-7c9e7de45d51",
@@ -817,7 +817,7 @@
     -3600,
     4520
    ],
-   "notes": "missing data = BREACHING",
+   "notes": "missing data = BREACHING (us-east-1)",
    "notesInFlow": true
   },
   {
@@ -840,7 +840,7 @@
      "name": "REEP AWS task role (diagram stub - no secret)"
     }
    },
-   "notes": "email, confirm subscription",
+   "notes": "email, confirm subscription (us-east-1)",
    "notesInFlow": true
   },
   {
@@ -863,13 +863,13 @@
      "name": "REEP AWS task role (diagram stub - no secret)"
     }
    },
-   "notes": "no query, cookie or referer; 30 d",
+   "notes": "no query/cookie/referer; 30 d (us-east-1)",
    "notesInFlow": true
   },
   {
    "parameters": {
     "operation": "upload",
-    "bucketName": "reep-alb-logs-<account>",
+    "bucketName": "reep-alb-logs-20260827213148167800000004",
     "fileName": "AWSLogs/..."
    },
    "id": "6721de91-9f1c-5969-b9d9-6ace822ae5ea",
@@ -1106,7 +1106,7 @@
      "name": "REEP AWS task role (diagram stub - no secret)"
     }
    },
-   "notes": "lock 10 y, list_objects_v2 only",
+   "notes": "lock 10 y; Put + List (monthly/), never Get",
    "notesInFlow": true
   },
   {
@@ -1227,7 +1227,7 @@
   {
    "parameters": {
     "operation": "executeQuery",
-    "query": "-- DELETE expired rows: auth_tokens, registrations(+documents), conversations, messages,\n-- interview_sessions/turns/evaluations (180 d), agent_runs free text redacted (90 d)",
+    "query": "-- DELETE expired rows: auth_tokens (spent codes), registration_documents of applications\n-- rejected >180 d (registrations rows kept), conversations, messages,\n-- interview_sessions/turns/evaluations (180 d); agent_runs free text redacted (90 d)",
     "options": {}
    },
    "id": "52d8338a-eba6-584e-9e5f-c64e74e46deb",
@@ -1244,7 +1244,7 @@
      "name": "REEP RDS PostgreSQL 17 (diagram stub - no secret)"
     }
    },
-   "notes": "auth_tokens, conversations, interview_*",
+   "notes": "auth_tokens, registration_documents, interview_*",
    "notesInFlow": true
   },
   {
@@ -1252,15 +1252,15 @@
     "operation": "write",
     "fileName": "/data/interview-audio/<session>"
    },
-   "id": "6b0d049f-080a-5b19-a3f1-3eab4c5376f5",
-   "name": "Retention -> EFS delete audio",
+   "id": "fe797b4c-405d-5d6e-b148-437b2959b3a7",
+   "name": "Retention -> EFS delete files",
    "type": "n8n-nodes-base.readWriteFile",
    "typeVersion": 1.1,
    "position": [
     -2280,
     5880
    ],
-   "notes": "files before rows",
+   "notes": "interview audio + rejected applicants' files",
    "notesInFlow": true
   },
   {
@@ -1307,8 +1307,8 @@
     "query": "SELECT ... FROM leave_requests WHERE status = 'APPROVED' ...",
     "options": {}
    },
-   "id": "7ac275b3-9203-527c-ac62-2cb60ed7817a",
-   "name": "On leave today -> PostgreSQL READ",
+   "id": "5e6288be-92f4-507b-8195-e8fec707aa7e",
+   "name": "On leave today -> PostgreSQL",
    "type": "n8n-nodes-base.postgres",
    "typeVersion": 2.5,
    "position": [
@@ -1321,7 +1321,7 @@
      "name": "REEP RDS PostgreSQL 17 (diagram stub - no secret)"
     }
    },
-   "notes": "leave_requests, users, mail_logs",
+   "notes": "READ leave_requests, users; WRITE mail_logs",
    "notesInFlow": true
   },
   {
@@ -1503,7 +1503,7 @@
    "type": "n8n-nodes-base.noOp",
    "typeVersion": 1,
    "position": [
-    -3600,
+    -2800,
     7060
    ],
    "notes": "vault lock governance, min 35 d",
@@ -1516,7 +1516,7 @@
    "type": "n8n-nodes-base.noOp",
    "typeVersion": 1,
    "position": [
-    -2800,
+    -1900,
     7060
    ],
    "notes": "cross-region copy",
@@ -1524,15 +1524,54 @@
   },
   {
    "parameters": {},
-   "id": "c7960c94-b402-551a-8185-dada52728643",
-   "name": "Restored instance validated, deleted",
+   "id": "d07c73f2-d277-5057-9db0-e8939a808c02",
+   "name": "Restore from the newest point in reep-vault",
    "type": "n8n-nodes-base.noOp",
    "typeVersion": 1,
    "position": [
     -3600,
-    7400
+    7440
    ],
-   "notes": "1 h validation window",
+   "notes": "throwaway instance, 1 h validation",
+   "notesInFlow": true
+  },
+  {
+   "parameters": {
+    "operation": "executeQuery",
+    "query": "-- selected by plan reep-daily and plan reep-archive",
+    "options": {}
+   },
+   "id": "5423266a-13b4-5127-bf4b-dcf5955817f6",
+   "name": "Backup source: RDS reep-postgres",
+   "type": "n8n-nodes-base.postgres",
+   "typeVersion": 2.5,
+   "position": [
+    -3600,
+    6900
+   ],
+   "credentials": {
+    "postgres": {
+     "id": "reepDiagramRds",
+     "name": "REEP RDS PostgreSQL 17 (diagram stub - no secret)"
+    }
+   },
+   "notes": "daily + monthly selections",
+   "notesInFlow": true
+  },
+  {
+   "parameters": {
+    "operation": "read",
+    "fileSelector": "/data/**"
+   },
+   "id": "1b0ed4bf-4e29-51c9-8beb-23d4cd89fcd6",
+   "name": "Backup source: EFS reep-data",
+   "type": "n8n-nodes-base.readWriteFile",
+   "typeVersion": 1.1,
+   "position": [
+    -3600,
+    7180
+   ],
+   "notes": "daily selection only",
    "notesInFlow": true
   },
   {
@@ -1722,7 +1761,7 @@
   },
   {
    "parameters": {
-    "content": "## 6 · Shipping it (GitHub Actions; agents hold no AWS credentials)\n`ci.yml` runs the five required checks. `deploy.yml` assumes `reep-github-deploy` by OIDC, pushes the multi-arch image, runs `alembic upgrade head` as a one-off task BEFORE rolling the service, syncs the SPA and invalidates CloudFront. `cdk-deploy.yml` and `ops-task.yml` are human-dispatched only; `agent-release.yml` dispatches deploy only when `tools/ci/release_gate.py` allows it.",
+    "content": "## 6 · Shipping it (GitHub Actions; agents hold no AWS credentials)\n`ci.yml` runs the five checks the (not yet applied) ruleset in `.github/rulesets/main.json` will require. `deploy.yml` assumes `reep-github-deploy` by OIDC and runs two jobs in PARALLEL: api (push the multi-arch image, `alembic upgrade head` as a one-off task BEFORE rolling the service) and web (publish the SPA, invalidate CloudFront). `cdk-deploy.yml` and `ops-task.yml` are human-dispatched only; `agent-release.yml` dispatches deploy only when `vars.AGENT_AUTODEPLOY` is true AND `tools/ci/release_gate.py` allows it.",
     "height": 1560,
     "width": 3900,
     "color": 7
@@ -1767,7 +1806,7 @@
      "name": "GitHub OIDC (diagram stub - no secret)"
     }
    },
-   "notes": "main is protected by 5 required checks",
+   "notes": "main NOT protected yet: ruleset not applied",
    "notesInFlow": true
   },
   {
@@ -1825,20 +1864,20 @@
      "name": "REEP AWS task role (diagram stub - no secret)"
     }
    },
-   "notes": "ECR, ECS, S3 SPA, CloudFront only",
+   "notes": "ECR, ECS, PassRole, S3 SPA, CF, CE; CDK boot roles",
    "notesInFlow": true
   },
   {
    "parameters": {},
-   "id": "dfc64455-b376-56c7-8555-4367a6dd1481",
-   "name": "ECR push reep/api:<sha>",
+   "id": "303a6803-e0d7-5161-899f-f536e3cf70b3",
+   "name": "ECR push reep/api:<sha> + :latest",
    "type": "n8n-nodes-base.noOp",
    "typeVersion": 1,
    "position": [
-    -1640,
-    9120
+    -1600,
+    8820
    ],
-   "notes": "linux/arm64 asserted in the manifest",
+   "notes": "multi-arch; amd64 + arm64 asserted",
    "notesInFlow": true
   },
   {
@@ -1848,8 +1887,8 @@
    "type": "n8n-nodes-base.noOp",
    "typeVersion": 1,
    "position": [
-    -1640,
-    9300
+    -1600,
+    9000
    ],
    "notes": "fails before the roll",
    "notesInFlow": true
@@ -1861,8 +1900,8 @@
    "type": "n8n-nodes-base.noOp",
    "typeVersion": 1,
    "position": [
-    -1640,
-    9480
+    -1600,
+    9160
    ],
    "notes": "circuit breaker + rollback",
    "notesInFlow": true
@@ -1874,8 +1913,8 @@
    "type": "n8n-nodes-base.noOp",
    "typeVersion": 1,
    "position": [
-    -1640,
-    9640
+    -1600,
+    9340
    ],
    "notes": "index / ngsw / reep-sw no-cache",
    "notesInFlow": true
@@ -1887,10 +1926,10 @@
    "type": "n8n-nodes-base.noOp",
    "typeVersion": 1,
    "position": [
-    -1640,
-    9800
+    -1600,
+    9520
    ],
-   "notes": "/index.html, /ngsw*, /reep-sw.js",
+   "notes": "/, /index.html, /ngsw.json, /ngsw-worker.js, /reep-sw.js",
    "notesInFlow": true
   },
   {
@@ -1922,7 +1961,7 @@
      "name": "GitHub OIDC (diagram stub - no secret)"
     }
    },
-   "notes": "core-9a / core-9b / edge-waf / dr-vault / voice",
+   "notes": "voice / edge-waf / dr-vault / core-9a / core-9b / NAT x2",
    "notesInFlow": true
   },
   {
@@ -2103,7 +2142,7 @@
   },
   {
    "parameters": {
-    "content": "## 7 · The data model: every table in RDS, by domain\n112 tables (`app/models/` plus migration-only tables); every one carries a written verdict in `purge_people.VERDICTS`, so a new table nobody classified aborts both destructors.\n\n| Domain | Tables |\n|---|---|\n| **Academics & attendance** (8) | `attendance_records`, `courses`, `enrollments`, `lab_sessions`, `schedule_items`, `semester_results`, `student_semester_history`, `subject_marks` |\n| **Documents & uploads** (2) | `archived_documents`, `uploads` |\n| **Governance & audit** (8) | `access_group_members`, `access_groups`, `capability_grants`, `export_events`, `feature_overrides`, `redesign_audit_events`, `redesign_tenant_memberships`, `redesign_tenants` |\n| **Identity & auth** (4) | `auth_tokens`, `login_days`, `login_events`, `users` |\n| **Imports & analytics** (5) | `alert_rule_configs`, `alerts`, `analytics_snapshots`, `import_rows`, `import_runs` |\n| **Institution spine** (6) | `academic_courses`, `academic_specializations`, `cohorts`, `colleges`, `departments`, `stage_rules` |\n| **Interviews** (9) | `interview_bank_questions`, `interview_cap_resets`, `interview_consents`, `interview_evaluations`, `interview_policies`, `interview_score_summaries`, `interview_sessions`, `interview_tracks`, `interview_turns` |\n| **Jobs & placement** (5) | `job_applications`, `jobs`, `mock_attempts`, `placement_criteria`, `placement_offers` |\n| **Knowledge base & agent** (11) | `agent_runs`, `assistant_feedback`, `conversations`, `knowledge_chunks`, `knowledge_documents`, `messages`, `redesign_embedding_models`, `redesign_knowledge_chunk_embeddings`, `redesign_knowledge_chunks`, `redesign_knowledge_document_versions`, `redesign_knowledge_namespaces` |\n| **Leave** (5) | `academic_calendar`, `leave_attachments`, `leave_balances`, `leave_requests`, `staff_signatures` |\n| **Mail & notifications** (1) | `mail_logs` |\n| **Mentoring & SWOC** (10) | `mentor_assignments`, `mentor_notes`, `mentors`, `redesign_mentor_notebook_actions`, `redesign_mentor_notebook_attachments`, `redesign_mentor_notebook_entries`, `redesign_mentor_notebook_entry_revisions`, `staff_upskilling_certs`, `swoc_entries`, `swoc_entry_revisions` |\n| **Other** (5) | `alembic_version`, `redesign_api_idempotency_keys`, `redesign_domain_jobs`, `redesign_outbox_events`, `students_orphaned_cohort_ids` |\n| **Programme (ledger/english/milestones)** (6) | `english_baseline_sections`, `english_baselines`, `student_milestones`, `time_ledger_cells`, `time_ledger_days`, `time_sheet_entries` |\n| **Registration** (4) | `email_verifications`, `registration_documents`, `registration_rules`, `registrations` |\n| **Skills/badges/certifications** (10) | `approved_certifications`, `badge_course_map`, `badge_evidence`, `capability_assessments`, `certification_progress`, `certifications`, `skill_claims`, `skills`, `student_badges`, `student_skills` |\n| **Students & profile** (7) | `academic_gaps`, `academic_qualifications`, `alumni_profiles`, `resume_profiles`, `resumes`, `student_profiles`, `students` |\n| **Voice platform** (6) | `platform_call_sessions`, `platform_candidates`, `platform_questions`, `platform_recording_policies`, `platform_specializations`, `platform_time_limits` |",
+    "content": "## 7 · The data model: every table in RDS, by domain\n112 tables (`app/models/` plus migration-only tables); all but `alembic_version` carry a written verdict in `purge_people.VERDICTS`, so a new table nobody classified aborts both destructors.\n\n| Domain | Tables |\n|---|---|\n| **Academics & attendance** (8) | `attendance_records`, `courses`, `enrollments`, `lab_sessions`, `schedule_items`, `semester_results`, `student_semester_history`, `subject_marks` |\n| **Documents & uploads** (2) | `archived_documents`, `uploads` |\n| **Governance & audit** (8) | `access_group_members`, `access_groups`, `capability_grants`, `export_events`, `feature_overrides`, `redesign_audit_events`, `redesign_tenant_memberships`, `redesign_tenants` |\n| **Identity & auth** (4) | `auth_tokens`, `login_days`, `login_events`, `users` |\n| **Imports & analytics** (5) | `alert_rule_configs`, `alerts`, `analytics_snapshots`, `import_rows`, `import_runs` |\n| **Institution spine** (6) | `academic_courses`, `academic_specializations`, `cohorts`, `colleges`, `departments`, `stage_rules` |\n| **Interviews** (9) | `interview_bank_questions`, `interview_cap_resets`, `interview_consents`, `interview_evaluations`, `interview_policies`, `interview_score_summaries`, `interview_sessions`, `interview_tracks`, `interview_turns` |\n| **Jobs & placement** (5) | `job_applications`, `jobs`, `mock_attempts`, `placement_criteria`, `placement_offers` |\n| **Knowledge base & agent** (11) | `agent_runs`, `assistant_feedback`, `conversations`, `knowledge_chunks`, `knowledge_documents`, `messages`, `redesign_embedding_models`, `redesign_knowledge_chunk_embeddings`, `redesign_knowledge_chunks`, `redesign_knowledge_document_versions`, `redesign_knowledge_namespaces` |\n| **Leave** (5) | `academic_calendar`, `leave_attachments`, `leave_balances`, `leave_requests`, `staff_signatures` |\n| **Mail & notifications** (1) | `mail_logs` |\n| **Mentoring & SWOC** (10) | `mentor_assignments`, `mentor_notes`, `mentors`, `redesign_mentor_notebook_actions`, `redesign_mentor_notebook_attachments`, `redesign_mentor_notebook_entries`, `redesign_mentor_notebook_entry_revisions`, `staff_upskilling_certs`, `swoc_entries`, `swoc_entry_revisions` |\n| **Other** (5) | `alembic_version`, `redesign_api_idempotency_keys`, `redesign_domain_jobs`, `redesign_outbox_events`, `students_orphaned_cohort_ids` |\n| **Programme (ledger/english/milestones)** (6) | `english_baseline_sections`, `english_baselines`, `student_milestones`, `time_ledger_cells`, `time_ledger_days`, `time_sheet_entries` |\n| **Registration** (4) | `email_verifications`, `registration_documents`, `registration_rules`, `registrations` |\n| **Skills/badges/certifications** (10) | `approved_certifications`, `badge_course_map`, `badge_evidence`, `capability_assessments`, `certification_progress`, `certifications`, `skill_claims`, `skills`, `student_badges`, `student_skills` |\n| **Students & profile** (7) | `academic_gaps`, `academic_qualifications`, `alumni_profiles`, `resume_profiles`, `resumes`, `student_profiles`, `students` |\n| **Voice platform** (6) | `platform_call_sessions`, `platform_candidates`, `platform_questions`, `platform_recording_policies`, `platform_specializations`, `platform_time_limits` |",
     "height": 1420,
     "width": 3900,
     "color": 7
@@ -41578,6 +41617,11 @@
       "node": "Service worker reep-sw.js",
       "type": "main",
       "index": 0
+     },
+     {
+      "node": "Sentry reep-api / reep-web",
+      "type": "main",
+      "index": 0
      }
     ]
    ]
@@ -41629,6 +41673,11 @@
       "node": "ALB reep-alb :443",
       "type": "main",
       "index": 0
+     },
+     {
+      "node": "Edge request logs",
+      "type": "main",
+      "index": 0
      }
     ]
    ]
@@ -41638,6 +41687,11 @@
     [
      {
       "node": "ECS Fargate · service api",
+      "type": "main",
+      "index": 0
+     },
+     {
+      "node": "Edge request logs",
       "type": "main",
       "index": 0
      }
@@ -41755,6 +41809,26 @@
      },
      {
       "node": "CloudWatch Logs /reep/api",
+      "type": "main",
+      "index": 0
+     },
+     {
+      "node": "SSM /reep/voice-platform/PLATFORM_*",
+      "type": "main",
+      "index": 0
+     },
+     {
+      "node": "DynamoDB reep-voice-sessions-ug / -pg",
+      "type": "main",
+      "index": 0
+     },
+     {
+      "node": "S3 recordings/ (versioned)",
+      "type": "main",
+      "index": 0
+     },
+     {
+      "node": "SQS reep-voice-candidates-ug / -pg",
       "type": "main",
       "index": 0
      }
@@ -41938,7 +42012,7 @@
       "index": 0
      },
      {
-      "node": "Retention -> EFS delete audio",
+      "node": "Retention -> EFS delete files",
       "type": "main",
       "index": 0
      }
@@ -41960,7 +42034,7 @@
    "main": [
     [
      {
-      "node": "On leave today -> PostgreSQL READ",
+      "node": "On leave today -> PostgreSQL",
       "type": "main",
       "index": 0
      },
@@ -41998,7 +42072,12 @@
    "main": [
     [
      {
-      "node": "Backup vault reep-vault",
+      "node": "Backup source: RDS reep-postgres",
+      "type": "main",
+      "index": 0
+     },
+     {
+      "node": "Backup source: EFS reep-data",
       "type": "main",
       "index": 0
      }
@@ -42006,6 +42085,28 @@
    ]
   },
   "AWS Backup monthly 21:30 IST on the 1st": {
+   "main": [
+    [
+     {
+      "node": "Backup source: RDS reep-postgres",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Backup source: RDS reep-postgres": {
+   "main": [
+    [
+     {
+      "node": "Backup vault reep-vault",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Backup source: EFS reep-data": {
    "main": [
     [
      {
@@ -42031,7 +42132,7 @@
    "main": [
     [
      {
-      "node": "Restored instance validated, deleted",
+      "node": "Restore from the newest point in reep-vault",
       "type": "main",
       "index": 0
      }
@@ -42076,34 +42177,23 @@
     ]
    ]
   },
-  "SSM /reep/voice-platform/PLATFORM_*": {
-   "main": [
-    [
-     {
-      "node": "DynamoDB reep-voice-sessions-ug / -pg",
-      "type": "main",
-      "index": 0
-     },
-     {
-      "node": "S3 recordings/ (versioned)",
-      "type": "main",
-      "index": 0
-     }
-    ]
-   ]
-  },
   "IAM OIDC -> role reep-github-deploy": {
    "main": [
     [
      {
-      "node": "ECR push reep/api:<sha>",
+      "node": "ECR push reep/api:<sha> + :latest",
+      "type": "main",
+      "index": 0
+     },
+     {
+      "node": "S3 sync SPA reep-web",
       "type": "main",
       "index": 0
      }
     ]
    ]
   },
-  "ECR push reep/api:<sha>": {
+  "ECR push reep/api:<sha> + :latest": {
    "main": [
     [
      {
@@ -42119,17 +42209,6 @@
     [
      {
       "node": "ECS update-service api",
-      "type": "main",
-      "index": 0
-     }
-    ]
-   ]
-  },
-  "ECS update-service api": {
-   "main": [
-    [
-     {
-      "node": "S3 sync SPA reep-web",
       "type": "main",
       "index": 0
      }
@@ -42181,6 +42260,39 @@
    ]
   },
   "deploy.yml": {
+   "main": [
+    [
+     {
+      "node": "IAM OIDC -> role reep-github-deploy",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "cdk-deploy.yml (human only)": {
+   "main": [
+    [
+     {
+      "node": "IAM OIDC -> role reep-github-deploy",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "ops-task.yml (fixed task menu)": {
+   "main": [
+    [
+     {
+      "node": "IAM OIDC -> role reep-github-deploy",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "infra-drift.yml 08:00 IST": {
    "main": [
     [
      {
@@ -52062,7 +52174,7 @@
   "saveManualExecutions": false,
   "timezone": "Asia/Kolkata"
  },
- "versionId": "f18c18c1-da54-5901-93f9-ff940f3b8af1",
+ "versionId": "f75c9526-0313-5f10-83a7-6de7b3c81e4e",
  "meta": {
   "templateCredsSetupCompleted": true
  },

@@ -12401,7 +12401,7 @@
       "bucketName": "reep-db-archive-<account>",
       "fileName": "monthly/YYYY/MM.dump"
      },
-     "note": "lock 10 y, list_objects_v2 only"
+     "note": "lock 10 y; Put + List (monthly/), never Get"
     }
    ],
    "diagram": "schedule"
@@ -12458,20 +12458,20 @@
      "cred": "postgres",
      "params": {
       "operation": "executeQuery",
-      "query": "-- DELETE expired rows: auth_tokens, registrations(+documents), conversations, messages,\n-- interview_sessions/turns/evaluations (180 d), agent_runs free text redacted (90 d)",
+      "query": "-- DELETE expired rows: auth_tokens (spent codes), registration_documents of applications\n-- rejected >180 d (registrations rows kept), conversations, messages,\n-- interview_sessions/turns/evaluations (180 d); agent_runs free text redacted (90 d)",
       "options": {}
      },
-     "note": "auth_tokens, conversations, interview_*"
+     "note": "auth_tokens, registration_documents, interview_*"
     },
     {
-     "label": "EFS delete audio",
+     "label": "EFS delete files",
      "type": "readWriteFile",
      "v": 1.1,
      "params": {
       "operation": "write",
       "fileName": "/data/interview-audio/<session>"
      },
-     "note": "files before rows"
+     "note": "interview audio + rejected applicants' files"
     }
    ],
    "diagram": "schedule"
@@ -12487,7 +12487,7 @@
    "purpose": "For each approved faculty leave covering today, mails every other active faculty member; keyed leave-today:{id}:{day}:{recipient}.",
    "targets": [
     {
-     "label": "PostgreSQL READ",
+     "label": "PostgreSQL",
      "type": "postgres",
      "v": 2.5,
      "cred": "postgres",
@@ -12496,7 +12496,7 @@
       "query": "SELECT ... FROM leave_requests WHERE status = 'APPROVED' ...",
       "options": {}
      },
-     "note": "leave_requests, users, mail_logs"
+     "note": "READ leave_requests, users; WRITE mail_logs"
     },
     {
      "label": "Amazon SES",

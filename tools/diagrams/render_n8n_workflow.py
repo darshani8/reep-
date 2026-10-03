@@ -582,7 +582,7 @@ def render_grants(wf, lane, grants, lx, y, lane_w, domain_entries):
 
 # ----------------------------------------------------- the left-hand side ---
 
-def render_request_path(wf: Workflow, x0: int, y: int) -> tuple[str, int]:
+def render_request_path(wf: Workflow, x0: int, y: int) -> tuple[str, int, dict]:
     """The phone -> edge -> API -> session -> role decision chain."""
     step = 300
     xs = [x0 + i * step for i in range(14)]
@@ -622,14 +622,17 @@ def render_request_path(wf: Workflow, x0: int, y: int) -> tuple[str, int]:
                   notes="ARM64, 512 CPU / 1 GiB, 2-10 tasks")
     uv = wf.node("uvicorn -> FastAPI app.main", "code", 2, xs[8], y + 60,
                  {"language": "python", "pythonCode":
-                  "# Dockerfile CMD: python -m uvicorn app.main:app --port 3300 --proxy-headers\n"
-                  "# app.include_router(<router>, prefix='/api') for 41 routers + voice_platform\n"
+                  "# Dockerfile CMD: python -m uvicorn app.main:app --host 0.0.0.0 --port 3300 --proxy-headers\n"
+                  "#   --timeout-graceful-shutdown 110 --ws-per-message-deflate false\n"
+                  "# 35 routers under prefix='/api', 7 self-prefixed /api/..., 2 under /api/v1,\n"
+                  "# plus /health, /ready and the voice_platform routers\n"
                   "return _input.all()"}, notes="python -m uvicorn app.main:app :3300")
     mw = wf.node("Middleware chain", "code", 2, xs[9], y + 60,
                  {"language": "python", "pythonCode":
-                  "# outermost first: security headers (nosniff, DENY, HSTS) -> RequestTraceMiddleware\n"
-                  "# (X-Request-ID, access line) -> Sentry (scrubbed: app/telemetry_scrub.py) -> CORS\n"
-                  "return _input.all()"}, notes="headers, X-Request-ID, Sentry scrub, CORS")
+                  "# outermost first: Sentry ASGI wrapper (scrubbed: app/telemetry_scrub.py)\n"
+                  "# -> security headers (nosniff, DENY, HSTS) -> RequestTraceMiddleware\n"
+                  "# (X-Request-ID, access line, tags the Sentry scope) -> CORS\n"
+                  "return _input.all()"}, notes="Sentry wrap, headers, X-Request-ID, CORS")
     jwt = wf.node("security.py · verify reep_session", "jwt", 1, xs[10], y + 60,
                   {"operation": "verify", "token": "={{ $json.cookies.reep_session }}"},
                   notes="HS256 AUTH_SECRET + users.token_version", cred="jwtAuth")
@@ -639,10 +642,10 @@ def render_request_path(wf: Workflow, x0: int, y: int) -> tuple[str, int]:
                         ["PUBLIC", "ACCOUNT", "STUDENT", "FACULTY", "ALUMNI", "MAIN ADMIN"],
                         notes="cookie absent -> PUBLIC; 401 X-Reep-Session: retired")
     wf.link(jwt, role_sw)
-    return role_sw, xs[11]
+    return role_sw, xs[11], {"spa": n[1], "cloudfront": cf, "alb": alb}
 
 
-def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict) -> None:
+def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict, edge: dict) -> None:
     """Title, legend, AWS estate, schedules, backups, voice platform, CI/CD, data model."""
     W = 3900
     # ---- title and legend
@@ -673,7 +676,8 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict) -> None:
         "| **S3 · SES · DynamoDB · SQS · Lambda · ELB** | the AWS service by its own icon; Bedrock, Google, "
         "SSM and CloudWatch are HTTP nodes on their real endpoints |",
         "| **Read/Write Files** | the EFS `/data` volume (uploads, interview WAVs) |",
-        "| **Schedule Trigger** | EventBridge Scheduler / AWS Backup cron, in IST |",
+        "| **Schedule Trigger** | EventBridge Scheduler / AWS Backup cron, in IST, or the Route 53 health "
+        "checker's 30 s interval |",
         "| **GitHub** | a GitHub Actions workflow |",
         "| greyed (deactivated) node | exists in code, not deployed / not running |",
         "",
@@ -695,9 +699,11 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict) -> None:
     ay = y0 + 2120
     wf.sticky("AWS estate", x0, ay, W, 2780, 2,
               "## 2 · The AWS estate behind the api task (ap-south-1 unless noted)\n"
-              "Every arrow leaves the private subnets through the NAT instance -- there are no VPC endpoints. "
+              "Every call to AWS APIs or the internet leaves the private subnets through the NAT instance "
+              "(t4g.nano) -- there are no VPC endpoints; RDS and EFS traffic stays inside the VPC. "
               "Stacks: `reep-core` (ap-south-1), `reep-edge-waf` (us-east-1), `reep-dr-vault` (ap-southeast-1), "
-              "`reep-voice-platform`. Every resource is DeletionPolicy Retain.")
+              "`reep-voice-platform` (ap-south-1). Every resource in reep-core, reep-edge-waf and reep-dr-vault is "
+              "DeletionPolicy Retain; reep-voice-platform retains only its two S3 buckets and two DynamoDB tables.")
     c0, c1, c2, c3 = x0 + 120, x0 + 900, x0 + 1700, x0 + 2600
     r = lambda i: ay + 200 + i * 220  # noqa: E731
     ecr = wf.node("ECR reep/api (multi-arch)", "noOp", 1, c0, r(0), notes="image pulled at task start")
@@ -722,7 +728,7 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict) -> None:
                   notes="config set reep-transactional", cred="aws")
     sesn = wf.node("SNS reep-ses-notifications", "awsSns", 1, c3, r(3),
                    {"topic": "reep-ses-notifications", "subject": "SES event", "message": "<event>"},
-                   notes="bounce / complaint alarms", cred="aws")
+                   notes="SES event stream + rate alarms; hand-made, no stack", cred="aws")
     sonic = wf.node("Bedrock Nova 2 Sonic (ap-northeast-1)", "httpRequest", 4.2, c2, r(4),
                     EXTERNAL["BEDROCK_NOVA_SONIC"]["params"], notes="mock interviewer, 8-min stream cap")
     pro = wf.node("Bedrock Nova Pro (Converse)", "httpRequest", 4.2, c2, r(5),
@@ -730,7 +736,8 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict) -> None:
     goog = wf.node("Google OAuth / OIDC", "httpRequest", 4.2, c2, r(6),
                    EXTERNAL["GOOGLE_OAUTH"]["params"], notes="sign-in for every role")
     sen = wf.node("Sentry reep-api / reep-web", "sentryIo", 1, c2, r(7),
-                  {"resource": "issue", "operation": "getAll", "organizationSlug": "reep", "projectSlug": "reep-api"},
+                  {"resource": "issue", "operation": "getAll", "organizationSlug": "bgs-college-of-engineering-and",
+                   "projectSlug": "reep-api"},
                   notes="PII off, scrubbed payloads", cred="sentryIoApi")
     cwl = wf.node("CloudWatch Logs /reep/api", "httpRequest", 4.2, c2, r(8),
                   {"method": "POST", "url": "https://logs.ap-south-1.amazonaws.com/", "options": {}},
@@ -744,22 +751,25 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict) -> None:
     for t in (rds, efs, arch, ses, sonic, pro, goog, sen, cwl):
         wf.link(task, t)
     wf.link(ses, sesn); wf.link(cwl, alarms); wf.link(alarms, alerts)
+    wf.link(edge["spa"], sen)  # the browser reports to reep-web directly
     up = wf.node("Route 53 health check reep-uptime", "scheduleTrigger", 1.2, c0, r(10),
                  {"rule": {"interval": [{"field": "seconds", "secondsInterval": 30}]}},
                  notes="TCP 443 every 30 s (us-east-1)")
-    upa = wf.node("Alarm reep-site-unreachable", "noOp", 1, c1, r(10), notes="missing data = BREACHING")
+    upa = wf.node("Alarm reep-site-unreachable", "noOp", 1, c1, r(10),
+                  notes="missing data = BREACHING (us-east-1)")
     ups = wf.node("SNS reep-uptime-alerts", "awsSns", 1, c2, r(10),
                   {"topic": "reep-uptime-alerts", "subject": "REEP down", "message": "<alarm>"},
-                  notes="email, confirm subscription", cred="aws")
+                  notes="email, confirm subscription (us-east-1)", cred="aws")
     wf.link(up, upa); wf.link(upa, ups)
     cfl = wf.node("S3 reep-cloudfront-logs", "awsS3", 2, c3, r(0),
                   {"operation": "upload", "bucketName": "reep-cloudfront-logs-<account>", "fileName": "AWSLogs/..."},
-                  notes="no query, cookie or referer; 30 d", cred="aws")
+                  notes="no query/cookie/referer; 30 d (us-east-1)", cred="aws")
     albl = wf.node("S3 reep-alb-logs", "awsS3", 2, c3, r(1),
-                   {"operation": "upload", "bucketName": "reep-alb-logs-<account>", "fileName": "AWSLogs/..."},
+                   {"operation": "upload", "bucketName": "reep-alb-logs-20260827213148167800000004", "fileName": "AWSLogs/..."},
                    notes="expire 90 d", cred="aws")
     edge_src = wf.node("Edge request logs", "noOp", 1, c1, r(0), notes="CloudFront + ALB access logs")
     wf.link(edge_src, cfl); wf.link(edge_src, albl)
+    wf.link(edge["cloudfront"], edge_src, 1); wf.link(edge["alb"], edge_src)
 
     # ---- schedules
     sy = ay + 2840
@@ -801,10 +811,18 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict) -> None:
     restore = wf.node("Restore test Sundays 09:30 IST", "scheduleTrigger", 1.2, c0, by + 640,
                       {"rule": {"interval": [{"field": "cronExpression", "expression": "0 30 9 * * 0"}]}},
                       notes="throwaway RDS from latest point")
-    vault = wf.node("Backup vault reep-vault", "noOp", 1, c1, by + 300, notes="vault lock governance, min 35 d")
-    dr = wf.node("DR vault reep-vault-dr (Singapore)", "noOp", 1, c2, by + 300, notes="cross-region copy")
-    proof = wf.node("Restored instance validated, deleted", "noOp", 1, c1, by + 640, notes="1 h validation window")
-    wf.link(daily, vault); wf.link(monthly, vault); wf.link(vault, dr); wf.link(restore, proof)
+    vault = wf.node("Backup vault reep-vault", "noOp", 1, c2, by + 300, notes="vault lock governance, min 35 d")
+    dr = wf.node("DR vault reep-vault-dr (Singapore)", "noOp", 1, c3, by + 300, notes="cross-region copy")
+    proof = wf.node("Restore from the newest point in reep-vault", "noOp", 1, c1, by + 680,
+                    notes="throwaway instance, 1 h validation")
+    src_db = wf.node("Backup source: RDS reep-postgres", "postgres", 2.5, c1, by + 140,
+                     {"operation": "executeQuery", "query": "-- selected by plan reep-daily and plan reep-archive",
+                      "options": {}}, notes="daily + monthly selections", cred="postgres")
+    src_fs = wf.node("Backup source: EFS reep-data", "readWriteFile", 1.1, c1, by + 420,
+                     {"operation": "read", "fileSelector": "/data/**"}, notes="daily selection only")
+    wf.link(daily, src_db); wf.link(daily, src_fs); wf.link(monthly, src_db)
+    wf.link(src_db, vault); wf.link(src_fs, vault); wf.link(vault, dr)
+    wf.link(restore, proof)
 
     # ---- voice platform ingest
     vy = by + 1040
@@ -837,42 +855,48 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict) -> None:
     ssm = wf.node("SSM /reep/voice-platform/PLATFORM_*", "httpRequest", 4.2, c0, vy + 480,
                   EXTERNAL["SSM"]["params"], notes="read by the api at boot")
     wf.link(ing, lam); wf.link(lam, sqs); wf.link(sqs, dlq); wf.link(sqs, worker)
-    wf.link(ssm, ddb); wf.link(ssm, rec)
+    for t in (ssm, ddb, rec, sqs):
+        wf.link(task, t)  # SSM read once at boot; SQS only for bulk mode=queue
 
     # ---- CI/CD
     gy = vy + 820
     wf.sticky("CI/CD", x0, gy, W, 1560, 7,
               "## 6 · Shipping it (GitHub Actions; agents hold no AWS credentials)\n"
-              "`ci.yml` runs the five required checks. `deploy.yml` assumes `reep-github-deploy` by OIDC, pushes "
-              "the multi-arch image, runs `alembic upgrade head` as a one-off task BEFORE rolling the service, "
-              "syncs the SPA and invalidates CloudFront. `cdk-deploy.yml` and `ops-task.yml` are human-dispatched "
-              "only; `agent-release.yml` dispatches deploy only when `tools/ci/release_gate.py` allows it.")
+              "`ci.yml` runs the five checks the (not yet applied) ruleset in `.github/rulesets/main.json` will "
+              "require. `deploy.yml` assumes `reep-github-deploy` by OIDC and runs two jobs in PARALLEL: api (push "
+              "the multi-arch image, `alembic upgrade head` as a one-off task BEFORE rolling the service) and web "
+              "(publish the SPA, invalidate CloudFront). `cdk-deploy.yml` and `ops-task.yml` are human-dispatched "
+              "only; `agent-release.yml` dispatches deploy only when `vars.AGENT_AUTODEPLOY` is true AND "
+              "`tools/ci/release_gate.py` allows it.")
     push = wf.node("Push / PR on darshani8/reep-", "githubTrigger", 1, c0, gy + 220,
                    {"owner": {"__rl": True, "value": "darshani8", "mode": "name"},
                     "repository": {"__rl": True, "value": "reep-", "mode": "name"}, "events": ["push", "pull_request"]},
-                   notes="main is protected by 5 required checks", cred="githubApi")
+                   notes="main NOT protected yet: ruleset not applied", cred="githubApi")
     ci = wf.node("ci.yml · api · pii-gate · api-imports · web · cdk", "noOp", 1, c1, gy + 220,
                  notes="pytest, PII gate, imports, ng build, synth")
     rel = wf.node("agent-release.yml (release gate)", "noOp", 1, c2, gy + 100,
                   notes="migrations / infra / auth always need a human")
     dep = wf.node("deploy.yml", "noOp", 1, c2, gy + 340, notes="workflow_dispatch: api / web / both")
     oidc = wf.node("IAM OIDC -> role reep-github-deploy", "awsIam", 1, c3, gy + 340, {},
-                   notes="ECR, ECS, S3 SPA, CloudFront only", cred="aws")
-    steps = [
-        ("ECR push reep/api:<sha>", "noOp", {}, "linux/arm64 asserted in the manifest"),
-        ("RunTask alembic upgrade head", "noOp", {}, "fails before the roll"),
-        ("ECS update-service api", "noOp", {}, "circuit breaker + rollback"),
-        ("S3 sync SPA reep-web", "noOp", {}, "index / ngsw / reep-sw no-cache"),
-        ("CloudFront invalidation", "noOp", {}, "/index.html, /ngsw*, /reep-sw.js"),
+                   notes="ECR, ECS, PassRole, S3 SPA, CF, CE; CDK boot roles", cred="aws")
+    api_steps = [
+        ("ECR push reep/api:<sha> + :latest", "multi-arch; amd64 + arm64 asserted"),
+        ("RunTask alembic upgrade head", "fails before the roll"),
+        ("ECS update-service api", "circuit breaker + rollback"),
     ]
-    prev = oidc
-    for i, (label, typ, params, note) in enumerate(steps):
-        name = wf.node(label, typ, 1, c3 + 260 + (i % 2) * 0, gy + 340 + (i + 1) * 170, params, notes=note)
-        wf.link(prev, name)
-        prev = name
+    web_steps = [
+        ("S3 sync SPA reep-web", "index / ngsw / reep-sw no-cache"),
+        ("CloudFront invalidation", "/, /index.html, /ngsw.json, /ngsw-worker.js, /reep-sw.js"),
+    ]
+    for row, chain in enumerate((api_steps, web_steps)):
+        prev = oidc
+        for i, (label, note) in enumerate(chain):
+            name = wf.node(label, "noOp", 1, c3 + 300 + i * 0, gy + 200 + row * 520 + i * 170, {}, notes=note)
+            wf.link(prev, name)
+            prev = name
     wf.link(push, ci); wf.link(ci, rel); wf.link(rel, dep); wf.link(dep, oidc)
     others = [
-        ("cdk-deploy.yml (human only)", "core-9a / core-9b / edge-waf / dr-vault / voice"),
+        ("cdk-deploy.yml (human only)", "voice / edge-waf / dr-vault / core-9a / core-9b / NAT x2"),
         ("ops-task.yml (fixed task menu)", "purge-*, seed-*, grant-access as RunTask"),
         ("infra-drift.yml 08:00 IST", "cdk diff vs main + drift + cost; never deploys"),
         ("claude.yml / claude-review.yml", "@claude -> PR; review every non-draft PR"),
@@ -880,11 +904,13 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict) -> None:
         ("agent-maintenance.yml Mondays", "dependency and drift sweep"),
     ]
     for i, (label, note) in enumerate(others):
-        wf.node(label, "github", 1.1, c0 + (i % 3) * 700, gy + 760 + (i // 3) * 240,
+        gh = wf.node(label, "github", 1.1, c0 + (i % 3) * 700, gy + 760 + (i // 3) * 240,
                 {"resource": "repository", "operation": "get",
                  "owner": {"__rl": True, "value": "darshani8", "mode": "name"},
                  "repository": {"__rl": True, "value": "reep-", "mode": "name"}},
                 notes=note, cred="githubApi")
+        if label.startswith(("cdk-deploy", "ops-task", "infra-drift")):
+            wf.link(gh, oidc)
 
     menu = inv.get("ops_task_menu", [])
     wf.sticky("Ops task menu", c0 + 2100, gy + 1180, 1700, 320, 7,
@@ -900,8 +926,9 @@ def render_left(wf: Workflow, x0: int, y0: int, inv: dict, stats: dict) -> None:
     for t in tables:
         by_dom[t["domain"]].append(t["table"])
     lines = ["## 7 · The data model: every table in RDS, by domain",
-             f"{len(tables)} tables (`app/models/` plus migration-only tables); every one carries a written verdict "
-             "in `purge_people.VERDICTS`, so a new table nobody classified aborts both destructors.", "",
+             f"{len(tables)} tables (`app/models/` plus migration-only tables); all but `alembic_version` carry a "
+             "written verdict in `purge_people.VERDICTS`, so a new table nobody classified aborts both "
+             "destructors.", "",
              "| Domain | Tables |", "|---|---|"]
     for dom in sorted(by_dom):
         lines.append(f"| **{dom}** ({len(by_dom[dom])}) | " + ", ".join(f"`{t}`" for t in sorted(by_dom[dom])) + " |")
@@ -963,9 +990,9 @@ def main() -> int:
     feature_count = sum(len(f) for groups in lanes.values() for f in groups.values()) + len(grants)
 
     wf = Workflow()
-    role_sw, sw_x = render_request_path(wf, -4300, 1780)
+    role_sw, sw_x, edge = render_request_path(wf, -4300, 1780)
     render_left(wf, -4500, 0, inv,
-                {"endpoints": len(endpoints), "features": feature_count})
+                {"endpoints": len(endpoints), "features": feature_count}, edge)
 
     lx, top = max(sw_x + 700, 400), 0
     order = ["PUBLIC", "ACCOUNT", "STUDENT", "FACULTY", "ALUMNI", "MAIN_ADMIN"]

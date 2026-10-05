@@ -12,6 +12,15 @@
 > no room for a warning that would still be legible at A3, and re-drawing it is a
 > design job, not a docs job. `AGENTS.md` is the current truth.
 
+**`n8n/reep-roles-features-crud.n8n.json`** is not a poster but an importable
+n8n workflow. It draws every role's every feature with its CREATE / READ /
+UPDATE / DELETE operations and the endpoint, handler, tables and AWS services
+behind each one, plus the request path and the AWS estate. It is generated from
+`n8n/reep-feature-inventory.json`; [`n8n/README.md`](n8n/README.md) says how to
+open it, read it and keep it true. `n8n/reep-roles-features-crud.html` is the same map as a
+phone-friendly page, and `n8n/reep-n8n-canvas.pdf` is the canvas itself as n8n
+draws it, in pages any phone opens without n8n.
+
 Three A3 sheets, each as `.svg` (source of truth), `.pdf` (print) and `.png`
 (150 dpi preview):
 

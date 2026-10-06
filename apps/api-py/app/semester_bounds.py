@@ -31,6 +31,7 @@ cannot drift.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -127,3 +128,41 @@ def rejection(ceiling: SemesterCeiling, semester: int) -> str | None:
         "This batch names no course with a semester count, so the deployment-wide "
         "default applies — set Total semesters on the course to raise it."
     )
+
+
+#: A semester's length when the course does not say. Two a year is what every
+#: programme on this deployment runs; a course that names both
+#: `duration_months` and `total_semesters` overrides it.
+DEFAULT_MONTHS_PER_SEMESTER = 6
+
+
+def semester_on(db: Session, cohort_id: str | None, today: date) -> int:
+    """The semester a student seated in this batch is in TODAY.
+
+    WHY THIS EXISTS. The registration form asks for a batch ("2025-27") and
+    never for a semester, and approval created every student at the column's
+    default of 1 - so a student who registered in their third semester was
+    written down as a first-semester student, and every export and screen
+    repeated it. The batch already knows when it started; the semester is how
+    many semester-lengths have elapsed since then, plus one.
+
+    Bounded both ways: a batch that has not started yet is semester 1, and one
+    past its end sits at the programme's last semester (graduation is a
+    decision the office makes, never something a clock does). No batch means 1,
+    the old answer, because there is nothing to count from.
+    """
+    if not cohort_id:
+        return 1
+    cohort = db.get(Cohort, cohort_id)
+    if cohort is None or cohort.start_date is None:
+        return 1
+    start = cohort.start_date.date()
+    course = course_for_cohort(db, cohort_id)
+    months_per = DEFAULT_MONTHS_PER_SEMESTER
+    if course is not None and course.duration_months and course.total_semesters:
+        months_per = max(1, round(course.duration_months / course.total_semesters))
+    elapsed = (today.year - start.year) * 12 + (today.month - start.month)
+    if today.day < start.day:
+        elapsed -= 1
+    semester = max(0, elapsed) // months_per + 1
+    return min(semester, ceiling_for_cohort(db, cohort_id).value)

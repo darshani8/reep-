@@ -95,7 +95,7 @@ import {
   trackColourOf,
   type BatchAction,
   type BatchOption,
-  batchPickerLabel,
+  batchYears,
   type CourseOption,
   type DepartmentOption,
   type FacultyOption,
@@ -206,6 +206,11 @@ export class AdminStudentsComponent {
    *  actions act on, so "what I am looking at" and "what the action touches"
    *  are one thing. */
   readonly batchFilter = signal('');
+  /** The YEAR picked in the Batch select ("2025-27"), or '' (2026-10-06).
+   *  `batchFilter` is the one batch it resolves to through the selects to
+   *  its left; while several batches share the year, `batchFilter` stays ''
+   *  and the roster is narrowed to all of them on the client. */
+  readonly yearFilter = signal('');
   readonly departmentFilter = signal('');
   readonly courseFilter = signal('');
   readonly specializationFilter = signal('');
@@ -301,7 +306,12 @@ export class AdminStudentsComponent {
     const course = this.courseFilter();
     const specialization = this.specializationFilter();
     const status = this.statusFilter();
+    const yearBatches =
+      this.yearFilter() !== '' && this.batchFilter() === '' ? new Set(this.yearBatchIds()) : null;
     return this.allRows().filter((row) => {
+      if (yearBatches !== null && (row.cohortId === null || !yearBatches.has(row.cohortId))) {
+        return false;
+      }
       if (department !== '' && row.departmentId !== department) return false;
       if (course !== '' && row.courseId !== course) return false;
       if (
@@ -473,50 +483,17 @@ export class AdminStudentsComponent {
     return chosen?.name ?? 'All';
   });
 
-  /**
-   * The Batch options, each labelled with WHAT THE SELECTS ABOVE HAVE NOT
-   * ALREADY PINNED.
-   *
-   * THE FIRST ATTEMPT AT THIS PRINTED SIX IDENTICAL OPTIONS. Dropping the
-   * spine entirely was right about the duplication and wrong about the
-   * default state: `seed_catalogue.batch_name` returns the label unchanged and
-   * the setup screen's `batchName` is `label.trim()`, so every batch a
-   * deployment writes has `name === batch_label === "2026-28"`. BGSCET's one
-   * department has six leaves, so opening this screen with Course and
-   * Specialization on "All" — which is how it opens — listed six options
-   * reading exactly "2026-28", and picking one was a guess.
-   *
-   * The rule is therefore not "never show the spine" but "never show what the
-   * reader has already fixed". Course is named while the Course select is on
-   * "All" and drops out the moment it is not; the same for Specialization. At
-   * the bottom of the cascade both are pinned and the option is the year
-   * alone, which is the case the owner asked for and also the only case where
-   * the year alone is unambiguous.
-   */
-  readonly batchPickerOptions = computed(() => {
-    const spellCourse = this.courseFilter() === '';
-    const spellSpecialization = this.specializationFilter() === '';
-    return this.batchOptions().map((batch) => ({
-      batch,
-      label: batchPickerLabel(
-        batch,
-        { course: !spellCourse, specialization: !spellSpecialization },
-        composeBatchLabel,
-      ),
-    }));
-  });
+  /** The Batch select: each year once, as `/register` draws it. */
+  readonly batchYearOptions = computed(() => batchYears(this.batchOptions()));
+
+  /** The batches the picked year covers, inside the selects to its left. */
+  readonly yearBatchIds = computed(
+    () => this.batchYearOptions().find((year) => year.label === this.yearFilter())?.batchIds ?? [],
+  );
 
   readonly batchFilterLabel = computed(() => {
     if (this.batchFilter() === 'unseated') return 'No batch yet';
-    const chosen = this.selectedBatch();
-    if (!chosen) return 'All';
-    // The pill is the one piece of chrome sitting directly over the option the
-    // reader picked, so it reads back the SAME string the list offered —
-    // including the rungs the selects above have not pinned. Anything else
-    // makes the summary and the list disagree about which batch this is.
-    return (
-      this.batchPickerOptions().find((o) => o.batch.id === chosen.id)?.label ?? chosen.yearLabel
-    );
+    return this.yearFilter() || 'All';
   });
 
   readonly specializationFilterLabel = computed(() => {
@@ -566,6 +543,10 @@ export class AdminStudentsComponent {
 
   /** Why the three batch buttons are off, on the buttons themselves. */
   readonly batchActionsHint = computed(() => {
+    const sharing = this.yearBatchIds().length;
+    if (this.selectedBatch() === null && this.yearFilter() !== '' && sharing > 1) {
+      return `${sharing} batches are ${this.yearFilter()}. Pick the Course and Specialization to act on one of them.`;
+    }
     if (this.selectedBatch() === null) {
       return 'Pick one batch to promote, graduate or act on it.';
     }
@@ -856,19 +837,44 @@ export class AdminStudentsComponent {
     void this.loadPromotionHistory();
   }
 
+  /** The Batch select's change: a sentinel, or a year. */
+  setBatchYear(value: string): void {
+    if (value === '' || value === 'unseated') {
+      this.yearFilter.set('');
+      this.setBatchFilter(value);
+      return;
+    }
+    this.yearFilter.set(value);
+    this.resolveYear();
+  }
+
+  /** Turn the picked year into ONE batch when the selects to its left narrow
+   *  it that far; otherwise show every batch of that year and leave the batch
+   *  actions off. A year the narrower selects no longer offer is dropped. */
+  private resolveYear(): void {
+    const year = this.yearFilter();
+    if (year === '') {
+      this.setBatchFilter('');
+      return;
+    }
+    const ids = this.yearBatchIds();
+    if (ids.length === 0) this.yearFilter.set('');
+    this.setBatchFilter(ids.length === 1 ? ids[0] : '');
+  }
+
   setDepartmentFilter(departmentId: string): void {
     this.departmentFilter.set(departmentId);
     // A course or a batch outside the new department would silently show
     // nothing, so the narrower choices are cleared with it.
     this.courseFilter.set('');
     this.specializationFilter.set('');
-    this.setBatchFilter('');
+    this.resolveYear();
   }
 
   setCourseFilter(courseId: string): void {
     this.courseFilter.set(courseId);
     this.specializationFilter.set('');
-    this.setBatchFilter('');
+    this.resolveYear();
   }
 
   setSpecializationFilter(specializationId: string): void {
@@ -876,8 +882,10 @@ export class AdminStudentsComponent {
     // The batch list is narrowed by specialization now, so the reason above
     // reaches this rung too: a batch outside the new specialization would stay
     // selected while no longer being offered, and the reader would be looking
-    // at a roster the picker no longer admits was chosen.
-    this.setBatchFilter('');
+    // at a roster the picker no longer admits was chosen. The YEAR stays: it
+    // is re-resolved against the narrower list, the way /register turns a
+    // year and a specialization into one batch.
+    this.resolveYear();
   }
 
   /** Three of the four values narrow what is drawn; REMOVED is a different
@@ -1290,6 +1298,7 @@ export class AdminStudentsComponent {
       this.confirmBatchRemoval.set(false);
       this.flash.set(`Batch removed: ${batch.name}.`);
       this.batchFilter.set('');
+      this.yearFilter.set('');
       await Promise.all([this.loadHierarchy(), this.reloadRoster()]);
     });
   }

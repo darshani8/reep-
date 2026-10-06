@@ -1,72 +1,37 @@
-import { composeBatchLabel } from '../../../core/batch-label';
-import { batchPickerLabel, secondSpecializationOptions, type BatchOption } from './roster-row';
+import { batchYears, secondSpecializationOptions, type BatchOption } from './roster-row';
 
 /**
- * The regression this pins actually shipped, in commit 48f7ca4: the Batch
- * option dropped the spine entirely, which is correct at the bottom of the
- * cascade and useless at the top.
+ * The roster's Batch select lists each year ONCE, as /register does
+ * (2026-10-06). It printed "General MBA - Finance · 2025-27" and five more
+ * options for one year, repeating the Course and Specialization selects.
  */
-describe('the roster Batch option', () => {
-  // What every deployment writes: `seed_catalogue.batch_name` returns the
-  // label unchanged, and the setup screen's `batchName` is `label.trim()`.
-  interface Pickable {
-    courseName: string | null;
-    specializationName: string | null;
-    name: string;
-    batchLabel: string;
-  }
+describe('the roster Batch select', () => {
+  const batch = (id: string, yearLabel: string, isRunning = true) => ({ id, yearLabel, isRunning });
 
-  const seeded = (courseName: string | null, specializationName: string | null): Pickable => ({
-    courseName,
-    specializationName,
-    name: '2026-28',
-    batchLabel: '2026-28',
+  it('draws a year shared by six batches once, covering all six', () => {
+    const six = ['hr', 'mkt', 'fin', 'ba', 'dm', 'lscm'].map((id) => batch(id, '2025-27'));
+    const years = batchYears(six);
+    expect(years.map((y) => y.label)).toEqual(['2025-27']);
+    expect(years[0].batchIds).toEqual(['hr', 'mkt', 'fin', 'ba', 'dm', 'lscm']);
   });
 
-  const label = (batch: Pickable, course: boolean, specialization: boolean): string =>
-    batchPickerLabel(batch, { course, specialization }, composeBatchLabel);
-
-  it('names the course while the Course select is still on "All"', () => {
-    // BGSCET's six leaves all carry the same span, so with nothing pinned the
-    // bare year gave six options reading "2026-28" and picking one was a guess.
-    const six = [
-      seeded('General MBA', 'Human Resources'),
-      seeded('General MBA', 'Marketing'),
-      seeded('General MBA', 'Finance'),
-      seeded('General MBA', 'Business Analytics'),
-      seeded('Digital Marketing', null),
-      seeded('Logistics and Supply Chain Management', null),
-    ];
-    const rendered = six.map((b) => label(b, false, false));
-    expect(new Set(rendered).size).toBe(six.length);
-    expect(rendered[0]).toBe('General MBA - Human Resources · 2026-28');
-    expect(rendered[4]).toBe('Digital Marketing · 2026-28');
+  it('keeps different years, and a named section, apart in the order given', () => {
+    const years = batchYears([
+      batch('a', '2026-28'),
+      batch('b', '2025-27'),
+      batch('c', '2026-28 Section B'),
+      batch('d', '2026-28'),
+    ]);
+    expect(years.map((y) => [y.label, y.batchIds])).toEqual([
+      ['2026-28', ['a', 'd']],
+      ['2025-27', ['b']],
+      ['2026-28 Section B', ['c']],
+    ]);
   });
 
-  it('drops a rung the moment the reader pins it', () => {
-    const batch = seeded('General MBA', 'Finance');
-    expect(label(batch, true, false)).toBe('Finance · 2026-28');
-    expect(label(batch, false, true)).toBe('General MBA · 2026-28');
-    // Both pinned: the year alone, which is the case the owner asked for and
-    // the only one where the year alone identifies anything.
-    expect(label(batch, true, true)).toBe('2026-28');
-  });
-
-  it('keeps two sections of one leaf apart once both rungs are pinned', () => {
-    const plain = { ...seeded('General MBA', 'Finance') };
-    const section = { ...plain, name: '2026-28 Section B' };
-    expect(label(plain, true, true)).toBe('2026-28');
-    expect(label(section, true, true)).toBe('2026-28 Section B');
-  });
-
-  it('never drops the year, even where the batch has a name of its own', () => {
-    const odd: Pickable = {
-      courseName: null,
-      specializationName: null,
-      name: 'Chain Batch',
-      batchLabel: '2024-26',
-    };
-    expect(label(odd, true, true)).toBe('2024-26 · Chain Batch');
+  it('calls a year ended only when every batch of it has ended', () => {
+    expect(batchYears([batch('a', '2023-25', false), batch('b', '2023-25', true)])[0].isRunning).toBe(true);
+    expect(batchYears([batch('a', '2023-25', false)])[0].isRunning).toBe(false);
   });
 });
 

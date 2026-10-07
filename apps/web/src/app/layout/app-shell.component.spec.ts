@@ -83,3 +83,29 @@ describe('Home lists every screen the sidebar lists', () => {
     }
   });
 });
+
+describe("the phone's tab bar", () => {
+  const declared = declaredPaths();
+  const tabs = sidebarRows.filter((row) => row.tab);
+
+  it('draws only rows that are routed', () => {
+    for (const row of tabs) {
+      expect(row.path, row.label).not.toBeNull();
+      expect(declared, row.label).toContain(row.path as string);
+    }
+  });
+
+  it('gives the Main Admin four tabs, so More is the fifth and nothing is cut', () => {
+    expect(tabs.map((row) => row.path)).toEqual([
+      '/admin',
+      '/admin/registrations',
+      '/admin/students',
+      '/admin/leave-approvals',
+    ]);
+  });
+
+  it('keeps every tab word short enough for a fifth of a 360px screen', () => {
+    for (const row of tabs)
+      expect((row.short ?? row.label).length, row.label).toBeLessThanOrEqual(12);
+  });
+});

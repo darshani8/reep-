@@ -253,3 +253,33 @@ input.locked-value:focus-visible {
   outline: 2px solid var(--purple-mid);
   outline-offset: 2px;
 }
+
+/* The profile on a phone (below 600px): a form five screens long whose only
+   Save was at the top. The status pill and the button float in a bar above
+   the shell's tab bar, and the page leaves room under its last card for it. */
+@media (max-width: 599.98px) {
+  .profile-actions {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(var(--mobile-tabbar-h, 0px) + 10px);
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 8px 8px 14px;
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    background: rgb(255 255 255 / 94%);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 28px rgb(58 31 82 / 16%);
+  }
+  .profile-actions .dt-btn {
+    min-height: 44px;
+    padding: 0 16px;
+  }
+  .panel {
+    padding-bottom: 76px;
+  }
+}

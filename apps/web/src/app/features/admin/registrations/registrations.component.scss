@@ -17,6 +17,8 @@
  * system's to add. That gap is reported, not filled from here.
  */
 
+@use '../mobile' as m;
+
 :host {
   display: block;
 }
@@ -473,5 +475,211 @@
   b {
     display: block;
     font-size: 13px;
+  }
+}
+
+/* --- the phone (2026-10) -------------------------------------------------
+   Below 600px: the grid is a card list (the template swaps it), the panel is
+   pushed full width over the list with Back, the filters are a sheet, and the
+   rules dialog rises from the bottom. Nothing here reaches 600px and up. */
+
+@include m.header-actions('.dt-toolbar');
+@include m.scroll-strip('.queue-tabs');
+@include m.filters-sheet('.filters', '.m-filters-toggle');
+@include m.card-list;
+@include m.back-button('.m-back');
+@include m.bottom-sheet('.dialog-backdrop', '.dialog');
+
+.m-filters-done {
+  display: none;
+}
+
+@include m.phone {
+  .m-filters-toggle {
+    margin-bottom: 12px;
+  }
+  .filters.is-open .m-filters-done {
+    display: inline-flex;
+    justify-content: center;
+  }
+  .filters .select,
+  .filters .batch-select {
+    max-width: none;
+  }
+  .filters-note {
+    margin-left: 0;
+    max-width: none;
+  }
+
+  .queue {
+    flex-direction: column;
+  }
+  .queue-grid.dt-frame {
+    border: 0;
+    background: none;
+    overflow: visible;
+  }
+  .dt-gridbar {
+    padding: 0 0 10px;
+    background: none;
+    border: 0;
+  }
+  .dt-gridbar > .btn,
+  .gridbar-end,
+  .columns-panel,
+  .dt-statusbar {
+    display: none;
+  }
+  .dt-quickfilter {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .m-selbar {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding: 8px 10px 8px 14px;
+    background: var(--surface);
+    border: 1px solid var(--purple-mid);
+    border-radius: var(--r-card);
+    box-shadow: var(--sh-card);
+    span {
+      flex: 1 1 auto;
+    }
+  }
+
+  .m-app {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+  }
+  .m-tick {
+    flex: none;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    width: 48px;
+    padding-top: 14px;
+    cursor: pointer;
+    input {
+      width: 20px;
+      height: 20px;
+      margin: 0;
+    }
+  }
+  .m-app__open {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 12px 14px 12px 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    border-radius: 0 var(--r-card) var(--r-card) 0;
+    &:active {
+      background: var(--tint-3);
+    }
+  }
+  .m-app__chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+  }
+
+  /* List or detail, never both. */
+  .panel:not(.is-pushed) .queue-panel,
+  .panel.is-pushed .dt-header,
+  .panel.is-pushed .queue-tabs,
+  .panel.is-pushed .m-filters-toggle,
+  .panel.is-pushed .queue-grid {
+    display: none;
+  }
+  .queue {
+    margin-top: 0;
+  }
+  .queue-panel {
+    width: auto;
+    max-height: none;
+    overflow: visible;
+  }
+  .panel-name {
+    font-size: 17px;
+  }
+  .panel-facts {
+    font-size: 14px;
+  }
+  .panel-facts dt {
+    font-size: 12.5px;
+  }
+
+  /* The decision rides at the bottom of the screen, above the tab bar. */
+  .panel-decision {
+    position: sticky;
+    bottom: calc(var(--mobile-tabbar-h, 0px) + 8px);
+    z-index: 5;
+    padding: 12px;
+    margin: 0 -4px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-card);
+    box-shadow: 0 -8px 24px rgba(58, 31, 82, 0.14);
+    > .notice {
+      display: none;
+    }
+    textarea {
+      min-height: 64px;
+    }
+  }
+  .panel-actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  /* The rules table, one rule to a block. */
+  .rules-scroll .dt-table {
+    thead {
+      display: none;
+    }
+    tr,
+    td {
+      display: block;
+    }
+    tr {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--hairline);
+    }
+    td {
+      border: 0;
+      padding: 2px 0;
+    }
+    td:first-child::before {
+      content: 'Priority ';
+      color: var(--muted);
+    }
+  }
+  .rule-actions .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .dialog-head,
+  .dialog-body,
+  .dialog-foot {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }

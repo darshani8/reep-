@@ -288,3 +288,142 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* --- THE PHONE ------------------------------------------------------------
+   Nothing below applies at 900px and up. */
+@media (max-width: 899px) {
+  /* The student picker is the screen's subject: a full-width select of its
+     own, with Add entry under it, instead of three items fighting for a row
+     the select alone overflowed. */
+  .nb-bar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .nb-student {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+    margin-right: 0;
+  }
+  .nb-select {
+    width: 100%;
+    min-height: 44px;
+  }
+  .nb-toggle {
+    justify-content: center;
+  }
+  .nb-private {
+    align-self: flex-start;
+  }
+
+  /* The compose strip is one column; Save entry spans it and stays above
+     the tab bar while the strip is in view. */
+  .nb-form {
+    grid-template-columns: 1fr;
+  }
+  .nb-field--wide {
+    grid-column: auto;
+  }
+  .nb-form__actions {
+    margin-top: 4px;
+    position: sticky;
+    bottom: calc(var(--mobile-tabbar-h, 0px) + 8px);
+    z-index: 2;
+  }
+  .nb-form__actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Publish and delete grow to 44px targets. */
+  .nb-rowbtn {
+    width: 44px;
+    height: 44px;
+  }
+  .nb-rowbtn .icon {
+    font-size: 20px;
+  }
+}
+
+/* The printed log as a stack of cards. A five-column ruled table at 360px
+   is either clipped or a sideways scroll through somebody's notes; here every
+   row is a card and every cell carries its column's name (`data-label`). The
+   markup is the same table — no second list to keep in step — and the header
+   row stays in the accessibility tree. Specificity beats the global
+   `.desktop-main table` phone rules without !important. */
+@media (max-width: 640px) {
+  .nb-scroll {
+    overflow: visible;
+    margin: 0;
+    padding: 0;
+  }
+  .nb-table,
+  .nb-table tbody,
+  .nb-table tr,
+  .nb-table td {
+    display: block;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    overflow: visible;
+  }
+  .nb-table {
+    border: 0;
+  }
+  .nb-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .nb-table tr {
+    position: relative;
+    margin-bottom: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--hairline-45);
+    border-radius: 14px;
+    background: var(--surface);
+  }
+  .nb-table td,
+  .nb-table tbody tr:nth-child(even) td {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    white-space: normal;
+  }
+  .nb-table td + td {
+    margin-top: 8px;
+  }
+  .nb-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    font-family: var(--font-display);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  /* The date heads the card and the two buttons sit beside it, top right. */
+  .nb-table td.nb-date {
+    padding-right: 100px;
+    min-height: 38px;
+    font-weight: 700;
+    color: var(--ink-soft);
+  }
+  .nb-table td.nb-actions {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    margin: 0;
+  }
+  .nb-text {
+    font-size: 14px;
+  }
+  .nb-table td.nb-row-note {
+    padding: 16px 4px;
+  }
+}

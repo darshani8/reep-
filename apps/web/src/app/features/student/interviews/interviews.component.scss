@@ -40,17 +40,6 @@
   color: var(--reep-text-secondary);
 }
 
-/* Visually hidden, still announced — the "Open" column header has no visible
-   label because the button says it, but a screen reader still needs one. */
-.iv-sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
 .iv-stats {
   /* The global .dense-grid is a fixed 4 columns; this screen has 3. */
   grid-template-columns: repeat(3, 1fr);

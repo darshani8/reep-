@@ -26,6 +26,13 @@
           <span class="icon" aria-hidden="true">draw</span> Replace
           <input type="file" class="sg-file__input" accept="image/png,image/jpeg" (change)="onFile($event)" [disabled]="busy()" />
         </label>
+        <!-- Phones only (hidden at 900px and up): the camera, straight to a
+             photo of the signature on paper. Same handler; an oversized photo
+             is shrunk before it is sent. -->
+        <label class="btn sg-file sg-camera">
+          <span class="icon" aria-hidden="true">photo_camera</span> Take a photo
+          <input type="file" class="sg-file__input" accept="image/jpeg,image/png" capture="environment" (change)="onFile($event)" [disabled]="busy()" />
+        </label>
         @if (confirmRemove()) {
           <span class="sg-warn">Your papers will show your name and the time only.</span>
           <button type="button" class="btn danger" [disabled]="busy()" (click)="remove()">Yes, remove it</button>
@@ -44,6 +51,13 @@
         <label class="btn primary sg-file">
           <span class="icon" aria-hidden="true">draw</span> Upload signature
           <input type="file" class="sg-file__input" accept="image/png,image/jpeg" (change)="onFile($event)" [disabled]="busy()" />
+        </label>
+        <!-- Phones only (hidden at 900px and up): the camera, straight to a
+             photo of the signature on paper. Same handler; an oversized photo
+             is shrunk before it is sent. -->
+        <label class="btn sg-file sg-camera">
+          <span class="icon" aria-hidden="true">photo_camera</span> Take a photo
+          <input type="file" class="sg-file__input" accept="image/jpeg,image/png" capture="environment" (change)="onFile($event)" [disabled]="busy()" />
         </label>
       </div>
     }

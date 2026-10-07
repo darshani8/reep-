@@ -16,6 +16,7 @@
 import { Component, computed, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
+import { shrinkPhoto } from './shrink-photo';
 
 interface SignatureInfo {
   present: boolean;
@@ -62,14 +63,17 @@ export class SignatureComponent {
 
   async onFile(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
+    const picked = input.files?.[0];
     input.value = '';
-    if (!file) return;
+    if (!picked) return;
     if (this.busy()) return;
     this.busy.set(true);
     this.error.set(null);
     this.flash.set(null);
     try {
+      // A camera photo is several times the 2 MB limit; shrink-photo.ts says
+      // why and when this returns the file untouched.
+      const file = await shrinkPhoto(picked);
       const form = new FormData();
       form.append('file', file, file.name);
       const res = await fetch(`${environment.apiBase}/staff/signature`, {

@@ -133,3 +133,35 @@
   outline: 2px solid var(--brand-purple);
   outline-offset: 2px;
 }
+
+/* --- THE PHONE ------------------------------------------------------------
+   The camera picker exists only below 900px; at 900px and up the screen is
+   exactly what it was. */
+.sg-camera {
+  display: none;
+}
+@media (max-width: 899px) {
+  .sg-camera {
+    display: inline-flex;
+  }
+  .sg-actions,
+  .sg-empty {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .sg-empty__title,
+  .sg-empty .sg-hint,
+  .sg-actions .sg-warn {
+    grid-column: 1 / -1;
+  }
+  .sg-actions .btn,
+  .sg-empty .btn {
+    justify-content: center;
+  }
+  /* Remove… (or the confirm pair) takes the row under Replace / Take a photo. */
+  .sg-actions > button.btn:only-of-type {
+    grid-column: 1 / -1;
+  }
+}

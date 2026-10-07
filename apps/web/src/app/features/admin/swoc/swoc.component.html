@@ -18,7 +18,26 @@
        X-Reep-Scope. Batch narrows the list the screen already holds. Semester
        goes to the SERVER (?semester=) and narrows the ENTRIES, not the
        students. -->
-  <div class="sw-filters">
+  <button
+    type="button"
+    class="btn secondary sw-filters-toggle"
+    [attr.aria-expanded]="filtersOpen()"
+    (click)="filtersOpen.set(true)"
+  >
+    <span class="icon" aria-hidden="true">tune</span> Filters
+    @if (scopeChip(); as reach) {
+      <span class="chip {{ reach.tone }}">{{ reach.label }}</span>
+    }
+  </button>
+  @if (filtersOpen()) {
+    <button
+      type="button"
+      class="m-filters-scrim"
+      aria-label="Close the filters"
+      (click)="filtersOpen.set(false)"
+    ></button>
+  }
+  <div class="sw-filters" [class.is-open]="filtersOpen()">
     @if (scopeChip(); as reach) {
       <span class="chip {{ reach.tone }}">{{ reach.label }}</span>
     }
@@ -50,6 +69,9 @@
         </select>
       </div>
     }
+    <button type="button" class="btn primary sw-filters-done" (click)="filtersOpen.set(false)">
+      Done
+    </button>
   </div>
 
   @if (error()) {
@@ -65,7 +87,7 @@
     </div>
   }
 
-  <div class="sw-board">
+  <div class="sw-board" [class.has-detail]="!!selected()">
     <!-- ------------------------------------------------- the students -->
     <section class="card sw-list" aria-labelledby="sw-list-title">
       <div class="card-head">
@@ -130,6 +152,9 @@
     <!-- --------------------------------------------------- the editor -->
     <section class="card sw-editor" aria-labelledby="sw-editor-title">
       @if (selected(); as student) {
+        <button type="button" class="m-back" (click)="clearSelection()">
+          <span class="icon" aria-hidden="true">arrow_back</span> Students
+        </button>
         <div class="sw-who">
           <span class="avatar lg">{{ initials(student.name) }}</span>
           <div class="sw-who__main">

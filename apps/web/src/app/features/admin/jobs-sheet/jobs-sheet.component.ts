@@ -56,6 +56,7 @@ import type { GetRowIdParams, GridApi, GridReadyEvent } from 'ag-grid-community'
 
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
+import { phoneSignal } from '../mobile';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PluralPipe } from '../../../shared/text/plural.pipe';
@@ -191,6 +192,32 @@ export class AdminJobsSheetComponent {
   readonly toggleableColumns = TOGGLEABLE_JOBS_COLUMNS;
 
   readonly rowId = (params: GetRowIdParams<JobPostingRow>): string => params.data.jobId;
+
+  // --- at phone width ------------------------------------------------------
+  /** Below 600px the sheet is a list of cards over the same rows, with the
+   *  same quick filter; tapping a card is ticking its row, and the selected
+   *  card carries the three actions the grid bar holds. */
+  readonly phone = phoneSignal();
+  readonly filtersOpen = signal(false);
+  readonly phoneRows = computed<JobPostingRow[]>(() => {
+    const typed = this.quickFilter().trim().toLowerCase();
+    const rows = this.visibleRows();
+    if (typed === '') return rows;
+    return rows.filter((row) =>
+      [row.title, row.company, row.location ?? '', row.tracksLabel, row.collegeLabel, row.courseLabel]
+        .join(' ')
+        .toLowerCase()
+        .includes(typed),
+    );
+  });
+
+  togglePhoneRow(row: JobPostingRow): void {
+    this.selectedRows.set(this.isPhoneSelected(row) ? [] : [row]);
+  }
+
+  isPhoneSelected(row: JobPostingRow): boolean {
+    return this.selectedRows().some((one) => one.jobId === row.jobId);
+  }
 
   constructor() {
     registerReepGrid();

@@ -60,10 +60,14 @@ const App = {
     const { parts, query } = R.parse();
     const key = this.routeKey(parts);
     const role = this.roleOf(parts);
+    this.prevRole = this.role;
     if (role && role !== 'public') this.role = role;
     // a faculty member opening a granted console screen keeps the faculty shell
-    if (parts[0] === 'admin' && this.asFaculty && NAV.faculty.groups.some((g) => g.grant && g.items.some((i) => i[0] === key))) this.role = 'faculty';
+    // a faculty member opening a console screen they were granted keeps the faculty shell
+    const granted = NAV.faculty.groups.some((g) => g.grant && g.items.some((i) => i[0] === key));
+    if (parts[0] === 'admin' && granted && (this.asFaculty || this.prevRole === 'faculty')) { this.role = 'faculty'; this.asFaculty = true; }
     else if (parts[0] === 'admin') this.asFaculty = false;
+    this.prevRole = this.role;
     const def = R.screens[key];
     const root = document.getElementById('app');
     if (!def) { root.innerHTML = this.frame(U.page({ title: 'Not found', body: U.empty('alert', 'That screen does not exist', '', `<a class="btn" href="#/start">Start again</a>`) }), key, false); return; }

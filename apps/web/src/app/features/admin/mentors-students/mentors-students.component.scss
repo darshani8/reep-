@@ -329,11 +329,14 @@
    filters fold behind a button; the batch bar rises as a sheet. */
 @include m.filters-sheet('.filters', '.m-filters-toggle');
 @include m.filters-sheet('.batch-bar', '.m-batch-none', '.m-batch-scrim');
-@include m.card-list;
-@include m.back-button('.m-back');
 @include m.header-actions('.dt-toolbar');
+/* The list (faculty rows) and the pushed detail (their group, the pool and the
+   history) swap places; the mixin takes one selector per side, so it is
+   included once per pair. */
+@include m.pushed-detail('.mapping', '.rail', '.mapping__right', 'm-detail');
+@include m.pushed-detail('.mapping', '.rail-head', '.list-lbl', 'm-detail');
+@include m.pushed-detail('.mapping', '.rail', '.mentee-list', 'm-detail');
 
-.m-filters-done,
 .m-detail-head {
   display: none;
 }
@@ -346,8 +349,6 @@
     min-height: 48px;
   }
   .m-filters-done {
-    display: inline-flex;
-    justify-content: center;
     min-height: 48px;
   }
   .batch-bar .card-head .iconbtn {
@@ -369,12 +370,6 @@
     padding: 14px;
   }
 
-  /* The list: faculty rows, nothing else. */
-  .mapping:not(.m-detail) .mapping__right,
-  .mapping:not(.m-detail) .list-lbl,
-  .mapping:not(.m-detail) .mentee-list {
-    display: none;
-  }
   .mentor-row {
     min-height: 64px;
     padding: 12px;
@@ -399,11 +394,7 @@
     border-color: var(--hairline-26);
   }
 
-  /* The pushed detail. */
-  .mapping.m-detail .rail,
-  .mapping.m-detail .rail-head {
-    display: none;
-  }
+  /* The pushed detail's own heading. */
   .mapping.m-detail .m-detail-head {
     display: block;
   }

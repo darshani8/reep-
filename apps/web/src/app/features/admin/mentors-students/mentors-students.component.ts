@@ -61,6 +61,7 @@ import type {
 } from 'ag-grid-community';
 
 import { environment } from '../../../../environments/environment';
+import { bindBackToClose } from '../../../core/back-close';
 import { phoneSignal } from '../../../core/mobile';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
@@ -255,6 +256,16 @@ export class AdminMentorsStudentsComponent {
    *  empty prompt, and that must not push a detail nobody asked for. */
   readonly phoneDetail = signal(false);
   readonly filtersOpen = signal(false);
+  /** Android's Back closes whichever phone overlay is on top — the filters
+   *  sheet, the batch sheet, the pushed detail — exactly as its own button. */
+  private readonly _detailBack = bindBackToClose(
+    () => this.phoneDetail(),
+    () => this.closePhoneDetail(),
+  );
+  private readonly _filtersBack = bindBackToClose(
+    () => this.filtersOpen(),
+    () => this.filtersOpen.set(false),
+  );
   readonly poolCards = computed(() => {
     const typed = this.poolSearch().trim().toLowerCase();
     const rows = this.pool() ?? [];
@@ -359,6 +370,10 @@ export class AdminMentorsStudentsComponent {
   /** The batch bar. Closed until asked for: it writes to every student in a
    *  batch at once and should not sit open beside the single-student action. */
   readonly batchOpen = signal(false);
+  private readonly _batchBack = bindBackToClose(
+    () => this.batchOpen(),
+    () => this.toggleBatchBar(),
+  );
   readonly batchCohortId = signal(EVERYTHING);
   readonly batchReason = signal('');
   readonly batchBusy = signal(false);

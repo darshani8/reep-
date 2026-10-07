@@ -5,5 +5,5 @@ export default [
   ['GET', /^\/leaves\/pending$/, n(3)],
   ['GET', /^\/admin\/unassigned-students/, n(12)],
   ['GET', /^\/mentor\/offers\/pending/, n(0)],
-  ['GET', /^\/admin\/governance\/review/, n(1)],
+  ['GET', /^\/admin\/governance\/review/, { horizon_days: 14, pending: n(1), expiring: [] }],
 ];

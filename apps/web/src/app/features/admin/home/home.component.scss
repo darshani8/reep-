@@ -1,3 +1,5 @@
+@use '../mobile' as m;
+
 /* The Main Admin's front door. Every colour, radius and shadow is a token from
    src/styles/reep-v2.scss; what is here is the two shapes this screen alone
    draws — a count that is a button, and a task that is a button — and both are
@@ -176,4 +178,96 @@
 .home-tile:hover .home-tile__go,
 .home-tile:hover .home-queue__go {
   color: var(--brand-purple);
+}
+
+/* --- At phone width -------------------------------------------------------
+   The queues become a two-up grid of counts (the number is what the office
+   reads first, so it goes on top), and each group of tasks becomes one card
+   with hairlines between its rows — the grouped-list shape a phone's own
+   settings screen uses, so twenty-odd tasks read as a few groups and not as
+   twenty-odd floating boxes. Nothing moves above 600px. */
+@include m.phone {
+  .dt-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .home-find {
+    width: 100%;
+    height: 48px;
+  }
+
+  .home-queues {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .home-queue {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto 1fr;
+    align-items: start;
+    row-gap: 6px;
+    min-height: 96px;
+    padding: 12px;
+    -webkit-tap-highlight-color: transparent;
+
+    &:active {
+      transform: scale(0.97);
+    }
+  }
+  .home-queue__num {
+    grid-column: 1;
+    grid-row: 1;
+    text-align: left;
+    font-size: 28px;
+  }
+  .home-queue__go {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .home-queue__label {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    font-size: 13px;
+  }
+
+  .home-tiles {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-card);
+    box-shadow: var(--sh-card);
+    overflow: hidden;
+  }
+
+  .home-tile {
+    min-height: 56px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    -webkit-tap-highlight-color: transparent;
+
+    & + .home-tile {
+      border-top: 1px solid var(--hairline);
+    }
+
+    &:hover,
+    &:focus-visible {
+      transform: none;
+    }
+    &:active {
+      background: var(--tint-3);
+    }
+  }
+  .home-tile__icon {
+    width: 36px;
+    height: 36px;
+  }
+  .home-tile__label {
+    font-size: 15px;
+  }
 }

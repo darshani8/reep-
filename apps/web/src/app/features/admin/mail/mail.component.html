@@ -134,7 +134,7 @@
       <p class="dt-sub" role="status">
         {{ rows().length }} shown, {{ failures() }} failed.
       </p>
-      <table class="dt-table">
+      <table class="dt-table mail-table">
         <thead>
           <tr>
             <th scope="col">When</th>
@@ -148,9 +148,9 @@
         <tbody>
           @for (row of rows(); track row.id) {
             <tr>
-              <td>{{ row.sent_at | date: 'd MMM y, HH:mm' }}</td>
-              <td>{{ row.kind }}</td>
-              <td>{{ row.recipient }}</td>
+              <td class="m-when">{{ row.sent_at | date: 'd MMM y, HH:mm' }}</td>
+              <td class="m-kind">{{ row.kind }}</td>
+              <td class="m-to">{{ row.recipient }}</td>
               <td>
                 @if (row.status === 'FAILED') {
                   <span class="chip risk">
@@ -162,8 +162,8 @@
                   <span class="chip good">Accepted</span>
                 }
               </td>
-              <td>{{ row.error ?? '—' }}</td>
-              <td>
+              <td class="m-detail" [class.is-empty]="!row.error">{{ row.error ?? '—' }}</td>
+              <td class="m-check">
                 <button type="button" class="btn sm" (click)="checkRow(row.recipient)">
                   <span class="icon" aria-hidden="true">mail</span>Check
                 </button>

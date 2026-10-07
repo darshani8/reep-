@@ -32,6 +32,12 @@
         <span class="icon" aria-hidden="true">{{ uploading() ? 'progress_activity' : 'cloud_upload' }}</span>
         {{ uploading() ? 'Uploading…' : 'Choose file & upload' }}
       </button>
+      <!-- Phones only (hidden at 900px and up): a photo of a paper
+           certificate, straight from the camera. Same name check, same
+           upload. -->
+      <button type="button" class="btn up-camera" [disabled]="uploading()" (click)="choose(camera)">
+        <span class="icon" aria-hidden="true">photo_camera</span> Take a photo
+      </button>
       <span class="up-accepted">
         Accepted: <strong>PDF, PNG, JPEG</strong> · up to <strong>10 MB</strong>
       </span>
@@ -46,6 +52,14 @@
       #picker
       type="file"
       accept="application/pdf,image/png,image/jpeg"
+      hidden
+      (change)="onPick($event)"
+    />
+    <input
+      #camera
+      type="file"
+      accept="image/jpeg,image/png"
+      capture="environment"
       hidden
       (change)="onPick($event)"
     />
@@ -93,13 +107,13 @@
             @if (rows(); as list) {
               @for (c of list; track c.id) {
                 <tr>
-                  <td>
+                  <td class="up-cell-title">
                     <strong>{{ c.title }}</strong>
                     <div class="up-sub">Uploaded {{ c.uploaded_at | date: 'd MMM y' }}</div>
                   </td>
-                  <td>{{ c.provider || '—' }}</td>
-                  <td class="up-num">{{ c.completed_on ? (c.completed_on | date: 'd MMM y') : '—' }}</td>
-                  <td class="up-file">{{ c.original_name }} · {{ formatSize(c.size_bytes) }}</td>
+                  <td data-label="Provider">{{ c.provider || '—' }}</td>
+                  <td class="up-num" data-label="Completed">{{ c.completed_on ? (c.completed_on | date: 'd MMM y') : '—' }}</td>
+                  <td class="up-file" data-label="File">{{ c.original_name }} · {{ formatSize(c.size_bytes) }}</td>
                   <td class="up-cell-actions">
                     <div class="up-row-actions">
                       <a class="btn up-btn" [href]="fileUrl(c.id)" target="_blank" rel="noopener">View</a>

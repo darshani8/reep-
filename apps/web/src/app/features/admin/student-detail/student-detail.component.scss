@@ -16,6 +16,8 @@
  * semester strip, and the small rows the cards are made of.
  */
 
+@use '../mobile' as m;
+
 :host {
   display: block;
 }
@@ -355,4 +357,65 @@
   flex-wrap: wrap;
   gap: 6px;
   margin: 4px 0 10px;
+}
+
+/* --- the phone (2026-10) -------------------------------------------------
+   One column already; below 600px the header's three actions wrap under the
+   name, the seven tabs are one sideways strip, the editor is one field per
+   row with its Save kept in reach, and the contact links are thumb-sized. */
+
+@include m.header-actions('.dt-toolbar');
+@include m.scroll-strip('.tabs');
+@include m.sticky-action('.editor-actions');
+
+@include m.phone {
+  .dt-header {
+    flex-wrap: wrap;
+  }
+
+  .tabs {
+    margin-left: -16px;
+    margin-right: -16px;
+    padding: 0 16px;
+    max-width: none;
+  }
+
+  .tab {
+    min-height: 44px;
+    -webkit-tap-highlight-color: transparent;
+
+    &:active {
+      transform: scale(0.97);
+    }
+  }
+
+  .editor-grid {
+    grid-template-columns: 1fr;
+
+    input,
+    select {
+      min-height: 44px;
+    }
+  }
+
+  .editor-actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .facts {
+    font-size: 14px;
+  }
+
+  .fact dd a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .row-actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
 }

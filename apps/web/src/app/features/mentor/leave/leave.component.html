@@ -8,7 +8,7 @@
           The official BGSCET leave form — sign and send to Admin / Program Director.
         </div>
       </div>
-      <button type="button" class="btn primary" (click)="startNew()">
+      <button type="button" class="btn primary lv-new" (click)="startNew()">
         <span class="icon" aria-hidden="true">add_circle</span> New leave request
       </button>
     </div>
@@ -204,7 +204,7 @@
     }
 
     @let v = viewing();
-    <div class="sheet">
+    <div class="sheet lv-sheet">
       <div class="sheet-invoke">|| Jai Sri Gurudev ||</div>
       <div class="sheet-college">BGS COLLEGE OF ENGINEERING AND TECHNOLOGY,MBA</div>
       <div class="sheet-addr">Mahalakshmipuram,Bengaluru-86.</div>
@@ -236,7 +236,7 @@
         <span class="app-date-val">{{ (v ? v.signed_at : null) || today | date: 'dd MMM y' }}</span>
       </div>
 
-      <table class="sheet-table">
+      <table class="sheet-table lv-sheet-table">
         <tbody>
           <tr>
             <th scope="row">Name</th>
@@ -366,7 +366,7 @@
         }
       </div>
 
-      <table class="alt-table">
+      <table class="alt-table lv-alt">
         <thead>
           <tr>
             <th>Date</th>
@@ -380,11 +380,11 @@
           @if (v) {
             @for (r of v.alt_rows; track $index) {
               <tr>
-                <td>{{ r.date }}</td>
-                <td>{{ r.staff_name }}</td>
-                <td>{{ r.cls }}</td>
-                <td>{{ r.time }}</td>
-                <td>{{ r.remarks }}</td>
+                <td data-label="Date">{{ r.date }}</td>
+                <td data-label="Staff name">{{ r.staff_name }}</td>
+                <td data-label="Class">{{ r.cls }}</td>
+                <td data-label="Time">{{ r.time }}</td>
+                <td data-label="Remarks">{{ r.remarks }}</td>
               </tr>
             } @empty {
               <tr>
@@ -394,7 +394,7 @@
           } @else {
             @for (r of fAltRows(); track $index) {
               <tr>
-                <td>
+                <td data-label="Date">
                   <input
                     type="text"
                     aria-label="Date"
@@ -402,7 +402,7 @@
                     (input)="setAltCell($index, 'date', $any($event.target).value)"
                   />
                 </td>
-                <td>
+                <td data-label="Staff name">
                   <input
                     type="text"
                     aria-label="Staff name"
@@ -410,7 +410,7 @@
                     (input)="setAltCell($index, 'staff_name', $any($event.target).value)"
                   />
                 </td>
-                <td>
+                <td data-label="Class">
                   <input
                     type="text"
                     aria-label="Class"
@@ -418,7 +418,7 @@
                     (input)="setAltCell($index, 'cls', $any($event.target).value)"
                   />
                 </td>
-                <td>
+                <td data-label="Time">
                   <input
                     type="text"
                     aria-label="Time"
@@ -426,7 +426,7 @@
                     (input)="setAltCell($index, 'time', $any($event.target).value)"
                   />
                 </td>
-                <td>
+                <td data-label="Remarks">
                   <input
                     type="text"
                     aria-label="Remarks"
@@ -583,13 +583,16 @@
           <span class="icon" aria-hidden="true">error</span>{{ formError() }}
         </div>
       }
-      <div class="form-actions">
+      <!-- On a phone this row is pinned above the tab bar (see the
+           stylesheet), so Sign & submit is reachable from anywhere on the
+           sheet without scrolling past the alternate-arrangements table. -->
+      <div class="form-actions form-actions--compose">
         <button type="button" class="btn" (click)="saveDraft()">
           <span class="icon" aria-hidden="true">save</span> Save draft
         </button>
         <button
           type="button"
-          class="btn primary"
+          class="btn primary lv-submit"
           [disabled]="!canSubmit()"
           (click)="signAndSubmit()"
         >
@@ -600,7 +603,7 @@
           <button type="button" class="btn ghost" (click)="discardDraft()">Discard draft</button>
         }
         @if (!canSubmit() && !submitting()) {
-          <span class="form-hint">Dates and a purpose are needed before this can be signed.</span>
+          <span class="form-hint lv-submit-hint">Dates and a purpose are needed before this can be signed.</span>
         }
       </div>
       <!-- The picture above your name on the paper is the one on file under

@@ -269,3 +269,156 @@
   font-weight: 600;
   min-width: 96px;
 }
+
+/* --- THE PHONE ------------------------------------------------------------
+   Nothing below applies at 900px and up. The sheet's own rules live in the
+   shared partial and are untouched; these narrow its frame and restack the
+   one table a phone cannot hold, using the same markup. */
+@media (max-width: 899px) {
+  .lv-new {
+    width: 100%;
+    justify-content: center;
+  }
+  .req-card {
+    flex-wrap: nowrap;
+    min-height: 64px;
+  }
+  .req-card:active {
+    background: var(--tint-2);
+  }
+  .req-main {
+    flex: 1;
+  }
+  /* A colleague's request carries its own button; it takes a row of its own
+     under the dates rather than squeezing them into a column. */
+  .req-card.cover-card {
+    flex-wrap: wrap;
+  }
+  .cover-card > .btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .lv-back {
+    width: 44px;
+    height: 44px;
+    flex: none;
+  }
+  .form-bar {
+    flex-wrap: wrap;
+  }
+  .paper-link {
+    margin-left: 0;
+  }
+
+  .lv-sheet {
+    padding: 18px 14px;
+    border-radius: 14px;
+  }
+  /* The strike-off choices are buttons; give each a finger-sized box. */
+  .lv-sheet .kind--btn {
+    display: inline-block;
+    padding: 9px 6px;
+  }
+  .lv-sheet-table th[scope='row'] {
+    width: 96px;
+  }
+  .lv-sheet .date-pair input {
+    width: 100%;
+  }
+
+  /* Sign & submit and Save draft, pinned above the tab bar for as long as the
+     form is on screen. Discard and the hint stay in the bar, smaller. */
+  .form-actions--compose {
+    position: sticky;
+    bottom: calc(var(--mobile-tabbar-h, 0px) + 8px);
+    z-index: 3;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 8px;
+    padding: 8px;
+    border-radius: 18px;
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+    box-shadow: var(--sh-card);
+  }
+  .form-actions--compose .btn {
+    justify-content: center;
+  }
+  .form-actions--compose .lv-submit {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+  .form-actions--compose .lv-submit-hint {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-size: 11.5px;
+    line-height: 1.35;
+  }
+
+  .form-actions:not(.form-actions--compose) .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .attach-list .btn {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* The Alternate Arrangements table as one card per row. Five 60px columns of
+   inputs is not a table anyone can type into; each row becomes a bordered
+   group and each cell carries its column's name. Specificity (three classes)
+   beats the global `.desktop-main table` phone rules without !important. */
+@media (max-width: 640px) {
+  .lv-sheet .lv-alt,
+  .lv-sheet .lv-alt tbody,
+  .lv-sheet .lv-alt tr,
+  .lv-sheet .lv-alt td {
+    display: block;
+    width: auto;
+    max-width: none;
+    overflow: visible;
+  }
+  .lv-sheet .lv-alt thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .lv-sheet .lv-alt tr {
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    border: 1px solid #cbb9d8;
+    border-radius: 10px;
+  }
+  .lv-sheet .lv-alt td {
+    display: grid;
+    grid-template-columns: 92px 1fr;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 0;
+    border: 0;
+    white-space: normal;
+  }
+  .lv-sheet .lv-alt td[data-label]::before {
+    content: attr(data-label);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink-soft);
+  }
+  .lv-sheet .lv-alt td input {
+    min-height: 40px;
+    border-bottom: 1px solid #cbb9d8;
+  }
+  .lv-sheet .lv-alt .alt-empty {
+    display: block;
+  }
+  .lv-sheet .alt-name {
+    flex-wrap: wrap;
+  }
+  .lv-sheet .sig-row {
+    gap: 12px;
+  }
+}

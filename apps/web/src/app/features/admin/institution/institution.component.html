@@ -547,7 +547,7 @@
                   </p>
                 } @else if (visibleBatches().length) {
                   <div class="dt-frame">
-                    <table class="dt-table">
+                    <table class="dt-table m-rows">
                       <thead>
                         <tr>
                           <th>Batch</th>
@@ -570,12 +570,12 @@
                                 >
                               }
                             </td>
-                            <td>{{ levelsOf(b) }}</td>
-                            <td class="tabular">{{ b.student_count }}</td>
+                            <td data-label="Course · Spec.">{{ levelsOf(b) }}</td>
+                            <td class="tabular" data-label="Students">{{ b.student_count }}</td>
                             <!-- 'UTC' on purpose: expected_completion is a calendar
                                  date, and rendering it in the reader's zone slides
                                  it a day west of Greenwich. -->
-                            <td class="tabular">
+                            <td class="tabular" data-label="Ends">
                               {{ b.expected_completion | date: 'd MMM y' : 'UTC' }}
                             </td>
                             <td class="row-actions">
@@ -657,7 +657,7 @@
                       </div>
                     } @else {
                       <div class="dt-frame">
-                        <table class="dt-table">
+                        <table class="dt-table m-rows">
                           <thead>
                             <tr>
                               <th>Student</th>
@@ -673,9 +673,9 @@
                                   {{ s.name }}
                                   <div class="dt-sub">{{ s.email }}</div>
                                 </td>
-                                <td class="tabular">{{ s.usn ?? '—' }}</td>
-                                <td>{{ stageLabel(s.current_stage) }}</td>
-                                <td>
+                                <td class="tabular" data-label="USN">{{ s.usn ?? '—' }}</td>
+                                <td data-label="Stage">{{ stageLabel(s.current_stage) }}</td>
+                                <td class="row-actions">
                                   <button
                                     type="button"
                                     class="btn ghost sm"

@@ -220,6 +220,16 @@
      control, the search and the avatar block all sit on its baseline, and a
      bar that grows with its tallest control moves the whole page under it. */
   --appbar-height: 52px;
+  /* The notch / status bar on an INSTALLED app. index.html asks for
+     `viewport-fit=cover`, so in standalone the page draws under the status
+     bar and the app bar must pad itself down by the inset; in a browser tab
+     the inset is 0 and this is the bar's own height. */
+  --appbar-offset: calc(var(--appbar-height) + env(safe-area-inset-top, 0px));
+  /* How much of the bottom of the screen the phone's tab bar covers. 0 above
+     900px, where there is no tab bar; set below it in the shell's phone block.
+     Anything fixed to the bottom of a screen (a sticky Save, a bottom sheet)
+     sits on `bottom: var(--mobile-tabbar-h)` and is right at every width. */
+  --mobile-tabbar-h: 0px;
 
   /* --- ground + focus, the two tokens that are not colours or shadows ---- */
   /* The page's flat ground, under the wash. Named for what it is rather than
@@ -401,9 +411,10 @@ html.fonts-ready .icon {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: var(--appbar-height);
+  height: var(--appbar-offset);
   flex: none;
-  padding: 0 14px;
+  padding: env(safe-area-inset-top, 0px) max(14px, env(safe-area-inset-right, 0px)) 0
+    max(14px, env(safe-area-inset-left, 0px));
   background: var(--titlebar-gradient);
   border-bottom: 1px solid var(--hairline);
   color: var(--ink);
@@ -846,15 +857,17 @@ html.fonts-ready .icon {
 }
 
 @media (max-width: 900px) {
-  .appbar .appbar__nav-toggle {
-    display: inline-flex;
-  }
+  /* The hamburger stays hidden on a phone too: the tab bar's "More" opens the
+     same drawer from where a thumb is, and two controls for one panel at
+     opposite ends of the screen is the web page this is trying not to be. */
 
   .desktop-nav {
     position: fixed;
-    top: var(--appbar-height);
+    top: var(--appbar-offset);
     left: 0;
-    bottom: 0;
+    bottom: var(--mobile-tabbar-h);
+    padding-left: env(safe-area-inset-left, 0px);
+    overscroll-behavior: contain;
     /* Never the full width: the strip of page still showing is what says the
        drawer is a layer over the screen rather than a screen of its own. */
     width: min(280px, 82vw);
@@ -877,7 +890,7 @@ html.fonts-ready .icon {
   .nav-scrim {
     display: block;
     position: fixed;
-    inset: var(--appbar-height) 0 0;
+    inset: var(--appbar-offset) 0 var(--mobile-tabbar-h);
     z-index: 44;
     border: 0;
     padding: 0;
@@ -888,7 +901,146 @@ html.fonts-ready .icon {
 
   .desktop-main,
   .desktop-main--admin {
-    padding: 14px 16px 88px;
+    /* The bottom clears the tab bar AND the agent orb above it. */
+    padding: 14px max(16px, env(safe-area-inset-right, 0px)) calc(var(--mobile-tabbar-h) + 84px)
+      max(16px, env(safe-area-inset-left, 0px));
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* ==========================================================================
+ * THE PHONE'S TAB BAR (2026-10-07)
+ *
+ * Four of the session's own navigation rows plus "More" (the drawer), fixed
+ * to the bottom below 900px. `--mobile-tabbar-h` is set here and nowhere else,
+ * and it includes the home-indicator inset, so a screen that pins something to
+ * the bottom reads one token and is right on every handset.
+ *
+ * Above the drawer (45) and its scrim (44) on purpose: "More" is the drawer's
+ * close control as well as its open one, and it must stay pressable while the
+ * drawer is out. Below the dock (95) and the orb (94).
+ * ======================================================================= */
+
+.tabbar {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --mobile-tabbar-h: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .tabbar {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 46;
+    height: var(--mobile-tabbar-h);
+    padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px)
+      env(safe-area-inset-left, 0px);
+    background: var(--surface);
+    border-top: 1px solid var(--hairline);
+    box-shadow: 0 -6px 20px rgb(58 31 82 / 8%);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .tabbar__tab {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 2px 4px;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font: 600 10.5px/1.1 var(--font);
+    text-decoration: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* The icon sits in a pill that fills when the tab is current: the shape
+     says "you are here" as well as the colour, never colour alone. */
+  .tabbar__tab .icon {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 28px;
+    border-radius: var(--r-pill);
+    font-size: 22px;
+    transition: background 0.15s ease;
+  }
+
+  .tabbar__label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tabbar__tab.active {
+    color: var(--brand-purple);
+  }
+
+  .tabbar__tab.active .icon {
+    background: var(--tint-2);
+  }
+
+  .tabbar__tab:active .icon {
+    background: var(--tint-3);
+  }
+
+  .tabbar__tab:focus-visible {
+    outline: 2px solid var(--brand-purple);
+    outline-offset: -4px;
+  }
+}
+
+/* ==========================================================================
+ * THE INSTALLED APP (display-mode: standalone)
+ *
+ * Launched from the home screen there is no URL bar and no browser chrome, so
+ * the things that give a web page away are the ones to remove: the grey flash
+ * on every tap, the whole-page rubber band, pull-to-refresh reloading the app
+ * out from under a half-filled form, and long-press selecting the nav labels.
+ * Text in the CONTENT stays selectable — a student copies a job link.
+ * ======================================================================= */
+
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+
+  .appbar,
+  .desktop-nav {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
+
+@media (max-width: 900px) {
+  a,
+  button,
+  [role='button'],
+  summary,
+  label {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Tap feedback a finger can see, in place of the highlight removed above. */
+  .btn:active:not(:disabled),
+  .dt-btn:active:not(:disabled),
+  .iconbtn:active:not(:disabled) {
+    transform: scale(0.97);
   }
 }
 
@@ -902,7 +1054,10 @@ html.fonts-ready .icon {
     padding: 0 10px;
   }
 
-  .appbar__scope {
+  /* Qualified by `.appbar`: the readout is also a `.chip`, declared further
+     down with its own `display`, and at equal specificity source order put it
+     back on screen and pushed the account avatar off the right edge. */
+  .appbar .appbar__scope {
     display: none;
   }
 }
@@ -910,6 +1065,16 @@ html.fonts-ready .icon {
 @media (max-width: 560px) {
   .brandmark__console {
     display: none;
+  }
+
+  /* The admin's Help link leaves the bar on a phone (it opens a repository
+     page, not a task); the environment pill stays, because "is this prod" is
+     the one question the office must be able to answer at a glance. */
+  .appbar .appbar__icon {
+    display: none;
+  }
+  .appbar .appbar__icon ~ .account {
+    margin-left: auto;
   }
 
   /* The name and USN under the avatar. The avatar itself stays, because it is
@@ -2597,6 +2762,17 @@ html.fonts-ready .icon {
   align-items: flex-end;
   gap: 10px;
   touch-action: none;
+}
+
+/* On a phone the orb rides ABOVE the tab bar instead of sitting on "More".
+   After the rule above on purpose: same specificity, so source order decides.
+   Its drag offset is a transform on this box, so the anchor moves and the
+   drag still works. */
+@media (max-width: 900px) {
+  .agent-orb-wrap {
+    right: max(14px, env(safe-area-inset-right, 0px));
+    bottom: calc(var(--mobile-tabbar-h) + 14px);
+  }
 }
 .agent-orb {
   position: relative;

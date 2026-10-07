@@ -32,9 +32,12 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { UpperCasePipe } from '@angular/common';
 import { Title } from '@angular/platform-browser';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { filter, map } from 'rxjs';
 
 import { environment } from '../../environments/environment';
+import { AgentDockService } from '../core/agent-dock.service';
 import { AuthService } from '../core/auth.service';
 import type { Role } from '../core/session';
 import { AgentDockComponent } from './agent-dock.component';
@@ -528,6 +531,30 @@ const CONSOLE_NAME: Record<Role, string> = {
 export class AppShellComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly dock = inject(AgentDockService);
+
+  private readonly url = toSignal(
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      map((event) => event.urlAfterRedirects),
+    ),
+    { initialValue: this.router.url },
+  );
+
+  /**
+   * The orb opens the REEP Agent chat, and on an /agent page that chat IS the
+   * screen — so the orb was a second door to the room you are standing in,
+   * parked over the composer's Send button. It steps aside there, but never
+   * while the dock is open or an interview is live: then it is the dock's
+   * close control and the only "Live 04:12" on screen. Hidden, not destroyed,
+   * so its dragged position survives the visit.
+   */
+  readonly hideOrb = computed(
+    () =>
+      /^\/(student|mentor|admin)\/agent(\/|\?|$)/.test(this.url()) &&
+      !this.dock.open() &&
+      !this.dock.live(),
+  );
   private readonly title = inject(Title);
 
   readonly session = this.auth.session;

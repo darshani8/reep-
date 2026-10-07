@@ -6,6 +6,8 @@
  * used as they are. What is here is the shape of this board: the filter row,
  * the two columns, the faculty rail rows, the mentee list and the assign bar.
  */
+@use '../mobile' as m;
+
 :host {
   display: block;
 }
@@ -319,4 +321,178 @@
   margin: 4px 0 0;
   font-size: 12px;
   color: var(--muted);
+}
+
+/* --- at phone width (2026-10) --------------------------------------------
+   The board becomes a list of faculty; picking one pushes their group, the
+   pool (cards, not the grid) and the history full width with a Back. The
+   filters fold behind a button; the batch bar rises as a sheet. */
+@include m.filters-sheet('.filters', '.m-filters-toggle');
+@include m.filters-sheet('.batch-bar', '.m-batch-none', '.m-batch-scrim');
+@include m.card-list;
+@include m.back-button('.m-back');
+@include m.header-actions('.dt-toolbar');
+
+.m-filters-done,
+.m-detail-head {
+  display: none;
+}
+
+@include m.phone {
+  .dt-header {
+    flex-wrap: wrap;
+  }
+  .filters.is-open .select {
+    min-height: 48px;
+  }
+  .m-filters-done {
+    display: inline-flex;
+    justify-content: center;
+    min-height: 48px;
+  }
+  .batch-bar .card-head .iconbtn {
+    flex: none;
+    width: 44px;
+    height: 44px;
+  }
+  .batch-bar__row > .btn {
+    min-height: 48px;
+    justify-content: center;
+  }
+
+  .mapping {
+    display: block;
+  }
+  .rail-card,
+  .pool-card,
+  .history-card {
+    padding: 14px;
+  }
+
+  /* The list: faculty rows, nothing else. */
+  .mapping:not(.m-detail) .mapping__right,
+  .mapping:not(.m-detail) .list-lbl,
+  .mapping:not(.m-detail) .mentee-list {
+    display: none;
+  }
+  .mentor-row {
+    min-height: 64px;
+    padding: 12px;
+    -webkit-tap-highlight-color: transparent;
+    &:active {
+      background: var(--tint-1);
+      transform: scale(0.99);
+    }
+  }
+  .mentor-row + .mentor-row {
+    margin-top: 8px;
+  }
+  .mentor-row__name {
+    font-size: 15px;
+  }
+  .mentor-row__line {
+    font-size: 12.5px;
+  }
+  /* The row the board pre-selects on load is not a choice on a phone. */
+  .mapping:not(.m-detail) .mentor-row.selected {
+    background: var(--surface);
+    border-color: var(--hairline-26);
+  }
+
+  /* The pushed detail. */
+  .mapping.m-detail .rail,
+  .mapping.m-detail .rail-head {
+    display: none;
+  }
+  .mapping.m-detail .m-detail-head {
+    display: block;
+  }
+  .m-detail-name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 800;
+    color: var(--ink);
+  }
+  .m-detail-line {
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .mapping__right {
+    margin-top: 10px;
+  }
+  .mentee {
+    padding: 8px 2px;
+  }
+  .mentee__name {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .mentee__line {
+    font-size: 12.5px;
+    white-space: normal;
+  }
+  .mentee__actions .btn {
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+  }
+  /* An opened history sits right under the group it was opened from. */
+  .history-card.is-open {
+    order: -1;
+  }
+
+  .pool-card .card-head {
+    flex-wrap: wrap;
+  }
+  .card-head__actions,
+  .card-head__actions .dt-quickfilter {
+    width: 100%;
+  }
+  .card-head__actions .dt-quickfilter {
+    height: 44px;
+  }
+  .pool-cards {
+    margin-top: 10px;
+  }
+  .pool-cards .m-card {
+    min-height: 56px;
+  }
+  .pool-tick {
+    flex: none;
+    color: var(--purple-mid);
+  }
+  .pool-card .dt-statusbar {
+    border: 0;
+    padding: 8px 2px 0;
+  }
+
+  /* The reason above the one primary action, which stays in reach above the
+     tab bar while the pool scrolls. */
+  .pool-card {
+    display: flex;
+    flex-direction: column;
+  }
+  .assign-bar {
+    display: contents;
+  }
+  .assign-reason {
+    order: 1;
+    margin-top: 12px;
+  }
+  .assign-bar > .btn {
+    order: 2;
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+    margin-top: 10px;
+    position: sticky;
+    bottom: 8px;
+    z-index: 5;
+    box-shadow: 0 6px 18px rgba(58, 31, 82, 0.25);
+  }
+  .pool-card > .notice:last-child {
+    order: 3;
+  }
 }

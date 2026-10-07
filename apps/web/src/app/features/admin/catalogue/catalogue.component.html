@@ -107,7 +107,26 @@
        `?course_id=`. The college list is learned from the course rows rather
        than fetched: `GET /admin/colleges` is `admin.institution`, a different
        function from this screen's. -->
-  <div class="cat-filters">
+  <button
+    type="button"
+    class="btn secondary cat-filters-toggle"
+    [attr.aria-expanded]="filtersOpen()"
+    (click)="filtersOpen.set(true)"
+  >
+    <span class="icon" aria-hidden="true">tune</span> Filters
+    @if (scopeIsNarrowed()) {
+      <span class="chip accent">Narrowed</span>
+    }
+  </button>
+  @if (filtersOpen()) {
+    <button
+      type="button"
+      class="m-filters-scrim"
+      aria-label="Close the filters"
+      (click)="filtersOpen.set(false)"
+    ></button>
+  }
+  <div class="cat-filters" [class.is-open]="filtersOpen()">
     <span class="select cat-select">
       <span class="lbl">College</span>
       <span class="val">{{ collegeFilterLabel() }}</span>
@@ -190,6 +209,9 @@
         Every college and course, programme-wide rows included.
       }
     </span>
+    <button type="button" class="btn primary cat-filters-done" (click)="filtersOpen.set(false)">
+      Done
+    </button>
   </div>
 
   <!-- B13: the subject import. `POST /admin/catalogue/subjects/import`, whose
@@ -323,6 +345,45 @@
               Edited as a whole sheet — "Import subjects", above.
             </span>
           </div>
+          @if (phone()) {
+            <ul class="m-list cat-cards" aria-label="Subjects">
+              @for (subject of visibleSubjects(); track subject.code) {
+                <li class="m-card">
+                  <div class="m-card__top">
+                    <span class="m-card__title">{{ subject.code }} · {{ subject.name }}</span>
+                    <span class="chip accent">{{ stageLabel(subject.stage) }}</span>
+                  </div>
+                  <div class="m-card__meta">
+                    {{ dimensionLabel(subject.dimension) }} · Semester {{ subject.semester }} ·
+                    {{ subjectHours(subject) }} · {{ subject.enrolled }} enrolled
+                  </div>
+                  <div class="m-card__meta">
+                    {{ dimensionLabel(subject.model_type) }} ·
+                    {{ subject.duration_weeks | plural: 'week' }} ·
+                    @if (subject.certifications.length) {
+                      <span class="chip good">{{ subject.certifications.length | plural: 'certification' }}</span>
+                    } @else {
+                      <span class="chip warn">None mapped</span>
+                    }
+                  </div>
+                </li>
+              } @empty {
+                <li class="m-empty">
+                  @if (loadFailed()) {
+                    The catalogue could not be read — this is not an empty catalogue.
+                  } @else if (subjects()) {
+                    @if (query().trim()) {
+                      No subject matches “{{ query() }}”.
+                    } @else {
+                      No courses in the catalogue yet.
+                    }
+                  } @else {
+                    Loading the catalogue…
+                  }
+                </li>
+              }
+            </ul>
+          } @else {
           <div class="cat-scroll">
             <table class="dt-table cat-table">
               <thead>
@@ -400,6 +461,7 @@
               </tbody>
             </table>
           </div>
+          }
           <div class="dt-statusbar">
             <span
               >Subjects: <b>{{ visibleSubjects().length }}</b></span
@@ -553,7 +615,7 @@
           </div>
         }
 
-        <div class="cat-body">
+        <div class="cat-body" [class.has-detail]="!!selectedBadge()">
           <div class="cat-main">
             <div class="dt-frame">
               <div class="dt-gridbar">
@@ -726,6 +788,52 @@
                 </div>
               }
 
+              @if (phone()) {
+                <ul class="m-list cat-cards" aria-label="Badges">
+                  @for (badge of visibleBadges(); track badge.code) {
+                    <li>
+                      <button
+                        type="button"
+                        class="m-card"
+                        [class.is-selected]="selectedBadgeCode() === badge.code"
+                        [attr.aria-pressed]="selectedBadgeCode() === badge.code"
+                        (click)="selectBadge(badge.code)"
+                      >
+                        <span class="m-card__top">
+                          <span class="m-card__title">{{ badge.name }}</span>
+                          <span class="chip accent">{{ verifierLabel(badge) }}</span>
+                        </span>
+                        <span class="m-card__meta">
+                          {{ badge.code }} · {{ badge.category_label }} ·
+                          {{ claimsFor(badge.code) | plural: 'claim' }}
+                        </span>
+                        <span class="cat-chips">
+                          @if (activeCertificationsFor(badge.code).length) {
+                            @for (certification of chipCertificationsFor(badge.code); track certification.id) {
+                              <span class="chip accent">{{ certification.name }}</span>
+                            }
+                            @if (extraCertificationCount(badge.code) > 0) {
+                              <span class="chip neutral">+{{ extraCertificationCount(badge.code) }}</span>
+                            }
+                          } @else {
+                            <span class="chip warn">None mapped</span>
+                          }
+                        </span>
+                      </button>
+                    </li>
+                  } @empty {
+                    <li class="m-empty">
+                      @if (badges().length) {
+                        No badge matches these filters.
+                      } @else if (loading()) {
+                        Loading the badge catalogue…
+                      } @else {
+                        The badge catalogue could not be read.
+                      }
+                    </li>
+                  }
+                </ul>
+              } @else {
               <div class="cat-scroll">
                 <table class="dt-table cat-table">
                   <thead>
@@ -807,6 +915,7 @@
                   </tbody>
                 </table>
               </div>
+              }
               <div class="dt-statusbar">
                 <span
                   >Badges: <b>{{ visibleBadges().length }}</b> of <b>{{ badges().length }}</b></span
@@ -830,6 +939,9 @@
 
           @if (selectedBadge(); as badge) {
             <aside class="card cat-drawer" aria-label="Badge detail">
+              <button type="button" class="m-back" (click)="closeDrawer()">
+                <span class="icon" aria-hidden="true">arrow_back</span> Back
+              </button>
               <div class="cat-drawer-head">
                 <h2 class="cat-card-title">Badge · {{ badge.name }}</h2>
                 <button
@@ -1072,6 +1184,31 @@
                 No stage rules are on record on any programme this account reaches.
               }
             </div>
+          } @else if (phone()) {
+            <ul class="m-list cat-cards" aria-label="Stage rules, by semester">
+              @for (rule of visibleStageRules(); track rule.id) {
+                <li class="m-card">
+                  <div class="m-card__top">
+                    <span class="m-card__title">Semester {{ rule.semester }}</span>
+                    <span class="chip accent">{{ stageLabel(rule.stage) }}</span>
+                  </div>
+                  <div class="m-card__meta">{{ courseLabel(rule.course_id) }}</div>
+                  <div class="m-card__actions">
+                    <button
+                      type="button"
+                      class="btn ghost sm"
+                      (click)="deleteStageRule(rule)"
+                      [disabled]="stageBusy()"
+                      [attr.aria-label]="
+                        'Remove the rule for semester ' + rule.semester + ' of ' + courseLabel(rule.course_id)
+                      "
+                    >
+                      <span class="icon" aria-hidden="true">delete</span>Remove
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
           } @else {
             <div class="cat-scroll">
               <table class="dt-table">
@@ -1131,6 +1268,24 @@
           </div>
         } @else if (tracks(); as trackRows) {
           <div class="dt-frame">
+            @if (phone()) {
+              <ul class="m-list cat-cards" aria-label="Interview tracks">
+                @for (interviewTrack of trackRows; track interviewTrack.key) {
+                  <li class="m-card">
+                    <div class="m-card__top">
+                      <span class="m-card__title">{{ interviewTrack.label }}</span>
+                      <span class="cat-mono">{{ interviewTrack.key }}</span>
+                    </div>
+                    <div class="m-card__meta">
+                      {{ interviewTrack.enabled_count }} of {{ interviewTrack.count }} questions in use
+                    </div>
+                    <div class="m-card__meta">{{ interviewTrack.phases.join(' · ') }}</div>
+                  </li>
+                } @empty {
+                  <li class="m-empty">No interview tracks are configured.</li>
+                }
+              </ul>
+            } @else {
             <div class="cat-scroll">
               <table class="dt-table cat-table">
                 <thead>
@@ -1166,6 +1321,7 @@
                 </tbody>
               </table>
             </div>
+            }
             <div class="dt-statusbar">
               <span
                 >Tracks: <b>{{ trackRows.length }}</b></span

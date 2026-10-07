@@ -219,14 +219,9 @@
    The trail is a list of cards (the template's @if (phone())); tapping one
    pushes the event full width behind a Back; the four filters fold behind a
    Filters sheet while the quick filter stays on the list's own bar. */
-@include m.card-list;
 @include m.header-actions('.dt-header > .dt-toolbar');
 @include m.filters-sheet('.filters', '.filters-toggle', '.filters-scrim');
-@include m.back-button('.m-back');
-
-.filters-done {
-  display: none;
-}
+@include m.pushed-detail('.board-columns', '.grid-card', '.event-card');
 
 @include m.phone {
   .dt-header {
@@ -250,15 +245,11 @@
   .filter-hint {
     margin-left: 0;
   }
-  .filters.is-open .filters-done {
-    display: inline-flex;
+  /* Taller than the global Done. */
+  .filters.is-open .m-filters-done {
     min-height: 48px;
   }
 
-  .board-columns:not(.has-detail) .event-card,
-  .board-columns.has-detail .grid-card {
-    display: none;
-  }
   .panel:has(.board-columns.has-detail) .filters-toggle {
     display: none;
   }

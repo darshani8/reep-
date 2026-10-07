@@ -72,6 +72,7 @@ import type {
 
 import { environment } from '../../../../environments/environment';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
+import { bindBackToClose } from '../../../core/back-close';
 import { phoneSignal } from '../../../core/mobile';
 import { reepGridTheme, reepGridThemeCompact } from '../../../shared/grid/reep-grid-theme';
 
@@ -432,6 +433,11 @@ export class AdminAuditLogComponent {
 
   readonly openEventId = signal<string | null>(null);
   readonly openEvent = signal<AuditDetailWire | null>(null);
+  /** On a phone the event is pushed over the list: Back returns to it. */
+  private readonly _detailBack = bindBackToClose(
+    () => this.openEventId() !== null,
+    () => this.closeDetail(),
+  );
   readonly isOpening = signal(false);
   readonly panelError = signal<string | null>(null);
   readonly copyNote = signal<string | null>(null);
@@ -478,6 +484,10 @@ export class AdminAuditLogComponent {
   readonly phone = phoneSignal();
   /** The four query filters' bottom sheet on a phone. */
   readonly filtersOpen = signal(false);
+  private readonly _filtersBack = bindBackToClose(
+    () => this.filtersOpen(),
+    () => this.filtersOpen.set(false),
+  );
 
   /** The phone's cards: the same rows, narrowed by the same quick filter the
    *  grid applies, matched on what each card shows. */

@@ -1,5 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { NavigationStart, Router } from '@angular/router';
+import { Subject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BackStack, HistoryPort, bindBackToClose } from './back-close';
@@ -135,10 +137,23 @@ describe('bindBackToClose', () => {
     }
   }
 
+  let routerEvents: Subject<unknown>;
+  let inFlight: unknown;
+
   beforeEach(() => {
     history = new FakeHistory();
     stack = new BackStack(history);
     matches = true;
+    routerEvents = new Subject();
+    inFlight = null;
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: Router,
+          useValue: { events: routerEvents, currentNavigation: () => inFlight },
+        },
+      ],
+    });
     vi.stubGlobal('matchMedia', (query: string) => ({
       matches,
       media: query,
@@ -196,6 +211,31 @@ describe('bindBackToClose', () => {
 
     fixture.destroy();
 
+    expect(stack.depth).toBe(0);
+    expect(history.cursor).toBe(1);
+  });
+
+  it('a close that lands with a navigation in flight leaves history alone', () => {
+    const fixture = mount();
+    fixture.componentInstance.open.set(true);
+    TestBed.tick();
+
+    inFlight = { id: 1 }; // a drawer link: closes the drawer and navigates
+    fixture.componentInstance.open.set(false);
+    TestBed.tick();
+
+    expect(history.cursor).toBe(1); // no back() — it would undo the navigation
+    expect(stack.depth).toBe(0);
+  });
+
+  it('a navigation started while open drops the entry, but our own Back does not', () => {
+    const fixture = mount();
+    fixture.componentInstance.open.set(true);
+    TestBed.tick();
+
+    routerEvents.next(new NavigationStart(1, '/elsewhere', 'popstate'));
+    expect(stack.depth).toBe(1);
+    routerEvents.next(new NavigationStart(2, '/elsewhere', 'imperative'));
     expect(stack.depth).toBe(0);
     expect(history.cursor).toBe(1);
   });

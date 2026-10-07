@@ -40,6 +40,7 @@ import { environment } from '../../environments/environment';
 import { AgentDockService } from '../core/agent-dock.service';
 import { AuthService } from '../core/auth.service';
 import type { Role } from '../core/session';
+import { bindBackToClose } from '../core/back-close';
 import { AgentDockComponent } from './agent-dock.component';
 import { AgentOrbComponent } from './agent-orb.component';
 
@@ -696,6 +697,15 @@ export class AppShellComponent {
    */
   private readonly _navOpen = signal(false);
   readonly navOpen = this._navOpen.asReadonly();
+
+  /** The phone's Back closes the open drawer instead of leaving the screen.
+   *  Same breakpoint as the drawer itself (reep-v2.scss, 900px); above it the
+   *  drawer is the sidebar and nothing is pushed. */
+  private readonly _navBack = bindBackToClose(
+    () => this._navOpen(),
+    () => this.closeNav(),
+    '(max-width: 900px)',
+  );
 
   constructor() {
     if (this.session()?.role === 'STUDENT') void this.loadUsn();

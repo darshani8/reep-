@@ -23,11 +23,15 @@
  * URL it is already on and ignores it (`onSameUrlNavigation: 'ignore'` is the
  * default and this app does not change it).
  *
- * WHAT IT DELIBERATELY DOES NOT DO. When an overlay goes away because its
- * component is destroyed (a router navigation from inside it), the entry is
- * dropped from the stack but NOT popped from history: calling `history.back()`
- * at that moment would undo the navigation the person just made. The cost is
- * one Back press that changes nothing, later — far cheaper than the
+ * WHAT IT DELIBERATELY DOES NOT DO. When an overlay goes away because of a
+ * navigation — a link inside the drawer, a row that routes elsewhere, its
+ * component destroyed by the route change — the entry is dropped from the
+ * stack but NOT popped from history: `history.back()` at that moment would
+ * undo the navigation the person just made. A link in the shell's drawer
+ * closes the drawer AND navigates in the same tap, which is exactly that
+ * race, so a close that lands while a router navigation is in flight (or
+ * after one started while the overlay was open) is treated as a drop. The
+ * cost is one Back press that changes nothing, later — far cheaper than the
  * alternative.
  *
  * `BackStack` is the logic over an abstract history so the spec can drive it
@@ -35,6 +39,7 @@
  */
 
 import { DestroyRef, effect, inject, untracked } from '@angular/core';
+import { NavigationStart, Router } from '@angular/router';
 
 import { PHONE_QUERY } from './mobile';
 
@@ -178,6 +183,16 @@ export function bindBackToClose(
       : null;
   let entry: BackEntry | null = null;
   const resolve = () => (typeof stack === 'function' ? stack() : stack);
+  const router = inject(Router, { optional: true });
+
+  // A navigation that starts while the overlay is open (other than the
+  // popstate our own Back produces) owns history from here: forget the entry.
+  const sub = router?.events.subscribe((e) => {
+    if (e instanceof NavigationStart && e.navigationTrigger !== 'popstate' && entry) {
+      entry.drop();
+      entry = null;
+    }
+  });
 
   effect(() => {
     const open = isOpen();
@@ -191,12 +206,14 @@ export function bindBackToClose(
       } else if (!open && entry) {
         const e = entry;
         entry = null;
-        e.closedByUser();
+        if (router?.currentNavigation()) e.drop();
+        else e.closedByUser();
       }
     });
   });
 
   inject(DestroyRef).onDestroy(() => {
+    sub?.unsubscribe();
     entry?.drop();
     entry = null;
   });

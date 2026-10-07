@@ -172,7 +172,6 @@
 }
 
 /* --- phone width (2026-10) ------------------------------------------------ */
-@include m.card-list;
 @include m.header-actions('.dt-toolbar');
 
 @include m.phone {

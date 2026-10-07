@@ -74,6 +74,7 @@ import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PluralPipe } from '../../../shared/text/plural.pipe';
 import { AlertRulesDialogComponent } from './alert-rules-dialog.component';
+import { bindBackToClose } from '../../../core/back-close';
 import { phoneSignal } from '../../../core/mobile';
 
 // The design system's chart theme, registered once for this lazily-loaded
@@ -542,6 +543,11 @@ export class AdminAnalyticsComponent implements OnDestroy {
 
   /** The alert-rules editor, opened from the Alerts card. */
   readonly rulesOpen = signal(false);
+  /** A bottom sheet on a phone: Back closes it, as its Close does. */
+  private readonly _rulesBack = bindBackToClose(
+    () => this.rulesOpen(),
+    () => this.closeRules(),
+  );
 
   private readonly auth = inject(AuthService);
 

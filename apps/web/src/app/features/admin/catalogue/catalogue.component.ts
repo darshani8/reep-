@@ -92,6 +92,7 @@ import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 import { PluralPipe } from '../../../shared/text/plural.pipe';
+import { bindBackToClose } from '../../../core/back-close';
 import { phoneSignal } from '../../../core/mobile';
 
 /** A certification mapped to a taught subject, as the subjects table shows it. */
@@ -372,6 +373,10 @@ export class AdminCatalogueComponent {
   readonly phone = phoneSignal();
   /** The scope pills, folded behind a "Filters" button on a phone. */
   readonly filtersOpen = signal(false);
+  private readonly _filtersBack = bindBackToClose(
+    () => this.filtersOpen(),
+    () => this.filtersOpen.set(false),
+  );
   readonly subjects = signal<Subject[] | null>(null);
   readonly certifications = signal<ApprovedCertification[] | null>(null);
   readonly badges = signal<Badge[]>([]);
@@ -613,6 +618,12 @@ export class AdminCatalogueComponent {
       setTimeout(() => document.querySelector('.cat-drawer')?.scrollIntoView({ block: 'start' }));
     }
   }
+
+  /** On a phone the badge detail is pushed over the list: Back returns. */
+  private readonly _drawerBack = bindBackToClose(
+    () => !!this.selectedBadge(),
+    () => this.closeDrawer(),
+  );
 
   closeDrawer(): void {
     this.selectedBadgeCode.set(null);

@@ -381,16 +381,12 @@
 }
 
 /* --- phone width (2026-10) ------------------------------------------------ */
-@include m.card-list;
 @include m.header-actions('.dt-toolbar');
 @include m.scroll-strip('.cat-tabs');
 @include m.filters-sheet('.cat-filters', '.cat-filters-toggle');
-@include m.back-button('.m-back');
 @include m.sticky-action('.cat-form-foot');
-
-.cat-filters-done {
-  display: none;
-}
+/* The badge detail is pushed over the list rather than drawn beside it. */
+@include m.pushed-detail('.cat-body', '.cat-main', '.cat-drawer');
 
 @include m.phone {
   .dt-header {
@@ -412,9 +408,7 @@
     margin-left: 0;
     max-width: none;
   }
-  .cat-filters.is-open .cat-filters-done {
-    display: inline-flex;
-    justify-content: center;
+  .cat-filters.is-open .m-filters-done {
     min-height: 44px;
   }
 
@@ -442,10 +436,6 @@
     display: flex;
   }
 
-  /* The badge detail is pushed over the list rather than drawn beside it. */
-  .cat-body.has-detail .cat-main {
-    display: none;
-  }
   .cat-drawer {
     padding: 14px;
     scroll-margin-top: 8px;

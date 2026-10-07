@@ -36,7 +36,7 @@ import { RouterLink } from '@angular/router';
 
 import { AuthService } from '../../core/auth.service';
 import { AgentChatComponent } from '../../shared/agent-chat/agent-chat.component';
-import { watchKeyboardInset } from '../../shared/agent-chat/keyboard-inset';
+import { watchKeyboardInset } from '../../core/keyboard-inset';
 
 // Re-exported so nothing that imported these from the page breaks.
 export type {

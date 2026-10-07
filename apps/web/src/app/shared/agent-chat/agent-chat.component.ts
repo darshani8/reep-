@@ -48,7 +48,7 @@ import { RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth.service';
 import { featureRefusal } from '../../core/feature-refusal';
-import { watchKeyboardInset } from './keyboard-inset';
+import { watchKeyboardInset } from '../../core/keyboard-inset';
 
 /** One routed next step the agent suggests — rendered as an arrow card. */
 export interface AgentAction {

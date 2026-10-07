@@ -77,6 +77,7 @@ import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
 import { plural } from '../../../shared/text/plural.pipe';
 import { phoneSignal } from '../../../core/mobile';
+import { bindBackToClose } from '../../../core/back-close';
 import { LeaveCalendarDialogComponent } from './leave-calendar-dialog.component';
 import {
   LeavePolicyDialogComponent,
@@ -377,6 +378,25 @@ export class AdminLeaveApprovalsComponent {
     if (id === null) return null;
     return this.rows().find((row) => row.id === id) ?? null;
   });
+
+  // Android Back closes what is on top: the pushed request, the filters
+  // sheet, the policy and calendar sheets — each as its own button does.
+  private readonly _detailBack = bindBackToClose(
+    () => this.phone() && this.selectedRequest() !== null,
+    () => this.clearSelection(),
+  );
+  private readonly _filtersBack = bindBackToClose(
+    () => this.filtersOpen(),
+    () => this.filtersOpen.set(false),
+  );
+  private readonly _policyBack = bindBackToClose(
+    () => this.policyOpen(),
+    () => this.closeDialogs(),
+  );
+  private readonly _calendarBack = bindBackToClose(
+    () => this.calendarOpen(),
+    () => this.closeDialogs(),
+  );
 
   /** "Nobody is in your reach" and "nothing is waiting" are the two reasons a
    *  queue is empty, and they are opposite facts about this account. */

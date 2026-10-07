@@ -314,3 +314,45 @@
   color: var(--muted);
   font-weight: 600;
 }
+
+/* On a phone the board stays a table — four short columns fit in 358px once
+   the name is allowed to wrap — rather than taking the shell's sideways-scroll
+   fallback, which would put the Total column off the edge. */
+@media (max-width: 599.98px) {
+  .lb-table-card {
+    padding: 4px 6px;
+  }
+  .lb-table {
+    display: table;
+    width: 100%;
+  }
+  .lb-table th,
+  .lb-table td {
+    white-space: normal;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  .lb-table td.lb-col-of,
+  .lb-table td.lb-col-val {
+    white-space: nowrap;
+  }
+}
+
+/* The five boards as one sideways strip on a phone rather than a wrap that
+   left "Mocks taken" alone on a second line. */
+@media (max-width: 599.98px) {
+  .lb-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    max-width: 100%;
+  }
+  .lb-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .lb-tabs .tab {
+    flex: none;
+    white-space: nowrap;
+  }
+}

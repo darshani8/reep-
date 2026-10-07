@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>REEP v5 components</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/app.css">
+<style>
+  .sheet-page { max-width: 1100px; margin: 0 auto; padding: 32px 16px 80px; }
+  .demo { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 16px; }
+  .swatch { height: 56px; border-radius: 12px; border: 1px solid var(--hairline-26); }
+  .sw { font-size: 12px; } .sw code { color: var(--muted); }
+  h2.k { margin: 36px 0 12px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); font-family: var(--font); }
+</style>
+</head>
+<body>
+<div class="sheet-page">
+  <div class="hrow"><span class="brand-mark">R</span><span class="brand-name">REEP v5 · design system</span><a class="btn sm" style="margin-left:auto" href="index.html">Open the prototype</a></div>
+  <p class="muted" style="margin-top:8px">Every colour is a token copied verbatim from <code>apps/web/src/styles/reep-v2.scss</code>. Magenta appears only inside <code>--primary-gradient</code>. Status is always a word and a colour.</p>
+
+  <h2 class="k">Colour tokens</h2>
+  <div class="grid-3" id="swatches"></div>
+
+  <h2 class="k">Type</h2>
+  <div class="card stack">
+    <h1>Display 28/30 · Plus Jakarta Sans 800</h1>
+    <h2>Section title 17 · Plus Jakarta Sans 700</h2>
+    <p>Body 15 · Inter 400. Plain task words; nothing on a screen explains itself.</p>
+    <p class="small muted">Secondary 13 · Inter · --muted</p>
+    <p class="num" style="font-family:var(--font-display);font-size:26px;font-weight:800">68 / 100 · tabular numbers</p>
+  </div>
+
+  <h2 class="k">Buttons</h2>
+  <div class="card hrow">
+    <button class="btn primary">Approve</button><button class="btn">Hold</button><button class="btn danger">Reject</button>
+    <button class="btn danger solid">Delete for good</button><button class="btn ghost">Cancel</button><button class="btn sm">Small</button>
+    <button class="btn primary" disabled>Disabled</button><button class="icon-btn" aria-label="More"><svg class="i" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg></button>
+  </div>
+
+  <h2 class="k">Status chips (word + colour)</h2>
+  <div class="card hrow">
+    <span class="chip good">Approved</span><span class="chip warn">Pending review</span><span class="chip risk">Rejected</span>
+    <span class="chip neutral">Draft</span><span class="chip info">Your stage</span><span class="chip good">Verified</span><span class="chip warn">With your mentor</span><span class="chip risk">Below 75%</span>
+  </div>
+
+  <h2 class="k">Cards, KPIs, meters</h2>
+  <div class="demo">
+    <div class="card"><div class="card-h"><h2>Card title</h2><span class="chip info">Info</span></div><p class="small muted">A glass card on a lavender hairline. Used for any self-contained block.</p></div>
+    <div class="grid-3" style="grid-template-columns:1fr 1fr"><div class="kpi"><div class="v">12</div><div class="l">Applications waiting</div></div><button class="kpi"><div class="v">3</div><div class="l">Leave to sanction</div></button></div>
+    <div class="card stack"><div class="meter good"><i style="width:88%"></i></div><div class="meter warn"><i style="width:78%"></i></div><div class="meter risk"><i style="width:62%"></i></div><div class="ring" style="--p:68" data-v="68"></div></div>
+  </div>
+
+  <h2 class="k">List rows (inset grouped)</h2>
+  <div class="demo">
+    <div class="list" id="rows"></div>
+    <div class="list"><div class="row sel"><span class="lead av">DS</span><div class="body"><div class="ttl">Selected row</div><div class="sub">The open item in a split view</div></div><div class="trail"><span class="chip warn">Pending review</span></div></div></div>
+  </div>
+
+  <h2 class="k">Table → cards</h2>
+  <p class="small muted" style="margin-bottom:8px">Narrow the window below 760px: each row becomes a card with its labels.</p>
+  <div id="table"></div>
+
+  <h2 class="k">Form fields</h2>
+  <div class="card"><div class="form-grid" id="fields"></div>
+    <div class="hrow" style="margin-top:12px"><label class="check"><input type="checkbox" checked> Checkbox</label><input class="switch" type="checkbox" checked aria-label="Switch"><div class="seg"><button aria-pressed="true">Day</button><button aria-pressed="false">Week</button><button aria-pressed="false">Month</button></div></div>
+    <div style="margin-top:12px"><label class="drop">Click to upload or drop a file<div class="xs">PDF or JPEG · up to 5 MB</div><input type="file"></label></div>
+  </div>
+
+  <h2 class="k">Tabs and steps</h2>
+  <div class="card"><div class="tabs"><button aria-selected="true">Results</button><button aria-selected="false">Attendance</button><button aria-selected="false">Courses</button></div><div class="steps"><i class="on"></i><i class="on"></i><i></i></div></div>
+
+  <h2 class="k">Empty, loading and error states</h2>
+  <div class="demo">
+    <div class="card" id="empty"></div>
+    <div class="card" role="status" aria-label="Loading"><div class="skel" style="height:14px;width:40%;margin-bottom:10px"></div><div class="skel" style="height:12px;width:90%;margin-bottom:6px"></div><div class="skel" style="height:12px;width:70%"></div></div>
+    <div class="card" id="error"></div>
+  </div>
+  <div class="stack" style="margin-top:16px"><div class="banner good">Banner: success</div><div class="banner warn">Banner: needs attention</div><div class="banner risk" role="alert">Banner: refused, with the reason</div><div class="banner info">Banner: neutral fact</div></div>
+
+  <h2 class="k">Sheets and toasts</h2>
+  <div class="card hrow">
+    <button class="btn" id="b-sheet">Open a bottom / side sheet</button>
+    <button class="btn" id="b-reason">A decision that needs a reason</button>
+    <button class="btn" id="b-confirm">Confirm</button>
+    <button class="btn" id="b-toast">Toast</button>
+  </div>
+
+  <h2 class="k">Navigation</h2>
+  <p class="small muted">Phones get a five-slot bottom tab bar (four tabs + More); desktop gets the navigation rail with the role's groups. Both are drawn from one list per role (<code>NAV</code> in js/app.js).</p>
+</div>
+<script src="js/core.js"></script>
+<script>
+  const toks = ['--brand-purple', '--purple-mid', '--ink', '--ink-soft', '--muted', '--faint', '--surface', '--tint-1', '--tint-2', '--tint-3', '--good', '--warn', '--risk', '--seq', '--seq-light', '--cat-1', '--cat-2', '--cat-3', '--cat-4', '--primary-gradient', '--page-wash', '--voice-overlay'];
+  document.getElementById('swatches').innerHTML = toks.map((t) => `<div class="sw"><div class="swatch" style="background:var(${t})"></div><b>${t}</b><br><code>${getComputedStyle(document.documentElement).getPropertyValue(t).trim().slice(0, 48)}</code></div>`).join('');
+  document.getElementById('rows').innerHTML = [
+    U.row({ title: 'Navigates to a detail', sub: 'Pushes a screen; back arrow and edge swipe return', lead: U.lead('users'), href: '#' }),
+    U.row({ title: 'Diya Shetty', sub: '1NH25MBA021 · Sem 3', lead: U.av('Diya Shetty'), trail: chip('Approved', 'good'), href: '#' }),
+    U.row({ title: 'Static row', sub: 'No chevron when nothing opens', lead: U.lead('info') }),
+  ].join('');
+  document.getElementById('table').innerHTML = U.table([{ h: 'Student', k: 'n' }, { h: 'USN', k: 'u' }, { h: 'Batch', k: 'b' }, { h: 'Status', k: 's' }], [
+    { n: 'Aarav Kulkarni', u: '1NH25MBA014', b: '2025-27', s: chip('Seated', 'good') },
+    { n: 'Meghana Hegde', u: '1NH25MBA052', b: '2025-27', s: chip('No faculty', 'warn') },
+  ]);
+  document.getElementById('fields').innerHTML = U.field({ id: 'a', label: 'Full name', req: true, value: 'Aarav Kulkarni' }) + U.field({ id: 'b', label: 'Batch', opts: ['2025-27', '2026-28'] }) +
+    U.field({ id: 'c', label: 'Email', type: 'email', value: 'not-an-address', hint: 'Your college address' }) + U.field({ id: 'd', label: 'Reason', type: 'textarea', req: true });
+  errs(document.getElementById('fields'), { c: 'Enter an email address.' });
+  document.getElementById('empty').innerHTML = U.empty('inbox', 'Nothing waiting', 'New applications appear here.');
+  document.getElementById('error').innerHTML = U.empty('alert', 'Could not load this screen', 'The server did not answer.', '<button class="btn primary">Retry</button>');
+  document.getElementById('b-sheet').onclick = () => Sheet.open({ title: 'Edit student', body: `<div class="stack">${U.field({ id: 'n', label: 'Full name', value: 'Aarav Kulkarni' })}${U.field({ id: 'b2', label: 'Batch', opts: ['2025-27', '2026-28'] })}</div>`, foot: '<button class="btn" data-sheet-close>Cancel</button><button class="btn primary" data-act="save">Save</button>', onAct: { save: () => { Sheet.close(); toast('Saved'); } } });
+  document.getElementById('b-reason').onclick = () => Sheet.reason({ title: 'Reject this application?', label: 'Reason the applicant will read', ok: 'Reject', danger: true, onOk: () => toast('Rejected and mailed') });
+  document.getElementById('b-confirm').onclick = () => Sheet.confirm({ title: 'Withdraw this request?', text: 'This cannot be undone.', ok: 'Yes, withdraw it', danger: true, onOk: () => toast('Withdrawn') });
+  document.getElementById('b-toast').onclick = () => toast('Draft saved');
+</script>
+</body>
+</html>

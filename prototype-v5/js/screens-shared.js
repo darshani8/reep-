@@ -196,12 +196,12 @@ function accountScreen(role) {
   const prefs = U.section('Email notifications', `<div class="list"${I('A-077')}>${D.notifPrefs.map((p) => U.row({ title: p.label, chev: false, trail: `${chip(p.enforced ? (p.on ? 'On' : 'Off') : 'Not wired yet', p.enforced ? (p.on ? 'good' : 'neutral') : 'neutral')}<input class="switch" type="checkbox" aria-label="${esc(p.label)}" data-act="pref" data-k="${p.key}"${p.on ? ' checked' : ''}${p.enforced ? '' : ' disabled'}>` })).join('')}</div><p class="xs muted" style="margin:6px 4px"${I('A-078')}>REEP sends no digests.</p>`);
   const signIns = U.section('Recent sign-ins', D.signIns.length ? U.table([{ h: 'When', k: 'when' }, { h: 'Door', k: 'door' }, { h: 'Device', k: 'device' }, { h: 'Seen from', k: 'from' }], D.signIns, I('A-079')) : `<div${I('A-081')}>${U.empty('globe', 'No sign-ins recorded yet')}</div>`, `<button class="btn sm ghost" type="button" data-act="refresh"${I('A-080')}>Refresh</button>`);
   return U.page({ title: 'Account & security', lede: `<span${I('A-058')}>${roleWord} · ${esc(me.email)}</span>`,
-    body: `${U.section('Sign-in', google + '<div style="height:10px"></div>' + pw).replace('class="section"', 'class="section" style="margin-top:0"')}${sigCard}${U.section('Sessions', sess)}${prefs}${signIns}<span hidden${I('A-060', 'A-086')}></span>` });
+    body: `${U.section('Sign-in', google + '<div style="height:10px"></div>' + pw).replace('class="section"', 'class="section" style="margin-top:0"')}${sigCard}${U.section('Sessions', sess)}${prefs}${signIns}` });
 }
 function pwSheet() {
   let sent = false;
   const body = () => `<div class="steps"${I('A-065')}><i class="on"></i><i class="${sent ? 'on' : ''}"></i></div>
-    ${sent ? `<div class="stack"${I('A-067', 'A-083')}>${U.field({ id: 'code', label: 'Code from the email', req: true, attrs: ' inputmode="numeric" maxlength="6" autocomplete="one-time-code"' })}${U.field({ id: 'pw1', label: 'New password', type: 'password', req: true, hint: '12 characters or more' })}${U.field({ id: 'pw2', label: 'Type it again', type: 'password', req: true })}</div>`
+    ${sent ? `<div class="stack"${I('A-067', 'A-083', 'A-086')}>${U.field({ id: 'code', label: 'Code from the email', req: true, attrs: ' inputmode="numeric" maxlength="6" autocomplete="one-time-code"' })}${U.field({ id: 'pw1', label: 'New password', type: 'password', req: true, hint: '12 characters or more' })}${U.field({ id: 'pw2', label: 'Type it again', type: 'password', req: true })}</div>`
     : `<p>We email a six-digit code to the address on this account, never to one you type.</p>`}`;
   const el = Sheet.open({ title: 'Change password', center: true, body: body(),
     foot: `<button class="btn" type="button" data-sheet-close${I('A-068')}>Cancel</button><button class="btn" type="button" data-act="resend"${I('A-084')}>Send a new code</button><button class="btn primary" type="button" data-act="go"${I('A-066')}>Email me a code</button>`,
@@ -219,7 +219,7 @@ function pwSheet() {
   return el;
 }
 ['student', 'faculty', 'admin'].forEach((role) => {
-  R.screen(`${role}/account`, { title: 'Account & security', render: () => accountScreen(role), acts: {
+  R.screen(`${role}/account`, { title: 'Account & security', states: 'A-060', render: () => accountScreen(role), acts: {
     unlink() { Sheet.confirm({ title: 'Unlink Google?', text: 'You will sign in with your password or an emailed code instead.', ok: 'Yes, unlink', danger: true, onOk: () => { D.me[role].googleLinked = false; App.rerender(); toast('Google unlinked'); } }); },
     pw() { pwSheet(); },
     'setup-link'() { toast('Setup link sent to your college address'); },

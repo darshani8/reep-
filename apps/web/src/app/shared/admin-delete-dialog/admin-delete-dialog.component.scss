@@ -7,6 +7,8 @@
  * the two-answer choice and the consequence lines.
  */
 
+@use '../../features/admin/mobile' as m;
+
 .dialog-backdrop {
   position: fixed;
   inset: 0;
@@ -189,5 +191,62 @@
 @media (max-width: 560px) {
   .mode-choice {
     grid-template-columns: 1fr;
+  }
+}
+
+/* --- the phone (2026-10): the dialog rises as a sheet --------------------- */
+
+@include m.bottom-sheet('.dialog-backdrop', '.dialog');
+
+@include m.phone {
+  .dialog-head,
+  .dialog-body,
+  .dialog-foot {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .mode {
+    min-height: 56px;
+    padding: 12px 14px;
+    -webkit-tap-highlight-color: transparent;
+
+    &:active {
+      background: var(--tint-3, var(--surface));
+    }
+  }
+
+  .mode input {
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+  }
+
+  .mode-title {
+    font-size: 15px;
+  }
+
+  .mode-sub {
+    font-size: 13px;
+  }
+
+  .consequence {
+    font-size: 14px;
+  }
+
+  .dialog .ctrl {
+    min-height: 44px;
+  }
+
+  .dialog-fields .field.coded {
+    flex: 1 1 100%;
+  }
+
+  /* "Email me a code" is the one way to the code; a 19px underline is not a
+     thumb's target. */
+  .link-btn {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
   }
 }

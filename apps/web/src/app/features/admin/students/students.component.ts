@@ -48,7 +48,7 @@
  * `roster-row.ts` and `roster-grid.ts`.
  */
 
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
 import type { CellClickedEvent, GetRowIdParams, GridApi, GridReadyEvent } from 'ag-grid-community';
@@ -58,6 +58,7 @@ import { AuthService } from '../../../core/auth.service';
 import { composeBatchLabel } from '../../../core/batch-label';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
+import { phoneSignal } from '../mobile';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 import type { BatchSummary, StageTally } from './batch-summary';
 import {
@@ -141,6 +142,9 @@ const PROMOTION_KIND_LABELS: Record<string, { label: string; tone: 'good' | 'neu
   ungraduate: { label: 'Graduation reversed', tone: 'warn' },
 };
 
+/** Cards drawn per press of Show more on a phone. */
+const PHONE_PAGE = 25;
+
 // ------------------------------------------------------------- the screen --
 
 @Component({
@@ -183,6 +187,47 @@ export class AdminStudentsComponent {
   readonly gridContext = computed<RosterGridContext>(() => ({
     canOpenDetail: (this.auth.session()?.capabilities ?? []).includes('admin.student_records'),
   }));
+
+  // --- the phone (2026-10) -------------------------------------------------
+  // Below 600px the grid is not mounted: the same rows render as cards
+  // (`phoneRows`), ticked into the same `selectedRows` mirror the grid's
+  // selection writes, so the two "selected" buttons work unchanged.
+  readonly phone = phoneSignal();
+  readonly filtersOpen = signal(false);
+  private readonly phoneLimit = signal(PHONE_PAGE);
+  readonly phoneRows = computed(() => this.visibleRows().slice(0, this.phoneLimit()));
+  readonly phoneHasMore = computed(() => this.visibleRows().length > this.phoneLimit());
+
+  /** The grid is torn down on a phone; a GridApi kept past its grid would
+   *  answer the pager and the selection from a destroyed instance. */
+  private readonly dropGridOnPhone = effect(() => {
+    if (this.phone()) {
+      this.gridApi = null;
+    }
+  });
+
+  showMorePhoneRows(): void {
+    this.phoneLimit.update((limit) => limit + PHONE_PAGE);
+  }
+
+  isRowSelected(row: RosterRow): boolean {
+    return this.selectedRows().some((entry) => entry.studentId === row.studentId);
+  }
+
+  toggleRowSelected(row: RosterRow): void {
+    this.selectedRows.update((rows) =>
+      rows.some((entry) => entry.studentId === row.studentId)
+        ? rows.filter((entry) => entry.studentId !== row.studentId)
+        : [...rows, row],
+    );
+  }
+
+  /** A card's Remove-or-delete: the same path as the edit dialog's button,
+   *  so Cancel lands on the edit form exactly as it does from there. */
+  startDelete(row: RosterRow): void {
+    this.startEdit(row);
+    this.openDeleteDialog();
+  }
 
   readonly stages = STAGES;
   readonly semesters = SEMESTERS;

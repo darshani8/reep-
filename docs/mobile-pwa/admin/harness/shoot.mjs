@@ -6,7 +6,8 @@
 //
 // Options (env): WIDTH (390), HEIGHT (844), BASE (http://localhost:4200),
 // OUT (docs/mobile-pwa/admin), FULL=1 full-page shots, CLICK="css selector"
-// to click before the shot (e.g. open a sheet), SUFFIX for the file name.
+// to click before the shot (e.g. open a sheet), SUFFIX for the file name,
+// ONLY=00,30 to load only the fixture files with those prefixes.
 //
 // Fixtures: every module in ./fixtures exports `default` as an array of
 // [method, RegExp-on-path+query, body | (url, request) => body]. First match
@@ -33,6 +34,9 @@ const OUT = resolve(process.env.OUT ?? join(here, '..'));
 const fixtures = [];
 for (const f of readdirSync(join(here, 'fixtures')).sort()) {
   if (!f.endsWith('.mjs')) continue;
+  // ONLY=00,60 loads just those fixture files: the groups were written in
+  // parallel and some answer each other's endpoints in other shapes.
+  if (process.env.ONLY && !process.env.ONLY.split(',').some((p) => f.startsWith(p))) continue;
   const mod = await import(join(here, 'fixtures', f));
   fixtures.push(...mod.default);
 }

@@ -11,6 +11,8 @@
  * scoped and neither is claimed by reep-v2.scss or reep-v2-resume.scss, which
  * is the check check_style_duplicates.py enforces.
  */
+@use '../mobile' as m;
+
 :host {
   display: block;
 }
@@ -211,4 +213,104 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+/* --- phone ------------------------------------------------------------------
+   The trail is a list of cards (the template's @if (phone())); tapping one
+   pushes the event full width behind a Back; the four filters fold behind a
+   Filters sheet while the quick filter stays on the list's own bar. */
+@include m.card-list;
+@include m.header-actions('.dt-header > .dt-toolbar');
+@include m.filters-sheet('.filters', '.filters-toggle', '.filters-scrim');
+@include m.back-button('.m-back');
+
+.filters-done {
+  display: none;
+}
+
+@include m.phone {
+  .dt-header {
+    flex-wrap: wrap;
+  }
+
+  .filters-toggle {
+    margin-bottom: 12px;
+    min-height: 44px;
+  }
+  .filters-on {
+    color: var(--brand-purple);
+  }
+  .filters.is-open .select {
+    min-height: 48px;
+  }
+  .filters.is-open .btn {
+    min-height: 44px;
+    justify-content: center;
+  }
+  .filter-hint {
+    margin-left: 0;
+  }
+  .filters.is-open .filters-done {
+    display: inline-flex;
+    min-height: 48px;
+  }
+
+  .board-columns:not(.has-detail) .event-card,
+  .board-columns.has-detail .grid-card {
+    display: none;
+  }
+  .panel:has(.board-columns.has-detail) .filters-toggle {
+    display: none;
+  }
+
+  .grid-card {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+  .grid-card .dt-gridbar {
+    padding: 0 0 10px;
+    background: transparent;
+    border: 0;
+  }
+  .dt-quickfilter {
+    flex: 1 1 auto;
+    width: auto;
+    min-height: 44px;
+  }
+  .gridbar-actions {
+    display: none;
+  }
+  .audit-card__when {
+    flex: none;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .grid-card .dt-statusbar {
+    flex-wrap: wrap;
+    row-gap: 6px;
+    padding: 10px 0 0;
+    background: transparent;
+    border: 0;
+  }
+  .pagesize select {
+    height: 40px;
+  }
+  .grid-card .dt-statusbar .btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .event-card .card-head .btn {
+    display: none;
+  }
+  .event-facts,
+  .diff {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .event-actions .btn {
+    flex: 1 1 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
 }

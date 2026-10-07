@@ -53,6 +53,7 @@ import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 import { CriteriaHistoryDialogComponent } from './criteria-history-dialog.component';
+import { bindBackToClose } from '../../../core/back-close';
 import { phoneSignal } from '../../../core/mobile';
 import {
   ACCEPTED_IMPORT_FILE_TYPES,
@@ -222,6 +223,11 @@ export class AdminImportsComponent {
   readonly criteriaFlash = signal('');
   readonly criteriaSaving = signal(false);
   readonly historyOpen = signal(false);
+  /** A bottom sheet on a phone: Back closes it, as its Close does. */
+  private readonly _historyBack = bindBackToClose(
+    () => this.historyOpen(),
+    () => this.closeHistory(),
+  );
 
   /** The criteria form, as TYPED. A blank is an omitted field, which the server
    *  carries over from the set being replaced — never a zero. */

@@ -421,3 +421,13 @@ textarea.input { min-height: 88px; resize: vertical; }
 /* the assistant button rises above a sticky action bar instead of covering it */
 body.has-sticky .fab { bottom: calc(var(--tabbar-h) + var(--safe-b) + 84px); }
 @media (min-width: 1024px) { body.has-sticky .fab { bottom: 96px; } }
+
+/* student-2 */
+.tag-x { border: 0; background: none; color: inherit; font-size: 15px; line-height: 1; padding: 0 0 0 2px; cursor: pointer; min-width: 20px; min-height: 20px; }
+.rs-paper { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-card); box-shadow: var(--sh-card); padding: 28px 24px; font-size: 13px; line-height: 1.5; }
+.rs-paper h2 { font-size: 22px; color: var(--brand-purple); }
+.rs-paper h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--brand-purple); margin: 14px 0 4px; padding-bottom: 3px; border-bottom: 1px solid var(--hairline-26); }
+.rs-paper p { margin: 2px 0; }
+.rs-paper.ats { font-family: Georgia, 'Times New Roman', serif; box-shadow: none; border-radius: 4px; }
+.rs-paper.ats h2, .rs-paper.ats h3 { color: var(--ink); font-family: inherit; border-color: var(--ink); }
+.banner[hidden] { display: none; }

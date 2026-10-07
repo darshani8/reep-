@@ -82,7 +82,7 @@ const App = {
     this.keepScroll = false;
     this.cur = { key, def, id: parts[2] };
   },
-  rerender() { this.keepScroll = true; const y = scrollY; const f = document.activeElement; const sel = f && f.dataset && f.dataset.f ? `[data-f="${f.dataset.f}"]` : null; this.render(false); window.scrollTo(0, y); if (sel) { const n = document.querySelector(sel); if (n) { n.focus(); if (n.setSelectionRange && n.type !== 'number') n.setSelectionRange(n.value.length, n.value.length); } } },
+  rerender() { this.keepScroll = true; const y = scrollY; const f = document.activeElement; const sel = f && f.dataset && f.dataset.f ? `[data-f="${f.dataset.f}"]` : null; this.render(false); window.scrollTo(0, y); if (sel) { const n = document.querySelector(sel); if (n) { n.focus(); if (n.setSelectionRange && /^(text|search|email|tel|url|password|textarea)$/.test(n.type)) n.setSelectionRange(n.value.length, n.value.length); } } },
 
   /* Every screen's loading and error states, in one shape: skeleton rows, then a
      sentence saying what failed and a Retry. `def.states` names the inventory rows. */

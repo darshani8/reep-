@@ -30,6 +30,12 @@ $tablet-max: 899.98px;
    (or above the breakpoint, where there is no tab bar) loses nothing. */
 $tabbar: var(--mobile-tabbar-h, 0px);
 
+/* A sheet is drawn above the shell's agent orb (.agent-orb-wrap, z 94 in
+   reep-v2.scss) and the dock (95): at phone width the orb sits bottom-right,
+   exactly where a sheet's Done or primary button lands, and a sheet is modal
+   — nothing behind it should be tappable. */
+$sheet-z: 96;
+
 @mixin phone {
   @media (max-width: $phone-max) {
     @content;
@@ -49,6 +55,7 @@ $tabbar: var(--mobile-tabbar-h, 0px);
 @mixin bottom-sheet($backdrop, $panel, $body: '.dialog-body', $foot: '.dialog-foot') {
   @include phone {
     #{$backdrop} {
+      z-index: $sheet-z;
       align-items: flex-end;
       justify-content: stretch;
       padding: 0;
@@ -145,7 +152,7 @@ $tabbar: var(--mobile-tabbar-h, 0px);
       left: 0;
       right: 0;
       bottom: 0;
-      z-index: 62;
+      z-index: $sheet-z + 1;
       max-height: 80dvh;
       overflow-y: auto;
       margin: 0;
@@ -164,7 +171,7 @@ $tabbar: var(--mobile-tabbar-h, 0px);
       display: block;
       position: fixed;
       inset: 0;
-      z-index: 61;
+      z-index: $sheet-z;
       border: 0;
       padding: 0;
       background: rgba(30, 27, 41, 0.42);

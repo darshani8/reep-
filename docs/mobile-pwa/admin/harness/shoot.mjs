@@ -79,6 +79,8 @@ for (const r of routes) {
       if (cs.display === 'none' || cs.visibility === 'hidden') continue;
       const rc = el.getBoundingClientRect();
       if (rc.width === 0 || rc.height === 0) continue;
+      // The shell (app bar, drawer, tab bar, orb) is not an admin screen's.
+      if (el.closest('.appbar, .desktop-nav, .tabbar, .nav-scrim, app-agent-orb, app-agent-dock')) continue;
       // Inside a horizontally scrolling box (a table wrapper, a tab strip) is fine.
       let p = el.parentElement, clipped = false;
       while (p && p !== document.body) {

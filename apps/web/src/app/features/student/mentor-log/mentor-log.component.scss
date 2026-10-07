@@ -224,3 +224,27 @@ h4.stacked .h-sub {
   font-size: 12px;
   margin-top: 6px;
 }
+
+/* The request form's two buttons on a phone: full-width targets, the primary
+   one nearest the thumb. */
+@media (max-width: 599.98px) {
+  .request-card .footbar {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .request-card .footbar .btn {
+    justify-content: center;
+  }
+}
+
+/* The four quadrants one above the other on a phone: two columns of 150px
+   broke every SWOC line into three-word rows. */
+@media (max-width: 599.98px) {
+  .swoc-grid {
+    grid-template-columns: 1fr;
+  }
+  .swoc-ack {
+    min-height: 44px;
+  }
+}

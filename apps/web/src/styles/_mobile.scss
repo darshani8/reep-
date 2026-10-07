@@ -295,12 +295,12 @@ $sheet-z: 96;
 }
 
 /* The back affordance on a pushed detail (list -> detail on a phone). */
-@mixin back-button($sel: '.m-back') {
+@mixin back-button($sel: '.m-back', $max: $phone-max) {
   #{$sel} {
     display: none;
   }
 
-  @include phone {
+  @media (max-width: $max) {
     #{$sel} {
       display: inline-flex;
       align-items: center;
@@ -360,6 +360,203 @@ $sheet-z: 96;
       flex: 1 1 auto;
       justify-content: center;
       min-height: 44px;
+    }
+  }
+}
+
+/* A list and its detail on one board: below `$max` they swap places — the
+   list alone until something is picked, then the detail alone, full width,
+   with a back button. `$board` carries `$open-class` while a detail is open
+   (the component's own signal). Above `$max` both are on screen as before. */
+@mixin pushed-detail($board, $list, $detail, $open-class: 'has-detail', $max: $phone-max) {
+  @media (max-width: $max) {
+    #{$board}.#{$open-class} #{$list} {
+      display: none;
+    }
+
+    #{$board}:not(.#{$open-class}) #{$detail} {
+      display: none;
+    }
+  }
+}
+
+/* A sheet with no backdrop wrapper: a panel the template renders only while
+   it is open (a reason box, a rejection note), pinned to the bottom edge on a
+   phone, with a sibling scrim button behind it. On desktop it stays where the
+   template puts it. */
+@mixin fixed-sheet($panel, $scrim) {
+  #{$scrim} {
+    display: none;
+  }
+
+  @include phone {
+    #{$panel} {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: $sheet-z + 1;
+      max-height: 80dvh;
+      overflow-y: auto;
+      margin: 0;
+      padding: 22px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+      background: var(--surface);
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 -12px 40px rgba(58, 31, 82, 0.25);
+    }
+
+    #{$scrim} {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: $sheet-z;
+      border: 0;
+      padding: 0;
+      background: rgba(30, 27, 41, 0.42);
+    }
+  }
+}
+
+/* Every control inside a dialog is a thumb's height on a phone. */
+@mixin dialog-controls($panel) {
+  @include phone {
+    #{$panel} .ctrl,
+    #{$panel} .btn,
+    #{$panel} select,
+    #{$panel} input:not([type='checkbox']):not([type='radio']) {
+      min-height: 44px;
+    }
+  }
+}
+
+/* ==========================================================================
+ * THE GLOBALS — emitted once, by src/styles.scss. Fixed names only: a pattern
+ * that needs the screen's own selectors stays a mixin above.
+ * ======================================================================= */
+@mixin globals {
+  /* Cards standing in for an ag-grid or a table on a phone. Rendered only in
+     phone mode (`phoneSignal()`), so they need no query of their own. */
+  @include card-list;
+
+  /* A selection tick on a card: a label wrapping the checkbox, so the whole
+     corner is the target rather than the 20px box. */
+  .m-tick {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    input {
+      width: 20px;
+      height: 20px;
+      margin: 0;
+    }
+  }
+
+  /* Back from a pushed detail: `.m-back` below 600px, `.m-back--wide` below
+     900px for the boards whose list and detail stop fitting side by side
+     sooner. */
+  @include back-button('.m-back');
+  @include back-button('.m-back--wide', $tablet-max);
+
+  /* The filters sheet's own close button: absent on desktop and while the
+     sheet is folded away, shown inside an open sheet. */
+  .m-filters-done {
+    display: none;
+  }
+
+  @include phone {
+    .is-open > .m-filters-done,
+    .is-open .m-filters-done {
+      display: inline-flex;
+      justify-content: center;
+    }
+  }
+
+  /* A plain HTML table read as labelled cards on a phone, without a second
+     template: `<table class="… m-rows">` and a `data-label` on each cell.
+     The first cell and `.row-actions` span the card; the rest pair up. */
+  @include phone {
+    .dt-frame:has(> table.m-rows) {
+      overflow: visible;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    table.m-rows {
+      display: block;
+      overflow: visible;
+    }
+
+    table.m-rows thead {
+      display: none;
+    }
+
+    table.m-rows tbody {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    table.m-rows tr {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--hairline);
+      border-radius: var(--r-card);
+      background: var(--surface);
+    }
+
+    table.m-rows tr.selected {
+      border-color: var(--brand-purple);
+      background: var(--tint-1);
+    }
+
+    table.m-rows td {
+      display: block;
+      background: transparent;
+      box-shadow: none;
+      padding: 0;
+      border: 0;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    table.m-rows td:first-child,
+    table.m-rows td.row-actions {
+      grid-column: 1 / -1;
+    }
+
+    table.m-rows td[data-label]::before {
+      content: attr(data-label);
+      display: block;
+      font-family: var(--font-display);
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--faint);
+    }
+
+    table.m-rows td.row-actions {
+      display: flex;
+      gap: 8px;
+      padding-top: 4px;
+    }
+
+    table.m-rows td.row-actions .btn {
+      flex: 1 1 0;
+      min-height: 44px;
+      justify-content: center;
     }
   }
 }

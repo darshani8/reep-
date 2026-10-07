@@ -447,6 +447,8 @@ export class GovernanceComponent {
   // the grants grid
   // =========================================================================
 
+  /** The filter bar's bottom sheet on a phone (CSS hides the toggle above it). */
+  readonly filtersOpen = signal(false);
   readonly quickFilter = signal('');
   readonly collegeFilter = signal('');
   readonly departmentFilter = signal('');

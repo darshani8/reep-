@@ -7,6 +7,8 @@
  * shape of this screen, top to bottom: the filter row, the three tiles, the
  * list, the open record with its chart beside it, and the policy card.
  */
+@use '../mobile' as m;
+
 :host {
   display: block;
 }
@@ -297,5 +299,159 @@
 @media (max-width: 900px) {
   .policy-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* --- at phone width (2026-10) --------------------------------------------
+   The records are cards (see .record-cards); tapping one opens the record
+   over the whole screen with a Back; the five filters fold behind Filters;
+   the tiles scroll sideways; the policy's Save stays in reach. */
+@include m.filters-sheet('.filters', '.m-filters-toggle');
+@include m.card-list;
+@include m.back-button('.m-back');
+@include m.header-actions('.dt-toolbar');
+@include m.scroll-strip('.kpi-row');
+@include m.scroll-strip('.record-tabs');
+@include m.sticky-action('.policy-card .footbar');
+
+.m-filters-done {
+  display: none;
+}
+
+@include m.phone {
+  .dt-header {
+    flex-wrap: wrap;
+  }
+  .filters.is-open .select {
+    min-height: 48px;
+  }
+  .m-filters-done {
+    display: inline-flex;
+    justify-content: center;
+    min-height: 48px;
+  }
+
+  .kpi-row {
+    display: flex;
+    gap: 10px;
+  }
+  .kpi-row > .kpi-card {
+    width: 72%;
+  }
+
+  .grid-card {
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+  .grid-card .dt-gridbar {
+    padding: 0 0 10px;
+    background: transparent;
+    border: 0;
+    flex-wrap: wrap;
+  }
+  .grid-card .dt-quickfilter {
+    width: 100%;
+    height: 44px;
+  }
+  .grid-note {
+    margin-left: 0;
+  }
+  .grid-card .dt-statusbar {
+    flex-wrap: wrap;
+    background: transparent;
+    border: 0;
+    padding: 10px 2px 0;
+  }
+
+  .m-card {
+    padding: 0;
+  }
+  .record-card__row {
+    display: flex;
+    align-items: stretch;
+  }
+  .record-card__open {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 12px 4px 12px 14px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    border-radius: var(--r-card) 0 0 var(--r-card);
+    -webkit-tap-highlight-color: transparent;
+    &:active {
+      background: var(--tint-3);
+    }
+  }
+  .record-card__facts {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .record-card__score {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+  }
+  .record-card__tick {
+    flex: none;
+    width: 52px;
+    border: 0;
+    border-left: 1px solid var(--hairline);
+    background: transparent;
+    color: var(--purple-mid);
+    cursor: pointer;
+    border-radius: 0 var(--r-card) var(--r-card) 0;
+    &:active {
+      background: var(--tint-3);
+    }
+  }
+
+  /* An open record is the whole screen. */
+  .panel.m-record-open > :not(.record-card):not(.notice) {
+    display: none;
+  }
+  .record-card .card-head {
+    flex-wrap: wrap;
+  }
+  .record-chips .btn.ghost[aria-label] {
+    display: none;
+  }
+  .record-tabs .tab {
+    min-height: 44px;
+  }
+  .report-scores {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .report-summary,
+  .report-list,
+  .turn-text {
+    font-size: 14px;
+  }
+  .transcript {
+    max-height: none;
+  }
+
+  .policy-card .ctrl {
+    min-height: 44px;
+  }
+  .policy-checks .check {
+    min-height: 44px;
+  }
+  .policy-card .footbar .btn {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
   }
 }

@@ -92,6 +92,7 @@ import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 import { PluralPipe } from '../../../shared/text/plural.pipe';
+import { phoneSignal } from '../mobile';
 
 /** A certification mapped to a taught subject, as the subjects table shows it. */
 interface SubjectCertification {
@@ -365,6 +366,12 @@ export class AdminCatalogueComponent {
   readonly copyError = signal<string | null>(null);
 
   readonly tab = signal<Tab>('subjects');
+
+  /** Phone width: the tables become card lists and the badge detail is pushed
+   *  over the list rather than drawn beside it. */
+  readonly phone = phoneSignal();
+  /** The scope pills, folded behind a "Filters" button on a phone. */
+  readonly filtersOpen = signal(false);
   readonly subjects = signal<Subject[] | null>(null);
   readonly certifications = signal<ApprovedCertification[] | null>(null);
   readonly badges = signal<Badge[]>([]);
@@ -601,6 +608,10 @@ export class AdminCatalogueComponent {
   selectBadge(badgeCode: string): void {
     const alreadyOpen = this.selectedBadgeCode() === badgeCode;
     this.selectedBadgeCode.set(alreadyOpen ? null : badgeCode);
+    // On a phone the detail replaces the list; bring its top into view.
+    if (!alreadyOpen && this.phone()) {
+      setTimeout(() => document.querySelector('.cat-drawer')?.scrollIntoView({ block: 'start' }));
+    }
   }
 
   closeDrawer(): void {

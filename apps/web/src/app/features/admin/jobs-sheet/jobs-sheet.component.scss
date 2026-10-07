@@ -11,6 +11,8 @@
  * nothing here can be mistaken for a global the next screen might expect.
  */
 
+@use '../mobile' as m;
+
 :host {
   display: block;
 }
@@ -52,6 +54,10 @@
    `disabled` with the reason in its title; this dims the pill it sits in so the
    row reads as "nothing to choose" at a glance rather than as a menu that will
    not open. */
+.jobs-filters__picks {
+  display: contents;
+}
+
 .jobs-filter--empty {
   opacity: 0.55;
   cursor: not-allowed;
@@ -233,8 +239,131 @@
     flex-direction: column;
   }
 
+  /* In a column with an auto height a zero flex-basis is a zero height, and
+     the frame's overflow: hidden then clipped the whole sheet away. */
+  .jobs-grid {
+    flex: none;
+  }
+
   .jobs-post {
     width: auto;
     max-height: none;
+  }
+}
+
+/* --- at phone width (2026-10) --------------------------------------------
+   The postings are a list of cards (see .jobs-cards in the template); the
+   four selects fold into a Filters sheet with the counts left in view; the
+   form opens above the list with its Publish in reach. */
+@include m.filters-sheet('.jobs-filters__picks', '.m-filters-toggle');
+@include m.card-list;
+@include m.header-actions('.dt-toolbar');
+@include m.scroll-strip('.jobs-tabs');
+@include m.sticky-action('.jobs-post__foot');
+
+.m-filters-done {
+  display: none;
+}
+
+@include m.phone {
+  .dt-header {
+    flex-wrap: wrap;
+  }
+  .jobs-filters__picks.is-open .select {
+    min-height: 48px;
+  }
+  .m-filters-done {
+    display: inline-flex;
+    justify-content: center;
+    min-height: 48px;
+  }
+  .jobs-filters {
+    margin-bottom: 8px;
+  }
+  .jobs-stats {
+    margin-left: 0;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    font-size: 12.5px;
+  }
+  .jobs-tabs .tab {
+    min-height: 44px;
+  }
+
+  /* The grid bar keeps its search; its three actions live on the selected
+     card, and the column chooser and density have no grid to act on. */
+  .jobs-grid {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+  .jobs-grid .dt-gridbar {
+    padding: 0 0 10px;
+    background: transparent;
+    border: 0;
+  }
+  .dt-gridbar > .btn,
+  .jobs-gridbar-end,
+  .jobs-columns-panel,
+  .dt-statusbar .pager {
+    display: none;
+  }
+  .dt-gridbar .dt-quickfilter {
+    width: 100%;
+    height: 44px;
+  }
+  .jobs-grid .dt-statusbar {
+    background: transparent;
+    border: 0;
+    padding: 8px 2px 0;
+  }
+
+  .m-card {
+    padding: 0;
+    gap: 0;
+  }
+  .jobs-card__pick {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+    padding: 12px 14px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    border-radius: inherit;
+    -webkit-tap-highlight-color: transparent;
+    &:active {
+      background: var(--tint-3);
+    }
+  }
+  .m-card__top .chip {
+    flex: none;
+  }
+  .m-card__actions {
+    padding: 0 14px 12px;
+    margin-top: 0;
+  }
+
+  /* The form opens where the press was: above the list. */
+  .jobs-post {
+    order: -1;
+    overflow: visible;
+    padding: 14px;
+  }
+  .jobs-post .ctrl {
+    min-height: 44px;
+  }
+  .jobs-post__row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .jobs-post__foot .btn {
+    flex: 1 1 0;
+    min-height: 48px;
+    justify-content: center;
   }
 }

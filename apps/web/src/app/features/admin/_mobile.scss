@@ -1,0 +1,362 @@
+/* The console at phone width (2026-10) — the shapes every admin screen takes
+ * below 600px, written once as mixins so twenty-four component sheets do not
+ * each invent a bottom sheet.
+ *
+ * COMPONENT-SCOPED ON PURPOSE. src/styles/** is the design system's and is
+ * being changed by the shell work at the same time; a mixin emits its rules
+ * INSIDE the component sheet that includes it, so nothing here is a global
+ * class and check_style_duplicates.py has nothing to own. When the shapes
+ * settle these are the candidates for promotion to reep-v2.scss.
+ *
+ * Usage, from features/admin/<screen>/<screen>.component.scss:
+ *
+ *   @use '../mobile' as m;
+ *   @include m.phone { .thing { ... } }
+ *   @include m.bottom-sheet('.dialog-backdrop', '.dialog');
+ *
+ * The breakpoints are literals because a media query cannot read a custom
+ * property (reep-v2.scss's own note on 900px says why). 599.98 rather than 599
+ * so a 599.5px viewport on a fractional-DPR handset is not in neither query.
+ *
+ * DESKTOP (>= 900px) MUST NOT CHANGE. Every rule here is inside a max-width
+ * query, so nothing at 900 and up sees any of it.
+ */
+
+$phone-max: 599.98px;
+$tablet-max: 899.98px;
+
+/* What content must clear at the bottom: the shell's tab bar on a phone. The
+   fallback is 0 so a screen rendered before the shell defines the property
+   (or above the breakpoint, where there is no tab bar) loses nothing. */
+$tabbar: var(--mobile-tabbar-h, 0px);
+
+/* A sheet is drawn above the shell's agent orb (.agent-orb-wrap, z 94 in
+   reep-v2.scss) and the dock (95): at phone width the orb sits bottom-right,
+   exactly where a sheet's Done or primary button lands, and a sheet is modal
+   — nothing behind it should be tappable. */
+$sheet-z: 96;
+
+@mixin phone {
+  @media (max-width: $phone-max) {
+    @content;
+  }
+}
+
+@mixin below-desktop {
+  @media (max-width: $tablet-max) {
+    @content;
+  }
+}
+
+/* A centred dialog becomes a sheet that rises from the bottom edge: full
+   width, rounded top corners only, a grab-handle, never taller than the
+   screen, its body the one thing that scrolls, and its footer clear of the
+   home indicator. `$backdrop` and `$panel` are the screen's own selectors. */
+@mixin bottom-sheet($backdrop, $panel, $body: '.dialog-body', $foot: '.dialog-foot') {
+  @include phone {
+    #{$backdrop} {
+      z-index: $sheet-z;
+      align-items: flex-end;
+      justify-content: stretch;
+      padding: 0;
+    }
+
+    #{$panel} {
+      width: 100%;
+      max-width: 100%;
+      max-height: calc(100dvh - 24px);
+      border-radius: 20px 20px 0 0;
+      border-bottom: 0;
+      animation: admin-sheet-rise 0.22s ease-out;
+      position: relative;
+      padding-top: 10px;
+
+      /* The grab-handle. Decoration — the sheet closes on its own Close
+         button and on the backdrop, never on a swipe nobody can discover. */
+      &::before {
+        content: '';
+        position: absolute;
+        top: 7px;
+        left: 50%;
+        width: 40px;
+        height: 4px;
+        margin-left: -20px;
+        border-radius: 2px;
+        background: var(--hairline-42, rgba(0, 0, 0, 0.18));
+      }
+    }
+
+    #{$panel} #{$body} {
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #{$panel} #{$foot} {
+      padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+      flex-wrap: wrap;
+    }
+
+    /* Two buttons share the footer row; a primary action is the wider one. */
+    #{$panel} #{$foot} .btn {
+      flex: 1 1 auto;
+      justify-content: center;
+    }
+  }
+
+  @keyframes admin-sheet-rise {
+    from {
+      transform: translateY(24px);
+      opacity: 0.6;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #{$panel} {
+      animation: none;
+    }
+  }
+}
+
+/* A filter bar that sits inline on desktop and, on a phone, folds behind a
+   "Filters" button and opens as a sheet. `$bar` is the bar; it gets the
+   class `is-open` from the component's own signal. `$toggle` is the button,
+   which is absent above the breakpoint (display: none, so not a tab stop
+   beside a bar that is already on screen). `$scrim` is an optional backdrop
+   button the template renders while open. */
+@mixin filters-sheet($bar, $toggle, $scrim: '.m-filters-scrim') {
+  #{$toggle},
+  #{$scrim} {
+    display: none;
+  }
+
+  @include phone {
+    #{$toggle} {
+      display: inline-flex;
+    }
+
+    #{$bar} {
+      display: none;
+    }
+
+    #{$bar}.is-open {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: $sheet-z + 1;
+      max-height: 80dvh;
+      overflow-y: auto;
+      margin: 0;
+      padding: 22px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+      background: var(--surface);
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 -12px 40px rgba(58, 31, 82, 0.25);
+    }
+
+    #{$bar}.is-open > * {
+      width: 100%;
+      max-width: none;
+    }
+
+    #{$scrim} {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: $sheet-z;
+      border: 0;
+      padding: 0;
+      background: rgba(30, 27, 41, 0.42);
+    }
+  }
+}
+
+/* The phone's stand-in for an ag-grid: the same rows as a stack of cards. The
+   template renders `.m-list` only in phone mode (see ./mobile.ts), so this
+   needs no media query of its own. */
+@mixin card-list {
+  .m-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .m-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-card);
+    box-shadow: var(--sh-card);
+    color: var(--ink);
+    text-align: left;
+    font: inherit;
+    width: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button.m-card,
+  a.m-card,
+  .m-card.is-tappable {
+    cursor: pointer;
+    transition:
+      transform 0.08s ease,
+      background-color 0.12s ease;
+  }
+
+  button.m-card:active,
+  a.m-card:active,
+  .m-card.is-tappable:active {
+    transform: scale(0.985);
+    background: var(--surface-soft, var(--surface));
+  }
+
+  .m-card.is-selected {
+    border-color: var(--purple-mid);
+    box-shadow: var(--focus-ring);
+  }
+
+  .m-card__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .m-card__title {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.25;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .m-card__meta {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .m-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .m-card__actions .btn {
+    min-height: 44px;
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .m-empty {
+    padding: 28px 12px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+  }
+}
+
+/* A primary action that stays reachable at the bottom of a long form, above
+   the shell's tab bar. `bottom: 0` IS ALREADY CLEAR OF THE TAB BAR: a sticky
+   element is inset by its scroll container's padding, and .desktop-main's
+   bottom padding is the tab bar plus room for the agent orb. Adding the tab
+   bar here again parked the bar ~220px above the screen's edge (measured at
+   390x844 on /admin/setup). */
+@mixin sticky-action($sel) {
+  @include phone {
+    #{$sel} {
+      position: sticky;
+      bottom: 0;
+      z-index: 5;
+      padding: 10px 0;
+      background: linear-gradient(to bottom, transparent, var(--surface) 30%);
+    }
+  }
+}
+
+/* The back affordance on a pushed detail (list -> detail on a phone). */
+@mixin back-button($sel: '.m-back') {
+  #{$sel} {
+    display: none;
+  }
+
+  @include phone {
+    #{$sel} {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      min-height: 44px;
+      padding: 0 12px 0 4px;
+      margin: 0 0 6px -4px;
+      border: 0;
+      background: transparent;
+      color: var(--brand-purple, var(--ink));
+      font: inherit;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+    }
+  }
+}
+
+/* A row of tabs/chips that would wrap into three ragged lines becomes one
+   line that scrolls sideways — the page itself never does. */
+@mixin scroll-strip($sel) {
+  @include phone {
+    #{$sel} {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x proximity;
+      max-width: 100%;
+    }
+
+    #{$sel}::-webkit-scrollbar {
+      display: none;
+    }
+
+    #{$sel} > * {
+      flex: 0 0 auto;
+      scroll-snap-align: start;
+    }
+  }
+}
+
+/* Page header actions: on a phone they wrap under the title and share the
+   width rather than overflowing to the right. */
+@mixin header-actions($sel) {
+  @include phone {
+    #{$sel} {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      width: 100%;
+    }
+
+    #{$sel} > .btn,
+    #{$sel} > button,
+    #{$sel} > a {
+      flex: 1 1 auto;
+      justify-content: center;
+      min-height: 44px;
+    }
+  }
+}

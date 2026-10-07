@@ -1,6 +1,8 @@
 /* Exports — this screen's layout only.
    panel / card / chip / btn / notice / icon / crumb / dt-* are global
    (styles/reep-v2.scss); nothing here redefines one. */
+@use '../mobile' as m;
+
 :host {
   display: block;
 }
@@ -173,4 +175,55 @@
 .statusbar-note {
   margin-left: auto;
   color: var(--faint);
+}
+
+/* --- phone width (2026-10) ------------------------------------------------ */
+@include m.card-list;
+
+@include m.phone {
+  .extract-grid {
+    grid-template-columns: 1fr;
+  }
+  .extract-head {
+    flex-wrap: wrap;
+  }
+  .extract-title {
+    font-size: 15px;
+  }
+  .extract-desc {
+    font-size: 13.5px;
+  }
+  /* The header row wraps rather than ellipsising: there is no hover to read it. */
+  .extract-columns {
+    white-space: normal;
+  }
+  .extract-foot .btn {
+    flex: 1 1 100%;
+    margin-left: 0;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .history-card {
+    padding: 12px 12px 0;
+  }
+  .history-head {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .history-actions {
+    width: 100%;
+  }
+  .history-actions .btn {
+    flex: 1 1 auto;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .history-cards {
+    margin-bottom: 12px;
+  }
+  .history-card .dt-statusbar {
+    margin: 0 -12px;
+    flex-wrap: wrap;
+  }
 }

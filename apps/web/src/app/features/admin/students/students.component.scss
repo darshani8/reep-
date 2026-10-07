@@ -12,6 +12,8 @@
  * dialogs.
  */
 
+@use '../mobile' as m;
+
 :host {
   display: block;
 }
@@ -333,4 +335,141 @@
    away from Save. */
 .dialog-foot-gap {
   flex: 1 1 auto;
+}
+
+/* --- the phone (2026-10) -------------------------------------------------
+   Below 600px: the header's batch buttons wrap under the title, the five
+   pickers fold into a sheet behind "Filters", the grid gives way to a card
+   per student (the template swaps them), and the dialogs rise as sheets.
+   Nothing here reaches 900px and up. */
+
+@include m.header-actions('.dt-toolbar');
+@include m.filters-sheet('.filters', '.m-filters-toggle');
+@include m.card-list;
+
+.m-filters-done {
+  display: none;
+}
+
+@include m.phone {
+  .dt-header {
+    flex-wrap: wrap;
+  }
+
+  .m-filters-toggle {
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+
+  .filters.is-open {
+    .select,
+    .batch-select {
+      max-width: none;
+      min-height: 48px;
+    }
+
+    .filters-end {
+      margin-left: 0;
+      justify-content: center;
+    }
+
+    .m-filters-done {
+      display: inline-flex;
+      justify-content: center;
+      min-height: 48px;
+    }
+  }
+
+  /* The frame keeps its search and the two "selected" actions; the column
+     chooser, density toggle and pager belong to the grid that is not here. */
+  /* `flex: 1 1 0` in the stacked roster collapsed the frame to nothing. */
+  .roster-grid.dt-frame {
+    flex: none;
+    overflow: visible;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .dt-gridbar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 0 10px;
+    border: 0;
+    background: transparent;
+
+    .dt-quickfilter {
+      flex: 1 1 100%;
+      width: 100%;
+      min-height: 44px;
+    }
+
+    > .btn {
+      flex: 1 1 0;
+      min-height: 44px;
+      justify-content: center;
+    }
+  }
+
+  .gridbar-end,
+  .columns-panel,
+  .dt-statusbar {
+    display: none;
+  }
+
+  .roster-card__tick {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin: -4px 0 0 -6px;
+
+    input {
+      width: 20px;
+      height: 20px;
+      margin: 0;
+    }
+  }
+
+  .roster-card__who {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .m-card .chip {
+    flex: none;
+  }
+
+  .m-card__actions .roster-card__delete {
+    flex: 0 0 48px;
+    color: var(--risk);
+  }
+
+  .roster-more {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    margin-top: 10px;
+  }
+
+  /* One whole-batch control per row: the select above its button. */
+  .batch-action {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dialog-foot-gap {
+    display: none;
+  }
+
+  .dialog-foot .btn.danger,
+  .dialog-foot .btn.secondary:first-child {
+    flex-basis: 100%;
+  }
 }

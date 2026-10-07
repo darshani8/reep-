@@ -28,6 +28,14 @@
         <span class="icon" aria-hidden="true">download</span>
         {{ cohortFilter() === '' ? 'Export offers' : 'Export this batch' }}
       </a>
+      <button
+        type="button"
+        class="btn secondary m-filters-toggle"
+        [attr.aria-expanded]="filtersOpen()"
+        (click)="filtersOpen.set(true)"
+      >
+        <span class="icon" aria-hidden="true">tune</span> Filters
+      </button>
     </div>
   </div>
 
@@ -54,7 +62,10 @@
        re-read the whole payload: every count, the split and the recent list
        move together, and the funnel's columns keep adding up. TRACK is not a
        parameter and is not coming — see its title. -->
-  <div class="filters">
+  @if (filtersOpen()) {
+    <button type="button" class="m-filters-scrim" aria-label="Close filters" (click)="filtersOpen.set(false)"></button>
+  }
+  <div class="filters" [class.is-open]="filtersOpen()">
     <div class="select" [class.filter-pending]="cohortFilterDisabledReason() !== null">
       <span class="lbl">Batch</span>
       <span class="val">{{ cohortFilterLabel() }}</span>
@@ -88,6 +99,7 @@
         }
       </select>
     </div>
+    <button type="button" class="btn primary m-filters-done" (click)="filtersOpen.set(false)">Done</button>
   </div>
 
   <div class="board-columns">
@@ -328,6 +340,8 @@
     </div>
 
     @if (rejectionOpen()) {
+      <button type="button" class="m-rejection-scrim" aria-label="Cancel the rejection" (click)="cancelRejection()"></button>
+      <div class="rejection-sheet">
       <div class="rejection">
         <div class="field rejection-field">
           <label for="rejection-remarks">
@@ -355,6 +369,7 @@
           <span class="icon" aria-hidden="true">error</span>Remarks are required.
         </p>
       }
+      </div>
     }
 
     @if (offersAreEmpty()) {
@@ -375,6 +390,42 @@
           {{ selectedOfferCount() }} selected · only an offer awaiting approval can be ticked
         </span>
       </div>
+      @if (phone()) {
+      <ul class="m-list offer-cards" aria-label="Offers">
+        @for (row of phoneOfferRows(); track row.id) {
+          <li>
+            <button
+              type="button"
+              class="m-card"
+              [class.is-selected]="isPhoneOfferSelected(row)"
+              [class.is-locked]="row.status !== 'PENDING_APPROVAL'"
+              [attr.aria-pressed]="row.status === 'PENDING_APPROVAL' ? isPhoneOfferSelected(row) : null"
+              [attr.aria-disabled]="row.status !== 'PENDING_APPROVAL' ? 'true' : null"
+              (click)="togglePhoneOffer(row)"
+            >
+              <span class="m-card__top">
+                <span class="m-card__title">{{ row.studentName }}</span>
+                <span class="chip dot {{ row.statusTone }}">{{ row.statusLabel }}</span>
+              </span>
+              <span class="m-card__meta">{{ row.usn ?? '—' }} · {{ phoneOfferDate(row) }}</span>
+              <span class="m-card__meta">
+                <b>{{ row.organisation }}</b> · {{ row.jobTitle }} · {{ row.roleTypeLabel }}
+              </span>
+              <span class="offer-card__foot">
+                <span class="offer-card__ctc">{{ phoneCtc(row) }}</span>
+                @if (row.status === 'PENDING_APPROVAL') {
+                  <span class="icon offer-card__tick" aria-hidden="true">{{
+                    isPhoneOfferSelected(row) ? 'check_circle' : 'radio_button_unchecked'
+                  }}</span>
+                }
+              </span>
+            </button>
+          </li>
+        } @empty {
+          <li class="m-empty">No offer matches.</li>
+        }
+      </ul>
+      } @else {
       <ag-grid-angular
         class="offers-grid"
         [theme]="gridTheme"
@@ -392,6 +443,7 @@
         (gridReady)="onGridReady($event)"
         (selectionChanged)="onOfferSelectionChanged($event)"
       />
+      }
       <div class="dt-statusbar">
         <span>{{ offerRows().length | plural: 'offer' }} on screen</span>
         <span>{{ offersAwaitingLabel() }} awaiting approval</span>

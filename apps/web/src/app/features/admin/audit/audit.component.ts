@@ -72,6 +72,7 @@ import type {
 
 import { environment } from '../../../../environments/environment';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
+import { phoneSignal } from '../mobile';
 import { reepGridTheme, reepGridThemeCompact } from '../../../shared/grid/reep-grid-theme';
 
 // =========================================================================
@@ -472,6 +473,26 @@ export class AdminAuditLogComponent {
    *  cannot be a search of the trail and is not labelled as one. */
   readonly quickFilter = signal('');
 
+  /** Below 600px the trail is a list of cards instead of the grid (../mobile.ts
+   *  says why it is a branch and not a restyle). */
+  readonly phone = phoneSignal();
+  /** The four query filters' bottom sheet on a phone. */
+  readonly filtersOpen = signal(false);
+
+  /** The phone's cards: the same rows, narrowed by the same quick filter the
+   *  grid applies, matched on what each card shows. */
+  readonly phoneRows = computed(() => {
+    const needle = this.quickFilter().trim().toLowerCase();
+    const rows = this.rows();
+    if (!needle) return rows;
+    return rows.filter((row) =>
+      [row.actorLabel, row.action, row.targetLabel, row.route, this.occurredLabel(row.occurredAt)]
+        .join(' ')
+        .toLowerCase()
+        .includes(needle),
+    );
+  });
+
   readonly gridTheme = computed(() => (this.isCompact() ? reepGridThemeCompact : reepGridTheme));
   readonly rowHeight = computed(() =>
     this.isCompact() ? COMPACT_ROW_HEIGHT_PX : COMFORTABLE_ROW_HEIGHT_PX,
@@ -713,6 +734,22 @@ export class AdminAuditLogComponent {
 
   onGridReady(event: GridReadyEvent<AuditEventRow>): void {
     this.gridApi = event.api;
+    // The grid is rebuilt when a phone-width window widens past the breakpoint;
+    // a column the officer hid stays hidden across that.
+    const hidden = [...this.hiddenColumnIds()];
+    if (hidden.length) event.api.setColumnsVisible(hidden, false);
+  }
+
+  /** A card on the phone: open the event, and bring the pushed panel's top
+   *  into view — the list it replaces may have been scrolled a long way. */
+  openCard(eventId: string): void {
+    void this.openDetail(eventId);
+    document.querySelector('.desktop-main')?.scrollTo({ top: 0 });
+  }
+
+  /** The grid's own "When" rendering, for the phone's cards. */
+  occurredLabel(value: string): string {
+    return formatOccurredAt({ value } as ValueFormatterParams<AuditEventRow, string>);
   }
 
   onCellClicked(event: CellClickedEvent<AuditEventRow>): void {
@@ -722,7 +759,7 @@ export class AdminAuditLogComponent {
 
   toggleDensity(): void {
     this.isCompact.update((compact) => !compact);
-    this.gridApi?.resetRowHeights();
+    if (!this.phone()) this.gridApi?.resetRowHeights();
   }
 
   toggleColumnsPanel(): void {
@@ -741,7 +778,7 @@ export class AdminAuditLogComponent {
       else next.delete(columnId);
       return next;
     });
-    this.gridApi?.setColumnsVisible([columnId], !wasVisible);
+    if (!this.phone()) this.gridApi?.setColumnsVisible([columnId], !wasVisible);
   }
 
   // =========================================================================

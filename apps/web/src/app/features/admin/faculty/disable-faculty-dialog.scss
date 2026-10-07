@@ -9,6 +9,8 @@
  * system's to add.
  */
 
+@use '../mobile' as m;
+
 .dialog-backdrop {
   position: fixed;
   inset: 0;
@@ -117,4 +119,29 @@
 
 .dialog-fields .field.dated {
   flex: 0 0 180px;
+}
+
+/* --- the phone (2026-10): the dialog rises as a sheet --------------------- */
+
+@include m.bottom-sheet('.dialog-backdrop', '.dialog');
+
+@include m.phone {
+  .dialog-head,
+  .dialog-body,
+  .dialog-foot {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .dialog .ctrl {
+    min-height: 44px;
+  }
+
+  .dialog-fields .field.dated {
+    flex: 1 1 100%;
+  }
+
+  .consequence {
+    font-size: 14px;
+  }
 }

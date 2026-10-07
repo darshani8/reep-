@@ -4,6 +4,8 @@
    global (styles/reep-v2.scss). The one rule below that names a global class is
    the `.card-title` override, and it carries only the declaration that differs;
    every other class here is named for a box on this screen. */
+
+@use '../mobile' as m;
 :host {
   display: block;
 }
@@ -308,4 +310,161 @@
 .seating .seat-add .field {
   flex: 1;
   min-width: 0;
+}
+
+/* --- phone ------------------------------------------------------------------
+   The header's button under the title; pick rows two lines tall rather than
+   truncated; the domain chip's remove a real 44px target; and the batch and
+   seating tables a stack of cards, each value under its own label, the row's
+   buttons full width at the foot of the card. */
+@include m.header-actions('.dt-header > .dt-toolbar');
+
+@include m.phone {
+  .dt-header {
+    flex-wrap: wrap;
+  }
+
+  .pick-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    column-gap: 10px;
+    row-gap: 2px;
+    min-height: 52px;
+  }
+  .pick-row .pick-count {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .pick-row > .icon {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+  .pick-row:active {
+    background: var(--tint-2);
+  }
+  .pick-code {
+    min-width: 48px;
+    grid-row: 1 / span 2;
+  }
+  .pick-name {
+    white-space: normal;
+  }
+
+  .card-head {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .card-head > .btn,
+  .card-head > .dt-toolbar > .btn,
+  .edit-head .btn {
+    min-height: 44px;
+  }
+  .card-head > .dt-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .domain-drop {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    margin: -14px -14px -14px -8px;
+  }
+  .domain-drop .icon {
+    font-size: 18px;
+  }
+  .domain-add {
+    margin-left: 0;
+    width: 100%;
+  }
+  .domain-add .ctrl {
+    flex: 1 1 auto;
+    width: auto;
+  }
+
+  .ctrl,
+  .form-row input,
+  .form-row select,
+  .batch-form input,
+  .batch-form select {
+    min-height: 44px;
+  }
+  .form-row .field.narrow {
+    flex: 1 1 120px;
+  }
+
+  .seating .seat-add {
+    flex-wrap: wrap;
+  }
+  .seating .seat-add .field {
+    flex: 1 1 100%;
+  }
+  .seating .seat-add .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .dt-frame:has(> table.m-rows) {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  table.m-rows {
+    display: block;
+    overflow: visible;
+  }
+  table.m-rows thead {
+    display: none;
+  }
+  table.m-rows tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  table.m-rows tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-card);
+    background: var(--surface);
+  }
+  table.m-rows tr.selected {
+    border-color: var(--brand-purple);
+    background: var(--tint-1);
+  }
+  table.m-rows td {
+    display: block;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+    border: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  table.m-rows td:first-child,
+  table.m-rows td.row-actions {
+    grid-column: 1 / -1;
+  }
+  table.m-rows td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-family: var(--font-display);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  table.m-rows td.row-actions {
+    display: flex;
+    gap: 8px;
+    padding-top: 4px;
+  }
+  table.m-rows td.row-actions .btn {
+    flex: 1 1 0;
+    min-height: 44px;
+    justify-content: center;
+  }
 }

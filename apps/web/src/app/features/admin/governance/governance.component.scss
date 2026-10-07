@@ -15,6 +15,8 @@
  * not.
  */
 
+@use '../mobile' as m;
+
 :host {
   display: block;
 }
@@ -389,4 +391,228 @@
    they sit outside it. `display: contents` keeps the row one flex line. */
 .gov-tablist {
   display: contents;
+}
+
+/* --- phone ------------------------------------------------------------------
+   The header's two buttons under the title; the tabs one sideways strip; the
+   four filters behind a "Filters" sheet (the quick filter stays on the grid
+   bar); every table a stack of cards, each value under its column's name; the
+   one reason box a sheet over the list that opened it. */
+@include m.header-actions('.dt-header > .dt-toolbar');
+@include m.scroll-strip('.gov-tabs');
+@include m.filters-sheet('.gov-filters', '.gov-filters-toggle', '.gov-filters-scrim');
+
+.gov-filters-done,
+.gov-action-scrim {
+  display: none;
+}
+
+@include m.phone {
+  .dt-header {
+    flex-wrap: wrap;
+  }
+
+  .gov-tabs .tab {
+    flex: 0 0 auto;
+    min-height: 44px;
+  }
+
+  .gov-filters-toggle {
+    margin-bottom: 12px;
+    min-height: 44px;
+  }
+  .gov-filters.is-open .select {
+    max-width: none;
+    min-height: 48px;
+  }
+  .gov-filters-note {
+    margin-left: 0;
+    max-width: none;
+  }
+  .gov-filters.is-open .gov-filters-done {
+    display: inline-flex;
+    justify-content: center;
+    min-height: 48px;
+  }
+
+  .gov-board {
+    align-items: stretch;
+  }
+
+  .dt-gridbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .dt-gridbar .dt-quickfilter {
+    flex: 1 1 100%;
+    width: auto;
+    min-height: 44px;
+  }
+  .dt-gridbar > .btn {
+    flex: 1 1 0;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .gov-gridbar-end {
+    display: none;
+  }
+
+  .dt-statusbar {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .gov-pagesize select {
+    height: 40px;
+  }
+
+  .dt-frame:has(table.m-rows),
+  .gov-grid-scroll {
+    overflow: visible;
+  }
+  table.m-rows {
+    display: block;
+    overflow: visible;
+  }
+  table.m-rows thead {
+    display: none;
+  }
+  table.m-rows tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+  }
+  table.m-rows tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 12px;
+    padding: 12px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-card);
+    background: var(--surface);
+  }
+  table.m-rows tr.selected {
+    border-color: var(--brand-purple);
+    background: var(--tint-1);
+  }
+  table.m-rows td {
+    display: block;
+    position: static;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    max-width: none;
+  }
+  table.m-rows td.pinned,
+  table.m-rows td.gov-rowaction,
+  table.m-rows td.gov-empty,
+  table.m-rows td.gov-reason-cell {
+    grid-column: 1 / -1;
+  }
+  table.m-rows td.pinned {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+  }
+  table.m-rows td[data-label='Reach'],
+  table.m-rows td[data-label='Status'] {
+    grid-column: 1 / -1;
+  }
+  table.m-rows .chip {
+    max-width: 100%;
+    height: auto;
+    min-height: 24px;
+    white-space: normal;
+    text-align: left;
+  }
+  table.m-rows td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    font-family: var(--font-display);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  table.m-rows .gov-check {
+    min-height: 44px;
+    width: 100%;
+  }
+  table.m-rows .gov-check input {
+    width: 22px;
+    height: 22px;
+  }
+  table.m-rows td.gov-rowaction {
+    text-align: left;
+  }
+  table.m-rows .gov-rowactions {
+    display: flex;
+    gap: 8px;
+  }
+  table.m-rows .gov-rowactions .btn {
+    flex: 1 1 0;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .gov-two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ctrl:not(textarea) {
+    min-height: 44px;
+  }
+  .gov-row .btn,
+  .gov-actions .btn,
+  .gov-members li .btn {
+    min-height: 44px;
+  }
+  .gov-actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .gov-chip-x {
+    min-width: 32px;
+    min-height: 32px;
+    justify-content: center;
+    margin: -8px -8px -8px 0;
+  }
+  .gov-openlink {
+    flex: 1 1 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  /* The reason box rises from the bottom over whatever list opened it. */
+  .gov-action-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 96;
+    border: 0;
+    padding: 0;
+    background: rgba(30, 27, 41, 0.42);
+  }
+  .gov-action {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 97;
+    margin: 0;
+    max-height: 86dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: 20px 20px 0 0;
+    padding: 22px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    background: var(--surface);
+    backdrop-filter: none;
+    box-shadow: 0 -12px 40px rgba(58, 31, 82, 0.25);
+  }
 }

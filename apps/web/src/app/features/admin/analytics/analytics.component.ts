@@ -74,6 +74,7 @@ import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PluralPipe } from '../../../shared/text/plural.pipe';
 import { AlertRulesDialogComponent } from './alert-rules-dialog.component';
+import { phoneSignal } from '../mobile';
 
 // The design system's chart theme, registered once for this lazily-loaded
 // chunk. Registration alone does nothing — ECharts applies a theme at init —
@@ -536,6 +537,9 @@ export class AdminAnalyticsComponent implements OnDestroy {
   /** The grid's quick filter, as typed in the toolbar. */
   readonly quickFilter = signal('');
 
+  /** Phone width: the mentor grid is drawn as a list of cards instead. */
+  readonly phone = phoneSignal();
+
   /** The alert-rules editor, opened from the Alerts card. */
   readonly rulesOpen = signal(false);
 
@@ -578,6 +582,15 @@ export class AdminAnalyticsComponent implements OnDestroy {
       };
     }),
   );
+
+  /** The phone's card list: the grid's rows under the same quick filter. */
+  readonly mentorCards = computed<MentorLoadRow[]>(() => {
+    const needle = this.quickFilter().trim().toLowerCase();
+    if (!needle) return this.mentorRows();
+    return this.mentorRows().filter((row) =>
+      `${row.mentorName} ${row.department ?? ''} ${row.loadStatus}`.toLowerCase().includes(needle),
+    );
+  });
 
   readonly mentorColumns: ColDef<MentorLoadRow>[] = [
     {
@@ -956,6 +969,7 @@ export class AdminAnalyticsComponent implements OnDestroy {
   private drawWeeklyHealth(host: HTMLDivElement): void {
     const model = this.chartModel();
     if (!model) return;
+    const phone = this.phone();
 
     if (!this.healthChart) {
       this.healthChart = echarts.init(host, REEP_CHART_THEME, { renderer: 'svg' });
@@ -987,7 +1001,7 @@ export class AdminAnalyticsComponent implements OnDestroy {
     this.healthChart.setOption(
       {
         color: this.chartColours(),
-        legend: { top: 0, left: 0, itemGap: 20 },
+        legend: { top: 0, left: 0, itemGap: phone ? 12 : 20 },
         tooltip: {
           trigger: 'axis',
           axisPointer: { type: 'cross' },
@@ -996,7 +1010,8 @@ export class AdminAnalyticsComponent implements OnDestroy {
         grid: {
           left: 46,
           right: 56 + Math.max(0, model.axisUnits.length - 2) * 52,
-          top: 40,
+          // A phone wraps the four legend entries onto two lines.
+          top: phone ? 64 : 40,
           bottom: 58,
           containLabel: false,
         },

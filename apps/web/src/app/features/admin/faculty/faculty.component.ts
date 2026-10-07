@@ -61,7 +61,7 @@
  * `disable-faculty-dialog.component.ts`.
  */
 
-import { Component, computed, signal } from '@angular/core';
+import { Component, ElementRef, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
 import type { CellClickedEvent, GetRowIdParams, GridApi, GridReadyEvent } from 'ag-grid-community';
@@ -69,6 +69,7 @@ import type { CellClickedEvent, GetRowIdParams, GridApi, GridReadyEvent } from '
 import { environment } from '../../../../environments/environment';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
+import { phoneSignal } from '../mobile';
 import { plural } from '../../../shared/text/plural.pipe';
 import {
   AdminDeleteDialogComponent,
@@ -178,6 +179,41 @@ export class AdminFacultyComponent {
   // --- the grid -----------------------------------------------------------
 
   private gridApi: GridApi<FacultyRow> | null = null;
+
+  // --- the phone (2026-10) -------------------------------------------------
+  // Below 600px the grid is not mounted: the same rows render as cards, a
+  // card opens the drawer, and the drawer replaces the list full-width with a
+  // Back that closes it. The tick writes the same `selectedRows` mirror.
+  readonly phone = phoneSignal();
+  readonly filtersOpen = signal(false);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+
+  /** The grid is torn down on a phone; a GridApi kept past its grid would
+   *  answer the pager and the selection from a destroyed instance. */
+  private readonly dropGridOnPhone = effect(() => {
+    if (this.phone()) {
+      this.gridApi = null;
+    }
+  });
+
+  isRowSelected(row: FacultyRow): boolean {
+    return this.selectedRows().some((entry) => entry.userId === row.userId);
+  }
+
+  toggleRowSelected(row: FacultyRow): void {
+    this.selectedRows.update((rows) =>
+      rows.some((entry) => entry.userId === row.userId)
+        ? rows.filter((entry) => entry.userId !== row.userId)
+        : [...rows, row],
+    );
+  }
+
+  /** A card opens the record, and the record starts at its top: the list it
+   *  replaced may have been scrolled a long way down. */
+  openFromCard(row: FacultyRow): void {
+    this.openDrawer(row);
+    setTimeout(() => this.host.nativeElement.scrollIntoView({ block: 'start' }));
+  }
   readonly selectedRows = signal<FacultyRow[]>([]);
   readonly pageSize = signal(DEFAULT_PAGE_SIZE);
   readonly rowHeight = signal(COMFORTABLE_ROW_HEIGHT_PX);

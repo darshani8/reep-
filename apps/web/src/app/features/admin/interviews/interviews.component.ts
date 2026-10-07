@@ -107,6 +107,7 @@ import { GridComponent, TooltipComponent } from 'echarts/components';
 import { SVGRenderer } from 'echarts/renderers';
 
 import { environment } from '../../../../environments/environment';
+import { phoneSignal } from '../mobile';
 import {
   REEP_CHART_THEME,
   STATUS_COLOURS,
@@ -877,6 +878,51 @@ export class InterviewRecordsComponent implements OnDestroy {
     this.gridApi = event.api;
   }
 
+  // --- at phone width ------------------------------------------------------
+  /** Below 600px the records are a list of cards over the same rows and quick
+   *  filter. Tapping a card opens that record full width (Back closes it, as
+   *  the record's own Close does); the tick on a card is the grid's checkbox,
+   *  for the audio download. */
+  readonly phone = phoneSignal();
+  readonly filtersOpen = signal(false);
+  readonly phoneRows = computed<InterviewRecordRow[]>(() => {
+    const typed = this.quickFilter().trim().toLowerCase();
+    const rows = this.rows();
+    if (typed === '') return rows;
+    return rows.filter((row) =>
+      [row.studentName, row.usn, row.trackLabel, row.trackCode, row.statusLabel]
+        .join(' ')
+        .toLowerCase()
+        .includes(typed),
+    );
+  });
+
+  openOnPhone(row: InterviewRecordRow): void {
+    this.selectedRows.set([row]);
+    void this.showRecord(row);
+    document.querySelector('.desktop-main')?.scrollTo({ top: 0 });
+  }
+
+  togglePhoneTick(row: InterviewRecordRow): void {
+    this.selectedRows.update((chosen) =>
+      chosen.some((one) => one.sessionId === row.sessionId)
+        ? chosen.filter((one) => one.sessionId !== row.sessionId)
+        : [...chosen, row],
+    );
+  }
+
+  isPhoneTicked(row: InterviewRecordRow): boolean {
+    return this.selectedRows().some((one) => one.sessionId === row.sessionId);
+  }
+
+  phoneStarted(row: InterviewRecordRow): string {
+    return formatStartedAt(row.startedAt);
+  }
+
+  phoneDuration(row: InterviewRecordRow): string {
+    return formatDuration(row.durationSeconds);
+  }
+
   /** Fired whenever the grid rebuilds its row model — new data, a sort, a
    *  column filter, a keystroke in the quick filter. */
   onModelUpdated(event: ModelUpdatedEvent<InterviewRecordRow>): void {
@@ -1378,6 +1424,12 @@ export class InterviewRecordsComponent implements OnDestroy {
    *  card is on this screen, and the college picker on it is what the office
    *  has to touch. */
   goToPolicyCard(): void {
+    // On a phone the open record covers the screen; the card is under it.
+    if (this.phone() && this.openRecord() !== null) {
+      this.closeRecord();
+      setTimeout(() => this.goToPolicyCard(), 50);
+      return;
+    }
     document.getElementById('policy-college')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     document.getElementById('policy-college')?.focus();
   }

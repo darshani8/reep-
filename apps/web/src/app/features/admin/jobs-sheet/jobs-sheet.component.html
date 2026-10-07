@@ -26,6 +26,14 @@
         <span class="icon" aria-hidden="true">{{ postingFormToggleIcon() }}</span>
         {{ postingFormToggleLabel() }}
       </button>
+      <button
+        type="button"
+        class="btn secondary m-filters-toggle"
+        [attr.aria-expanded]="filtersOpen()"
+        (click)="filtersOpen.set(true)"
+      >
+        <span class="icon" aria-hidden="true">tune</span> Filters
+      </button>
     </div>
   </div>
 
@@ -70,7 +78,11 @@
        "Every college" is offered as its own choice for the office that wants
        exactly the un-narrowed ones. A select with nothing to offer is disabled
        with that as its reason rather than left standing as an empty menu. -->
+  @if (filtersOpen()) {
+    <button type="button" class="m-filters-scrim" aria-label="Close filters" (click)="filtersOpen.set(false)"></button>
+  }
   <div class="jobs-filters">
+    <div class="jobs-filters__picks" [class.is-open]="filtersOpen()">
     <div class="select" [class.jobs-filter--empty]="collegeFilterDisabledReason() !== null">
       <span class="lbl">College</span>
       <span class="val">{{ collegeFilterLabel() }}</span>
@@ -148,6 +160,8 @@
           </option>
         }
       </select>
+    </div>
+    <button type="button" class="btn primary m-filters-done" (click)="filtersOpen.set(false)">Done</button>
     </div>
 
     <div class="jobs-stats">
@@ -249,6 +263,61 @@
 
       @if (isLoading()) {
         <p class="jobs-state" role="status">Loading the sheet…</p>
+      } @else if (phone()) {
+        <ul class="m-list jobs-cards" aria-label="Job postings">
+          @for (row of phoneRows(); track row.jobId) {
+            <li class="m-card" [class.is-selected]="isPhoneSelected(row)">
+              <button
+                type="button"
+                class="jobs-card__pick"
+                [attr.aria-pressed]="isPhoneSelected(row)"
+                (click)="togglePhoneRow(row)"
+              >
+                <span class="m-card__top">
+                  <span class="m-card__title">{{ row.title }}</span>
+                  <span class="chip dot {{ row.statusTone }}">{{ row.statusLabel }}</span>
+                </span>
+                <span class="m-card__meta">{{ row.companyAndLocation }}</span>
+                <span class="m-card__meta">
+                  {{ row.deadlineLabel }} · {{ row.applicants | plural: 'applicant' }}
+                </span>
+                <span class="m-card__meta">
+                  {{ row.collegeLabel }} · {{ row.courseLabel }} · {{ row.tracksLabel }}
+                </span>
+              </button>
+              @if (isPhoneSelected(row)) {
+                <div class="m-card__actions">
+                  <button
+                    type="button"
+                    class="btn secondary sm"
+                    [disabled]="!canClose()"
+                    (click)="closeSelectedPosting()"
+                  >
+                    <span class="icon" aria-hidden="true">block</span> Close posting
+                  </button>
+                  <button
+                    type="button"
+                    class="btn secondary sm"
+                    [disabled]="!canDuplicate()"
+                    (click)="duplicateSelectedPosting()"
+                  >
+                    <span class="icon" aria-hidden="true">content_copy</span> Duplicate
+                  </button>
+                  <button
+                    type="button"
+                    class="btn danger sm"
+                    [disabled]="!canRemove()"
+                    (click)="removeSelectedPosting()"
+                  >
+                    <span class="icon" aria-hidden="true">delete</span> Remove
+                  </button>
+                </div>
+              }
+            </li>
+          } @empty {
+            <li class="m-empty">No posting matches.</li>
+          }
+        </ul>
       } @else {
         <!-- Mounted once and never torn down: an @if around the grid destroys
              the GridApi the toolbar and the status bar hold, so the empty case
@@ -276,7 +345,7 @@
       }
 
       <div class="dt-statusbar">
-        <span>Rows: <b>{{ filteredRowCount() }}</b></span>
+        <span>Rows: <b>{{ phone() ? phoneRows().length : filteredRowCount() }}</b></span>
         <span>Selected: <b>{{ selectedCount() }}</b></span>
         <span class="pager">
           <label class="jobs-pagesize">

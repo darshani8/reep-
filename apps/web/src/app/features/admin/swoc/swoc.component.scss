@@ -10,6 +10,8 @@
  * tokens (good / risk / brand purple / warn) so a strength and a weakness are
  * told apart by their heading text AND their tint, never by colour alone.
  */
+@use '../mobile' as m;
+
 :host {
   display: block;
 }
@@ -424,4 +426,94 @@
 .sw-alert__text {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+/* --- below desktop: the one-column board must not be widened by a row ---- */
+@include m.below-desktop {
+  .sw-list,
+  .sw-editor {
+    min-width: 0;
+  }
+}
+
+/* --- phone width (2026-10): list, then the student pushed over it ------- */
+@include m.filters-sheet('.sw-filters', '.sw-filters-toggle');
+@include m.back-button('.m-back');
+
+.sw-filters-done {
+  display: none;
+}
+
+@include m.phone {
+  .sw-filters-toggle {
+    min-height: 44px;
+    margin-bottom: 12px;
+    gap: 6px;
+  }
+  .sw-filters.is-open .select {
+    min-height: 44px;
+  }
+  .sw-filters.is-open .sw-filters-done {
+    display: inline-flex;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  /* Nothing picked: the list alone. Picked: the student alone, with Back. */
+  .sw-board:not(.has-detail) .sw-editor,
+  .sw-board.has-detail .sw-list {
+    display: none;
+  }
+
+  .sw-search .dt-quickfilter {
+    min-height: 44px;
+  }
+  .sw-rows {
+    max-height: none;
+    overflow: visible;
+  }
+  .sw-pick {
+    min-height: 56px;
+    flex-wrap: wrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sw-pick:active {
+    background: var(--tint-2);
+  }
+  .sw-pick__main {
+    flex: 1 1 0;
+  }
+  .sw-pick__meta {
+    white-space: normal;
+  }
+  .sw-pick__count {
+    order: 3;
+    flex-basis: 100%;
+    padding-left: 42px;
+  }
+
+  .sw-who__actions {
+    width: 100%;
+  }
+  .sw-who__actions .btn,
+  .sw-semester .btn,
+  .sw-composer__foot .btn {
+    flex: 1 1 auto;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .sw-quad__head .btn {
+    min-height: 44px;
+  }
+  .sw-entry__text {
+    font-size: 16px;
+    border-color: var(--hairline-26);
+  }
+  .sw-weight__select {
+    min-height: 44px;
+  }
+  .sw-entry__meta .iconbtn {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }

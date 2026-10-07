@@ -32,6 +32,14 @@
       >
         <span class="icon" aria-hidden="true">groups</span> Assign a whole batch
       </button>
+      <button
+        type="button"
+        class="btn secondary m-filters-toggle"
+        [attr.aria-expanded]="filtersOpen()"
+        (click)="filtersOpen.set(true)"
+      >
+        <span class="icon" aria-hidden="true">tune</span> Filters
+      </button>
     </div>
   </div>
 
@@ -47,7 +55,8 @@
        exactly as they do below. It is closed until asked for, because it writes
        to every student in a batch at once. -->
   @if (batchOpen()) {
-    <section class="card batch-bar" id="batch-bar" aria-labelledby="batch-bar-title">
+    <button type="button" class="m-batch-scrim" aria-label="Close the batch bar" (click)="toggleBatchBar()"></button>
+    <section class="card batch-bar is-open" id="batch-bar" aria-labelledby="batch-bar-title">
       <div class="card-head">
         <h2 class="card-heading" id="batch-bar-title">Assign a whole batch</h2>
         <button type="button" class="iconbtn" (click)="toggleBatchBar()" aria-label="Close the batch bar">
@@ -130,7 +139,10 @@
   <!-- The board's three filters. The first two are real: both feeds take
        ?department_id= and ?cohort_id= (B9.4/B1.5) and apply them over the
        caller's own reach, so neither can widen what this account may read. -->
-  <div class="filters">
+  @if (filtersOpen()) {
+    <button type="button" class="m-filters-scrim" aria-label="Close filters" (click)="filtersOpen.set(false)"></button>
+  }
+  <div class="filters" [class.is-open]="filtersOpen()">
     <div class="select" [class.filter-pending]="departmentOptions().length === 0">
       <span class="lbl">Department</span>
       <span class="val">{{ departmentFilterLabel() }}</span>
@@ -193,6 +205,7 @@
     @if (narrowed()) {
       <p class="filters__note">A batch narrows the students; the faculty list stays whole.</p>
     }
+    <button type="button" class="btn primary m-filters-done" (click)="filtersOpen.set(false)">Done</button>
   </div>
 
   <!-- A load that did not answer is its own state. Falling through to the
@@ -226,12 +239,21 @@
       }
     </div>
   } @else if (mentors(); as facultyOnRoster) {
-    <div class="mapping">
+    <div class="mapping" [class.m-detail]="phoneDetail()">
       <!-- Left: the faculty rail, with load against the capacity the server
            resolved — the department's where it named one, the programme's
            otherwise. Nothing refuses an assignment past it. -->
       <section class="card rail-card" aria-labelledby="mentor-rail-title">
-        <div class="card-head">
+        @if (selectedMentor(); as mentor) {
+          <div class="m-detail-head">
+            <button type="button" class="m-back" (click)="closePhoneDetail()">
+              <span class="icon" aria-hidden="true">arrow_back</span> Back
+            </button>
+            <h2 class="m-detail-name">{{ mentor.name }}</h2>
+            <p class="m-detail-line">{{ facultyLine(mentor) }} · {{ loadNote(mentor) }}</p>
+          </div>
+        }
+        <div class="card-head rail-head">
           <h2 class="card-heading" id="mentor-rail-title">
             Mentors · {{ departmentFilterLabel() }}
           </h2>
@@ -355,6 +377,34 @@
                 Every student has a faculty member.
               }
             </div>
+          } @else if (phone()) {
+            <ul class="m-list pool-cards" aria-label="Unassigned students">
+              @for (student of poolCards(); track student.student_id) {
+                <li>
+                  <button
+                    type="button"
+                    class="m-card"
+                    [class.is-selected]="isPoolStudentSelected(student.student_id)"
+                    [attr.aria-pressed]="isPoolStudentSelected(student.student_id)"
+                    (click)="togglePoolStudent(student.student_id)"
+                  >
+                    <span class="m-card__top">
+                      <span class="m-card__title">{{ student.name }}</span>
+                      <span class="icon pool-tick" aria-hidden="true">{{
+                        isPoolStudentSelected(student.student_id) ? 'check_circle' : 'radio_button_unchecked'
+                      }}</span>
+                    </span>
+                    <span class="m-card__meta">{{ menteeLine(student) }}</span>
+                  </button>
+                </li>
+              } @empty {
+                <li class="m-empty">No student matches “{{ poolSearch() }}”.</li>
+              }
+            </ul>
+            <div class="dt-statusbar">
+              <span>{{ unassignedCount() }} without a mentor</span>
+              <span>{{ selectedStudentCount() }} selected</span>
+            </div>
           } @else {
             <ag-grid-angular
               class="pool-grid"
@@ -420,7 +470,7 @@
              they have handed over — the half anybody opens a history for. So
              the card asks the question the server answers and names whose it
              is. -->
-        <section class="card history-card" aria-labelledby="history-title">
+        <section class="card history-card" [class.is-open]="historyStudent() !== null" aria-labelledby="history-title">
           <div class="card-head">
             <h2 class="card-heading" id="history-title">
               @if (historyStudent(); as student) {

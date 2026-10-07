@@ -14,6 +14,8 @@
  * needs differently is left.
  */
 
+@use '../mobile' as m;
+
 :host {
   display: block;
 }
@@ -290,4 +292,87 @@
   align-items: center;
   gap: 8px;
   margin-top: 14px;
+}
+
+/* --- below desktop: one column, criteria under the import ---------------- */
+@include m.below-desktop {
+  .imports-layout {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .imports-side {
+    width: 100%;
+  }
+}
+
+/* --- phone width (2026-10) ------------------------------------------------ */
+@include m.card-list;
+@include m.header-actions('.dt-toolbar');
+@include m.sticky-action('.criteria-actions');
+
+@include m.phone {
+  .dt-header {
+    flex-wrap: wrap;
+  }
+  .pickers .select,
+  .pickers .batch-select,
+  .pickers .semester-select {
+    flex: 1 1 100%;
+    max-width: none;
+    min-height: 44px;
+  }
+  .pickers-end {
+    margin-left: 0;
+  }
+
+  .wizard-steps {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .wizard-steps .sep {
+    display: none;
+  }
+  .wizard-steps .step-chosen {
+    max-width: none;
+  }
+  .wizard-file > .btn,
+  .wizard-file__label,
+  .wizard-file__check {
+    flex: 1 1 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .wizard-file__name {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .preview-more {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    margin-top: 10px;
+  }
+  .preview-actions__end {
+    margin-left: 0;
+    width: 100%;
+  }
+  .preview-actions__end .btn {
+    flex: 1 1 0;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .criteria-field {
+    flex: 1 1 100%;
+  }
+  .criteria-field .ctrl {
+    min-height: 44px;
+  }
+  .criteria-actions .btn {
+    flex: 1 1 0;
+    min-height: 44px;
+    justify-content: center;
+  }
 }

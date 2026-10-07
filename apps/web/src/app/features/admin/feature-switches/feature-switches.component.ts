@@ -311,6 +311,8 @@ export class AdminFeatureSwitchesComponent {
   readonly rowsPerPage = signal(DEFAULT_ROWS_PER_PAGE);
   readonly pageIndex = signal(0);
   readonly selectedFeatureKey = signal<string | null>(null);
+  /** The filter bar's bottom sheet on a phone (CSS hides the toggle above it). */
+  readonly filtersOpen = signal(false);
 
   private readonly rulesByFeature = computed(() => {
     const byFeature = new Map<string, OverrideRule[]>();
@@ -524,6 +526,12 @@ export class AdminFeatureSwitchesComponent {
 
   isRowSelected(key: string): boolean {
     return this.selectedFeatureKey() === key;
+  }
+
+  /** The phone's Back from the pushed override panel to the list. */
+  closeFeature(): void {
+    this.selectedFeatureKey.set(null);
+    this.clearForm();
   }
 
   selectFeature(key: string): void {

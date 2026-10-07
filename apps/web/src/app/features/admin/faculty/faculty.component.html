@@ -37,7 +37,19 @@
        reading a field the faculty row already carries: the list endpoint takes
        one parameter and none of these is it, so a refetch would fetch the same
        rows back. -->
-  <div class="filters">
+  <!-- On a phone the four pickers fold behind this button into a sheet. -->
+  <button
+    type="button"
+    class="btn secondary m-filters-toggle"
+    [attr.aria-expanded]="filtersOpen()"
+    (click)="filtersOpen.set(true)"
+  >
+    <span class="icon" aria-hidden="true">filter_list</span> Filters
+  </button>
+  @if (filtersOpen()) {
+    <button type="button" class="m-filters-scrim" aria-label="Close filters" (click)="filtersOpen.set(false)"></button>
+  }
+  <div class="filters" [class.is-open]="filtersOpen()">
     <div class="select">
       <span class="lbl">College</span>
       <span class="val">{{ collegeFilterLabel() }}</span>
@@ -95,6 +107,7 @@
     <a class="btn ghost filters-end" routerLink="/admin/mentors">
       <span class="icon" aria-hidden="true">diversity_3</span> Assign students
     </a>
+    <button type="button" class="btn primary m-filters-done" (click)="filtersOpen.set(false)">Show faculty</button>
   </div>
 
   <!-- Only once the reads have finished, and only when the DIRECTORY itself was
@@ -108,7 +121,7 @@
     </div>
   }
 
-  <div class="directory">
+  <div class="directory" [class.has-open]="openFaculty() !== null">
     <!-- ---------------------------------------------------------- grid -->
     <div class="dt-frame directory-grid">
       <div class="dt-gridbar">
@@ -171,27 +184,73 @@
         <!-- Mounted once and never torn down: an @if around the grid destroys
              the GridApi the toolbar and the status bar hold, so the empty case
              is main's own words in the no-rows overlay instead. -->
-        <ag-grid-angular
-          class="directory-ag"
-          [theme]="gridTheme"
-          [rowData]="visibleRows()"
-          [columnDefs]="columns"
-          [defaultColDef]="defaultColumn"
-          [rowSelection]="rowSelection"
-          [selectionColumnDef]="selectionColumn"
-          [overlayNoRowsTemplate]="emptyOverlay()"
-          [getRowId]="rowId"
-          [quickFilterText]="quickFilter()"
-          [rowHeight]="rowHeight()"
-          [pagination]="true"
-          [paginationPageSize]="pageSize()"
-          [suppressPaginationPanel]="true"
-          [suppressCellFocus]="true"
-          (gridReady)="onGridReady($event)"
-          (selectionChanged)="onSelectionChanged()"
-          (paginationChanged)="onPaginationChanged()"
-          (cellClicked)="onCellClicked($event)"
-        />
+        @if (phone()) {
+          <!-- The phone's directory: the same rows as cards. A card opens the
+               record, as the name column does; the tick feeds Disable. -->
+          @if (visibleRows().length === 0) {
+            <p class="m-empty">No faculty match these filters.</p>
+          } @else {
+            <ul class="m-list">
+              @for (row of visibleRows(); track row.userId) {
+                <li class="m-card" [class.is-selected]="isRowSelected(row)">
+                  <div class="m-card__top">
+                    <label class="faculty-card__tick">
+                      <input
+                        type="checkbox"
+                        [checked]="isRowSelected(row)"
+                        [attr.aria-label]="'Select ' + row.name"
+                        (change)="toggleRowSelected(row)"
+                      />
+                    </label>
+                    <button type="button" class="faculty-card__open" (click)="openFromCard(row)">
+                      <span class="m-card__title">{{ row.name }}</span>
+                      <span class="m-card__meta">{{ row.designation ?? 'No designation' }} · {{ row.departmentLine }}</span>
+                      <span class="faculty-card__chips">
+                        @if (row.isRemoved) {
+                          <span class="chip risk">Removed</span>
+                        } @else if (row.isDisabled) {
+                          <span class="chip risk">Disabled</span>
+                        } @else {
+                          <span class="chip good">Active</span>
+                        }
+                        @if (row.holdsMentorGroup === null) {
+                          <span class="chip">Mentor group {{ notReadable }}</span>
+                        } @else if (row.holdsMentorGroup) {
+                          <span class="chip accent">Mentor · {{ row.menteeCount ?? 0 }}</span>
+                        } @else {
+                          <span class="chip">No mentor group</span>
+                        }
+                      </span>
+                    </button>
+                    <span class="icon faculty-card__go" aria-hidden="true">chevron_right</span>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        } @else {
+          <ag-grid-angular
+            class="directory-ag"
+            [theme]="gridTheme"
+            [rowData]="visibleRows()"
+            [columnDefs]="columns"
+            [defaultColDef]="defaultColumn"
+            [rowSelection]="rowSelection"
+            [selectionColumnDef]="selectionColumn"
+            [overlayNoRowsTemplate]="emptyOverlay()"
+            [getRowId]="rowId"
+            [quickFilterText]="quickFilter()"
+            [rowHeight]="rowHeight()"
+            [pagination]="true"
+            [paginationPageSize]="pageSize()"
+            [suppressPaginationPanel]="true"
+            [suppressCellFocus]="true"
+            (gridReady)="onGridReady($event)"
+            (selectionChanged)="onSelectionChanged()"
+            (paginationChanged)="onPaginationChanged()"
+            (cellClicked)="onCellClicked($event)"
+          />
+        }
       }
 
       <div class="dt-statusbar">
@@ -233,6 +292,9 @@
     <!-- -------------------------------------------------- the 380px drawer -->
     @if (openFaculty(); as faculty) {
       <aside class="drawer" aria-label="Faculty member">
+        <button type="button" class="m-back" (click)="closeDrawer()">
+          <span class="icon" aria-hidden="true">arrow_back</span> Faculty
+        </button>
         <div class="drawer-head">
           <span class="avatar lg">{{ faculty.initials }}</span>
           <div class="drawer-who">

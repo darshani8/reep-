@@ -37,7 +37,7 @@ const run = (i, kind, status) => ({
   created_at: at(i + 1), applied_at: status === 'applied' ? at(i + 1) : null,
 });
 
-export default [
+const fx = [
   // ---- Analytics ---------------------------------------------------------
   ['GET', /^\/admin\/mentor-load/, mentorLoad],
   ['GET', /^\/admin\/analytics-summary/, {
@@ -168,3 +168,14 @@ export default [
     ],
   }))],
 ];
+
+// The preview a "Check file" press answers (only reachable by setting a file).
+const line = (i) => ({
+  line_no: i + 2, verdict: ['ok', 'ok', 'warning', 'ok', 'error'][i % 5], usn: names[i % 8][1], student_id: `s${i}`,
+  student_name: i % 5 === 4 ? null : names[i % 8][0],
+  message: ['Will be written', 'Will be written', 'Overwrites the mark on file (68 → 72)', 'Will be written', 'USN not on this batch'][i % 5],
+  subject_code: 'MBA305', subject_name: 'Corporate Finance', credits: 4, internal: 38, external: 34 + i, total: 72 + i,
+  sgpa: 7.4, cgpa: 7.1, live_backlogs: 0, sessions_held: null, sessions_attended: null, attendance_percent: null,
+});
+fx.push(['POST', /^\/admin\/imports\/preview/, { run: run(9, 'marks', 'previewed'), rows: Array.from({ length: 8 }, (_, i) => line(i)), rows_to_write: 7 }]);
+export default fx;

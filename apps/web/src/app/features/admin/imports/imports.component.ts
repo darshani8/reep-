@@ -53,6 +53,7 @@ import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 import { CriteriaHistoryDialogComponent } from './criteria-history-dialog.component';
+import { phoneSignal } from '../mobile';
 import {
   ACCEPTED_IMPORT_FILE_TYPES,
   CRITERIA_SOURCE_LABELS,
@@ -151,6 +152,15 @@ function describeWhen(iso: string | null): string {
   });
 }
 
+/** Lines the phone's preview list adds per "Show more". */
+const PHONE_LINES_PER_STEP = 30;
+
+const PHONE_VERDICT_CHIPS: Readonly<Record<string, { label: string; tone: string }>> = {
+  ok: { label: 'OK', tone: 'good' },
+  warning: { label: 'Warning', tone: 'warn' },
+  error: { label: 'Error', tone: 'risk' },
+};
+
 @Component({
   selector: 'app-admin-imports',
   standalone: true,
@@ -167,6 +177,32 @@ export class AdminImportsComponent {
   readonly defaultColumn = DEFAULT_IMPORT_COLUMN;
   readonly recentImportColumns = RECENT_IMPORT_COLUMNS;
   readonly maxUploadMegabytes = MAX_UPLOAD_BYTES / BYTES_IN_A_KILOBYTE / BYTES_IN_A_KILOBYTE;
+
+  /** Phone width: both grids are drawn as card lists instead. */
+  readonly phone = phoneSignal();
+  /** How many judged lines the phone's card list shows before "Show more". */
+  readonly phoneLineLimit = signal(PHONE_LINES_PER_STEP);
+  readonly phonePreviewRows = computed(() => this.previewRows().slice(0, this.phoneLineLimit()));
+
+  showMorePreviewLines(): void {
+    this.phoneLineLimit.update((limit) => limit + PHONE_LINES_PER_STEP);
+  }
+
+  /** The verdict chip a card draws: the grid's own words and tones. */
+  verdictChip(verdict: string): { label: string; tone: string } {
+    return PHONE_VERDICT_CHIPS[verdict] ?? { label: verdict, tone: 'neutral' };
+  }
+
+  /** The figures the grid spreads over columns, as one line on a card. A
+   *  missing number is a dash, never a zero. */
+  previewFigures(row: ImportPreviewRowOut): string {
+    const n = (value: number | null) => (value === null || value === undefined ? '—' : String(value));
+    if (this.datasetKind() === 'attendance') {
+      return `${n(row.sessions_attended)} of ${n(row.sessions_held)} sessions · ${n(row.attendance_percent)}%`;
+    }
+    const subject = row.subject_code ? `${row.subject_code} · ` : '';
+    return `${subject}Internal ${n(row.internal)} · External ${n(row.external)} · Total ${n(row.total)} · SGPA ${n(row.sgpa)} · CGPA ${n(row.cgpa)}`;
+  }
 
   private readonly filePicker = viewChild<ElementRef<HTMLInputElement>>('importFilePicker');
 
@@ -793,6 +829,7 @@ export class AdminImportsComponent {
       const judged = (await response.json()) as ImportPreviewOut;
       this.previewRun.set(judged.run);
       this.previewRows.set(judged.rows);
+      this.phoneLineLimit.set(PHONE_LINES_PER_STEP);
       this.rowsToWrite.set(judged.rows_to_write);
       this.wizardStatus.set(
         `${plural(judged.run.rows_total, 'line')} read · ${judged.rows_to_write} would be written. Nothing has been saved yet.`,

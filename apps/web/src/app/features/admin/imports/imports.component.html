@@ -212,6 +212,32 @@
           </div>
         }
 
+        @if (phone()) {
+          @if (previewRun()) {
+            <ul class="m-list" aria-label="Judged lines">
+              @for (row of phonePreviewRows(); track row.line_no) {
+                <li class="m-card">
+                  <div class="m-card__top">
+                    <span class="m-card__title">
+                      {{ row.student_name || row.usn || 'No USN' }}
+                    </span>
+                    <span class="chip dot {{ verdictChip(row.verdict).tone }}">{{ verdictChip(row.verdict).label }}</span>
+                  </div>
+                  <div class="m-card__meta">Line {{ row.line_no }} · {{ row.usn || 'No USN' }}</div>
+                  <div class="m-card__meta">{{ previewFigures(row) }}</div>
+                  <div class="m-card__meta">{{ row.message }}</div>
+                </li>
+              } @empty {
+                <li class="m-empty">No lines in this file.</li>
+              }
+            </ul>
+            @if (previewRows().length > phonePreviewRows().length) {
+              <button type="button" class="btn secondary preview-more" (click)="showMorePreviewLines()">
+                Show more · {{ phonePreviewRows().length }} of {{ previewRowCount() }}
+              </button>
+            }
+          }
+        } @else {
         <div class="dt-frame preview-frame">
           <ag-grid-angular
             class="preview-ag"
@@ -262,6 +288,7 @@
             </span>
           </div>
         </div>
+        }
 
         @if (previewIsTruncated()) {
           <div class="notice accent" role="status">
@@ -345,6 +372,23 @@
             <span class="icon" aria-hidden="true">error</span>{{ recentImportsError() }}
           </div>
         }
+        @if (phone()) {
+          <ul class="m-list" aria-label="Recent imports">
+            @for (run of recentImports(); track run.id) {
+              <li class="m-card">
+                <div class="m-card__top">
+                  <span class="m-card__title">{{ run.datasetLabel }}</span>
+                  <span class="chip dot {{ run.statusTone }}">{{ run.statusLabel }}</span>
+                </div>
+                <div class="m-card__meta">{{ run.batchLabel }}</div>
+                <div class="m-card__meta">{{ run.rowsLabel }} · {{ run.checksLabel }}</div>
+                <div class="m-card__meta">{{ run.byName }} · {{ run.whenLabel }}</div>
+              </li>
+            } @empty {
+              <li class="m-empty">{{ recentImportsEmptyOverlay() }}</li>
+            }
+          </ul>
+        } @else {
         <div class="dt-frame">
           <ag-grid-angular
             class="history-ag"
@@ -356,6 +400,7 @@
             [suppressCellFocus]="true"
           />
         </div>
+        }
       </div>
     </div>
 

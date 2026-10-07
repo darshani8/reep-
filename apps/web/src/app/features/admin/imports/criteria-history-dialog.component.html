@@ -50,7 +50,37 @@
       }
 
       @if (rows(); as history) {
-        @if (history.length > 0) {
+        @if (history.length > 0 && phone()) {
+          <ul class="history-cards" aria-label="Placement criteria, newest first">
+            @for (row of history; track $index) {
+              <li class="history-item">
+                <div class="history-item__top">
+                  <b>{{ rungLabel(row.source) }}</b>
+                  @if (row.active) {
+                    <span class="chip dot good">Live</span>
+                  } @else {
+                    <span class="chip dot neutral">Superseded</span>
+                  }
+                </div>
+                <div class="row-name">
+                  {{ row.name }} · written {{ row.updated_at | date: 'd MMM y, HH:mm' }} ·
+                  {{ row.created_by_name || 'Not recorded' }}
+                </div>
+                <div>
+                  From
+                  @if (row.effective_from) {
+                    {{ row.effective_from | date: 'd MMM y' }}
+                  } @else {
+                    {{ notReadable }}
+                  }
+                  · CGPA {{ row.min_cgpa }} · {{ row.max_live_backlogs }} backlogs ·
+                  {{ row.min_attendance_pct }}% attendance · {{ row.min_cert_completion_pct }}%
+                  certs · {{ row.max_gap_months }} months gap
+                </div>
+              </li>
+            }
+          </ul>
+        } @else if (history.length > 0) {
           <div class="table-scroll">
             <table class="dt-table">
               <caption class="sr-only">Placement criteria, newest first</caption>

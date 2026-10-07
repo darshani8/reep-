@@ -29,6 +29,7 @@ import {
   NOT_READABLE,
   type PlacementCriteriaHistoryRow,
 } from './import-dataset';
+import { phoneSignal } from '../mobile';
 
 @Component({
   selector: 'app-criteria-history-dialog',
@@ -39,6 +40,9 @@ import {
   host: { '(document:keydown.escape)': 'dismissed.emit()' },
 })
 export class CriteriaHistoryDialogComponent {
+  /** Phone width: one card per set instead of a ten-column table. */
+  readonly phone = phoneSignal();
+
   /** The course whose rung to narrow to, or '' for every rung ever written. */
   readonly courseId = input<string>('');
   /** What the picker on the screen behind calls that course, for the subtitle. */

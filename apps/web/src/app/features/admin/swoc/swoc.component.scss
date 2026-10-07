@@ -438,11 +438,8 @@
 
 /* --- phone width (2026-10): list, then the student pushed over it ------- */
 @include m.filters-sheet('.sw-filters', '.sw-filters-toggle');
-@include m.back-button('.m-back');
-
-.sw-filters-done {
-  display: none;
-}
+/* Nothing picked: the list alone. Picked: the student alone, with Back. */
+@include m.pushed-detail('.sw-board', '.sw-list', '.sw-editor');
 
 @include m.phone {
   .sw-filters-toggle {
@@ -453,16 +450,8 @@
   .sw-filters.is-open .select {
     min-height: 44px;
   }
-  .sw-filters.is-open .sw-filters-done {
-    display: inline-flex;
-    justify-content: center;
+  .sw-filters.is-open .m-filters-done {
     min-height: 44px;
-  }
-
-  /* Nothing picked: the list alone. Picked: the student alone, with Back. */
-  .sw-board:not(.has-detail) .sw-editor,
-  .sw-board.has-detail .sw-list {
-    display: none;
   }
 
   .sw-search .dt-quickfilter {

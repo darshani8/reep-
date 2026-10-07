@@ -63,6 +63,7 @@ import { Component, computed, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
 import { PluralPipe } from '../../../shared/text/plural.pipe';
+import { bindBackToClose } from '../../../core/back-close';
 import { phoneSignal } from '../../../core/mobile';
 
 /** The three words `app/scope_views.py` writes into `X-Reep-Scope`. Three and
@@ -245,6 +246,15 @@ export class AdminSwocComponent {
 
   /** The batch and semester pills, folded behind a "Filters" button on a phone. */
   readonly filtersOpen = signal(false);
+  private readonly _filtersBack = bindBackToClose(
+    () => this.filtersOpen(),
+    () => this.filtersOpen.set(false),
+  );
+  /** On a phone the student's board is pushed over the list: Back returns. */
+  private readonly _studentBack = bindBackToClose(
+    () => !!this.selected(),
+    () => this.clearSelection(),
+  );
 
   /**
    * B7.4's semester filter, and it goes to the SERVER — `GET /admin/swoc`

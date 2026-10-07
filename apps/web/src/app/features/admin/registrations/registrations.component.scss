@@ -486,21 +486,14 @@
 @include m.header-actions('.dt-toolbar');
 @include m.scroll-strip('.queue-tabs');
 @include m.filters-sheet('.filters', '.m-filters-toggle');
-@include m.card-list;
-@include m.back-button('.m-back');
 @include m.bottom-sheet('.dialog-backdrop', '.dialog');
-
-.m-filters-done {
-  display: none;
-}
+/* List or detail, never both: the grid gives way to the pushed review. */
+@include m.pushed-detail('.panel', '.queue-grid', '.queue-panel', 'is-pushed');
+@include m.sticky-action('.panel-decision');
 
 @include m.phone {
   .m-filters-toggle {
     margin-bottom: 12px;
-  }
-  .filters.is-open .m-filters-done {
-    display: inline-flex;
-    justify-content: center;
   }
   .filters .select,
   .filters .batch-select {
@@ -560,19 +553,12 @@
     gap: 0;
     padding: 0;
   }
+  /* The global tick, top-aligned with the card's title and a little wider. */
   .m-tick {
-    flex: none;
     display: flex;
     align-items: flex-start;
-    justify-content: center;
     width: 48px;
     padding-top: 14px;
-    cursor: pointer;
-    input {
-      width: 20px;
-      height: 20px;
-      margin: 0;
-    }
   }
   .m-app__open {
     flex: 1 1 auto;
@@ -600,12 +586,10 @@
     gap: 6px 10px;
   }
 
-  /* List or detail, never both. */
-  .panel:not(.is-pushed) .queue-panel,
+  /* The rest of the list's chrome goes with the grid. */
   .panel.is-pushed .dt-header,
   .panel.is-pushed .queue-tabs,
-  .panel.is-pushed .m-filters-toggle,
-  .panel.is-pushed .queue-grid {
+  .panel.is-pushed .m-filters-toggle {
     display: none;
   }
   .queue {
@@ -628,9 +612,6 @@
 
   /* The decision rides at the bottom of the screen, above the tab bar. */
   .panel-decision {
-    position: sticky;
-    bottom: 0;
-    z-index: 5;
     padding: 12px;
     margin: 0 -4px;
     background: var(--surface);

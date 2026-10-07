@@ -139,6 +139,7 @@ import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme, reepGridThemeCompact } from '../../../shared/grid/reep-grid-theme';
 import { plural } from '../../../shared/text/plural.pipe';
 import { phoneSignal } from '../../../core/mobile';
+import { bindBackToClose } from '../../../core/back-close';
 
 // ----------------------------------------------------------------- rules --
 
@@ -716,6 +717,21 @@ export class AdminRegistrationsComponent {
   readonly filtersOpen = signal(false);
   private readonly pushed = signal(false);
   readonly detailPushed = computed(() => this.phone() && this.pushed() && this.hasDecisionTarget());
+
+  // Android Back closes what is on top: the pushed review, the filters
+  // sheet, the seating-rules sheet — each exactly as its own button does.
+  private readonly _detailBack = bindBackToClose(
+    () => this.detailPushed(),
+    () => this.backToList(),
+  );
+  private readonly _filtersBack = bindBackToClose(
+    () => this.filtersOpen(),
+    () => this.filtersOpen.set(false),
+  );
+  private readonly _rulesBack = bindBackToClose(
+    () => this.seatingRulesOpen(),
+    () => this.closeSeatingRules(),
+  );
 
   /** The grid's quick filter, applied by hand — the cards have no grid. */
   readonly phoneRows = computed(() => {

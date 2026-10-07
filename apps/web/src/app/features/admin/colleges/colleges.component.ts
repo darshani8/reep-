@@ -66,6 +66,7 @@ import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
+import { bindBackToClose } from '../../../core/back-close';
 import {
   AdminDeleteDialogComponent,
   type DeleteOutcome,
@@ -202,6 +203,12 @@ export class AdminCollegesComponent implements OnInit {
 
   /** The college the Delete dialog is open for (2026-09-16), or null. */
   readonly deletingCollege = signal<DeleteTarget | null>(null);
+  /** The delete dialog is a bottom sheet on a phone: Android's Back closes it
+   *  as its own Cancel does. */
+  private readonly _deleteBack = bindBackToClose(
+    () => this.deletingCollege() !== null,
+    () => this.closeDeleteDialog(),
+  );
   readonly deleteNote = signal<string | null>(null);
 
   /** Whether to ASK for the college-admin data at all. A client-side capability

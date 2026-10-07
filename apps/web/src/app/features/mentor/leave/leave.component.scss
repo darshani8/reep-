@@ -2,6 +2,7 @@
    sheet itself comes from the shared partial, so it renders identically here and
    in the approver's queue. */
 @use '../../../../styles/leave-sheet';
+@use '../../../../styles/mobile' as m;
 :host {
   display: block;
 }
@@ -273,8 +274,11 @@
 /* --- THE PHONE ------------------------------------------------------------
    Nothing below applies at 900px and up. The sheet's own rules live in the
    shared partial and are untouched; these narrow its frame and restack the
-   one table a phone cannot hold, using the same markup. */
-@media (max-width: 899px) {
+   one table a phone cannot hold, using the same markup. The compose bar is
+   `m.sticky-action` plus this screen's deltas. */
+@include m.sticky-action('.form-actions--compose');
+
+@include m.below-desktop {
   .lv-new {
     width: 100%;
     justify-content: center;
@@ -328,11 +332,11 @@
   }
 
   /* Sign & submit and Save draft, pinned above the tab bar for as long as the
-     form is on screen. Discard and the hint stay in the bar, smaller. */
+     form is on screen. Discard and the hint stay in the bar, smaller. Sticky
+     to 899px (m.sticky-action stops at 599px), 8px above the scroll area's
+     bottom padding, as a bordered card rather than the global fade. */
   .form-actions--compose {
     position: sticky;
-    /* 8px above the scroll area's bottom padding, which the shell sizes to
-       clear the tab bar and the agent orb — sticky offsets start there. */
     bottom: 8px;
     z-index: 3;
     display: grid;
@@ -370,7 +374,10 @@
 
 /* The Alternate Arrangements table as one card per row. Five 60px columns of
    inputs is not a table anyone can type into; each row becomes a bordered
-   group and each cell carries its column's name. Specificity (three classes)
+   group and each cell carries its column's name. Deliberately NOT the global
+   `table.m-rows`: that one stacks the label ABOVE the value from 600px down;
+   this sheet keeps a 92px label column beside an input, from 640px, on the
+   college's own form. Specificity (three classes)
    beats the global `.desktop-main table` phone rules without !important. */
 @media (max-width: 640px) {
   .lv-sheet .lv-alt,

@@ -1,0 +1,221 @@
+/* REEP v5 prototype — design tokens.
+   The :root block below is copied VERBATIM from apps/web/src/styles/reep-v2.scss
+   (lines 36–244). Do not edit colours here: change them there and re-copy. */
+
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url('../fonts/inter-400-latin.woff2') format('woff2')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:500;font-display:swap;src:url('../fonts/inter-500-latin.woff2') format('woff2')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url('../fonts/inter-600-latin.woff2') format('woff2')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url('../fonts/inter-700-latin.woff2') format('woff2')}
+@font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:600;font-display:swap;src:url('../fonts/plus-jakarta-sans-600-latin.woff2') format('woff2')}
+@font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:700;font-display:swap;src:url('../fonts/plus-jakarta-sans-700-latin.woff2') format('woff2')}
+@font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:800;font-display:swap;src:url('../fonts/plus-jakarta-sans-800-latin.woff2') format('woff2')}
+
+:root {
+  /* --- brand ------------------------------------------------------------ */
+  --brand-purple: #552c7e;
+  /* MAGENTA APPEARS IN EXACTLY ONE PLACE, AND A CI CHECK ENFORCES IT.
+     The 2026-09 design system (docs/redesign-2026-09/01-design-system.md §1)
+     reserves magenta for the primary gradient below: the one primary button of
+     a view, the active nav pill, the active tab, the brand mark and the meters.
+     It is never a text colour, never a chip, never a chart series — at 4.0:1 on
+     the card fill it is the weakest colour in the palette to read, and a second
+     standalone accent leaves the gradient with nothing to mean.
+     tools/ci/check_brand_magenta.py fails the build if `--brand-magenta`, the
+     literal `#ba2185` or its rgba form appears anywhere but --primary-gradient
+     and this declaration. Reach for --brand-purple or --purple-mid instead. */
+  --brand-magenta: #ba2185;
+  --purple-mid: #7a2f9e;
+  --magenta-mid: #a0248f;
+
+  /* --- ink -------------------------------------------------------------- */
+  /* Primary and secondary text are CHARCOAL, not tinted purple. The tint read
+     as a third brand colour on text-dense screens and left the actual accent
+     with nothing to contrast against; purple is now accent-only. --ink-soft
+     and --ink-nav keep their violet because the legend and the sidebar are
+     where the brand still belongs. */
+  --ink: #1e1b29;
+  --ink-soft: #4a2668;
+  --ink-nav: #5b3080;
+  --muted: #585566;
+  /* #a08cb2 was ~2.9:1 on the card fill and failed WCAG AA. Its successor
+     #7c7891 passed on white but measured 3.42:1 on the lavender sidebar and
+     page wash (#ece4f5), where the nav's section labels sit (axe, DEF-010).
+     #67637c is 4.65:1 there and 5.75:1 on white: the only tertiary text colour. */
+  --faint: #67637c;
+
+  /* --- series (the ledger's five heads) ---------------------------------
+     ONE ORDERED RAMP, NOT FIVE HUES. These were violet, pale violet, purple,
+     deep purple and magenta, which read as five unrelated categories competing
+     for attention on a screen that is mostly a table of numbers. They are now a
+     sequence: the two heads that are not work (sleep, personal) sit in neutral
+     lavender-greys, and the three that are step light -> deep purple in the
+     order a day's effort escalates. Amber is then left as the only accent in
+     the ledger, reserved for unlogged and over-capacity hours, which is the one
+     thing there worth interrupting for.
+     The two pale steps are darker than the handoff's first pass — #b9a8c9 and
+     #d9c8e6 disappeared against the track behind them. */
+  --series-sleep: #a795b8;
+  --series-personal: #c9b8d8;
+  --series-lectures: #9a5fbf;
+  --series-coursework: #7a2f9e;
+  --series-skilling: #552c7e;
+
+  /* --- surfaces --------------------------------------------------------- */
+  --surface: #ffffff;
+  --tint-1: #efe4f6;
+  --tint-2: #f5edfa;
+  --tint-3: #faf6fd;
+
+  /* --- hairlines. Four weights, each with a job ------------------------- */
+  --hairline: rgba(160, 138, 178, 0.38); /* cards */
+  --hairline-42: rgba(160, 138, 178, 0.42);
+  --hairline-45: rgba(160, 138, 178, 0.45);
+  --hairline-26: rgba(160, 138, 178, 0.26); /* table + metric rules */
+
+  /* --- status. Text colour AND fill, so a chip is never colour alone ---- */
+  /* #137a4a was 4.34:1 on the page wash, where a transparent .chip.good sits
+     (the home header's status chip); #107045 is 4.96:1 (DEF-010). The chart
+     theme's copy is --st-good, which is on white and is unchanged. */
+  --good: #107045;
+  --good-bg: rgba(19, 122, 74, 0.12);
+  --warn: #8f6100;
+  --warn-dot: #d99a00;
+  --warn-bg: rgba(217, 154, 0, 0.12);
+  --risk: #ad2452;
+  --risk-bg: rgba(173, 36, 82, 0.1);
+
+  /* --- washes and gradients --------------------------------------------- */
+  --page-wash: linear-gradient(180deg, #ece4f5 0%, #f2e7f8 45%, #fbe6f2 100%);
+  --primary-gradient: linear-gradient(120deg, #552c7e, #7a2f9e 38%, #a0248f 68%, #ba2185);
+  --card-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(245, 237, 250, 0.7));
+  --titlebar-gradient: linear-gradient(180deg, #faf6fd, #ece0f2);
+  --voice-overlay: radial-gradient(
+    120% 85% at 50% 12%,
+    rgba(96, 45, 138, 0.96),
+    rgba(26, 10, 42, 0.98)
+  );
+
+  /* --- chart palette (2026-09) ------------------------------------------
+     Charts get their own vocabulary because a data series is not a status and
+     neither is a brand colour. Four categorical hues, fixed per interview
+     track so a track is the same colour on every screen (FIN 1, HR 2, MKT 3,
+     BA 4); one single-hue sequential ramp for magnitude; the status trio for
+     status. All pairs were checked on the --tint-3 table ground: CVD deltaE
+     10.1, normal-vision deltaE 21.9, contrast at or above 3:1.
+     Brand purple is series 1 of a single-series chart and nothing else —
+     see 01-design-system.md §1. */
+  --cat-1: #9e6cd5;
+  --cat-2: #c47c00;
+  --cat-3: #009592;
+  --cat-4: #89275b;
+  --seq: #552c7e;
+  --seq-light: #c9b8d8;
+  --axis: #7c7891;
+  --split: rgba(160, 138, 178, 0.26);
+  --st-good: #137a4a;
+  --st-warn: #d99a00;
+  --st-risk: #ad2452;
+  --st-neutral: #c9b8d8;
+
+  /* --- radii ------------------------------------------------------------ */
+  --r-pill: 999px;
+  /* 22px -> 16px with the 2026-09 design system. The enterprise dress sets
+     cards at 16 and controls at 12, which reads as a document rather than a
+     consumer app; at 22 the corner ate into dense table content. This one
+     token reshapes .card/.res-card, .dense-stat, .reg-frame, .skill-card and
+     the uploads panel at once, which is why it is called out here. */
+  --r-card: 16px;
+  --r-ledger: 20px;
+  --r-profile: 18px;
+  --r-alert: 14px;
+  --r-btn: 12px;
+  /* The control radius, named for what it is. An alias rather than a second
+     value: --r-btn already carries 12px across seven component sheets, and
+     two names holding one number is how they come to disagree. */
+  --r-control: var(--r-btn);
+  /* Small tiles (KPI sparkline wells, swatches, the grid's inner cells). */
+  --r-tile: 10px;
+  --r-icon: 8px;
+  --r-seg: 6px;
+  --r-swatch: 3px;
+
+  /* --- shadows ---------------------------------------------------------- */
+  --sh-card: 0 10px 26px rgba(58, 31, 82, 0.1), inset 0 1px 0 #fff;
+  --sh-ctrl: 0 2px 6px rgba(58, 31, 82, 0.06), inset 0 1px 0 #fff;
+  --sh-primary: 0 8px 18px rgba(85, 44, 126, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --sh-primary-hover: 0 10px 22px rgba(85, 44, 126, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --sh-navpill: 0 5px 14px rgba(85, 44, 126, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --sh-well: inset 0 1px 2px rgba(58, 31, 82, 0.12);
+  --sh-voice: 0 10px 24px rgba(12, 4, 22, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+
+  /* THE FLOATING ORB'S ELEVATION IS FOUR LAYERS AND NOT ONE
+     (layout/agent-orb.component.ts). A 1px contact shadow anchors the disc to
+     the page, then near, mid and ambient widen the blur while the opacity
+     falls. One blurred drop at one radius is what an undesigned float looks
+     like -- the falloff is what reads as HEIGHT, and it is the whole reason
+     the orb no longer needs the 4px opaque-white ring it used to wear to
+     separate itself from the wash. The ring was a cut-out line rather than
+     anything light does, and it was the single thing making the orb read as a
+     sticker pasted on the screen. */
+  --sh-orb:
+    0 1px 1px rgba(30, 12, 48, 0.12), 0 4px 8px rgba(58, 31, 82, 0.14),
+    0 12px 24px rgba(58, 31, 82, 0.18), 0 22px 44px rgba(58, 31, 82, 0.16);
+  --sh-orb-hover:
+    0 1px 1px rgba(30, 12, 48, 0.14), 0 6px 12px rgba(58, 31, 82, 0.18),
+    0 16px 32px rgba(58, 31, 82, 0.22), 0 30px 60px rgba(58, 31, 82, 0.2);
+  /* The rim, and it is a separate token because it does not move on hover
+     while the four above all do: a hairline all round, a lit top edge and a
+     shaded bottom one, so the silhouette has a material thickness where it
+     meets the page instead of a cut edge. */
+  --sh-orb-rim:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16), inset 0 1.5px 1px rgba(255, 255, 255, 0.32),
+    inset 0 -3px 8px rgba(24, 8, 40, 0.18);
+
+  /* --- motion ----------------------------------------------------------- */
+  /* TWO CURVES, AND NEITHER IS `ease`. A control answering a press should
+     leave fast and arrive slow (--ease-out); one springing back from a press
+     should overshoot a little and settle (--ease-spring). The browser default
+     eases IN as well as out, which on a 160ms transition spends the first
+     third of it going nowhere and reads as lag. Both are here rather than
+     written at the call site so a second animated control cannot pick a
+     third curve. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  /* --- type ------------------------------------------------------------- */
+  /* Plus Jakarta Sans carries the display role and Inter the UI/data role.
+     Orbitron's wide techno letterforms were hurting the dense data screens —
+     the ledger, the analytics tables, the leaderboard — where the type is
+     small and set in columns. The pair keeps the geometric character in
+     headings while reading cleanly at the 13-14px the tables actually use. */
+  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* --- nav -------------------------------------------------------------- */
+  --nav-width: 220px;
+  /* The app bar is a fixed 52px band, not a content-sized one. The scope
+     control, the search and the avatar block all sit on its baseline, and a
+     bar that grows with its tallest control moves the whole page under it. */
+  --appbar-height: 52px;
+  /* The notch / status bar on an INSTALLED app. index.html asks for
+     `viewport-fit=cover`, so in standalone the page draws under the status
+     bar and the app bar must pad itself down by the inset; in a browser tab
+     the inset is 0 and this is the bar's own height. */
+  --appbar-offset: calc(var(--appbar-height) + env(safe-area-inset-top, 0px));
+  /* How much of the bottom of the screen the phone's tab bar covers. 0 above
+     900px, where there is no tab bar; set below it in the shell's phone block.
+     Anything fixed to the bottom of a screen (a sticky Save, a bottom sheet)
+     sits on `bottom: var(--mobile-tabbar-h)` and is right at every width. */
+  --mobile-tabbar-h: 0px;
+
+  /* --- ground + focus, the two tokens that are not colours or shadows ---- */
+  /* The page's flat ground, under the wash. Named for what it is rather than
+     inherited from the old warm-paper vocabulary. */
+  --ground: #ece4f5;
+  --edge-hi: inset 0 1px 0 #fff;
+  /* Brand purple at 25%, 2px, per 01-design-system.md §7. It was magenta at
+     18%, which is both the colour the palette reserves for the gradient and
+     the faintest ring in it — on the white input fill the old value was
+     barely visible, so keyboard users could not see where focus was. */
+  --focus-ring: 0 0 0 2px rgba(85, 44, 126, 0.25);
+}

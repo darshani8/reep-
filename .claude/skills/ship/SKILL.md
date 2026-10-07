@@ -11,8 +11,15 @@ ones.
 
 ## 1. Branch
 
-Never commit to `main`. If on it, `git switch -c <type>/<short-slug>`
-(`fix/`, `feat/`, `chore/`, `docs/`). If the session names a branch, use that.
+Never commit to `main`, `stage` or `dev`. The branching strategy is
+`docs/branching-strategy.md`: work is cut from `dev` and its PR targets `dev`
+(`git fetch origin dev && git switch -c feature/<short-slug> origin/dev`; `fix/`,
+`chore/`, `docs/` are fine too). An urgent production fix is the one exception:
+cut `hotfix/<slug>` from `main`, open its PR against `main`, then a second PR of
+the same branch into `dev`. A PR into `main` from anything but `stage` or
+`hotfix/*` is refused by the "Branch policy (promotion path)" check. If
+`origin/dev` does not exist yet, the strategy is not switched on: branch from
+and target `main` as before. If the session names a branch, use that.
 
 ## 2. Run the checks for what you touched
 
@@ -61,7 +68,9 @@ End with whatever attribution lines the session requires.
 
 ## 5. Push and open the PR
 
-`git push -u origin <branch>`, then open a **draft** PR whose body mirrors
+`git push -u origin <branch>`, then open a **draft** PR against the base step 1
+named (`gh pr create --draft --base dev`, or `--base main` for a `hotfix/*`)
+whose body mirrors
 `.github/pull_request_template.md`: fill every section, tick exactly one box
 where it asks for one, and name the test that covers the change. Write the
 checks you ran and their results under "Checks", including any that could not

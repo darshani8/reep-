@@ -110,13 +110,17 @@ nothing stops you taking another.
 
 ## The short version
 
+The branching strategy is `docs/branching-strategy.md`: `feature/*` → `dev` →
+`stage` → `main`, and `hotfix/*` from `main` back into `main` and `dev`. Until
+`dev` exists on the remote, read `dev` below as `main`.
+
 ```
-git switch -c fix/mentor-scope-on-uploads main
+git switch -c feature/mentor-scope-on-uploads origin/dev
 # ... edit ...
 tools/ci/preflight.sh                    # the four CI checks, locally, fail-fastest first
 git commit                               # house shape: subject + four-beat body
 git push -u origin HEAD
-gh pr create                             # template asks about rule 1 and rule 2 by file path
+gh pr create --base dev                  # template asks about rule 1 and rule 2 by file path
 # the four required checks go green, PR is up to date with main
 gh pr merge --squash --delete-branch
 # Actions -> Deploy -> Run workflow -> type "deploy"

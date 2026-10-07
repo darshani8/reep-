@@ -1,6 +1,8 @@
 /* Mentor notebook — one card, the printed mentoring-log table inside it.
    Panel / header / card / chip / btn / notice / icon are global; only the
    log's own furniture lives here. */
+@use '../../../../styles/mobile' as m;
+
 :host {
   display: block;
 }
@@ -280,18 +282,12 @@
   color: var(--muted);
 }
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
 /* --- THE PHONE ------------------------------------------------------------
-   Nothing below applies at 900px and up. */
-@media (max-width: 899px) {
+   Nothing below applies at 900px and up. (`.sr-only` on the actions header is
+   the global one.) */
+@include m.sticky-action('.nb-form__actions');
+
+@include m.below-desktop {
   /* The student picker is the screen's subject: a full-width select of its
      own, with Add entry under it, instead of three items fighting for a row
      the select alone overflowed. */
@@ -325,13 +321,16 @@
   .nb-field--wide {
     grid-column: auto;
   }
+  /* m.sticky-action's deltas: sticky to 899px (the mixin stops at 599px),
+     8px above the scroll area's bottom padding, and no fade or padding — the
+     button alone floats. */
   .nb-form__actions {
     margin-top: 4px;
     position: sticky;
-    /* 8px above the scroll area's bottom padding, which the shell sizes to
-       clear the tab bar and the agent orb — sticky offsets start there. */
     bottom: 8px;
     z-index: 2;
+    padding: 0;
+    background: none;
   }
   .nb-form__actions .btn {
     flex: 1;
@@ -352,7 +351,10 @@
    is either clipped or a sideways scroll through somebody's notes; here every
    row is a card and every cell carries its column's name (`data-label`). The
    markup is the same table — no second list to keep in step — and the header
-   row stays in the accessibility tree. Specificity beats the global
+   row stays in the accessibility tree. Deliberately NOT the global
+   `table.m-rows`: every cell here stacks full width (no two-up grid), the
+   date heads the card with the two buttons pinned top right, and it starts at
+   640px. Specificity beats the global
    `.desktop-main table` phone rules without !important. */
 @media (max-width: 640px) {
   .nb-scroll {

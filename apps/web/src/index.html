@@ -4,14 +4,19 @@
     <meta charset="utf-8" />
     <title>REEP · Student</title>
     <base href="/" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ece4f5" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
 
-    <!-- INSTALLABLE, AND THE MANIFEST IS THE STUDENT'S.
-       `name` is "REEP Student" and `start_url` is /student, because that is
-       who this was built for and who reaches REEP on a handset. The `scope`
-       is "/" all the same and cannot be narrowed: scope is what the installed
+    <!-- INSTALLABLE, FOR EVERY ROLE (2026-10-07). `name` is "REEP" and
+       `start_url` is "/", which homeRedirectGuard sends to the signed-in
+       role's home — so one installed app is the student's, the faculty
+       member's and the office's. `id` stays "/student" deliberately: it is
+       the app's identity, and changing it would make every phone that already
+       installed REEP see a second, different app. The per-screen shortcuts
+       went with the student-only name, because a shortcut cannot be per-role
+       and a faculty member's "Jobs" would have bounced off a student route. The `scope`
+       is "/" and cannot be narrowed: scope is what the installed
        window is allowed to keep — narrow it to /student and every /account and
        /login URL opens in the browser instead, which on a phone means the
        student is signed out of the app they just installed.
@@ -22,6 +27,12 @@
        iOS composites transparency against black. See tools/icons/. -->
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <!-- iOS reads these and not the manifest's `display`/`name`: without them an
+       app added to the home screen opens in a Safari frame with the URL bar. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="REEP" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
     <!-- FONTS ARE SELF-HOSTED. There is deliberately no Google Fonts <link> here:
        the @font-face rules live in src/styles/fonts.scss and the files in

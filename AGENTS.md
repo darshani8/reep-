@@ -2119,8 +2119,8 @@ for. And `minmax(Npx, 1fr)` does not collapse below its own minimum: the track
 keeps the Npx and the grid overflows, so six student grids and the global
 `.dense-grid` cap it with `min(Npx, 100%)`.
 
-**IT INSTALLS, AND THE MANIFEST IS THE STUDENT'S.** `public/manifest.webmanifest`
-is "REEP Student" starting at `/student`; `tools/icons/make-app-icons.py`
+**IT INSTALLS, FOR EVERY ROLE (2026-10-07).** `public/manifest.webmanifest`
+is "REEP" starting at `/`, which `homeRedirectGuard` sends to the role's home; its `id` stays `/student` so existing installs are the same app, and the student-only shortcuts went because a shortcut cannot be per-role. Below 900px the shell draws a **bottom tab bar** (`tabs()`: the first four navigation rows flagged `tab`, after the capability filter, plus "More" = the drawer) and exposes `--mobile-tabbar-h`, which anything pinned to the bottom of a screen must sit on; `viewport-fit=cover` plus `--appbar-offset` handle the notch; `tools/icons/make-app-icons.py`
 redraws the four icons from `--primary-gradient`'s own stops and the app's own
 Plus Jakarta Sans, which is a VARIABLE font whose default instance is 400 — the
 first icons came out at Regular beside an app bar drawing 800, so the axis is

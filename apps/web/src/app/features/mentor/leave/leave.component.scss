@@ -331,7 +331,9 @@
      form is on screen. Discard and the hint stay in the bar, smaller. */
   .form-actions--compose {
     position: sticky;
-    bottom: calc(var(--mobile-tabbar-h, 0px) + 8px);
+    /* 8px above the scroll area's bottom padding, which the shell sizes to
+       clear the tab bar and the agent orb — sticky offsets start there. */
+    bottom: 8px;
     z-index: 3;
     display: grid;
     grid-template-columns: 1fr 1fr;

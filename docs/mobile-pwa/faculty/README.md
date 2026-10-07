@@ -2,8 +2,8 @@
 
 390×844 in Chromium, `/api` stubbed with plausible data (no backend), taken
 before the phone layout work (`*-before.png`, base `2f3dfac`) and after it
-(`*-after.png`). The shell's bottom tab bar was not on the branch yet, so
-`--mobile-tabbar-h` reads as 0 in these. At 1280px every screen renders
+(`*-after.png`). The after shots include the orchestrator's phone shell
+(bottom tab bar, orb above it), merged from `ccr-30eaf725-muwz6x`. At 1280px every screen renders
 pixel-identical before and after.
 
 | Screen | Shots |

@@ -178,8 +178,8 @@
 @media (max-width: 899px) {
   .agent {
     --ag-bottom: max(var(--mobile-tabbar-h, 0px), var(--kb-inset, 0px));
-    height: calc(100vh - var(--appbar-height, 52px) - var(--ag-bottom) - 14px);
-    height: calc(100dvh - var(--appbar-height, 52px) - var(--ag-bottom) - 14px);
+    height: calc(100vh - var(--appbar-offset, 52px) - var(--ag-bottom) - 14px);
+    height: calc(100dvh - var(--appbar-offset, 52px) - var(--ag-bottom) - 14px);
     min-height: 320px;
   }
   /* The crumb repeats the heading under it. */

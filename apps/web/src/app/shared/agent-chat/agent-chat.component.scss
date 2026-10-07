@@ -603,6 +603,18 @@
   .ag-send:active:not(:disabled) {
     transform: scale(0.94);
   }
+  /* On the page, the shell's floating agent orb is fixed over the right end
+     of the composer; Send moves out from under it. Not in the dock (the dock
+     covers the orb) and not while the keyboard is up (the orb is fixed to the
+     layout viewport, so it is behind the keyboard then). */
+  .ag-composer textarea::placeholder {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  :host:not(.is-dock):not(.kb-open) .ag-composer {
+    padding-right: 76px;
+  }
 }
 
 /* "Enter to send" is not true where Enter is a new line (agent-chat.component

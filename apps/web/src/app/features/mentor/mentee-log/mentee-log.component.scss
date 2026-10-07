@@ -313,7 +313,9 @@
      the compose card is in view. */
   .ml-actions {
     position: sticky;
-    bottom: calc(var(--mobile-tabbar-h, 0px) + 8px);
+    /* 8px above the scroll area's bottom padding, which the shell sizes to
+       clear the tab bar and the agent orb — sticky offsets start there. */
+    bottom: 8px;
     z-index: 2;
     margin: 12px -6px 0;
     padding: 8px 6px;

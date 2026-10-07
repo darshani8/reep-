@@ -629,7 +629,7 @@
   /* The decision rides at the bottom of the screen, above the tab bar. */
   .panel-decision {
     position: sticky;
-    bottom: calc(var(--mobile-tabbar-h, 0px) + 8px);
+    bottom: 0;
     z-index: 5;
     padding: 12px;
     margin: 0 -4px;

@@ -1,3 +1,5 @@
+@use '../../../../styles/mobile' as m;
+
 :host {
   display: block;
 }
@@ -340,19 +342,12 @@
 
 /* The five boards as one sideways strip on a phone rather than a wrap that
    left "Mocks taken" alone on a second line. */
-@media (max-width: 599.98px) {
+@include m.scroll-strip('.lb-tabs');
+@include m.phone {
   .lb-tabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
     overscroll-behavior-x: contain;
-    scrollbar-width: none;
-    max-width: 100%;
-  }
-  .lb-tabs::-webkit-scrollbar {
-    display: none;
   }
   .lb-tabs .tab {
-    flex: none;
     white-space: nowrap;
   }
 }

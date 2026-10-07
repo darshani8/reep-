@@ -73,6 +73,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
+import { bindBackToClose } from '../../../core/back-close';
 import { endOfLocalDay } from '../../../core/calendar-day';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
@@ -449,6 +450,10 @@ export class GovernanceComponent {
 
   /** The filter bar's bottom sheet on a phone (CSS hides the toggle above it). */
   readonly filtersOpen = signal(false);
+  private readonly _filtersBack = bindBackToClose(
+    () => this.filtersOpen(),
+    () => this.filtersOpen.set(false),
+  );
   readonly quickFilter = signal('');
   readonly collegeFilter = signal('');
   readonly departmentFilter = signal('');
@@ -1073,6 +1078,11 @@ export class GovernanceComponent {
    *  and the API enforces the same floor on each; the kind is on the heading,
    *  the button and the endpoint, so nothing has to be guessed from context. */
   readonly actionKind = signal<GrantAction | null>(null);
+  /** On a phone the reason box is a sheet: Back cancels it, as Cancel does. */
+  private readonly _actionBack = bindBackToClose(
+    () => this.actionKind() !== null,
+    () => this.cancelAction(),
+  );
   readonly actionIds = signal<string[]>([]);
   /** The reason box opens ABOVE the grid; a row on page five is far from it, so
    *  it takes focus rather than appearing off-screen. */

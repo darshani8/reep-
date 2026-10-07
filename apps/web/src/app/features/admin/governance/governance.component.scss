@@ -402,10 +402,9 @@
 @include m.scroll-strip('.gov-tabs');
 @include m.filters-sheet('.gov-filters', '.gov-filters-toggle', '.gov-filters-scrim');
 
-.gov-filters-done,
-.gov-action-scrim {
-  display: none;
-}
+/* The one reason box: the global fixed sheet, with this card's own gap, a
+   taller ceiling (it lists the rows it acts on) and no glass behind it. */
+@include m.fixed-sheet('.gov-action', '.gov-action-scrim');
 
 @include m.phone {
   .dt-header {
@@ -429,9 +428,8 @@
     margin-left: 0;
     max-width: none;
   }
-  .gov-filters.is-open .gov-filters-done {
-    display: inline-flex;
-    justify-content: center;
+  /* Taller than the global Done. */
+  .gov-filters.is-open .m-filters-done {
     min-height: 48px;
   }
 
@@ -465,52 +463,37 @@
     height: 40px;
   }
 
+  /* table.m-rows is global; what follows is only where this screen differs.
+     The grants table sits inside .gov-grid-scroll, so the global's
+     direct-child frame rule does not reach its frame. */
   .dt-frame:has(table.m-rows),
   .gov-grid-scroll {
     overflow: visible;
   }
-  table.m-rows {
-    display: block;
-    overflow: visible;
-  }
-  table.m-rows thead {
-    display: none;
-  }
   table.m-rows tbody {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
     padding: 8px;
   }
   table.m-rows tr {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px 12px;
     padding: 12px;
-    border: 1px solid var(--hairline);
-    border-radius: var(--r-card);
-    background: var(--surface);
   }
-  table.m-rows tr.selected {
-    border-color: var(--brand-purple);
-    background: var(--tint-1);
-  }
+  /* The screen's own .gov-table / .gov-compact / .pinned cell rules outrank
+     the global's, so the card shape is restated against them here. */
   table.m-rows td {
-    display: block;
     position: static;
     min-width: 0;
     padding: 0;
-    border: 0;
     background: transparent;
     box-shadow: none;
     white-space: normal;
-    overflow-wrap: anywhere;
     max-width: none;
   }
   table.m-rows td.pinned,
   table.m-rows td.gov-rowaction,
   table.m-rows td.gov-empty,
-  table.m-rows td.gov-reason-cell {
+  table.m-rows td.gov-reason-cell,
+  table.m-rows td[data-label='Reach'],
+  table.m-rows td[data-label='Status'] {
     grid-column: 1 / -1;
   }
   table.m-rows td.pinned {
@@ -518,10 +501,6 @@
     align-items: center;
     gap: 8px;
     font-weight: 600;
-  }
-  table.m-rows td[data-label='Reach'],
-  table.m-rows td[data-label='Status'] {
-    grid-column: 1 / -1;
   }
   table.m-rows .chip {
     max-width: 100%;
@@ -531,15 +510,7 @@
     text-align: left;
   }
   table.m-rows td[data-label]::before {
-    content: attr(data-label);
-    display: block;
     margin-bottom: 2px;
-    font-family: var(--font-display);
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--faint);
   }
   table.m-rows .gov-check {
     min-height: 44px;
@@ -589,30 +560,10 @@
     min-height: 44px;
   }
 
-  /* The reason box rises from the bottom over whatever list opened it. */
-  .gov-action-scrim {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 96;
-    border: 0;
-    padding: 0;
-    background: rgba(30, 27, 41, 0.42);
-  }
   .gov-action {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 97;
-    margin: 0;
+    gap: 10px;
     max-height: 86dvh;
-    overflow-y: auto;
     overscroll-behavior: contain;
-    border-radius: 20px 20px 0 0;
-    padding: 22px 16px calc(16px + env(safe-area-inset-bottom, 0px));
-    background: var(--surface);
     backdrop-filter: none;
-    box-shadow: 0 -12px 40px rgba(58, 31, 82, 0.25);
   }
 }

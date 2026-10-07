@@ -1,3 +1,5 @@
+@use '../../../../styles/mobile' as m;
+
 /* The Time Allocation Ledger. The metrics strip, the table's cells, chips and
  * inputs are the global .ledger-* classes in reep-v2.scss; this file only does
  * what the handoff draws differently from the global default — two cards
@@ -291,6 +293,8 @@
    their bindings are the desktop's — and the primary action rides in a bar
    stuck above the tab bar, Save beside Submit, under the thumb.
    ------------------------------------------------------------------------- */
+@include m.sticky-action('.table-card .footbar');
+
 @media (max-width: 599.98px) {
   .ledger-head .submit-head {
     display: none;
@@ -414,13 +418,12 @@
     color: var(--ink-soft);
   }
 
-  /* The action bar. Sticky insets from the scroll container's PADDING box,
+  /* The action bar: the global sticky bar (m.sticky-action, included above
+     this block so these deltas win), lifted 8px and drawn as a card. Sticky insets from the scroll container's PADDING box,
      and .desktop-main's bottom padding already clears the tab bar and the
      agent orb above it, so 8px here lands the bar just above the orb. */
   .table-card .footbar {
-    position: sticky;
     bottom: 8px;
-    z-index: 5;
     display: flex;
     flex-wrap: wrap;
     align-items: center;

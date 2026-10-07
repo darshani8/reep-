@@ -210,3 +210,83 @@
 .state-note.risk .icon {
   color: var(--risk);
 }
+
+/* --- THE PHONE ------------------------------------------------------------
+   Nothing below applies at 900px and up: `.vq-back` is display:none there and
+   `vq-focus` has no other rule. */
+.vq-back {
+  display: none;
+}
+@media (max-width: 899px) {
+  /* An open claim is a pushed view: its card alone, a back button above it,
+     and the three decisions in a bar pinned above the tab bar — so Verify is
+     never a scroll past the rubric away. */
+  .vq-focus > .dt-header,
+  .vq-focus > .vq-claims-label,
+  .vq-focus .claim--skill:not(.is-open),
+  .vq-focus .vq-docs,
+  .vq-focus .vq-history {
+    display: none;
+  }
+  .vq-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    margin: -4px 0 8px -6px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: var(--r-pill);
+    background: transparent;
+    color: var(--brand-purple);
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .vq-back:active {
+    background: var(--tint-2);
+  }
+  .vq-back .icon {
+    font-size: 20px;
+  }
+
+  .claim-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .val {
+    font-size: 14px;
+  }
+
+  .decide-row--claim {
+    position: sticky;
+    bottom: calc(var(--mobile-tabbar-h, 0px) + 8px);
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin: 12px -8px 0;
+    padding: 8px;
+    border-radius: 18px;
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+    box-shadow: var(--sh-card);
+  }
+  .decide-row--claim .btn.primary {
+    grid-column: 1 / -1;
+  }
+  /* The back button above the card is this view's Close. */
+  .decide-row--claim .decide-close {
+    display: none;
+  }
+  .decide-row .btn {
+    justify-content: center;
+  }
+  /* The document queue's two decisions share the row equally. */
+  .decide-row:not(.decide-row--claim) .btn {
+    flex: 1;
+  }
+  .claim-actions-right .btn {
+    flex: 1;
+    justify-content: center;
+  }
+}

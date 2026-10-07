@@ -62,7 +62,7 @@
  */
 
 import { DatePipe } from '@angular/common';
-import { Component, computed, signal } from '@angular/core';
+import { Component, ElementRef, computed, inject, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
 
@@ -167,6 +167,7 @@ export class MentorVerificationsComponent {
 
   /// Which card is expanded. One at a time: a decision deserves the whole card.
   readonly openId = signal<string | null>(null);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   /// Per-claim note text, kept by id so switching cards does not lose a draft.
   readonly notes = signal<Record<string, string>>({});
   readonly noteError = signal<string | null>(null);
@@ -241,6 +242,12 @@ export class MentorVerificationsComponent {
   toggle(id: string): void {
     this.openId.update((cur) => (cur === id ? null : id));
     this.noteError.set(null);
+    // On a phone an open claim is a pushed view of its own (the stylesheet
+    // hides the rest of the queue), so it starts at its top. The desktop's
+    // inline expand keeps its scroll position, as it always has.
+    if (window.matchMedia?.('(max-width: 899px)').matches) {
+      queueMicrotask(() => this.host.nativeElement.scrollIntoView({ block: 'start' }));
+    }
   }
 
   async decide(claim: Claim, decision: Decision): Promise<void> {

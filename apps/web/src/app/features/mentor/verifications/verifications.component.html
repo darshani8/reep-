@@ -1,4 +1,12 @@
-<div class="panel" data-p="verifications">
+<!-- `vq-focus`: a claim is open. Below 900px that makes it a pushed view —
+     the rest of the queue is hidden and a back button closes it; at 900px and
+     up the class has no rule and the claim expands inline as it always has. -->
+<div class="panel" data-p="verifications" [class.vq-focus]="openId() !== null">
+  @if (openId() !== null) {
+    <button type="button" class="vq-back" (click)="openId.set(null)">
+      <span class="icon" aria-hidden="true">arrow_back</span> Verification queue
+    </button>
+  }
   <div class="dt-header">
     <div>
       <div class="eyebrow">Faculty · sole approver</div>
@@ -19,7 +27,7 @@
     </div>
   </div>
 
-  <div class="eyebrow">Skill claims</div>
+  <div class="eyebrow vq-claims-label">Skill claims</div>
 
   @if (error()) {
     <div class="notice vq-notice" role="alert">
@@ -36,7 +44,7 @@
     </div>
   } @else {
     @for (c of claims()!; track c.id) {
-      <div class="card claim">
+      <div class="card claim claim--skill" [class.is-open]="openId() === c.id">
         <div class="claim-head">
           <div>
             <strong>{{ c.badge_name }}</strong>
@@ -136,7 +144,7 @@
               <div class="note-error" role="alert">{{ noteError() }}</div>
             }
 
-            <div class="decide-row">
+            <div class="decide-row decide-row--claim">
               <button
                 type="button"
                 class="btn primary"
@@ -161,7 +169,7 @@
               >
                 <span class="icon" aria-hidden="true">cancel</span> Reject
               </button>
-              <button type="button" class="btn ghost" (click)="toggle(c.id)">Close</button>
+              <button type="button" class="btn ghost decide-close" (click)="toggle(c.id)">Close</button>
             </div>
           </div>
         }
@@ -176,7 +184,7 @@
     letter, a report. Verify and Reject are the only two decisions
     POST /mentor/uploads/{id}/review accepts, so they are the only two offered.
   -->
-  <div style="margin-top: 26px">
+  <div class="vq-docs" style="margin-top: 26px">
     <div class="eyebrow">Documents</div>
 
     @if (uploadsError()) {
@@ -264,7 +272,7 @@
     <div class="state-note risk"><span class="icon" aria-hidden="true">error</span>{{ historyError() }}</div>
   } @else if (history(); as past) {
     @if (past.length > 0) {
-      <div class="history">
+      <div class="history vq-history">
         <div class="eyebrow history-title">Recently reviewed</div>
         @for (h of past; track h.id) {
           <div class="card history-row">

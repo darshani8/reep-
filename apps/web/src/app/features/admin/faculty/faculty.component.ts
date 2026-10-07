@@ -70,6 +70,7 @@ import { environment } from '../../../../environments/environment';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { phoneSignal } from '../../../core/mobile';
+import { bindBackToClose } from '../../../core/back-close';
 import { plural } from '../../../shared/text/plural.pipe';
 import {
   AdminDeleteDialogComponent,
@@ -444,6 +445,25 @@ export class AdminFacultyComponent {
     if (userId === null) return null;
     return this.allRows().find((row) => row.userId === userId) ?? null;
   });
+
+  // Android Back closes what is on top: the pushed record, the filters
+  // sheet, and the disable / delete sheets — each as its own button does.
+  private readonly _recordBack = bindBackToClose(
+    () => this.openFaculty() !== null,
+    () => this.closeDrawer(),
+  );
+  private readonly _filtersBack = bindBackToClose(
+    () => this.filtersOpen(),
+    () => this.filtersOpen.set(false),
+  );
+  private readonly _disableBack = bindBackToClose(
+    () => this.disablingFaculty() !== null,
+    () => this.closeDisableDialog(),
+  );
+  private readonly _deleteBack = bindBackToClose(
+    () => this.deletingFaculty() !== null,
+    () => this.closeDeleteDialog(),
+  );
 
   readonly openFacultyIdentityLine = computed(() => {
     const faculty = this.openFaculty();

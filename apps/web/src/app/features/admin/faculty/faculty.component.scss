@@ -279,13 +279,9 @@
 
 @include m.header-actions('.dt-toolbar');
 @include m.filters-sheet('.filters', '.m-filters-toggle');
-@include m.card-list;
-@include m.back-button('.m-back');
 @include m.scroll-strip('.drawer .tabs');
-
-.m-filters-done {
-  display: none;
-}
+/* The pushed detail: list out, record in, full width. */
+@include m.pushed-detail('.directory', '.directory-grid', '.drawer', 'has-open');
 
 @include m.phone {
   .dt-header {
@@ -309,9 +305,8 @@
       justify-content: center;
     }
 
+    /* The global Done, a little taller beside the 48px pickers. */
     .m-filters-done {
-      display: inline-flex;
-      justify-content: center;
       min-height: 48px;
     }
   }
@@ -348,13 +343,10 @@
 
   .gridbar-end,
   .columns-panel,
-  .dt-statusbar,
-  .drawer--empty {
+  .dt-statusbar {
     display: none;
   }
 
-  /* The pushed detail: list out, record in, full width. */
-  .directory.has-open .directory-grid,
   .panel:has(.directory.has-open) .m-filters-toggle {
     display: none;
   }

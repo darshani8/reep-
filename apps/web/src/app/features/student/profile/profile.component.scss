@@ -262,7 +262,9 @@ input.locked-value:focus-visible {
     position: fixed;
     left: 12px;
     right: 12px;
-    bottom: calc(var(--mobile-tabbar-h, 0px) + 10px);
+    /* above the tab bar AND the agent orb, the strip .desktop-main keeps
+       clear at its foot (tab bar + 84px) */
+    bottom: calc(var(--mobile-tabbar-h, 0px) + 84px);
     z-index: 30;
     display: flex;
     align-items: center;

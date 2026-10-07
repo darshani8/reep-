@@ -414,10 +414,12 @@
     color: var(--ink-soft);
   }
 
-  /* the action bar, stuck above the tab bar the shell draws on a phone */
+  /* The action bar. Sticky insets from the scroll container's PADDING box,
+     and .desktop-main's bottom padding already clears the tab bar and the
+     agent orb above it, so 8px here lands the bar just above the orb. */
   .table-card .footbar {
     position: sticky;
-    bottom: calc(var(--mobile-tabbar-h, 0px) + 8px);
+    bottom: 8px;
     z-index: 5;
     display: flex;
     flex-wrap: wrap;

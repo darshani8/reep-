@@ -53,7 +53,7 @@ import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 import { CriteriaHistoryDialogComponent } from './criteria-history-dialog.component';
-import { phoneSignal } from '../mobile';
+import { phoneSignal } from '../../../core/mobile';
 import {
   ACCEPTED_IMPORT_FILE_TYPES,
   CRITERIA_SOURCE_LABELS,

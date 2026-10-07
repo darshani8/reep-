@@ -10,7 +10,7 @@
  * tokens (good / risk / brand purple / warn) so a strength and a weakness are
  * told apart by their heading text AND their tint, never by colour alone.
  */
-@use '../mobile' as m;
+@use '../../../../styles/mobile' as m;
 
 :host {
   display: block;

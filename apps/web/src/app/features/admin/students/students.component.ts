@@ -58,7 +58,7 @@ import { AuthService } from '../../../core/auth.service';
 import { composeBatchLabel } from '../../../core/batch-label';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
-import { phoneSignal } from '../mobile';
+import { phoneSignal } from '../../../core/mobile';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 import type { BatchSummary, StageTally } from './batch-summary';
 import {

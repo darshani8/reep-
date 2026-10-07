@@ -1,7 +1,7 @@
 /* Exports — this screen's layout only.
    panel / card / chip / btn / notice / icon / crumb / dt-* are global
    (styles/reep-v2.scss); nothing here redefines one. */
-@use '../mobile' as m;
+@use '../../../../styles/mobile' as m;
 
 :host {
   display: block;

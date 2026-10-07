@@ -11,7 +11,7 @@
  * beside its 380px override panel, and the list of rules in force inside it.
  */
 
-@use '../mobile' as m;
+@use '../../../../styles/mobile' as m;
 
 :host {
   display: block;

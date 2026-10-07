@@ -5,7 +5,7 @@
    the `.card-title` override, and it carries only the declaration that differs;
    every other class here is named for a box on this screen. */
 
-@use '../mobile' as m;
+@use '../../../../styles/mobile' as m;
 :host {
   display: block;
 }

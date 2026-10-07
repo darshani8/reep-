@@ -4,7 +4,7 @@
  * ag-grid that becomes a list of cards, a master/detail board that becomes a
  * list with a pushed detail.
  *
- * CSS answers every other question (see ./_mobile.scss). This exists because
+ * CSS answers every other question (see src/styles/_mobile.scss). This exists because
  * ag-grid cannot be restyled into a list: rendering both and hiding one would
  * keep a second grid initialised and listening on every phone, so the template
  * picks one with `@if (phone())`. The query is the same literal as the mixins'

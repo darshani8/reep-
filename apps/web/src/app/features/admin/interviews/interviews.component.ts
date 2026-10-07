@@ -107,7 +107,7 @@ import { GridComponent, TooltipComponent } from 'echarts/components';
 import { SVGRenderer } from 'echarts/renderers';
 
 import { environment } from '../../../../environments/environment';
-import { phoneSignal } from '../mobile';
+import { phoneSignal } from '../../../core/mobile';
 import {
   REEP_CHART_THEME,
   STATUS_COLOURS,

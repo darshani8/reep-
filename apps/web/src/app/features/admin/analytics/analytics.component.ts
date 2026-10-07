@@ -74,7 +74,7 @@ import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PluralPipe } from '../../../shared/text/plural.pipe';
 import { AlertRulesDialogComponent } from './alert-rules-dialog.component';
-import { phoneSignal } from '../mobile';
+import { phoneSignal } from '../../../core/mobile';
 
 // The design system's chart theme, registered once for this lazily-loaded
 // chunk. Registration alone does nothing — ECharts applies a theme at init —

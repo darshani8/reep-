@@ -92,7 +92,7 @@ import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 import { PluralPipe } from '../../../shared/text/plural.pipe';
-import { phoneSignal } from '../mobile';
+import { phoneSignal } from '../../../core/mobile';
 
 /** A certification mapped to a taught subject, as the subjects table shows it. */
 interface SubjectCertification {

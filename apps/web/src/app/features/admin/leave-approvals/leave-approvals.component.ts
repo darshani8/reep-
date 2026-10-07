@@ -76,7 +76,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
 import { plural } from '../../../shared/text/plural.pipe';
-import { phoneSignal } from '../mobile';
+import { phoneSignal } from '../../../core/mobile';
 import { LeaveCalendarDialogComponent } from './leave-calendar-dialog.component';
 import {
   LeavePolicyDialogComponent,

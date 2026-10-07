@@ -56,7 +56,7 @@ import type { GetRowIdParams, GridApi, GridReadyEvent } from 'ag-grid-community'
 
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
-import { phoneSignal } from '../mobile';
+import { phoneSignal } from '../../../core/mobile';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PluralPipe } from '../../../shared/text/plural.pipe';

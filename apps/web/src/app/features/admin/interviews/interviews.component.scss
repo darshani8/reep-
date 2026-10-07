@@ -7,7 +7,7 @@
  * shape of this screen, top to bottom: the filter row, the three tiles, the
  * list, the open record with its chart beside it, and the policy card.
  */
-@use '../mobile' as m;
+@use '../../../../styles/mobile' as m;
 
 :host {
   display: block;

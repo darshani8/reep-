@@ -12,7 +12,7 @@
  * nothing here can be mistaken for a global the next screen might expect.
  */
 
-@use '../mobile' as m;
+@use '../../../../styles/mobile' as m;
 
 :host {
   display: block;

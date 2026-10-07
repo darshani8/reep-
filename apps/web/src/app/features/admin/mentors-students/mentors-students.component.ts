@@ -61,7 +61,7 @@ import type {
 } from 'ag-grid-community';
 
 import { environment } from '../../../../environments/environment';
-import { phoneSignal } from '../mobile';
+import { phoneSignal } from '../../../core/mobile';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';

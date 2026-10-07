@@ -70,7 +70,11 @@ for (const r of routes) {
   await page.waitForTimeout(600);
   if (process.env.CLICK) {
     for (const sel of process.env.CLICK.split('||')) {
-      await page.locator(sel).first().click();
+      try {
+        await page.locator(sel).first().click({ timeout: 1500 });
+      } catch {
+        console.log(`  [click] nothing matched ${sel}`);
+      }
       await page.waitForTimeout(400);
     }
   }

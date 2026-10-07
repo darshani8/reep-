@@ -1,25 +1,28 @@
-/* The console at phone width (2026-10) — the shapes every admin screen takes
- * below 600px, written once as mixins so twenty-four component sheets do not
- * each invent a bottom sheet.
+/* The app at phone width (2026-10) — the shapes every screen takes below
+ * 600px, written once. Two halves, and both live in this one file:
  *
- * COMPONENT-SCOPED ON PURPOSE. src/styles/** is the design system's and is
- * being changed by the shell work at the same time; a mixin emits its rules
- * INSIDE the component sheet that includes it, so nothing here is a global
- * class and check_style_duplicates.py has nothing to own. When the shapes
- * settle these are the candidates for promotion to reep-v2.scss.
+ * MIXINS for the shapes that need the screen's own selectors (a bottom sheet
+ * around its dialog, a filters sheet around its filter bar, a list and a
+ * detail that swap places). A component sheet `@use`s this module and
+ * includes them; a mixin emits nothing until it is included, so `@use` from
+ * a component costs nothing and never duplicates the globals below.
  *
- * Usage, from features/admin/<screen>/<screen>.component.scss:
- *
- *   @use '../mobile' as m;
+ *   @use '../../../../styles/mobile' as m;     (from features/<area>/<screen>/)
  *   @include m.phone { .thing { ... } }
  *   @include m.bottom-sheet('.dialog-backdrop', '.dialog');
+ *
+ * GLOBAL CLASSES for the shapes whose names are fixed (`.m-card`, `.m-back`,
+ * `table.m-rows`, `.sr-only`, ...), emitted ONCE by `@include m.globals` in
+ * src/styles.scss. They carry the `m-` prefix so they cannot collide with a
+ * name reep-v2-resume.scss owns (check_style_duplicates.py).
  *
  * The breakpoints are literals because a media query cannot read a custom
  * property (reep-v2.scss's own note on 900px says why). 599.98 rather than 599
  * so a 599.5px viewport on a fractional-DPR handset is not in neither query.
  *
- * DESKTOP (>= 900px) MUST NOT CHANGE. Every rule here is inside a max-width
- * query, so nothing at 900 and up sees any of it.
+ * DESKTOP (>= 900px) MUST NOT CHANGE. Every phone rule here is inside a
+ * max-width query; the few global rules outside one only hide phone-only
+ * controls or style elements that are rendered at phone width alone.
  */
 
 $phone-max: 599.98px;

@@ -6,7 +6,7 @@
  * used as they are. What is here is the shape of this board: the filter row,
  * the two columns, the faculty rail rows, the mentee list and the assign bar.
  */
-@use '../mobile' as m;
+@use '../../../../styles/mobile' as m;
 
 :host {
   display: block;

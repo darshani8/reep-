@@ -11,7 +11,7 @@
  * scoped and neither is claimed by reep-v2.scss or reep-v2-resume.scss, which
  * is the check check_style_duplicates.py enforces.
  */
-@use '../mobile' as m;
+@use '../../../../styles/mobile' as m;
 
 :host {
   display: block;

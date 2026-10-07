@@ -72,7 +72,7 @@ import type {
 
 import { environment } from '../../../../environments/environment';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
-import { phoneSignal } from '../mobile';
+import { phoneSignal } from '../../../core/mobile';
 import { reepGridTheme, reepGridThemeCompact } from '../../../shared/grid/reep-grid-theme';
 
 // =========================================================================

@@ -12,7 +12,7 @@
  * 380px drawer, the grid bar's Columns popover, and the drawer's own stack.
  */
 
-@use '../mobile' as m;
+@use '../../../../styles/mobile' as m;
 
 :host {
   display: block;

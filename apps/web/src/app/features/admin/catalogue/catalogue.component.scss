@@ -7,7 +7,7 @@
  * of those; what is here is the two-column body, the drawer and the few pieces
  * of type this screen needs. */
 
-@use '../mobile' as m;
+@use '../../../../styles/mobile' as m;
 
 :host {
   display: block;

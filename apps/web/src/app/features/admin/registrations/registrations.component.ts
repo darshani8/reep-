@@ -138,7 +138,7 @@ import { specializationLabel } from '../../../core/specializations';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme, reepGridThemeCompact } from '../../../shared/grid/reep-grid-theme';
 import { plural } from '../../../shared/text/plural.pipe';
-import { phoneSignal } from '../mobile';
+import { phoneSignal } from '../../../core/mobile';
 
 // ----------------------------------------------------------------- rules --
 

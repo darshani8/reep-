@@ -1,4 +1,4 @@
-@use '../mobile' as m;
+@use '../../../../styles/mobile' as m;
 
 /* Local to this screen only — the design system's globals own everything else
    (`.panel`, `.card`, `.dt-table`, `.chip`, `.notice`, `.ctrl`, `.btn`). See

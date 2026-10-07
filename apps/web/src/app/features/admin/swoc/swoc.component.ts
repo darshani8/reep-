@@ -63,7 +63,7 @@ import { Component, computed, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
 import { PluralPipe } from '../../../shared/text/plural.pipe';
-import { phoneSignal } from '../mobile';
+import { phoneSignal } from '../../../core/mobile';
 
 /** The three words `app/scope_views.py` writes into `X-Reep-Scope`. Three and
  *  not a boolean, for its reason: `programme` and `none` are opposite facts and

@@ -29,7 +29,7 @@ import {
   NOT_READABLE,
   type PlacementCriteriaHistoryRow,
 } from './import-dataset';
-import { phoneSignal } from '../mobile';
+import { phoneSignal } from '../../../core/mobile';
 
 @Component({
   selector: 'app-criteria-history-dialog',

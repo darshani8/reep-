@@ -69,7 +69,7 @@ import type { CellClickedEvent, GetRowIdParams, GridApi, GridReadyEvent } from '
 import { environment } from '../../../../environments/environment';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
-import { phoneSignal } from '../mobile';
+import { phoneSignal } from '../../../core/mobile';
 import { plural } from '../../../shared/text/plural.pipe';
 import {
   AdminDeleteDialogComponent,

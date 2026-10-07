@@ -2,7 +2,7 @@
    button, field and segmented control is the global design system in
    apps/web/src/styles/reep-v2.scss; nothing global is redefined here. */
 
-@use '../mobile' as m;
+@use '../../../../styles/mobile' as m;
 
 :host {
   display: block;

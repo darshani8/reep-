@@ -17,7 +17,7 @@
  * system's to add. That gap is reported, not filled from here.
  */
 
-@use '../mobile' as m;
+@use '../../../../styles/mobile' as m;
 
 :host {
   display: block;

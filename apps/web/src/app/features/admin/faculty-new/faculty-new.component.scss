@@ -8,7 +8,7 @@
    its own route (/admin/faculty/new) and a modal with a URL is a back button
    that loses a half-typed form. */
 
-@use '../mobile' as m;
+@use '../../../../styles/mobile' as m;
 
 :host {
   display: block;

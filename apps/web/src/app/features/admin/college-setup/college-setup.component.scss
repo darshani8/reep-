@@ -2,7 +2,7 @@
    the one action. Every token is global (reep-v2.scss); what is here is the
    layout of a row of fields, a leaf card and the create plan. */
 
-@use '../mobile' as m;
+@use '../../../../styles/mobile' as m;
 
 :host {
   display: block;

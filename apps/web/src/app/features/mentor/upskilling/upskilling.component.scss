@@ -164,15 +164,6 @@
   color: var(--muted);
 }
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
 /* --- THE PHONE ------------------------------------------------------------
    Nothing below applies at 900px and up; the camera button is display:none
    there. */
@@ -197,7 +188,9 @@
 }
 
 /* The shelf as one card per certificate: title on top, the three facts
-   labelled under it, View / Remove as a full-width pair. Same table markup;
+   labelled under it, View / Remove as a full-width pair. Deliberately NOT the
+   global `table.m-rows`: the label sits in a 92px column BESIDE its value and
+   the rows are ruled, not bordered cards, from 640px. Same table markup;
    three classes of specificity beat the global `.desktop-main table` phone
    rules without !important. */
 @media (max-width: 640px) {

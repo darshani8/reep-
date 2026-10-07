@@ -19,7 +19,7 @@
  * Markup reuses the global reep-v2 classes; the scss only lays out the split.
  */
 
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -83,6 +83,15 @@ export class MenteeLogComponent {
   readonly error = signal<string | null>(null);
 
   readonly selectedId = signal<string | null>(null);
+  /**
+   * Whether the phone layout shows the selected mentee instead of the list.
+   * Below 900px the two columns are two pushed views; at 900px and up the
+   * class it drives has no rule and both columns stay side by side. Only a
+   * TAP sets it — the first mentee is still auto-selected on load for the
+   * desktop, and that must not land a phone on somebody's notes unasked.
+   */
+  readonly detailOpen = signal(false);
+  private readonly mainCol = viewChild<ElementRef<HTMLElement>>('mainCol');
   readonly selected = computed(
     () => this.mentees()?.find((m) => m.student_id === this.selectedId()) ?? null,
   );
@@ -131,6 +140,19 @@ export class MenteeLogComponent {
     } catch {
       this.error.set('Could not reach the server.');
     }
+  }
+
+  /** A row was tapped: select it and, on a phone, push its view. */
+  open(studentId: string): void {
+    this.select(studentId);
+    this.detailOpen.set(true);
+    // The pushed view starts at its top, not wherever the list was scrolled.
+    queueMicrotask(() => this.mainCol()?.nativeElement.scrollIntoView({ block: 'start' }));
+  }
+
+  /** Back to the list (phone layout only; the button is not drawn above it). */
+  back(): void {
+    this.detailOpen.set(false);
   }
 
   select(studentId: string): void {

@@ -229,3 +229,114 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+
+/* --- THE PHONE (below 900px, where the shell shows its bottom tab bar) -----
+   The list and the selected mentee become two pushed views rather than two
+   columns stacked one above the other — stacked, a faculty member scrolled
+   past every mentee to reach the form, and a tap on a row changed a form they
+   could not see. Nothing here applies at 900px and up: `.ml-back` is the only
+   new element and it is display:none there. */
+.ml-back {
+  display: none;
+}
+.ml-row__chev {
+  display: none;
+}
+@media (max-width: 899px) {
+  .ml-split {
+    display: block;
+  }
+  .ml-list {
+    max-width: none;
+    padding: 14px;
+  }
+  .ml-split.is-detail .ml-list,
+  .ml-split:not(.is-detail) .ml-main {
+    display: none;
+  }
+
+  /* A row is a list cell: full width, 56px tall, with the chevron that says
+     it opens something. */
+  .ml-row {
+    position: relative;
+    min-height: 56px;
+    justify-content: center;
+    padding: 10px 40px 10px 12px;
+  }
+  .ml-row strong {
+    font-size: 15px;
+  }
+  .ml-row span {
+    font-size: 13px;
+  }
+  .ml-row__chev {
+    display: block;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 22px !important;
+    opacity: 0.6;
+  }
+  /* The tapped row reads as the current one on desktop; on a phone the list
+     is not visible while it is, so "pressed" is all the tint has to say. */
+  .ml-row:active {
+    background: var(--tint-2);
+  }
+
+  .ml-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    margin: -4px 0 8px -6px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: var(--r-pill);
+    background: transparent;
+    color: var(--brand-purple);
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    scroll-margin-top: 12px;
+  }
+  .ml-back:active {
+    background: var(--tint-2);
+  }
+  .ml-back .icon {
+    font-size: 20px;
+  }
+
+  /* Save note stays on screen while the note is being typed: the action row
+     sticks to the bottom of the viewport, above the tab bar, for as long as
+     the compose card is in view. */
+  .ml-actions {
+    position: sticky;
+    bottom: calc(var(--mobile-tabbar-h, 0px) + 8px);
+    z-index: 2;
+    margin: 12px -6px 0;
+    padding: 8px 6px;
+    border-radius: 16px;
+    background: var(--surface);
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    backdrop-filter: blur(8px);
+  }
+  .ml-actions .btn.primary {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  /* Delete is a 44px target, not a 26px one, beside a timestamp. */
+  .ml-del {
+    width: 44px;
+    height: 44px;
+    margin: -9px -9px -9px 0;
+  }
+  .ml-note {
+    padding: 14px;
+  }
+  .ml-note__text {
+    font-size: 14px;
+  }
+}

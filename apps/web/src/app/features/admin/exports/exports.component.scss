@@ -178,8 +178,6 @@
 }
 
 /* --- phone width (2026-10) ------------------------------------------------ */
-@include m.card-list;
-
 @include m.phone {
   .extract-grid {
     grid-template-columns: 1fr;

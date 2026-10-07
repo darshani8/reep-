@@ -531,3 +531,6 @@ a.plain-link { text-decoration: none; color: inherit; } a.plain-link b { color: 
 @media (min-width: 760px) { .card.facts .kv { grid-template-columns: repeat(4, auto 1fr); } }
 .only-phone { display: block; } .only-wide { display: none; }
 @media (min-width: 760px) { .only-phone { display: none; } .only-wide { display: block; } }
+#main [hidden], .sheet [hidden] { display: none !important; }
+.rtable td .chip { white-space: normal; height: auto; min-height: 24px; text-align: left; }
+.rtable td.r .btn.sm { white-space: nowrap; }

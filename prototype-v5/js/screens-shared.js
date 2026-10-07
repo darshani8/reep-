@@ -3,6 +3,7 @@
 'use strict';
 
 /* ================================================================ Ask REEP chat */
+/* @screen {role}/agent REEP Agent (and the dock's Ask REEP tab) */
 const Chat = {
   log: [], pending: false, feedback: {},
   starters: ['What should I complete this week?', 'Am I placement-ready?', 'Show jobs I qualify for'],
@@ -49,6 +50,7 @@ const Chat = {
 };
 
 /* ================================================================ Interview room */
+/* @screen student/assistant Mock interview (and the dock's Mock interview tab) */
 const TRACKS = [['general', 'General'], ['hr', 'HR'], ['dm', 'Marketing'], ['ba', 'Analytics'], ['fa', 'Finance']];
 const PHASES = ['Opening', 'Probing', 'Deep dive', 'Wrap-up'];
 const Room = {
@@ -127,6 +129,7 @@ const Room = {
 };
 
 /* ================================================================ Dock */
+/* @screen dock Assistant dock */
 const Dock = {
   el: null, tab: 'ask', liveSince: null,
   open() {
@@ -182,6 +185,7 @@ mount() { /* the round and audio segs write view state; mirror them into the roo
 } });
 
 /* ================================================================ Account (all roles) */
+/* @screen {role}/account Account & security */
 const Acct = { codeSent: false, unlinkAsk: false, everyAsk: false, sigAsk: false };
 function accountScreen(role) {
   const me = D.me[role];
@@ -191,13 +195,14 @@ function accountScreen(role) {
   const google = `<div class="list">${U.row({ title: 'Google', sub: me.googleLinked ? 'You can sign in with Google.' : 'Not linked to this account.', lead: U.lead('google'), chev: false, trail: chip(me.googleLinked ? 'Linked' : 'Not linked', me.googleLinked ? 'good' : 'neutral', I('A-061')) + (me.googleLinked ? `<button class="btn sm danger" type="button" data-act="unlink"${I('A-062')}>Unlink</button>` : '') })}</div>`;
   const pw = `<div class="list"${I('A-063')}>${hasPw ? U.row({ title: 'Password', sub: '12 characters or more · REEP does not record when it last changed', lead: U.lead('key'), act: 'pw', inv: I('A-069', 'A-082') }) : U.row({ title: 'No password yet', sub: 'Sign in with Google, or set a password through the emailed setup walk.', lead: U.lead('key'), trail: `<span class="btn sm"${I('A-085')}>Email me a setup link</span>`, act: 'setup-link', chev: false, inv: I('A-064') })}</div>`;
   const sess = `<div class="list"${I('A-070')}>${U.row({ title: `Signed in as ${esc(me.name)} · ${roleWord}`, sub: 'One device at a time: signing in elsewhere signs this one out.', lead: U.lead('globe'), chev: false, trail: chip('This device', 'info') })}${U.row({ title: 'Sign out everywhere', sub: 'Ends every session, this one included.', lead: U.lead('logout'), act: 'everywhere', inv: I('A-071') })}${U.row({ title: 'Sign out', lead: U.lead('logout'), act: 'signout', chev: false, inv: I('A-059') })}</div>`;
-  const sigCard = role === 'student' ? '' : U.section('Signature', `<div class="card"${I('A-072', 'A-202')}>${sig.on ? `<div class="spread"><div class="card flat" style="padding:10px 16px;font-family:cursive;font-size:24px;color:var(--ink)"${I('A-073')}>${esc(me.name.replace(/^Dr\. /, ''))}</div><div class="hrow"><label class="btn sm"${I('A-074', 'A-204')}>Replace<input type="file" accept="image/png,image/jpeg" class="sr" data-act-change="sig" data-f="sig"></label><button class="btn sm danger" type="button" data-act="sig-remove"${I('A-075', 'A-205')}>Remove…</button></div></div><p class="xs muted" style="margin-top:8px">On file since ${fmtDate(sig.since)} · ${sig.size} · ${sig.kind} · printed on every leave paper you apply on or sanction.</p>`
-    : `<div${I('A-076', 'A-203')}>${U.empty('sign', 'No signature on file', 'Leave papers show your name and the time instead.', `<label class="btn primary"${I('A-074')}>Upload signature<input type="file" accept="image/png,image/jpeg" class="sr" data-act-change="sig" data-f="sig"></label>`)}</div>`}<div class="xs" role="status" data-sigmsg${I('A-206')}></div></div>`);
+  const sigCard = role === 'student' ? '' : U.section('Signature', `<div class="card"${I('A-072', 'B-202')}>${sig.on ? `<div class="spread"><div class="card flat" style="padding:10px 16px;font-family:cursive;font-size:24px;color:var(--ink)"${I('A-073')}>${esc(me.name.replace(/^Dr\. /, ''))}</div><div class="hrow"><label class="btn sm"${I('A-074', 'B-204')}>Replace<input type="file" accept="image/png,image/jpeg" class="sr" data-act-change="sig" data-f="sig"></label><button class="btn sm danger" type="button" data-act="sig-remove"${I('A-075', 'B-205')}>Remove…</button></div></div><p class="xs muted" style="margin-top:8px">On file since ${fmtDate(sig.since)} · ${sig.size} · ${sig.kind} · printed on every leave paper you apply on or sanction.</p>`
+    : `<div${I('A-076', 'B-203')}>${U.empty('sign', 'No signature on file', 'Leave papers show your name and the time instead.', `<label class="btn primary"${I('A-074')}>Upload signature<input type="file" accept="image/png,image/jpeg" class="sr" data-act-change="sig" data-f="sig"></label>`)}</div>`}<div class="xs" role="status" data-sigmsg${I('B-206')}></div></div>`);
   const prefs = U.section('Email notifications', `<div class="list"${I('A-077')}>${D.notifPrefs.map((p) => U.row({ title: p.label, chev: false, trail: `${chip(p.enforced ? (p.on ? 'On' : 'Off') : 'Not wired yet', p.enforced ? (p.on ? 'good' : 'neutral') : 'neutral')}<input class="switch" type="checkbox" aria-label="${esc(p.label)}" data-act="pref" data-k="${p.key}"${p.on ? ' checked' : ''}${p.enforced ? '' : ' disabled'}>` })).join('')}</div><p class="xs muted" style="margin:6px 4px"${I('A-078')}>REEP sends no digests.</p>`);
   const signIns = U.section('Recent sign-ins', D.signIns.length ? U.table([{ h: 'When', k: 'when' }, { h: 'Door', k: 'door' }, { h: 'Device', k: 'device' }, { h: 'Seen from', k: 'from' }], D.signIns, I('A-079')) : `<div${I('A-081')}>${U.empty('globe', 'No sign-ins recorded yet')}</div>`, `<button class="btn sm ghost" type="button" data-act="refresh"${I('A-080')}>Refresh</button>`);
   return U.page({ title: 'Account & security', lede: `<span${I('A-058')}>${roleWord} · ${esc(me.email)}</span>`,
     body: `${U.section('Sign-in', google + '<div style="height:10px"></div>' + pw).replace('class="section"', 'class="section" style="margin-top:0"')}${sigCard}${U.section('Sessions', sess)}${prefs}${signIns}` });
 }
+/* @screen {role}/account Account & security › Change password sheet */
 function pwSheet() {
   let sent = false;
   const body = () => `<div class="steps"${I('A-065')}><i class="on"></i><i class="${sent ? 'on' : ''}"></i></div>

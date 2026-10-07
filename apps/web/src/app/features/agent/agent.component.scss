@@ -161,3 +161,94 @@
     margin-top: 12px;
   }
 }
+
+/* The phone-only glyph on Clear; at 900px and up the button is its words. */
+.ag-ghost__icon {
+  display: none;
+}
+
+/* --- THE PHONE ------------------------------------------------------------
+   The page is exactly the height between the app bar and what covers the
+   bottom of the screen — the tab bar, or the on-screen keyboard while it is up
+   (`--kb-inset`, keyboard-inset.ts) — and the thread fills what the heading
+   leaves. 100vh first for a browser without dvh; dvh is the viewport with the
+   URL bar where it is now, not where it would be scrolled away. The 14px is
+   `.desktop-main`'s top padding at this width. Nothing here applies at 900px
+   and up. */
+@media (max-width: 899px) {
+  .agent {
+    --ag-bottom: max(var(--mobile-tabbar-h, 0px), var(--kb-inset, 0px));
+    height: calc(100vh - var(--appbar-height, 52px) - var(--ag-bottom) - 14px);
+    height: calc(100dvh - var(--appbar-height, 52px) - var(--ag-bottom) - 14px);
+    min-height: 320px;
+  }
+  /* The crumb repeats the heading under it. */
+  .ag-crumb {
+    display: none;
+  }
+  .ag-head {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .ag-title h1 {
+    font-size: 1.25rem;
+  }
+  /* The empty thread greets with the same sentence, in a bigger voice. */
+  .ag-title p {
+    display: none;
+  }
+  /* Clear is a 44px round glyph in the heading row; its words stay for a
+     screen reader. */
+  .ag-ghost {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-color: var(--hairline-42);
+  }
+  .ag-ghost__icon {
+    display: inline;
+    font-size: 20px;
+  }
+  .ag-ghost__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .ag-disclaimer {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    line-height: 1.45;
+  }
+  .ag-body,
+  .ag-body--rail {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+  .ag-thread,
+  .ag-body--rail > .ag-thread {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  /* The Main Admin's card would push the composer off the bottom edge; it
+     stays reachable by scrolling past the thread. */
+  .ag-rail {
+    width: auto;
+    margin-top: 12px;
+    flex: none;
+  }
+  /* While typing, the screen belongs to the conversation: the rule-1 notice
+     steps aside until the keyboard goes down again. */
+  :host.kb-open .ag-disclaimer {
+    display: none;
+  }
+}

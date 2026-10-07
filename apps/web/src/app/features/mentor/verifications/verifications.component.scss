@@ -1,4 +1,6 @@
 /* Skill verifications queue. Panel / card / chip / btn / icon are global. */
+@use '../../../../styles/mobile' as m;
+
 :host {
   display: block;
 }
@@ -212,12 +214,12 @@
 }
 
 /* --- THE PHONE ------------------------------------------------------------
-   Nothing below applies at 900px and up: `.vq-back` is display:none there and
-   `vq-focus` has no other rule. */
-.vq-back {
-  display: none;
-}
-@media (max-width: 899px) {
+   Nothing below applies at 900px and up: the back button is the global
+   `.m-back--wide` (display:none there) and `vq-focus` has no other rule. The
+   decision bar is `m.sticky-action` plus this screen's deltas. */
+@include m.sticky-action('.decide-row--claim');
+
+@include m.below-desktop {
   /* An open claim is a pushed view: its card alone, a back button above it,
      and the three decisions in a bar pinned above the tab bar — so Verify is
      never a scroll past the rubric away. */
@@ -228,26 +230,22 @@
   .vq-focus .vq-history {
     display: none;
   }
-  .vq-back {
-    display: inline-flex;
-    align-items: center;
+
+  /* The global back button, a pill here with a tint when pressed. */
+  .m-back--wide {
     gap: 6px;
-    min-height: 44px;
     margin: -4px 0 8px -6px;
     padding: 0 10px;
-    border: 0;
     border-radius: var(--r-pill);
-    background: transparent;
-    color: var(--brand-purple);
     font-family: var(--font);
-    font-size: 15px;
     font-weight: 600;
-    cursor: pointer;
+    font-variant: normal;
+    line-height: normal;
   }
-  .vq-back:active {
+  .m-back--wide:active {
     background: var(--tint-2);
   }
-  .vq-back .icon {
+  .m-back--wide .icon {
     font-size: 20px;
   }
 
@@ -258,10 +256,11 @@
     font-size: 14px;
   }
 
+  /* Sticky to 899px (the pushed view's breakpoint; m.sticky-action stops at
+     599px), 8px above the scroll area's bottom padding, as a bordered card
+     rather than the global fade. */
   .decide-row--claim {
     position: sticky;
-    /* 8px above the scroll area's bottom padding, which the shell sizes to
-       clear the tab bar and the agent orb — sticky offsets start there. */
     bottom: 8px;
     z-index: 2;
     display: grid;

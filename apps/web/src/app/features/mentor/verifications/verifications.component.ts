@@ -65,6 +65,11 @@ import { DatePipe } from '@angular/common';
 import { Component, ElementRef, computed, inject, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
+import { bindBackToClose } from '../../../core/back-close';
+import { phoneSignal } from '../../../core/mobile';
+
+/** Below this an open claim is a pushed view of its own. */
+const PUSHED_QUERY = '(max-width: 899.98px)';
 
 /** A row of `GET /mentor/badge-evidence/{pending,reviewed}`
  *  (`PendingEvidenceOut` in app/routers/badge_verification.py). */
@@ -168,6 +173,13 @@ export class MentorVerificationsComponent {
   /// Which card is expanded. One at a time: a decision deserves the whole card.
   readonly openId = signal<string | null>(null);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly pushed = phoneSignal(PUSHED_QUERY);
+  /** Android's Back returns to the queue, as the back button does. */
+  private readonly _claimBack = bindBackToClose(
+    () => this.openId() !== null,
+    () => this.openId.set(null),
+    PUSHED_QUERY,
+  );
   /// Per-claim note text, kept by id so switching cards does not lose a draft.
   readonly notes = signal<Record<string, string>>({});
   readonly noteError = signal<string | null>(null);
@@ -245,7 +257,7 @@ export class MentorVerificationsComponent {
     // On a phone an open claim is a pushed view of its own (the stylesheet
     // hides the rest of the queue), so it starts at its top. The desktop's
     // inline expand keeps its scroll position, as it always has.
-    if (window.matchMedia?.('(max-width: 899px)').matches) {
+    if (this.pushed()) {
       queueMicrotask(() => this.host.nativeElement.scrollIntoView({ block: 'start' }));
     }
   }

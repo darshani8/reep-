@@ -1,9 +1,9 @@
 <!-- `vq-focus`: a claim is open. Below 900px that makes it a pushed view —
-     the rest of the queue is hidden and a back button closes it; at 900px and
+     the rest of the queue is hidden and a back button (or the phone's Back) closes it; at 900px and
      up the class has no rule and the claim expands inline as it always has. -->
 <div class="panel" data-p="verifications" [class.vq-focus]="openId() !== null">
   @if (openId() !== null) {
-    <button type="button" class="vq-back" (click)="openId.set(null)">
+    <button type="button" class="m-back--wide" (click)="openId.set(null)">
       <span class="icon" aria-hidden="true">arrow_back</span> Verification queue
     </button>
   }

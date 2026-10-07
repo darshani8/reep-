@@ -505,3 +505,44 @@ $verified-blue: #1a73e8;
     padding-block: 15px;
   }
 }
+
+/* The claims table on a phone (below 600px): the mentor's note is the column
+   that matters and the shell's sideways-scroll fallback put it on one line off
+   the edge. Each claim becomes a row of its own — badge and status on top,
+   the note wrapped beneath — with the column heading carried by the cell. */
+@media (max-width: 599.98px) {
+  .claims-table {
+    display: block;
+  }
+  .claims-table thead {
+    display: none;
+  }
+  .claims-table tbody {
+    display: block;
+  }
+  .claims-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 10px;
+    align-items: center;
+    padding: 12px 0;
+    border-top: 1px solid var(--hairline-26);
+  }
+  .claims-table tr:first-child {
+    border-top: 0;
+  }
+  .claims-table td {
+    display: block;
+    padding: 0;
+    border: 0;
+    white-space: normal;
+  }
+  .claims-table td:first-child {
+    font-weight: 700;
+  }
+  .claims-table td.claims-note {
+    grid-column: 1 / -1;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+}

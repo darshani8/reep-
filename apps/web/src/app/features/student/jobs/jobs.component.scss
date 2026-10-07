@@ -205,3 +205,133 @@
   font-size: 14px;
   padding: 18px 14px;
 }
+
+/* ---------------------------------------------------------------------------
+   THE BOARD ON A PHONE (below 600px). A six-column table at 760px was a
+   sideways scroll in which the Apply button lived off the right edge. Here
+   the SAME rows restack as one card per posting — role and company first, the
+   place and deadline under it, eligibility beside the match, the status
+   sentence, and Apply as a full-width target at the foot. The header row is
+   hidden; every cell already names what it is (a chip, a pin, a bar with its
+   percentage), so nothing needs a column heading to be read.
+   ------------------------------------------------------------------------- */
+@media (max-width: 599.98px) {
+  .filter-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .filter-row select.ctrl {
+    width: 100%;
+    min-height: 44px;
+  }
+  .filt > span {
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+  }
+  .filter-row .clear {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+
+  .jobs-frame {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    overflow: visible;
+  }
+  .jobs-table {
+    min-width: 0;
+    display: block;
+    table-layout: auto;
+  }
+  .jobs-table thead {
+    display: none;
+  }
+  .jobs-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .jobs-table tr {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'role role'
+      'loc loc'
+      'elig match'
+      'status status'
+      'act act';
+    align-items: center;
+    gap: 8px 10px;
+    padding: 14px;
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    background: var(--surface);
+    box-shadow: var(--sh-card);
+  }
+  .jobs-table tr.ineligible {
+    background: linear-gradient(0deg, rgba(173, 36, 82, 0.04), rgba(173, 36, 82, 0.04)), var(--surface);
+  }
+  .jobs-table td,
+  .jobs-table th {
+    width: auto !important;
+  }
+  .jobs-table td,
+  .jobs-table tr.ineligible td {
+    display: block;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+  .jobs-table td:nth-child(1) {
+    grid-area: role;
+  }
+  .jobs-table td:nth-child(2) {
+    grid-area: loc;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+  }
+  .jobs-table td:nth-child(2) .closes {
+    margin-top: 0;
+  }
+  .jobs-table td:nth-child(3) {
+    grid-area: elig;
+  }
+  .jobs-table td:nth-child(4) {
+    grid-area: match;
+    justify-self: end;
+  }
+  .jobs-table td:nth-child(5) {
+    grid-area: status;
+  }
+  .jobs-table td.col-action {
+    grid-area: act;
+    text-align: left;
+  }
+  .jobs-table td.col-action .btn {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    font-size: 14px;
+  }
+  .role-title {
+    font-size: 16px;
+  }
+  .empty-row {
+    display: block !important;
+  }
+  .empty-row td {
+    padding: 8px 0;
+  }
+}
+
+/* Tap feedback where there is no hover. */
+@media (hover: none) {
+  .jobs-table td.col-action .btn:not([disabled]):active {
+    transform: scale(0.98);
+  }
+}

@@ -115,6 +115,10 @@
           </div>
         }
 
+        <!-- The sections. A plain block on desktop; on a phone this is the
+             one strip that scrolls sideways, so the sixteen sections sit in a
+             thumb-wide row instead of a screen-tall list above the form. -->
+        <div class="step-list">
         @for (group of groups; track group.name) {
           <div class="step-group">{{ group.name }}</div>
           @for (s of group.steps; track s.key) {
@@ -129,6 +133,7 @@
             </div>
           }
         }
+        </div>
       </aside>
 
       <section class="main">

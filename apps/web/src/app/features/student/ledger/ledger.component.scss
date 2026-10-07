@@ -275,3 +275,209 @@
 .table-card .footbar .open-until {
   margin-right: auto;
 }
+
+/* The phone-only pieces are absent at every width the desktop draws. */
+.cell-label,
+.submit-foot {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   THE LEDGER ON A PHONE (below 600px). Thirty number boxes in a 660px table
+   meant scrolling sideways to find a column whose heading had scrolled away.
+   Here the SAME table is restacked: one card per slot, one labelled row per
+   activity, the slot's logged figure in the card's corner, and the day total
+   as a last card. Nothing is duplicated — the inputs, their aria-labels and
+   their bindings are the desktop's — and the primary action rides in a bar
+   stuck above the tab bar, Save beside Submit, under the thumb.
+   ------------------------------------------------------------------------- */
+@media (max-width: 599.98px) {
+  .ledger-head .submit-head {
+    display: none;
+  }
+
+  /* Sticky needs an ancestor that does not clip; the card's rounded corners
+     are kept by the slot cards themselves. */
+  .table-card {
+    overflow: visible;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+  .table-scroll {
+    overflow: visible;
+  }
+  .table-card .ledger-table {
+    min-width: 0;
+    display: block;
+  }
+  .table-card .ledger-table thead {
+    display: none;
+  }
+  .table-card .ledger-table tbody,
+  .table-card .ledger-table tfoot {
+    display: block;
+  }
+  .table-card .ledger-table tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    column-gap: 10px;
+    margin-bottom: 10px;
+    padding: 12px 14px 6px;
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    background: var(--surface) !important;
+    box-shadow: var(--sh-card);
+  }
+  .table-card .ledger-table td {
+    display: block;
+    border: 0;
+    padding: 0;
+    text-align: left;
+  }
+  .table-card .ledger-table td.slot-col {
+    grid-column: 1;
+    grid-row: 1;
+    padding: 0 0 8px;
+    width: auto;
+  }
+  .table-card .ledger-table td.logged-col {
+    grid-column: 2;
+    grid-row: 1;
+    padding: 0 0 8px;
+    border-left: 0;
+    text-align: right;
+  }
+  .table-card .ledger-table td.cell {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 52px;
+    border-top: 1px solid var(--hairline-26);
+  }
+  .cell-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    flex: 1;
+    min-height: 44px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .cell-label .sw {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    border: 1px solid rgba(58, 31, 82, 0.12);
+    flex: none;
+  }
+  .table-card .ledger-table input[type='number'] {
+    width: 84px;
+    min-height: 44px;
+    font-size: 16px;
+    font-weight: 600;
+    border: 1px solid var(--hairline-42);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--ink);
+  }
+  .table-card .ledger-table input[type='number']:focus-visible {
+    outline: 2px solid var(--brand-purple);
+    outline-offset: 1px;
+    border-color: var(--brand-purple);
+  }
+
+  /* the day total: the same card, its column totals as labelled rows */
+  .table-card .ledger-table tfoot .total-row {
+    background: linear-gradient(180deg, #f7f1fb, #efe3f7) !important;
+    border-color: rgba(122, 47, 158, 0.32);
+  }
+  .table-card .ledger-table tfoot .total-row td {
+    background: none;
+    border-top: 0;
+    padding: 0 0 8px;
+    font-size: 15px;
+  }
+  .table-card .ledger-table tfoot .total-row td.cell {
+    min-height: 34px;
+    border-top: 1px solid rgba(122, 47, 158, 0.14);
+    padding: 0;
+  }
+  .table-card .ledger-table tfoot td.cell::before {
+    content: attr(data-label);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+
+  /* The action bar. Sticky insets from the scroll container's PADDING box,
+     and .desktop-main's bottom padding already clears the tab bar and the
+     agent orb above it, so 8px here lands the bar just above the orb. */
+  .table-card .footbar {
+    position: sticky;
+    bottom: 8px;
+    z-index: 5;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0 0;
+    padding: 10px 12px;
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    background: rgb(255 255 255 / 94%);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 28px rgb(58 31 82 / 16%);
+  }
+  .table-card .footbar .chip {
+    flex: 1 1 100%;
+    white-space: normal;
+  }
+  .table-card .footbar .open-until {
+    margin-right: 0;
+  }
+  .table-card .footbar .btn {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+  .submit-foot {
+    display: inline-flex;
+  }
+
+  .ledger-kpis > .kpi-tile {
+    min-width: calc(50% - 5px);
+    padding: 10px 12px;
+  }
+  .history-card,
+  .weekly-card {
+    padding: 12px 14px;
+  }
+  .history-strip {
+    overscroll-behavior-x: contain;
+    margin: 0 -14px;
+    padding: 2px 14px 6px;
+    scroll-padding-inline: 14px;
+  }
+  .day-chip {
+    min-height: 44px;
+  }
+}
+
+/* Tap feedback for the day chips on a touch screen, where :hover never
+   fires (and on some browsers sticks after a tap). */
+@media (hover: none) {
+  .day-chip:hover {
+    border-color: var(--hairline);
+  }
+  .day-chip.active:hover {
+    border-color: var(--brand-purple);
+  }
+  .day-chip:active {
+    transform: scale(0.97);
+    background: var(--tint-1);
+  }
+}

@@ -7,7 +7,9 @@
         student record and locked.
       </div>
     </div>
-    <div class="dt-toolbar">
+    <!-- On a phone this bar floats above the tab bar (see .profile-actions),
+         so Save is in reach from any field on a long form. -->
+    <div class="dt-toolbar profile-actions">
       <!-- Save-state machine: one status pill next to the button. -->
       @if (loaded()) {
         <span
@@ -230,8 +232,10 @@
             (ngModelChange)="phone.set($event); onEdit()"
             (blur)="touch('phone')"
             name="phone"
+            type="tel"
             autocomplete="tel"
             inputmode="tel"
+            enterkeyhint="next"
             placeholder="e.g. 98765 43210"
             [attr.aria-invalid]="showError('phone')"
           />
@@ -247,6 +251,11 @@
             (blur)="touch('email')"
             name="email"
             type="email"
+            autocomplete="email"
+            inputmode="email"
+            autocapitalize="none"
+            spellcheck="false"
+            enterkeyhint="next"
             placeholder="you@example.com"
             [attr.aria-invalid]="showError('email')"
           />
@@ -261,6 +270,11 @@
             (ngModelChange)="linkedinUrl.set($event); onEdit()"
             (blur)="touch('linkedinUrl')"
             name="linkedinUrl"
+            inputmode="url"
+            autocomplete="url"
+            autocapitalize="none"
+            spellcheck="false"
+            enterkeyhint="next"
             placeholder="linkedin.com/in/…"
             [attr.aria-invalid]="showError('linkedinUrl')"
           />
@@ -277,6 +291,11 @@
             (ngModelChange)="githubUrl.set($event); onEdit()"
             (blur)="touch('githubUrl')"
             name="githubUrl"
+            inputmode="url"
+            autocomplete="url"
+            autocapitalize="none"
+            spellcheck="false"
+            enterkeyhint="next"
             placeholder="github.com/…"
             [attr.aria-invalid]="showError('githubUrl')"
           />
@@ -293,6 +312,11 @@
             (ngModelChange)="portfolioUrl.set($event); onEdit()"
             (blur)="touch('portfolioUrl')"
             name="portfolioUrl"
+            inputmode="url"
+            autocomplete="url"
+            autocapitalize="none"
+            spellcheck="false"
+            enterkeyhint="next"
             placeholder="your-site.com"
             [attr.aria-invalid]="showError('portfolioUrl')"
           />
@@ -308,6 +332,8 @@
             [ngModel]="city()"
             (ngModelChange)="city.set($event); onEdit()"
             name="city"
+            autocomplete="address-level2"
+            enterkeyhint="done"
             placeholder="e.g. Bengaluru"
           />
         </div>

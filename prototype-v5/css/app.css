@@ -419,8 +419,8 @@ textarea.input { min-height: 88px; resize: vertical; }
 .fac-alt td .input { flex: 0 1 62%; min-width: 0; }
 
 /* the assistant button rises above a sticky action bar instead of covering it */
-body.has-sticky .fab { bottom: calc(var(--tabbar-h) + var(--safe-b) + 84px); }
-@media (min-width: 1024px) { body.has-sticky .fab { bottom: 96px; } }
+body.has-sticky .fab { bottom: calc(var(--tabbar-h) + var(--safe-b) + var(--sticky-h, 60px) + 24px); }
+@media (min-width: 1024px) { body.has-sticky .fab { bottom: calc(var(--sticky-h, 60px) + 36px); } }
 
 /* student-2 */
 .tag-x { border: 0; background: none; color: inherit; font-size: 15px; line-height: 1; padding: 0 0 0 2px; cursor: pointer; min-width: 20px; min-height: 20px; }

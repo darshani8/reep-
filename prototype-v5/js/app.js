@@ -26,6 +26,9 @@ const NAV = {
   ] },
 };
 
+/* a tab label must fit one line at 360px */
+const TAB_SHORT = { 'admin/registrations': 'Applications', 'admin/students': 'Students', 'admin/leave-approvals': 'Leave' };
+
 const App = {
   role: 'student',
   st: {}, // per-route view state (filters, tabs, selections)
@@ -80,7 +83,9 @@ const App = {
     const main = document.getElementById('main');
     if (main) main.classList.add(parts[2] && push ? 'screen-push' : 'screen-enter');
     document.title = `${page.title || def.title} · REEP`;
-    document.body.classList.toggle('has-sticky', !!(main && main.querySelector('.sticky-act')));
+    const sticky = main && main.querySelector('.sticky-act');
+    document.body.classList.toggle('has-sticky', !!sticky);
+    if (sticky) requestAnimationFrame(() => document.body.style.setProperty('--sticky-h', `${sticky.offsetHeight}px`));
     if (def.mount) def.mount(main, { id: parts[2], query, st: this.s(key) });
     if (push && !this.keepScroll) window.scrollTo(0, 0);
     this.keepScroll = false;
@@ -113,7 +118,7 @@ const App = {
       ${groups.map((g) => `${g.g ? `<div class="grp">${g.g}</div>` : ''}${g.items.map(([k, t, icn, inv, , b]) => k === null ? `<span class="soon"${I('A-105')}>${ic(icn)}<span>${t}</span><span class="chip neutral plain xs">Soon</span></span>` : `<a href="#/${k}"${k === key || key.startsWith(k + '/') ? ' aria-current="page"' : ''}${inv ? I(inv) : ''}>${ic(icn)}<span>${t}</span>${pip(b)}</a>`).join('')}`).join('')}
       <div class="me"><a href="#/${role}/account"${I(role === 'student' ? 'A-092' : 'A-093')}><span class="avatar" style="width:30px;height:30px;font-size:11px">${initials(me.name)}</span><span class="ellip">${esc(me.name)}<br><span class="xs muted">${role === 'student' ? D.me.student.usn : role === 'admin' ? 'Main Admin · Whole programme' : 'Faculty'}</span></span></a></div></nav>`;
     const tabs = groups.flatMap((g) => g.items).filter((i) => i[4]).slice(0, 4);
-    const tabbar = `<nav class="tabbar" aria-label="Tabs"${I('A-106')}>${tabs.map(([k, t, icn, , , b]) => `<a href="#/${k}"${k === key ? ' aria-current="page"' : ''}>${ic(icn, 'lg')}<span>${t}</span>${pip(b)}</a>`).join('')}<a href="#/${role}/more"${key === role + '/more' ? ' aria-current="page"' : ''}${I('A-088')}>${ic('menu', 'lg')}<span>More</span></a></nav>`;
+    const tabbar = `<nav class="tabbar" aria-label="Tabs"${I('A-106')}>${tabs.map(([k, t, icn, , , b]) => `<a href="#/${k}"${k === key ? ' aria-current="page"' : ''}>${ic(icn, 'lg')}<span>${TAB_SHORT[k] || t}</span>${pip(b)}</a>`).join('')}<a href="#/${role}/more"${key === role + '/more' ? ' aria-current="page"' : ''}${I('A-088')}>${ic('menu', 'lg')}<span>More</span></a></nav>`;
     const back = isDetail ? `<button class="icon-btn" type="button" data-act="back" aria-label="Back">${ic('back', 'lg')}</button>` : '';
     const topbar = `<div class="topbar${isDetail ? ' always' : ''}"><div class="slot">${back}</div><div class="t">${esc(page.title || '')}</div><div class="slot end">${role === 'admin' ? `<span class="chip info plain xs"${I('A-089')}>${D.env}</span><span class="chip neutral plain xs"${I('A-090')} style="margin-left:4px">Whole programme</span><a class="icon-btn" href="https://github.com/darshani8/reep-/blob/main/AGENTS.md" target="_blank" rel="noopener" aria-label="Help"${I('A-091')}>${ic('info')}</a>` : ''}<a class="icon-btn" href="#/${role}/account" aria-label="Account"${I(role === 'student' ? 'A-092' : 'A-093')}>${ic('user')}</a></div></div>`;
     const fab = `<button class="fab" type="button" data-act="dock" aria-label="Open the REEP assistant"${I('A-107', 'A-109')}>${ic('sparkle', 'lg')}</button>`;

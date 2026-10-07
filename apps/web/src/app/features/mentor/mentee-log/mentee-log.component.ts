@@ -25,6 +25,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../core/auth.service';
+import { bindBackToClose } from '../../../core/back-close';
 import { environment } from '../../../../environments/environment';
 
 interface Mentee {
@@ -91,6 +92,12 @@ export class MenteeLogComponent {
    * desktop, and that must not land a phone on somebody's notes unasked.
    */
   readonly detailOpen = signal(false);
+  /** Android's Back returns to the list, as the back button does. */
+  private readonly _detailBack = bindBackToClose(
+    () => this.detailOpen(),
+    () => this.back(),
+    '(max-width: 899.98px)',
+  );
   private readonly mainCol = viewChild<ElementRef<HTMLElement>>('mainCol');
   readonly selected = computed(
     () => this.mentees()?.find((m) => m.student_id === this.selectedId()) ?? null,

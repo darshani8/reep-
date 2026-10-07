@@ -307,16 +307,13 @@
    over the whole screen with a Back; the five filters fold behind Filters;
    the tiles scroll sideways; the policy's Save stays in reach. */
 @include m.filters-sheet('.filters', '.m-filters-toggle');
-@include m.card-list;
-@include m.back-button('.m-back');
+/* An open record is the whole screen: everything else on the panel steps
+   aside while it is open (the record is rendered only while it is). */
+@include m.pushed-detail('.panel', '> :not(.record-card):not(.notice)', '.record-card', 'm-record-open');
 @include m.header-actions('.dt-toolbar');
 @include m.scroll-strip('.kpi-row');
 @include m.scroll-strip('.record-tabs');
 @include m.sticky-action('.policy-card .footbar');
-
-.m-filters-done {
-  display: none;
-}
 
 @include m.phone {
   .dt-header {
@@ -326,8 +323,6 @@
     min-height: 48px;
   }
   .m-filters-done {
-    display: inline-flex;
-    justify-content: center;
     min-height: 48px;
   }
 
@@ -418,10 +413,6 @@
     }
   }
 
-  /* An open record is the whole screen. */
-  .panel.m-record-open > :not(.record-card):not(.notice) {
-    display: none;
-  }
   .record-card .card-head {
     flex-wrap: wrap;
   }

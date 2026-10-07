@@ -47,7 +47,8 @@ import { PHONE_QUERY } from './mobile';
 export interface HistoryPort {
   /** Push an entry for the CURRENT url, carrying `marker` in its state. */
   push(marker: string): void;
-  back(): void;
+  /** `history.go(delta)` — one traversal, one popstate, however far. */
+  go(delta: number): void;
   /** The marker on the current history entry's state, if any. */
   currentMarker(): string | null;
   /** Subscribe to popstate; returns the unsubscribe. */
@@ -63,8 +64,8 @@ export function browserHistoryPort(win: Window = window): HistoryPort {
       const base = state && typeof state === 'object' ? state : {};
       win.history.pushState({ ...base, [MARKER_KEY]: marker }, '', win.location.href);
     },
-    back() {
-      win.history.back();
+    go(delta) {
+      win.history.go(delta);
     },
     currentMarker() {
       const state = win.history.state;
@@ -90,47 +91,85 @@ interface StackItem {
   readonly close: () => void;
 }
 
+/**
+ * Two lists, because history and the screen disagree for a moment. `open`
+ * is what is on screen; `pushed` mirrors the entries this stack put on top of
+ * history, in order. Closing by a button only takes an overlay off `open`;
+ * the entries are rewound at the end of the turn, in ONE `history.go(-n)`
+ * covering every closed entry on top — so a dialog closed together with the
+ * one under it (delete over edit, finished) leaves nothing behind, where two
+ * `back()` calls in one turn race each other.
+ */
 export class BackStack {
-  private readonly items: StackItem[] = [];
-  /** Pops we caused ourselves, which the popstate listener must not treat
-   *  as the person pressing Back. */
-  private expectedPops = 0;
+  private readonly open_: StackItem[] = [];
+  private pushed: string[] = [];
+  /** Traversals we caused ourselves, which the popstate listener must not
+   *  treat as the person pressing Back. */
+  private ownPops = 0;
+  private flushQueued = false;
   private unlisten: (() => void) | null = null;
   private seq = 0;
 
   constructor(private readonly history: HistoryPort) {}
 
   get depth(): number {
-    return this.items.length;
+    return this.open_.length;
   }
 
   open(close: () => void): BackEntry {
     const item: StackItem = { marker: `o${++this.seq}`, close };
-    this.items.push(item);
+    this.open_.push(item);
+    this.pushed.push(item.marker);
     this.history.push(item.marker);
     this.listen();
     return {
-      closedByUser: () => this.closedByUser(item),
-      drop: () => this.remove(item),
+      closedByUser: () => {
+        if (this.remove(item)) this.queueFlush();
+      },
+      drop: () => {
+        if (!this.remove(item)) return;
+        // A navigation owns history from here: nothing we pushed is known to
+        // be on top any more, so nothing of ours is ever rewound again.
+        this.pushed = [];
+      },
     };
   }
 
-  private closedByUser(item: StackItem): void {
-    const isTop = this.items[this.items.length - 1] === item;
-    if (!this.remove(item)) return;
-    // Only pop the entry if it is the one on screen; an overlay closed out of
-    // order leaves its entry behind rather than popping somebody else's.
-    if (isTop && this.history.currentMarker() === item.marker) {
-      this.expectedPops++;
-      this.history.back();
-    }
+  private isOpen(marker: string): boolean {
+    return this.open_.some((i) => i.marker === marker);
   }
 
   private remove(item: StackItem): boolean {
-    const i = this.items.indexOf(item);
+    const i = this.open_.indexOf(item);
     if (i < 0) return false;
-    this.items.splice(i, 1);
+    this.open_.splice(i, 1);
     return true;
+  }
+
+  private queueFlush(): void {
+    if (this.flushQueued) return;
+    this.flushQueued = true;
+    queueMicrotask(() => {
+      this.flushQueued = false;
+      this.flush();
+    });
+  }
+
+  /** Rewind every closed entry on top of history, in one traversal. An entry
+   *  under a still-open overlay stays (closed out of order) — rewinding it
+   *  would rewind the open one too. */
+  private flush(): void {
+    const top = this.pushed[this.pushed.length - 1];
+    if (top === undefined || this.history.currentMarker() !== top) return;
+    let n = 0;
+    while (this.pushed.length && !this.isOpen(this.pushed[this.pushed.length - 1])) {
+      this.pushed.pop();
+      n++;
+    }
+    if (n > 0) {
+      this.ownPops++;
+      this.history.go(-n);
+    }
   }
 
   private listen(): void {
@@ -139,17 +178,20 @@ export class BackStack {
   }
 
   private onPop(): void {
-    if (this.expectedPops > 0) {
-      this.expectedPops--;
+    if (this.ownPops > 0) {
+      this.ownPops--;
       return;
     }
-    const top = this.items[this.items.length - 1];
-    if (!top) return;
-    // The entry under the one popped is now current. If it is not the top
-    // overlay's own entry, the top overlay's entry is the one that went.
-    if (this.history.currentMarker() !== top.marker) {
-      this.items.pop();
-      top.close();
+    // The person went back. Every entry of ours above the one now current is
+    // gone; close whatever overlay was standing on it.
+    const current = this.history.currentMarker();
+    while (this.pushed.length && this.pushed[this.pushed.length - 1] !== current) {
+      const marker = this.pushed.pop()!;
+      const item = this.open_.find((i) => i.marker === marker);
+      if (item) {
+        this.remove(item);
+        item.close();
+      }
     }
   }
 }

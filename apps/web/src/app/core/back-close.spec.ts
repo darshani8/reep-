@@ -6,6 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BackStack, HistoryPort, bindBackToClose } from './back-close';
 
+/** Closing by a button rewinds history at the end of the turn. */
+const endOfTurn = () => Promise.resolve();
+
 /** A browser history in miniature: entries carry a marker or null, `back()`
  *  moves the cursor and fires popstate the way a real Back press does. */
 class FakeHistory implements HistoryPort {
@@ -18,9 +21,12 @@ class FakeHistory implements HistoryPort {
     this.entries.push(marker);
     this.cursor++;
   }
-  back(): void {
-    if (this.cursor === 0) return;
-    this.cursor--;
+  goes = 0;
+  go(delta: number): void {
+    const to = Math.max(0, this.cursor + delta);
+    if (to === this.cursor) return;
+    this.goes++;
+    this.cursor = to;
     this.listeners.forEach((l) => l());
   }
   currentMarker(): string | null {
@@ -32,7 +38,7 @@ class FakeHistory implements HistoryPort {
   }
   /** The person pressing the hardware Back button. */
   pressBack(): void {
-    this.back();
+    this.go(-1);
   }
 }
 
@@ -57,11 +63,12 @@ describe('BackStack', () => {
     expect(stack.depth).toBe(0);
   });
 
-  it('pops its own entry when the overlay is closed by its own button', () => {
+  it('pops its own entry when the overlay is closed by its own button', async () => {
     const close = vi.fn();
     const entry = stack.open(close);
 
     entry.closedByUser();
+    await endOfTurn();
 
     expect(history.cursor).toBe(0);
     // Its own pop is not mistaken for the person pressing Back.
@@ -84,6 +91,39 @@ describe('BackStack', () => {
     expect(history.cursor).toBe(0);
   });
 
+  it('rewinds both entries in one go when a stacked pair closes together', async () => {
+    const closeEdit = vi.fn();
+    const closeDelete = vi.fn();
+    const edit = stack.open(closeEdit);
+    const del = stack.open(closeDelete);
+
+    // "Delete for good" finished: the delete dialog and the edit dialog
+    // under it both close in the same turn.
+    del.closedByUser();
+    edit.closedByUser();
+    await endOfTurn();
+
+    expect(history.cursor).toBe(0);
+    expect(history.goes).toBe(1);
+    expect(closeEdit).not.toHaveBeenCalled();
+    expect(closeDelete).not.toHaveBeenCalled();
+  });
+
+  it('rewinds the closed top later, once the overlay under it closes too', async () => {
+    const closeA = vi.fn();
+    const closeB = vi.fn();
+    const a = stack.open(closeA);
+    const b = stack.open(closeB);
+
+    a.closedByUser(); // out of order: B is still open on top
+    await endOfTurn();
+    expect(history.cursor).toBe(2);
+
+    b.closedByUser();
+    await endOfTurn();
+    expect(history.cursor).toBe(0); // both of ours rewound, nothing left behind
+  });
+
   it('leaves history alone when the owner goes away (a navigation from inside)', () => {
     const close = vi.fn();
     const entry = stack.open(close);
@@ -96,21 +136,23 @@ describe('BackStack', () => {
     expect(close).not.toHaveBeenCalled();
   });
 
-  it('ignores a Back press when nothing is open, so ordinary navigation is untouched', () => {
+  it('ignores a Back press when nothing is open, so ordinary navigation is untouched', async () => {
     const close = vi.fn();
     stack.open(close).closedByUser();
+    await endOfTurn();
     history.push('someone-else');
     history.pressBack();
     expect(close).not.toHaveBeenCalled();
   });
 
-  it('does not pop another overlay’s entry when one is closed out of order', () => {
+  it('does not pop another overlay’s entry when one is closed out of order', async () => {
     const closeA = vi.fn();
     const closeB = vi.fn();
     const a = stack.open(closeA);
     stack.open(closeB);
 
     a.closedByUser();
+    await endOfTurn();
     expect(history.cursor).toBe(2); // B's entry is still the current one
 
     history.pressBack();
@@ -183,12 +225,13 @@ describe('bindBackToClose', () => {
     expect(history.cursor).toBe(0);
   });
 
-  it('closing by its own button pops the entry it pushed', () => {
+  it('closing by its own button pops the entry it pushed', async () => {
     const fixture = mount();
     fixture.componentInstance.open.set(true);
     TestBed.tick();
     fixture.componentInstance.open.set(false);
     TestBed.tick();
+    await endOfTurn();
 
     expect(history.cursor).toBe(0);
     expect(stack.depth).toBe(0);
@@ -215,7 +258,7 @@ describe('bindBackToClose', () => {
     expect(history.cursor).toBe(1);
   });
 
-  it('a close that lands with a navigation in flight leaves history alone', () => {
+  it('a close that lands with a navigation in flight leaves history alone', async () => {
     const fixture = mount();
     fixture.componentInstance.open.set(true);
     TestBed.tick();
@@ -223,6 +266,7 @@ describe('bindBackToClose', () => {
     inFlight = { id: 1 }; // a drawer link: closes the drawer and navigates
     fixture.componentInstance.open.set(false);
     TestBed.tick();
+    await endOfTurn();
 
     expect(history.cursor).toBe(1); // no back() — it would undo the navigation
     expect(stack.depth).toBe(0);

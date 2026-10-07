@@ -174,6 +174,24 @@ const questions = (track) => qTexts.map(([phase, text], i) => ({
   id: `q-${track}-${i}`, track, phase, text, position: i, enabled: i !== 4, created_at: '2026-09-01T00:00:00Z',
 }));
 
+const transcript = [
+  { seq: 1, speaker: 'interviewer', phase: 'opening', content: 'Good morning. Tell me about yourself.', transcription_status: 'ok', counted_as_answer: false, created_at: '2026-10-05T05:30:00Z' },
+  { seq: 2, speaker: 'student', phase: 'opening', content: 'Good morning. I am a second-year MBA student specialising in HR.', transcription_status: 'ok', counted_as_answer: true, created_at: '2026-10-05T05:30:20Z' },
+];
+
+// 30-people answers every /mentor/students/s<n>/interviews… path first, the
+// report and the transcript included, with its one-session list. One function
+// for all three, the session list in the same shape Student 360 reads.
+const studentInterviews = (url) => {
+  const path = url.pathname;
+  if (path.endsWith('/report')) return report;
+  if (path.endsWith('/transcript')) return transcript;
+  return studentSessions(path.split('/')[4]);
+};
+for (const entry of people) {
+  if (String(entry[1]) === String(/^\/mentor\/students\/s\d+\/interviews/)) entry[2] = studentInterviews;
+}
+
 export default [
   ['GET', /^\/admin\/mentor-load/, mentors],
   ['GET', /^\/admin\/students\/[^/]+\/mentor-history/, history],
@@ -187,12 +205,7 @@ export default [
   ['GET', /^\/admin\/interviews(\?|$)/, { rows: records, next_cursor: null, page_size: 50 }],
   ['GET', /^\/admin\/colleges(\?|$)/, [{ id: 'c1', code: 'BGSCET', name: 'BGS College of Engineering', status: 'ACTIVE' }]],
   ['GET', /^\/admin\/interview-policies\//, policy],
-  ['GET', /^\/mentor\/students\/[^/]+\/interviews\/[^/]+\/report/, report],
-  ['GET', /^\/mentor\/students\/[^/]+\/interviews\/[^/]+\/transcript/, [
-    { seq: 1, speaker: 'interviewer', phase: 'opening', content: 'Good morning. Tell me about yourself.', transcription_status: 'ok', counted_as_answer: false, created_at: '2026-10-05T05:30:00Z' },
-    { seq: 2, speaker: 'student', phase: 'opening', content: 'Good morning. I am a second-year MBA student specialising in HR.', transcription_status: 'ok', counted_as_answer: true, created_at: '2026-10-05T05:30:20Z' },
-  ]],
-  ['GET', /^\/mentor\/students\/([^/]+)\/interviews(\?|$)/, (url) => studentSessions(url.pathname.split('/')[4])],
+  ['GET', /^\/mentor\/students\/[^/]+\/interviews/, studentInterviews],
   ['GET', /^\/admin\/interview-questions\/tracks(\?|$)/, qTracks],
   ['GET', /^\/admin\/interview-questions\?track=/, (url) => questions(url.searchParams.get('track') ?? 'hr')],
 ];

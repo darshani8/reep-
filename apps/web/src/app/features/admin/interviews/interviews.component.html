@@ -1,4 +1,4 @@
-<div class="panel" data-p="interviews">
+<div class="panel" data-p="interviews" [class.m-record-open]="phone() && openRecord() !== null">
   <div class="dt-header">
     <div>
       <div class="crumb">
@@ -25,6 +25,14 @@
         <span class="icon" aria-hidden="true">graphic_eq</span>
         {{ downloading() ? 'Preparing…' : 'Download selected audio' }}
       </button>
+      <button
+        type="button"
+        class="btn secondary m-filters-toggle"
+        [attr.aria-expanded]="filtersOpen()"
+        (click)="filtersOpen.set(true)"
+      >
+        <span class="icon" aria-hidden="true">tune</span> Filters
+      </button>
     </div>
   </div>
 
@@ -40,7 +48,10 @@
   }
 
   <!-- ---------------------------------------------------------- filters -->
-  <div class="filters">
+  @if (filtersOpen()) {
+    <button type="button" class="m-filters-scrim" aria-label="Close filters" (click)="filtersOpen.set(false)"></button>
+  }
+  <div class="filters" [class.is-open]="filtersOpen()">
     <!-- The batch list is `admin.analytics`, not this screen's key. A session
          whose grant cannot read it gets no Batch filter at all rather than a
          grey one with the reason in a tooltip. -->
@@ -108,6 +119,7 @@
         <option value="90">Last 90 days</option>
       </select>
     </div>
+    <button type="button" class="btn primary m-filters-done" (click)="filtersOpen.set(false)">Done</button>
   </div>
 
   <!-- The tiles are `GET /api/admin/interviews/summary`, over exactly the rows
@@ -170,6 +182,64 @@
       <p class="state-note" role="status">No interview yet.</p>
     } @else if (filtersHideEverything()) {
       <p class="state-note" role="status">No interview matches these filters.</p>
+    } @else if (!error() && phone()) {
+      <ul class="m-list record-cards" aria-label="Interview records">
+        @for (row of phoneRows(); track row.sessionId) {
+          <li class="m-card" [class.is-selected]="isPhoneTicked(row)">
+            <div class="record-card__row">
+              <button type="button" class="record-card__open" (click)="openOnPhone(row)">
+                <span class="m-card__top">
+                  <span class="m-card__title">{{ row.studentName }}</span>
+                  <span class="chip dot {{ row.statusTone }}">{{ row.statusLabel }}</span>
+                </span>
+                <span class="m-card__meta">{{ row.usn }} · {{ row.trackLabel }}</span>
+                <span class="m-card__meta">{{ phoneStarted(row) }} · {{ phoneDuration(row) }}</span>
+                <span class="record-card__facts">
+                  <span class="record-card__score">
+                    {{ row.overallScore === null ? 'Not scored' : row.overallScore + ' / 100' }}
+                  </span>
+                  @if (row.audioRecorded) {
+                    <span class="chip dot good">Audio stored</span>
+                  } @else {
+                    <span class="chip dot neutral">No audio</span>
+                  }
+                </span>
+              </button>
+              <button
+                type="button"
+                class="record-card__tick"
+                [attr.aria-pressed]="isPhoneTicked(row)"
+                [attr.aria-label]="'Tick the interview of ' + row.studentName"
+                (click)="togglePhoneTick(row)"
+              >
+                <span class="icon" aria-hidden="true">{{
+                  isPhoneTicked(row) ? 'check_circle' : 'radio_button_unchecked'
+                }}</span>
+              </button>
+            </div>
+          </li>
+        } @empty {
+          <li class="m-empty">No interview matches.</li>
+        }
+      </ul>
+      <div class="dt-statusbar">
+        <span
+          >Rows: <b>{{ phoneRows().length }}</b></span
+        >
+        <span
+          >Selected: <b>{{ selectedCount() }}</b></span
+        >
+        @if (hasMorePages()) {
+          <button
+            type="button"
+            class="btn secondary sm"
+            [disabled]="loadingMore()"
+            (click)="loadMore()"
+          >
+            {{ loadingMore() ? 'Loading…' : 'Load more' }}
+          </button>
+        }
+      </div>
     } @else if (!error()) {
       <ag-grid-angular
         class="records-grid"
@@ -222,6 +292,9 @@
   <!-- ------------------------------------------------- the open record -->
   @if (openRecord(); as record) {
     <section class="card record-card" aria-labelledby="record-title">
+      <button type="button" class="m-back" (click)="closeRecord()">
+        <span class="icon" aria-hidden="true">arrow_back</span> Back
+      </button>
       <div class="card-head">
         <div>
           <h2 class="card-title" id="record-title">{{ record.studentName }}</h2>

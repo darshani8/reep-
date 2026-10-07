@@ -65,6 +65,8 @@ svg.i.lg { width: 24px; height: 24px; }
   display: flex; align-items: center; gap: var(--sp-2);
   background: var(--ink); color: #fff; font-size: 12px;
 }
+@media (max-width: 640px) { .proto .faint, .proto .stl { display: none; } .proto { gap: 6px; padding-right: 8px; } .proto .seg button { padding: 0 7px; } }
+.proto .seg { overflow-x: auto; scrollbar-width: none; flex: none; max-width: 70vw; }
 .proto b { font-family: var(--font-display); letter-spacing: 0.02em; }
 .proto .seg { margin-left: auto; background: rgba(255,255,255,.12); border-color: transparent; }
 .proto .seg button { color: #fff; min-height: 26px; padding: 0 10px; font-size: 12px; }
@@ -144,7 +146,7 @@ svg.i.lg { width: 24px; height: 24px; }
   .rail a[aria-current="page"] .pip { background: rgba(255,255,255,.25); color: #fff; }
   .rail .me { margin-top: auto; padding-top: var(--sp-3); border-top: 1px solid var(--hairline-26); }
   .topbar { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; border: 0; height: 48px; }
-  .topbar .t { display: none; }
+  .topbar .t { visibility: hidden; }
   .content { padding: 0 var(--sp-8) var(--sp-8); }
   .page-head { padding-top: 0; }
   h1 { font-size: 30px; }

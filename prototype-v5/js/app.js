@@ -43,7 +43,14 @@ const App = {
     document.body.addEventListener('click', (ev) => this.onClick(ev));
     document.body.addEventListener('change', (ev) => this.onChange(ev));
     document.body.addEventListener('input', (ev) => this.onInput(ev));
-    window.addEventListener('scroll', () => { const tb = document.querySelector('.topbar'); if (tb) tb.classList.toggle('scrolled', scrollY > 24); }, { passive: true });
+    let lastY = 0;
+    window.addEventListener('scroll', () => {
+      const tb = document.querySelector('.topbar'); if (tb) tb.classList.toggle('scrolled', scrollY > 24);
+      // on a phone the assistant button steps aside while you scroll down, and comes back on the way up or at the end
+      const atEnd = innerHeight + scrollY >= document.documentElement.scrollHeight - 8;
+      if (Math.abs(scrollY - lastY) > 6) document.body.classList.toggle('fab-away', scrollY > lastY && scrollY > 80 && !atEnd);
+      lastY = scrollY;
+    }, { passive: true });
     this.backGesture();
     if (!location.hash) location.hash = '#/start';
     this.render(false);
@@ -86,11 +93,33 @@ const App = {
     const sticky = main && main.querySelector('.sticky-act');
     document.body.classList.toggle('has-sticky', !!sticky);
     if (sticky) requestAnimationFrame(() => document.body.style.setProperty('--sticky-h', `${sticky.offsetHeight}px`));
+    document.body.classList.remove('fab-away');
+    this.overflowActs(main);
     if (def.mount) def.mount(main, { id: parts[2], query, st: this.s(key) });
     if (push && !this.keepScroll) window.scrollTo(0, 0);
     this.keepScroll = false;
     this.cur = { key, def, id: parts[2] };
   },
+  /* Phone headers: keep the primary action and one other in view; the rest go in a ⋯ sheet
+     whose rows press the original controls, so every action keeps its own handler. */
+  overflowActs(main) {
+    if (!main || innerWidth > 760) return;
+    const acts = main.querySelector('.page-head .acts'); if (!acts) return;
+    const ctl = [...acts.children].filter((c) => c.matches('button, a.btn, label.btn'));
+    if (ctl.length <= 2) return;
+    const keep = [ctl.find((c) => c.classList.contains('primary')) || ctl[ctl.length - 1]];
+    keep.unshift(ctl.find((c) => !keep.includes(c)));
+    const extra = ctl.filter((c) => !keep.includes(c));
+    extra.forEach((c) => c.setAttribute('data-overflowed', ''));
+    const more = document.createElement('button');
+    more.type = 'button'; more.className = 'btn more-btn'; more.setAttribute('aria-label', 'More actions'); more.innerHTML = ic('more');
+    more.addEventListener('click', () => {
+      const el = Sheet.open({ title: 'More actions', body: `<div class="list">${extra.map((c, i) => `<button class="row" type="button" data-i="${i}"${c.disabled ? ' disabled style="opacity:.45"' : ''}><div class="body"><div class="ttl">${esc(c.textContent.trim() || c.getAttribute('aria-label') || '')}</div></div></button>`).join('')}</div>` });
+      el.querySelectorAll('[data-i]').forEach((b) => b.addEventListener('click', () => { const c = extra[+b.dataset.i]; Sheet.close(); setTimeout(() => (c.tagName === 'LABEL' ? c.querySelector('input')?.click() : c.click()), 330); }));
+    });
+    acts.insertBefore(more, keep[0]);
+  },
+
   rerender() { this.keepScroll = true; const y = scrollY; const f = document.activeElement; const sel = f && f.dataset && f.dataset.f ? `[data-f="${f.dataset.f}"]` : null; this.render(false); window.scrollTo(0, y); if (sel) { const n = document.querySelector(sel); if (n) { n.focus(); if (n.setSelectionRange && /^(text|search|email|tel|url|password|textarea)$/.test(n.type)) n.setSelectionRange(n.value.length, n.value.length); } } },
 
   /* Every screen's loading and error states, in one shape: skeleton rows, then a

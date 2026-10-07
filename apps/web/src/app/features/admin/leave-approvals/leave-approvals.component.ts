@@ -76,6 +76,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
 import { plural } from '../../../shared/text/plural.pipe';
+import { phoneSignal } from '../mobile';
 import { LeaveCalendarDialogComponent } from './leave-calendar-dialog.component';
 import {
   LeavePolicyDialogComponent,
@@ -286,6 +287,11 @@ export class AdminLeaveApprovalsComponent {
   readonly error = signal<string | null>(null);
   readonly flash = signal<string | null>(null);
   readonly selectedId = signal<string | null>(null);
+
+  /** The phone (2026-10): the queue is a card list and a picked request is
+   *  pushed full width over it, with Back. */
+  readonly phone = phoneSignal();
+  readonly filtersOpen = signal(false);
   readonly decisionMode = signal<DecisionMode>('idle');
   readonly remarks = signal<string>('');
   readonly remarksError = signal<string | null>(null);
@@ -514,6 +520,7 @@ export class AdminLeaveApprovalsComponent {
 
   selectRequest(id: string): void {
     this.selectedId.set(id);
+    if (this.phone()) document.querySelector('.desktop-main')?.scrollTo({ top: 0 });
     this.decisionMode.set('idle');
     this.remarks.set('');
     this.remarksError.set(null);

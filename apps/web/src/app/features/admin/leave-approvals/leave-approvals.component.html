@@ -1,4 +1,4 @@
-<div class="panel" data-p="leave-approvals">
+<div class="panel" data-p="leave-approvals" [class.is-pushed]="phone() && selectedRequest() !== null">
   <div class="dt-header">
     <div>
       <div class="crumb"><span>Every day</span><span class="sep">/</span><span>Leave requests</span></div>
@@ -51,7 +51,18 @@
     }
   </div>
 
-  <div class="filters">
+  <button
+    type="button"
+    class="btn secondary m-filters-toggle"
+    [attr.aria-expanded]="filtersOpen()"
+    (click)="filtersOpen.set(true)"
+  >
+    <span class="icon" aria-hidden="true">tune</span> Filters
+  </button>
+  @if (filtersOpen()) {
+    <button type="button" class="m-filters-scrim" aria-label="Close filters" (click)="filtersOpen.set(false)"></button>
+  }
+  <div class="filters" [class.is-open]="filtersOpen()">
     <!-- COLLEGE IS A READ-OUT, NOT A PICKER (B1.4). Neither queue endpoint
          takes a college parameter: the server narrows both and states the reach
          it used in X-Reep-Scope. There is nothing to send, so this states what
@@ -99,6 +110,7 @@
         }
       </select>
     </div>
+    <button type="button" class="btn primary m-filters-done" (click)="filtersOpen.set(false)">Done</button>
   </div>
 
   @if (scopeNote(); as note) {
@@ -126,6 +138,29 @@
           <p class="queue-state" role="status">
             <span class="icon" aria-hidden="true">hourglass_empty</span> Loading the queue…
           </p>
+        } @else if (phone()) {
+          <ul class="m-list" aria-label="Leave requests">
+            @for (request of rows(); track request.id) {
+              <li>
+                <button type="button" class="m-card" (click)="selectRequest(request.id)">
+                  <span class="m-card__top">
+                    <span class="m-card__title">{{ request.requester_name }}</span>
+                    <span class="chip dot {{ statusChip(request).tone }}">{{ statusChip(request).label }}</span>
+                  </span>
+                  <span class="m-card__meta">{{ requesterLine(request) }}</span>
+                  <span class="m-card__meta">
+                    <span class="chip neutral">{{ kindLabel(request.leave_kind) }}</span>
+                    {{ dateSpan(request) }} · {{ dayCountLabel(request) }}
+                  </span>
+                </button>
+              </li>
+            } @empty {
+              <li class="m-empty">
+                <strong class="empty-title">{{ emptyTitle() }}</strong>
+                <span class="empty-sub">{{ emptyNote() }}</span>
+              </li>
+            }
+          </ul>
         } @else {
           <div class="queue-scroll">
             <table class="dt-table">
@@ -219,6 +254,9 @@
 
     <!-- ------------------------------------------- the 380px decision panel -->
     <aside class="card queue-panel" aria-label="Leave request">
+      <button type="button" class="m-back" (click)="clearSelection()">
+        <span class="icon" aria-hidden="true">chevron_left</span> Leave requests
+      </button>
       @if (selectedRequest(); as request) {
         <div class="panel-head">
           <span class="avatar lg" aria-hidden="true">{{ initialsOf(request) }}</span>
@@ -403,6 +441,7 @@
         </div>
 
         @if (canDecide()) {
+          <div class="panel-decide">
           <div class="field panel-remarks">
             <label for="leave-remarks">Remarks</label>
             <textarea
@@ -470,6 +509,7 @@
               </div>
             }
           }
+          </div>
         } @else {
           <div class="panel-actions">
             <a class="btn ghost sm paper-link" [href]="paperUrl(request)" download>

@@ -354,11 +354,7 @@
 @include m.header-actions('.dt-header > .dt-toolbar');
 @include m.scroll-strip('.fs-tabs');
 @include m.filters-sheet('.fs-filters', '.fs-filters-toggle', '.fs-filters-scrim');
-@include m.back-button('.m-back');
-
-.fs-filters-done {
-  display: none;
-}
+@include m.pushed-detail('.fs-board', '.fs-grid-frame', '.fs-panel');
 
 @include m.phone {
   .dt-header {
@@ -385,74 +381,46 @@
     margin-left: 0;
     max-width: none;
   }
-  .fs-filters.is-open .fs-filters-done {
-    display: inline-flex;
-    justify-content: center;
+  /* Taller than the global Done. */
+  .fs-filters.is-open .m-filters-done {
     min-height: 48px;
   }
 
   .fs-board {
     align-items: stretch;
   }
-  .fs-board:not(.has-detail) .fs-panel,
-  .fs-board.has-detail .fs-grid-frame {
-    display: none;
-  }
   .panel:has(.fs-board.has-detail) :is(.fs-tabs, .fs-filters-toggle, .fs-note.accent) {
     display: none;
   }
 
+  /* table.m-rows is global; only this screen's differences follow. The table
+     sits inside .fs-grid-scroll, so the global frame rule does not reach. */
   .fs-grid-scroll,
   .fs-grid-frame {
     overflow: visible;
   }
-  table.m-rows {
-    display: block;
-    overflow: visible;
-  }
-  table.m-rows thead {
-    display: none;
-  }
   table.m-rows tbody {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
     padding: 8px;
   }
   table.m-rows tr {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px 12px;
     padding: 4px 12px 12px;
-    border: 1px solid var(--hairline);
-    border-radius: var(--r-card);
-    background: var(--surface);
   }
+  /* The screen's own .fs-table / .pinned cell rules outrank the global's. */
   table.m-rows td {
-    display: block;
     position: static;
     min-width: 0;
     padding: 0;
-    border: 0;
     background: transparent;
     box-shadow: none;
     white-space: normal;
-    overflow-wrap: anywhere;
   }
   table.m-rows td.pinned,
   table.m-rows td.fs-empty {
     grid-column: 1 / -1;
   }
   table.m-rows td[data-label]::before {
-    content: attr(data-label);
-    display: block;
     margin-bottom: 2px;
-    font-family: var(--font-display);
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--faint);
   }
   table.m-rows .chip {
     max-width: 100%;

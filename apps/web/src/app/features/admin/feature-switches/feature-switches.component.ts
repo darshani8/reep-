@@ -49,6 +49,7 @@ import { Component, ElementRef, computed, signal, viewChild } from '@angular/cor
 import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
+import { bindBackToClose } from '../../../core/back-close';
 import { endOfLocalDay } from '../../../core/calendar-day';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 
@@ -313,6 +314,10 @@ export class AdminFeatureSwitchesComponent {
   readonly selectedFeatureKey = signal<string | null>(null);
   /** The filter bar's bottom sheet on a phone (CSS hides the toggle above it). */
   readonly filtersOpen = signal(false);
+  private readonly _filtersBack = bindBackToClose(
+    () => this.filtersOpen(),
+    () => this.filtersOpen.set(false),
+  );
 
   private readonly rulesByFeature = computed(() => {
     const byFeature = new Map<string, OverrideRule[]>();
@@ -527,6 +532,12 @@ export class AdminFeatureSwitchesComponent {
   isRowSelected(key: string): boolean {
     return this.selectedFeatureKey() === key;
   }
+
+  /** On a phone the override panel is pushed over the list: Back returns. */
+  private readonly _detailBack = bindBackToClose(
+    () => this.selectedRow() !== null,
+    () => this.closeFeature(),
+  );
 
   /** The phone's Back from the pushed override panel to the list. */
   closeFeature(): void {

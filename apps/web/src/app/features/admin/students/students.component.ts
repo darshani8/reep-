@@ -59,6 +59,7 @@ import { composeBatchLabel } from '../../../core/batch-label';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { phoneSignal } from '../../../core/mobile';
+import { bindBackToClose } from '../../../core/back-close';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
 import type { BatchSummary, StageTally } from './batch-summary';
 import {
@@ -309,6 +310,22 @@ export class AdminStudentsComponent {
   // --- dialogs -----------------------------------------------------------
 
   readonly openDialog = signal<OpenDialog>(null);
+
+  // Android Back closes what is on top. Every dialog is one sheet closed by
+  // `closeDialog()`, as its Cancel does; the delete dialog opens OVER the
+  // edit dialog and its Cancel returns there, so it is a second layer.
+  private readonly _dialogBack = bindBackToClose(
+    () => this.openDialog() !== null,
+    () => this.closeDialog(),
+  );
+  private readonly _deleteBack = bindBackToClose(
+    () => this.openDialog() === 'delete',
+    () => this.cancelDeleteDialog(),
+  );
+  private readonly _filtersBack = bindBackToClose(
+    () => this.filtersOpen(),
+    () => this.filtersOpen.set(false),
+  );
   readonly selectionAction = signal<SelectionAction>('mentor');
   readonly editingStudentId = signal<string | null>(null);
   readonly draft = signal<StudentDraft>({ ...EMPTY_DRAFT });

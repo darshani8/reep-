@@ -345,12 +345,6 @@
 
 @include m.header-actions('.dt-toolbar');
 @include m.filters-sheet('.filters', '.m-filters-toggle');
-@include m.card-list;
-
-.m-filters-done {
-  display: none;
-}
-
 @include m.phone {
   .dt-header {
     flex-wrap: wrap;
@@ -374,9 +368,8 @@
       justify-content: center;
     }
 
+    /* The global Done, a little taller beside the 48px pickers. */
     .m-filters-done {
-      display: inline-flex;
-      justify-content: center;
       min-height: 48px;
     }
   }

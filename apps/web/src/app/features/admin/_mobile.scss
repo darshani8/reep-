@@ -267,12 +267,16 @@ $tabbar: var(--mobile-tabbar-h, 0px);
 }
 
 /* A primary action that stays reachable at the bottom of a long form, above
-   the shell's tab bar. */
+   the shell's tab bar. `bottom: 0` IS ALREADY CLEAR OF THE TAB BAR: a sticky
+   element is inset by its scroll container's padding, and .desktop-main's
+   bottom padding is the tab bar plus room for the agent orb. Adding the tab
+   bar here again parked the bar ~220px above the screen's edge (measured at
+   390x844 on /admin/setup). */
 @mixin sticky-action($sel) {
   @include phone {
     #{$sel} {
       position: sticky;
-      bottom: calc(#{$tabbar} + 8px);
+      bottom: 0;
       z-index: 5;
       padding: 10px 0;
       background: linear-gradient(to bottom, transparent, var(--surface) 30%);

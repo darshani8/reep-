@@ -86,6 +86,7 @@ import { LegendComponent, TooltipComponent } from 'echarts/components';
 import { SVGRenderer } from 'echarts/renderers';
 
 import { environment } from '../../../../environments/environment';
+import { bindBackToClose } from '../../../core/back-close';
 import { phoneSignal } from '../../../core/mobile';
 import {
   REEP_CHART_THEME,
@@ -848,6 +849,16 @@ export class AdminPlacementComponent implements OnDestroy {
    *  grid's checkbox does, and only those can be ticked. */
   readonly phone = phoneSignal();
   readonly filtersOpen = signal(false);
+  /** Android's Back folds the filters sheet and cancels the rejection sheet,
+   *  each exactly as its own button does. */
+  private readonly _filtersBack = bindBackToClose(
+    () => this.filtersOpen(),
+    () => this.filtersOpen.set(false),
+  );
+  private readonly _rejectionBack = bindBackToClose(
+    () => this.rejectionOpen(),
+    () => this.cancelRejection(),
+  );
   readonly phoneOfferRows = computed<OfferGridRow[]>(() => {
     const typed = this.quickFilter().trim().toLowerCase();
     const rows = this.offerRows();

@@ -242,14 +242,11 @@
    and stay in reach while it scrolls; the remarks rise as a sheet; Batch and
    Period fold behind Filters. */
 @include m.filters-sheet('.filters', '.m-filters-toggle');
-@include m.filters-sheet('.rejection-sheet', '.m-rejection-none', '.m-rejection-scrim');
-@include m.card-list;
+/* The rejection remarks: a panel the template renders only while open,
+   always a sheet here, with its own scrim. */
+@include m.fixed-sheet('.rejection-sheet', '.m-rejection-scrim');
 @include m.header-actions('.dt-toolbar');
 @include m.scroll-strip('.placement-tabs');
-
-.m-filters-done {
-  display: none;
-}
 
 @include m.phone {
   .dt-header {
@@ -259,8 +256,6 @@
     min-height: 48px;
   }
   .m-filters-done {
-    display: inline-flex;
-    justify-content: center;
     min-height: 48px;
   }
   .placement-tabs .tab {
@@ -287,23 +282,6 @@
     font-size: 12px;
   }
 
-  /* The rejection strip is always rendered as a sheet here. */
-  .rejection-sheet {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 97;
-    max-height: 80dvh;
-    overflow-y: auto;
-    padding: 22px 16px calc(16px + env(safe-area-inset-bottom, 0px));
-    background: var(--surface);
-    border-radius: 20px 20px 0 0;
-    box-shadow: 0 -12px 40px rgba(58, 31, 82, 0.25);
-  }
   .rejection {
     flex-direction: column;
     align-items: stretch;

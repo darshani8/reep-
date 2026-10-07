@@ -256,14 +256,9 @@
    four selects fold into a Filters sheet with the counts left in view; the
    form opens above the list with its Publish in reach. */
 @include m.filters-sheet('.jobs-filters__picks', '.m-filters-toggle');
-@include m.card-list;
 @include m.header-actions('.dt-toolbar');
 @include m.scroll-strip('.jobs-tabs');
 @include m.sticky-action('.jobs-post__foot');
-
-.m-filters-done {
-  display: none;
-}
 
 @include m.phone {
   .dt-header {
@@ -273,8 +268,6 @@
     min-height: 48px;
   }
   .m-filters-done {
-    display: inline-flex;
-    justify-content: center;
     min-height: 48px;
   }
   .jobs-filters {

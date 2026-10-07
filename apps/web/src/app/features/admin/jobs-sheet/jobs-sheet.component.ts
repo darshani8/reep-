@@ -56,6 +56,7 @@ import type { GetRowIdParams, GridApi, GridReadyEvent } from 'ag-grid-community'
 
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
+import { bindBackToClose } from '../../../core/back-close';
 import { phoneSignal } from '../../../core/mobile';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
@@ -199,6 +200,11 @@ export class AdminJobsSheetComponent {
    *  card carries the three actions the grid bar holds. */
   readonly phone = phoneSignal();
   readonly filtersOpen = signal(false);
+  /** Android's Back folds the filters sheet away, as its Done does. */
+  private readonly _filtersBack = bindBackToClose(
+    () => this.filtersOpen(),
+    () => this.filtersOpen.set(false),
+  );
   readonly phoneRows = computed<JobPostingRow[]>(() => {
     const typed = this.quickFilter().trim().toLowerCase();
     const rows = this.visibleRows();

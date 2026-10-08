@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | Document ID | REEP-IR-QG-2026-10 |
-| Version | 0.1 (open: L2 and L3 still executing) |
-| Status | Draft, maintained by the Test Manager while the cycle runs |
+| Version | 1.0 |
+| Status | Final for the build under review; the four proposed deferrals and Q1–Q6 await the product owner |
 | Standard followed | ISO/IEC/IEEE 29119-3:2021 §8.6 *Incident Report*, kept as one register for the cycle |
 | Parent document | [01 — Test Plan](01-test-plan.md) (REEP-TP-QG-2026-10), §8 defect management |
 | Change under test | Pull request [darshani8/reep-#132](https://github.com/darshani8/reep-/pull/132) |
@@ -21,6 +21,7 @@
 | 0.5 | 2026-10-08 | L2 re-test: I01–I04 closed, I05 proposed deferred, I06 raised; L3 round 1 and its regression pass on 40201a1 recorded (0 defects) |
 | 0.6 | 2026-10-08 | U07–U11 fixed and merged (e55d139); L1 re-test round 2 requested |
 | 0.7 | 2026-10-08 | L1 re-test round 2: U07–U11 closed; U12–U14 raised and proposed for deferral; I06 fixed (9348164) |
+| 1.0 | 2026-10-08 | L2 final confirmation on 988e732: I06 closed. All test-phase defects are closed or proposed for deferral. Final totals in §2 |
 
 ---
 
@@ -48,9 +49,13 @@
 | L1 unit, re-test round 1 (DEF-QG-U07–U11) | 5 | 0 | 2 | 3 | 5 | 0 | 0 | 0 |
 | L1 unit, re-test round 2 (DEF-QG-U12–U14) | 3 | 0 | 0 | 3 | 0 | 0 | 3 (proposed) | 0 |
 | L2 integration, round 1 (DEF-QG-I01–I04) | 4 | 0 | 2 | 2 | 4 | 0 | 0 | 0 |
-| L2 integration, re-test round 1 (DEF-QG-I05, I06) | 2 | 0 | 0 | 2 | 0 | 0 | 1 (proposed) | 1 |
+| L2 integration, re-test round 1 (DEF-QG-I05, I06) | 2 | 0 | 0 | 2 | 1 | 0 | 1 (proposed) | 0 |
 | Fix verification (FV-QG) | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 |
-| L3 system (DEF-QG-S) | _executing_ | | | | | | | |
+| L3 system (DEF-QG-S) | 0 (5 observations) | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+**Test-phase totals (independent testers plus TM fix verification):** 21 raised: Critical 0 · Major 8 · Minor 13. Closed: 17, every one re-tested by the tester who raised it (FV-QG-01 was verified by TM). Deferred (proposed): 4, all Minor (DEF-QG-I05, U12, U13, U14), awaiting Q5. Open: 0.
+
+**The whole cycle, development phase included:** 73 incidents. Critical 2 · Major 22 · Minor 49. Of these, 63 are closed, 4 are proposed for deferral and 6 are open by design.
 
 "Closed" includes INC-QG-D-16 (accepted as negligible) and INC-QG-D-52 (a false alarm); INC-QG-D-48 is counted as open because two of its three stale documents are follow-ups.
 
@@ -204,7 +209,7 @@ OBS-QG-U09 (a real value written *wholly* inside one `<…>` of up to 40 charact
 | ID | Title | Sev. / Pri. | Status | Decision |
 |---|---|---|---|---|
 | DEF-QG-I05 | §34's `called()` counts a line that is exactly the check function's name whatever surrounds it: wrapped in `if false; then … fi`, or placed after `exit 0`, it still passes. (A never-called function, a redefinition and a commented-out call are caught) | Minor / P3 | **Deferred (proposed)** | Accept as residual risk, subject to the owner's written acceptance (Q5). Both shapes need deliberate sabotage of the local, advisory runner. Such an edit is visible in review, and the CI jobs, not preflight, are the authoritative gate. Closing it means constraining how `preflight.sh` may be written, with no end to that arms race |
-| DEF-QG-I06 | The secret-scan step does not refuse a shallow checkout, and no test pins `fetch-depth: 0`. Removing that one line would shrink every push-mode scan of main, stage and dev to one commit while staying green (at depth 1: "1 commits scanned", exit 0). Found by the shallow-clone follow-up to OBS-QG-S05 | Minor / P2 | Fixed (9348164), awaiting final confirmation | The scan refuses a shallow repository in both modes; `test_secret_scan_workflow.py` pins `fetch-depth: 0` and the refusal |
+| DEF-QG-I06 | The secret-scan step does not refuse a shallow checkout, and no test pins `fetch-depth: 0`. Removing that one line would shrink every push-mode scan of main, stage and dev to one commit while staying green (at depth 1: "1 commits scanned", exit 0). Found by the shallow-clone follow-up to OBS-QG-S05 | Minor / P2 | **Closed** | The scan refuses a shallow repository in both modes; `test_secret_scan_workflow.py` pins `fetch-depth: 0` and the refusal |
 
 | Observation | Decision |
 |---|---|

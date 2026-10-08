@@ -98,6 +98,24 @@ jobs:
         working-directory: apps/api-py
         run: python -m alembic upgrade head
 
+      # The downgrades had never been run by anything. `upgrade head` runs on
+      # every job and every deploy; a downgrade runs on the night a bad
+      # migration has already shipped, which is the worst moment to learn that
+      # it drops the wrong index. This rolls back to the FLOOR -- the newest
+      # revision whose downgrade refuses on purpose, derived from
+      # migrations/reversibility.py, never typed here -- upgrades again, and
+      # fails unless the catalogue is identical and `alembic check` is clean.
+      #
+      # BEFORE the seed, deliberately: everything after this step -- the seed
+      # and the whole suite -- then runs on the round-tripped schema, so a
+      # downgrade that subtly changed it is caught by two thousand tests as well
+      # as by the catalogue diff. A seeded round trip was measured passing
+      # locally, but the dev seed is a handful of rows and proves little about
+      # real data, so it does not buy a second round trip here.
+      - name: Migrations roll back (downgrade to the floor, then up again)
+        working-directory: apps/api-py
+        run: python ../../tools/ci/check_migration_roundtrip.py
+
       - name: Seed the dev dataset
         working-directory: apps/api-py
         run: python -m app.seed

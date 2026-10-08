@@ -1,0 +1,68 @@
+# Evidence for UT-G2-017-rt2
+# build e55d1395379e9bc97cf5f3dfbc6a55bd16962475 (re-test round 2), tester session U
+
+[2026-10-08T10:33:33 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt
+$ sed -i 's/^regexTarget = "match"$/regexTarget = "line"/' .gitleaks.toml && git diff --stat | tail -1 && python3 tools/ci/check_gitleaks_rules.py 2>&1 | grep -E 'MISSED|FAILED|OK:'; echo replay_exit=${PIPESTATUS[0]}; git checkout -q .gitleaks.toml
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+leak   ls-dev-secret/apps/api-py/.env             MISSED
+leak   ls-dev-password/docker-compose.yml         MISSED
+leak   ls-ci-secret/ci.yml                        MISSED
+leak   ls-not-repo/tests/x.py                     MISSED
+leak   ls-nobody/tests/x.py                       MISSED
+leak   ls-p40ss/docs/x.md                         MISSED
+leak   ls-user-pass/docs/x.md                     MISSED
+leak   ls-dev-fstring/tests/x.py                  MISSED
+leak   apps/api-py/tests/test_backup_database.py  MISSED
+FAILED:
+replay_exit=1
+[exit=0]
+
+[2026-10-08T10:33:34 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt
+$ sed -i 's|{32,}|{80,}|g' .gitleaks.toml && git diff --stat | tail -1 && python3 tools/ci/check_gitleaks_rules.py 2>&1 | grep -E 'MISSED|FAILED|OK:'; echo replay_exit=${PIPESTATUS[0]}; git checkout -q .gitleaks.toml
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+leak   l02/docker-compose.yml                     MISSED
+leak   l07/k8s/secret.yaml                        MISSED
+leak   l16/apps/api-py/.env                       MISSED
+leak   lj-auth-start/apps/api-py/.env             MISSED
+leak   lj-auth-middle/apps/api-py/.env            MISSED
+leak   lj-auth-end/apps/api-py/.env               MISSED
+leak   ls-boot-guard/apps/api-py/.env             MISSED by reep-auth-secret (caught only by ['generic-api-key'])
+FAILED:
+replay_exit=1
+[exit=0]
+
+[2026-10-08T10:33:46 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt
+$ git diff -U0 .gitleaks.toml | grep '^[-+] '; python3 tools/ci/check_gitleaks_rules.py 2>&1 | grep -E 'MISSED|REPORTED|FAILED|OK:'; echo replay_exit=${PIPESTATUS[0]}; git checkout -q .gitleaks.toml
+-  '''^(?:[A-Za-z0-9_]+[ \t]*[:=][ \t]*)?["']?<[A-Za-z0-9_ .-]{3,40}>["']?$''',
++  '''<[A-Za-z0-9_ .-]{3,40}>''',
+leak   l20/docs/report.txt                        MISSED
+leak   lj-openai-start/apps/api-py/.env           MISSED
+leak   lj-groq-start/apps/api-py/.env             MISSED
+leak   lj-livekit-start/apps/api-py/.env          MISSED
+leak   lj-voice-start/apps/api-py/.env            MISSED
+leak   lj-dburl-start/apps/api-py/.env            MISSED
+leak   lj-auth-start/apps/api-py/.env             MISSED
+leak   lj-openai-middle/apps/api-py/.env          MISSED
+leak   lj-groq-middle/apps/api-py/.env            MISSED
+leak   lj-livekit-middle/apps/api-py/.env         MISSED
+leak   lj-voice-middle/apps/api-py/.env           MISSED
+leak   lj-dburl-middle/apps/api-py/.env           MISSED
+leak   lj-auth-middle/apps/api-py/.env            MISSED
+leak   lj-openai-end/apps/api-py/.env             MISSED
+leak   lj-groq-end/apps/api-py/.env               MISSED
+leak   lj-livekit-end/apps/api-py/.env            MISSED
+leak   lj-voice-end/apps/api-py/.env              MISSED
+leak   lj-dburl-end/apps/api-py/.env              MISSED
+leak   lj-auth-end/apps/api-py/.env               MISSED
+leak   l21/docs/evidence.txt                      MISSED
+leak   l22/docs/evidence.txt                      MISSED
+FAILED:
+replay_exit=1
+[exit=0]
+
+[2026-10-08T10:33:47 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt
+$ PATH=/usr/bin:/bin GITLEAKS= python3 tools/ci/check_gitleaks_rules.py; echo replay_exit=$?; git status --short
+FAILED: gitleaks is not on PATH (or set GITLEAKS); the rules were not checked
+replay_exit=1
+?? apps/api-py/.venv
+[exit=0]

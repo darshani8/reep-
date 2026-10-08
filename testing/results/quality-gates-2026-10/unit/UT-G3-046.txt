@@ -1,0 +1,30 @@
+# Evidence for UT-G3-046
+# build e55d1395379e9bc97cf5f3dfbc6a55bd16962475 (re-test round 2), tester session U
+# [2026-10-08T10:37:15 UTC] Method: synthetic handlers in app/routers/qg_probe.py, SCRATCH worktree /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt (at e55d139) only, included in that worktree's app/main.py;
+#   pytest -q -p no:cacheprovider -o addopts= tests/test_route_audit.py (DATABASE_URL at 127.0.0.1:1); full output: UT-G3-rt2-pytest-output.txt.
+#   Behaviour: TestClient with get_current_session overridden to a STUDENT session. (S = Depends(get_current_session) in the probe module.)
+
+--- probe source:
+@router.get("/n17-suppress-exception")
+def n17_suppress_exception(session: dict = S) -> Out:
+    with contextlib.suppress(Exception):
+        require_admin(session)
+    return Out()
+
+--- audit failure lines naming /api/qg/n17-suppress-exception: 1
+E           GET /api/qg/n17-suppress-exception  (app.routers.qg_probe.n17_suppress_exception: no role or scope gate)
+--- behaviour:
+GET /api/qg/n17-suppress-exception as a STUDENT session -> 200 {"ok":true}
+
+--- probe source:
+@router.get("/n18-suppress-valueerror")
+def n18_suppress_valueerror(session: dict = S) -> Out:
+    with contextlib.suppress(ValueError):
+        require_admin(session)
+    return Out()
+
+--- audit failure lines naming /api/qg/n18-suppress-valueerror: 0
+(none: the audit did not report this operation under any rule)
+--- behaviour:
+GET /api/qg/n18-suppress-valueerror as a STUDENT session -> 403 {"detail":"Main Admin access required."}
+

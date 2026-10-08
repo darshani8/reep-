@@ -1,0 +1,28 @@
+# Evidence for UT-G1-043
+# build e55d1395379e9bc97cf5f3dfbc6a55bd16962475 (re-test round 2), tester session U
+
+[2026-10-08T10:31:50 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; echo '--- ruff (CI config):'; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py; echo ruff_exit=$?; echo '--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):'; ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/x .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_codebase_guards.py -k test_every_suppression_in_shipped_code 2>&1 | grep -E '^E  |passed|failed' | head -6
+--- probe app/_qg_probe.py:
+     1	import subprocess
+     2	
+     3	
+     4	def f(cmd, x):
+     5	    # ruff: disable[S101, S602]  a narrow block that the reviewer agreed to
+     6	    assert x
+     7	    subprocess.run(cmd, shell=True)
+     8	    # ruff: enable[S101]
+     9	    subprocess.run(cmd, shell=True)
+    10	    subprocess.run(cmd, shell=True)
+--- ruff (CI config):
+app/_qg_probe.py:5:5: RUF104 Suppression comment without matching `#ruff:enable` comment
+app/_qg_probe.py:8:5: RUF103 Invalid suppression comment: no matching 'disable' comment
+Found 2 errors.
+No fixes available (1 hidden fix can be enabled with the `--unsafe-fixes` option).
+ruff_exit=1
+--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):
+E       AssertionError: Suppressions without codes or a reason:
+E           apps/api-py/app/_qg_probe.py:5: `ruff: disable[S101, S602]` is never closed by a matching `ruff: enable`, so it silences the rest of the file
+E       assert not ['apps/api-py/app/_qg_probe.py:5: `ruff: disable[S101, S602]` is never closed by a matching `ruff: enable`, so it silences the rest of the file']
+1 failed, 81 deselected in 1.27s
+[exit=0]

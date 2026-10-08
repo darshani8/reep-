@@ -1,0 +1,8 @@
+# Evidence for UT-G4-006-rt2
+# build e55d1395379e9bc97cf5f3dfbc6a55bd16962475 (re-test round 2), tester session U
+
+[2026-10-08T10:39:31 UTC] cwd=/home/user/reep-
+$ cd /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py; source /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/mkrev.sh; mkrev aaaa00000001 f4a2c9e7b1d3 ''; RT 12 | grep -cE 'missing'; RT 12 | grep -E 'passed|failed'; rm -f migrations/versions/aaaa*
+2
+2 failed, 32 passed in 0.77s
+[exit=0]

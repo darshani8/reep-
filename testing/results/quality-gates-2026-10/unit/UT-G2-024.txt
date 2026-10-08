@@ -16,7 +16,7 @@ gitleaks exit=0
 $ echo 'shape: see the masked file'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-024b-worded-placeholder; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-024b-worded-placeholder
 shape: see the masked file
 --- g2-024b-worded-placeholder/.env.example
-OPENAI_API_KEY=<worded placeholder change-me-please-now-ok>
+OPENAI_API_KEY=<the worded placeholder>
 findings: 1 [('reep-openai-key', 1)]
 gitleaks exit=1
 [exit=0]

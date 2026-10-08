@@ -1,0 +1,101 @@
+# Evidence for UT-G2-022-rt2
+# build e55d1395379e9bc97cf5f3dfbc6a55bd16962475 (re-test round 2), tester session U
+
+[2026-10-08T10:35:08 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: the OPENAI_API_KEY variable set to proxy- plus 30 random alnum characters, with the literal text <abc> appended'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022b-openai-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022b-openai-angle
+shape: the OPENAI_API_KEY variable set to proxy- plus 30 random alnum characters, with the literal text <abc> appended
+--- g2-022b-openai-angle/.env
+OPENAI_API_KEY=<FAKE-VALUE-MASKED>
+findings: 1 [('reep-openai-key', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T10:35:09 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: the AUTH_SECRET variable set to a QUOTED 64-hex value with the literal text <abc> appended inside the quotes'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022c-auth-quoted-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022c-auth-quoted-angle
+shape: the AUTH_SECRET variable set to a QUOTED 64-hex value with the literal text <abc> appended inside the quotes
+--- g2-022c-auth-quoted-angle/.env
+AUTH_SECRET=<FAKE-VALUE-MASKED>
+findings: 1 [('reep-auth-secret', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T10:35:09 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: the AUTH_SECRET variable set to an UNQUOTED 64-hex value with the literal text <abc> appended'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022d-auth-unquoted-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022d-auth-unquoted-angle
+shape: the AUTH_SECRET variable set to an UNQUOTED 64-hex value with the literal text <abc> appended
+--- g2-022d-auth-unquoted-angle/.env
+AUTH_SECRET=<FAKE-VALUE-MASKED>
+findings: 1 [('reep-auth-secret', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T10:35:10 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: a ghp_ token (36 random alnum) with the literal text <abc> appended, in a TS string'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022e-ghp-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022e-ghp-angle
+shape: a ghp_ token (36 random alnum) with the literal text <abc> appended, in a TS string
+--- g2-022e-ghp-angle/x.ts
+const t = <FAKE-VALUE-MASKED>
+findings: 1 [('github-pat', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T10:35:11 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: the LIVEKIT_API_SECRET variable set to 30 random alnum characters with <abc> appended'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022f-livekit-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022f-livekit-angle
+shape: the LIVEKIT_API_SECRET variable set to 30 random alnum characters with <abc> appended
+--- g2-022f-livekit-angle/.env
+LIVEKIT_API_SECRET=<FAKE-VALUE-MASKED>
+findings: 1 [('reep-livekit-credentials', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T10:35:11 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: a postgresql URL for user admin whose password is 12 random alnum, the literal text <abc>, then 8 random alnum'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022g-pgurl-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022g-pgurl-angle
+shape: a postgresql URL for user admin whose password is 12 random alnum, the literal text <abc>, then 8 random alnum
+--- g2-022g-pgurl-angle/doc.md
+psql <FAKE-VALUE-MASKED>
+findings: 1 [('reep-database-url-password', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T10:35:12 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: the VOICE_WORKER_SECRET variable set to 20 random alnum characters with <abc> appended'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022h-voice-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022h-voice-angle
+shape: the VOICE_WORKER_SECRET variable set to 20 random alnum characters with <abc> appended
+--- g2-022h-voice-angle/.env
+VOICE_WORKER_SECRET=<FAKE-VALUE-MASKED>
+findings: 1 [('reep-voice-worker-secret', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T10:35:13 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: the GROQ_API_KEY variable set to 30 random alnum characters with <abc> appended'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022i-groq-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022i-groq-angle
+shape: the GROQ_API_KEY variable set to 30 random alnum characters with <abc> appended
+--- g2-022i-groq-angle/.env
+GROQ_API_KEY=<FAKE-VALUE-MASKED>
+findings: 1 [('reep-groq-key', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T10:35:13 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: the OPENAI_API_KEY variable set to proxy- plus 30 random alnum with the 2-character text <ab> appended'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022j-short-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022j-short-angle
+shape: the OPENAI_API_KEY variable set to proxy- plus 30 random alnum with the 2-character text <ab> appended
+--- g2-022j-short-angle/.env
+OPENAI_API_KEY=<FAKE-VALUE-MASKED>
+findings: 1 [('reep-openai-key', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T10:35:14 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: prose: an sk-proj- prefix and 48 random alnum characters, with the literal text <abc> appended (not a shape any rule knows; control for 022k)'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022a-sk-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022a-sk-angle
+shape: prose: an sk-proj- prefix and 48 random alnum characters, with the literal text <abc> appended (not a shape any rule knows; control for 022k)
+--- g2-022a-sk-angle/notes.md
+use <FAKE-VALUE-MASKED> for the gateway
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T10:35:15 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: prose: a legacy-shape OpenAI key (sk-, 20, T3BlbkFJ, 20) with the literal text <abc> appended'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022k-sk-legacy-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022k-sk-legacy-angle
+shape: prose: a legacy-shape OpenAI key (sk-, 20, T3BlbkFJ, 20) with the literal text <abc> appended
+--- g2-022k-sk-legacy-angle/notes.md
+the gateway key is <FAKE-VALUE-MASKED> today
+findings: 0 []
+gitleaks exit=0
+[exit=0]

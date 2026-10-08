@@ -1,0 +1,9 @@
+# Evidence for UT-G4-003-rt2
+# build e55d1395379e9bc97cf5f3dfbc6a55bd16962475 (re-test round 2), tester session U
+
+[2026-10-08T10:39:21 UTC] cwd=/home/user/reep-
+$ cd /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py; source /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/mkrev.sh; mkrev aaaa00000001 f4a2c9e7b1d3 $'def downgrade() -> None:\n    op.execute("UPDATE resumes SET title = title")'; sed -i 's/^IRREVERSIBLE: dict\[str, Irreversible\] = {/IRREVERSIBLE: dict[str, Irreversible] = {\n    "aaaa00000001": Irreversible("no-op", "QG probe: declared no-op but now real"),/' migrations/reversibility.py; RT 3; git checkout -q migrations/reversibility.py; rm -f migrations/versions/aaaa*
+E       AssertionError: IRREVERSIBLE no longer matches the migrations:
+E           aaaa00000001 (aaaa00000001_qg_probe.py) is declared 'no-op' but its downgrade is now 'real'
+E         A revision that gained a real downgrade must be struck off, or the round trip keeps stopping above revisions it could now exercise.
+[exit=0]

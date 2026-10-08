@@ -11,8 +11,8 @@ gitleaks exit=0
 [exit=0]
 
 [2026-10-08T09:50:09 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
-$ echo 'shape: AUTH_SECRET="<64 random hex> immediately followed by <abc>" (quoted)'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022c-auth-quoted-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022c-auth-quoted-angle
-shape: AUTH_SECRET="<64 random hex> immediately followed by <abc>" (quoted)
+$ echo 'shape: the AUTH_SECRET variable set to a QUOTED 64-hex value with the literal text <abc> appended inside the quotes'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022c-auth-quoted-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022c-auth-quoted-angle
+shape: the AUTH_SECRET variable set to a QUOTED 64-hex value with the literal text <abc> appended inside the quotes
 --- g2-022c-auth-quoted-angle/.env
 AUTH_SECRET=<FAKE-VALUE-MASKED>
 findings: 0 []
@@ -50,7 +50,7 @@ gitleaks exit=0
 $ echo 'shape: postgresql://admin:<12 random alnum><abc><8 random alnum>@db.example.com/reep_py (the placeholder INSIDE the password)'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022g-pgurl-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022g-pgurl-angle
 shape: postgresql://admin:<12 random alnum><abc><8 random alnum>@db.example.com/reep_py (the placeholder INSIDE the password)
 --- g2-022g-pgurl-angle/doc.md
-psql postgresql://admin:WTuE2ozpAC3J<abc>trgoXd9y@db.example.com/reep_py
+psql <FAKE-VALUE-MASKED>
 findings: 0 []
 gitleaks exit=0
 [exit=0]

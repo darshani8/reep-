@@ -2442,3 +2442,103 @@ def test_the_release_gate_refuses_the_wrapper_and_its_registration() -> None:
     gate = (REPO / "tools" / "ci" / "release_gate.py").read_text(encoding="utf-8")
     for path in ('"apps/web/public/reep-sw.js"', '"apps/web/src/app/app.config.ts"'):
         assert path in gate, f"tools/ci/release_gate.py REFUSE must list {path}"
+
+
+# ---------------------------------------------------------------------------#
+# §39  Every suppression in shipped code names its codes AND says why        #
+# ---------------------------------------------------------------------------#
+#
+# The static-analysis step is only a gate while a suppression costs a sentence.
+# A file-level ruff-noqa directive on line 1 switched S, ASYNC, F and B off for
+# a whole file, and a bare noqa did the same for a line; both passed CI
+# (DEF-QG-U03). ruff's PGH004 (selected in pyproject.toml) refuses those two
+# shapes. What it cannot refuse is a noqa naming S602 with no reason, or a
+# file-level directive that NAMES its codes -- the rule here is a line-level
+# suppression with its reason in words after the codes, never a file-level one.
+# (The directives are spelled out in words in this block on purpose: ruff reads
+# directives in any comment, this one included.)
+#
+# A real tokenizer, not a grep: the directive inside a string literal is not a
+# suppression, and only a COMMENT token is read.
+#
+# Scope: app/ (what ships) and the CI scripts the gate itself trusts
+# (tools/ci/ at the repo root and apps/api-py/tools/). tests/ is exempt on
+# purpose: it never ships, and its few reasonless E402 suppressions are the
+# house import idiom described where they sit.
+
+_NOQA = re.compile(
+    r"#\s*(?P<file>ruff\s*:\s*)?noqa\b"
+    r"(?::\s*(?P<codes>[A-Z]+[0-9]+(?:\s*,\s*[A-Z]+[0-9]+)*))?"
+    r"(?P<rest>.*)",
+    re.IGNORECASE,
+)
+
+
+def _noqa_problems(source: str) -> list[tuple[int, str]]:
+    """(line, problem) for every suppression comment that breaks the rule."""
+    import io
+    import tokenize
+
+    problems: list[tuple[int, str]] = []
+    for tok in tokenize.generate_tokens(io.StringIO(source).readline):
+        if tok.type != tokenize.COMMENT:
+            continue
+        match = _NOQA.search(tok.string)
+        if match is None:
+            continue
+        line = tok.start[0]
+        if match.group("file"):
+            problems.append((line, "file-level `ruff: noqa`; suppress one line, with a reason"))
+        elif not match.group("codes"):
+            problems.append((line, "bare `noqa`; name the rule codes"))
+        elif not re.search(r"[A-Za-z]{2,}", match.group("rest")):
+            problems.append((line, f"`noqa: {match.group('codes')}` with no reason after the codes"))
+    return problems
+
+
+def _shipped_python() -> list[Path]:
+    roots = [APP, REPO / "tools" / "ci", APP.parent / "tools"]
+    return sorted(p for root in roots for p in root.rglob("*.py") if "__pycache__" not in p.parts)
+
+
+def test_every_suppression_in_shipped_code_has_codes_and_a_reason() -> None:
+    files = _shipped_python()
+    assert len(files) > 150, "the scan found too few files to be scanning app/"
+    bad = [
+        f"{path.relative_to(REPO)}:{line}: {problem}"
+        for path in files
+        for line, problem in _noqa_problems(path.read_text(encoding="utf-8"))
+    ]
+    assert not bad, "Suppressions without codes or a reason:\n  " + "\n  ".join(bad)
+
+
+def test_the_file_level_form_is_refused() -> None:
+    """The tester's first shape (UT-G1-036): one line switches a file off."""
+    source = "# ruff: noqa\nimport subprocess\nsubprocess.run(cmd, shell=True)\n"
+    assert _noqa_problems(source) == [(1, "file-level `ruff: noqa`; suppress one line, with a reason")]
+    assert _noqa_problems("# ruff: noqa: S101  tests only\nassert x\n")[0][0] == 1
+
+
+def test_the_bare_and_the_reasonless_forms_are_refused() -> None:
+    """The tester's second shape: a bare noqa and a noqa with codes but no words."""
+    source = "assert x  # noqa\nsubprocess.run(cmd, shell=True)  # noqa: S602\n"
+    assert _noqa_problems(source) == [
+        (1, "bare `noqa`; name the rule codes"),
+        (2, "`noqa: S602` with no reason after the codes"),
+    ]
+
+
+def test_a_reasoned_suppression_and_a_string_literal_pass() -> None:
+    source = (
+        'assert x  # noqa: S101  type narrowing only\n'
+        'except Exception:  # noqa: BLE001, S110  telemetry must never fail its caller\n'
+        'HELP = "write # noqa to silence a line"\n'
+    )
+    assert _noqa_problems(source) == []
+
+
+def test_ruff_itself_refuses_the_blanket_forms() -> None:
+    """PGH004 is the first line of defence; pin that it stays selected."""
+    pyproject = (APP.parent / "pyproject.toml").read_text(encoding="utf-8")
+    select = pyproject.split("select = [", 1)[1].split("]", 1)[0]
+    assert '"PGH004"' in select

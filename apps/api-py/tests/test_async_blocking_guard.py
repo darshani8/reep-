@@ -110,12 +110,18 @@ def not_a_dependency():
         ("document_store.save_bytes(b'')", "calls document_store.save_bytes()"),
         ("save_bytes(b'')", "calls document_store.save_bytes()"),
         ("mail_transport.send(m)", "calls mail_transport.send()"),
+        # OBS-QG-U03: the descriptor-level calls and Path.open().
+        ("os.open('x', 0)", "calls os.open()"),
+        ("os.read(fd, 10)", "calls os.read()"),
+        ("os.write(fd, b'')", "calls os.write()"),
+        ("Path('x').open()", "calls Path(...).open()"),
+        ("pathlib.Path('x').open('rb')", "calls Path(...).open()"),
     ],
 )
 def test_each_blocking_call_is_reported(body, expected):
     header = textwrap.dedent(
         """
-        import time, subprocess, requests, boto3
+        import os, pathlib, time, subprocess, requests, boto3
         from pathlib import Path
         from .. import document_store, mail_transport
         from ..document_store import save_bytes
@@ -417,3 +423,14 @@ def test_a_known_offender_that_shrank_must_update_its_pin(tmp_path, monkeypatch,
     monkeypatch.setattr(guard, "KNOWN", {"known.py::h": guard.Known("on the list on purpose here", pinned)})
     assert guard.main() == 1
     assert "GONE     calls db.commit() on a sync Session" in capsys.readouterr().err
+
+
+def test_an_immediately_invoked_lambda_is_the_documented_blind_spot():
+    """OBS-QG-U03. Pinned so that closing the gap is a deliberate change:
+    a lambda body is excluded because `to_thread(lambda: ...)` is the idiom."""
+    assert _scan_with("import time\nasync def h():\n    (lambda: time.sleep(5))()\n") == []
+    assert "immediately-invoked lambda" in guard.__doc__
+
+
+def test_an_awaited_async_file_open_is_not_reported():
+    assert _scan_with("import anyio\nasync def h(p):\n    return await anyio.Path(p).open()\n") == []

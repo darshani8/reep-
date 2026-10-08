@@ -113,9 +113,9 @@ assembled FastAPI app and checks every operation:
 | Rule | Passes when | Exception list |
 |---|---|---|
 | Session | `get_current_session` is in the dependency tree | `PUBLIC` |
-| Gate | the handler (or a dependency), on a branch that is not constant-false, calls a named role/scope gate — `require_mentor`, `require_admin`, `require_capability`, `_assert_can_access_student`, `assert_student_scope`, `require_role`, `require_alumni`, the two `_require_student`s, `_own_student_id` — or **raises** inside an `if` that compares `session["role"]`. A comparison that only decides what to show does not count | `KNOWN_UNGATED` |
+| Gate | the handler (or a dependency), on a path that can run and outside any `try` that swallows the refusal, calls a named role/scope gate — `require_mentor`, `require_admin`, `require_capability`, `_assert_can_access_student`, `assert_student_scope`, `require_role`, `require_alumni`, the two `_require_student`s, `_own_student_id` — or **raises** inside an `if` that compares `session["role"]`. A comparison that only decides what to show does not count | `KNOWN_UNGATED` |
 | WebSocket | the socket's body calls `get_ws_session` on a live branch | none — no exceptions allowed |
-| Response model | a JSON operation declares a Pydantic response model; `Any`, `object` or an untyped `dict`/`Mapping` anywhere in the type does not count (`dict[str, Any]` type-checks and pins nothing); files, redirects and 204s are exempt | `KNOWN_NO_RESPONSE_MODEL` |
+| Response model | a JSON operation declares a Pydantic response model; `Any`, `object` or an untyped `dict`/`Mapping` anywhere in the type does not count (`dict[str, Any]` type-checks and pins nothing), including inside a `RootModel`'s root; files, redirects and 204s are exempt | `KNOWN_NO_RESPONSE_MODEL` |
 | No ORM leakage | no response model contains a SQLAlchemy class | none |
 | Status | a 204 has no model; a DELETE is 204 or returns a model; a POST to a collection — a path with `/{id}` children, or whose last segment is a plural noun — answers 201. A POST to a singular or verb segment (`/request`, `/timesheet`, `/approve`) is **not judged** | `KNOWN_STATUS` |
 | Pagination | a GET returning a **bare list** takes a size param (`limit`/`page_size`) with an `le=` bound plus `offset`/`cursor`/`page`. A model that *contains* a list (about 50 GETs, e.g. `/api/admin/exports/history`) is **not judged** | `BOUNDED` (capped by construction, cap named) or `KNOWN_UNPAGINATED` (a recorded gap) |
@@ -157,8 +157,16 @@ gone fails with "strike it off". The lists are sorted by (path, method) and each
 reason must be a sentence, both checked.
 
 **What it proves, exactly.** That every handler outside the two lists calls a
-named gate on some non-dead path through its call tree, or raises on a role
-comparison. It does **not** prove that every branch reaches the gate
+named gate on some live path through its call tree, or raises on a role
+comparison, where the refusal is not swallowed. "Live" excludes the branch a
+constant test rules out (`if False`, `if not True`, `while 0`, `True and 0`)
+and every statement after an unconditional `return`/`raise`/`continue`/`break`.
+"Swallowed" means inside a `try` with an `except` for `HTTPException`,
+`Exception`, `BaseException` or bare that does not raise again — the shape of
+`_may_see_raw_response` in `app/routers/interview_records.py`, which calls
+`require_admin` to get a boolean and is therefore a predicate, not a gate.
+`tests/route_audit_shapes.py` holds the shapes, and the module's self-tests pin
+both verdicts. It does **not** prove that every branch reaches the gate
 (`if x: require_admin(session)` counts), nor that the gate called is the right
 one for the data. A handler that calls no gate and refuses on no role anywhere
 fails; the rest is `KNOWN_UNGATED`, read by a human, and rule 2's own tests

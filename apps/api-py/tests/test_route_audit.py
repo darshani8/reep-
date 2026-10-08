@@ -37,9 +37,10 @@ names the HANDLER it was granted to: a different function mounted at a listed
 (method, path) does not inherit the exception, it fails as new.
 
 WHAT IT CANNOT PROVE, said once here so nobody reads more into a green run. The
-gate check is static: it proves a gate is CALLED on some path through the
-handler, or that the handler refuses on a role comparison — not that the gate
-is the right one for the data, and not that every branch reaches it. Rule 2's
+gate check is static: it proves a gate is CALLED on some LIVE path through the
+handler (not in dead code, not inside a `try` that swallows its refusal), or
+that the handler refuses on a role comparison — not that the gate is the right
+one for the data, and not that every branch reaches it. Rule 2's
 own tests (`test_mentee_records.py`, `test_no_director_privilege.py`) still
 carry that.
 
@@ -58,6 +59,7 @@ import types
 import typing
 from dataclasses import dataclass
 
+import pydantic
 import pytest
 from fastapi.routing import APIRoute, APIWebSocketRoute, iter_route_contexts
 from starlette.responses import Response
@@ -65,6 +67,7 @@ from starlette.responses import Response
 from app.db import Base
 from app.main import app
 from tests import route_audit_exceptions as ex
+from tests import route_audit_shapes as shapes
 
 # --------------------------------------------------------------------------- #
 # The inventory
@@ -321,32 +324,112 @@ def _source_tree(fn) -> ast.AST | None:
         return None
 
 
+_UNKNOWN = object()
+
+
+def _fold(test: ast.expr) -> object:
+    """The value of a test that is a constant expression, else _UNKNOWN.
+
+    `True`, `0`, `not True`, `True and False`, `()` — anything `ast.literal_eval`
+    accepts, plus `not` and `and`/`or` over such things. Nothing is executed.
+    """
+    if isinstance(test, ast.UnaryOp) and isinstance(test.op, ast.Not):
+        inner = _fold(test.operand)
+        return _UNKNOWN if inner is _UNKNOWN else (not inner)
+    if isinstance(test, ast.BoolOp):
+        values = [_fold(v) for v in test.values]
+        if any(v is _UNKNOWN for v in values):
+            return _UNKNOWN
+        if isinstance(test.op, ast.And):
+            return all(values)
+        return any(values)
+    try:
+        return ast.literal_eval(test)
+    except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
+        return _UNKNOWN
+
+
 def _constant_truth(test: ast.expr) -> bool | None:
-    """True/False for `if True` / `if 0` and friends; None for a real test."""
-    if isinstance(test, ast.Constant):
-        return bool(test.value)
-    return None
+    """True/False for a test that is a constant expression; None for a real test."""
+    value = _fold(test)
+    return None if value is _UNKNOWN else bool(value)
+
+
+# An `except` that catches one of these, and does not raise again, turns every
+# refusal raised in its `try` into a value: `_may_see_raw_response` in
+# app/routers/interview_records.py calls `require_admin` exactly so, on purpose,
+# to get a boolean. A gate whose refusal is swallowed refuses nobody.
+_SWALLOWED_TYPES = frozenset({"HTTPException", "Exception", "BaseException"})
+_TERMINATORS = (ast.Return, ast.Raise, ast.Continue, ast.Break)
+
+
+def _caught_names(handler: ast.ExceptHandler) -> set[str]:
+    if handler.type is None:
+        return {"BaseException"}  # a bare `except:`
+    parts = handler.type.elts if isinstance(handler.type, ast.Tuple) else [handler.type]
+    return {p.id if isinstance(p, ast.Name) else getattr(p, "attr", "") for p in parts}
+
+
+def _swallows(handler: ast.ExceptHandler) -> bool:
+    if not _caught_names(handler) & _SWALLOWED_TYPES:
+        return False
+    reraises = any(
+        isinstance(n, ast.Raise) and not caught for n, caught in _live_block(handler.body, False)
+    )
+    return not reraises
+
+
+def _live_block(stmts: list, caught: bool) -> typing.Iterator[tuple[ast.AST, bool]]:
+    """A statement list, stopping at the first unconditional return/raise/continue/break."""
+    for stmt in stmts:
+        yield from _live_pairs(stmt, caught)
+        if isinstance(stmt, _TERMINATORS):
+            return
+
+
+def _live_pairs(node: ast.AST, caught: bool = False) -> typing.Iterator[tuple[ast.AST, bool]]:
+    """Every node that can run, with whether a refusal raised there is swallowed.
+
+    Pruned as dead: the branch of an `if` whose test is a constant expression
+    that rules it out (`if False`, `if not True`, `if True and 0`), the body of
+    `while <falsy constant>`, and every statement after an unconditional
+    return/raise/continue/break in the same block. Marked `caught`: everything
+    in the body of a `try` that has a handler from `_swallows`.
+    """
+    yield node, caught
+    if isinstance(node, (ast.If, ast.While)):
+        truth = _constant_truth(node.test)
+        yield from _live_pairs(node.test, caught)
+        if truth is not False:
+            yield from _live_block(node.body, caught)
+        if truth is not True:
+            yield from _live_block(node.orelse, caught)
+        return
+    if isinstance(node, (ast.Try, getattr(ast, "TryStar", ast.Try))):
+        swallowed = any(_swallows(h) for h in node.handlers)
+        yield from _live_block(node.body, caught or swallowed)
+        for handler in node.handlers:
+            yield from _live_pairs(handler, caught)
+        yield from _live_block(node.orelse, caught or swallowed)
+        yield from _live_block(node.finalbody, caught)
+        return
+    for _field, value in ast.iter_fields(node):
+        if isinstance(value, list):
+            if value and all(isinstance(v, ast.stmt) for v in value):
+                yield from _live_block(value, caught)
+            else:
+                for item in value:
+                    if isinstance(item, ast.AST):
+                        yield from _live_pairs(item, caught)
+        elif isinstance(value, ast.AST):
+            yield from _live_pairs(value, caught)
 
 
 def _live_nodes(node: ast.AST) -> typing.Iterator[ast.AST]:
-    """`ast.walk`, minus the branches that can never run.
-
-    `if False: require_admin(session)` is a gate nobody passes through, and it
-    must not count as one; likewise the `else` of an `if True`.
-    """
-    yield node
-    if isinstance(node, ast.If):
-        truth = _constant_truth(node.test)
-        yield from _live_nodes(node.test)
-        if truth is not False:
-            for child in node.body:
-                yield from _live_nodes(child)
-        if truth is not True:
-            for child in node.orelse:
-                yield from _live_nodes(child)
-        return
-    for child in ast.iter_child_nodes(node):
-        yield from _live_nodes(child)
+    """The nodes that can run AND whose refusal, if they raise one, reaches the caller."""
+    for n, caught in _live_pairs(node):
+        if not caught:
+            yield n
 
 
 def _resolved_calls(fn) -> list:
@@ -463,8 +546,8 @@ def _refuses_on_role_inline(fn) -> bool:
             continue
         if not mentions_role(node.test):
             continue
-        branches = [*node.body, *node.orelse]
-        if any(isinstance(n, ast.Raise) for branch in branches for n in _live_nodes(branch)):
+        branches = [*_live_block(node.body, False), *_live_block(node.orelse, False)]
+        if any(isinstance(n, ast.Raise) and not caught for n, caught in branches):
             return True
     return False
 
@@ -475,9 +558,10 @@ _GATE_MEMO: dict = {}
 def _reaches_gate(fn, depth: int = 0) -> bool:
     """Does `fn`, or anything it calls inside `app` on a live branch, apply a gate?
 
-    Branch-insensitive beyond dead code: `if x: require_admin(s)` counts. That
-    is the limit of a static check and the reason KNOWN_UNGATED is read by a
-    human; what it reliably catches is a handler that calls no gate and refuses
+    Calls in dead code and inside a `try` that swallows the refusal do not
+    count (`_live_pairs`). Otherwise branch-insensitive: `if x:
+    require_admin(s)` counts. That is the limit of a static check and the
+    reason KNOWN_UNGATED is read by a human; what it reliably catches is a handler that calls no gate and refuses
     on no role ANYWHERE in its call tree — the shape of a forgotten check.
     """
     if _qualname(fn) in GATE_FUNCTIONS:
@@ -526,26 +610,87 @@ def test_the_gate_check_can_see_a_gate() -> None:
     assert len(gated) > 250, f"Only {len(gated)} handlers reach a gate; the analysis is blind."
 
 
-def test_every_websocket_authenticates_in_its_body() -> None:
-    def reaches_ws_session(fn, depth=0, seen=None) -> bool:
-        seen = set() if seen is None else seen
-        if fn in seen or depth > 4:
-            return False
-        seen.add(fn)
-        tree = _source_tree(fn)
-        if tree and any(
-            isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == "get_ws_session"
-            or isinstance(n, ast.Name) and n.id == "get_ws_session"
-            for n in _live_nodes(tree)
-        ):
-            return True
-        return any(reaches_ws_session(c, depth + 1, seen) for c in _resolved_calls(fn))
+def _reaches_ws_session(fn, depth: int = 0, seen: set | None = None) -> bool:
+    """Does `fn` read the session cookie on a live path whose refusal is not swallowed?"""
+    seen = set() if seen is None else seen
+    if fn in seen or depth > 4:
+        return False
+    seen.add(fn)
+    tree = _source_tree(fn)
+    if tree and any(isinstance(n, ast.Name) and n.id == "get_ws_session" for n in _live_nodes(tree)):
+        return True
+    return any(_reaches_ws_session(c, depth + 1, seen) for c in _resolved_calls(fn))
 
-    unauthenticated = sorted(path for path, fn in WEBSOCKETS if not reaches_ws_session(fn))
+
+def test_every_websocket_authenticates_in_its_body() -> None:
+    unauthenticated = sorted(path for path, fn in WEBSOCKETS if not _reaches_ws_session(fn))
     assert not unauthenticated, (
         f"WebSocket routes that never read the session cookie: {unauthenticated}. "
         f"Call `get_ws_session(websocket)` (app/identity.py) before accepting."
     )
+
+
+# --------------------------------------------------------------------------- #
+# Self-tests: the shapes the analysis must judge correctly
+# --------------------------------------------------------------------------- #
+#
+# `tests/route_audit_shapes.py` holds handler bodies that are mounted nowhere.
+# The `ungated_*` ones are the unit tester's reproductions (DEF-QG-U01 a gate
+# whose refusal is caught; DEF-QG-U02 a gate in dead code): each one served a
+# STUDENT a 200 while the audit counted it gated. The `gated_*` ones are the
+# controls, so a fix that simply stopped seeing gates would fail here too.
+
+_GATED_SHAPES = sorted(n for n in dir(shapes) if n.startswith("gated_"))
+_UNGATED_SHAPES = sorted(n for n in dir(shapes) if n.startswith("ungated_"))
+
+
+def test_the_shape_module_has_both_verdicts() -> None:
+    assert len(_GATED_SHAPES) >= 5 and len(_UNGATED_SHAPES) >= 10
+
+
+@pytest.mark.parametrize("name", _UNGATED_SHAPES)
+def test_a_refusal_that_is_caught_or_dead_is_not_a_gate(name: str) -> None:
+    assert not _reaches_gate(getattr(shapes, name)), (
+        f"{name} refuses nobody, yet the audit counts it as gated."
+    )
+
+
+@pytest.mark.parametrize("name", _GATED_SHAPES)
+def test_a_live_refusal_is_still_a_gate(name: str) -> None:
+    assert _reaches_gate(getattr(shapes, name)), f"{name} refuses, yet the audit misses it."
+
+
+def test_the_real_predicate_helper_is_not_a_gate() -> None:
+    """`_may_see_raw_response` calls require_admin and catches the 403 to get a
+    boolean, on purpose. Calling it decides what to show; it refuses nobody."""
+    from app.routers.interview_records import _may_see_raw_response
+
+    assert not _reaches_gate(_may_see_raw_response)
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ("True", True),
+        ("0", False),
+        ("not True", False),
+        ("not 0", True),
+        ("True and False", False),
+        ("0 or 1", True),
+        ("()", False),
+        ("not (1 and ())", True),
+        ("session", None),
+        ("not session", None),
+        ("True and session", None),
+    ],
+)
+def test_constant_tests_are_folded(source: str, expected: bool | None) -> None:
+    assert _constant_truth(ast.parse(source, mode="eval").body) is expected
+
+
+@pytest.mark.parametrize("name", ["ws_ungated_swallowed", "ws_ungated_dead"])
+def test_a_websocket_whose_session_read_is_swallowed_or_dead_is_unauthenticated(name: str) -> None:
+    assert not _reaches_ws_session(getattr(shapes, name))
 
 
 # --------------------------------------------------------------------------- #
@@ -578,12 +723,18 @@ def _untyped_parts(t) -> list[str]:
 
     Any, object, and a dict/Mapping with no type arguments, anywhere in the type
     — `list[dict]` and `dict[str, Any]` included. A Pydantic model is a leaf and
-    is never looked inside: its fields are its own contract. `dict[str, SomeOut]`
-    is typed and passes. The point is mypy: annotating `-> dict[str, Any]` makes
+    is never looked inside (its fields are its own contract), except a
+    RootModel, whose root IS its contract. `dict[str, SomeOut]` is typed and
+    passes. The point is mypy: annotating `-> dict[str, Any]` makes
     the type checker quiet and the API contract exactly as empty as before.
     """
     if t is typing.Any or t is object:
         return [repr(t)]
+    if inspect.isclass(t) and issubclass(t, pydantic.RootModel):
+        # A RootModel IS its root: `RootModel[dict[str, Any]]` pins exactly what
+        # `dict[str, Any]` does, which is nothing. Look inside it.
+        root = t.model_fields["root"].annotation
+        return [f"{t.__name__}[{part}]" for part in _untyped_parts(root)]
     if t in _UNTYPED_MAPPINGS or t is typing.Dict:  # the bare alias is the thing being refused
         return [getattr(t, "__name__", repr(t))]
     origin = typing.get_origin(t)
@@ -645,6 +796,24 @@ def test_no_operation_returns_a_database_model() -> None:
         f"These return a SQLAlchemy model: {leaking}. Return a Pydantic `...Out` "
         f"schema built from the row — the row ships every column it will ever grow."
     )
+
+
+@pytest.mark.parametrize(
+    ("declared", "untyped"),
+    [
+        (dict, True),
+        (typing.Any, True),
+        (dict[str, typing.Any], True),
+        (list[dict], True),
+        (shapes.UntypedRoot, True),
+        (dict[str, shapes._ItemOut], False),
+        (list[shapes._ItemOut], False),
+        (shapes.TypedRoot, False),
+        (shapes._ItemOut | None, False),
+    ],
+)
+def test_the_untyped_rule_sees_inside_containers_and_root_models(declared, untyped: bool) -> None:
+    assert bool(_untyped_parts(declared)) is untyped, declared
 
 
 # --------------------------------------------------------------------------- #

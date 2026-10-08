@@ -114,7 +114,7 @@ from .purge_people import (
 # Importing the package registers every model on Base.metadata, for the same
 # reason purge_people does it: the verdict check below is only a guard if it
 # runs against the WHOLE schema.
-from . import models  # noqa: F401
+from . import models  # noqa: F401  imported for its side effect: every model on Base.metadata
 
 log = logging.getLogger("reep.purge_students")
 
@@ -991,7 +991,7 @@ def _stamp(db: Session, plan: Plan) -> None:
             )
         )
         db.commit()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001  the purge is done; a missing audit row is logged, not raised
         log.warning("Purge completed but its audit row could not be written: %s", exc)
         db.rollback()
 

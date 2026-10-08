@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document ID | REEP-TP-QG-2026-10 |
-| Version | 1.0 (baseline for execution) |
+| Version | 1.1 (baseline for execution, corrected during execution — see revision history) |
 | Status | Approved for execution by the Test Manager; awaiting the product owner's sign-off in the Test Completion Report |
 | Standard followed | ISO/IEC/IEEE 29119-3:2021 §7 *Test Plan*; ISO/IEC/IEEE 29119-2:2021 test processes; ISTQB® CTFL v4.0 terminology |
 | Parent documents | [REEP Test Strategy](../01-test-strategy.md) (project level, still in force) |
@@ -16,6 +16,7 @@
 |---|---|---|
 | 0.1 | 2026-10-08 | Draft written while the development fix rounds were in progress |
 | 1.0 | 2026-10-08 | Baseline: the build under test is fixed in §1.3 at the start of execution |
+| 1.1 | 2026-10-08 | Two corrections to the test basis made during execution, neither widening what a tester must prove: REQ-G4-05 described the round trip before its segment-walk rewrite (it no longer leaves the suite on a round-tripped schema), and REQ-GX-03 listed three intended product fixes where the build carries four (the fourth, `interview_ready`, was already in the system tester's brief) |
 
 ---
 
@@ -124,7 +125,7 @@ matrix ([05](05-traceability-matrix.md)) is built from them.
 | REQ-G4-02 | The round trip downgrades to the declared floor(s) and upgrades again, and fails unless the schema catalogue matches and `alembic check` is clean |
 | REQ-G4-03 | A downgrade that is missing, incomplete, leaves residue or restores the wrong thing is caught |
 | REQ-G4-04 | The script refuses a non-dev `ENV`, a non-loopback host (including via `?host=`/`?hostaddr=`), and a production-named database |
-| REQ-G4-05 | In CI it runs right after `alembic upgrade head` and before the seed, so the whole suite runs on the round-tripped schema |
+| REQ-G4-05 | In CI it runs right after `alembic upgrade head` and before the seed; it only READS the migrated database (the walk runs on a scratch database beside it), so the seed and the suite run on the straight-path schema production has |
 | REQ-G4-06 | Locally (`preflight.sh`) it runs on a scratch database it creates and drops, never on the developer's data |
 
 ### G5 — Human gate and documentation
@@ -141,7 +142,7 @@ matrix ([05](05-traceability-matrix.md)) is built from them.
 |---|---|
 | REQ-GX-01 | `ci.yml` keeps exactly its five jobs; all four files §34 compares agree, plus the declared standalone checks |
 | REQ-GX-02 | `preflight.sh` runs six checks in fail-fastest order with exit codes 0 = all passed, 1 = a failure, 2 = something did not run; each new gate SKIPs honestly when its tool is absent |
-| REQ-GX-03 | **No product behaviour changes** beyond the three intended fixes (interview rehearsal cancellation, the time-ledger boot check, the local-engine connect timeout): the full backend suite, the web unit suite and the production build are green; the API contract is unchanged |
+| REQ-GX-03 | **No product behaviour changes** beyond the four intended fixes (interview rehearsal cancellation, the time-ledger boot check, the local-engine connect timeout, `interview_ready` answering False for an engine it lacks): the full backend suite, the web unit suite and the production build are green; the API contract is unchanged |
 | REQ-GX-04 | The deployed-style stack (API + SPA) works end to end for each role on the branch |
 
 ---

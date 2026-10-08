@@ -84,7 +84,7 @@ from .models import user as user_model
 # Importing the package registers every model on Base.metadata. Without it the
 # verdict check below would pass against a HALF-POPULATED metadata and the
 # purge would skip real tables while reporting success.
-from . import models  # noqa: F401
+from . import models  # noqa: F401  imported for its side effect: every model on Base.metadata
 
 log = logging.getLogger("reep.purge")
 
@@ -610,7 +610,7 @@ def destroy_interview_audio(sessions: Iterable[Sequence[Any]]) -> list[str]:
     for sid, path in sessions:
         try:
             delete_session_audio(sid, path)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001  one file failing is logged; the pass goes on to the rest
             log.error("Could not delete interview audio for %s: %s", sid, exc)
             failures.append(f"interview_audio:{sid}")
     return failures
@@ -692,7 +692,7 @@ def destroy_s3_recordings(keys: Sequence[str]) -> list[str]:
     for key in keys:
         try:
             store.delete(key)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001  one object failing is logged; the pass goes on to the rest
             log.error("Could not delete S3 recording %s: %s", key, exc)
             failures.append(f"s3:{key}")
     return failures
@@ -813,7 +813,7 @@ def _stamp(db: Session, plan: Plan) -> None:
             )
         )
         db.commit()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001  the purge is done; a missing audit row is logged, not raised
         log.warning("Purge completed but its audit row could not be written: %s", exc)
         db.rollback()
 

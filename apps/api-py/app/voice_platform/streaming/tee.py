@@ -31,12 +31,12 @@ class TeeRecorder:
         # Both are total by contract; guard anyway so one cannot starve the other.
         try:
             self.buffer.feed(track, pcm)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001  a recorder failure must never end a live call
             log.warning("WAV buffer feed failed: %s", exc)
         if self.primary is not None:
             try:
                 self.primary.feed(track, pcm)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001  a recorder failure must never end a live call
                 log.warning("Per-speaker recorder feed failed: %s", exc)
 
     async def aclose(self) -> Any:

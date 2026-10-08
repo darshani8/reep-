@@ -160,7 +160,7 @@ Tick one:
 - [ ] Auth and permission on every route: `Depends(get_current_session)` plus a gate in the body (`require_*`, `require_capability`, `_assert_can_access_student`) — *route audit* (`PUBLIC` / `KNOWN_UNGATED` carry the exceptions, with reasons)
 - [ ] Thin routes; shared logic in an `app/` module, not copied between routers — *human — no gate* (REEP has no repository layer; see the checklist doc)
 - [ ] Correct status codes: 201 create, 204 no body, 404, 409, 422 — *route audit* for 204/DELETE and for a create on a collection path (`/{id}` children or a plural segment); a create at a singular or verb segment and the rest are *human — no gate*
-- [ ] Errors use the one envelope, `{"detail": ...}` — *not enforced yet*
+- [ ] Errors use the one envelope, `{"detail": ...}` — *human — no gate* (not enforced yet)
 - [ ] One transaction per request, committed after every refusal; no N+1 — *human — no gate*
 - [ ] An index for every filter and sort column, declared on the model — *codebase guards* for foreign keys; others *human — no gate*
 - [ ] Lists are paginated (`limit` with `le=`, plus `offset`/cursor) — *route audit* for a response that is a list (`BOUNDED` / `KNOWN_UNPAGINATED`); a list inside a response model is *human — no gate*
@@ -176,7 +176,7 @@ Tick one:
 - [ ] Logs carry the request id and no passwords, tokens or student free text — *human — no gate* (only the access line carries `rid=` today)
 - [ ] Rate limit on any new login-like or public route — *human — no gate*
 - [ ] `/docs` examples and descriptions are correct for changed endpoints — *human — no gate*
-- [ ] Review done, including "Design and approach" above — *human*
+- [ ] Review done, including "Design and approach" above — *human — no gate*
 
 ## Checks
 

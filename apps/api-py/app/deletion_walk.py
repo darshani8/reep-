@@ -61,7 +61,7 @@ from .db import Base
 
 # Importing the package registers every model on Base.metadata. The walk is
 # only a guard if it runs against the WHOLE schema.
-from . import models  # noqa: F401
+from . import models  # noqa: F401  imported for its side effect: every model on Base.metadata
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import CursorResult

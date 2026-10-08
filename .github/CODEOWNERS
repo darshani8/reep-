@@ -152,6 +152,14 @@ apps/api-py/app/models/                 @darshani8
 # blinded ~4,400 tracked lines without failing anything. A pull request that
 # touches either file is a pull request editing its own gate, and should be read
 # as one.
+#
+# AND THESE TWO LINES ENFORCE NOTHING TODAY (OBS-QG-I01). A pull request that
+# plants a token and fingerprints it in .gitleaksignore turns the gate green on
+# itself, and this file cannot stop it: every ruleset has
+# require_code_owner_review: false, and the owner named here is the author of
+# every pull request. It is a residual risk the product owner has been asked to
+# accept. What closes it is a second maintainer owning these two paths AND
+# code-owner review switched on in .github/rulesets/ -- not a longer comment.
 .gitleaks.toml                          @darshani8
 .gitleaksignore                         @darshani8
 .github/CODEOWNERS                      @darshani8

@@ -46,6 +46,12 @@ MAX_FILES = 40
 
 # Path PREFIXES whose change always needs a human. Order is irrelevant.
 REFUSE = {
+    # This prefix also covers migrations/reversibility.py, which only CI reads
+    # (env.py must not import it) and so needs no deploy. It stays refused and
+    # on the deploy side ON PURPOSE: it decides how far CI rolls the schema back,
+    # and loosening this list is loosening what reaches students unreviewed.
+    # A narrower exception is a gate-change for a human to make, not a
+    # convenience.
     "apps/api-py/migrations/": "a migration runs once, against production, in one direction",
     "apps/api-py/app/models/": "a model change needs its migration applied by a human",
     "apps/api-py/requirements.txt": "a runtime dependency changed",
@@ -108,6 +114,7 @@ NO_DEPLOY = (
     ".gitattributes",
     ".gitignore",
     ".gitleaks.toml",
+    ".gitleaksignore",  # the scan's ignore list, classified exactly as its rules are
     ".pre-commit-config.yaml",
     ".mcp.json",
     "playwright.config.ts",

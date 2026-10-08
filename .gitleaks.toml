@@ -19,10 +19,12 @@
 # WHERE THIS RUNS. Twice, with one rules file. .pre-commit-config.yaml runs it
 # over the staged diff, which is fast and skippable -- `--no-verify` skips it and
 # the hook lives in .git/, so it is not even cloned. That is the fast copy. The
-# authority is .github/workflows/secret-scan.yml, the required check
-# "Secrets (gitleaks)" in all three rulesets: it scans the pull request's whole
+# authority is .github/workflows/secret-scan.yml, the check "Secrets
+# (gitleaks)" that all three rulesets require: it scans the pull request's whole
 # commit range AND the checked-out tree with this same file, and nobody can
-# --no-verify a required check. Until that workflow existed this file had one
+# --no-verify a required check -- once an admin has applied the rulesets
+# (.github/rulesets/README.md). Before that it is a red X nobody is obliged to
+# respect. Until that workflow existed this file had one
 # caller and anybody could bypass it; read old commit bodies that say so as
 # history.
 #
@@ -89,7 +91,13 @@ description = "AUTH_SECRET assigned a real value (the HS256 key for the reep_ses
 # somebody deletes. Restricting the unquoted branch to the alphabet a key is
 # actually written in -- hex, base64, base64url -- ends the match at the first
 # `)` or `.` and takes all eight away without weakening the real case.
-regex = '''(?i)\bAUTH_SECRET\b[ \t]*[:=][ \t]*(["'][^"'\n]{32,}["']|[A-Za-z0-9+/=_\-]{32,})'''
+#
+# The one rule here allowed to cross a line: YAML writes `AUTH_SECRET:` and puts
+# the value on the NEXT line, indented (a compose override, a k8s Secret's
+# stringData). Only a newline FOLLOWED BY INDENTATION is crossed, so the next
+# top-level key is never read as the value -- which is the bug that made every
+# other rule use `[ \t]*`.
+regex = '''(?i)\bAUTH_SECRET\b[ \t]*[:=](?:[ \t]*|[ \t]*\r?\n[ \t]+)(["'][^"'\n]{32,}["']|[A-Za-z0-9+/=_\-]{32,})'''
 tags = ["reep", "auth", "session"]
 
 [[rules]]
@@ -130,7 +138,7 @@ tags = ["reep", "voice"]
 
 [[rules]]
 id = "reep-database-url-password"
-description = "A postgresql+psycopg:// URL carrying a password that is not the published dev one"
+description = "A postgres:// or postgresql[+driver]:// URL carrying a password that is not the published dev one"
 # The connection string to the database holding every student's marks,
 # attendance and USN, every interview transcript, and the interview_consents
 # rows whose whole purpose is to stay answerable after a grant is revoked.
@@ -142,8 +150,26 @@ description = "A postgresql+psycopg:// URL carrying a password that is not the p
 #
 # The 4-character floor is why `postgresql+psycopg://u:p@h/db` in
 # tests/test_voice.py does not fire: a one-character stand-in is not a credential.
-regex = '''postgresql\+psycopg://[A-Za-z0-9_.\-]+:[^@\s"'/]{4,}@'''
+#
+# Every spelling libpq and SQLAlchemy accept, not only the one app/config.py
+# writes: `postgres://` and `postgresql://` are what RDS, psql, pg_dump and every
+# runbook hand you, and an operator pasting one into a doc leaks the same
+# password as the +psycopg form.
+regex = '''postgres(?:ql)?(?:\+[a-z0-9]+)?://[A-Za-z0-9_.\-]+:[^@\s"'/]{4,}@'''
 tags = ["reep", "database"]
+
+[[rules]]
+id = "reep-env-name-value-pair"
+description = "An ECS / Kubernetes / docker env entry: name: <..._SECRET|_PASSWORD|_API_KEY|_TOKEN> beside value: <literal>"
+# Task definitions, k8s manifests and CDK `environment=[{"name": ..., "value":
+# ...}]` blocks split the variable NAME and its VALUE into two keys, so every
+# rule above -- keyed on `NAME=value` -- reads straight past them. The secret
+# belongs in `valueFrom` / `secretKeyRef`; a literal `value` beside a secret-ish
+# name is the leak. The value must be 16+ key-alphabet characters, so `${VAR}`,
+# an empty string and a short flag stay quiet; the pair may sit on one line
+# (JSON) or two (YAML).
+regex = '''(?i)["']?name["']?[ \t]*[:=][ \t]*["']?[A-Z0-9_]*(SECRET|PASSWORD|API_KEY|TOKEN)["']?[ \t]*,?[ \t]*(?:\r?\n[ \t]*-?[ \t]*)?["']?value["']?[ \t]*[:=][ \t]*["']?[A-Za-z0-9+/=_\-]{16,}'''
+tags = ["reep", "deploy"]
 
 [[rules]]
 id = "reep-groq-key"
@@ -195,7 +221,17 @@ tags = ["reep", "llm", "provider"]
 # REEP. They are worthless as secrets, and worse than worthless as scanner noise.
 [[allowlists]]
 description = "Published dev/CI values, and the placeholders the templates ship with"
-regexTarget = "line"
+# regexTarget = "match", NEVER "line". Against the line, every entry below
+# exempted the WHOLE LINE from every rule, gitleaks' defaults included: an
+# unanchored `<...>` or `${` frees roughly 4,400 tracked lines (every HTML tag,
+# every TypeScript generic, every shell interpolation), so `AUTH_SECRET=<real>
+# # change-me`, `<span>ghp_...</span>` or a GitHub token beside
+# reep_dev_password all passed. Against the MATCH -- the text a rule actually
+# matched -- an entry frees a finding only when the published value or the
+# placeholder IS the finding. That is what "allowlisted by value" means, and
+# tools/ci/check_gitleaks_rules.py replays those six leaks on every run of the
+# gate to keep it meaning that.
+regexTarget = "match"
 regexes = [
   # app/config.py:81 -- the dev AUTH_SECRET. Printed in apps/api-py/.env.example
   # line 35 and quoted in docs/codebase-mahabharath/{01,05} and
@@ -219,6 +255,10 @@ regexes = [
   # that a `@` inside a Postgres password must be percent-encoded before it goes
   # through alembic's ConfigParser. The password IS the illustration.
   '''reep:p%40ss@''',
+  # app/backup_database.py and its test -- prose explaining why a password must
+  # not travel in argv, spelled `postgres://user:pass@...` because the shape IS
+  # the illustration. Only these two words, in exactly that position.
+  ''':\/\/user:pass@''',
   # tests/test_boot_guard.py -- f-strings that interpolate the dev constants
   # instead of spelling them out.
   '''\{_DEV_(DB_PASSWORD|DATABASE_URL|AUTH_SECRET)\}''',
@@ -230,8 +270,9 @@ regexes = [
   # Shell and compose interpolation is a REFERENCE, not a value:
   # `${VOICE_WORKER_SECRET:?set VOICE_WORKER_SECRET}`, `${AUTH_SECRET}`.
   '''\$\{[A-Z_]+''',
-  # AWS Secrets Manager / SSM references in infra/aws/ecs.tf -- an ARN and a key
-  # NAME on the left of a `valueFrom`, never a value.
+  # AWS Secrets Manager / SSM references (infra/aws/ecs.tf in its day) -- an ARN
+  # and a key NAME on the left of a `valueFrom`, never a value. Against the
+  # match this frees only a finding whose matched text includes the word.
   '''valueFrom''',
 ]
 paths = [

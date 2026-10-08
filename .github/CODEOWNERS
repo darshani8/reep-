@@ -143,6 +143,17 @@ apps/api-py/app/models/                 @darshani8
 # controls; neither IS the control. A diff that quietly relaxes them should never
 # be routed like documentation.
 .github/rulesets/                       @darshani8
+
+# The secret scan's RULES. .github/workflows/secret-scan.yml is already in the
+# workflows line above; these two are what it reads, and they are the cheap way
+# to weaken it: one regex in .gitleaks.toml's global allowlist, or one
+# fingerprint in .gitleaksignore, and the required check stays green over a
+# pushed key. The first global allowlist was written against the whole LINE and
+# blinded ~4,400 tracked lines without failing anything. A pull request that
+# touches either file is a pull request editing its own gate, and should be read
+# as one.
+.gitleaks.toml                          @darshani8
+.gitleaksignore                         @darshani8
 .github/CODEOWNERS                      @darshani8
 
 # Terraform for the account that holds the production database, the ECR registry

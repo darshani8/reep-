@@ -28,3 +28,16 @@
 # could import for a route walk. A five-letter placeholder user and password,
 # localhost:5433, database `none`; nothing ever connected with it.
 96b29ce8a8374180e1406de8ac3e9d9e0fa4fa46:tools/diagrams/render_n8n_workflow.py:reep-database-url-password:921
+
+# The deleted Next.js unit tests (src/lib/**.test.ts, test/*.test.ts):
+# `process.env.DATABASE_URL ??= 'postgresql://unit:...@127.0.0.1:5432/unit_test'`,
+# a four-letter placeholder for a throwaway local database. Surfaced when the
+# database-URL rule learned plain `postgresql://` (it knew only +psycopg).
+0c12965f6df2d39c2e6b1255b7d4dd37caa4e7e3:src/lib/ai/agent/scope.test.ts:reep-database-url-password:28
+0c12965f6df2d39c2e6b1255b7d4dd37caa4e7e3:src/lib/rules.test.ts:reep-database-url-password:19
+0c12965f6df2d39c2e6b1255b7d4dd37caa4e7e3:test/confirmed-defects.test.ts:reep-database-url-password:48
+30235511521abf87de75b479d77953f4f3a096b2:src/lib/ai/agent/scope.test.ts:reep-database-url-password:28
+30235511521abf87de75b479d77953f4f3a096b2:src/lib/rules.test.ts:reep-database-url-password:19
+30235511521abf87de75b479d77953f4f3a096b2:test/confirmed-defects.test.ts:reep-database-url-password:48
+497b04211611e8a44fd47bb0ed293c29440ff55b:src/lib/ai/agent/loop.test.ts:reep-database-url-password:24
+7b9c8a2bbbf75c0f5e273962358fd2a2c65b7d98:src/lib/ai/agent/loop.test.ts:reep-database-url-password:24

@@ -36,7 +36,8 @@ usually `asyncio.to_thread`, and a nested `async def` is scanned on its own):
   (c) a sync-Session method (`execute`, `query`, `commit`, ...) on a name that
       is such a parameter, a parameter annotated `Session`, or a name bound
       from `SessionLocal()` (assignment or `with ... as`);
-  (d) `open()`, `Path.read_text/read_bytes/write_text/write_bytes`;
+  (d) `open()`, `os.open/read/write`, `Path(...).open()` and
+      `Path.read_text/read_bytes/write_text/write_bytes`;
   (e) `time.sleep`, anything on `requests`, `subprocess.run/Popen/...`,
       `boto3.client/resource/Session`;
   (f) any sync top-level function of `document_store`, `document_manifest`
@@ -62,7 +63,11 @@ would bless the half-measure.
 
 DELIBERATELY NOT CLEVER. It does not follow calls into helpers (an `async def`
 calling a sync function of its own that opens a Session is not reported) and
-it does not know types beyond the names above. It catches the shape people
+it does not know types beyond the names above. One KNOWN BLIND SPOT follows
+from excluding lambda bodies: an immediately-invoked lambda,
+`(lambda: time.sleep(5))()`, runs on the loop and is not reported. Nobody
+writes that by accident, and reading lambda bodies would report every
+`to_thread(lambda: ...)` handoff, which is the idiom this check recommends. It catches the shape people
 actually write -- a copied endpoint with `async` in front -- and says nothing
 it cannot back with a line number. A guard that cries wolf is a guard that
 gets deleted.
@@ -114,6 +119,8 @@ BLOCKING_MODULE_CALLS: dict[str, frozenset[str] | None] = {
         {"run", "call", "check_call", "check_output", "Popen", "getoutput", "getstatusoutput"}
     ),
     "boto3": frozenset({"client", "resource", "Session"}),
+    # The raw file-descriptor calls: `os.open` is `open()` one level down.
+    "os": frozenset({"open", "read", "write"}),
 }
 
 #: REEP's own sync choke points. Their sync top-level functions are read from
@@ -337,6 +344,12 @@ def _blocking_call(
         return "SessionLocal()"
     if attr in PATH_IO_METHODS:
         return f".{attr}()"
+    if (
+        attr == "open"
+        and isinstance(func.value, ast.Call)
+        and (_dotted(func.value.func) or "").rsplit(".", 1)[-1] == "Path"
+    ):
+        return "Path(...).open()"
     if isinstance(func.value, ast.Name):
         base = func.value.id
         if base in session_names and attr in SESSION_METHODS:

@@ -82,7 +82,7 @@ def _renormalised(content: bytes) -> bytes | None:
         out = io.BytesIO()
         flat.save(out, format="PNG")
         return out.getvalue()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001  decoration only; the paper prints without the image
         log.warning("leave paper: Pillow could not re-encode the signature image: %s", exc)
         return None
 

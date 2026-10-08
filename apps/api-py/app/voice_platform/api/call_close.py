@@ -209,14 +209,14 @@ async def finish_call(
             try:
                 with sentry.span("audio.render", "DualChannelBuffer.aclose"):
                     mix = await buffer.aclose()
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001  a failed render is a note on the report, not a failed close
                 log.error("event=call_close.render_failed session=%s error=%s", session_id, exc)
                 report.notes.append(f"render failed: {exc}")
             finally:
                 wav_buffer.unregister(session_id)
         try:
             await asyncio.to_thread(_persist_close, report, degree_level, code, reason, turns, mix)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001  a failed persist is a note on the report, not a failed close
             log.exception("event=call_close.persist_failed session=%s", session_id)
             report.notes.append(f"persist failed: {exc}")
         put_metric("CallsClosed", 1, degree=degree_level, status=status)

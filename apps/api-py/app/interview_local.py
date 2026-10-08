@@ -309,8 +309,8 @@ class _Vad:
 # an engine and the router's writers, and a parallel definition here would drift
 # the moment one of them gained a field -- silently, because both would still
 # construct and only one would carry the new value into the database.
-from .interview_audio import TRACK_INTERVIEWER, TRACK_STUDENT  # noqa: E402
-from .interview_core import (  # noqa: E402
+from .interview_audio import TRACK_INTERVIEWER, TRACK_STUDENT  # noqa: E402  kept beside the session section it serves, as the comment says
+from .interview_core import (  # noqa: E402  kept beside the session section it serves, as the comment says
     _INTERVIEWER_PERSONA,
     _ReportRecord,
     _SessionOutcome,

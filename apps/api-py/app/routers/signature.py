@@ -80,7 +80,7 @@ def _normalised_png(content: bytes) -> bytes:
         out = io.BytesIO()
         flat.save(out, format="PNG", optimize=True)
         return out.getvalue()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001  best-effort normalising; the upload is stored as sent
         log.warning("signature stored as uploaded; Pillow could not normalise it: %s", exc)
         return content
 

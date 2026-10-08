@@ -65,7 +65,7 @@ class CloudWatchLogsHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
         try:
             message = self.format(record)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001  a log handler must never raise into its caller
             return
         with self._lock:
             self._buffer.append({"timestamp": int(record.created * 1000), "message": message[:256000]})
@@ -78,7 +78,7 @@ class CloudWatchLogsHandler(logging.Handler):
             return True
         try:
             self._client.create_log_stream(logGroupName=self._group, logStreamName=self._stream)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001  an existing stream is the normal case; anything else is logged
             if "ResourceAlreadyExistsException" not in type(exc).__name__ and "already exists" not in str(exc):
                 log.debug("create_log_stream failed: %s", exc)
                 return False
@@ -133,7 +133,7 @@ def configure(*, client: Any | None = None, stream_name: str | None = None) -> b
             _configured = True
             log.info("CloudWatch Logs handler attached: group=%s stream=%s", group, stream)
             return True
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001  monitoring is optional; the api boots without it
             log.error("CloudWatch Logs handler could not be attached: %s", exc)
             return False
 
@@ -163,7 +163,7 @@ def put_metric(name: str, value: float = 1.0, *, unit: str = "Count", client: An
             }],
         )
         return True
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001  a metric must never fail the call it measures
         log.debug("put_metric_data %s failed: %s", name, exc)
         return False
 

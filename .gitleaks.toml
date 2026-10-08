@@ -307,18 +307,20 @@ regexes = [
   # a group-less rule includes in its secret.
   '''(?i)^(?:[A-Za-z0-9_]+[ \t]*[:=][ \t]*)?["']?change[-_]?me["']?$''',
   '''^(?:[A-Za-z0-9_]+[ \t]*[:=][ \t]*)?["']?\$\{[A-Za-z_][A-Za-z0-9_]*(:[-?=+][^}]*)?\}["']?$''',
-  # ANY single-line secret containing a literal `<...>` run (FV-QG-01). This is
-  # wider than "the whole value is <...>", and deliberately: `proxy-<MASKED>`,
-  # `changeme<hex>` in prose and `KEY=<your key>` are all documentation, and
-  # none can be a usable credential -- no key these rules describe is written
-  # with `<` or `>` (hex, base64, base64url, provider prefixes), and nothing
-  # here generates one (`secrets.token_hex`, `token_urlsafe`). It does NOT
-  # reopen OBS-QG-U01: those bypasses were REAL characters, and `<40 hex>` was
-  # the tester's notation for them, not literal brackets; the replay keeps all
-  # four found. Single-line only (`[^\n]`), so a PEM block -- multi-line by
-  # construction -- is never freed by a placeholder on one of its lines; the
-  # next block decides those.
-  '''^[^\n]*<[A-Za-z0-9_ .-]{3,40}>[^\n]*$''',
+  # The whole value is ONE `<...>` placeholder (FV-QG-01, narrowed by
+  # OBS-QG-U07). An earlier version freed any single-line secret CONTAINING a
+  # `<...>` run, on the premise that no key these rules describe can contain
+  # `<`. That premise was false: reep-openai-key, reep-groq-key's name branch,
+  # livekit, voice-worker, the database URL and a quoted AUTH_SECRET all admit
+  # `<` in their value class, so `<real chars><abc><real chars>` was a usable
+  # value walking out quiet -- for a database password, `<abc>` in the middle is
+  # simply a password. What is safe is narrower: a value that is NOTHING BUT one
+  # bracketed placeholder carries no secret characters at all. Written that
+  # way, `KEY=<FAKE-VALUE-MASKED>` and `KEY=<your key>` stay quiet; `proxy-<x>`
+  # and prose such as `changeme<hex>` are findings again, by decision -- respell
+  # documentation as a whole `<...>`. The database URL's whole-password form is
+  # its own block below; the PEM block's is the one after this.
+  '''^(?:[A-Za-z0-9_]+[ \t]*[:=][ \t]*)?["']?<[A-Za-z0-9_ .-]{3,40}>["']?$''',
 ]
 
 [[allowlists]]
@@ -363,9 +365,9 @@ regexes = [
 # which is relative to the directory it was given: from the root that is
 # `apps/api-py/...` and the `^apps/...` anchors match; given an absolute path it
 # is `/home/.../apps/api-py/...`, they match nothing, and a clean tree reports
-# four findings. CI and preflight.sh run it this way. (The replay script scans a
-# temp directory by absolute path on purpose: none of its cases relies on a
-# path-scoped exemption, so none is in play there.)
+# four findings. CI, preflight.sh and tools/ci/check_gitleaks_rules.py (which
+# runs `gitleaks dir .` from its temp root, so the one path-scoped VALUE
+# exemption below has a same-line case at its exact path) all run it this way.
 #
 # The global block above frees a VALUE for every rule. These free one
 # shape for ONE rule, so the same string under any other rule still fires. Each

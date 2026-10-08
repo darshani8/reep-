@@ -145,16 +145,68 @@ def _module_constant(tree: ast.Module, name: str) -> object:
     raise LookupError(name)
 
 
+_UNKNOWN = object()
+
+_COMPARE = {
+    ast.Eq: lambda a, b: a == b,
+    ast.NotEq: lambda a, b: a != b,
+    ast.Lt: lambda a, b: a < b,
+    ast.LtE: lambda a, b: a <= b,
+    ast.Gt: lambda a, b: a > b,
+    ast.GtE: lambda a, b: a >= b,
+    ast.In: lambda a, b: a in b,
+    ast.NotIn: lambda a, b: a not in b,
+    ast.Is: lambda a, b: a is b,
+    ast.IsNot: lambda a, b: a is not b,
+}
+
+
+def _fold(node: ast.expr) -> object:
+    """The value of an expression made only of literals, else _UNKNOWN.
+
+    The same folding tests/test_route_audit.py's `_fold` applies to a gate in
+    dead code -- `not`, `and`/`or`, anything `ast.literal_eval` accepts -- plus a
+    comparison whose every operand folds (`1 == 2`, `"a" in ()`). Nothing is
+    executed; a name, a call or an attribute is _UNKNOWN, so `if settings.x:` is
+    kept as real work.
+    """
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+        inner = _fold(node.operand)
+        return _UNKNOWN if inner is _UNKNOWN else (not inner)
+    if isinstance(node, ast.BoolOp):
+        values = [_fold(v) for v in node.values]
+        if any(v is _UNKNOWN for v in values):
+            return _UNKNOWN
+        return all(values) if isinstance(node.op, ast.And) else any(values)
+    if isinstance(node, ast.Compare):
+        operands = [_fold(node.left), *(_fold(c) for c in node.comparators)]
+        if any(v is _UNKNOWN for v in operands) or any(type(op) not in _COMPARE for op in node.ops):
+            return _UNKNOWN
+        try:
+            return all(
+                _COMPARE[type(op)](left, right)
+                for op, left, right in zip(node.ops, operands, operands[1:], strict=False)
+            )
+        except TypeError:
+            return _UNKNOWN
+    try:
+        return ast.literal_eval(node)
+    except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
+        return _UNKNOWN
+
+
 def _executed(body: list[ast.stmt]) -> list[ast.stmt]:
     """The statements of `body` that can run and do something, read as source.
 
     Not work: a docstring or any bare constant expression (`...` included),
-    `pass`, and everything after a `return`. A `return` with no value or
-    `return None` ends the body. An `if` whose test is a literal constant is
-    replaced by the branch that constant selects -- `if False: op.execute(...)`
-    executes nothing, `if True:` executes its body -- and anything else is kept
-    as it is. A RAISE is kept: it is not work, but it is a decision, and the
-    caller tells the two apart.
+    `pass`, and everything after a `return`. A `return` of a CONSTANT --
+    nothing, `None`, `0`, anything `_fold` reduces to a literal -- ends the body
+    having done nothing (Alembic ignores what downgrade() returns). Dead control
+    flow is replaced by what actually runs: an `if` on a constant test by the
+    branch it selects (`if False:`, `if not True:`, `if 1 == 2:`), a `while` on
+    a falsy constant by its `else:`, and a `for` over an empty literal (`for _
+    in ():`) by its `else:`. Anything else is kept as it is. A RAISE is kept: it
+    is not work, but it is a decision, and the caller tells the two apart.
     """
     out: list[ast.stmt] = []
     for stmt in body:
@@ -163,13 +215,24 @@ def _executed(body: list[ast.stmt]) -> list[ast.stmt]:
         if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant):
             continue
         if isinstance(stmt, ast.Return):
-            if stmt.value is None or (isinstance(stmt.value, ast.Constant) and stmt.value.value is None):
-                break
-            out.append(stmt)
+            if stmt.value is not None and _fold(stmt.value) is _UNKNOWN:
+                out.append(stmt)
             break
-        if isinstance(stmt, ast.If) and isinstance(stmt.test, ast.Constant):
-            out.extend(_executed(stmt.body if stmt.test.value else stmt.orelse))
-            continue
+        if isinstance(stmt, ast.If):
+            truth = _fold(stmt.test)
+            if truth is not _UNKNOWN:
+                out.extend(_executed(stmt.body if truth else stmt.orelse))
+                continue
+        if isinstance(stmt, ast.While):
+            truth = _fold(stmt.test)
+            if truth is not _UNKNOWN and not truth:
+                out.extend(_executed(stmt.orelse))
+                continue
+        if isinstance(stmt, ast.For):
+            items = _fold(stmt.iter)
+            if items is not _UNKNOWN and isinstance(items, (tuple, list, set, dict, str, bytes)) and not items:
+                out.extend(_executed(stmt.orelse))
+                continue
         out.append(stmt)
     return out
 
@@ -178,8 +241,9 @@ def _downgrade_kind(tree: ast.Module) -> str:
     """Classify the body of downgrade(), read as source -- nothing is executed.
 
     "no-op" is a body that EXECUTES NOTHING (`_executed` is empty): only a
-    docstring, `pass`, `...`, a bare `return` / `return None`, or an `if` on a
-    falsy literal. It used to be "only `pass`", and the unit test level showed
+    docstring, `pass`, `...`, a `return` of a constant, or control flow whose
+    constant test means its body never runs (DEF-QG-U11 added `if not True:`,
+    `if 1 == 2:`, `while False:`, `for _ in ():` and `return 0`). It used to be "only `pass`", and the unit test level showed
     why that was too loose (DEF-QG-U06): `return` alone, or `if False:
     op.execute(...)`, read as "real", and a DATA-ONLY migration -- an UPDATE --
     with such a downgrade changes no catalogue, so the round trip cannot see it

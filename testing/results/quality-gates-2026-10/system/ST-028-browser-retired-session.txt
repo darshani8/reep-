@@ -1,0 +1,47 @@
+# ST-028 browser: a second sign-in retires the first device's session (single-device rule), head API with 2 workers, db reep_ui
+1 device A signed in at /student
+2 device B signed in at /student
+3 device A next navigation -> /student/time-log
+  explanation on screen: <none found>
+3b waiting 65 s (auth_revocation_cache_seconds = 60, the documented cross-worker window)
+3c device A navigation #1 after 65 s -> /login?next=%2Fstudent%2Ftime-log&signedOut=elsewhere | explanation: You were signed out because this account was signed in on another device. REEP allows one device at a time — sign in again here to carry on, and the other device will be signed out.
+3c device A navigation #2 after 65 s -> /login?next=%2Fstudent%2Ftime-log&signedOut=elsewhere | explanation: You were signed out because this account was signed in on another device. REEP allows one device at a time — sign in again here to carry on, and the other device will be signed out.
+3c device A navigation #3 after 65 s -> /login?next=%2Fstudent%2Ftime-log&signedOut=elsewhere | explanation: You were signed out because this account was signed in on another device. REEP allows one device at a time — sign in again here to carry on, and the other device will be signed out.
+4 device B still signed in at /student
+
+Reading: the first navigation after device B signed in was served by the OTHER uvicorn worker, whose per-process token_version cache (app/security.py lines 38-51, settings.auth_revocation_cache_seconds = 60) had not expired, so device A still loaded /student/time-log (screenshot ST-028-03). After 65 s every navigation lands on /login?...&signedOut=elsewhere with the explanation. This is the documented 'best-effort logout' and app/security.py is unchanged by the PR (git diff 15a9e7d a3688f0 -- apps/api-py/app/security.py is empty). See OBS-QG-S03.
+
+## script
+// Two "devices" (browser contexts) sign in as the same student; the first is retired and is told why.
+import { chromium } from '/home/user/reep-/node_modules/playwright/index.mjs';
+const [out] = process.argv.slice(2); const BASE = 'http://localhost:4200';
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+async function signIn(ctx) {
+  const p = await ctx.newPage(); await p.goto(BASE + '/login');
+  await p.getByRole('radio', { name: /^Student\b/ }).click();
+  await p.locator('input[type=email], input[autocomplete=username], input[type=text]').first().fill('student@bgscet.ac.in');
+  await p.getByPlaceholder('Enter your password').fill('student123');
+  await p.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await p.waitForURL(u => !u.pathname.startsWith('/login'), { timeout: 15000 }); await p.waitForLoadState('networkidle');
+  return p;
+}
+const A = await browser.newContext({ viewport: { width: 1366, height: 900 } }); const a = await signIn(A);
+console.log('1 device A signed in at', a.url().replace(BASE, '')); await a.screenshot({ path: `${out}/ST-028-01-deviceA-signed-in.png` });
+const B = await browser.newContext({ viewport: { width: 1366, height: 900 } }); const b = await signIn(B);
+console.log('2 device B signed in at', b.url().replace(BASE, '')); await b.screenshot({ path: `${out}/ST-028-02-deviceB-signed-in.png` });
+await a.goto(BASE + '/student/time-log'); await a.waitForURL(u => u.pathname.startsWith('/login'), { timeout: 15000 }).catch(() => {}); await a.waitForLoadState('networkidle');
+const msg = await a.locator('main, body').first().innerText();
+console.log('3 device A next navigation ->', a.url().replace(BASE, ''));
+console.log('  explanation on screen:', (msg.match(/[^\n]*(elsewhere|another device|signed in on)[^\n]*/i) || ['<none found>'])[0]);
+await a.screenshot({ path: `${out}/ST-028-03-deviceA-retired.png` });
+console.log('3b waiting 65 s (auth_revocation_cache_seconds = 60, the documented cross-worker window)');
+await a.waitForTimeout(65000);
+for (let i = 1; i <= 3; i++) {
+  await a.goto(BASE + '/student/time-log'); await a.waitForURL(u => u.pathname.startsWith('/login'), { timeout: 10000 }).catch(() => {}); await a.waitForLoadState('networkidle');
+  const txt = await a.locator('body').innerText();
+  console.log(`3c device A navigation #${i} after 65 s ->`, a.url().replace(BASE, ''), '| explanation:', (txt.match(/[^\n]*(another device|elsewhere|signed in on)[^\n]*/i) || ['<none>'])[0]);
+}
+await a.screenshot({ path: `${out}/ST-028-03b-deviceA-after-65s.png` });
+await b.reload(); await b.waitForLoadState('networkidle'); console.log('4 device B still signed in at', b.url().replace(BASE, ''));
+await b.screenshot({ path: `${out}/ST-028-04-deviceB-still-in.png` });
+await browser.close();

@@ -1,0 +1,15 @@
+# ST-025 2026-10-08T08:40:58Z anonymous (no cookie) and a forged/garbage cookie
+GET /api/auth/me  {"detail":"Sign in required."}  -> HTTP 401
+GET /api/student/dashboard  {"detail":"Sign in required."}  -> HTTP 401
+GET /api/student/ledger  {"detail":"Sign in required."}  -> HTTP 401
+GET /api/mentor/mentees  {"detail":"Sign in required."}  -> HTTP 401
+GET /api/admin/students  {"detail":"Sign in required."}  -> HTTP 401
+GET /api/admin/governance/grants  {"detail":"Sign in required."}  -> HTTP 401
+GET /api/alumni/profile  {"detail":"Sign in required."}  -> HTTP 401
+GET /api/interview/status  {"detail":"Sign in required."}  -> HTTP 401
+POST /api/mentor/students/x/notes  {"detail":"Sign in required."}  -> HTTP 401
+GET /api/admin/students with cookie reep_session=garbage  {"detail":"Sign in required."}  -> HTTP 401
+--- public endpoints stay public:
+GET /health -> HTTP 200
+GET /api/auth/sso/status -> HTTP 200
+GET /api/register/hierarchy -> HTTP 200

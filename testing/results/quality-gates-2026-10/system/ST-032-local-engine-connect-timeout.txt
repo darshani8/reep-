@@ -1,0 +1,51 @@
+# ST-032 2026-10-08T08:54:01Z local interview engine (INTERVIEW_ENGINE=local): the connect-timeout change is configuration only
+## 1. The change (git diff 15a9e7d a3688f0 -- apps/api-py/app/interview_local.py)
+diff --git a/apps/api-py/app/interview_local.py b/apps/api-py/app/interview_local.py
+index 906a3bfc..5be46b47 100644
+--- a/apps/api-py/app/interview_local.py
++++ b/apps/api-py/app/interview_local.py
+@@ -91,7 +91,7 @@ def _add_cuda_dlls() -> None:
+         return
+     for d in dirs:
+         try:
+-            os.add_dll_directory(d)
++            os.add_dll_directory(d)  # type: ignore[attr-defined,unused-ignore]  # Windows-only API, guarded by os.name above
+         except OSError:
+             pass
+     os.environ["PATH"] = os.pathsep.join(dirs) + os.pathsep + os.environ.get("PATH", "")
+@@ -933,7 +933,10 @@ def _ollama_client() -> Any:
+     import httpx
+ 
+     if not _CLIENT_BOX:
+-        _CLIENT_BOX.append(httpx.AsyncClient(timeout=None))
++        # Reads stay unbounded on purpose -- a local model's first token can
++        # take minutes while it loads, and the report path has its own
++        # wait_for -- but a connect that never answers is a hang, not a model.
++        _CLIENT_BOX.append(httpx.AsyncClient(timeout=httpx.Timeout(None, connect=10.0)))
+     return _CLIENT_BOX[0]
+ 
+ 
+## 2. No endpoint changed: the OpenAPI documents of base and head are byte-identical (ST-007, 370 operations).
+## 3. status with INTERVIEW_ENGINE=local, base :3308 vs head :3307
+== base
+student  200 {"available":true,"reason":null,"active_sessions":0,"max_sessions":100,"rehearsal":false}
+admin    200 {"available":true,"reason":null,"active_sessions":0,"max_sessions":100,"rehearsal":true}
+mentor   200 {"available":false,"reason":"Mock interviews are a student feature.","active_sessions":0,"max_sessions":100,"rehearsal":false}
+alumni   200 {"available":false,"reason":"Mock interviews are a student feature.","active_sessions":0,"max_sessions":100,"rehearsal":false}
+anon     401
+== head
+student  200 {"available":true,"reason":null,"active_sessions":0,"max_sessions":100,"rehearsal":false}
+admin    200 {"available":true,"reason":null,"active_sessions":0,"max_sessions":100,"rehearsal":true}
+mentor   200 {"available":false,"reason":"Mock interviews are a student feature.","active_sessions":0,"max_sessions":100,"rehearsal":false}
+alumni   200 {"available":false,"reason":"Mock interviews are a student feature.","active_sessions":0,"max_sessions":100,"rehearsal":false}
+anon     401
+IDENTICAL
+## 4. student socket on the local engine (no consent row on the fresh db)
+== :3308
+ 0.02s connected
+ 0.04s closed code=4013 reason='Interview consent required'
+== :3307
+ 0.01s connected
+ 0.03s closed code=4013 reason='Interview consent required'
+Identical (4013 before any engine work).
+## 5. Not reachable at system level here: a session never gets as far as the Ollama client because faster-whisper/Piper are not installed in this bed (python -c 'import faster_whisper' -> ModuleNotFoundError), and granting consent would not change that. The connect bound itself is covered by the new unit test tests/test_interview_local.py::TestEngineSelection (passed in ST-008, absent on base).

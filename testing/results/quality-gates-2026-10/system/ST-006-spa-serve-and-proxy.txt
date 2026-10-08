@@ -1,0 +1,19 @@
+# ST-006 2026-10-08T08:39:29Z npx ng serve --port 4200 (Angular DEV server, proxy.conf.json)
+{
+  "/api": {
+    "target": "http://localhost:3300",
+    "secure": false,
+    "changeOrigin": true,
+    "ws": true
+  }
+}
+$ curl -s -o /dev/null -w code http://localhost:4200/
+200
+<title>REEP · Student</title>
+<app-root>
+$ curl -si http://localhost:4200/api/auth/me  (proxied to :3300, anonymous)
+HTTP/1.1 401 Unauthorized
+content-type: application/json
+{"detail":"Sign in required."}
+$ curl -s http://localhost:4200/health? (not proxied - SPA fallback)
+200

@@ -1,0 +1,26 @@
+# ST-026 2026-10-08T08:41:06Z single-device rule: two sign-ins as mentor@bgscet.ac.in (two cookie jars = two devices)
+device A login -> 200
+device A GET /api/auth/me -> 200
+device B login -> 200
+$ device A GET /api/mentor/mentees (headers; cookie values redacted)
+HTTP/1.1 401 Unauthorized
+date: Thu, 08 Oct 2026 08:41:06 GMT
+server: uvicorn
+x-reep-session: retired
+content-length: 30
+content-type: application/json
+vary: Origin
+x-request-id: a4c3d6dc64d14d35b74ceefda22433c5
+x-content-type-options: nosniff
+x-frame-options: DENY
+
+{"detail":"Sign in required."}
+device B GET /api/mentor/mentees -> 200
+--- across both uvicorn workers (5 more requests from A, all must be 401 retired):
+HTTP/1.1 401 Unauthorized x-reep-session: retired 
+HTTP/1.1 401 Unauthorized x-reep-session: retired 
+HTTP/1.1 401 Unauthorized x-reep-session: retired 
+HTTP/1.1 401 Unauthorized x-reep-session: retired 
+HTTP/1.1 401 Unauthorized x-reep-session: retired 
+--- an expired-vs-absent check: no cookie at all carries no retired header:
+0

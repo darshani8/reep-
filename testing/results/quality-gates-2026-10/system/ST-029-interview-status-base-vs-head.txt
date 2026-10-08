@@ -1,0 +1,27 @@
+# ST-029 2026-10-08T08:54:01Z GET /api/interview/status for every role + anonymous, BASE vs HEAD (Nova engine, the default)
+base :3304 (15a9e7d, db reep_ws_base) | head :3303 (a3688f0, db reep_ws_head) | each fresh migrated+seeded
+== base
+student  200 {"available":true,"reason":null,"active_sessions":0,"max_sessions":100,"rehearsal":false}
+admin    200 {"available":true,"reason":null,"active_sessions":0,"max_sessions":100,"rehearsal":true}
+mentor   200 {"available":false,"reason":"Mock interviews are a student feature.","active_sessions":0,"max_sessions":100,"rehearsal":false}
+alumni   200 {"available":false,"reason":"Mock interviews are a student feature.","active_sessions":0,"max_sessions":100,"rehearsal":false}
+anon     401
+== head
+student  200 {"available":true,"reason":null,"active_sessions":0,"max_sessions":100,"rehearsal":false}
+admin    200 {"available":true,"reason":null,"active_sessions":0,"max_sessions":100,"rehearsal":true}
+mentor   200 {"available":false,"reason":"Mock interviews are a student feature.","active_sessions":0,"max_sessions":100,"rehearsal":false}
+alumni   200 {"available":false,"reason":"Mock interviews are a student feature.","active_sessions":0,"max_sessions":100,"rehearsal":false}
+anon     401
+== diff
+IDENTICAL
+
+Also: the same endpoint on the main stacks (:3301 base, :3300 head) for all 5 identities is SAME in ST-033; admin -> rehearsal:true, student -> rehearsal:false on both.
+Socket (head :3303, admin): connected, closed 4002 'Interviewer service unavailable' after 6.6 s - upstream unavailable in this sandbox (same on base, ST-031).
+
+## tool
+import sys, requests
+ACC = {'student': ('student@bgscet.ac.in', 'student123'), 'admin': ('admin@bgscet.ac.in', 'admin123'), 'mentor': ('mentor@bgscet.ac.in', 'mentor123'), 'alumni': ('alumni@bgscet.ac.in', 'alumni123')}
+for role in ACC:
+    s = requests.Session(); s.post(f'{sys.argv[1]}/api/auth/login', json=dict(zip(('email', 'password'), ACC[role])))
+    r = s.get(f'{sys.argv[1]}/api/interview/status'); print(f'{role:8s} {r.status_code} {r.text}')
+print(f'anon     {requests.get(sys.argv[1] + "/api/interview/status").status_code}')

@@ -1,0 +1,44 @@
+# ST-036 2026-10-08T08:48:49Z relative links and repository paths in docs/engineering/*.md and docs/adr/*.md resolve at a3688f0
+files=12 relative_links=41 broken_links=0 path_mentions=160 missing_paths=1
+  scanned docs/adr/0000-template.md
+  scanned docs/adr/0001-record-architecture-decisions.md
+  scanned docs/adr/0002-quality-gates-in-existing-ci-jobs.md
+  scanned docs/adr/0003-ratcheted-baselines-for-new-gates.md
+  scanned docs/adr/0004-reversible-migrations-to-a-declared-floor.md
+  scanned docs/adr/0005-one-live-session-per-account.md
+  scanned docs/adr/0006-google-sign-in-roster-is-access-control.md
+  scanned docs/adr/0007-student-data-egress-gate.md
+  scanned docs/adr/README.md
+  scanned docs/engineering/api-checklist.md
+  scanned docs/engineering/architecture-review.md
+  scanned docs/engineering/quality-gates.md
+MISSING PATH docs/engineering/api-checklist.md /openapi.json
+
+Analysis: the single 'MISSING PATH' is `/openapi.json` in api-checklist.md, which is an HTTP path served by the API (ST-004: /openapi.json -> 200), not a repository file - a false positive of the tool's path heuristic. Result: 41/41 links resolve, 159/159 genuine file/dir mentions exist.
+
+## tool
+"""Every relative markdown link in docs/engineering/*.md and docs/adr/*.md resolves; every repo path named in backticks exists."""
+import re, sys, pathlib, glob
+R = pathlib.Path(sys.argv[1]); files = sorted(glob.glob(str(R / 'docs/engineering/*.md')) + glob.glob(str(R / 'docs/adr/*.md')))
+link_re = re.compile(r'\[[^\]]*\]\(([^)\s]+)\)'); tick_re = re.compile(r'`([^`\s]+)`')
+bad_links, bad_paths, nlinks, npaths = [], [], 0, 0
+for f in files:
+    p = pathlib.Path(f); text = p.read_text()
+    for m in link_re.finditer(text):
+        tgt = m.group(1)
+        if re.match(r'^[a-z]+:', tgt) or tgt.startswith('#'): continue
+        nlinks += 1
+        path = tgt.split('#')[0]
+        if not (p.parent / path).resolve().exists(): bad_links.append((p.relative_to(R), tgt))
+    for m in tick_re.finditer(text):
+        t = m.group(1).rstrip('.,:;')
+        if '/' not in t or t.startswith(('http', '/api', '-', 'origin/', '$', '<')) or '{' in t or '*' in t or '..' in t[:2] and False: continue
+        if not re.match(r'^[A-Za-z0-9_.\-/]+$', t): continue
+        if not re.search(r'\.(py|md|json|yml|yaml|toml|sh|ps1|ts|txt|ini|cfg)$|/$', t) and not (R / t).exists(): continue  # only things that look like files/dirs
+        npaths += 1
+        cands = [R / t, R / 'apps/api-py' / t, p.parent / t]
+        if not any(c.exists() for c in cands): bad_paths.append((p.relative_to(R), t))
+print(f'files={len(files)} relative_links={nlinks} broken_links={len(bad_links)} path_mentions={npaths} missing_paths={len(bad_paths)}')
+for f in files: print('  scanned', pathlib.Path(f).relative_to(R))
+for b in bad_links: print('BROKEN LINK', *b)
+for b in bad_paths: print('MISSING PATH', *b)

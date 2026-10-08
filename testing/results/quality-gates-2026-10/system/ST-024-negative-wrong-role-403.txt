@@ -1,0 +1,41 @@
+# ST-024 2026-10-08T08:40:26Z a signed-in user calling another role's endpoints
+login student -> 200
+login mentor  -> 200
+login alumni  -> 200
+$ curl -b student /api/admin/students
+{"detail":"You do not hold the 'Students' capability. An administrator can grant it in Governance."}  -> HTTP 403
+
+$ curl -b student /api/admin/governance/grants
+{"detail":"Insufficient role."}  -> HTTP 403
+
+$ curl -b student /api/admin/mentor-load
+{"detail":"You do not hold the 'Analytics' capability. An administrator can grant it in Governance."}  -> HTTP 403
+
+$ curl -b student /api/register/pending
+{"detail":"You do not hold the 'Registrations' capability. An administrator can grant it in Governance."}  -> HTTP 403
+
+$ curl -b student /api/mentor/mentees
+{"detail":"You do not hold the 'Mentee log' capability. An administrator can grant it in Governance."}  -> HTTP 403
+
+$ curl -b mentor /api/admin/students
+{"detail":"You do not hold the 'Students' capability. An administrator can grant it in Governance."}  -> HTTP 403
+
+$ curl -b mentor /api/admin/governance/grants
+{"detail":"You do not hold the 'Governance' capability. An administrator can grant it in Governance."}  -> HTTP 403
+
+$ curl -b alumni /api/student/dashboard
+{"detail":"The student screens are open to current students only."}  -> HTTP 403
+
+$ curl -b alumni /api/mentor/mentees
+{"detail":"You do not hold the 'Mentee log' capability. An administrator can grant it in Governance."}  -> HTTP 403
+
+$ curl -b alumni /api/admin/students
+{"detail":"You do not hold the 'Students' capability. An administrator can grant it in Governance."}  -> HTTP 403
+
+$ curl -b student -X POST /api/admin/students/bulk (write)
+{"detail":[{"type":"missing","loc":["body","student_ids"],"msg":"Field required","input":{}},{"type":"missing","loc":["body","action"],"msg":"Field required","input":{}}]}  -> HTTP 422
+$ curl -b student -X POST /api/admin/students/bulk with a well-formed body {student_ids:[x], action:'stage', stage:'REBOOT'}
+{"detail":[{"type":"literal_error","loc":["body","action"],"msg":"Input should be 'department'","input":"stage","ctx":{"expected":"'department'"}}]}  -> HTTP 422
+(the earlier 422 is request validation reported before the gate; compared against base in ST-033)
+$ curl -b student -X POST /api/admin/students/bulk with a valid RosterBulkIn body
+{"detail":"You do not hold the 'Students' capability. An administrator can grant it in Governance."}  -> HTTP 403

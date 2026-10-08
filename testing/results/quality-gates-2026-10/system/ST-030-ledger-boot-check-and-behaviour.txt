@@ -1,0 +1,102 @@
+# ST-030 2026-10-08T08:42:56Z time-ledger boot check (assert -> RuntimeError) and ledger behaviour, base vs head
+## 1. Code change (git diff 15a9e7d a3688f0 -- app/models/time_ledger.py)
+diff --git a/apps/api-py/app/models/time_ledger.py b/apps/api-py/app/models/time_ledger.py
+index d0721d0..c031fcd 100644
+--- a/apps/api-py/app/models/time_ledger.py
++++ b/apps/api-py/app/models/time_ledger.py
+@@ -34,7 +34,6 @@ from sqlalchemy import (
+     DateTime,
+     Enum,
+     ForeignKey,
+-    Index,
+     Integer,
+     String,
+     UniqueConstraint,
+@@ -88,7 +87,10 @@ SLOT_CAPACITY_HALVES: Final[dict[LedgerSlot, int]] = {
+ #: that editing one slot's capacity without fixing another is a boot-time
+ #: failure here, not a mystery on the submit button months later.
+ DAY_CAPACITY_HALVES: Final[int] = sum(SLOT_CAPACITY_HALVES.values())
+-assert DAY_CAPACITY_HALVES == 48, "the six slots must cover exactly 24 hours"
++# A raise and not an `assert`: `python -O` strips asserts, and this check is
++# the whole point of computing the sum.
++if DAY_CAPACITY_HALVES != 48:
++    raise RuntimeError("the six slots must cover exactly 24 hours")
+ 
+ #: The per-cell bound as the DATABASE enforces it — the same table above,
+ #: rendered as a CHECK, so the router is no longer the only thing standing
+## 2. Head boots normally (ST-004, :3300) and ALSO under python -O (asserts stripped) on :3302:
+INFO:     Started server process [2532]
+INFO:     Waiting for application startup.
+2026-10-08 08:42:55,472 INFO reep.startup: outbound mail: NO TRANSPORT (SES_FROM_ADDRESS blank) — activation, reset and confirmation emails are logged here and kept in app.mail_transport.outbox; activation links can still be issued on screen
+1
+GET :3302/health -> {"status":"ok","service":"reep-api-py"}
+python -O import: DAY_CAPACITY_HALVES = 48
+## 3. Ledger behaviour walk (tools/ledger.py), BASE :3301
+day under test (today-2, inside the 2-day window): today-2
+GET ledger?day=today-2 (empty)                             -> 200 {'day': '2026-10-06', 'status': 'DRAFT', 'total_hours': 0.0, 'can_submit': False, 'editable': True, 'locked': False, 'submit_blocked_reason': '24 h to reconcile before you can submit.'}
+PUT cell over slot capacity (AFTERNOON SKILLING 3.5 h)     -> 422 3:00 – 6:00 pm holds 3 h — Skilling cannot be 3.5 h.
+PUT a slot summing past capacity (AFTERNOON 2+2 h)         -> 422 3:00 – 6:00 pm is 4 h against a 3 h capacity.
+PUT non-half-hour value (0.3 h)                            -> 422 5:00 – 9:00 am · Sleep: hours must be to the nearest half.
+PUT 23 h (one hour short)                                  -> 200 {'day': '2026-10-06', 'status': 'DRAFT', 'total_hours': 23.0, 'can_submit': False, 'editable': True, 'locked': False, 'submit_blocked_reason': '1 h to reconcile before you can submit.'}
+POST submit while 1 h short                                -> 409 1 h to reconcile before you can submit.
+PUT exactly 24 h                                           -> 200 {'day': '2026-10-06', 'status': 'DRAFT', 'total_hours': 24.0, 'can_submit': True, 'editable': True, 'locked': False, 'submit_blocked_reason': None}
+POST submit at 24 h                                        -> 200 {'day': '2026-10-06', 'status': 'SUBMITTED', 'total_hours': 24.0, 'can_submit': False, 'editable': False, 'locked': False, 'submit_blocked_reason': 'This day is already submitted.'}
+PUT after submit (latched)                                 -> 409 This day has been submitted and can no longer be edited.
+POST copy-yesterday onto a submitted day                   -> 404 No submitted ledger for 05 Oct 2026 to copy from.
+PUT on a locked day (today-3)                              -> 409 05 Oct 2026 is locked — it could be filled in until 07 Oct 2026. A day stays open for 2 days after it ends.
+PUT on tomorrow                                            -> 422 You cannot log a day that has not happened yet.
+GET ledger/history?days=5                                  -> 200 {'day': None, 'status': None, 'total_hours': None, 'can_submit': None, 'editable': None, 'locked': None, 'submit_blocked_reason': None}
+   history: [('10-08', 'DRAFT', 23.5, False), ('10-07', 'SUBMITTED', 24.0, False), ('10-06', 'SUBMITTED', 24.0, False), ('10-05', 'EMPTY', 0.0, True), ('10-04', 'EMPTY', 0.0, True)]
+GET timesheet (weekly strip)                               -> 200 {'day': None, 'status': None, 'total_hours': None, 'can_submit': None, 'editable': None, 'locked': None, 'submit_blocked_reason': None}
+   skilling_hours: 10.5
+## 4. Same walk, HEAD :3300
+day under test (today-2, inside the 2-day window): today-2
+GET ledger?day=today-2 (empty)                             -> 200 {'day': '2026-10-06', 'status': 'DRAFT', 'total_hours': 0.0, 'can_submit': False, 'editable': True, 'locked': False, 'submit_blocked_reason': '24 h to reconcile before you can submit.'}
+PUT cell over slot capacity (AFTERNOON SKILLING 3.5 h)     -> 422 3:00 – 6:00 pm holds 3 h — Skilling cannot be 3.5 h.
+PUT a slot summing past capacity (AFTERNOON 2+2 h)         -> 422 3:00 – 6:00 pm is 4 h against a 3 h capacity.
+PUT non-half-hour value (0.3 h)                            -> 422 5:00 – 9:00 am · Sleep: hours must be to the nearest half.
+PUT 23 h (one hour short)                                  -> 200 {'day': '2026-10-06', 'status': 'DRAFT', 'total_hours': 23.0, 'can_submit': False, 'editable': True, 'locked': False, 'submit_blocked_reason': '1 h to reconcile before you can submit.'}
+POST submit while 1 h short                                -> 409 1 h to reconcile before you can submit.
+PUT exactly 24 h                                           -> 200 {'day': '2026-10-06', 'status': 'DRAFT', 'total_hours': 24.0, 'can_submit': True, 'editable': True, 'locked': False, 'submit_blocked_reason': None}
+POST submit at 24 h                                        -> 200 {'day': '2026-10-06', 'status': 'SUBMITTED', 'total_hours': 24.0, 'can_submit': False, 'editable': False, 'locked': False, 'submit_blocked_reason': 'This day is already submitted.'}
+PUT after submit (latched)                                 -> 409 This day has been submitted and can no longer be edited.
+POST copy-yesterday onto a submitted day                   -> 404 No submitted ledger for 05 Oct 2026 to copy from.
+PUT on a locked day (today-3)                              -> 409 05 Oct 2026 is locked — it could be filled in until 07 Oct 2026. A day stays open for 2 days after it ends.
+PUT on tomorrow                                            -> 422 You cannot log a day that has not happened yet.
+GET ledger/history?days=5                                  -> 200 {'day': None, 'status': None, 'total_hours': None, 'can_submit': None, 'editable': None, 'locked': None, 'submit_blocked_reason': None}
+   history: [('10-08', 'DRAFT', 23.5, False), ('10-07', 'SUBMITTED', 24.0, False), ('10-06', 'SUBMITTED', 24.0, False), ('10-05', 'EMPTY', 0.0, True), ('10-04', 'EMPTY', 0.0, True)]
+GET timesheet (weekly strip)                               -> 200 {'day': None, 'status': None, 'total_hours': None, 'can_submit': None, 'editable': None, 'locked': None, 'submit_blocked_reason': None}
+   skilling_hours: 10.5
+## 5. diff base head
+IDENTICAL
+## Tool
+"""Time-ledger behaviour walk; prints status + detail per step. Usage: ledger.py BASE"""
+import sys, requests, datetime as dt
+B = sys.argv[1]; s = requests.Session()
+s.post(f'{B}/api/auth/login', json={'email': 'student@bgscet.ac.in', 'password': 'student123'}).raise_for_status()
+today = dt.date.fromisoformat(s.get(f'{B}/api/student/ledger').json()['today'])
+D = (today - dt.timedelta(days=2)).isoformat(); LOCKED = (today - dt.timedelta(days=3)).isoformat(); FUT = (today + dt.timedelta(days=1)).isoformat()
+FULL = {'DAWN': {'SLEEPING': 4}, 'MORNING': {'LECTURES': 3}, 'MIDDAY': {'COURSEWORK': 3}, 'AFTERNOON': {'SKILLING': 3}, 'EVENING': {'LEISURE': 4}, 'NIGHT': {'SLEEPING': 7}}
+def cells(m): return [{'slot': sl, 'activity': a, 'hours': h} for sl, d in m.items() for a, h in d.items()]
+def out(label, r):
+    try: j = r.json()
+    except Exception: j = r.text
+    det = j.get('detail') if isinstance(j, dict) and 'detail' in j else {k: j.get(k) for k in ('day', 'status', 'total_hours', 'can_submit', 'editable', 'locked', 'submit_blocked_reason')} if isinstance(j, dict) else j
+    print(f'{label:58s} -> {r.status_code} {str(det)[:300]}')
+print('day under test (today-2, inside the 2-day window):', 'today-2'); 
+out('GET ledger?day=today-2 (empty)', s.get(f'{B}/api/student/ledger', params={'day': D}))
+out('PUT cell over slot capacity (AFTERNOON SKILLING 3.5 h)', s.put(f'{B}/api/student/ledger', json={'day': D, 'cells': cells({'AFTERNOON': {'SKILLING': 3.5}})}))
+out('PUT a slot summing past capacity (AFTERNOON 2+2 h)', s.put(f'{B}/api/student/ledger', json={'day': D, 'cells': cells({'AFTERNOON': {'SKILLING': 2, 'LECTURES': 2}})}))
+out('PUT non-half-hour value (0.3 h)', s.put(f'{B}/api/student/ledger', json={'day': D, 'cells': cells({'DAWN': {'SLEEPING': 0.3}})}))
+out('PUT 23 h (one hour short)', s.put(f'{B}/api/student/ledger', json={'day': D, 'cells': cells({**FULL, 'NIGHT': {'SLEEPING': 6}})}))
+out('POST submit while 1 h short', s.post(f'{B}/api/student/ledger/submit', json={'day': D}))
+out('PUT exactly 24 h', s.put(f'{B}/api/student/ledger', json={'day': D, 'cells': cells(FULL)}))
+out('POST submit at 24 h', s.post(f'{B}/api/student/ledger/submit', json={'day': D}))
+out('PUT after submit (latched)', s.put(f'{B}/api/student/ledger', json={'day': D, 'cells': cells(FULL)}))
+out('POST copy-yesterday onto a submitted day', s.post(f'{B}/api/student/ledger/copy-yesterday', json={'day': D}))
+out('PUT on a locked day (today-3)', s.put(f'{B}/api/student/ledger', json={'day': LOCKED, 'cells': cells(FULL)}))
+out('PUT on tomorrow', s.put(f'{B}/api/student/ledger', json={'day': FUT, 'cells': cells(FULL)}))
+out('GET ledger/history?days=5', s.get(f'{B}/api/student/ledger/history', params={'days': 5}))
+r = s.get(f'{B}/api/student/ledger/history', params={'days': 5}).json(); print('   history:', [(d['day'][-5:], d['status'], d['logged_hours'], d['locked']) for d in r['days']])
+out('GET timesheet (weekly strip)', s.get(f'{B}/api/student/timesheet')); print('   skilling_hours:', s.get(f'{B}/api/student/timesheet').json()['skilling_hours'])
+s.post(f'{B}/api/auth/logout')

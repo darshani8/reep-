@@ -1,0 +1,68 @@
+# ST-021 browser walk as mentor - Playwright 1.63 driving the pre-installed Chromium 141 (/opt/pw-browsers/chromium-1194) against the SPA :4200 (ng serve, proxy -> head API :3300, 2 workers, fresh seeded db reep_ui). One screenshot per step: ST-021-NN-*.png
+step 1 login-page: url=/login h1="Welcome back" alerts=[] screenshot=ST-021-01-login-page.png
+step 2 form-filled: url=/login h1="Welcome back" alerts=[] screenshot=ST-021-02-form-filled.png
+step 3 signed-in: url=/mentor/notebook h1="Faculty notebook" alerts=[] screenshot=ST-021-03-signed-in.png
+step 4 mentor_mentees: url=/mentor/mentees h1="Mentee Log" alerts=[] screenshot=ST-021-04-mentor_mentees.png
+step 5 note-filled: url=/mentor/mentees h1="Mentee Log" alerts=[] screenshot=ST-021-05-note-filled.png
+step 6 note-saved: url=/mentor/mentees h1="Mentee Log" alerts=[] screenshot=ST-021-06-note-saved.png
+note visible in the list: true
+banner buttons: ["TMTest MentorFaculty"]
+step 7 signed-out: url=/login h1="Welcome back" alerts=[] screenshot=ST-021-07-signed-out.png
+step 8 protected-after-signout: url=/login?next=%2Fmentor%2Fmentees h1="Welcome back" alerts=[] screenshot=ST-021-08-protected-after-signout.png
+page errors: []
+API responses >= 400: ["401 GET /api/auth/me"]
+
+## script
+// Browser walk, one screenshot per step. Usage: node walk.mjs ROLE OUTDIR CASEID
+import { chromium } from '/home/user/reep-/node_modules/playwright/index.mjs';
+const [role, out, cid] = process.argv.slice(2);
+const BASE = 'http://localhost:4200';
+const A = { student: ['student@bgscet.ac.in', 'student123', /^Student\b/], mentor: ['mentor@bgscet.ac.in', 'mentor123', /^Faculty\b/],
+  alumni: ['alumni@bgscet.ac.in', 'alumni123', /^Alumni\b/], admin: ['admin@bgscet.ac.in', 'admin123', null] };
+const ACCT = { student: /Test Student/, mentor: /Test Mentor/, alumni: /Alumn/i, admin: /Main Admin/ };
+const SCREENS = { student: ['/student', '/student/time-log', '/student/jobs'], mentor: ['/mentor/mentees'], alumni: ['/alumni'],
+  admin: ['/admin', '/admin/students', '/admin/governance'] };
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const page = await browser.newPage({ viewport: { width: 1366, height: 900 } });
+const errors = []; page.on('pageerror', e => errors.push(String(e)));
+const api = []; page.on('response', r => { if (r.url().includes('/api/') && r.status() >= 400) api.push(`${r.status()} ${r.request().method()} ${new URL(r.url()).pathname}`); });
+let n = 0;
+async function step(label) {
+  n++; await page.waitForLoadState('networkidle').catch(() => {});
+  const f = `${out}/${cid}-${String(n).padStart(2, '0')}-${label}.png`; await page.screenshot({ path: f, fullPage: false });
+  const h1 = await page.locator('h1').first().textContent({ timeout: 3000 }).catch(() => null);
+  const alerts = await page.getByRole('alert').allTextContents().catch(() => []);
+  console.log(`step ${n} ${label}: url=${page.url().replace(BASE, '')} h1=${JSON.stringify(h1 && h1.trim())} alerts=${JSON.stringify(alerts.map(a => a.trim()).filter(Boolean))} screenshot=${f.split('/').pop()}`);
+}
+const [email, pw, portal] = A[role];
+await page.goto(BASE + '/login'); await step('login-page');
+if (portal) await page.getByRole('radio', { name: portal }).click();
+else await page.getByRole('button', { name: /Main Admin/ }).click();
+await page.locator('input[type=email], input[autocomplete=username], input[type=text]').first().fill(email);
+await page.getByPlaceholder('Enter your password').fill(pw);
+await step('form-filled');
+await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+await page.waitForURL(u => !u.pathname.startsWith('/login'), { timeout: 15000 });
+await step('signed-in');
+for (const s of SCREENS[role]) { await page.goto(BASE + s); await step(s.replaceAll('/', '_').slice(1)); }
+if (process.env.EXTRA) { const m = await import(process.env.EXTRA); await m.default(page, step); }
+const names = await page.getByRole('banner').getByRole('button').allTextContents(); console.log('banner buttons:', JSON.stringify(names.map(s => s.trim())));
+const direct = page.getByRole('banner').getByRole('button', { name: /Sign out/ });
+if (await direct.count()) await direct.first().click();
+else { await page.getByRole('banner').getByRole('button', { name: ACCT[role] }).click(); await page.getByRole('menuitem', { name: 'Sign out' }).click(); }
+await page.waitForURL(u => u.pathname.startsWith('/login'), { timeout: 15000 }).catch(() => {});
+await step('signed-out');
+await page.goto(BASE + SCREENS[role][0]); await step('protected-after-signout');
+console.log('page errors:', JSON.stringify(errors)); console.log('API responses >= 400:', JSON.stringify(api));
+await browser.close();
+export default async function (page, step) {
+  await page.goto('http://localhost:4200/mentor/mentees');
+  await page.getByText('Test Student').first().click();
+  await page.getByPlaceholder('1:1 review').fill('QG-2026-10 system test');
+  await page.getByPlaceholder(/What was discussed/).fill('ST-021: note added through the UI by the system tester.');
+  await step('note-filled');
+  await page.getByRole('button', { name: 'Save note' }).click();
+  await page.getByText('ST-021: note added through the UI').first().waitFor({ timeout: 10000 });
+  await step('note-saved');
+  console.log('note visible in the list:', await page.getByText('ST-021: note added through the UI').count() > 0);
+}

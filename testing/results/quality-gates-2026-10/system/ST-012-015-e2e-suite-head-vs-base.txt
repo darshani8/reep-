@@ -1,0 +1,56 @@
+# ST-012..ST-015  functional e2e suite (repo root, npm run test:e2e = playwright test, 256 tests in 8 files, ONE worker) - full run on HEAD vs full run on BASE, each on its own fresh migrated+seeded db, same SPA (:4200, identical web sources) and same API config (uvicorn :3300, --workers 2, ENV=dev)
+Runner: the repository's playwright.config.ts loaded through a scratch wrapper that only sets launchOptions.executablePath=/opt/pw-browsers/chromium-1194/chrome-linux/chrome (Playwright 1.63 expects Chromium build 1243, not installed; 'playwright install' is not allowed here) and drops the html reporter. Tests, reporter and case files are the repository's, unmodified.
+HEAD run: db reep_e2e_head2, 12.0 min -> 241 passed, 10 failed, 5 timed out, 17 not automated (manual-only)  [ST-012-015-manual-test-results-HEAD-fresh-db.csv]
+BASE run: db reep_e2e_base2, 11.4 min -> 245 passed, 7 failed, 4 timed out, 17 not automated               [ST-012-015-manual-test-results-BASE-fresh-db.csv]
+
+## per module (base | head)
+| Authentication and access | 36 pass / 1 fail / 0 skip / 4 manual-only | 34 pass / 3 fail / 0 skip / 4 manual-only |
+| Registration and onboarding | 23 pass / 0 fail / 0 skip / 1 manual-only | 23 pass / 0 fail / 0 skip / 1 manual-only |
+| Student: home and progress | 26 pass / 1 fail / 0 skip / 1 manual-only | 26 pass / 1 fail / 0 skip / 1 manual-only |
+| Student: profile, jobs and tools | 25 pass / 0 fail / 0 skip / 5 manual-only | 25 pass / 0 fail / 0 skip / 5 manual-only |
+| Faculty and alumni | 30 pass / 0 fail / 0 skip / 2 manual-only | 30 pass / 0 fail / 0 skip / 2 manual-only |
+| Admin: people and access | 33 pass / 6 fail / 0 skip / 1 manual-only | 32 pass / 7 fail / 0 skip / 1 manual-only |
+| Admin: daily operations | 33 pass / 1 fail / 0 skip / 1 manual-only | 32 pass / 2 fail / 0 skip / 1 manual-only |
+| Admin: college setup and interviews | 39 pass / 2 fail / 0 skip / 2 manual-only | 39 pass / 2 fail / 0 skip / 2 manual-only |
+
+## every case failing on either side (case | module | base | head | error)
+| TC-022 | Authentication and access | Failed | Failed | Error: TC-022 ER-5: now the second browser is signed out expect(page).toHaveURL(expected) failed Expected pattern: /^https?:\/\/[^/]+\/login |
+| TC-025 | Authentication and access | Passed | Failed | Error: TC-025 ER-2: the page says the session is no longer live, and why expect(locator).toContainText(expected) failed Locator: getByRole(' |
+| TC-038 | Authentication and access | Passed | Failed | Error: TC-038 ER-2: the fourth request within the hour is refused expect(locator).toHaveText(expected) failed Locator: getByRole('status').f |
+| TC-252 | Student: home and progress | Failed | Failed | Error: TC-252 ER-1: the "Not ranked on this board yet" card expect(locator).toHaveText(expected) failed Locator: locator('.lb-unranked__titl |
+| TC-506 | Admin: people and access | Timed out | Timed out | Test timeout of 30000ms exceeded. |
+| TC-507 | Admin: people and access | Timed out | Timed out | Test timeout of 30000ms exceeded. |
+| TC-510 | Admin: people and access | Timed out | Timed out | Test timeout of 30000ms exceeded. |
+| TC-513 | Admin: people and access | Failed | Failed | Error: TC-513 ER-1: the line under the name carries "Master of Business Administration - Finance · 2024-26 Section B" expect(locator).toCont |
+| TC-524 | Admin: people and access | Passed | Failed | Error: TC-524 ER-3: the faculty member is sent to sign in expect(page).toHaveURL(expected) failed Expected pattern: /\/login\?next=%2Fmentor |
+| TC-532 | Admin: people and access | Failed | Failed | Error: TC-532 ER-4: the rule is saved expect(locator).toBeVisible() failed Locator: getByRole('status').filter({ hasText: 'Leaderboards is o |
+| TC-539 | Admin: people and access | Timed out | Timed out | Test timeout of 30000ms exceeded. |
+| TC-631 | Admin: daily operations | Passed | Timed out | Test timeout of 30000ms exceeded. |
+| TC-651 | Admin: daily operations | Failed | Failed | Error: TC-651 ER-2: the wizard sums up the check expect(locator).toBeVisible() failed Locator: getByRole('status').filter({ hasText: '3 line |
+| TC-715 | Admin: college setup and interviews | Failed | Failed | TypeError: Cannot read properties of undefined (reading 'student_id') |
+| TC-735 | Admin: college setup and interviews | Failed | Failed | TypeError: Cannot read properties of undefined (reading 'student_id') |
+
+## the 4 head-only failures, each repeated 5x in isolation (--repeat-each=5) on head and on base, API with 2 workers, then head with 1 worker
+== head
+      1 @TC-025 ✓
+      4 @TC-025 ✘
+      2 @TC-038 ✓
+      3 @TC-038 ✘
+      3 @TC-524 ✓
+      2 @TC-524 ✘
+      5 @TC-631 ✘
+== base
+      1 @TC-025 ✓
+      4 @TC-025 ✘
+      1 @TC-038 ✓
+      4 @TC-038 ✘
+      3 @TC-524 ✓
+      2 @TC-524 ✘
+      5 @TC-631 ✘
+== head-1w
+      5 @TC-025 ✓
+      5 @TC-038 ✓
+      5 @TC-524 ✓
+      5 @TC-631 ✘
+
+Conclusion: identical pass/fail distributions on base and head (TC-025 1/5, TC-038 1-2/5, TC-524 3/5, TC-631 0/5 on both); with ONE API worker TC-025/038/524 pass 5/5 on head. So the head-only failures in the full run are intermittent and pre-existing, caused by per-process state across 2 uvicorn workers (token_version cache, per-process limiter); TC-631 depends on data written by earlier cases (OBS-QG-S04). No e2e failure is attributable to the change under test.

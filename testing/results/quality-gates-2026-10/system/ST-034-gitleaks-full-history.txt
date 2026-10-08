@@ -1,0 +1,17 @@
+# ST-034 2026-10-08T08:47:46Z gitleaks 8.30.0 (tarball sha256 79a3ab579b53f71efd634f3aaf7e04a0fa0cf206b7ed434638d1547a2470a66e == GITLEAKS_SHA256 pinned in .github/workflows/secret-scan.yml, sha256sum --check OK)
+Note: the container's clone was SHALLOW (219 commits); a first scan on it covered 140 commits and was discarded as not 'full history'. Unshallowed with git fetch --unshallow + all remote branches before this run.
+is-shallow=false HEAD=a3688f0189c48287f376cf8c165d762a2f8ab8d8 commits-in-HEAD-history=724 commits-reachable-from---all=1541 remote-branches=82
+
+## A. full history of the head: gitleaks git . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore --redact --no-banner --exit-code 1   (log-opts default = HEAD)
+8:48AM INF 1277 commits scanned.
+8:48AM INF scanned ~106539779 bytes (106.54 MB) in 23.9s
+8:48AM INF no leaks found
+exit=0
+
+## B. as specified by the Test Manager: ... --log-opts=--all --redact (every ref in the clone, incl. all 82 remote branches)
+8:48AM INF 1277 commits scanned.
+8:48AM INF scanned ~106539779 bytes (106.54 MB) in 23.3s
+8:48AM INF no leaks found
+exit=0
+
+## commit accounting (after unshallow): git rev-list HEAD --no-merges = 586, git rev-list --all --no-merges = 1289, --all incl. merges = 1541. gitleaks reported 1277 commits scanned in both runs A and B, i.e. run A also covered the other fetched refs; either way every commit in the head's history was included. Result: no leaks, exit 0, in both.

@@ -1,0 +1,26 @@
+# ST-003 2026-10-08T08:36:31Z db=reep_sys
+$ .venv/bin/python -m app.seed
+added placement criteria (default)
+added uploads (3: 2 pending, 1 verified)
+added skill claim (1, pending)
+added registration rules (2)
+added registrations (3: 1 auto-approved, 1 pending review, 1 held)
+added alert rule configs (3)
+added mail logs (2)
+added knowledge documents (10, APPROVED, student audience)
+added time allocation ledger (yesterday submitted, today 23.5/24 h)
+added english baseline (3 of 4 sections scored, speaking pending)
+added programme milestones (7)
+titled mentor meeting notes (1)
+added approved certification catalogue (3)
+added badge dashboard slice (2 earned, 1 pending, 1 more-info)
+added capability assessments (20 scores, T0–T2)
+exit=0
+$ psql: users by role
+admin@bgscet.ac.in|ADMIN
+alumni@bgscet.ac.in|ALUMNI
+mentor@bgscet.ac.in|MENTOR
+student@bgscet.ac.in|STUDENT
+$ second run (idempotent)
+exit=0
+4

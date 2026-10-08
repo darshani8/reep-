@@ -22,6 +22,7 @@
 |---|---|---|---|
 | 0.1 | 2026-10-08 | Tester session I | Cases designed from the test plan and the gate sources, before execution |
 | 1.0 | 2026-10-08 | Tester session I | All 48 cases executed; actual results, verdicts, 4 defects and 6 observations recorded |
+| 1.1 | 2026-10-08 | Tester session I | §6.1: re-test of DEF-QG-I02 and DEF-QG-I03 on `8914e839` — both still open |
 
 ---
 
@@ -626,6 +627,15 @@ Times are UTC start times on 2026-10-08, in execution order (long runs overlappe
 **OBS-QG-I05 — Release-gate expectation in the brief vs the code.** The test brief expected workflows to require a human; the gate refuses only the deploy pipelines (`deploy.yml`, `cdk-deploy.yml`, `ops-task.yml`, `agent-release.yml`) and itself, and treats `ci.yml`/`secret-scan.yml`/rulesets as NO_DEPLOY — consistent with AGENTS.md, since a change to them deploys nothing. Recorded so the traceability matrix does not claim otherwise.
 
 **OBS-QG-I06 — Local and CI feedback differ in shape.** (a) CI's static step stops at the first failing tool (`bash -e`), so a PR with a ruff and a mypy error shows only ruff; preflight runs all three (IT-G1-003 vs IT-GX-021). (b) Preflight's pytest prints no pass count (pytest.ini `-q` + `-q`). (c) `--no-color` does not remove gitleaks' own colour codes. Cosmetic.
+
+### 6.1 Re-test record
+
+| Defect | Build re-tested | Date | Result | Evidence |
+|---|---|---|---|---|
+| DEF-QG-I02 | `8914e8396c66c993cf3d975c4b786ea30d3a338a` | 2026-10-08 | **Still open.** None of the 10 commits after `a3688f0` names it. `test_codebase_guards.py` and `preflight.sh` both changed, but the comparison is still a whole-file substring test. Mutations A (rename the recorded name), B (delete `check_secrets` calls) and C (delete `check_web` calls) each still give "1 passed". Control D still fails as before. | `RT-DEF-QG-I02.txt` |
+| DEF-QG-I03 | `8914e8396c66c993cf3d975c4b786ea30d3a338a` | 2026-10-08 | **Still open.** `preflight.sh`'s secret check gained `--ignore-gitleaks-allow` and a pinned-version read, but still has no scan of untracked files. A new untracked file holding a fake `ghp_` token: all four scans report "no leaks found", "PASS Secrets (gitleaks)". (The worktree's venv links did not resolve, so checks 1 and 4 SKIPped; check 3 does not depend on them.) | `RT-DEF-QG-I03.txt` |
+
+Status for the incident register: both stay **Assigned**, not Fixed. The re-test will be repeated when a commit that names them lands on the integration branch.
 
 ---
 

@@ -1,0 +1,95 @@
+NOTE: Re-test on 8914e839 (no commit names DEF-QG-I02). Same four mutations as IT-GX-005.
+### 2026-10-08T09:24:28Z  cwd=/tmp/rt34
+$ git rev-parse HEAD; (cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= --tb=line tests/test_codebase_guards.py::test_the_five_required_check_names_agree_across_all_four_files 2>&1 | grep -E 'Error|passed|failed' | cut -c1-250)
+8914e8396c66c993cf3d975c4b786ea30d3a338a
+1 passed in 0.90s
+[exit 0, 2s]
+
+### 2026-10-08T09:24:30Z  cwd=/tmp/rt34
+$ sed -i 's/local name="Secrets (gitleaks)"/local name="Secret scan"/' tools/ci/preflight.sh; echo '--- diff:'; git diff --stat; git diff | grep -E '^[-+][^-+]' | head -8 | cut -c1-200
+--- diff:
+ tools/ci/preflight.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+-  local name="Secrets (gitleaks)" t0 rc=0 base range tree note_text=""
++  local name="Secret scan" t0 rc=0 base range tree note_text=""
+[exit 0, 1s]
+
+### 2026-10-08T09:24:31Z  cwd=/tmp/rt34
+$ (cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= --tb=line tests/test_codebase_guards.py::test_the_five_required_check_names_agree_across_all_four_files 2>&1 | grep -E 'Error|passed|failed' | cut -c1-250)
+1 passed in 0.54s
+[exit 0, 1s]
+
+### 2026-10-08T09:24:32Z  cwd=/tmp/rt34
+$ git checkout -q -- . && git clean -fdq && echo restored; git status --porcelain | wc -l
+restored
+0
+[exit 0, 1s]
+
+### 2026-10-08T09:24:33Z  cwd=/tmp/rt34
+$ sed -i '/^  check_secrets$/d' tools/ci/preflight.sh; echo '--- diff:'; git diff --stat; git diff | grep -E '^[-+][^-+]' | head -8 | cut -c1-200
+--- diff:
+ tools/ci/preflight.sh | 2 --
+ 1 file changed, 2 deletions(-)
+-  check_secrets
+-  check_secrets
+[exit 0, 0s]
+
+### 2026-10-08T09:24:33Z  cwd=/tmp/rt34
+$ (cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= --tb=line tests/test_codebase_guards.py::test_the_five_required_check_names_agree_across_all_four_files 2>&1 | grep -E 'Error|passed|failed' | cut -c1-250)
+1 passed in 0.56s
+[exit 0, 2s]
+
+### 2026-10-08T09:24:35Z  cwd=/tmp/rt34
+$ git checkout -q -- . && git clean -fdq && echo restored; git status --porcelain | wc -l
+restored
+0
+[exit 0, 0s]
+
+### 2026-10-08T09:24:35Z  cwd=/tmp/rt34
+$ sed -i '/^  check_web$/d' tools/ci/preflight.sh; echo '--- diff:'; git diff --stat; git diff | grep -E '^[-+][^-+]' | head -8 | cut -c1-200
+--- diff:
+ tools/ci/preflight.sh | 2 --
+ 1 file changed, 2 deletions(-)
+-  check_web
+-  check_web
+[exit 0, 0s]
+
+### 2026-10-08T09:24:35Z  cwd=/tmp/rt34
+$ (cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= --tb=line tests/test_codebase_guards.py::test_the_five_required_check_names_agree_across_all_four_files 2>&1 | grep -E 'Error|passed|failed' | cut -c1-250)
+1 passed in 0.57s
+[exit 0, 2s]
+
+### 2026-10-08T09:24:37Z  cwd=/tmp/rt34
+$ git checkout -q -- . && git clean -fdq && echo restored; git status --porcelain | wc -l
+restored
+0
+[exit 0, 0s]
+
+### 2026-10-08T09:24:37Z  cwd=/tmp/rt34
+$ sed -i 's/Web (Angular)/Web/g' tools/ci/preflight.sh; echo '--- diff:'; git diff --stat; git diff | grep -E '^[-+][^-+]' | head -8 | cut -c1-200
+--- diff:
+ tools/ci/preflight.sh | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+-  5. Web (Angular)                                  design guards, typecheck, tests, build
++  5. Web                                  design guards, typecheck, tests, build
+-# 5. Web (Angular)
++# 5. Web
+-  local name="Web (Angular)" t0 rc=0 note_text=""
+-  if [ "$QUICK" -eq 1 ]; then name="Web (Angular) - guards and typecheck only"; fi
++  local name="Web" t0 rc=0 note_text=""
++  if [ "$QUICK" -eq 1 ]; then name="Web - guards and typecheck only"; fi
+[exit 0, 0s]
+
+### 2026-10-08T09:24:37Z  cwd=/tmp/rt34
+$ (cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= --tb=line tests/test_codebase_guards.py::test_the_five_required_check_names_agree_across_all_four_files 2>&1 | grep -E 'Error|passed|failed' | cut -c1-250)
+E   AssertionError: tools/ci/preflight.sh does not run, or does not name, ['Web (Angular)']. Every required check belongs in the local runner: one it does not cover is one a developer discovers from a runner after the push, which is what that script 
+/tmp/rt34/apps/api-py/tests/test_codebase_guards.py:1809: AssertionError: tools/ci/preflight.sh does not run, or does not name, ['Web (Angular)']. Every required check belongs in the local runner: one it does not cover is one a developer discovers fr
+1 failed in 0.60s
+[exit 0, 2s]
+
+### 2026-10-08T09:24:39Z  cwd=/tmp/rt34
+$ git checkout -q -- . && git clean -fdq && echo restored; git status --porcelain | wc -l
+restored
+0
+[exit 0, 0s]
+

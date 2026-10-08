@@ -394,7 +394,7 @@ def start_badge(
     if row is None:
         db.add(StudentBadge(student_id=student_id, badge_code=code))
         db.commit()
-    return compose_badges(db.get(Student, student_id), db)  # type: ignore[arg-type]  # see qg report
+    return compose_badges(db.get(Student, student_id), db)  # type: ignore[arg-type]  # the studentId claim implies the row; a deleted row 500s rather than 404s, left as it was
 
 
 class EvidenceIn(BaseModel):
@@ -496,7 +496,7 @@ def submit_evidence(
     # mentor's account barred): a mail that did not go out is never the
     # reason a claim fails to file. app/badge_mail.py carries the reasoning.
     badge_mail.notify_mentor_of_claim(db, ev)
-    return compose_badges(db.get(Student, student_id), db)  # type: ignore[arg-type]  # see qg report
+    return compose_badges(db.get(Student, student_id), db)  # type: ignore[arg-type]  # the studentId claim implies the row; a deleted row 500s rather than 404s, left as it was
 
 
 # --- leaderboards (§16) ------------------------------------------------------

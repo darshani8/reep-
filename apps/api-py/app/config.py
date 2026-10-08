@@ -1275,7 +1275,12 @@ class Settings(BaseSettings):
             # close code and its own sentence, which is more useful than a
             # blanket "unavailable" here.
             return True
-        return self.realtime_ready  # type: ignore[attr-defined]  # see qg report: unreachable, _known_engine admits only nova/local
+        # The OpenAI engine (and its `realtime_ready`) was deleted in 2026-09,
+        # and `_known_engine` admits only nova and local, so this line is not
+        # reached today. It returned `self.realtime_ready`, an attribute that no
+        # longer exists: an AttributeError waiting for the validator to loosen.
+        # An engine this process does not have is not ready, by definition.
+        return False
 
     @property
     def interview_unready_reason(self) -> str:

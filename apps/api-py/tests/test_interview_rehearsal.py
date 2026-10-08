@@ -12,6 +12,7 @@ from the inside.
 from __future__ import annotations
 
 import inspect
+import types
 
 
 from app.models.user import Role
@@ -83,3 +84,96 @@ class TestTheStatusProbe:
         )
         assert r.status_code == 200, r.text
         assert r.json()["rehearsal"] is False
+
+
+class TestTheBackstopAtRuntime:
+    """`_run_relay`'s `finally`, exercised rather than read.
+
+    It used to `return` there when there was no row to close, and a `return`
+    inside `finally` swallows the exception in flight: a rehearsal cancelled at
+    shutdown lost the CancelledError the handler above re-raises. These run the
+    real function with the engine, the downstream close and the row UPDATE
+    replaced, and pin both halves -- the rehearsal propagates the cancellation,
+    and a real interview still reaches the backstop exactly once. No database.
+    """
+
+    @staticmethod
+    def _wire(monkeypatch, run):
+        import app.interview_local as interview_local
+
+        class FakeEngine:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            async def run(self):
+                return await run()
+
+        monkeypatch.setattr(interview_router.settings, "interview_engine", "local")
+        monkeypatch.setattr(interview_local, "LocalSession", FakeEngine)
+        closed: list[tuple[int, str]] = []
+        finalized: list[tuple] = []
+
+        async def _close(websocket, code, reason):
+            closed.append((code, reason))
+
+        monkeypatch.setattr(interview_router, "_close_downstream", _close)
+        # The slot was never acquired here; a stand-in limiter takes the release.
+        monkeypatch.setattr(
+            interview_router, "_LIMITER", types.SimpleNamespace(release=lambda user_id: None)
+        )
+        monkeypatch.setattr(
+            interview_router, "_finalize_if_running", lambda *args: finalized.append(args)
+        )
+        return closed, finalized
+
+    @staticmethod
+    def _relay(session_id):
+        return interview_router._run_relay(
+            None, "conn-test", "user-test", None,
+            on_turn=None, on_report=None, on_finalize=None, on_heartbeat=None,
+            recorder=None, max_seconds=60, interview_session_id=session_id,
+        )
+
+    def _cancelled(self, monkeypatch, session_id):
+        import asyncio
+
+        async def forever():
+            await asyncio.Event().wait()
+
+        closed, finalized = self._wire(monkeypatch, forever)
+
+        async def scenario():
+            task = asyncio.create_task(self._relay(session_id))
+            await asyncio.sleep(0.05)
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                return "cancelled"
+            return "swallowed"
+
+        return asyncio.run(scenario()), closed, finalized
+
+    def test_a_cancelled_rehearsal_propagates_the_cancellation(self, monkeypatch):
+        outcome, closed, finalized = self._cancelled(monkeypatch, None)
+        assert outcome == "cancelled"
+        assert closed == [(interview_router._CLOSE_GOING_AWAY, "Server shutting down")]
+        assert finalized == []
+
+    def test_a_cancelled_interview_still_runs_the_backstop_once(self, monkeypatch):
+        outcome, _, finalized = self._cancelled(monkeypatch, "sess-1")
+        assert outcome == "cancelled"
+        assert finalized == [
+            ("sess-1", "conn-test", interview_router._CLOSE_GOING_AWAY, "Server shutting down")
+        ]
+
+    def test_a_clean_interview_runs_the_backstop_once_with_its_code(self, monkeypatch):
+        import asyncio
+
+        async def done():
+            return 1000, "Interview complete"
+
+        closed, finalized = self._wire(monkeypatch, done)
+        asyncio.run(self._relay("sess-2"))
+        assert closed == [(1000, "Interview complete")]
+        assert finalized == [("sess-2", "conn-test", 1000, "Interview complete")]

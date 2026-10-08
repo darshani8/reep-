@@ -1,0 +1,20 @@
+# Evidence for UT-G3-038
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+# [2026-10-08T09:45:23 UTC] Method: synthetic handlers in app/routers/qg_probe.py, SCRATCH worktree /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt (at 40201a1) only, included in that worktree's app/main.py;
+#   then from its apps/api-py: .venv/bin/python -m pytest -q -p no:cacheprovider -o addopts= tests/test_route_audit.py (DATABASE_URL at 127.0.0.1:1)
+#   full output: UT-G3-rt1-pytest-output.txt. Behaviour: TestClient with get_current_session overridden to a STUDENT session.
+
+--- probe source:
+@router.get("/n10-reraise-other-type")
+def n10_reraise_other_type(session: dict = Depends(get_current_session)) -> Out:
+    try:
+        require_admin(session)
+    except HTTPException as exc:
+        raise PermissionError("no") from exc
+    return Out()
+
+--- audit failure lines naming /api/qg/n10-reraise-other-type: 0
+(none: the audit did not report this operation under any rule)
+--- behaviour:
+GET /api/qg/n10-reraise-other-type as a STUDENT session -> 500 Internal Server Error
+

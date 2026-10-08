@@ -1,0 +1,10 @@
+# Evidence for UT-G2-013-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:50:38 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/g13r
+$ echo 'case/app.env:reep-openai-key:1' > ign; gitleaks dir case --config /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaks.toml --ignore-gitleaks-allow --gitleaks-ignore-path ign --redact --no-banner --report-format json --report-path one.json >/dev/null 2>&1; echo exit=$?; python3 -c "import json;print([(x['RuleID'],x['StartLine']) for x in json.load(open('one.json'))])"; echo 'case/app.env:reep-openai-key:7' > ign2; gitleaks dir case --config /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaks.toml --ignore-gitleaks-allow --gitleaks-ignore-path ign2 --redact --no-banner --report-format json --report-path two.json >/dev/null 2>&1; echo exit=$?; python3 -c "import json;print([(x['RuleID'],x['StartLine']) for x in json.load(open('two.json'))])"
+exit=1
+[('reep-openai-key', 2)]
+exit=1
+[('reep-openai-key', 1), ('reep-openai-key', 2)]
+[exit=0]

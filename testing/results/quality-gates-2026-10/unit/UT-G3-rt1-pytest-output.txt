@@ -1,0 +1,303 @@
+.........FF.F................................F..........FF               [100%]
+=================================== FAILURES ===================================
+________ test_every_operation_requires_a_session_or_is_declared_public _________
+
+    def test_every_operation_requires_a_session_or_is_declared_public() -> None:
+        violations = {op.key: (op.where, "no session dependency") for op in OPERATIONS if not _requires_session(op)}
+>       _ratchet(
+            "AUTH (session)",
+            violations,
+            ex.PUBLIC,
+            "Add `session: dict = Depends(get_current_session)` to the handler. If it "
+            "really must be callable with no account (sign-in, the public register "
+            "form, health), read the handler, then add it to PUBLIC with the reason.",
+        )
+
+tests/test_route_audit.py:478: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rule = 'AUTH (session)'
+violations = {('GET', '/health'): ('app.routers.health.health', 'no session dependency'), ('GET', '/ready'): ('app.routers.health.r...open', 'no session dependency'), ('POST', '/api/auth/login'): ('app.routers.auth.login', 'no session dependency'), ...}
+known = {('POST', '/api/auth/activate'): ('app.routers.passwords.activate', 'staff activation link: the single-use token in th...h/google/start'): ('app.routers.auth.google_start', 'starts Google sign-in: sets the state cookie and redirects'), ...}
+fix = 'Add `session: dict = Depends(get_current_session)` to the handler. If it really must be callable with no account (sign-in, the public register form, health), read the handler, then add it to PUBLIC with the reason.'
+
+    def _ratchet(rule: str, violations: dict, known: dict, fix: str) -> None:
+        """Fail on a new violation AND on an exception that no longer applies.
+    
+        `violations` is {(method, path): (handler, detail)}; `known` is
+        {(method, path): (handler, reason)}. An entry whose handler differs from the
+        one now mounted at that path is NOT an exception for it.
+        """
+        new = sorted(k for k in violations if k not in known or known[k][0] != violations[k][0])
+        stale = sorted(k for k in known if k not in violations)
+        lines = []
+        if new:
+            lines.append(f"{rule}: {len(new)} new violation(s). {fix}")
+            for key in new:
+                handler, detail = violations[key]
+                note = f"; the list grants this to {known[key][0]}, not this handler" if key in known else ""
+                lines.append(f"  {key[0]} {key[1]}  ({handler}: {detail}{note})")
+        if stale:
+            lines.append(
+                f"{rule}: {len(stale)} exception(s) no longer apply — the route was "
+                f"fixed or removed. Strike it off the list in tests/route_audit_exceptions.py:"
+            )
+            lines += [f"  {m} {p}" for m, p in stale]
+>       assert not lines, "\n".join(lines)
+E       AssertionError: AUTH (session): 1 new violation(s). Add `session: dict = Depends(get_current_session)` to the handler. If it really must be callable with no account (sign-in, the public register form, health), read the handler, then add it to PUBLIC with the reason.
+E           GET /api/qg/p01-open  (app.routers.qg_probe.p01_open: no session dependency)
+E       assert not ['AUTH (session): 1 new violation(s). Add `session: dict = Depends(get_current_session)` to the handler. If it really ...n add it to PUBLIC with the reason.', '  GET /api/qg/p01-open  (app.routers.qg_probe.p01_open: no session dependency)']
+
+tests/test_route_audit.py:272: AssertionError
+________ test_every_authenticated_handler_reaches_a_role_or_scope_gate _________
+
+    def test_every_authenticated_handler_reaches_a_role_or_scope_gate() -> None:
+        violations = {
+            op.key: (op.where, "no role or scope gate")
+            for op in OPERATIONS
+            if _requires_session(op) and not _gated(op)
+        }
+>       _ratchet(
+            "AUTH (gate)",
+            violations,
+            ex.KNOWN_UNGATED,
+            "A session proves who is asking, not that they may. Call the gate before "
+            "touching data: require_mentor / require_admin / require_capability, "
+            "_assert_can_access_student for a student in the path, _require_student "
+            "for a student's own screen. If the session alone IS the answer (the "
+            "caller's own rows keyed on session['userId']), add it to KNOWN_UNGATED "
+            "and say whose rows it reads.",
+        )
+
+tests/test_route_audit.py:594: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rule = 'AUTH (gate)'
+violations = {('GET', '/api/qg/p02-nogate'): ('app.routers.qg_probe.p02_nogate', 'no role or scope gate'), ('GET', '/api/qg/p04-inl...e gate'), ('GET', '/api/qg/p07-after-return'): ('app.routers.qg_probe.p07_after_return', 'no role or scope gate'), ...}
+known = {('DELETE', '/api/agent/conversation'): ('app.routers.agent.delete_conversation', "clears the caller's own assistant c...), ('GET', '/api/agent/runs'): ('app.routers.agent.runs', "the caller's own assistant runs (actor_id == userId)"), ...}
+fix = "A session proves who is asking, not that they may. Call the gate before touching data: require_mentor / require_admin...IS the answer (the caller's own rows keyed on session['userId']), add it to KNOWN_UNGATED and say whose rows it reads."
+
+    def _ratchet(rule: str, violations: dict, known: dict, fix: str) -> None:
+        """Fail on a new violation AND on an exception that no longer applies.
+    
+        `violations` is {(method, path): (handler, detail)}; `known` is
+        {(method, path): (handler, reason)}. An entry whose handler differs from the
+        one now mounted at that path is NOT an exception for it.
+        """
+        new = sorted(k for k in violations if k not in known or known[k][0] != violations[k][0])
+        stale = sorted(k for k in known if k not in violations)
+        lines = []
+        if new:
+            lines.append(f"{rule}: {len(new)} new violation(s). {fix}")
+            for key in new:
+                handler, detail = violations[key]
+                note = f"; the list grants this to {known[key][0]}, not this handler" if key in known else ""
+                lines.append(f"  {key[0]} {key[1]}  ({handler}: {detail}{note})")
+        if stale:
+            lines.append(
+                f"{rule}: {len(stale)} exception(s) no longer apply — the route was "
+                f"fixed or removed. Strike it off the list in tests/route_audit_exceptions.py:"
+            )
+            lines += [f"  {m} {p}" for m, p in stale]
+>       assert not lines, "\n".join(lines)
+E       AssertionError: AUTH (gate): 12 new violation(s). A session proves who is asking, not that they may. Call the gate before touching data: require_mentor / require_admin / require_capability, _assert_can_access_student for a student in the path, _require_student for a student's own screen. If the session alone IS the answer (the caller's own rows keyed on session['userId']), add it to KNOWN_UNGATED and say whose rows it reads.
+E           GET /api/qg/n02-return-in-nested-branch  (app.routers.qg_probe.n02_return_in_nested_branch: no role or scope gate)
+E           GET /api/qg/n06-module-attr  (app.routers.qg_probe.n06_module_attr: no role or scope gate)
+E           GET /api/qg/n07-baseexception  (app.routers.qg_probe.n07_baseexception: no role or scope gate)
+E           GET /api/qg/n09-caught-returns-200  (app.routers.qg_probe.n09_caught_returns_200: no role or scope gate)
+E           GET /api/qg/p02-nogate  (app.routers.qg_probe.p02_nogate: no role or scope gate)
+E           GET /api/qg/p04-inline-noraise  (app.routers.qg_probe.p04_inline_noraise: no role or scope gate)
+E           GET /api/qg/p05-if-false  (app.routers.qg_probe.p05_if_false: no role or scope gate)
+E           GET /api/qg/p07-after-return  (app.routers.qg_probe.p07_after_return: no role or scope gate)
+E           GET /api/qg/p08-swallowed  (app.routers.qg_probe.p08_swallowed: no role or scope gate)
+E           GET /api/qg/p09-if-not-true  (app.routers.qg_probe.p09_if_not_true: no role or scope gate)
+E           GET /api/qg/p10-while-false  (app.routers.qg_probe.p10_while_false: no role or scope gate)
+E           GET /api/qg/p11-predicate-only  (app.routers.qg_probe.p11_predicate_only: no role or scope gate)
+E       assert not ["AUTH (gate): 12 new violation(s). A session proves who is asking, not that they may. Call the gate before touching d...00: no role or scope gate)', '  GET /api/qg/p02-nogate  (app.routers.qg_probe.p02_nogate: no role or scope gate)', ...]
+
+tests/test_route_audit.py:272: AssertionError
+________________ test_every_websocket_authenticates_in_its_body ________________
+
+    def test_every_websocket_authenticates_in_its_body() -> None:
+        unauthenticated = sorted(path for path, fn in WEBSOCKETS if not _reaches_ws_session(fn))
+>       assert not unauthenticated, (
+            f"WebSocket routes that never read the session cookie: {unauthenticated}. "
+            f"Call `get_ws_session(websocket)` (app/identity.py) before accepting."
+        )
+E       AssertionError: WebSocket routes that never read the session cookie: ['/api/qg/w01-ws']. Call `get_ws_session(websocket)` (app/identity.py) before accepting.
+E       assert not ['/api/qg/w01-ws']
+
+tests/test_route_audit.py:627: AssertionError
+_____________ test_every_json_operation_declares_a_response_model ______________
+
+    def test_every_json_operation_declares_a_response_model() -> None:
+        violations = {}
+        for op in OPERATIONS:
+            problem = _response_model_problem(op)
+            if problem:
+                violations[op.key] = (op.where, problem)
+>       _ratchet(
+            "RESPONSE_MODEL",
+            violations,
+            ex.KNOWN_NO_RESPONSE_MODEL,
+            "Declare `response_model=` (or a return annotation) naming a Pydantic "
+            "model — not dict, dict[str, Any] or Any, which type-check and pin "
+            "nothing. A file, CSV or redirect returns a Response subclass instead.",
+        )
+
+tests/test_route_audit.py:766: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rule = 'RESPONSE_MODEL'
+violations = {('GET', '/health'): ('app.routers.health.health', 'untyped response model (dict)'), ('GET', '/ready'): ('app.routers....otmodel-list-dict'): ('app.routers.qg_probe.r08_rootmodel_list_dict', 'untyped response model (LooseList[dict])'), ...}
+known = {('GET', '/api/agent/metrics'): ('app.routers.agent.metrics', 'bare dict of counters for the Main Admin; no schema yet...None on purpose'), ('POST', '/api/student/checkin'): ('app.routers.student.check_in', 'bare dict; no schema yet'), ...}
+fix = 'Declare `response_model=` (or a return annotation) naming a Pydantic model — not dict, dict[str, Any] or Any, which type-check and pin nothing. A file, CSV or redirect returns a Response subclass instead.'
+
+    def _ratchet(rule: str, violations: dict, known: dict, fix: str) -> None:
+        """Fail on a new violation AND on an exception that no longer applies.
+    
+        `violations` is {(method, path): (handler, detail)}; `known` is
+        {(method, path): (handler, reason)}. An entry whose handler differs from the
+        one now mounted at that path is NOT an exception for it.
+        """
+        new = sorted(k for k in violations if k not in known or known[k][0] != violations[k][0])
+        stale = sorted(k for k in known if k not in violations)
+        lines = []
+        if new:
+            lines.append(f"{rule}: {len(new)} new violation(s). {fix}")
+            for key in new:
+                handler, detail = violations[key]
+                note = f"; the list grants this to {known[key][0]}, not this handler" if key in known else ""
+                lines.append(f"  {key[0]} {key[1]}  ({handler}: {detail}{note})")
+        if stale:
+            lines.append(
+                f"{rule}: {len(stale)} exception(s) no longer apply — the route was "
+                f"fixed or removed. Strike it off the list in tests/route_audit_exceptions.py:"
+            )
+            lines += [f"  {m} {p}" for m, p in stale]
+>       assert not lines, "\n".join(lines)
+E       AssertionError: RESPONSE_MODEL: 8 new violation(s). Declare `response_model=` (or a return annotation) naming a Pydantic model — not dict, dict[str, Any] or Any, which type-check and pin nothing. A file, CSV or redirect returns a Response subclass instead.
+E           DELETE /api/qg/widgets/{wid}  (app.routers.qg_probe.s04_delete_untyped: JSON body with no response model)
+E           GET /api/qg/r01-dict  (app.routers.qg_probe.r01_dict: untyped response model (dict))
+E           GET /api/qg/r02-any  (app.routers.qg_probe.r02_any: untyped response model (typing.Any))
+E           GET /api/qg/r03-dict-str-any  (app.routers.qg_probe.r03_dict_str_any: untyped response model (typing.Any))
+E           GET /api/qg/r04-list-dict  (app.routers.qg_probe.r04_list_dict: untyped response model (dict))
+E           GET /api/qg/r06-rootmodel-any  (app.routers.qg_probe.r06_rootmodel_any: untyped response model (Loose[typing.Any]))
+E           GET /api/qg/r07-unannotated  (app.routers.qg_probe.r07_unannotated: JSON body with no response model)
+E           GET /api/qg/r08-rootmodel-list-dict  (app.routers.qg_probe.r08_rootmodel_list_dict: untyped response model (LooseList[dict]))
+E       assert not ['RESPONSE_MODEL: 8 new violation(s). Declare `response_model=` (or a return annotation) naming a Pydantic model — not...typing.Any))', '  GET /api/qg/r04-list-dict  (app.routers.qg_probe.r04_list_dict: untyped response model (dict))', ...]
+
+tests/test_route_audit.py:272: AssertionError
+___________________ test_status_codes_follow_the_house_rules ___________________
+
+    def test_status_codes_follow_the_house_rules() -> None:
+>       _ratchet(
+            "STATUS",
+            _status_problems(),
+            ex.KNOWN_STATUS,
+            "A create answers 201, a body-less answer is 204, a DELETE is 204 or "
+            "returns the model it changed. Changing an EXISTING route's code breaks "
+            "the Angular client — record it in KNOWN_STATUS instead.",
+        )
+
+tests/test_route_audit.py:857: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rule = 'STATUS'
+violations = {('POST', '/api/qg/widgets'): ('app.routers.qg_probe.s01_create_200', 'POST to a collection answers 200, not 201'), ('..._id}/assessments'): ('app.routers.badge_verification.record_assessments', 'POST to a collection answers 200, not 201')}
+known = {('POST', '/api/admin/governance/groups/{group_id}/members'): ('app.routers.governance.add_members', 'adds a member an....badge_verification.record_assessments', "upserts T0-T4 scores and answers 200 with the student's whole growth table")}
+fix = "A create answers 201, a body-less answer is 204, a DELETE is 204 or returns the model it changed. Changing an EXISTING route's code breaks the Angular client — record it in KNOWN_STATUS instead."
+
+    def _ratchet(rule: str, violations: dict, known: dict, fix: str) -> None:
+        """Fail on a new violation AND on an exception that no longer applies.
+    
+        `violations` is {(method, path): (handler, detail)}; `known` is
+        {(method, path): (handler, reason)}. An entry whose handler differs from the
+        one now mounted at that path is NOT an exception for it.
+        """
+        new = sorted(k for k in violations if k not in known or known[k][0] != violations[k][0])
+        stale = sorted(k for k in known if k not in violations)
+        lines = []
+        if new:
+            lines.append(f"{rule}: {len(new)} new violation(s). {fix}")
+            for key in new:
+                handler, detail = violations[key]
+                note = f"; the list grants this to {known[key][0]}, not this handler" if key in known else ""
+                lines.append(f"  {key[0]} {key[1]}  ({handler}: {detail}{note})")
+        if stale:
+            lines.append(
+                f"{rule}: {len(stale)} exception(s) no longer apply — the route was "
+                f"fixed or removed. Strike it off the list in tests/route_audit_exceptions.py:"
+            )
+            lines += [f"  {m} {p}" for m, p in stale]
+>       assert not lines, "\n".join(lines)
+E       AssertionError: STATUS: 2 new violation(s). A create answers 201, a body-less answer is 204, a DELETE is 204 or returns the model it changed. Changing an EXISTING route's code breaks the Angular client — record it in KNOWN_STATUS instead.
+E           DELETE /api/qg/widgets/{wid}  (app.routers.qg_probe.s04_delete_untyped: DELETE answers 200 with no body model)
+E           POST /api/qg/widgets  (app.routers.qg_probe.s01_create_200: POST to a collection answers 200, not 201)
+E       assert not ["STATUS: 2 new violation(s). A create answers 201, a body-less answer is 204, a DELETE is 204 or returns the model it...dy model)', '  POST /api/qg/widgets  (app.routers.qg_probe.s01_create_200: POST to a collection answers 200, not 201)']
+
+tests/test_route_audit.py:272: AssertionError
+__________________ test_list_reads_are_paginated_or_recorded ___________________
+
+    def test_list_reads_are_paginated_or_recorded() -> None:
+        violations = {
+            op.key: (op.where, "unpaginated list")
+            for op in OPERATIONS
+            if op.method == "GET" and _returns_a_list(op) and not _is_paginated(op)
+        }
+        known = {**ex.BOUNDED, **ex.KNOWN_UNPAGINATED}
+>       _ratchet(
+            "PAGINATION",
+            violations,
+            known,
+            "Accept `limit: int = Query(50, ge=1, le=MAX)` plus `offset` (or a cursor). "
+            "If the query is capped by construction, read the cap and add it to BOUNDED "
+            "naming it; if it is a real gap, KNOWN_UNPAGINATED.",
+        )
+
+tests/test_route_audit.py:913: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rule = 'PAGINATION'
+violations = {('GET', '/api/qg/l01-list'): ('app.routers.qg_probe.l01_list', 'unpaginated list'), ('GET', '/api/qg/l02-limit-no-le'...03_le_no_offset', 'unpaginated list'), ('GET', '/api/agent/runs'): ('app.routers.agent.runs', 'unpaginated list'), ...}
+known = {('GET', '/api/admin/badge-catalogue'): ('app.routers.console.badge_catalogue', 'the BADGES constant in app/models/bad...n/hierarchy/levels'): ('app.routers.admin.hierarchy_levels', 'HIERARCHY_LEVELS constant: one row per spine rung'), ...}
+fix = 'Accept `limit: int = Query(50, ge=1, le=MAX)` plus `offset` (or a cursor). If the query is capped by construction, read the cap and add it to BOUNDED naming it; if it is a real gap, KNOWN_UNPAGINATED.'
+
+    def _ratchet(rule: str, violations: dict, known: dict, fix: str) -> None:
+        """Fail on a new violation AND on an exception that no longer applies.
+    
+        `violations` is {(method, path): (handler, detail)}; `known` is
+        {(method, path): (handler, reason)}. An entry whose handler differs from the
+        one now mounted at that path is NOT an exception for it.
+        """
+        new = sorted(k for k in violations if k not in known or known[k][0] != violations[k][0])
+        stale = sorted(k for k in known if k not in violations)
+        lines = []
+        if new:
+            lines.append(f"{rule}: {len(new)} new violation(s). {fix}")
+            for key in new:
+                handler, detail = violations[key]
+                note = f"; the list grants this to {known[key][0]}, not this handler" if key in known else ""
+                lines.append(f"  {key[0]} {key[1]}  ({handler}: {detail}{note})")
+        if stale:
+            lines.append(
+                f"{rule}: {len(stale)} exception(s) no longer apply — the route was "
+                f"fixed or removed. Strike it off the list in tests/route_audit_exceptions.py:"
+            )
+            lines += [f"  {m} {p}" for m, p in stale]
+>       assert not lines, "\n".join(lines)
+E       AssertionError: PAGINATION: 3 new violation(s). Accept `limit: int = Query(50, ge=1, le=MAX)` plus `offset` (or a cursor). If the query is capped by construction, read the cap and add it to BOUNDED naming it; if it is a real gap, KNOWN_UNPAGINATED.
+E           GET /api/qg/l01-list  (app.routers.qg_probe.l01_list: unpaginated list)
+E           GET /api/qg/l02-limit-no-le  (app.routers.qg_probe.l02_limit_no_le: unpaginated list)
+E           GET /api/qg/l03-le-no-offset  (app.routers.qg_probe.l03_le_no_offset: unpaginated list)
+E       assert not ['PAGINATION: 3 new violation(s). Accept `limit: int = Query(50, ge=1, le=MAX)` plus `offset` (or a cursor). If the qu...no_le: unpaginated list)', '  GET /api/qg/l03-le-no-offset  (app.routers.qg_probe.l03_le_no_offset: unpaginated list)']
+
+tests/test_route_audit.py:272: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_route_audit.py::test_every_operation_requires_a_session_or_is_declared_public
+FAILED tests/test_route_audit.py::test_every_authenticated_handler_reaches_a_role_or_scope_gate
+FAILED tests/test_route_audit.py::test_every_websocket_authenticates_in_its_body
+FAILED tests/test_route_audit.py::test_every_json_operation_declares_a_response_model
+FAILED tests/test_route_audit.py::test_status_codes_follow_the_house_rules - ...
+FAILED tests/test_route_audit.py::test_list_reads_are_paginated_or_recorded
+6 failed, 52 passed in 4.78s

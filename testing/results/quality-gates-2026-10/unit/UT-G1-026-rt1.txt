@@ -1,0 +1,41 @@
+# Evidence for UT-G1-026-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T10:05:42 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/ab.py UT-G1-026a
+--- synthetic source:
+    from ..db import SessionLocal
+    async def h():
+        s = SessionLocal()
+        s.execute('x')
+
+  finding line 4: h: calls s.execute() on a sync Session
+  finding line 3: h: calls SessionLocal()
+expected FLAGGED; actual FLAGGED -> MATCH
+[exit=0]
+
+[2026-10-08T10:05:43 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/ab.py UT-G1-026b
+--- synthetic source:
+    from .. import db
+    async def h():
+        with db.SessionLocal() as s:
+            s.commit()
+
+  finding line 4: h: calls s.commit() on a sync Session
+  finding line 3: h: calls SessionLocal()
+expected FLAGGED; actual FLAGGED -> MATCH
+[exit=0]
+
+[2026-10-08T10:05:43 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/ab.py UT-G1-026c
+--- synthetic source:
+    from ..db import SessionLocal as SL
+    async def h():
+        s = SL()
+        s.query(1)
+
+  finding line 4: h: calls s.query() on a sync Session
+  finding line 3: h: calls SessionLocal()
+expected FLAGGED; actual FLAGGED -> MATCH
+[exit=0]

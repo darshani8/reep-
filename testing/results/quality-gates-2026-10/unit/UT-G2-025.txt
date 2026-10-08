@@ -1,0 +1,17 @@
+# Evidence for UT-G2-025
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:50:03 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: <p>Gateway key: <code>LEGACY-SHAPE OPENAI KEY</code></p>'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022m-sk-in-html; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022m-sk-in-html
+shape: <p>Gateway key: <code>LEGACY-SHAPE OPENAI KEY</code></p>
+--- g2-022m-sk-in-html/page.html
+<p>Gateway key: <FAKE-VALUE-MASKED>
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T09:50:20 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'control: the same file against gitleaks built-in rules only (no repository config):'; gitleaks dir g2-022m-sk-in-html --ignore-gitleaks-allow --redact --no-banner --exit-code 1 2>&1 | tail -1
+control: the same file against gitleaks built-in rules only (no repository config):
+9:50AM INF no leaks found
+[exit=0]

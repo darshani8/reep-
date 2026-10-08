@@ -1,0 +1,34 @@
+# Evidence for UT-G4-022-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T10:03:44 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/apps/api-py
+$ ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py .venv/bin/python -c "
+import sys, contextlib; sys.path.insert(0, '../../tools/ci')
+import check_migration_roundtrip as rt
+class R:
+    def __init__(s, v): s.v = v
+    def scalar(s): return s.v
+class Conn:
+    def __init__(s, found, role): s.answers = [found, role]
+    def execute(s, q, p=None): return R(s.answers.pop(0))
+class Eng:
+    def __init__(s, found, role): s.c = Conn(found, role)
+    @contextlib.contextmanager
+    def connect(s): yield s.c
+for found, role, exp in [('rds.extensions', None, 'REFUSED'), ('aurora_compute_plan_id', None, 'REFUSED'), ('cloudsql.iam_authentication', None, 'REFUSED'), ('azure.extensions', None, 'REFUSED'), (None, 'rds_superuser', 'REFUSED'), (None, None, 'RUNS')]:
+    got = 'REFUSED' if rt.managed_server(Eng(found, role)) else 'RUNS'
+    print(f'{found!r:32} {role!r:16} -> {got:7} expected {exp:7} {\"as-expected\" if got == exp else \"UNEXPECTED\"}')
+from sqlalchemy import create_engine
+from app.config import settings
+print('real local server ->', rt.managed_server(create_engine(settings.sqlalchemy_url)))
+"; ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/reep_py .venv/bin/python ../../tools/ci/check_migration_roundtrip.py > /tmp/fc.out 2>&1; rc=$?; grep -o 'FAILED: [^(]*' /tmp/fc.out | head -1; echo script_exit=$rc
+'rds.extensions'                 None             -> REFUSED expected REFUSED as-expected
+'aurora_compute_plan_id'         None             -> REFUSED expected REFUSED as-expected
+'cloudsql.iam_authentication'    None             -> REFUSED expected REFUSED as-expected
+'azure.extensions'               None             -> REFUSED expected REFUSED as-expected
+None                             'rds_superuser'  -> REFUSED expected REFUSED as-expected
+None                             None             -> RUNS    expected RUNS    as-expected
+real local server -> None
+FAILED: could not connect to ask the server what it is: 
+script_exit=1
+[exit=0]

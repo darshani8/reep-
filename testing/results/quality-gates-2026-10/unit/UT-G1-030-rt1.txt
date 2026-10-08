@@ -1,0 +1,47 @@
+# Evidence for UT-G1-030-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:43:48 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/ab.py UT-G1-030a
+--- synthetic source:
+    import time
+    async def h():
+        (lambda: time.sleep(5))()
+
+expected FLAGGED; actual not flagged -> MISMATCH
+[exit=0]
+
+[2026-10-08T09:43:48 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/ab.py UT-G1-030b
+--- synthetic source:
+    async def h(p):
+        import pathlib
+        with pathlib.Path(p).open() as f:
+            return f.read()
+
+  finding line 3: h: calls Path(...).open()
+expected FLAGGED; actual FLAGGED -> MATCH
+[exit=0]
+
+[2026-10-08T09:43:48 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/ab.py UT-G1-030c
+--- synthetic source:
+    import os
+    async def h(p):
+        fd = os.open(p, os.O_RDONLY)
+        return os.read(fd, 10)
+
+  finding line 4: h: calls os.read()
+  finding line 3: h: calls os.open()
+expected FLAGGED; actual FLAGGED -> MATCH
+[exit=0]
+
+[2026-10-08T09:43:48 UTC] cwd=/home/user/reep-
+$ grep -n -i 'lambda' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/check_async_blocking.py | head -6
+23:and `lambda` bodies are excluded: they run wherever they are sent, which is
+56:inside `run_in_threadpool(lambda: db.execute(...))` is still reported: the
+61:threadpool, Session and all -- and a rule that let the lambda form through
+67:from excluding lambda bodies: an immediately-invoked lambda,
+68:`(lambda: time.sleep(5))()`, runs on the loop and is not reported. Nobody
+69:writes that by accident, and reading lambda bodies would report every
+[exit=0]

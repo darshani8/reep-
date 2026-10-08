@@ -4,7 +4,7 @@
 [2026-10-08T08:35:28 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
 $ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-005a-namevalue-json && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-005a-namevalue-json
 --- g2-005a-namevalue-json/task.json
-[{"name": "SES_SMTP_PASSWORD", "value": "<FAKE-VALUE-MASKED>"}]
+[{"name": "SES_SMTP_PASSWORD", "value": <FAKE-VALUE-MASKED>
 findings: 1 [('reep-env-name-value-pair', 1)]
 gitleaks exit=1
 [exit=0]

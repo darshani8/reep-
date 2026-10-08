@@ -1,0 +1,38 @@
+# Evidence for UT-G2-026
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:57:26 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'Step 1: a scratch copy of the build config with only the two regexTarget = "match" lines set back to "line" (the round-1 bug):'; diff <(grep -n regexTarget /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaks.toml) <(grep -n regexTarget /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/linecfg.toml)
+Step 1: a scratch copy of the build config with only the two regexTarget = "match" lines set back to "line" (the round-1 bug):
+3c3
+< 247:regexTarget = "match"
+---
+> 247:regexTarget = "line"
+11c11
+< 425:regexTarget = "match"
+---
+> 425:regexTarget = "line"
+[exit=1]
+
+[2026-10-08T09:57:26 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: AUTH_SECRET: ci-secret-not-used-outside-ci-0123456789abcdef ; DB=postgresql://reep:<20 random alnum>@db.example.com/x'; for cfg in /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaks.toml /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/linecfg.toml; do gitleaks dir g2-010c-pgurl-beside-ci --config $cfg --ignore-gitleaks-allow --redact --no-banner --report-format json --report-path /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/lc.json >/dev/null 2>&1; echo "$(basename $cfg): $(python3 -c "import json;print(sorted({x['RuleID'] for x in json.load(open('/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/lc.json'))}) or 'QUIET')")"; done
+shape: AUTH_SECRET: ci-secret-not-used-outside-ci-0123456789abcdef ; DB=postgresql://reep:<20 random alnum>@db.example.com/x
+.gitleaks.toml: ['reep-database-url-password']
+linecfg.toml: QUIET
+[exit=0]
+
+[2026-10-08T09:57:27 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py GITHUB_TOKEN=ghp_<36 random alnum>'; for cfg in /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaks.toml /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/linecfg.toml; do gitleaks dir g2-026-devurl-beside-ghp --config $cfg --ignore-gitleaks-allow --redact --no-banner --report-format json --report-path /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/lc.json >/dev/null 2>&1; echo "$(basename $cfg): $(python3 -c "import json;print(sorted({x['RuleID'] for x in json.load(open('/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/lc.json'))}) or 'QUIET')")"; done
+shape: DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py GITHUB_TOKEN=ghp_<36 random alnum>
+.gitleaks.toml: ['github-pat']
+linecfg.toml: QUIET
+[exit=0]
+
+[2026-10-08T09:57:28 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt
+$ echo 'Step 3: the rule replay with the same edit applied to the scratch worktree config:'; sed -i 's/^regexTarget = "match"$/regexTarget = "line"/' .gitleaks.toml; git diff --stat | tail -1; python3 tools/ci/check_gitleaks_rules.py 2>&1 | tail -1; echo replay_exit=${PIPESTATUS[0]}; git checkout -q .gitleaks.toml; echo 'Round 1 (a3688f0), same edit: 5 leaks MISSED, exit 1 (UT-G2-017).'
+Step 3: the rule replay with the same edit applied to the scratch worktree config:
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+OK: 20 leaks caught, 11 placeholder files quiet.
+replay_exit=0
+Round 1 (a3688f0), same edit: 5 leaks MISSED, exit 1 (UT-G2-017).
+[exit=0]

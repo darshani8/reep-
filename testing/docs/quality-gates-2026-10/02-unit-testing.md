@@ -5,14 +5,14 @@
 | Field | Value |
 |---|---|
 | Document ID | REEP-UTS-QG-2026-10 |
-| Version | 1.0 |
-| Status | Executed; submitted to the Test Manager for triage |
+| Version | 1.1 |
+| Status | Re-test round 1 executed on the fix build; submitted to the Test Manager |
 | Standard followed | ISO/IEC/IEEE 29119-3:2021 (test design, test case and test procedure specifications, test execution log, incident reports); ISTQB® CTFL v4.0 techniques |
 | Parent document | [01 — Test Plan](01-test-plan.md) (REEP-TP-QG-2026-10 v1.0), level L1 |
 | Author | Tester session U |
 | Reviewer | Test Manager (orchestrating session) |
 | Date | 2026-10-08 |
-| Build under test | `claude/clever-meitner-ndvc2e` at **`a3688f0189c48287f376cf8c165d762a2f8ab8d8`** (PR darshani8/reep-#132 into `dev`), checked out detached |
+| Build under test | `claude/clever-meitner-ndvc2e` at **`a3688f0189c48287f376cf8c165d762a2f8ab8d8`** (PR darshani8/reep-#132 into `dev`), checked out detached (round 1). **Re-test round 1: `40201a140ba70f8be40d6b016f55ddb828fcaa91`** (same branch, detached) |
 | Base for comparison | `15a9e7d` |
 | Evidence | `testing/results/quality-gates-2026-10/unit/` (one file per case, plus `ENV-versions.txt` and the two full route-audit outputs) |
 
@@ -22,6 +22,7 @@
 |---|---|---|---|
 | 0.1 | 2026-10-08 | Tester session U | Cases designed from the test basis (plan §2) and the gate sources, before execution |
 | 1.0 | 2026-10-08 | Tester session U | All 109 cases executed; actual results, verdicts, 6 defects and 6 observations recorded |
+| 1.1 | 2026-10-08 | Tester session U | Re-test round 1 on `40201a1`: all 109 cases re-executed (evidence `-rt1`); 22 new adversarial cases (UT-G1-037..039, UT-G2-022..026, UT-G3-029..040, UT-G4-024..025); §5a re-test log; a Re-test field on every defect; DEF-QG-U01..U06 Closed; new DEF-QG-U07..U11 and OBS-QG-U07..U08; round-1 evidence respelled to the new masking rule (§3, deviation 6); §7.5 counts and recommendation for the new build |
 
 ---
 
@@ -70,6 +71,11 @@
 5. Fake secrets were generated at run time into the scratchpad, never into the repository. The evidence prints them masked. `gitleaks dir` over the evidence folder reports **no leaks** (run before committing).
 
 Environment versions are recorded in `unit/ENV-versions.txt`.
+
+**Re-test round 1 (build `40201a1`).** Same container, same tools and versions (`requirements-dev.txt` is unchanged, so the same venv was used). Two scratch worktrees at `40201a1`: one read-only (`nb`) that the helper scripts point at, and one for mutations (`wt`). Deviations:
+
+6. Between rounds the container had stopped PostgreSQL. It was restarted on the same data directory with the same options (plus `192.0.2.2` for UT-G4-021). Two evidence files record the failed first attempt (UT-G4-010-rt1, UT-G4-011-rt1).
+7. **Round-1 evidence was respelled after execution**, as the Test Manager asked. Every masked value is now the bare `<FAKE-VALUE-MASKED>` with at most a `NAME=` prefix, PEM armour lines are replaced by `<PEM armour line omitted>`, and the worded placeholder at `UT-G2-009.txt:32` is written as `OPENAI_API_KEY=<worded placeholder change-me-please-now-ok>`. Only the printing of inputs changed; no command output or verdict changed. The whole folder and this document scan clean (`gitleaks dir … --ignore-gitleaks-allow --redact`) with BOTH the new and the round-1 configuration.
 
 ## 4. Test case specification
 
@@ -1945,6 +1951,387 @@ Every case was executed by tester session U on 2026-10-08 against build `a3688f0
 | Evidence | `unit/UT-G5-002.txt` |
 | Executed by / date | Tester session U / 2026-10-08T08:53:58 UTC |
 
+### 4.3 New cases added in re-test round 1 (build `40201a1`)
+
+Designed against what the fixes introduced, adversarially (Test Manager's starting points plus the tester's own). Preconditions as §4, on the new build.
+
+| ID | Requirement(s) | Title | Technique | Priority |
+|---|---|---|---|---|
+| UT-G1-037 | REQ-G1-02 | Bypass attempt on the DEF-QG-U03 fix: the `# flake8: noqa` file-level spelling, which ruff also honours | Error guessing | P2 |
+| UT-G1-038 | REQ-G1-02 | Bypass attempt on the DEF-QG-U03 fix: ruff's range-suppression comment `# ruff: disable[<codes>]` | Error guessing / bypass | P1 |
+| UT-G1-039 | REQ-G1-02 | §39 and ruff against `noqa` / `ruff: noqa` text inside string literals | Negative | P2 |
+| UT-G2-022 | REQ-G2-05 | Boundary of the `<word>` placeholder allowlist accepted with FV-QG-01: a real value with a 3–40 character `<word>` joined to it | Boundary / error guessing | P1 |
+| UT-G2-023 | REQ-G2-05 | The new PEM allowlist: a fully masked block is quiet; one real body line is found | Boundary | P1 |
+| UT-G2-024 | REQ-G2-05 | FV-QG-01 regression: the masked-evidence convention is quiet; a worded placeholder on an unguarded variable is found | Regression | P1 |
+| UT-G2-025 | REQ-G2-05 | A real OpenAI key inside an HTML element (`<code>KEY</code>`) | Error guessing | P3 |
+| UT-G2-026 | REQ-G2-05 | The rule replay still guards its founding bug: the global allowlist reverted to `regexTarget = "line"` | State transition / ratchet | P1 |
+| UT-G3-029 | REQ-G3-03 | A caught refusal re-raised as a different HTTPException (404) still counts as a gate | EP (allowed) | P2 |
+| UT-G3-030 | REQ-G3-03 | A gate after `return` inside a nested branch only | Error guessing (dead code) | P2 |
+| UT-G3-031 | REQ-G3-03 | Bypass attempt on the DEF-QG-U01 fix: `with contextlib.suppress(HTTPException): require_admin(session)` | Error guessing | P2 |
+| UT-G3-032 | REQ-G3-03 | Bypass attempt: the refusal caught as starlette's base class (`except starlette.exceptions.HTTPException`) | Error guessing | P3 |
+| UT-G3-033 | REQ-G3-03 | Bypass attempt: the refusal caught through an import alias (`from fastapi import HTTPException as HE`; `except HE`) | Error guessing | P3 |
+| UT-G3-034 | REQ-G3-03 | `except fastapi.HTTPException` (module attribute) is a swallowed refusal | EP | P3 |
+| UT-G3-035 | REQ-G3-03 | `except BaseException: pass` is a swallowed refusal | EP | P3 |
+| UT-G3-036 | REQ-G3-03 | Bypass attempt on the DEF-QG-U02 fix: the gate sits in a nested function that is never called | Error guessing (dead code) | P3 |
+| UT-G3-037 | REQ-G3-03 | A caught refusal that returns a 200 (`except HTTPException: return Out(ok=False)`) | EP | P2 |
+| UT-G3-038 | REQ-G3-03 | A caught refusal re-raised as a non-HTTP exception still refuses (500) | EP (allowed) | P3 |
+| UT-G3-039 | REQ-G3-04 | The OBS-QG-U04 fix on another shape: `RootModel[list[dict]]` | EP | P3 |
+| UT-G3-040 | REQ-G3-04 | A typed RootModel (`RootModel[list[Item]]`) still passes | EP (allowed) | P3 |
+| UT-G4-024 | REQ-G4-01 | Bypass attempt on the DEF-QG-U06 fix: other do-nothing downgrades under a data-only upgrade | Error guessing | P3 |
+| UT-G4-025 | REQ-G4-04 | The DEF-QG-U05 fix against libpq service files: PGSERVICE, PGSERVICEFILE, `?service=`, PGSYSCONFDIR | Decision table | P2 |
+
+#### UT-G1-037 — Bypass attempt on the DEF-QG-U03 fix: the `# flake8: noqa` file-level spelling, which ruff also honours
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G1-02 |
+| Objective | Verify, against the requirement: Bypass attempt on the DEF-QG-U03 fix: the `# flake8: noqa` file-level spelling, which ruff also honours. |
+| Technique / priority | Error guessing / P2 |
+| Preconditions | PC-1 (new build) |
+| Test data | Probe with S101 + S602 under `# flake8: noqa` |
+| Steps | As UT-G1-036, plus §39's test |
+| Expected result | Refused by ruff (PGH004) or §39 |
+| Actual result | ruff: `PGH004 Use specific rule codes when using ruff: noqa`, exit 1. §39 does not recognise this spelling (its pattern needs `#` directly before `noqa` or `ruff:`), but the gate is red through PGH004 |
+| Verdict | Pass |
+| Evidence | `unit/UT-G1-037.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:43:02 UTC, build 40201a1 |
+
+#### UT-G1-038 — Bypass attempt on the DEF-QG-U03 fix: ruff's range-suppression comment `# ruff: disable[<codes>]`
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G1-02 |
+| Objective | Verify, against the requirement: Bypass attempt on the DEF-QG-U03 fix: ruff's range-suppression comment `# ruff: disable[<codes>]`. |
+| Technique / priority | Error guessing / bypass / P1 |
+| Preconditions | PC-1 (new build) |
+| Test data | (a) `disable[...]`/`enable[...]` around two lines; (b) `# ruff: disable[S101, S602, ASYNC221, ASYNC251, F401, F821]` on line 1 and no `enable`; (c) prefix codes `disable[S, ASYNC, F]` |
+| Steps | As UT-G1-036, plus §39's test |
+| Expected result | Refused: REQ-G1-02 and §39's own docstring say an exception in `app/` is a line-level suppression with a reason, never a file-level one |
+| Actual result | (a) and (b) pass ruff and §39, exit 0. In (b) one comment line silences six codes for the rest of the file (both functions), with no reason. (c) prefixes are not honoured (all six findings still reported) |
+| Verdict | Fail (DEF-QG-U07) |
+| Evidence | `unit/UT-G1-038.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:43:05 UTC, build 40201a1 |
+
+#### UT-G1-039 — §39 and ruff against `noqa` / `ruff: noqa` text inside string literals
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G1-02 |
+| Objective | Verify, against the requirement: §39 and ruff against `noqa` / `ruff: noqa` text inside string literals. |
+| Technique / priority | Negative / P2 |
+| Preconditions | PC-1 (new build) |
+| Test data | `HELP = "write # noqa …; # ruff: noqa …"`, a triple-quoted string holding `# ruff: noqa`, then unsuppressed S101 + S602 |
+| Steps | As UT-G1-036 |
+| Expected result | §39 quiet (strings are not suppressions); ruff still reports S101 and S602 (the string does not switch the file off) |
+| Actual result | As expected: §39 passed; ruff S101 + S602, exit 1. (The first block in the file was inconclusive: tester's design, noted there) |
+| Verdict | Pass |
+| Evidence | `unit/UT-G1-039.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:43:08 UTC, build 40201a1 |
+
+#### UT-G2-022 — Boundary of the `<word>` placeholder allowlist accepted with FV-QG-01: a real value with a 3–40 character `<word>` joined to it
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G2-05 |
+| Objective | Verify, against the requirement: Boundary of the `<word>` placeholder allowlist accepted with FV-QG-01: a real value with a 3–40 character `<word>` joined to it. |
+| Technique / priority | Boundary / error guessing / P1 |
+| Preconditions | PC-2 (new config) |
+| Test data | `<abc>` appended to: OPENAI_API_KEY, quoted and unquoted AUTH_SECRET, a ghp_ token, LIVEKIT, VOICE_WORKER, GROQ; `<abc>` INSIDE a DB password; `<ab>` (2 characters); the Test Manager's `sk-…<x>` example in the legacy OpenAI shape, with and without a space |
+| Steps | gl per case; the quiet ones again against a scratch config with only the global `<word>` regex removed |
+| Expected result | Quiet only where the accepted residual risk says (a key deliberately made unusable by `<word>`) |
+| Actual result | Quiet: OPENAI_API_KEY, **quoted** AUTH_SECRET, LIVEKIT, VOICE_WORKER, GROQ, and the DB URL with `<abc>` in the **middle** of the password (each is reported again once the `<word>` regex is removed, so the allowlist is what frees it). Found: unquoted AUTH_SECRET, ghp_, `<ab>`. The `sk-…<abc>` example is quiet even WITHOUT REEP's config (gitleaks' own `openai-api-key` stops matching when `<` follows); with a space before `<abc>` it is found |
+| Verdict | Pass (OBS-QG-U07) |
+| Evidence | `unit/UT-G2-022.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:50:08 UTC, build 40201a1 |
+
+#### UT-G2-023 — The new PEM allowlist: a fully masked block is quiet; one real body line is found
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G2-05 |
+| Objective | Verify, against the requirement: The new PEM allowlist: a fully masked block is quiet; one real body line is found. |
+| Technique / priority | Boundary / P1 |
+| Preconditions | PC-2 (new config) |
+| Test data | RSA PEM armour around (a) two mask lines; (b) mask, one real 64-char base64 line, mask; (c) mask, a real line ending in `<abc>` |
+| Steps | gl per case (armour lines never printed in evidence) |
+| Expected result | (a) quiet; (b) and (c) `private-key` |
+| Actual result | As expected |
+| Verdict | Pass |
+| Evidence | `unit/UT-G2-023.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:50:06 UTC, build 40201a1 |
+
+#### UT-G2-024 — FV-QG-01 regression: the masked-evidence convention is quiet; a worded placeholder on an unguarded variable is found
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G2-05 |
+| Objective | Verify, against the requirement: FV-QG-01 regression: the masked-evidence convention is quiet; a worded placeholder on an unguarded variable is found. |
+| Technique / priority | Regression / P1 |
+| Preconditions | PC-2 (new config) |
+| Test data | `NAME=<FAKE-VALUE-MASKED>` for AUTH_SECRET, OPENAI_API_KEY and a DB URL password; `OPENAI_API_KEY=` the worded placeholder change-me-please-now-ok |
+| Steps | gl per case |
+| Expected result | Masked: quiet. Worded: `reep-openai-key` |
+| Actual result | As expected |
+| Verdict | Pass |
+| Evidence | `unit/UT-G2-024.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:50:03 UTC, build 40201a1 |
+
+#### UT-G2-025 — A real OpenAI key inside an HTML element (`<code>KEY</code>`)
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G2-05 |
+| Objective | Verify, against the requirement: A real OpenAI key inside an HTML element (`<code>KEY</code>`). |
+| Technique / priority | Error guessing / P3 |
+| Preconditions | PC-2 |
+| Test data | Legacy-shape OpenAI key in `<p>…<code>KEY</code></p>` |
+| Steps | gl; then gitleaks with NO repository config (built-in rules only) |
+| Expected result | Found |
+| Actual result | Quiet under the repository config AND under gitleaks' built-in rules alone: the upstream `openai-api-key` rule's trailing boundary does not accept `<`. Not introduced by this PR |
+| Verdict | Fail (OBS-QG-U08) |
+| Evidence | `unit/UT-G2-025.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:50:03 UTC, build 40201a1 |
+
+#### UT-G2-026 — The rule replay still guards its founding bug: the global allowlist reverted to `regexTarget = "line"`
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G2-05 |
+| Objective | Verify, against the requirement: The rule replay still guards its founding bug: the global allowlist reverted to `regexTarget = "line"`. |
+| Technique / priority | State transition / ratchet / P1 |
+| Preconditions | PC-2; scratch copy of the build's `.gitleaks.toml` with the two `regexTarget = "match"` lines set to `"line"` |
+| Test data | (i) a real DB password beside the CI AUTH_SECRET; (ii) a ghp_ token beside the dev DATABASE_URL; (iii) `check_gitleaks_rules.py` with the same edit |
+| Steps | 1. gl both cases with each config. 2. Run the replay in the scratch worktree with the edit. 3. `git checkout` |
+| Expected result | (i)/(ii) caught by the build config and quiet under the line-targeted copy; the replay FAILS, as it did on a3688f0 (UT-G2-017: 5 leaks missed) |
+| Actual result | (i)/(ii) as expected: both quiet under `line`. The replay prints `OK: 20 leaks caught, 11 placeholder files quiet`, exit 0: none of its cases puts a real secret on a line that also holds an allowlisted value in the new anchored spelling |
+| Verdict | Fail (DEF-QG-U10) |
+| Evidence | `unit/UT-G2-026.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:57:26 UTC, build 40201a1 |
+
+#### UT-G3-029 — A caught refusal re-raised as a different HTTPException (404) still counts as a gate
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G3-03 |
+| Objective | Verify, against the requirement: A caught refusal re-raised as a different HTTPException (404) still counts as a gate. |
+| Technique / priority | EP (allowed) / P2 |
+| Preconditions | PC-3 (new build) |
+| Test data | `except HTTPException: raise HTTPException(404)` |
+| Steps | As UT-G3-008 |
+| Expected result | Not reported; STUDENT refused |
+| Actual result | Not reported; STUDENT → 404 |
+| Verdict | Pass |
+| Evidence | `unit/UT-G3-029.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:45:23 UTC, build 40201a1 |
+
+#### UT-G3-030 — A gate after `return` inside a nested branch only
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G3-03 |
+| Objective | Verify, against the requirement: A gate after `return` inside a nested branch only. |
+| Technique / priority | Error guessing (dead code) / P2 |
+| Preconditions | PC-3 (new build) |
+| Test data | `if …: return Out(); require_admin(session)` inside the branch, then `return Out()` |
+| Steps | As UT-G3-008 |
+| Expected result | Reported |
+| Actual result | Reported; STUDENT → 200 |
+| Verdict | Pass |
+| Evidence | `unit/UT-G3-030.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:45:23 UTC, build 40201a1 |
+
+#### UT-G3-031 — Bypass attempt on the DEF-QG-U01 fix: `with contextlib.suppress(HTTPException): require_admin(session)`
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G3-03 |
+| Objective | Verify, against the requirement: Bypass attempt on the DEF-QG-U01 fix: `with contextlib.suppress(HTTPException): require_admin(session)`. |
+| Technique / priority | Error guessing / P2 |
+| Preconditions | PC-3 (new build) |
+| Test data | `n03-suppress` |
+| Steps | As UT-G3-008 |
+| Expected result | Reported (the refusal is swallowed) |
+| Actual result | Not reported; STUDENT → 200 |
+| Verdict | Fail (DEF-QG-U08) |
+| Evidence | `unit/UT-G3-031.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:45:23 UTC, build 40201a1 |
+
+#### UT-G3-032 — Bypass attempt: the refusal caught as starlette's base class (`except starlette.exceptions.HTTPException`)
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G3-03 |
+| Objective | Verify, against the requirement: Bypass attempt: the refusal caught as starlette's base class (`except starlette.exceptions.HTTPException`). |
+| Technique / priority | Error guessing / P3 |
+| Preconditions | PC-3 (new build) |
+| Test data | `n04-starlette-base` |
+| Steps | As UT-G3-008 |
+| Expected result | Reported |
+| Actual result | Not reported; STUDENT → 200 |
+| Verdict | Fail (DEF-QG-U08) |
+| Evidence | `unit/UT-G3-032.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:45:23 UTC, build 40201a1 |
+
+#### UT-G3-033 — Bypass attempt: the refusal caught through an import alias (`from fastapi import HTTPException as HE`; `except HE`)
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G3-03 |
+| Objective | Verify, against the requirement: Bypass attempt: the refusal caught through an import alias (`from fastapi import HTTPException as HE`; `except HE`). |
+| Technique / priority | Error guessing / P3 |
+| Preconditions | PC-3 (new build) |
+| Test data | `n05-alias` |
+| Steps | As UT-G3-008 |
+| Expected result | Reported |
+| Actual result | Not reported; STUDENT → 200. (`except fastapi.HTTPException`, UT-G3-034, IS reported) |
+| Verdict | Fail (DEF-QG-U08) |
+| Evidence | `unit/UT-G3-033.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:45:23 UTC, build 40201a1 |
+
+#### UT-G3-034 — `except fastapi.HTTPException` (module attribute) is a swallowed refusal
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G3-03 |
+| Objective | Verify, against the requirement: `except fastapi.HTTPException` (module attribute) is a swallowed refusal. |
+| Technique / priority | EP / P3 |
+| Preconditions | PC-3 (new build) |
+| Test data | `n06-module-attr` |
+| Steps | As UT-G3-008 |
+| Expected result | Reported |
+| Actual result | Reported |
+| Verdict | Pass |
+| Evidence | `unit/UT-G3-034.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:45:23 UTC, build 40201a1 |
+
+#### UT-G3-035 — `except BaseException: pass` is a swallowed refusal
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G3-03 |
+| Objective | Verify, against the requirement: `except BaseException: pass` is a swallowed refusal. |
+| Technique / priority | EP / P3 |
+| Preconditions | PC-3 (new build) |
+| Test data | `n07-baseexception` |
+| Steps | As UT-G3-008 |
+| Expected result | Reported |
+| Actual result | Reported |
+| Verdict | Pass |
+| Evidence | `unit/UT-G3-035.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:45:23 UTC, build 40201a1 |
+
+#### UT-G3-036 — Bypass attempt on the DEF-QG-U02 fix: the gate sits in a nested function that is never called
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G3-03 |
+| Objective | Verify, against the requirement: Bypass attempt on the DEF-QG-U02 fix: the gate sits in a nested function that is never called. |
+| Technique / priority | Error guessing (dead code) / P3 |
+| Preconditions | PC-3 (new build) |
+| Test data | `def check(): require_admin(session)` defined inside the handler, never called |
+| Steps | As UT-G3-008 |
+| Expected result | Reported |
+| Actual result | Not reported; STUDENT → 200 |
+| Verdict | Fail (DEF-QG-U09) |
+| Evidence | `unit/UT-G3-036.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:45:23 UTC, build 40201a1 |
+
+#### UT-G3-037 — A caught refusal that returns a 200 (`except HTTPException: return Out(ok=False)`)
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G3-03 |
+| Objective | Verify, against the requirement: A caught refusal that returns a 200 (`except HTTPException: return Out(ok=False)`). |
+| Technique / priority | EP / P2 |
+| Preconditions | PC-3 (new build) |
+| Test data | `n09-caught-returns-200` |
+| Steps | As UT-G3-008 |
+| Expected result | Reported |
+| Actual result | Reported |
+| Verdict | Pass |
+| Evidence | `unit/UT-G3-037.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:45:23 UTC, build 40201a1 |
+
+#### UT-G3-038 — A caught refusal re-raised as a non-HTTP exception still refuses (500)
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G3-03 |
+| Objective | Verify, against the requirement: A caught refusal re-raised as a non-HTTP exception still refuses (500). |
+| Technique / priority | EP (allowed) / P3 |
+| Preconditions | PC-3 (new build) |
+| Test data | `raise PermissionError from exc` |
+| Steps | As UT-G3-008 |
+| Expected result | Not reported; STUDENT refused |
+| Actual result | Not reported; STUDENT → 500 |
+| Verdict | Pass |
+| Evidence | `unit/UT-G3-038.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:45:23 UTC, build 40201a1 |
+
+#### UT-G3-039 — The OBS-QG-U04 fix on another shape: `RootModel[list[dict]]`
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G3-04 |
+| Objective | Verify, against the requirement: The OBS-QG-U04 fix on another shape: `RootModel[list[dict]]`. |
+| Technique / priority | EP / P3 |
+| Preconditions | PC-3 (new build) |
+| Test data | `r08-rootmodel-list-dict` |
+| Steps | As UT-G3-008 |
+| Expected result | Reported |
+| Actual result | Reported: `untyped response model (LooseList[dict])` |
+| Verdict | Pass |
+| Evidence | `unit/UT-G3-039.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:45:23 UTC, build 40201a1 |
+
+#### UT-G3-040 — A typed RootModel (`RootModel[list[Item]]`) still passes
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G3-04 |
+| Objective | Verify, against the requirement: A typed RootModel (`RootModel[list[Item]]`) still passes. |
+| Technique / priority | EP (allowed) / P3 |
+| Preconditions | PC-3 (new build) |
+| Test data | `r09-rootmodel-typed` |
+| Steps | As UT-G3-008 |
+| Expected result | Not reported |
+| Actual result | Not reported |
+| Verdict | Pass |
+| Evidence | `unit/UT-G3-040.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:45:23 UTC, build 40201a1 |
+
+#### UT-G4-024 — Bypass attempt on the DEF-QG-U06 fix: other do-nothing downgrades under a data-only upgrade
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G4-01 |
+| Objective | Verify, against the requirement: Bypass attempt on the DEF-QG-U06 fix: other do-nothing downgrades under a data-only upgrade. |
+| Technique / priority | Error guessing / P3 |
+| Preconditions | PC-4 (new build) |
+| Test data | Six chained revisions (upgrade an `UPDATE`): `if not True:`, `while False:`, `return 0`, `for _ in ():`, `if 1 == 2:`, and `return` followed by an op |
+| Steps | As UT-G4-001 |
+| Expected result | All six reported as not doing real work |
+| Actual result | Only the `return`-then-op revision is reported. `if not True:`, `while False:`, `return 0`, `for _ in ():` and `if 1 == 2:` are classified `real`. A data-only upgrade changes no catalogue, so the round trip cannot see them either |
+| Verdict | Fail (DEF-QG-U11) |
+| Evidence | `unit/UT-G4-024.txt` |
+| Executed by / date | Tester session U / 2026-10-08T09:58:17 UTC, build 40201a1 |
+
+#### UT-G4-025 — The DEF-QG-U05 fix against libpq service files: PGSERVICE, PGSERVICEFILE, `?service=`, PGSYSCONFDIR
+
+| Field | Value |
+|---|---|
+| Requirement(s) | REQ-G4-04 |
+| Objective | Verify, against the requirement: The DEF-QG-U05 fix against libpq service files: PGSERVICE, PGSERVICEFILE, `?service=`, PGSYSCONFDIR. |
+| Technique / priority | Decision table / P2 |
+| Preconditions | Repository at the new build; a scratch `pg_service.conf` with `[prod] host=192.0.2.1` |
+| Test data | Six environment/URL combinations |
+| Steps | `dt.sh` per row |
+| Expected result | Every combination that names a service is refused; PGSYSCONFDIR alone (no service named) runs |
+| Actual result | All six as expected |
+| Verdict | Pass |
+| Evidence | `unit/UT-G4-025.txt` |
+| Executed by / date | Tester session U / 2026-10-08T10:02:49 UTC, build 40201a1 |
+
 ## 5. Test execution log
 
 In execution order (time of the first command in each evidence file).
@@ -2061,6 +2448,146 @@ In execution order (time of the first command in each evidence file).
 | UT-G2-021 | 2026-10-08T08:54:30 | Fail | `unit/UT-G2-021.txt` | DEF-QG-U04 |
 | UT-G3-000 | 2026-10-08T08:55:33 | Pass | `unit/UT-G3-000.txt` |  |
 
+## 5a. Re-test log (round 1, build `40201a140ba70f8be40d6b016f55ddb828fcaa91`)
+
+Every round-1 case was re-executed with its original steps on the new build (confirmation for the failed and observation cases, regression for the rest). The evidence file is the round-1 name with the suffix `-rt1`. The 22 new cases are in §4.3 and listed at the end.
+
+| ID | Kind | Date/time (UTC) | Verdict | Evidence file | Notes |
+|---|---|---|---|---|---|
+| UT-G1-000 | Regression | 2026-10-08T09:40:38 | Pass | `unit/UT-G1-000-rt1.txt` | same result as round 1 |
+| UT-G3-000 | Regression | 2026-10-08T09:41:50 | Pass | `unit/UT-G3-000-rt1.txt` | 227 passed (6 guard modules incl. §34/§39, the route audit, reversibility, round-trip guard, async guard, secret-scan workflow) |
+| UT-G1-036 | Confirmation | 2026-10-08T09:42:50 | Pass | `unit/UT-G1-036-rt1.txt` | PGH004 + §39 now refuse both shapes → DEF-QG-U03 Closed |
+| UT-G1-002 | Confirmation | 2026-10-08T09:43:48 | Pass | `unit/UT-G1-002-rt1.txt` | pyproject comment now says E9 is E902 alone → note closed |
+| UT-G1-030 | Confirmation | 2026-10-08T09:43:48 | Pass | `unit/UT-G1-030-rt1.txt` | os.open/os.read and Path(...).open() now flagged; the IIFE lambda is documented → OBS-QG-U03 Closed |
+| UT-G3-001 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-001-rt1.txt` | same result as round 1 |
+| UT-G3-002 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-002-rt1.txt` | same result as round 1 |
+| UT-G3-003 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-003-rt1.txt` | same result as round 1 |
+| UT-G3-004 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-004-rt1.txt` | same result as round 1 |
+| UT-G3-005 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-005-rt1.txt` | same result as round 1 |
+| UT-G3-006 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-006-rt1.txt` | same result as round 1 |
+| UT-G3-007 | Confirmation | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-007-rt1.txt` | reported; STUDENT 200 → DEF-QG-U02 (this shape) Closed |
+| UT-G3-008 | Confirmation | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-008-rt1.txt` | both shapes reported → DEF-QG-U01 Closed (new spellings: DEF-QG-U08) |
+| UT-G3-009 | Confirmation | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-009-rt1.txt` | both reported → DEF-QG-U02 Closed (new shape: DEF-QG-U09) |
+| UT-G3-010 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-010-rt1.txt` | same result as round 1 |
+| UT-G3-011 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-011-rt1.txt` | same result as round 1 |
+| UT-G3-012 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-012-rt1.txt` | same result as round 1 |
+| UT-G3-013 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-013-rt1.txt` | same result as round 1 |
+| UT-G3-014 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-014-rt1.txt` | same result as round 1 |
+| UT-G3-015 | Confirmation | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-015-rt1.txt` | reported (`Loose[typing.Any]`) → OBS-QG-U04 Closed |
+| UT-G3-016 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-016-rt1.txt` | same result as round 1 |
+| UT-G3-017 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-017-rt1.txt` | same result as round 1 |
+| UT-G3-019 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-019-rt1.txt` | same result as round 1 |
+| UT-G3-020 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-020-rt1.txt` | same result as round 1 |
+| UT-G3-021 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-021-rt1.txt` | same result as round 1 |
+| UT-G3-022 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-022-rt1.txt` | same result as round 1 |
+| UT-G3-023 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-023-rt1.txt` | same result as round 1 |
+| UT-G3-024 | Regression | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-024-rt1.txt` | same result as round 1 |
+| UT-G3-018 | Regression | 2026-10-08T09:45:51 | Pass | `unit/UT-G3-018-rt1.txt` | same result as round 1 |
+| UT-G3-025 | Regression | 2026-10-08T09:45:51 | Pass | `unit/UT-G3-025-rt1.txt` | same result as round 1 |
+| UT-G3-026 | Regression | 2026-10-08T09:45:58 | Pass | `unit/UT-G3-026-rt1.txt` | same result as round 1 |
+| UT-G3-027 | Regression | 2026-10-08T09:46:03 | Pass | `unit/UT-G3-027-rt1.txt` | same result as round 1 |
+| UT-G3-028 | Regression | 2026-10-08T09:46:31 | Pass | `unit/UT-G3-028-rt1.txt` | same result as round 1 |
+| UT-G2-004 | Regression | 2026-10-08T09:49:41 | Pass | `unit/UT-G2-004-rt1.txt` | same result as round 1 |
+| UT-G2-011 | Regression | 2026-10-08T09:49:42 | Pass | `unit/UT-G2-011-rt1.txt` | same result as round 1 |
+| UT-G2-009 | Regression | 2026-10-08T09:49:44 | Pass | `unit/UT-G2-009-rt1.txt` | expected result revised per triage: the worded placeholder on OPENAI_API_KEY (009d) is now correctly a finding; the other five quiet |
+| UT-G2-010 | Regression | 2026-10-08T09:49:48 | Pass | `unit/UT-G2-010-rt1.txt` | same result as round 1 |
+| UT-G2-014 | Confirmation | 2026-10-08T09:49:50 | Pass | `unit/UT-G2-014-rt1.txt` | 3 of 4 found; AUTH_SECRET=change-me-… stays quiet through the reep-auth-secret allowlist that mirrors the boot guard (as round 1 judged harmless) → OBS-QG-U01 Closed |
+| UT-G2-002 | Regression | 2026-10-08T09:49:53 | Pass | `unit/UT-G2-002-rt1.txt` | same result as round 1 |
+| UT-G2-007 | Regression | 2026-10-08T09:49:53 | Pass | `unit/UT-G2-007-rt1.txt` | same result as round 1 |
+| UT-G2-005 | Regression | 2026-10-08T09:49:57 | Pass | `unit/UT-G2-005-rt1.txt` | same result as round 1 |
+| UT-G2-006 | Regression | 2026-10-08T09:49:59 | Pass | `unit/UT-G2-006-rt1.txt` | same result as round 1 |
+| UT-G2-003 | Regression | 2026-10-08T09:50:02 | Pass | `unit/UT-G2-003-rt1.txt` | same result as round 1 |
+| UT-G2-001 | Regression | 2026-10-08T09:50:05 | Pass | `unit/UT-G2-001-rt1.txt` | same result as round 1 |
+| UT-G2-008 | Regression | 2026-10-08T09:50:18 | Pass | `unit/UT-G2-008-rt1.txt` | same result as round 1 |
+| UT-G2-012 | Regression | 2026-10-08T09:50:35 | Pass | `unit/UT-G2-012-rt1.txt` | same result as round 1 |
+| UT-G2-013 | Regression | 2026-10-08T09:50:38 | Pass | `unit/UT-G2-013-rt1.txt` | same result as round 1 |
+| UT-G2-016 | Regression | 2026-10-08T09:50:39 | Pass | `unit/UT-G2-016-rt1.txt` | 20 leaks caught, 11 placeholder files quiet |
+| UT-G2-017 | Regression | 2026-10-08T09:50:55 | Fail | `unit/UT-G2-017-rt1.txt` | DEF-QG-U10; the `{32,}`→`{80,}` and the unanchored-placeholder edits fail the replay; the `regexTarget = "line"` edit no longer does (DEF-QG-U10); no gitleaks → exit 1 |
+| UT-G2-018 | Confirmation | 2026-10-08T09:50:58 | Pass | `unit/UT-G2-018-rt1.txt` | clean from the build (154 commits) and the tree from the root; --all also walked this branch's own round-1 evidence commit 37060c2 (respelled at the tip); absolute-path scan still 4, now documented at .gitleaks.toml:361 → OBS-QG-U02 Closed |
+| UT-G2-020 | Regression | 2026-10-08T09:57:41 | Pass | `unit/UT-G2-020-rt1.txt` | same result as round 1 |
+| UT-G2-021 | Confirmation | 2026-10-08T09:57:42 | Pass | `unit/UT-G2-021-rt1.txt` | found with --ignore-gitleaks-allow, which every invocation now passes → DEF-QG-U04 Closed |
+| UT-G4-007 | Confirmation | 2026-10-08T09:58:14 | Pass | `unit/UT-G4-007-rt1.txt` | all three reported as no-op → DEF-QG-U06 Closed (new shapes: DEF-QG-U11) |
+| UT-G4-001 | Regression | 2026-10-08T09:58:36 | Pass | `unit/UT-G4-001-rt1.txt` | same result as round 1 |
+| UT-G4-002 | Regression | 2026-10-08T09:58:38 | Pass | `unit/UT-G4-002-rt1.txt` | same result as round 1 |
+| UT-G4-003 | Regression | 2026-10-08T09:58:41 | Pass | `unit/UT-G4-003-rt1.txt` | same result as round 1 |
+| UT-G4-004 | Regression | 2026-10-08T09:58:44 | Pass | `unit/UT-G4-004-rt1.txt` | same result as round 1 |
+| UT-G4-005 | Regression | 2026-10-08T09:58:49 | Pass | `unit/UT-G4-005-rt1.txt` | same result as round 1 |
+| UT-G4-006 | Regression | 2026-10-08T09:58:52 | Pass | `unit/UT-G4-006-rt1.txt` | same result as round 1 |
+| UT-G4-010 | Regression | 2026-10-08T09:59:14 | Pass | `unit/UT-G4-010-rt1.txt` | 90 of 92, 21 s; the first block hit a stopped Postgres (environment), re-run |
+| UT-G4-011 | Regression | 2026-10-08T09:59:15 | Pass | `unit/UT-G4-011-rt1.txt` | the first block hit a stopped Postgres (environment), re-run |
+| UT-G4-012 | Regression | 2026-10-08T10:00:22 | Pass | `unit/UT-G4-012-rt1.txt` | same result as round 1 |
+| UT-G4-013 | Regression | 2026-10-08T10:00:43 | Pass | `unit/UT-G4-013-rt1.txt` | the first block used a correct downgrade by mistake (tester), re-run with round 1's `return` |
+| UT-G4-014 | Regression | 2026-10-08T10:01:41 | Pass | `unit/UT-G4-014-rt1.txt` | same result as round 1 |
+| UT-G4-016 | Regression | 2026-10-08T10:02:02 | Pass | `unit/UT-G4-016-rt1.txt` | same result as round 1 |
+| UT-G4-015 | Regression | 2026-10-08T10:02:14 | Pass | `unit/UT-G4-015-rt1.txt` | same result as round 1 |
+| UT-G4-017 | Regression | 2026-10-08T10:02:14 | Pass | `unit/UT-G4-017-rt1.txt` | same result as round 1 |
+| UT-G4-018 | Regression | 2026-10-08T10:02:22 | Pass | `unit/UT-G4-018-rt1.txt` | same result as round 1 |
+| UT-G4-019 | Regression | 2026-10-08T10:02:32 | Pass | `unit/UT-G4-019-rt1.txt` | same result as round 1 |
+| UT-G4-020 | Confirmation | 2026-10-08T10:02:47 | Pass | `unit/UT-G4-020-rt1.txt` | refused, naming 192.0.2.1 → DEF-QG-U05 Closed |
+| UT-G4-021 | Regression | 2026-10-08T10:03:07 | Pass | `unit/UT-G4-021-rt1.txt` | fixed build through the port mapping: OK, 21 s |
+| UT-G4-022 | Regression | 2026-10-08T10:03:44 | Pass | `unit/UT-G4-022-rt1.txt` | same result as round 1 |
+| UT-G4-023 | Regression | 2026-10-08T10:03:45 | Pass | `unit/UT-G4-023-rt1.txt` | same result as round 1 |
+| UT-GX-001 | Confirmation | 2026-10-08T10:04:07 | Pass | `unit/UT-GX-001-rt1.txt` | single-quoted and unquoted now parse; an empty pin SKIPs naming the cause → OBS-QG-U05 Closed |
+| UT-GX-002 | Regression | 2026-10-08T10:04:07 | Pass | `unit/UT-GX-002-rt1.txt` | same result as round 1 |
+| UT-G5-001 | Regression | 2026-10-08T10:04:19 | Pass | `unit/UT-G5-001-rt1.txt` | same result as round 1 |
+| UT-G5-002 | Confirmation | 2026-10-08T10:04:19 | Pass | `unit/UT-G5-002-rt1.txt` | all 22 items now a gate name or *human — no gate* → OBS-QG-U06 Closed |
+| UT-G1-001 | Regression | 2026-10-08T10:04:35 | Pass | `unit/UT-G1-001-rt1.txt` | same result as round 1 |
+| UT-G1-003 | Regression | 2026-10-08T10:04:35 | Pass | `unit/UT-G1-003-rt1.txt` | same result as round 1 |
+| UT-G1-004 | Regression | 2026-10-08T10:04:35 | Pass | `unit/UT-G1-004-rt1.txt` | same result as round 1 |
+| UT-G1-005 | Regression | 2026-10-08T10:04:35 | Pass | `unit/UT-G1-005-rt1.txt` | same result as round 1 |
+| UT-G1-006 | Regression | 2026-10-08T10:04:35 | Pass | `unit/UT-G1-006-rt1.txt` | same result as round 1 |
+| UT-G1-007 | Regression | 2026-10-08T10:04:35 | Pass | `unit/UT-G1-007-rt1.txt` | same result as round 1 |
+| UT-G1-008 | Regression | 2026-10-08T10:04:35 | Pass | `unit/UT-G1-008-rt1.txt` | same result as round 1 |
+| UT-G1-009 | Regression | 2026-10-08T10:04:35 | Pass | `unit/UT-G1-009-rt1.txt` | same result as round 1 |
+| UT-G1-010 | Regression | 2026-10-08T10:04:36 | Pass | `unit/UT-G1-010-rt1.txt` | same result as round 1 |
+| UT-G1-011 | Regression | 2026-10-08T10:04:36 | Pass | `unit/UT-G1-011-rt1.txt` | same result as round 1 |
+| UT-G1-012 | Regression | 2026-10-08T10:04:36 | Pass | `unit/UT-G1-012-rt1.txt` | same result as round 1 |
+| UT-G1-014 | Regression | 2026-10-08T10:04:36 | Pass | `unit/UT-G1-014-rt1.txt` | same result as round 1 |
+| UT-G1-015 | Regression | 2026-10-08T10:05:19 | Pass | `unit/UT-G1-015-rt1.txt` | same result as round 1 |
+| UT-G1-016 | Regression | 2026-10-08T10:05:20 | Pass | `unit/UT-G1-016-rt1.txt` | same result as round 1 |
+| UT-G1-017 | Regression | 2026-10-08T10:05:21 | Pass | `unit/UT-G1-017-rt1.txt` | same result as round 1 |
+| UT-G1-018 | Regression | 2026-10-08T10:05:22 | Pass | `unit/UT-G1-018-rt1.txt` | same result as round 1 |
+| UT-G1-019 | Regression | 2026-10-08T10:05:24 | Pass | `unit/UT-G1-019-rt1.txt` | same result as round 1 |
+| UT-G1-020 | Regression | 2026-10-08T10:05:25 | Pass | `unit/UT-G1-020-rt1.txt` | same result as round 1 |
+| UT-G1-021 | Regression | 2026-10-08T10:05:42 | Pass | `unit/UT-G1-021-rt1.txt` | same result as round 1 |
+| UT-G1-022 | Regression | 2026-10-08T10:05:42 | Pass | `unit/UT-G1-022-rt1.txt` | same result as round 1 |
+| UT-G1-023 | Regression | 2026-10-08T10:05:42 | Pass | `unit/UT-G1-023-rt1.txt` | same result as round 1 |
+| UT-G1-025 | Regression | 2026-10-08T10:05:42 | Pass | `unit/UT-G1-025-rt1.txt` | same result as round 1 |
+| UT-G1-026 | Regression | 2026-10-08T10:05:42 | Pass | `unit/UT-G1-026-rt1.txt` | same result as round 1 |
+| UT-G1-027 | Regression | 2026-10-08T10:05:43 | Pass | `unit/UT-G1-027-rt1.txt` | 027h harness note as in round 1 |
+| UT-G1-028 | Regression | 2026-10-08T10:05:43 | Pass | `unit/UT-G1-028-rt1.txt` | same result as round 1 |
+| UT-G1-029 | Regression | 2026-10-08T10:05:43 | Pass | `unit/UT-G1-029-rt1.txt` | same result as round 1 |
+| UT-G1-024 | Regression | 2026-10-08T10:05:44 | Pass | `unit/UT-G1-024-rt1.txt` | same result as round 1 |
+| UT-G1-031 | Regression | 2026-10-08T10:05:59 | Pass | `unit/UT-G1-031-rt1.txt` | same result as round 1 |
+| UT-G1-032 | Regression | 2026-10-08T10:06:03 | Pass | `unit/UT-G1-032-rt1.txt` | same result as round 1 |
+| UT-G1-033 | Regression | 2026-10-08T10:06:07 | Pass | `unit/UT-G1-033-rt1.txt` | same result as round 1 |
+| UT-G1-034 | Regression | 2026-10-08T10:06:11 | Pass | `unit/UT-G1-034-rt1.txt` | same result as round 1 |
+| UT-G1-035 | Regression | 2026-10-08T10:06:15 | Pass | `unit/UT-G1-035-rt1.txt` | same result as round 1 |
+| UT-G1-037 | New | 2026-10-08T09:43:02 | Pass | `unit/UT-G1-037.txt` |  |
+| UT-G1-038 | New | 2026-10-08T09:43:05 | Fail | `unit/UT-G1-038.txt` | DEF-QG-U07 |
+| UT-G1-039 | New | 2026-10-08T09:43:08 | Pass | `unit/UT-G1-039.txt` |  |
+| UT-G3-029 | New | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-029.txt` |  |
+| UT-G3-030 | New | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-030.txt` |  |
+| UT-G3-031 | New | 2026-10-08T09:45:23 | Fail | `unit/UT-G3-031.txt` | DEF-QG-U08 |
+| UT-G3-032 | New | 2026-10-08T09:45:23 | Fail | `unit/UT-G3-032.txt` | DEF-QG-U08 |
+| UT-G3-033 | New | 2026-10-08T09:45:23 | Fail | `unit/UT-G3-033.txt` | DEF-QG-U08 |
+| UT-G3-034 | New | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-034.txt` |  |
+| UT-G3-035 | New | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-035.txt` |  |
+| UT-G3-036 | New | 2026-10-08T09:45:23 | Fail | `unit/UT-G3-036.txt` | DEF-QG-U09 |
+| UT-G3-037 | New | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-037.txt` |  |
+| UT-G3-038 | New | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-038.txt` |  |
+| UT-G3-039 | New | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-039.txt` |  |
+| UT-G3-040 | New | 2026-10-08T09:45:23 | Pass | `unit/UT-G3-040.txt` |  |
+| UT-G2-024 | New | 2026-10-08T09:50:03 | Pass | `unit/UT-G2-024.txt` |  |
+| UT-G2-025 | New | 2026-10-08T09:50:03 | Fail | `unit/UT-G2-025.txt` | OBS-QG-U08 |
+| UT-G2-023 | New | 2026-10-08T09:50:06 | Pass | `unit/UT-G2-023.txt` |  |
+| UT-G2-022 | New | 2026-10-08T09:50:08 | Pass | `unit/UT-G2-022.txt` | OBS-QG-U07 |
+| UT-G2-026 | New | 2026-10-08T09:57:26 | Fail | `unit/UT-G2-026.txt` | DEF-QG-U10 |
+| UT-G4-024 | New | 2026-10-08T09:58:17 | Fail | `unit/UT-G4-024.txt` | DEF-QG-U11 |
+| UT-G4-025 | New | 2026-10-08T10:02:49 | Pass | `unit/UT-G4-025.txt` |  |
+
+Supporting files: `unit/UT-G3-rt1-pytest-output.txt` (the full route-audit output with the round-1 and new probes mounted).
+
 ---
 
 ## 6. Defects and observations
@@ -2082,6 +2609,7 @@ All defects were found on build `a3688f0`, in the environment in §3. Each one h
 | Actual | Neither is reported; a STUDENT gets **200** from both |
 | Suspected component | `apps/api-py/tests/test_route_audit.py:475` `_reaches_gate` / `:352` `_resolved_calls`: a call to a function in `GATE_FUNCTIONS` counts wherever it sits, including inside a `try` whose handler swallows `HTTPException`. Following calls into helpers turns every predicate helper written this way into a "gate" for any handler that calls it |
 | Why it matters | The predicate idiom already exists in `app/` (it is commented as deliberate in `interview_records.py`). The next handler that uses that helper, or one like it, as its only check gets a green audit and no check. This is the "forgotten check" shape the rule exists to catch |
+| Re-test | **Closed** on `40201a1`: UT-G3-008-rt1. Both shapes reported, and `p11` still gives a STUDENT 200 behaviourally, as it should; it is the audit that now refuses it. Three other spellings of a swallowed refusal still pass and are raised as **DEF-QG-U08** rather than re-opening this one, because its reproduction is fixed |
 
 ### DEF-QG-U02 — The route audit counts a gate in dead code other than `if <constant>`
 
@@ -2096,6 +2624,7 @@ All defects were found on build `a3688f0`, in the environment in §3. Each one h
 | Expected | All three reported |
 | Actual | None reported; a STUDENT gets 200 from each. (`if False:` *is* reported, UT-G3-005.) |
 | Suspected component | `apps/api-py/tests/test_route_audit.py:331` `_live_nodes`: it prunes only an `ast.If` whose test is an `ast.Constant`. It does not prune statements after `return`/`raise`, `while <falsy constant>`, or constant expressions such as `not True` |
+| Re-test | **Closed** on `40201a1`: UT-G3-007-rt1, UT-G3-009-rt1, and the new UT-G3-030 (dead only inside a branch). A gate in a never-called nested function still counts: **DEF-QG-U09** |
 
 ### DEF-QG-U03 — One comment line switches the ruff gate off for a whole file in `app/`
 
@@ -2110,6 +2639,7 @@ All defects were found on build `a3688f0`, in the environment in §3. Each one h
 | Expected | Refused (exit 1) |
 | Actual | `All checks passed!`, exit 0, both times. The S, ASYNC, F and B findings are all suppressed for the file. No guard in the repository looks for `ruff: noqa` or blanket `noqa` (`grep` over `tools/ci`, `test_codebase_guards.py`, `pyproject.toml`: none). For information: ruff's own `PGH004` reports both shapes (`--extend-select PGH004`), and `app/` has no blanket or file-level noqa today, so selecting it would start green. Nothing anywhere enforces "with a reason" either |
 | Suspected component | `apps/api-py/pyproject.toml:27` `[tool.ruff.lint] select` (PGH004 is not selected) |
+| Re-test | **Closed** on `40201a1`: UT-G1-036-rt1. PGH004 and §39 refuse both shapes, and §39 refuses a reasonless coded noqa. The flake8 spelling is refused by PGH004 (UT-G1-037). ruff's range suppression is not refused: **DEF-QG-U07** |
 
 ### DEF-QG-U04 — An inline `gitleaks:allow` comment silences a real secret
 
@@ -2124,6 +2654,7 @@ All defects were found on build `a3688f0`, in the environment in §3. Each one h
 | Expected | One `reep-auth-secret` finding, exit 1, in both runs |
 | Actual | Control: 1 finding. With the comment: **0 findings, exit 0**. gitleaks 8.30.0 has `--ignore-gitleaks-allow` ("ignore gitleaks:allow comments"), which restores the finding (exit 1). It is not passed by `secret-scan.yml:142,162`, `tools/ci/preflight.sh:461` or `.pre-commit-config.yaml`. The marker appears nowhere in the repository today, so adding the flag would start green |
 | Suspected component | The gitleaks invocations listed above |
+| Re-test | **Closed** on `40201a1`: UT-G2-021-rt1. Found with `--ignore-gitleaks-allow`, which `secret-scan.yml:157,177`, every preflight invocation (`cfg` array, :484), `.pre-commit-config.yaml:74` and the replay all pass |
 
 ### DEF-QG-U05 — The round trip's loopback refusal does not see libpq's `PGHOSTADDR`
 
@@ -2139,6 +2670,7 @@ All defects were found on build `a3688f0`, in the environment in §3. Each one h
 | Actual | Not refused: `libpq_hosts()` returns `['localhost']` and `refusal()` returns `None`. The connection attempt goes to `server at "192.0.2.1", port 5433`. Without the variable it goes to 127.0.0.1. The `alembic` subprocesses inherit the same environment |
 | Suspected component | `tools/ci/check_migration_roundtrip.py:199` `libpq_hosts` / `:216` `refusal`: they read only the URL's connect arguments. libpq also takes `hostaddr` from `PGHOSTADDR` (and from a `service=` entry) when the URL has none |
 | Note | `PGHOST` is not a gap: the URL always carries a host, or the script refuses `(libpq default)` (UT-G4-018) |
+| Re-test | **Closed** on `40201a1`: UT-G4-020-rt1 (PGHOSTADDR refused, a loopback PGHOSTADDR allowed, and a comma list refused) and UT-G4-025 (PGSERVICE, PGSERVICEFILE, `?service=`, PGSYSCONFDIR+service all refused) |
 
 ### DEF-QG-U06 — The static reversibility test classifies a do-nothing downgrade as "real" when it is not literally `pass`
 
@@ -2153,6 +2685,85 @@ All defects were found on build `a3688f0`, in the environment in §3. Each one h
 | Expected | All three reported as having no real downgrade |
 | Actual | Only the docstring + `...` revision is reported. `return` and `if False:` are classified `real` and pass. The round trip catches such a downgrade only when its upgrade changed the catalogue (UT-G4-013). For a **data-only** migration (an `UPDATE`) whose downgrade is `return`, neither half fails, and no `IRREVERSIBLE` reason is ever written |
 | Suspected component | `apps/api-py/migrations/reversibility.py:148` `_downgrade_kind`: only `pass`-only bodies and a single `raise` are recognised. The docstring says this looseness is deliberate; the requirement as written is stricter |
+| Re-test | **Closed** on `40201a1`: UT-G4-007-rt1 (all three reported). Further do-nothing shapes remain: **DEF-QG-U11** |
+
+## 6a. Defects raised in re-test round 1 (build `40201a1`)
+
+### DEF-QG-U07 — `# ruff: disable[<codes>]` on line 1 silences named rules for a whole file, with no reason, and nothing refuses it
+
+| Field | Value |
+|---|---|
+| Severity / priority | **Major / P2**: the same hole as DEF-QG-U03 (a file-level suppression in `app/`), reached through ruff's other suppression syntax |
+| Requirement | REQ-G1-02; §39's own docstring ("a line-level suppression with its reason in words after the codes, never a file-level one") |
+| Build / environment | `40201a1`; §3; PC-1 |
+| Case / evidence | UT-G1-038 — `unit/UT-G1-038.txt` |
+| Frequency | Always |
+| Steps to reproduce | 1. Create `apps/api-py/app/_qg_probe.py`. Line 1: `# ruff: disable[S101, S602, ASYNC221, ASYNC251, F401, F821]`. Below it: an unused `import os`, and an `async def` with `assert x`, `subprocess.run(cmd, shell=True)`, `time.sleep(1)` and `return undefined_name`. Add a plain `def` with another `shell=True` call. No `# ruff: enable`. 2. `python -m ruff check --config pyproject.toml app/_qg_probe.py`. 3. `pytest tests/test_codebase_guards.py -k test_every_suppression_in_shipped_code`. |
+| Expected | Refused by ruff or by §39 |
+| Actual | ruff: `All checks passed!`, exit 0. §39: passed. Six rules are off for the rest of the file, in both functions, with no reason anywhere. The paired form (`disable[...]` … `enable[...]` around two lines) also passes both, again with no reason. Prefix codes (`disable[S, ASYNC, F]`) are not honoured by ruff, so the hole needs full codes |
+| Suspected component | `apps/api-py/tests/test_codebase_guards.py` §39 `_NOQA` (it reads only `noqa` comments); PGH004 covers only blanket `noqa`. No ruff rule in the selection reports an unmatched or unreasoned range suppression |
+| Re-test | New in round 1 |
+
+### DEF-QG-U08 — The route audit still counts a swallowed refusal when the catch is spelled differently
+
+| Field | Value |
+|---|---|
+| Severity / priority | **Minor / P2**: the DEF-QG-U01 shapes are fixed; these are less common spellings of the same bug |
+| Requirement | REQ-G3-03 |
+| Build / environment | `40201a1`; §3; PC-3 |
+| Case / evidence | UT-G3-031, 032, 033 — `unit/UT-G3-031.txt` … `033.txt`, `unit/UT-G3-rt1-pytest-output.txt` |
+| Frequency | Always |
+| Steps to reproduce | Mount three handlers with a session. (a) `with contextlib.suppress(HTTPException): require_admin(session)`. (b) `try: require_admin(session)` / `except starlette.exceptions.HTTPException: pass` (FastAPI's `HTTPException` subclasses it). (c) `from fastapi import HTTPException as HE` … `except HE: pass`. Run the audit, then call each as a STUDENT. |
+| Expected | All three reported under AUTH (gate) |
+| Actual | None reported; a STUDENT gets 200 from each. `except fastapi.HTTPException`, `except BaseException`, `except Exception`, a bare `except`, a tuple, and a caught refusal that returns are all reported correctly (UT-G3-034, 035, 037, and Worker C's own shapes) |
+| Suspected component | `apps/api-py/tests/test_route_audit.py`: the swallowed-refusal check matches the caught exception by name. It knows `HTTPException` / `fastapi.HTTPException` and the broad bases, but not an import alias or Starlette's base class, and it has no notion of `contextlib.suppress` |
+| Re-test | New in round 1 |
+
+### DEF-QG-U09 — The route audit counts a gate inside a nested function that is never called
+
+| Field | Value |
+|---|---|
+| Severity / priority | **Minor / P3** |
+| Requirement | REQ-G3-03 (a gate in dead code does not count) |
+| Build / environment | `40201a1`; §3; PC-3 |
+| Case / evidence | UT-G3-036 — `unit/UT-G3-036.txt` |
+| Frequency | Always |
+| Steps to reproduce | A handler with a session whose body defines `def check() -> None: require_admin(session)` and returns `Out()` without calling `check`. Run the audit, then call it as a STUDENT. |
+| Expected | Reported |
+| Actual | Not reported; STUDENT → 200 |
+| Suspected component | `test_route_audit.py`'s source walk (`_live_nodes` and its successors) descends into nested `def` bodies as if they ran in the handler |
+| Re-test | New in round 1 |
+
+### DEF-QG-U10 — The rule replay no longer fails when the allowlist is reverted to `regexTarget = "line"`, the bug it exists to catch
+
+| Field | Value |
+|---|---|
+| Severity / priority | **Major / P2**: a ratchet that no longer ratchets (plan §8). The edit it should catch frees real secrets |
+| Requirement | REQ-G2-05 (and the replay's own docstring: it replays the leaks the line-targeted allowlist let through, "to keep it meaning that") |
+| Build / environment | `40201a1`; §3; PC-2 |
+| Case / evidence | UT-G2-026, UT-G2-017-rt1 — `unit/UT-G2-026.txt`, `unit/UT-G2-017-rt1.txt` |
+| Frequency | Always |
+| Steps to reproduce | 1. In a scratch copy of the build, change the two `regexTarget = "match"` lines of `.gitleaks.toml` (247 and 425) to `"line"`. 2. `python3 tools/ci/check_gitleaks_rules.py`. 3. With that config, scan (i) `AUTH_SECRET: ci-secret-not-used-outside-ci-0123456789abcdef ; DB=postgresql://reep:<20 random alnum>@db.example.com/x` and (ii) the dev `DATABASE_URL` (password `reep_dev_password`) followed on the same line by `GITHUB_TOKEN=` and a real-shaped ghp_ token. |
+| Expected | The replay fails, as on `a3688f0` (UT-G2-017: 5 leaks MISSED, exit 1); (i) and (ii) are caught |
+| Actual | Replay: `OK: 20 leaks caught, 11 placeholder files quiet.`, exit 0. (i) and (ii): **quiet**. With the shipped `"match"` both are caught |
+| Why | The anchoring for OBS-QG-U01 and FV-QG-01 changed the published values to `:reep_dev_password@` and a bounded `ci-secret-…`. The replay's same-line case (`DATABASE_PASSWORD=reep_dev_password GITHUB_TOKEN=…`) no longer contains an allowlisted value, so it no longer exercises the line target |
+| Suspected component | `tools/ci/check_gitleaks_rules.py` `cases()`: no leak case puts a real secret on the same line as a value the CURRENT allowlist frees. For example, cases (i) and (ii) above would restore the guard |
+| Re-test | New in round 1 |
+
+### DEF-QG-U11 — The reversibility classifier still reads several do-nothing downgrades as "real"
+
+| Field | Value |
+|---|---|
+| Severity / priority | **Minor / P3** |
+| Requirement | REQ-G4-01 |
+| Build / environment | `40201a1`; §3; PC-4 |
+| Case / evidence | UT-G4-024 — `unit/UT-G4-024.txt` |
+| Frequency | Always |
+| Steps to reproduce | In a scratch worktree, chain six revisions after `f4a2c9e7b1d3`. Each upgrade is a data-only `UPDATE`. Their downgrade bodies: `if not True: op.execute(…)`, `while False: op.execute(…)`, `return 0`, `for _ in (): op.execute(…)`, `if 1 == 2: op.execute(…)`, and `return` followed by `op.execute(…)`. Run `pytest tests/test_migration_reversibility.py`. |
+| Expected | All six reported as no-op |
+| Actual | Only the last is reported. The other five are classified `real`, and a data-only upgrade changes no catalogue, so the round trip cannot see them either. The original DEF-QG-U06 shapes (`return`, `if False:`, a docstring and `...`) are now reported (UT-G4-007-rt1) |
+| Suspected component | `apps/api-py/migrations/reversibility.py` `_executed`: it prunes only an `ast.If` whose test is an `ast.Constant`, and treats `return <value>` as work. The route audit's fix for DEF-QG-U02 already handles `if not True:` and `while False:` |
+| Re-test | New in round 1 |
 
 ### Observations (not raised as defects)
 
@@ -2164,6 +2775,16 @@ All defects were found on build `a3688f0`, in the environment in §3. Each one h
 | OBS-QG-U04 | UT-G3-015 | `-> RootModel[dict[str, Any]]` passes the RESPONSE rule, although its only content is a `dict[str, Any]` leaf. | `_untyped_parts` documents that a Pydantic model is a leaf and is never looked inside. REQ-G3-04's wording ("dict/Any leaves do not count") would include it. Low likelihood |
 | OBS-QG-U05 | UT-GX-001 | `preflight.sh` reads `GITLEAKS_VERSION` only in double quotes. A single-quoted or unquoted value (valid YAML, still read by Actions) gives an empty pin, and the secrets check then SKIPs with "gitleaks 8.30.0 is not v; another version is another ruleset". | Fails safe (SKIP → exit 2, never a false PASS). Only the message is misleading |
 | OBS-QG-U06 | UT-G5-002 | Two checklist items use wordings other than a gate name or *human — no gate*: "Errors use the one envelope" says *not enforced yet*, and "Review done" says *human*. | Neither claims a machine check that does not exist, which is the substance of REQ-G5-02. The wording is not uniform |
+
+
+**Re-test of the round-1 observations (build `40201a1`):** OBS-QG-U01 Closed (UT-G2-014-rt1: three of the four bypasses found; `AUTH_SECRET=change-me-…` stays quiet through a `reep-auth-secret`-scoped allowlist mirroring the boot guard, which round 1 already judged harmless). OBS-QG-U02 Closed (documented at `.gitleaks.toml:361`; UT-G2-018-rt1). OBS-QG-U03 Closed (`os.*` and `Path(...).open()` flagged, lambda documented; UT-G1-030-rt1). OBS-QG-U04 Closed (UT-G3-015-rt1, UT-G3-039). OBS-QG-U05 Closed (UT-GX-001-rt1). OBS-QG-U06 Closed (UT-G5-002-rt1). The E9 comment is fixed (UT-G1-002-rt1).
+
+**New observations (round 1):**
+
+| ID | Case | Observation | Why it is not a defect |
+|---|---|---|---|
+| OBS-QG-U07 | UT-G2-022 | The `<word>` placeholder allowlist accepted with FV-QG-01 frees more than the register's premise says. The register says "none of these rules' key alphabets contains `<` or `>`". In fact the alphabets of **reep-openai-key, reep-groq-key (name branch), reep-livekit-credentials, reep-voice-worker-secret, reep-database-url-password and reep-auth-secret's quoted branch** all admit `<`. A real value with `<abc>` joined to it is quiet under each of those rules, and for the DB URL also when the `<word>` sits in the **middle** of the password, which is a usable password. It is found where the alphabet stops at `<` (ghp_, unquoted AUTH_SECRET) and when the run is under 3 characters. | The Test Manager accepted this residual risk in writing (FV-QG-01). This records the exact boundary so the acceptance rests on accurate facts. One way to narrow it, if wanted: require the WHOLE secret to be the placeholder for those six rules, as the `change-me` and `${VAR}` regexes now do |
+| OBS-QG-U08 | UT-G2-025 | A real OpenAI key inside an HTML element (`<code>KEY</code>`), or with `<abc>` joined, is not reported. The cause is gitleaks' own `openai-api-key` boundary, so the same happens with no REEP configuration at all. The Test Manager's `sk-…<x>` example is quiet for this reason, not because of REEP's allowlist. | Upstream behaviour, unchanged by this PR. The repository-specific `reep-openai-key` still catches the `OPENAI_API_KEY=` assignment form |
 
 Other things noticed while testing, not raised: ruff 0.16 reports parse errors as `invalid-syntax` rather than E999, so `E9` in the selection now enables only E902 (UT-G1-002). The gate still fails on a syntax error, but the comment "E9: the file does not even parse" describes ruff's built-in behaviour rather than the selection.
 
@@ -2236,15 +2857,51 @@ Not covered at L1 (see §2): REQ-G1-06, REQ-G2-02, 03, 04, 07, REQ-G3-09, REQ-G4
 2. The route audit proves a gate is *called*, not that it is the right one, and its source reading is branch-insensitive. The module docstring says so; DEF-QG-U02 is the dead-code part of that limit.
 3. Results are from Python 3.13 / PostgreSQL 16. Nothing in the 109 cases looked version-sensitive, but the CI run on 3.14 / 17 is the authority for those versions.
 
-### 7.4 Recommendation
+### 7.4 Recommendation (round 1, `a3688f0`; superseded by §7.5)
 
 **Conditional GO for level L1.** Every gate does what its requirement says on correct and incorrect inputs, and every ratchet ratchets in both directions. No defect makes a gate red on a correct tree or green on an ordinary mistake. Conditions:
 - the Test Manager triages the three **Major** defects (DEF-QG-U01, U03, U04, all P2). Either they are fixed in this PR, in which case I re-test UT-G1-036, UT-G2-021 and UT-G3-008, or they are accepted in writing as residual risk with a tracked follow-up, per plan §6 exit criterion 3;
 - the three Minor defects and six observations are fixed or accepted.
+
+### 7.5 Re-test round 1 on `40201a1`: counts, coverage and recommendation
+
+| Set | Planned | Executed | Passed | Failed | Blocked | Not run |
+|---|---|---|---|---|---|---|
+| Round-1 cases re-executed (confirmation + regression) | 109 | 109 | 108 | 1 (UT-G2-017-rt1 → DEF-QG-U10) | 0 | 0 |
+| New cases (§4.3) | 22 | 22 | 14 | 8 | 0 | 0 |
+| **Total on `40201a1`** | **131** | **131** | **122** | **9** | **0** | **0** |
+
+Pass rate on the new build: 93.1 % (122/131).
+
+| Defect | Round-1 severity | Re-test verdict |
+|---|---|---|
+| DEF-QG-U01 | Major | **Closed** (UT-G3-008-rt1) |
+| DEF-QG-U02 | Minor | **Closed** (UT-G3-007-rt1, 009-rt1) |
+| DEF-QG-U03 | Major | **Closed** (UT-G1-036-rt1) |
+| DEF-QG-U04 | Major | **Closed** (UT-G2-021-rt1) |
+| DEF-QG-U05 | Minor | **Closed** (UT-G4-020-rt1, UT-G4-025) |
+| DEF-QG-U06 | Minor | **Closed** (UT-G4-007-rt1) |
+
+**New defects (round 1):** Critical 0 · Major 2 (**DEF-QG-U07** ruff range suppression; **DEF-QG-U10** the rule replay no longer catches a revert to `regexTarget = "line"`) · Minor 3 (DEF-QG-U08, U09, U11). **New observations:** 2 (OBS-QG-U07, U08). All round-1 observations are closed.
+
+**Regression.** Every G1, G2, G3, G4, GX and G5 round-1 case gave the same result on the new build, with two exceptions, both intended. UT-G2-009's worded placeholder is now (correctly) a finding. UT-G2-017's line-target variant no longer fails the replay (DEF-QG-U10). The CI port-mapping fix still holds (UT-G4-021-rt1). The 227 guard and audit tests pass with no database.
+
+**Requirements covered on the new build:** the same as round 1 (§7.2), every one re-executed. The new cases add evidence to REQ-G1-02, REQ-G2-05, REQ-G3-03, REQ-G3-04, REQ-G4-01 and REQ-G4-04.
+
+**Residual risks:** DEF-QG-U07 and U10 (below), the accepted `<word>` boundary (OBS-QG-U07, now stated precisely), and the upstream HTML blind spot (OBS-QG-U08). The pattern across this round: each fix closed the reproduced shape. The adversarial cases found the neighbouring spellings of the same bypass (another suppression syntax; other ways to swallow or never run a gate; other do-nothing downgrades). The one regression was in the gate's own self-test.
+
+**Recommendation: conditional GO for level L1 on `40201a1`.** All six round-1 defects are closed and no correct tree goes red. The conditions, per plan §6 exit criterion 3:
+- **DEF-QG-U07** and **DEF-QG-U10** (both Major, P2) are fixed and re-tested, or accepted in writing.
+  - U07: refusing `ruff: disable` in §39 (or its unmatched/reasonless form) would close it.
+  - U10: one replay case per anchored allowlist value would restore the ratchet.
+  - On a fix I re-run UT-G1-038, UT-G2-017 and UT-G2-026.
+- DEF-QG-U08, U09 and U11 (Minor) are fixed or accepted as residual risk.
+- The Test Manager confirms that the FV-QG-01 acceptance still stands with the corrected boundary in OBS-QG-U07.
 
 ## 8. Sign-off
 
 | Role | Name | Decision | Date |
 |---|---|---|---|
 | Test Engineer, level L1 (unit) | Tester session U | Executed as specified; results as recorded above; conditional GO (§7.4) | 2026-10-08 |
+| Test Engineer, level L1 (unit), re-test round 1 | Tester session U | Re-executed on `40201a1`; DEF-QG-U01..U06 Closed; DEF-QG-U07..U11 raised; conditional GO (§7.5) | 2026-10-08 |
 | Reviewer | Test Manager | _pending_ | |

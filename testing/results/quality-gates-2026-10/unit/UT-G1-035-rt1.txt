@@ -1,0 +1,9 @@
+# Evidence for UT-G1-035-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T10:06:15 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt
+$ printf 'def broken(:\n' > apps/api-py/app/_qg_broken.py && python3 tools/ci/check_async_blocking.py 2>&1 | tail -1; echo script_exit=${PIPESTATUS[0]}; rm apps/api-py/app/_qg_broken.py; git status --short
+SyntaxError: invalid syntax
+script_exit=1
+?? apps/api-py/.venv
+[exit=0]

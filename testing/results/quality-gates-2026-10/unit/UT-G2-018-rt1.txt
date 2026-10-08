@@ -1,0 +1,45 @@
+# Evidence for UT-G2-018-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:50:58 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb
+$ gitleaks git . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore --ignore-gitleaks-allow --redact --no-banner --exit-code 1 --log-opts='--all' > /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/h.log 2>&1; echo exit=$?; tail -3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/h.log | sed 's/\x1b\[[0-9;]*m//g'
+exit=1
+9:52AM INF 852 commits scanned.
+9:52AM INF scanned ~372918529 bytes (372.92 MB) in 1m23.4s
+9:52AM WRN leaks found: 1
+[exit=0]
+
+[2026-10-08T09:52:22 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb
+$ gitleaks git . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore --ignore-gitleaks-allow --redact --no-banner --exit-code 1 --log-opts='15a9e7d..40201a1' > /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/h2.log 2>&1; echo exit=$?; tail -3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/h2.log | sed 's/\x1b\[[0-9;]*m//g'
+exit=0
+9:52AM INF 34 commits scanned.
+9:52AM INF scanned ~510576 bytes (510.58 KB) in 347ms
+9:52AM INF no leaks found
+[exit=0]
+
+[2026-10-08T09:52:22 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb
+$ d=$(mktemp -d); git archive 40201a1 | tar -x -C $d; (cd $d && gitleaks dir . --config /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaks.toml --gitleaks-ignore-path /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaksignore --ignore-gitleaks-allow --redact --no-banner --exit-code 1 > /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/t.log 2>&1; echo tree_from_root_exit=$?); gitleaks dir $d --config /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaks.toml --gitleaks-ignore-path /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaksignore --ignore-gitleaks-allow --redact --no-banner --exit-code 1 > /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/t2.log 2>&1; echo tree_by_absolute_path_exit=$?; tail -1 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/t2.log | sed 's/\x1b\[[0-9;]*m//g'; rm -rf $d; grep -n -i 'from the root\|scan root\|gitleaks dir \.' .gitleaks.toml | head -3
+tree_from_root_exit=0
+tree_by_absolute_path_exit=1
+9:52AM WRN leaks found: 4
+361:# RUN GITLEAKS FROM THE REPOSITORY ROOT, AS `gitleaks dir .` / `gitleaks git .`.
+363:# which is relative to the directory it was given: from the root that is
+[exit=0]
+
+[2026-10-08T09:54:01 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb
+$ echo 'The single --all finding above is reep-openai-key in testing/results/quality-gates-2026-10/unit/UT-G2-009.txt:32, commit 37060c2 on claude/qg-test-unit (the tester own round-1 evidence, not in the PR; respelled at this branch tip). Re-run with that branch excluded:'; gitleaks git . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore --ignore-gitleaks-allow --redact --no-banner --exit-code 1 --log-opts='--exclude=refs/heads/claude/qg-test-unit --exclude=refs/remotes/origin/claude/qg-test-unit --all' > /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/h3.log 2>&1; echo exit=$?; tail -3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/h3.log | sed 's/\x1b\[[0-9;]*m//g'
+The single --all finding above is reep-openai-key in testing/results/quality-gates-2026-10/unit/UT-G2-009.txt:32, commit 37060c2 on claude/qg-test-unit (the tester own round-1 evidence, not in the PR; respelled at this branch tip). Re-run with that branch excluded:
+exit=1
+9:54AM INF 852 commits scanned.
+9:54AM INF scanned ~372918529 bytes (372.92 MB) in 56.6s
+9:54AM WRN leaks found: 1
+[exit=0]
+
+[2026-10-08T09:56:10 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb
+$ echo '(the run above still saw 37060c2: git log --all also walks the HEAD of every worktree, and the main checkout is on claude/qg-test-unit. Re-run over every commit reachable from the build under test instead:)'; gitleaks git . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore --ignore-gitleaks-allow --redact --no-banner --exit-code 1 --log-opts='40201a140ba70f8be40d6b016f55ddb828fcaa91' > /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/h4.log 2>&1; echo exit=$?; tail -3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/h4.log | sed 's/\x1b\[[0-9;]*m//g'
+(the run above still saw 37060c2: git log --all also walks the HEAD of every worktree, and the main checkout is on claude/qg-test-unit. Re-run over every commit reachable from the build under test instead:)
+exit=0
+9:56AM INF 154 commits scanned.
+9:56AM INF scanned ~308116113 bytes (308.12 MB) in 49s
+9:56AM INF no leaks found
+[exit=0]

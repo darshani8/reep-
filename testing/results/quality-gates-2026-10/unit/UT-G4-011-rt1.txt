@@ -1,0 +1,72 @@
+# Evidence for UT-G4-011-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:59:15 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ cd /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py && echo '--- probe revision:' && sed -n '/^def upgrade/,$p' migrations/versions/bbbb00000001_qg_probe.py && echo '--- migrate the case database to head:' && .venv/bin/python -m alembic upgrade head 2>&1 | tail -1 && echo '--- round trip:' && .venv/bin/python ../../tools/ci/check_migration_roundtrip.py > /tmp/g4.out 2>&1; rc=$?; grep -vE '^INFO|python -m alembic' /tmp/g4.out | tail -25; echo roundtrip_exit=$rc
+--- probe revision:
+def upgrade() -> None:
+    op.add_column("resumes", sa.Column("qg_probe_note", sa.Text(), nullable=True))
+    op.create_table("qg_probe_table", sa.Column("id", sa.Integer(), primary_key=True))
+
+
+def downgrade() -> None:
+    op.drop_column("resumes", "qg_probe_note")
+--- migrate the case database to head:
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+--- round trip:
+database   postgresql+psycopg://reep:***@localhost:5433/reep_u_g4_011  (read only: compared against)
+scratch    reep_u_g4_011_roundtrip  (created, walked, dropped)
+head       bbbb00000001
+floor      9b2d47f0ce15  (the furthest a real rollback can go)
+segment    base .. 31ca99852acd: 66 downgrade(s)
+segment    7c4e0b21d9aa .. 31f7a4c60b12: 2 downgrade(s)
+segment    9b2d47f0ce15 .. bbbb00000001: 23 downgrade(s)
+exercised  91 of 93 downgrades; the rest refuse on purpose
+
+FAILED: could not connect to ask the server what it is: (psycopg.OperationalError) connection failed: connection to server at "127.0.0.1", port 5433 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+roundtrip_exit=1
+[exit=0]
+(ENVIRONMENT, not product: the block above failed because PostgreSQL was not running — the container had stopped it between rounds. Restarted with the same data directory and options; re-run below.)
+
+[2026-10-08T10:00:01 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ cd /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py && echo '--- probe revision:' && sed -n '/^def upgrade/,$p' migrations/versions/bbbb00000001_qg_probe.py && echo '--- migrate the case database to head:' && .venv/bin/python -m alembic upgrade head 2>&1 | tail -1 && echo '--- round trip:' && .venv/bin/python ../../tools/ci/check_migration_roundtrip.py > /tmp/g4.out 2>&1; rc=$?; grep -vE '^INFO|python -m alembic' /tmp/g4.out | tail -25; echo roundtrip_exit=$rc
+--- probe revision:
+def upgrade() -> None:
+    op.add_column("resumes", sa.Column("qg_probe_note", sa.Text(), nullable=True))
+    op.create_table("qg_probe_table", sa.Column("id", sa.Integer(), primary_key=True))
+
+
+def downgrade() -> None:
+    op.drop_column("resumes", "qg_probe_note")
+--- migrate the case database to head:
+INFO  [alembic.runtime.migration] Running upgrade f4a2c9e7b1d3 -> bbbb00000001, QG unit probe revision (scratch worktree only).
+--- round trip:
+straight path: 2125 catalogue lines at bbbb00000001
+
+== segment base .. 31ca99852acd
+   declared leftovers ignored at the bottom: [('extension', 'vector'), ('table', 'students_orphaned_cohort_ids')]
+   OK: 66 downgrade(s), identical at both ends
+
+== segment 7c4e0b21d9aa .. 31f7a4c60b12
+   OK: 2 downgrade(s), identical at both ends
+
+== segment 9b2d47f0ce15 .. bbbb00000001
+--- before
++++ after
+@@ -568,0 +569 @@
++column | qg_probe_table | id | integer | True | nextval('qg_probe_table_id_seq'::regclass) |  |  | 
+@@ -1147,0 +1149 @@
++constraint | qg_probe_table | qg_probe_table_pkey | PRIMARY KEY (id)
+@@ -1539,0 +1542 @@
++index | qg_probe_table_pkey | CREATE UNIQUE INDEX qg_probe_table_pkey ON public.qg_probe_table USING btree (id)
+@@ -1687,0 +1691,2 @@
++relation | qg_probe_table | r
++relation | qg_probe_table_id_seq | S
+@@ -1726,0 +1732 @@
++sequence | qg_probe_table_id_seq | integer | 1 | 1 | 1 | 2147483647 | False
+
+FAILED: the catalogue at 9b2d47f0ce15 after 23 downgrade(s) differs ('-' lost, '+' left behind). A downgrade in this segment did not restore what its upgrade changed. If the leftover is genuinely impossible to remove (an enum value), declare it in KEPT_ON_DOWNGRADE with the reason.
+roundtrip_exit=1
+[exit=0]

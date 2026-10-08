@@ -1,0 +1,15 @@
+# Evidence for UT-G3-002-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+# [2026-10-08T09:45:23 UTC] Method: synthetic handlers in app/routers/qg_probe.py, SCRATCH worktree /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt (at 40201a1) only, included in that worktree's app/main.py;
+#   then from its apps/api-py: .venv/bin/python -m pytest -q -p no:cacheprovider -o addopts= tests/test_route_audit.py (DATABASE_URL at 127.0.0.1:1)
+#   full output: UT-G3-rt1-pytest-output.txt. Behaviour: TestClient with get_current_session overridden to a STUDENT session.
+
+--- probe source:
+@router.get("/p02-nogate")
+def p02_nogate(session: dict = Depends(get_current_session)) -> Out:
+    return Out()
+
+--- audit failure lines naming /api/qg/p02-nogate: 2
+E           GET /api/qg/p02-nogate  (app.routers.qg_probe.p02_nogate: no role or scope gate)
+E       assert not ["AUTH (gate): 12 new violation(s). A session proves who is asking, not that they may. Call the gate before touching d...00: no role or scope gate)', '  GET /api/qg/p02-nogate  (app.routers.qg_probe.p02_nogate: no role or scope gate)', ...]
+

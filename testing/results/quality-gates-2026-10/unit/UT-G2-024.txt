@@ -1,0 +1,24 @@
+# Evidence for UT-G2-024
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:50:03 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: see the masked file'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-024a-masked-placeholder; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-024a-masked-placeholder
+shape: see the masked file
+--- g2-024a-masked-placeholder/.env
+AUTH_SECRET=<FAKE-VALUE-MASKED>
+OPENAI_API_KEY=<FAKE-VALUE-MASKED>
+DATABASE_URL=<FAKE-VALUE-MASKED>
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T09:50:04 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: see the masked file'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-024b-worded-placeholder; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-024b-worded-placeholder
+shape: see the masked file
+--- g2-024b-worded-placeholder/.env.example
+OPENAI_API_KEY=<worded placeholder change-me-please-now-ok>
+findings: 1 [('reep-openai-key', 1)]
+gitleaks exit=1
+[exit=0]
+
+(Evidence respelling, after execution: per the Test Manager masking rule every masked value in this file is written as the bare mask, with only a NAME= prefix. The g2-024a input file actually held three lines: AUTH_SECRET= the mask; OPENAI_API_KEY= the mask; and DATABASE_URL= a postgresql:// URL for user reep at db.example.com/reep_py whose PASSWORD was the literal mask string. The g2-024b line is the worded placeholder change-me-please-now-ok on OPENAI_API_KEY.)

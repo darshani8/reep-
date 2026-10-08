@@ -1,0 +1,10 @@
+# Evidence for UT-G1-031-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T10:05:59 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt
+$ printf '\n\nasync def qg_new_offender(db: Session = Depends(get_db)):\n    db.execute("select 1")\n' >> apps/api-py/app/voice_platform/api/calls.py && python3 tools/ci/check_async_blocking.py 2>&1 | tail -3; echo script_exit=${PIPESTATUS[0]}; git checkout -q apps/api-py/app/voice_platform/api/calls.py
+
+  app/voice_platform/api/calls.py:246: qg_new_offender: parameter `db` is Depends(get_db), a sync Session
+  app/voice_platform/api/calls.py:247: qg_new_offender: calls db.execute() on a sync Session
+script_exit=1
+[exit=0]

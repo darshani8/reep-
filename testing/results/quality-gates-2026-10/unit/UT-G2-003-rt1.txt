@@ -1,0 +1,13 @@
+# Evidence for UT-G2-003-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:50:02 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: see the masked file'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-003-auth-yaml-nextkey; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-003-auth-yaml-nextkey
+shape: see the masked file
+--- g2-003-auth-yaml-nextkey/k8s.yaml
+stringData:
+  AUTH_SECRET:
+NEXT_TOP_LEVEL_KEY_WITH_A_LONG_NAME_XX: 1
+findings: 0 []
+gitleaks exit=0
+[exit=0]

@@ -1,0 +1,29 @@
+# Evidence for UT-G2-021-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:57:42 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: AUTH_SECRET=<64 random hex>  # gitleaks:allow'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-025-gitleaks-allow; echo '--- with the flags the gate now uses (--ignore-gitleaks-allow):'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-025-gitleaks-allow; echo '--- without that flag (control, shows the comment would otherwise silence it):'; gitleaks dir g2-025-gitleaks-allow --config /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaks.toml --redact --no-banner --exit-code 1 2>&1 | tail -1; echo '--- every gitleaks invocation in the gate passes the flag:'; grep -nE 'ignore-gitleaks-allow' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.github/workflows/secret-scan.yml /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/preflight.sh /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.pre-commit-config.yaml /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/check_gitleaks_rules.py | grep -v '#' ; echo '--- gitleaks invocations NOT carrying the flag (should be none):'; grep -nE 'gitleaks (git|dir)|"(git|dir)"' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.github/workflows/secret-scan.yml /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/preflight.sh /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/check_gitleaks_rules.py | grep -v '^.*#' | head
+shape: AUTH_SECRET=<64 random hex>  # gitleaks:allow
+--- g2-025-gitleaks-allow/.env
+AUTH_SECRET=<FAKE-VALUE-MASKED>  # gitleaks:allow
+--- with the flags the gate now uses (--ignore-gitleaks-allow):
+findings: 1 [('reep-auth-secret', 1)]
+gitleaks exit=1
+--- without that flag (control, shows the comment would otherwise silence it):
+9:57AM INF no leaks found
+--- every gitleaks invocation in the gate passes the flag:
+/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.github/workflows/secret-scan.yml:157:            --ignore-gitleaks-allow --log-opts="$range" --redact --verbose --no-banner --exit-code 1 \
+/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.github/workflows/secret-scan.yml:177:            --ignore-gitleaks-allow --redact --verbose --no-banner --exit-code 1 \
+/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/preflight.sh:484:             "--ignore-gitleaks-allow" "--redact" "--verbose" "--no-banner" "--exit-code" "1")
+/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.pre-commit-config.yaml:74:        args: ["--config", ".gitleaks.toml", "--ignore-gitleaks-allow"]
+/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/check_gitleaks_rules.py:157:                [gitleaks, "dir", str(root), "--config", str(CONFIG), "--ignore-gitleaks-allow",
+--- gitleaks invocations NOT carrying the flag (should be none):
+/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.github/workflows/secret-scan.yml:156:          gitleaks git . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore \
+/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.github/workflows/secret-scan.yml:176:          gitleaks dir . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore \
+/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/preflight.sh:496:  ( cd "$REPO_ROOT" && run gitleaks git . "${cfg[@]}" --log-opts="$range" ) || rc=1
+/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/preflight.sh:497:  ( cd "$REPO_ROOT" && run gitleaks git . --pre-commit "${cfg[@]}" ) || rc=1
+/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/preflight.sh:498:  ( cd "$REPO_ROOT" && run gitleaks git . --staged "${cfg[@]}" ) || rc=1
+/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/preflight.sh:504:    ( cd "$tree" && run gitleaks dir . "${cfg[@]}" ) || rc=1
+/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/preflight.sh:521:      ( cd "$fresh" && run gitleaks dir . "${cfg[@]}" ) || rc=1
+/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/check_gitleaks_rules.py:157:                [gitleaks, "dir", str(root), "--config", str(CONFIG), "--ignore-gitleaks-allow",
+[exit=0]

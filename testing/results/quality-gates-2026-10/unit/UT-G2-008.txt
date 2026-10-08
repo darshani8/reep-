@@ -4,7 +4,7 @@
 [2026-10-08T08:35:38 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
 $ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-008a-ghp && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-008a-ghp
 --- g2-008a-ghp/x.ts
-const t = 'ghp_<FAKE-VALUE-MASKED>';
+const t = <FAKE-VALUE-MASKED>
 findings: 1 [('github-pat', 1)]
 gitleaks exit=1
 [exit=0]
@@ -21,7 +21,7 @@ gitleaks exit=1
 [2026-10-08T08:35:39 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
 $ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-008c-private-key && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-008c-private-key
 --- g2-008c-private-key/id_rsa
------BEGIN RSA PRIVATE KEY-----
+<PEM armour line omitted (BEGIN)>
 <FAKE-VALUE-MASKED>
 <FAKE-VALUE-MASKED>
 <FAKE-VALUE-MASKED>
@@ -30,7 +30,7 @@ $ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad
 <FAKE-VALUE-MASKED>
 <FAKE-VALUE-MASKED>
 <FAKE-VALUE-MASKED>
------END RSA PRIVATE KEY-----
+<PEM armour line omitted (END)>
 findings: 1 [('private-key', 1)]
 gitleaks exit=1
 [exit=0]

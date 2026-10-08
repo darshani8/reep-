@@ -1,0 +1,20 @@
+# Evidence for UT-G2-004-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:49:41 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: see the masked file'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-004a-auth-31; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-004a-auth-31
+shape: see the masked file
+--- g2-004a-auth-31/.env
+AUTH_SECRET=<FAKE-VALUE-MASKED>
+findings: 1 [('generic-api-key', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T09:49:42 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: see the masked file'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-004b-auth-32; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-004b-auth-32
+shape: see the masked file
+--- g2-004b-auth-32/.env
+AUTH_SECRET=<FAKE-VALUE-MASKED>
+findings: 1 [('reep-auth-secret', 1)]
+gitleaks exit=1
+[exit=0]

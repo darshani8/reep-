@@ -1,0 +1,9 @@
+# Evidence for UT-G4-016-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T10:02:02 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ cd /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py && ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py .venv/bin/python ../../tools/ci/check_migration_roundtrip.py 2>&1 | tail -2; echo script_exit=${PIPESTATUS[0]}
+
+FAILED: no downgrade on the chain can run, so nothing was proven; a gate that proved nothing is not a pass.
+script_exit=2
+[exit=0]

@@ -1,0 +1,55 @@
+# Evidence for UT-G2-017-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:50:55 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt
+$ sed -i 's/^regexTarget = "match"$/regexTarget = "line"/' .gitleaks.toml && git diff --stat | tail -1 && python3 tools/ci/check_gitleaks_rules.py 2>&1 | tail -6; git checkout -q .gitleaks.toml
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+quiet  q08/apps/api-py/.env.example               quiet
+quiet  q09/docs/deploy.md                         quiet
+quiet  q10/docs/evidence.txt                      quiet
+quiet  q11/docs/evidence-key.txt                  quiet
+
+OK: 20 leaks caught, 11 placeholder files quiet.
+[exit=0]
+
+[2026-10-08T09:50:56 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt
+$ sed -i 's|{32,}|{80,}|g' .gitleaks.toml && git diff --stat | tail -1 && python3 tools/ci/check_gitleaks_rules.py 2>&1 | grep -E 'MISSED|FAILED|OK:'; echo replay_exit=${PIPESTATUS[0]}; git checkout -q .gitleaks.toml
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+leak   l02/docker-compose.yml                     MISSED
+leak   l07/k8s/secret.yaml                        MISSED
+leak   l16/apps/api-py/.env                       MISSED
+FAILED:
+replay_exit=1
+[exit=0]
+
+[2026-10-08T09:50:57 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt
+$ python3 - <<'PY'
+import re
+p='.gitleaks.toml'; s=open(p).read()
+s=s.replace("'''^[^\\n]*<[A-Za-z0-9_ .-]{3,40}>[^\\n]*$''',", "'''<[A-Za-z0-9_ .-]{3,40}>',")
+open(p,'w').write(s)
+PY
+git diff -U0 .gitleaks.toml | grep '^[-+] '; python3 tools/ci/check_gitleaks_rules.py 2>&1 | grep -E 'MISSED|REPORTED|FAILED|OK:'; echo replay_exit=${PIPESTATUS[0]}; git checkout -q .gitleaks.toml
+-  '''^[^\n]*<[A-Za-z0-9_ .-]{3,40}>[^\n]*$''',
++  '''<[A-Za-z0-9_ .-]{3,40}>',
+FAILED: gitleaks did not complete; the rules were not checked
+replay_exit=1
+[exit=0]
+
+[2026-10-08T09:50:58 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt
+$ PATH=/usr/bin:/bin GITLEAKS= python3 tools/ci/check_gitleaks_rules.py; echo replay_exit=$?; git status --short
+FAILED: gitleaks is not on PATH (or set GITLEAKS); the rules were not checked
+replay_exit=1
+?? apps/api-py/.venv
+[exit=0]
+(the third block above is a TEST-SCRIPT error: the replacement produced invalid TOML, so the replay failed closed for the wrong reason. Redone below.)
+
+[2026-10-08T09:54:58 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt
+$ git diff -U0 .gitleaks.toml | grep '^[-+] '; python3 tools/ci/check_gitleaks_rules.py 2>&1 | grep -E 'MISSED|REPORTED|FAILED|OK:'; echo replay_exit=${PIPESTATUS[0]}; git checkout -q .gitleaks.toml; git status --short
+-  '''^[^\n]*<[A-Za-z0-9_ .-]{3,40}>[^\n]*$''',
++  '''<[A-Za-z0-9_ .-]{3,40}>''',
+leak   l20/docs/report.txt                        MISSED
+FAILED:
+replay_exit=1
+?? apps/api-py/.venv
+[exit=0]

@@ -1,0 +1,32 @@
+# Evidence for UT-G2-012-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:50:35 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ gitleaks dir g2-008a-ghp --config /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaks.toml --gitleaks-ignore-path /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit-code 1 --report-format json --report-path /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/r12.json > /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12.txt 2>&1; echo gitleaks_exit=$?; v=$(grep -oE 'ghp_[A-Za-z0-9]{36}|[0-9a-f]{64}|reep:[A-Za-z0-9]{20}' g2-008a-ghp/x.ts | head -1 | sed 's/^reep://'); echo "raw value length=${#v}; in stdout/log: $(grep -cF "$v" /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12.txt); in JSON: $(grep -cF "$v" /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/r12.json)"; grep -E 'Secret:|RuleID:|File:|Line:' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12.txt
+gitleaks_exit=1
+raw value length=40; in stdout/log: 0; in JSON: 0
+Secret:      REDACTED
+RuleID:      github-pat
+File:        g2-008a-ghp/x.ts
+Line:        1
+[exit=0]
+
+[2026-10-08T09:50:36 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ gitleaks dir g2-001-auth-dotenv --config /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaks.toml --gitleaks-ignore-path /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit-code 1 --report-format json --report-path /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/r12.json > /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12.txt 2>&1; echo gitleaks_exit=$?; v=$(grep -oE 'ghp_[A-Za-z0-9]{36}|[0-9a-f]{64}|reep:[A-Za-z0-9]{20}' g2-001-auth-dotenv/.env | head -1 | sed 's/^reep://'); echo "raw value length=${#v}; in stdout/log: $(grep -cF "$v" /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12.txt); in JSON: $(grep -cF "$v" /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/r12.json)"; grep -E 'Secret:|RuleID:|File:|Line:' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12.txt
+gitleaks_exit=1
+raw value length=64; in stdout/log: 0; in JSON: 0
+Secret:      REDACTED
+RuleID:      reep-auth-secret
+File:        g2-001-auth-dotenv/.env
+Line:        1
+[exit=0]
+
+[2026-10-08T09:50:37 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ gitleaks dir g2-006a-pgurl-psycopg --config /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaks.toml --gitleaks-ignore-path /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit-code 1 --report-format json --report-path /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/r12.json > /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12.txt 2>&1; echo gitleaks_exit=$?; v=$(grep -oE 'ghp_[A-Za-z0-9]{36}|[0-9a-f]{64}|reep:[A-Za-z0-9]{20}' g2-006a-pgurl-psycopg/doc.md | head -1 | sed 's/^reep://'); echo "raw value length=${#v}; in stdout/log: $(grep -cF "$v" /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12.txt); in JSON: $(grep -cF "$v" /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/r12.json)"; grep -E 'Secret:|RuleID:|File:|Line:' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12.txt
+gitleaks_exit=1
+raw value length=20; in stdout/log: 0; in JSON: 0
+Secret:      REDACTED
+RuleID:      reep-database-url-password
+File:        g2-006a-pgurl-psycopg/doc.md
+Line:        1
+[exit=0]

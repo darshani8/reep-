@@ -1,0 +1,32 @@
+# Evidence for UT-G4-019-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T10:02:32 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/apps/api-py
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/dt.sh dev 'postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_prod' REFUSED
+ENV='dev'        URL=postgresql+psycopg://reep:***@localhost:5433/reep_prod                           exit=1 REFUSED expected=REFUSED as-expected refusing to run: the database is named 'reep_prod', which says production.
+[exit=0]
+
+[2026-10-08T10:02:32 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/apps/api-py
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/dt.sh dev 'postgresql+psycopg://reep:reep_dev_password@localhost:5433/prod_reep' REFUSED
+ENV='dev'        URL=postgresql+psycopg://reep:***@localhost:5433/prod_reep                           exit=1 REFUSED expected=REFUSED as-expected refusing to run: the database is named 'prod_reep', which says production.
+[exit=0]
+
+[2026-10-08T10:02:33 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/apps/api-py
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/dt.sh dev 'postgresql+psycopg://reep:reep_dev_password@localhost:5433/REEP_PROD' REFUSED
+ENV='dev'        URL=postgresql+psycopg://reep:***@localhost:5433/REEP_PROD                           exit=1 REFUSED expected=REFUSED as-expected refusing to run: the database is named 'REEP_PROD', which says production.
+[exit=0]
+
+[2026-10-08T10:02:33 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/apps/api-py
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/dt.sh dev 'postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_production' REFUSED
+ENV='dev'        URL=postgresql+psycopg://reep:***@localhost:5433/reep_production                     exit=1 REFUSED expected=REFUSED as-expected refusing to run: the database is named 'reep_production', which says production.
+[exit=0]
+
+[2026-10-08T10:02:34 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/apps/api-py
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/dt.sh dev 'postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py' RUNS
+ENV='dev'        URL=postgresql+psycopg://reep:***@localhost:5433/reep_py                             exit=0 RUNS    expected=RUNS    as-expected 
+[exit=0]
+
+[2026-10-08T10:02:35 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/apps/api-py
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/dt.sh dev 'postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_u_test' RUNS
+ENV='dev'        URL=postgresql+psycopg://reep:***@localhost:5433/reep_u_test                         exit=0 RUNS    expected=RUNS    as-expected 
+[exit=0]

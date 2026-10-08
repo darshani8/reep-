@@ -1,0 +1,39 @@
+# Evidence for UT-G2-008-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:50:18 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: see the masked file'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-008a-ghp; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-008a-ghp
+shape: see the masked file
+--- g2-008a-ghp/x.ts
+const t = <FAKE-VALUE-MASKED>
+findings: 1 [('github-pat', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T09:50:19 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: see the masked file'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-008b-aws-pair; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-008b-aws-pair
+shape: see the masked file
+--- g2-008b-aws-pair/creds
+aws_access_key_id = <FAKE-VALUE-MASKED>
+aws_secret_access_key = <FAKE-VALUE-MASKED>
+findings: 2 [('aws-access-token', 1), ('generic-api-key', 2)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T09:50:20 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: see the masked file'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-008c-private-key; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-008c-private-key
+shape: see the masked file
+--- g2-008c-private-key/id_rsa
+<PEM armour line omitted>
+<FAKE-VALUE-MASKED>
+<FAKE-VALUE-MASKED>
+<FAKE-VALUE-MASKED>
+<FAKE-VALUE-MASKED>
+<FAKE-VALUE-MASKED>
+<FAKE-VALUE-MASKED>
+<FAKE-VALUE-MASKED>
+<FAKE-VALUE-MASKED>
+<PEM armour line omitted>
+findings: 1 [('private-key', 1)]
+gitleaks exit=1
+[exit=0]

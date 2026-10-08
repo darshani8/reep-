@@ -58,6 +58,14 @@ name that can drift.
 - "Secrets (gitleaks)" is required on `main`, `stage` **and** `dev`
   (`.github/rulesets/*.json`), beside "Branch policy (promotion path)" on `main`
   and `stage`.
+- **Residual risk, raised with the product owner and not solved:** the scan
+  reads its rules from the pull request it is scanning, so a pull request that
+  adds a leaked token's fingerprints to `.gitleaksignore` passes its own gate
+  (OBS-QG-I01). CODEOWNERS names the two rules files but is **not enforced** —
+  the rulesets set `require_code_owner_review: false`, and the only code owner
+  is the author of every pull request. It is closed by enforced code-owner
+  review with a second maintainer owning those files; a detector in CI was
+  considered and not built.
 - §34 grows a second half for the standalone checks:
   `STANDALONE_REQUIRED_CHECKS` names each one and the workflow that reports it,
   and `STANDALONE_CHECKS_BY_BRANCH` says which branch's ruleset requires which.

@@ -105,6 +105,19 @@ comment saying why it is not a secret.
 reviewed changes like any other. A finding fails the check; what makes an
 entry acceptable is the comment beside it, and the reviewer reading it.
 
+**Residual risk: a pull request can silence this gate on itself.** Adding a
+leaked token's fingerprints to `.gitleaksignore` (or a matching regex to
+`.gitleaks.toml`) in the same pull request turns "Secrets (gitleaks)" green
+over that token — the integration test level did exactly this (OBS-QG-I01,
+`IT-G2-007`). Nothing in CI stops it. `.github/CODEOWNERS` names both files,
+but **CODEOWNERS is not enforced**: every ruleset has
+`require_code_owner_review: false`, and the only code owner is the author of
+every pull request, so there is nobody else to require. What would close it is
+code-owner review switched on in the rulesets, with a second maintainer owning
+these two files. Until then the only control is a reviewer noticing that a
+pull request edits its own gate. It has been raised with the product owner as a
+residual risk to accept or close; it is not solved.
+
 ## 3. Route audit (pytest)
 
 **What it refuses.** `apps/api-py/tests/test_route_audit.py` imports the

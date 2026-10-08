@@ -55,6 +55,9 @@ select = [
     "PGH004", # a bare `# noqa`, or `# ruff: noqa` switching a whole file off
               # (DEF-QG-U03). The reason after the codes is §39 in
               # tests/test_codebase_guards.py, which ruff cannot check.
+    "RUF103", # a suppression comment ruff cannot parse, so it suppresses nothing
+    "RUF104", # a `ruff: disable[...]` with no matching `ruff: enable[...]`,
+              # which silences its codes to the END OF THE FILE (DEF-QG-U07)
 ]
 # Codes that appear in `# noqa` comments for rules this gate does not select.
 # Without them RUF100 reports every such comment as unused. BLE001 (blind

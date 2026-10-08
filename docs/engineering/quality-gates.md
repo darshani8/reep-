@@ -174,8 +174,14 @@ named gate on some live path through its call tree, or raises on a role
 comparison, where the refusal is not swallowed. "Live" excludes the branch a
 constant test rules out (`if False`, `if not True`, `while 0`, `True and 0`)
 and every statement after an unconditional `return`/`raise`/`continue`/`break`.
-"Swallowed" means inside a `try` with an `except` for `HTTPException`,
-`Exception`, `BaseException` or bare that does not raise again — the shape of
+A nested `def` or lambda counts only where it is called on such a path; one
+defined and never called never runs. "Swallowed" means inside a `try` whose
+`except` catches the refusal and does not raise again, or inside a
+`with contextlib.suppress(...)` that suppresses it — decided by resolving the
+caught name through the module's imports and asking whether fastapi's
+`HTTPException` is a subclass of it, so an alias (`HTTPException as HE`) or a
+qualified spelling (`starlette.exceptions.HTTPException`) is recognised the same
+as `HTTPException`, `Exception`, `BaseException` or a bare `except` — the shape of
 `_may_see_raw_response` in `app/routers/interview_records.py`, which calls
 `require_admin` to get a boolean and is therefore a predicate, not a gate.
 `tests/route_audit_shapes.py` holds the shapes, and the module's self-tests pin

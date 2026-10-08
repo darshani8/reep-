@@ -13,9 +13,14 @@ audit called it gated.
 
 from __future__ import annotations
 
+import contextlib
 import typing
+from contextlib import suppress
 
+import fastapi.exceptions
+import starlette.exceptions
 from fastapi import HTTPException, WebSocket
+from fastapi import HTTPException as HE
 from pydantic import BaseModel, RootModel
 
 from app.identity import get_ws_session
@@ -94,6 +99,100 @@ def gated_finally_still_runs(session: dict) -> int:
         pass
     finally:
         require_admin(session)
+    return 1
+
+
+# --- swallowed by another spelling (DEF-QG-U08) --------------------------------
+
+
+def ungated_suppress_http(session: dict) -> int:
+    with contextlib.suppress(HTTPException):
+        require_admin(session)
+    return 1
+
+
+def ungated_suppress_exception_imported(session: dict) -> int:
+    with suppress(Exception):
+        require_admin(session)
+    return 1
+
+
+def ungated_caught_starlette_qualified(session: dict) -> int:
+    try:
+        require_admin(session)
+    except starlette.exceptions.HTTPException:
+        return 0
+    return 1
+
+
+def ungated_caught_fastapi_qualified(session: dict) -> int:
+    try:
+        require_admin(session)
+    except fastapi.exceptions.HTTPException:
+        return 0
+    return 1
+
+
+def ungated_caught_alias(session: dict) -> int:
+    try:
+        require_admin(session)
+    except HE:
+        return 0
+    return 1
+
+
+def gated_suppress_something_else(session: dict) -> int:
+    with suppress(KeyError):
+        require_admin(session)
+    return 1
+
+
+def gated_ordinary_with(session: dict) -> int:
+    with open(__file__, encoding="utf-8"):
+        require_admin(session)
+    return 1
+
+
+# --- nested functions (DEF-QG-U09) ---------------------------------------------
+
+
+def ungated_nested_def_never_called(session: dict) -> int:
+    def check() -> None:
+        require_admin(session)
+
+    return 1
+
+
+def ungated_lambda_never_called(session: dict) -> int:
+    check = lambda: require_admin(session)  # noqa: E731 — the shape under test
+    return 1 if check else 0
+
+
+def ungated_nested_def_called_only_when_swallowed(session: dict) -> int:
+    def check() -> None:
+        require_admin(session)
+
+    with suppress(HTTPException):
+        check()
+    return 1
+
+
+def gated_nested_def_called(session: dict) -> int:
+    def check() -> None:
+        require_admin(session)
+
+    check()
+    return 1
+
+
+def gated_lambda_called(session: dict) -> int:
+    check = lambda: require_admin(session)  # noqa: E731 — the shape under test
+    check()
+    return 1
+
+
+def gated_lambda_called_in_place(session: dict) -> int:
+    (lambda: require_admin(session))()
     return 1
 
 

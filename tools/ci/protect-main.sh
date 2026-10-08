@@ -135,6 +135,24 @@ REQUIRED_CHECKS=(
   "Infra (CDK synth guards)"
 )
 
+# Required checks reported by a workflow OTHER than ci.yml, as
+# "display name|workflow file". They are a second array rather than five more
+# strings in the first because REQUIRED_CHECKS is compared against ci.yml's job
+# names by test_codebase_guards.py §34, and a check that ci.yml does not run
+# would fail that comparison -- correctly, since it is not a ci.yml job. §34
+# compares THIS array against .github/rulesets/main.json's non-ci.yml checks and
+# proves each name is the display name of a job in the file named beside it, so
+# the classic protection this script applies and the ruleset require the same
+# seven. Without "Secrets (gitleaks)" here, a repository protected by this
+# script instead of the ruleset would merge a pushed AUTH_SECRET on green.
+STANDALONE_CHECKS=(
+  "Branch policy (promotion path)|.github/workflows/branch-policy.yml"
+  "Secrets (gitleaks)|.github/workflows/secret-scan.yml"
+)
+for entry in "${STANDALONE_CHECKS[@]}"; do
+  REQUIRED_CHECKS+=("${entry%%|*}")
+done
+
 APPROVALS=1
 ENFORCE_ADMINS=true
 ASSUME_YES=false
@@ -217,11 +235,22 @@ fi
 # that quietly stopped gating.
 if [ "$SKIP_NAME_CHECK" = false ] && [ -f "$CI_WORKFLOW" ]; then
   missing=()
+  standalone_names=()
+  for entry in "${STANDALONE_CHECKS[@]}"; do
+    standalone_names+=("${entry%%|*}")
+    grep -Fq "name: ${entry%%|*}" "$REPO_ROOT/${entry#*|}" 2>/dev/null \
+      || missing+=("${entry%%|*}  (expected in ${entry#*|})")
+  done
   for check in "${REQUIRED_CHECKS[@]}"; do
+    is_standalone=false
+    for name in "${standalone_names[@]}"; do
+      [ "$name" = "$check" ] && is_standalone=true
+    done
+    [ "$is_standalone" = true ] && continue
     grep -Fq "name: $check" "$CI_WORKFLOW" || missing+=("$check")
   done
   if [ "${#missing[@]}" -gt 0 ]; then
-    printf '\033[31mERROR: these required check names are NOT job names in %s:\033[0m\n' \
+    printf '\033[31mERROR: these required check names are NOT job names in %s (or in the workflow named beside them):\033[0m\n' \
       "$CI_WORKFLOW" >&2
     for m in "${missing[@]}"; do printf '           "%s"\n' "$m" >&2; done
     printf '%s\n' "

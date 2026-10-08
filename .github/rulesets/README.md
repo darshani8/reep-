@@ -21,7 +21,7 @@ Those three were run at the shell before this file was written, not quoted from
 somewhere. Run them again before you believe this heading either way.
 
 So: `main` accepts a direct push right now. `git push origin main` writes
-straight to the branch `deploy.yml` ships from, all four CI jobs are advisory,
+straight to the branch `deploy.yml` ships from, every required check is advisory,
 and every gate the process documents in this repository stands behind that one
 open door. Read anything in `CONTRIBUTING.md` that speaks of `main` being
 protected as describing the state *after* this file is applied.
@@ -29,12 +29,40 @@ protected as describing the state *after* this file is applied.
 ## Three rulesets now, one per long-lived branch
 
 `main.json`, `stage.json` and `dev.json` implement `docs/branching-strategy.md`.
-All three demand a PR, the five CI checks, no force push and no deletion.
-`main` and `stage` additionally require **Branch policy (promotion path)**
+All three demand a PR, the five CI checks, **Secrets (gitleaks)**
+(`.github/workflows/secret-scan.yml`), no force push and no deletion. `main` and
+`stage` additionally require **Branch policy (promotion path)**
 (`.github/workflows/branch-policy.yml`) and allow **merge commits only**. Apply
 each the same way, substituting the file name; `stage` and `dev` must exist as
 branches first, or the ruleset applies to nothing. `tests/test_codebase_guards.py`
-§34 compares all three against `ci.yml`.
+§34 compares all three against `ci.yml`, and proves each check that is NOT a
+`ci.yml` job against the workflow that reports it (below).
+
+## Two checks live outside `ci.yml`, and that is declared, not incidental
+
+| context | workflow | required on |
+| --- | --- | --- |
+| `Branch policy (promotion path)` | `branch-policy.yml` | `main`, `stage` |
+| `Secrets (gitleaks)` | `secret-scan.yml` | `main`, `stage`, `dev` |
+
+They are their own workflows because `ci.yml`'s five job names are pinned
+against `tools/ci/preflight.sh` and `protect-main.sh` (§34), and neither of
+these belongs in that list: the promotion path has nothing to run locally, and
+the secret scan needs the whole history (`fetch-depth: 0`) and a verdict in
+thirty seconds whatever else is red. §34 carries them in
+`STANDALONE_REQUIRED_CHECKS` ({name: workflow file}) and
+`STANDALONE_CHECKS_BY_BRANCH`: it subtracts them before comparing a ruleset with
+`ci.yml`, demands each branch requires exactly its declared set, and reads each
+workflow to prove the name is a job's display name there. So renaming the
+secret-scan job without editing these files fails the `api` job, exactly as a
+`ci.yml` rename does. `protect-main.sh` carries the same two in its own
+`STANDALONE_CHECKS` array, so the classic-protection form of `main` and this
+ruleset require the same seven.
+
+**`dev` requires the secret scan too.** A pushed key is published the moment it
+reaches any branch on a public remote, and `dev` is where a feature branch's
+commits first join the shared history; a scan that started at `stage` would
+find a leak after it had already been public for a promotion cycle.
 
 ## Applying it
 
@@ -85,22 +113,23 @@ whole difference between "the tests ran somewhere" and "the tests ran on this."
 Raise it to `1` the day a second maintainer exists. That is a one-line edit to
 this file and a re-PUT.
 
-**Four required checks, not five.** These four names are the `name:` values in
+**Five CI checks, plus the two above.** The five are the `name:` values in
 `.github/workflows/ci.yml`, byte for byte:
 
-| context in `main.json` | job key in `ci.yml` |
+| context | job key in `ci.yml` |
 | --- | --- |
 | `API (FastAPI + Postgres)` | `api` |
+| `Rule 1 (every model call declares its cargo)` | `pii-gate` |
 | `API (dependency completeness)` | `api-imports` |
-| `Voice worker (dependency completeness)` | `worker-imports` |
 | `Web (Angular)` | `web` |
+| `Infra (CDK synth guards)` | `cdk` |
 
-The process documents also describe a fifth check, a repo-hygiene job. **That
-job does not exist in `ci.yml`, so it is deliberately not listed here.** A
-required check that no job ever reports is not a strict gate — it is a merge
+A required check that no job ever reports is not a strict gate — it is a merge
 button that waits forever for a status GitHub has never seen on that branch, and
-the first person it blocks learns to ask for a bypass. Add the context here in
-the same change that adds the job, never before it.
+the first person it blocks learns to ask for a bypass. (This list asked for
+`Voice worker (dependency completeness)` for months after that job went with the
+LiveKit stack.) Add a context here in the same change that adds the job, never
+before it.
 
 The same trap runs the other way and is quieter: rename `Web (Angular)` to
 `Web (Angular 20)` in an ordinary pull request and the PR reports a passing

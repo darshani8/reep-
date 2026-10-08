@@ -16,13 +16,15 @@
 # pulled in whole by the [extend] block; these rules are additive, never a
 # replacement.
 #
-# WHERE THIS RUNS, AND WHAT IT IS WORTH TODAY. .pre-commit-config.yaml runs it
+# WHERE THIS RUNS. Twice, with one rules file. .pre-commit-config.yaml runs it
 # over the staged diff, which is fast and skippable -- `--no-verify` skips it and
-# the hook lives in .git/, so it is not even cloned. That is the fast copy, not
-# the authority. The authority is meant to be this same rules file run by a
-# required CI job. As of this commit that job does not exist, so this file has
-# exactly one caller and that caller can be bypassed by anyone who wants to.
-# Read it as a rules file that is ready, not as a gate that is closed.
+# the hook lives in .git/, so it is not even cloned. That is the fast copy. The
+# authority is .github/workflows/secret-scan.yml, the required check
+# "Secrets (gitleaks)" in all three rulesets: it scans the pull request's whole
+# commit range AND the checked-out tree with this same file, and nobody can
+# --no-verify a required check. Until that workflow existed this file had one
+# caller and anybody could bypass it; read old commit bodies that say so as
+# history.
 #
 # VERIFIED BEFORE COMMITTING, and re-runnable. Every rule below was matched
 # against every file `git ls-files` lists -- 523 of them -- with the allowlist
@@ -56,6 +58,13 @@ title = "REEP secret rules"
 # and an outage even when it is not a student-data breach.
 useDefault = true
 
+# EVERY `=` BELOW IS FOLLOWED BY `[ \t]*`, NEVER `\s*`. `\s` matches a newline,
+# so `GROQ_API_KEY=` with nothing after it -- the shape every template ships --
+# took the NEXT LINE as its value and reported `#MISTRAL_API_KEY=` as a Groq key
+# (.env.selfhost.example, found by the first full-history scan). An empty value
+# is not a secret, and a rule that reads the next line's comment as one is the
+# noise that gets a scanner switched off.
+
 # ---------------------------------------------------------------------------
 # Rules
 # ---------------------------------------------------------------------------
@@ -80,7 +89,7 @@ description = "AUTH_SECRET assigned a real value (the HS256 key for the reep_ses
 # somebody deletes. Restricting the unquoted branch to the alphabet a key is
 # actually written in -- hex, base64, base64url -- ends the match at the first
 # `)` or `.` and takes all eight away without weakening the real case.
-regex = '''(?i)\bAUTH_SECRET\b\s*[:=]\s*(["'][^"'\n]{32,}["']|[A-Za-z0-9+/=_\-]{32,})'''
+regex = '''(?i)\bAUTH_SECRET\b[ \t]*[:=][ \t]*(["'][^"'\n]{32,}["']|[A-Za-z0-9+/=_\-]{32,})'''
 tags = ["reep", "auth", "session"]
 
 [[rules]]
@@ -116,7 +125,7 @@ description = "VOICE_WORKER_SECRET assigned a real value (the API-to-voice-worke
 # attacker POST forged transcripts into `messages` with channel='voice'. That is
 # a poisoned record rather than an exposed one, and per AGENTS.md's voice runbook
 # the failure mode of this key is already silent enough.
-regex = '''(?i)\bVOICE_WORKER_SECRET\b\s*[:=]\s*["']?[^"'\s$]{8,}["']?'''
+regex = '''(?i)\bVOICE_WORKER_SECRET\b[ \t]*[:=][ \t]*["']?[^"'\s$]{8,}["']?'''
 tags = ["reep", "voice"]
 
 [[rules]]
@@ -141,7 +150,7 @@ id = "reep-groq-key"
 description = "GROQ_API_KEY, by variable name or by Groq's own gsk_ shape"
 # One key drives STT, the LLM and optionally TTS for the voice worker, so a leak
 # is somebody else's inference running on this project's quota.
-regex = '''(?i)(\bGROQ_API_KEY\b\s*[:=]\s*["']?[^"'\s$]{8,}["']?|\bgsk_[A-Za-z0-9]{40,})'''
+regex = '''(?i)(\bGROQ_API_KEY\b[ \t]*[:=][ \t]*["']?[^"'\s$]{8,}["']?|\bgsk_[A-Za-z0-9]{40,})'''
 tags = ["reep", "llm", "provider"]
 
 [[rules]]
@@ -149,7 +158,7 @@ id = "reep-livekit-credentials"
 description = "LIVEKIT_API_KEY or LIVEKIT_API_SECRET assigned a real value"
 # LIVEKIT_URL is not a secret and is deliberately not matched. The key/secret
 # pair mints room tokens, which is the entire access control on a live call.
-regex = '''(?i)\bLIVEKIT_API_(KEY|SECRET)\b\s*[:=]\s*["']?[^"'\s$]{8,}["']?'''
+regex = '''(?i)\bLIVEKIT_API_(KEY|SECRET)\b[ \t]*[:=][ \t]*["']?[^"'\s$]{8,}["']?'''
 tags = ["reep", "voice", "provider"]
 
 [[rules]]
@@ -158,12 +167,16 @@ description = "OPENAI_API_KEY assigned a real value (the realtime mock interview
 # gitleaks' default ruleset already knows the vendor `sk-` shapes. This catches
 # the variable being set to anything at all, including a proxy token or a
 # gateway-issued key carrying no vendor prefix.
-regex = '''(?i)\bOPENAI_API_KEY\b\s*[:=]\s*["']?[^"'\s$]{16,}["']?'''
+regex = '''(?i)\bOPENAI_API_KEY\b[ \t]*[:=][ \t]*["']?[^"'\s$]{16,}["']?'''
 tags = ["reep", "llm", "provider"]
 
 # ---------------------------------------------------------------------------
 # Allowlist
 # ---------------------------------------------------------------------------
+#
+# `[[allowlists]]` with no targetRules is GLOBAL: it applies to every rule,
+# gitleaks' default ruleset included. (The singular `[allowlist]` this block
+# was first written as is deprecated, and gitleaks refuses a file holding both.)
 #
 # ALLOWLISTED BY VALUE, NOT BY PATH -- with three narrow exceptions at the
 # bottom, none of which is a source file. The difference matters. Allowlisting
@@ -180,7 +193,7 @@ tags = ["reep", "llm", "provider"]
 # (app/config.py, production_boot_failures) REFUSES TO BOOT on them: a production
 # host carrying one of these is already compromised by anyone who has cloned
 # REEP. They are worthless as secrets, and worse than worthless as scanner noise.
-[allowlist]
+[[allowlists]]
 description = "Published dev/CI values, and the placeholders the templates ship with"
 regexTarget = "line"
 regexes = [
@@ -234,3 +247,65 @@ paths = [
   # is a different problem from a leaked secret.
   '''\.pyc$''',
 ]
+
+# ---------------------------------------------------------------------------
+# Rule-scoped exemptions
+# ---------------------------------------------------------------------------
+#
+# The global block above frees a VALUE for every rule. These free one
+# shape for ONE rule, so the same string under any other rule still fires. Each
+# exists because the first scan with the pinned gitleaks (the version in
+# .github/workflows/secret-scan.yml, newer than the pre-commit hook's and with a
+# wider default ruleset) reported it, and each line was read before it was
+# written down. Nothing is here pre-emptively: the seeded demo passwords
+# (student123, mentor123, alumni123, admin123, director123) match no rule, so
+# they have no entry -- an entry for a value nothing matches is a hole waiting
+# for the rule that would.
+
+[[allowlists]]
+description = "generic-api-key: a dotenv variable NAME read as the value of the line above it"
+# gitleaks' generic-api-key spans a newline, so in apps/api-py/.env.example
+# `SAKANA_API_KEY=""` followed by `GROQ_API_KEY=""` is reported with the second
+# line's NAME (`GROQ_API_KEY=`) as the secret. A name ending in `=` is never a
+# credential. Keyed on the secret's WHOLE shape, so a real value on either line
+# still fires.
+targetRules = ["generic-api-key"]
+regexTarget = "secret"
+regexes = ['''^[A-Z][A-Z0-9_]*=$''']
+
+[[allowlists]]
+description = "generic-api-key: an ORM attribute passed as a keyword in voice_platform/api/calls.py"
+# `s3_key=row.recording_s3_key, size_bytes=row.recording_bytes` passes columns
+# to a response model, and the rule reads `size_bytes=row.recording_bytes` as a
+# key because `s3_key` sits in front of it: the "secret" is Python. Path AND
+# regex -- a keyword argument whose value is an attribute of `row` -- so the
+# exemption covers that shape in that file and nothing else.
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^apps/api-py/app/voice_platform/api/calls\.py$''']
+regexTarget = "secret"
+regexes = ['''^[a-z_]+=row\.[a-z0-9_]+$''']
+
+[[allowlists]]
+description = "generic-api-key: an EFS access point ID in the CDK import map"
+# infra/cdk/import-map.json is the cutover's record of which physical resource
+# each logical id adopted (docs/cdk-cutover.md). `fsap-` + 17 hex is an AWS
+# resource IDENTIFIER, the same kind of string as the cluster name beside it: it
+# names a thing and authorises nothing.
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^infra/cdk/import-map\.json$''']
+regexTarget = "secret"
+regexes = ['''^fsap-[0-9a-f]{17}$''']
+
+[[allowlists]]
+description = "reep-database-url-password: the stand-in password test_backup_database.py proves never leaks"
+# Those tests exist to assert that the password in a DATABASE_URL reaches
+# pg_dump through libpq's PG* variables and never argv or an error message, so
+# they must spell one out. `s3cr3t` against `db.internal` and `h` is that
+# stand-in; scoped to this file so the same word anywhere else still fires.
+targetRules = ["reep-database-url-password"]
+condition = "AND"
+paths = ['''^apps/api-py/tests/test_backup_database\.py$''']
+regexTarget = "match"
+regexes = [''':s3cr3t@''']

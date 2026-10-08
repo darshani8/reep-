@@ -1629,12 +1629,38 @@ def test_the_capability_guard_resolves_constants_and_looks_inside_helpers() -> N
 
 
 # --------------------------------------------------------------------------- #
-# §34  The five required status checks are five STRINGS in four files          #
+# §34  Required status checks are STRINGS in four files and two workflows     #
 # --------------------------------------------------------------------------- #
 
 
-def _ci_job_display_names() -> dict[str, str]:
-    """`.github/workflows/ci.yml`'s jobs, as {job id: the name GitHub reports}.
+#: Required checks reported by a workflow OTHER than ci.yml, as
+#: {display name: the workflow file whose job reports it}. Declared, not
+#: discovered: each is subtracted from the rulesets before they are compared with
+#: ci.yml, and each is then proved to be the display name of a job in the file
+#: named here -- so renaming that job without the rulesets fails this guard the
+#: same way renaming a ci.yml job does. They are not ci.yml jobs on purpose:
+#: Branch policy has nothing to run locally, and the secret scan wants the whole
+#: history (fetch-depth: 0) and a verdict in thirty seconds whatever else is
+#: broken. Adding one here is the review that a new required check is meant to
+#: live outside the five.
+STANDALONE_REQUIRED_CHECKS: dict[str, str] = {
+    "Branch policy (promotion path)": ".github/workflows/branch-policy.yml",
+    "Secrets (gitleaks)": ".github/workflows/secret-scan.yml",
+}
+
+#: Which branch's ruleset requires which standalone check. The promotion path is
+#: a question about main and stage only (tests/test_branch_policy.py pins that);
+#: a leaked secret is a leak on every branch, dev included, because dev is where
+#: a feature branch's commits first land in the shared history.
+STANDALONE_CHECKS_BY_BRANCH: dict[str, set[str]] = {
+    "main": {"Branch policy (promotion path)", "Secrets (gitleaks)"},
+    "stage": {"Branch policy (promotion path)", "Secrets (gitleaks)"},
+    "dev": {"Secrets (gitleaks)"},
+}
+
+
+def _ci_job_display_names(workflow: str = "ci.yml") -> dict[str, str]:
+    """A workflow's jobs, as {job id: the name GitHub reports}; ci.yml by default.
 
     Parsed with a regex rather than PyYAML on purpose: PyYAML is not declared in
     `requirements.txt` OR `requirements-dev.txt` — it is in this venv only as
@@ -1646,9 +1672,9 @@ def _ci_job_display_names() -> dict[str, str]:
     what this falls back to — getting that backwards would make the guard demand
     a display name that never appears on any pull request.
     """
-    text = (REPO / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    text = (REPO / ".github" / "workflows" / workflow).read_text(encoding="utf-8")
     body = text.split("\njobs:\n", 1)
-    assert len(body) == 2, "ci.yml has no top-level `jobs:` block; this guard read nothing"
+    assert len(body) == 2, f"{workflow} has no top-level `jobs:` block; this guard read nothing"
 
     jobs: dict[str, str] = {}
     current: str | None = None
@@ -1661,7 +1687,7 @@ def _ci_job_display_names() -> dict[str, str]:
         label = re.match(r"^    name:\s*(\S.*?)\s*$", line)
         if label and current and jobs[current] == current:
             jobs[current] = label.group(1).strip("\"'")
-    assert jobs, "no jobs parsed out of ci.yml — the guard would pass by finding nothing"
+    assert jobs, f"no jobs parsed out of {workflow} — the guard would pass by finding nothing"
     return jobs
 
 
@@ -1702,16 +1728,36 @@ def test_the_five_required_check_names_agree_across_all_four_files() -> None:
         f"independently of the other: {sorted(jobs.items())}"
     )
 
-    # main and stage also require the promotion-path check, which lives in its
-    # own workflow (.github/workflows/branch-policy.yml) and is pinned by
-    # tests/test_branch_policy.py; it is not a ci.yml job, so it is set aside here.
-    branch_policy = "Branch policy (promotion path)"
+    # The standalone checks are subtracted before the comparison with ci.yml,
+    # and each must be EXACTLY the set its branch is declared to require -- a
+    # standalone check dropped from a ruleset is a gate removed as quietly as a
+    # ci.yml job renamed. Each one's name is then proved against its own
+    # workflow file, below, so the subtraction cannot hide a stale string.
+    standalone = set(STANDALONE_REQUIRED_CHECKS)
+    assert not standalone & ci_names, (
+        f"{sorted(standalone & ci_names)} is declared standalone but is also a ci.yml job; "
+        "one check reported by two workflows can never be required independently"
+    )
+    for name, workflow in STANDALONE_REQUIRED_CHECKS.items():
+        reported = set(_ci_job_display_names(workflow.removeprefix(".github/workflows/")).values())
+        assert name in reported, (
+            f"the rulesets require {name!r}, which {workflow} does not report (its jobs report "
+            f"{sorted(reported)}). A required check no job reports is never reported, and "
+            "GitHub does not wait for a check it has never seen: rename the job back, or "
+            "edit the rulesets, protect-main.sh's STANDALONE_CHECKS and "
+            "STANDALONE_REQUIRED_CHECKS in the same commit."
+        )
     rulesets: dict[str, set[str]] = {}
     for branch in ("main", "stage", "dev"):
         ruleset = json.loads((REPO / ".github" / "rulesets" / f"{branch}.json").read_text(encoding="utf-8"))
         checks = [r for r in ruleset["rules"] if r["type"] == "required_status_checks"]
         assert len(checks) == 1, f"{branch}.json declares no single required_status_checks rule"
-        rulesets[branch] = {c["context"] for c in checks[0]["parameters"]["required_status_checks"]} - {branch_policy}
+        contexts = {c["context"] for c in checks[0]["parameters"]["required_status_checks"]}
+        assert contexts & standalone == STANDALONE_CHECKS_BY_BRANCH[branch], (
+            f"{branch}.json requires standalone checks {sorted(contexts & standalone)}, "
+            f"but is declared to require {sorted(STANDALONE_CHECKS_BY_BRANCH[branch])}"
+        )
+        rulesets[branch] = contexts - standalone
     ruleset_names = rulesets["main"]
     for branch, names in rulesets.items():
         assert names == ruleset_names, (
@@ -1724,6 +1770,21 @@ def test_the_five_required_check_names_agree_across_all_four_files() -> None:
     assert block, "protect-main.sh has no REQUIRED_CHECKS array for this guard to read"
     protect_names = set(re.findall(r'"([^"]+)"', block.group(1)))
     assert protect_names, "REQUIRED_CHECKS parsed empty"
+    # The classic-protection twin of main.json: the non-ci.yml checks travel in
+    # their own array, as "name|workflow", because REQUIRED_CHECKS is compared
+    # with ci.yml below and they are not ci.yml jobs.
+    sblock = re.search(r"^STANDALONE_CHECKS=\((.*?)^\)", protect, re.S | re.M)
+    assert sblock, "protect-main.sh has no STANDALONE_CHECKS array for this guard to read"
+    protect_standalone = dict(
+        entry.split("|", 1) for entry in re.findall(r'"([^"]+)"', sblock.group(1))
+    )
+    assert protect_standalone == {
+        name: STANDALONE_REQUIRED_CHECKS[name] for name in STANDALONE_CHECKS_BY_BRANCH["main"]
+    }, (
+        "protect-main.sh's STANDALONE_CHECKS disagree with what main.json requires outside "
+        f"ci.yml: {protect_standalone}. The script and the ruleset are two ways to protect "
+        "one branch, and must not be two different gates."
+    )
 
     assert ruleset_names == ci_names, (
         "the committed ruleset and ci.yml disagree about the required checks.\n"

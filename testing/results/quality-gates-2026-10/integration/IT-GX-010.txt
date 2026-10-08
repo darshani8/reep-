@@ -1,0 +1,22 @@
+### 2026-10-08T08:40:18Z  cwd=/home/user/reep-
+$ ls .github/workflows/*.yml | wc -l; actionlint -no-color .github/workflows/*.yml; echo ACTIONLINT_EXIT=$?
+13
+.github/workflows/ops-task.yml:30:3: maximum number of inputs for "workflow_dispatch" event is 10 but 14 inputs are provided. see https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#providing-inputs [events]
+   |
+30 |   workflow_dispatch:
+   |   ^~~~~~~~~~~~~~~~~~
+ACTIONLINT_EXIT=1
+[exit 0, 0s]
+
+### 2026-10-08T08:40:18Z  cwd=/home/user/reep-
+$ apps/api-py/.venv/bin/python -c "import yaml,glob,json; [yaml.safe_load(open(f)) for f in glob.glob('.github/workflows/*.yml')+['.pre-commit-config.yaml']]; [json.load(open(f)) for f in glob.glob('.github/rulesets/*.json')]; print('all workflow YAML, pre-commit YAML and ruleset JSON parse')"
+all workflow YAML, pre-commit YAML and ruleset JSON parse
+[exit 0, 1s]
+
+NOTE: actionlint 1.7.7's only finding (ops-task.yml, 14 workflow_dispatch inputs > 10) is an outdated rule: GitHub raised the limit to 25 inputs; ops-task.yml is NOT in this PR's diff (git diff --name-only 15a9e7d..a3688f0 does not list it). Re-run with actionlint 1.7.12 (latest available, checksum-verified):
+### 2026-10-08T08:40:30Z  cwd=/home/user/reep-
+$ actionlint --version | head -1; actionlint -no-color .github/workflows/*.yml; echo ACTIONLINT_EXIT=$?
+1.7.12
+ACTIONLINT_EXIT=0
+[exit 0, 0s]
+

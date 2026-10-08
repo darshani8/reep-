@@ -1,0 +1,22 @@
+### 2026-10-08T08:40:03Z  cwd=/tmp
+$ rm -rf /tmp/rti && mkdir /tmp/rti && : > /tmp/rti/ghpath && GITLEAKS_VERSION=8.30.0 GITLEAKS_SHA256=79a3ab579b53f71efd634f3aaf7e04a0fa0cf206b7ed434638d1547a2470a66f RUNNER_TEMP=/tmp/rti GITHUB_PATH=/tmp/rti/ghpath bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/install-step.sh; echo STEP_EXIT=$?; echo "GITHUB_PATH contents: [$(cat /tmp/rti/ghpath)]"; ls /tmp/rti/gitleaks 2>&1  # last hex digit e->f
+/tmp/rti/gitleaks_8.30.0_linux_x64.tar.gz: FAILED
+sha256sum: WARNING: 1 computed checksum did NOT match
+STEP_EXIT=1
+GITHUB_PATH contents: []
+ls: cannot access '/tmp/rti/gitleaks': No such file or directory
+[exit 2, 1s]
+
+### 2026-10-08T08:40:04Z  cwd=/tmp
+$ rm -rf /tmp/rti && mkdir /tmp/rti && : > /tmp/rti/ghpath && GITLEAKS_VERSION=8.29.1 GITLEAKS_SHA256=79a3ab579b53f71efd634f3aaf7e04a0fa0cf206b7ed434638d1547a2470a66e RUNNER_TEMP=/tmp/rti GITHUB_PATH=/tmp/rti/ghpath bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/install-step.sh; echo STEP_EXIT=$?  # version bumped without the hash
+/tmp/rti/gitleaks_8.29.1_linux_x64.tar.gz: FAILED
+sha256sum: WARNING: 1 computed checksum did NOT match
+STEP_EXIT=1
+[exit 0, 0s]
+
+### 2026-10-08T08:40:04Z  cwd=/tmp
+$ rm -rf /tmp/rti && mkdir /tmp/rti && : > /tmp/rti/ghpath && GITLEAKS_VERSION=8.30.0 GITLEAKS_SHA256= RUNNER_TEMP=/tmp/rti GITHUB_PATH=/tmp/rti/ghpath bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/install-step.sh; echo STEP_EXIT=$?  # empty hash
+sha256sum: 'standard input': no properly formatted checksum lines found
+STEP_EXIT=1
+[exit 0, 1s]
+

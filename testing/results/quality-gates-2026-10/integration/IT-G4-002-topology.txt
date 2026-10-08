@@ -1,0 +1,51 @@
+### 2026-10-08T08:34:49Z  cwd=/
+$ psql -h localhost -p 5433 -U postgres -Atc "select default_version from pg_available_extensions where name=\$\$vector\$\$"; ip addr add 192.0.2.2/32 dev lo; ip -4 addr show dev lo | grep inet;
+mkdir -p /var/lib/pgci && chown postgres:postgres /var/lib/pgci;
+echo reep_dev_password > /tmp/pgpw && chown postgres /tmp/pgpw;
+su postgres -c "/usr/lib/postgresql/16/bin/initdb -D /var/lib/pgci/data -U reep --pwfile=/tmp/pgpw --auth=scram-sha-256" >/dev/null && echo initdb-ok;
+su postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D /var/lib/pgci/data -o \"-p 5432 -c listen_addresses=192.0.2.2 -c unix_socket_directories=/tmp/pgci -c max_connections=200\" -l /var/lib/pgci/log.txt start" ; mkdir -p /tmp/pgci; chown postgres /tmp/pgci
+0.6.0
+bash: line 1: ip: command not found
+bash: line 1: ip: command not found
+initdb-ok
+waiting for server to start.... stopped waiting
+pg_ctl: could not start server
+Examine the log output.
+[exit 0, 1s]
+
+### 2026-10-08T08:34:56Z  cwd=/
+$ su postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D /var/lib/pgci/data -o \"-p 5432 -c listen_addresses=192.0.2.2 -c unix_socket_directories=/tmp/pgci -c max_connections=200\" -l /var/lib/pgci/log.txt start"; ss -ltnp | grep 5432
+waiting for server to start.... done
+server started
+bash: line 1: ss: command not found
+[exit 1, 1s]
+
+### 2026-10-08T08:34:58Z  cwd=/
+$ ss -ltnp | grep -E "5435|5432"; PGPASSWORD=reep_dev_password psql "host=127.0.0.1 port=5435 user=reep dbname=postgres" -Atc "select inet_server_addr(), inet_server_port(), version()"; PGPASSWORD=reep_dev_password psql "host=127.0.0.1 port=5435 user=reep dbname=postgres" -c "create database reep_py"; psql -h 127.0.0.1 -p 5435 -U reep -d postgres -w -c "select 1" ; echo "(previous line: no password -> must be refused, scram)"
+bash: line 1: ss: command not found
+psql: error: connection to server at "127.0.0.1", port 5435 failed: FATAL:  no pg_hba.conf entry for host "192.0.2.2", user "reep", database "postgres", no encryption
+psql: error: connection to server at "127.0.0.1", port 5435 failed: FATAL:  no pg_hba.conf entry for host "192.0.2.2", user "reep", database "postgres", no encryption
+psql: error: connection to server at "127.0.0.1", port 5435 failed: FATAL:  no pg_hba.conf entry for host "192.0.2.2", user "reep", database "postgres", no encryption
+(previous line: no password -> must be refused, scram)
+[exit 0, 0s]
+
+### 2026-10-08T08:35:04Z  cwd=/
+$ echo "host all all all scram-sha-256   # as the pgvector/postgres docker image writes it" >> /var/lib/pgci/data/pg_hba.conf; su postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D /var/lib/pgci/data reload"; sleep 1; PGPASSWORD=reep_dev_password psql "host=127.0.0.1 port=5435 user=reep dbname=postgres" -Atc "select inet_server_addr(), inet_server_port(), split_part(version(),\$\$ on\$\$,1)"; PGPASSWORD=reep_dev_password psql "host=127.0.0.1 port=5435 user=reep dbname=postgres" -c "create database reep_py"; psql -h 127.0.0.1 -p 5435 -U reep -d postgres -w -c "select 1"; echo "(no password above -> refused as expected)"; psql -h 127.0.0.1 -p 5433 -U postgres -Atc "select inet_server_addr()"; echo "(primary cluster for comparison: loopback)"
+server signaled
+192.0.2.2|5432|PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+CREATE DATABASE
+psql: error: connection to server at "127.0.0.1", port 5435 failed: fe_sendauth: no password supplied
+(no password above -> refused as expected)
+127.0.0.1
+(primary cluster for comparison: loopback)
+[exit 0, 1s]
+
+### 2026-10-08T08:43:54Z  cwd=/
+$ PGPASSWORD=reep_dev_password psql 'host=127.0.0.1 port=5435 user=reep dbname=postgres' -Atc "select datname from pg_database order by 1"; echo '(no reep_py_roundtrip left behind after the CI replay)'
+postgres
+reep_py
+template0
+template1
+(no reep_py_roundtrip left behind after the CI replay)
+[exit 0, 0s]
+

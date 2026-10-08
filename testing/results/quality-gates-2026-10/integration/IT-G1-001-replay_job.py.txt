@@ -1,0 +1,25 @@
+"""Replay a GitHub Actions job's `run:` steps in order, exactly as written.
+usage: replay_job.py <workflow.yml> <job-id> <checkout-root> [KEY=VAL overrides for job env]
+`uses:` steps are reported and not executed (the caller provides their effect)."""
+import os, subprocess, sys, time, yaml
+wf, job_id, root = sys.argv[1], sys.argv[2], sys.argv[3]
+over = dict(a.split("=", 1) for a in sys.argv[4:])
+job = yaml.safe_load(open(wf))["jobs"][job_id]
+env = dict(os.environ); env.update({k: str(v) for k, v in (job.get("env") or {}).items()}); env.update(over)
+print(f"JOB {job_id!r} name={job.get('name')!r}")
+print("job env:", {k: (v if 'PASSWORD' not in k else '***') for k, v in (job.get('env') or {}).items()}, "overrides:", over)
+worst = 0
+for i, step in enumerate(job["steps"], 1):
+    name = step.get("name") or step.get("uses")
+    if "uses" in step:
+        print(f"\n--- step {i}: uses {step['uses']}  (not executed: provided by the test bed)"); continue
+    wd = os.path.join(root, step.get("working-directory", "."))
+    senv = dict(env); senv.update({k: str(v) for k, v in (step.get("env") or {}).items()})
+    print(f"\n--- step {i}: {name!r}  working-directory={step.get('working-directory', '.')}\n{step['run'].rstrip()}", flush=True)
+    t0 = time.monotonic()
+    # GitHub's default shell for run: is `bash -e {0}` (with --noprofile --norc)
+    p = subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", step["run"]], cwd=wd, env=senv)
+    print(f"=== step {i} {name!r}: exit {p.returncode} in {time.monotonic()-t0:.1f}s", flush=True)
+    if p.returncode:
+        print("JOB FAILED at this step; later steps not run (as on a runner)"); sys.exit(p.returncode)
+print("\nJOB PASSED: every step exited 0")

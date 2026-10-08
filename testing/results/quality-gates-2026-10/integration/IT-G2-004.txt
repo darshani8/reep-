@@ -1,0 +1,24 @@
+### 2026-10-08T08:37:06Z  cwd=/tmp/ss-clone
+$ rm -rf /tmp/rt && mkdir /tmp/rt && EVENT=pull_request BASE_SHA=0123456789abcdef0123456789abcdef01234567 HEAD_SHA=a3688f0189c48287f376cf8c165d762a2f8ab8d8 RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step.sh; echo STEP_EXIT=$?; ls /tmp/rt/gitleaks-report
+::error::the pull request's base commit '0123456789abcdef0123456789abcdef01234567' is not in this clone, so its commit range cannot be scanned. Refusing rather than scanning nothing: rebase the branch onto its base, or re-run once the base exists.
+STEP_EXIT=1
+[exit 0, 0s]
+
+### 2026-10-08T08:37:06Z  cwd=/tmp/ss-clone
+$ rm -rf /tmp/rt && mkdir /tmp/rt && EVENT=pull_request BASE_SHA= HEAD_SHA=a3688f0189c48287f376cf8c165d762a2f8ab8d8 RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step.sh; echo STEP_EXIT=$?  # empty base (field missing from event)
+::error::the pull request's base commit '' is not in this clone, so its commit range cannot be scanned. Refusing rather than scanning nothing: rebase the branch onto its base, or re-run once the base exists.
+STEP_EXIT=1
+[exit 0, 0s]
+
+### 2026-10-08T08:37:06Z  cwd=/tmp/ss-clone
+$ rm -rf /tmp/rt && mkdir /tmp/rt && EVENT=pull_request BASE_SHA=a3688f0189c48287f376cf8c165d762a2f8ab8d8 HEAD_SHA=deadbeef RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step.sh; echo STEP_EXIT=$?  # unknown head
+::error::the pull request's head commit 'deadbeef' is not in this clone, so its commit range cannot be scanned. Refusing rather than scanning nothing: rebase the branch onto its base, or re-run once the base exists.
+STEP_EXIT=1
+[exit 0, 0s]
+
+### 2026-10-08T08:37:06Z  cwd=/tmp/ss-clone
+$ T=$(git rev-parse HEAD^{tree}); rm -rf /tmp/rt && mkdir /tmp/rt && EVENT=pull_request BASE_SHA=$T HEAD_SHA=a3688f0189c48287f376cf8c165d762a2f8ab8d8 RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step.sh; echo STEP_EXIT=$?  # base names a TREE object, not a commit
+::error::the pull request's base commit '1e600a9ab8f23080fa0658504aa5c6fe1740b2ef' is not in this clone, so its commit range cannot be scanned. Refusing rather than scanning nothing: rebase the branch onto its base, or re-run once the base exists.
+STEP_EXIT=1
+[exit 0, 0s]
+

@@ -1,0 +1,21 @@
+### 2026-10-08T08:46:04Z  cwd=/home/user/reep-/apps/api-py
+$ export DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py; /home/user/reep-/apps/api-py/.venv/bin/python -m alembic upgrade head 2>&1 | tail -1; /home/user/reep-/apps/api-py/.venv/bin/python -m alembic heads; /home/user/reep-/apps/api-py/.venv/bin/python -m alembic heads | wc -l; /home/user/reep-/apps/api-py/.venv/bin/python -m alembic check; echo CHECK_EXIT=$?; /home/user/reep-/apps/api-py/.venv/bin/python -m alembic current
+INFO  [alembic.runtime.migration] Running upgrade e2b7c4d9f1a6 -> f4a2c9e7b1d3, registrations.submission_key_hash — a retry after a lost reply is the same application.
+f4a2c9e7b1d3 (head)
+1
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.schemas
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.tables
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.types
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.constraints
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.defaults
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.comments
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.checkconstraint_byname
+No new upgrade operations detected.
+CHECK_EXIT=0
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+f4a2c9e7b1d3 (head)
+[exit 0, 6s]
+

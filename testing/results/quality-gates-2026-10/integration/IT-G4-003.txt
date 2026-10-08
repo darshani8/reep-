@@ -1,0 +1,33 @@
+### 2026-10-08T08:43:54Z  cwd=/tmp/ci-replay/apps/api-py
+$ PGPASSWORD=reep_dev_password psql 'host=127.0.0.1 port=5435 user=reep dbname=reep_py' -Atc 'select count(*) from users'; echo '(seeded + test leftovers: the DB is seeded)'; /tmp/py314/bin/python ../../tools/ci/check_migration_roundtrip.py --plan; echo PLAN_EXIT=$?; PGPASSWORD=reep_dev_password psql 'host=127.0.0.1 port=5435 user=reep dbname=postgres' -Atc "select count(*) from pg_database where datname='reep_py_roundtrip'"; echo '(--plan created no scratch db)'
+5
+(seeded + test leftovers: the DB is seeded)
+database   postgresql+psycopg://reep:***@localhost:5435/reep_py  (read only: compared against)
+scratch    reep_py_roundtrip  (created, walked, dropped)
+head       f4a2c9e7b1d3
+floor      9b2d47f0ce15  (the furthest a real rollback can go)
+segment    base .. 31ca99852acd: 66 downgrade(s)
+segment    7c4e0b21d9aa .. 31f7a4c60b12: 2 downgrade(s)
+segment    9b2d47f0ce15 .. f4a2c9e7b1d3: 22 downgrade(s)
+exercised  90 of 92 downgrades; the rest refuse on purpose
+PLAN_EXIT=0
+0
+(--plan created no scratch db)
+[exit 0, 1s]
+
+### 2026-10-08T08:43:55Z  cwd=/tmp/ci-replay/apps/api-py
+$ PGPASSWORD=reep_dev_password psql 'host=127.0.0.1 port=5435 user=reep dbname=reep_py' -Atc 'select md5(string_agg(t,chr(10) order by t)) from (select format($$%s.%s=%s$$, table_name, column_name, data_type) t from information_schema.columns where table_schema=$$public$$) x' > /tmp/sch_before; PGPASSWORD=reep_dev_password psql 'host=127.0.0.1 port=5435 user=reep dbname=reep_py' -Atc 'select (select count(*) from users), (select count(*) from students), (select count(*) from registrations)' > /tmp/rows_before; /tmp/py314/bin/python ../../tools/ci/check_migration_roundtrip.py 2>&1 | grep -E '^(OK|segment|exercised|straight|FAIL|refus)|OK:'; echo RT_EXIT=${PIPESTATUS[0]}; PGPASSWORD=reep_dev_password psql 'host=127.0.0.1 port=5435 user=reep dbname=reep_py' -Atc 'select md5(string_agg(t,chr(10) order by t)) from (select format($$%s.%s=%s$$, table_name, column_name, data_type) t from information_schema.columns where table_schema=$$public$$) x' > /tmp/sch_after; PGPASSWORD=reep_dev_password psql 'host=127.0.0.1 port=5435 user=reep dbname=reep_py' -Atc 'select (select count(*) from users), (select count(*) from students), (select count(*) from registrations)' > /tmp/rows_after; echo schema: $(cat /tmp/sch_before) / $(cat /tmp/sch_after); echo rows users,students,registrations: $(cat /tmp/rows_before) / $(cat /tmp/rows_after)
+segment    base .. 31ca99852acd: 66 downgrade(s)
+segment    7c4e0b21d9aa .. 31f7a4c60b12: 2 downgrade(s)
+segment    9b2d47f0ce15 .. f4a2c9e7b1d3: 22 downgrade(s)
+exercised  90 of 92 downgrades; the rest refuse on purpose
+straight path: 2118 catalogue lines at f4a2c9e7b1d3
+   OK: 66 downgrade(s), identical at both ends
+   OK: 2 downgrade(s), identical at both ends
+   OK: 22 downgrade(s), identical at both ends
+OK: 90 of 92 downgrades run in 3 segment(s), catalogues identical at every bottom and top, the round-tripped head matches the straight one (2118 lines), alembic check clean (21 s).
+RT_EXIT=0
+schema: ed17a26a096095cf0b6974166c914e7b / ed17a26a096095cf0b6974166c914e7b
+rows users,students,registrations: 5|2|3 / 5|2|3
+[exit 0, 22s]
+

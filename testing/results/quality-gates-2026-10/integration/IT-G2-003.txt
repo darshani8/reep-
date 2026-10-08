@@ -1,0 +1,24 @@
+NOTE: Same pr-leak range as IT-G2-002 run under GitHub's EXACT default shell for an unspecified 'shell:' on ubuntu runners: 'bash --noprofile --norc -eo pipefail {0}'. Then the same script under plain bash (no -e) for comparison with the step's documented design ('Two scans, both always run, one verdict at the end').
+### 2026-10-08T08:36:41Z  cwd=/tmp/ss-clone
+$ rm -rf /tmp/rt3 && mkdir /tmp/rt3 && EVENT=pull_request BASE_SHA=a3688f0189c48287f376cf8c165d762a2f8ab8d8 HEAD_SHA=cddd54ea6f774ca4dea82d6062b1d69c785fc2d9 RUNNER_TEMP=/tmp/rt3 bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step.sh >/tmp/rt3.out 2>&1; echo STEP_EXIT=$?; grep -cE 'Finding:' /tmp/rt3.out; grep -E '::error::|commits scanned|no leaks|leaks found' /tmp/rt3.out; ls /tmp/rt3/gitleaks-report
+STEP_EXIT=1
+1
+8:36AM INF 1 commits scanned.
+8:36AM WRN leaks found: 1
+history.json
+history.log
+[exit 0, 1s]
+
+### 2026-10-08T08:36:42Z  cwd=/tmp/ss-clone
+$ rm -rf /tmp/rt3b && mkdir /tmp/rt3b && EVENT=pull_request BASE_SHA=a3688f0189c48287f376cf8c165d762a2f8ab8d8 HEAD_SHA=cddd54ea6f774ca4dea82d6062b1d69c785fc2d9 RUNNER_TEMP=/tmp/rt3b bash --noprofile --norc /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step.sh >/tmp/rt3b.out 2>&1; echo STEP_EXIT=$?; grep -E '::error::|commits scanned|no leaks|leaks found' /tmp/rt3b.out; ls /tmp/rt3b/gitleaks-report
+STEP_EXIT=1
+8:36AM INF 1 commits scanned.
+8:36AM WRN leaks found: 1
+8:36AM INF no leaks found
+::error::gitleaks found a secret in the history scan (file, line and rule above; the value is redacted). Rotate it first -- removing the line does not un-publish it -- then see .gitleaks.toml for how a published dev value is allowlisted.
+history.json
+history.log
+tree.json
+tree.log
+[exit 0, 7s]
+

@@ -1,0 +1,37 @@
+NOTE: Worktree /tmp/wtpf without apps/web/node_modules (check 5 SKIPs, which alone would give 2 -- so exit 1 can only come from a FAIL). Planted: 'qg_probe: int = "not an int"' appended to apps/api-py/app/clock.py.
+### 2026-10-08T08:51:36Z  cwd=/tmp/wtpf
+$ echo 'qg_probe: int = "not an int"  # QG test plant' >> apps/api-py/app/clock.py; git diff --stat; bash tools/ci/preflight.sh --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; sed 's/\x1b\[[0-9;]*m//g' /tmp/pf.out | sed -n '/6\/6  API/,$p' | grep -vE '^\s*$|^\.+ *\[' | cut -c1-220
+ apps/api-py/app/clock.py | 1 +
+ 1 file changed, 1 insertion(+)
+PREFLIGHT_EXIT=1
+6/6  API (FastAPI + Postgres)
+  $ /tmp/wtpf/apps/api-py/.venv/bin/python -m ruff check --config pyproject.toml . ../../tools/ci
+All checks passed!
+  $ /tmp/wtpf/apps/api-py/.venv/bin/python -m mypy
+app/clock.py:62: error: Incompatible types in assignment (expression has type "str", variable has type "int")  [assignment]
+Found 1 error in 1 file (checked 218 source files)
+  $ /tmp/wtpf/apps/api-py/.venv/bin/python ../../tools/ci/check_async_blocking.py
+check_async_blocking: no new blocking calls in async defs under app/ (3 known, each with its reason in this file).
+FAIL  API (FastAPI + Postgres)
+------------------------------------------------------------------------
+Summary
+  CHECK                                        RESULT   TIME
+  ---------------------------------------------------------------------
+  API (dependency completeness)                PASS     4s
+  Rule 1 (every model call declares its cargo) PASS     1s
+  Secrets (gitleaks)                           PASS     8s
+  Infra (CDK synth guards)                     PASS     36s
+  Web (Angular)                                SKIP     0s
+  API (FastAPI + Postgres)                     FAIL     39s
+  PASS: ran in .venv (requirements-dev.txt); --clean-deps asks CI's question
+  SKIP: no apps/web/node_modules - run: cd apps/web && npm ci
+  FAIL: static analysis failed (ruff, mypy or the async-blocking guard)
+  total 88s
+NOT READY. A required check is red here, so it is red on the pull request too.
+[exit 0, 89s]
+
+### 2026-10-08T08:53:05Z  cwd=/tmp/wtpf
+$ git checkout -q -- . ; git status --porcelain | grep -v .venv | wc -l
+0
+[exit 0, 0s]
+

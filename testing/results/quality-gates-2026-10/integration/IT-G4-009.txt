@@ -1,0 +1,17 @@
+### 2026-10-08T08:46:57Z  cwd=/home/user/reep-/apps/api-py
+$ /home/user/reep-/apps/api-py/.venv/bin/python -m app.seed 2>&1 | tail -1; pg_dump -h localhost -p 5433 -U postgres --no-owner reep_py | grep -vE '^-- Dumped|^-- Started|^-- Completed|^\\(un)?restrict ' | md5sum > /tmp/full_before; cat /tmp/full_before; psql -h localhost -p 5433 -U postgres -d reep_py -Atc 'select sum(n_tup_ins+n_tup_upd+n_tup_del) from pg_stat_user_tables' 
+added capability assessments (20 scores, T0–T2)
+3ad7760e49aea2f3772ad7d7e320b7e8  -
+315
+[exit 0, 2s]
+
+### 2026-10-08T08:46:59Z  cwd=/home/user/reep-/apps/api-py
+$ /home/user/reep-/apps/api-py/.venv/bin/python ../../tools/ci/check_migration_roundtrip.py 2>&1 | tail -1; echo RT_EXIT=${PIPESTATUS[0]}; sleep 1; pg_dump -h localhost -p 5433 -U postgres --no-owner reep_py | grep -vE '^-- Dumped|^-- Started|^-- Completed|^\\(un)?restrict ' | md5sum > /tmp/full_after; cat /tmp/full_after; cmp /tmp/full_before /tmp/full_after && echo 'FULL DUMP (schema+data) IDENTICAL'; psql -h localhost -p 5433 -U postgres -d reep_py -Atc 'select sum(n_tup_ins+n_tup_upd+n_tup_del) from pg_stat_user_tables'; psql -h localhost -p 5433 -U postgres -Atc "select count(*) from pg_database where datname='reep_py_roundtrip'"
+OK: 90 of 92 downgrades run in 3 segment(s), catalogues identical at every bottom and top, the round-tripped head matches the straight one (2118 lines), alembic check clean (20 s).
+RT_EXIT=0
+3ad7760e49aea2f3772ad7d7e320b7e8  -
+FULL DUMP (schema+data) IDENTICAL
+315
+0
+[exit 0, 22s]
+

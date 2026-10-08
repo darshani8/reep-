@@ -1,0 +1,32 @@
+NOTE: gitleaks 8.18.4 (checksum-verified from its release) placed FIRST on PATH; --quick in the main checkout. Expect check 3 SKIP with the version named, never a scan.
+### 2026-10-08T09:13:15Z  cwd=/home/user/reep-
+$ PATH=/tmp/gl818bin:/opt/node-v22.22.3-linux-x64/bin:$PATH; command -v gitleaks; gitleaks version; DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py bash tools/ci/preflight.sh --quick --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; sed 's/\x1b\[[0-9;]*m//g' /tmp/pf.out | grep -E '^  gitleaks|^(PASS|FAIL|SKIP|PARTIAL) ' ; sed 's/\x1b\[[0-9;]*m//g' /tmp/pf.out | sed -n '/^Summary/,$p' | grep -vE '^\s*$'; grep -c 'gitleaks git' /tmp/pf.out
+/tmp/gl818bin/gitleaks
+8.18.4
+PREFLIGHT_EXIT=2
+  gitleaks          8.18.4, CI pins 8.30.0
+PASS  API (dependency completeness)
+PASS  Rule 1 (every model call declares its cargo)
+SKIP  Secrets (gitleaks) - gitleaks 8.18.4 is not v8.30.0; another version is another ruleset
+PASS  Infra (CDK synth guards)
+PARTIAL  Web (Angular) - guards and typecheck only - --quick: ng test and ng build did NOT run, and both are inside a required check
+SKIP  API (FastAPI + Postgres) - --quick
+Summary
+  CHECK                                        RESULT   TIME
+  ---------------------------------------------------------------------
+  API (dependency completeness)                PASS     4s
+  Rule 1 (every model call declares its cargo) PASS     1s
+  Secrets (gitleaks)                           SKIP     0s
+  Infra (CDK synth guards)                     PASS     37s
+  Web (Angular) - guards and typecheck only    PARTIAL  5s
+  API (FastAPI + Postgres)                     SKIP     0s
+  PASS: ran in .venv (requirements-dev.txt); --clean-deps asks CI's question
+  SKIP: gitleaks 8.18.4 is not v8.30.0; another version is another ruleset
+  PARTIAL: --quick: ng test and ng build did NOT run, and both are inside a required check
+  SKIP: --quick
+  total 47s
+INCOMPLETE. --quick ran only the fast checks. It is not sufficient for a
+pull request: run tools/ci/preflight.sh with no flags before you push.
+0
+[exit 1, 48s]
+

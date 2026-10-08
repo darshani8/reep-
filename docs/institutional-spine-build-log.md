@@ -41,7 +41,27 @@ locked profile card in the design cannot be delivered today: it is an L3 screen 
 
 These are **not new rules**. They are the conventions already in force in this repository, written
 down so the new code is indistinguishable from the old. Every example below is real code from the
-existing tree.
+existing tree. *(Refreshed 2026-10-08: the L2 and L3 examples named `director.py`
+and `features/director/`, which Round 9 renamed to `console.py` and `features/admin/`;
+and the L0 table was added, because three layers of code conventions never said what
+the people are called — which is how a poster read "DIRECTOR / ADMIN" and "FACULTY /
+MENTOR" for a month after DIRECTOR stopped being a role.)*
+
+### L0 · People — the words on screen and the roles behind them
+
+| On screen | Stored role (`users.role`) | In the code | What it is |
+|---|---|---|---|
+| **Student** | `STUDENT` | `/student/*`, `app/routers/student.py`, a `students` row, the session's `studentId` | A current student. The roster is the access control. |
+| **Faculty** | `MENTOR` | `/mentor/*`, `app/routers/mentor.py`, `require_mentor`, `features/admin/faculty/` | A faculty account. **Not a mentor by existing** — no `mentors` row, sees nobody, until the Main Admin assigns it a student. |
+| a student's **mentor** | `MENTOR` **plus a `mentors` row** | `students.mentor_id` → `mentors.id`, the session's `mentorId`, `app/mentor_functions.py` | The faculty member assigned to that student. "Your mentor" on the student's screens; the `Mentor` group row is what rule 2 scopes on. |
+| **Alumni** | `ALUMNI` | `/alumni/*`, `app/routers/alumni.py` | A graduate: no `students` row, no `mentors` row, no staff scope. |
+| **Main Admin** — the placement office | `ADMIN` | `/admin/*`, `app/routers/console.py` and `admin_*.py`, `require_admin`, `features/admin/`, the login's dashed "Main Admin" door | **One account per deployment.** "Placement office", "placement cell" and "TPO" on the screens all mean this account; its SWOC lines are stamped `SwocSource.PLACEMENT`, the placement cell's viewpoint. |
+
+Three rules, the same three `AGENTS.md` "Who is who" states: *mentor* is a stored
+value and a relationship, never an account kind (the account is Faculty); the
+placement office is the Main Admin, role `ADMIN`, exactly one, and DIRECTOR is not a
+role (Round 9); and a diagram draws the pair on-screen-name first — "Faculty (role
+MENTOR)", "Main Admin (role ADMIN)".
 
 ### L1 · Data
 
@@ -65,17 +85,17 @@ attached."* New status columns in this workstream are plain `String`.
 | Response schema | `<Thing>Out` | `MentorLoadOut`, `ProfileOut`, `CohortOut` |
 | Request schema | `<Thing>In` or `<Verb><Thing>In` | `AlertRuleIn`, `AssignMentorIn` |
 | Endpoint function | verb-first `snake_case` | `set_student_mentor`, `upsert_alert_rule`, `create_job` |
-| Router module | `app/routers/<area>.py` | `director.py`, `student_programme.py` |
+| Router module | `app/routers/<area>.py` | `console.py`, `admin_mentoring.py`, `student_programme.py` |
 | Scope gate | reuse, never reimplement | `assert_student_scope` in `app/policies.py` |
 
 ### L3 · Frontend
 
 | Thing | Convention | Real example |
 |---|---|---|
-| Directory | `features/<area>/<screen>/` | `features/director/mentors-students/` |
+| Directory | `features/<area>/<screen>/` | `features/admin/mentors-students/` |
 | Files | `<screen>.component.{ts,html,scss}` | `mentors-students.component.ts` |
-| Component class | `<Area><Screen>Component` | `DirectorMentorsStudentsComponent` |
-| Selector | `app-<area>-<screen>` | `app-director-mentors-students` |
+| Component class | `<Area><Screen>Component` | `AdminMentorsStudentsComponent` |
+| Selector | `app-<area>-<screen>` | `app-admin-mentors-students` |
 | Service | `<name>.service.ts` → `<Name>Service` | `auth.service.ts` → `AuthService` |
 | API interface | **mirrors the API in `snake_case`, verbatim** | `interface MentorLoad { mentor_id: string; … }` |
 

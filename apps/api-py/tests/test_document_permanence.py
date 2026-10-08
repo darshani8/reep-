@@ -18,7 +18,6 @@ with a fake session cannot check.
 
 from __future__ import annotations
 
-import pytest
 from sqlalchemy import select
 
 from app.config import settings

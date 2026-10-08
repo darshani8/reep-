@@ -90,6 +90,7 @@ import logging
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import cast
 
 from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.orm import Session
@@ -622,6 +623,8 @@ def predicate(name: str, doomed: Doomed):
         return table.c.id.in_(doomed.user_ids)
     if verdict == ("registrations",):
         return table.c.id.in_(doomed.registration_ids)
+    # Every verdict left is a scope tuple ("user"/"email"/"via", ...).
+    verdict = cast("tuple[str, ...]", verdict)
     kind = verdict[0]
     if kind == "user":
         return table.c[verdict[1]].in_(doomed.user_ids)

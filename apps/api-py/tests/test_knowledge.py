@@ -15,7 +15,7 @@ every throwaway row they create.
 import uuid
 
 import pytest
-from sqlalchemy import delete, select
+from sqlalchemy import delete
 
 from conftest import requires_db
 

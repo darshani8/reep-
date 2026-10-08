@@ -154,7 +154,8 @@ def _email_policy(
     return {
         "domain": domain,
         "external": True,
-        "reason": reason.strip(),
+        # Never None here: a blank or missing reason was refused just above.
+        "reason": (reason or "").strip(),
         "college_domains": sorted(domains),
     }
 
@@ -364,7 +365,7 @@ def create_faculty(
     dep = _department_or_422(db, body.department_id)
     # `department_id` is required by the schema, so `dep` is never None here —
     # but `_department_or_422` is shared with PATCH, where it can be.
-    assert dep is not None
+    assert dep is not None  # noqa: S101  type narrowing only; the schema requires department_id
     policy = _email_policy(
         db,
         body.email,
@@ -572,7 +573,7 @@ def update_faculty(
     if "department" in fields and not user.department_id:
         user.department = fields["department"]
 
-    after = {
+    after: dict[str, object] = {
         "name": user.name,
         "email": user.email,
         "designation": user.designation,

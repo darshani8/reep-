@@ -567,8 +567,9 @@ def ask(
     first_reply = convo.awaiting_first_reply(db, conversation.id)
     _append(db, conversation.id, "user", body.message)
 
+    # session["role"]: already read unguarded by Role(...) above.
     result = orchestrator.answer_question(
-        db, session.get("studentId"), session.get("role"), body.message
+        db, session.get("studentId"), session["role"], body.message
     )
 
     # ONE choke point for the compulsory greeting on this surface. Every

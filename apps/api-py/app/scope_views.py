@@ -34,7 +34,7 @@ wherever it asks.
 
 from __future__ import annotations
 
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 from fastapi import Response
 from sqlalchemy import false as sa_false
@@ -43,6 +43,9 @@ from sqlalchemy import true as sa_true
 
 from .exports import scope_note
 from .policies import Reach
+
+if TYPE_CHECKING:
+    from sqlalchemy import ColumnElement
 
 #: One of `programme`, `narrowed` or `none` — the three words `scope_note` uses,
 #: and for its reason: "may see everything" and "may see nothing" are opposite
@@ -265,7 +268,7 @@ def job_scope_clause(reach: Reach):
     if reach.everything:
         return sa_true()
     programme_wide = Job.college_id.is_(None) & Job.course_id.is_(None)
-    clauses = [programme_wide]
+    clauses: list[ColumnElement[bool]] = [programme_wide]
     if reach.colleges:
         clauses.append(Job.college_id.in_(reach.colleges))
     if reach.courses:
@@ -313,7 +316,7 @@ def interview_track_scope_clause(reach: Reach):
         & InterviewTrack.course_id.is_(None)
         & InterviewTrack.specialization_id.is_(None)
     )
-    clauses = [programme_wide]
+    clauses: list[ColumnElement[bool]] = [programme_wide]
     if reach.colleges:
         clauses.append(InterviewTrack.college_id.in_(reach.colleges))
     if reach.courses:

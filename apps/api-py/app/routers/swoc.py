@@ -47,7 +47,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import func, or_, select
+from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.orm import Session
 
 from .. import batch_labels
@@ -412,7 +412,7 @@ def list_swoc(
         _page_headers(response, total=0, page=page, page_size=page_size)
         return []
 
-    where = [Student.id.in_(reach.student_ids())]
+    where: list[ColumnElement[bool]] = [Student.id.in_(reach.student_ids())]
     # B7.7. Both narrow WITHIN the reach and neither can widen it: each is ANDed
     # onto `reach.student_ids()`, so an id the caller's grant does not cover
     # matches nothing rather than somebody else's roster.
@@ -459,7 +459,7 @@ def list_swoc(
 
     students = db.execute(student_query).all()
     listed_ids = [sid for sid, *_ in students] or [""]
-    entry_where = [SwocEntry.student_id.in_(listed_ids)]
+    entry_where: list[ColumnElement[bool]] = [SwocEntry.student_id.in_(listed_ids)]
     # B7.4. A semester filter narrows the ENTRIES and not the students: a
     # student with nothing written this term is still a row on the board, with
     # an empty quadrant set. Dropping them would turn "show me semester 3" into

@@ -94,6 +94,29 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
+      # Three questions no test asks, answered before the database is touched
+      # so the cheapest failures come first. Configuration: pyproject.toml.
+      #   ruff  -- correctness (pyflakes, the bugbear rules that are bugs),
+      #            unsafe code (bandit) and the blocking calls it can see in
+      #            `async def`. Explicit selection, never ruff's defaults, and
+      #            every exception is a `# noqa` with its reason on the line.
+      #   mypy  -- types over app/. Behaviour-neutral fixes or a narrow
+      #            `type: ignore[code]` with a reason; warn_unused_ignores
+      #            makes a stale one a failure.
+      #   check_async_blocking.py -- the shape ruff cannot see: an `async def`
+      #            holding a sync Session (Depends(get_db)) on the event loop,
+      #            which is how /register returned 504s on 2026-09-29.
+      # A STEP in `api`, not a sixth job: the five job names are required-check
+      # strings compared across ci.yml, the ruleset, protect-main.sh and
+      # preflight.sh (test_codebase_guards.py §34), and a new job would be a
+      # required check nobody listed.
+      - name: Static analysis (ruff, mypy, async blocking)
+        working-directory: apps/api-py
+        run: |
+          python -m ruff check --config pyproject.toml . ../../tools/ci
+          python -m mypy
+          python ../../tools/ci/check_async_blocking.py
+
       - name: Apply migrations
         working-directory: apps/api-py
         run: python -m alembic upgrade head

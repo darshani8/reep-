@@ -161,12 +161,12 @@ def notify_mentor_of_claim(db: Session, ev: BadgeEvidence) -> MailLog | None:
     if not _reachable(mentor_user):
         log.info("Claim notification skipped: no reachable mentor for evidence %s", ev.id)
         return None
-    assert mentor_user is not None  # for the type checker; _reachable said so
+    assert mentor_user is not None  # noqa: S101  for the type checker; _reachable said so
 
     badge = _badge_name(ev)
     subject = f"{student_user.name} has claimed the {badge} badge"
     what = ev.title.strip() if ev.title else "a certificate"
-    issued = f" issued by {ev.provider.strip()}" if (ev.provider or "").strip() else ""
+    issued = f" issued by {(ev.provider or '').strip()}" if (ev.provider or "").strip() else ""
     text = (
         f"Hello {mentor_user.name},\n\n"
         f"{student_user.name} has claimed the {badge} badge on REEP and attached "

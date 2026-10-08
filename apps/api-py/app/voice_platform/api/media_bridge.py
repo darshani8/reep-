@@ -30,7 +30,6 @@ here without a second copy that could drift.
 from __future__ import annotations
 
 import asyncio
-import logging
 import uuid
 from typing import Any
 

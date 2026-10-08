@@ -75,8 +75,8 @@ def _normalised_png(content: bytes) -> bytes:
         from PIL import Image, ImageOps
 
         with Image.open(io.BytesIO(content)) as image:
-            image = ImageOps.exif_transpose(image) or image
-            flat = image.convert("RGBA")
+            upright = ImageOps.exif_transpose(image) or image
+            flat = upright.convert("RGBA")
         out = io.BytesIO()
         flat.save(out, format="PNG", optimize=True)
         return out.getvalue()

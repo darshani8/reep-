@@ -1827,10 +1827,11 @@ RETENTION_APP_IMPORTS: frozenset[tuple[str, str]] = frozenset(
     }
 )
 
-#: Imported as a module rather than a name, so it carries no single function to
-#: walk. `document_store` is a file-store façade over a directory tree; it holds
-#: no ORM model at all, which the guard below checks rather than assumes.
-RETENTION_APP_MODULE_IMPORTS: frozenset[str] = frozenset({"document_store"})
+#: Modules imported whole rather than by name, which carry no single function to
+#: walk. EMPTY since the static-analysis gate: retention.py imported
+#: `document_store` and never used it (ruff F401), so the import went and the
+#: sweep's surface got smaller. Adding one back is a review, like a name above.
+RETENTION_APP_MODULE_IMPORTS: frozenset[str] = frozenset()
 
 #: The names that mean "this code can write to an account".
 _IDENTITY_MODELS = ("User", "Student", "Mentor")

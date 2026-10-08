@@ -33,7 +33,7 @@ from app.interview_matrix import SPECIALIZATIONS, InterviewPhase
 # The harness is deliberately imported, not copied: one fake upstream, one fake
 # browser, one set of event-sequence helpers, so a change to the harness changes
 # every driver of it at once.
-from test_interview_nova import (  # noqa: E402
+from test_interview_nova import (
     _GOOD_ANSWER,
     interviewer_turn,
     make_session,

@@ -49,7 +49,7 @@ from app.models.institution import (
 )
 from app.models.job import DegreeLevel
 from app.models.offer import OfferRoleType, OfferStatus, PlacementOffer
-from app.models.user import Role, Student, User
+from app.models.user import Role, Student
 
 
 @pytest.fixture
@@ -305,7 +305,6 @@ def test_the_by_track_split_carries_the_unfiled(client, make_user, cohort_with_t
 
     for cohort_id in (spine["batch_filed"], spine["batch_unfiled"]):
         body = _placement(client, admin.headers, cohort_id=cohort_id)
-        split = {row["code"]: row for row in body["by_track"]}
         # The split's eligible column sums to the funnel's eligible, whichever
         # batch is asked for — that is what makes it a split rather than a
         # second, smaller programme.

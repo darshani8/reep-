@@ -34,7 +34,6 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
-    Index,
     Integer,
     String,
     UniqueConstraint,
@@ -88,7 +87,10 @@ SLOT_CAPACITY_HALVES: Final[dict[LedgerSlot, int]] = {
 #: that editing one slot's capacity without fixing another is a boot-time
 #: failure here, not a mystery on the submit button months later.
 DAY_CAPACITY_HALVES: Final[int] = sum(SLOT_CAPACITY_HALVES.values())
-assert DAY_CAPACITY_HALVES == 48, "the six slots must cover exactly 24 hours"
+# A raise and not an `assert`: `python -O` strips asserts, and this check is
+# the whole point of computing the sum.
+if DAY_CAPACITY_HALVES != 48:
+    raise RuntimeError("the six slots must cover exactly 24 hours")
 
 #: The per-cell bound as the DATABASE enforces it — the same table above,
 #: rendered as a CHECK, so the router is no longer the only thing standing

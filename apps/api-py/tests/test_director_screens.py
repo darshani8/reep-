@@ -16,7 +16,6 @@ Everything here is @requires_db. What is pinned:
 """
 
 import uuid
-from datetime import datetime, timezone
 
 from conftest import requires_db
 from sqlalchemy import delete, func, select

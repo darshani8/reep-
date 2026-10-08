@@ -39,7 +39,7 @@ from app.db import SessionLocal
 from app.models.user import LoginDay, Role, Student, User
 from app.security import SESSION_COOKIE, verify_session_token
 
-from conftest import requires_db  # noqa: E402 — the house import, see test_voice.py
+from conftest import requires_db  # the house import, see test_voice.py
 
 _CLIENT_ID = "reep-test-client.apps.googleusercontent.com"
 _KID = "reep-test-kid"
@@ -147,7 +147,7 @@ def test_google_issues_the_same_session_as_the_password_door(client, google, ros
     roster_user(email)
     state, nonce, cookie = _start(client)
     monkey_token = google(email=email, nonce=nonce)
-    google_auth.exchange_code = lambda code: monkey_token  # noqa: E731 — seam, restored below
+    google_auth.exchange_code = lambda code: monkey_token  # seam, restored below
     try:
         r = _callback(client, cookie, code="good-code", state=state)
     finally:
@@ -211,7 +211,7 @@ def test_the_google_door_retires_the_account_s_other_device(client, google, rost
     def sign_in() -> str:
         state, nonce, cookie = _start(client)
         tok = google(email=email, nonce=nonce)
-        google_auth.exchange_code = lambda code: tok  # noqa: E731 — seam, restored below
+        google_auth.exchange_code = lambda code: tok  # seam, restored below
         try:
             r = _callback(client, cookie, code="good-code", state=state)
         finally:
@@ -248,7 +248,7 @@ def test_a_roster_row_with_a_capital_letter_can_still_sign_in(client, google, ro
     roster_user(email)
     state, nonce, cookie = _start(client)
     tok = google(email=email.lower(), nonce=nonce)
-    google_auth.exchange_code = lambda code: tok  # noqa: E731
+    google_auth.exchange_code = lambda code: tok
     try:
         r = _callback(client, cookie, code="good-code", state=state)
     finally:
@@ -266,7 +266,7 @@ def test_a_roster_row_with_a_capital_letter_can_still_sign_in(client, google, ro
 def test_a_verified_google_account_not_on_the_roster_gets_no_session(client, google):
     state, nonce, cookie = _start(client)
     tok = google(email=f"stranger-{uuid.uuid4().hex[:8]}@gmail.com", nonce=nonce)
-    google_auth.exchange_code = lambda code: tok  # noqa: E731
+    google_auth.exchange_code = lambda code: tok
     try:
         r = _callback(client, cookie, code="good-code", state=state)
     finally:
@@ -312,7 +312,7 @@ def test_every_bad_callback_redirects_rather_than_erroring(client, google, label
 def test_a_replayed_callback_is_refused_because_the_flow_cookie_is_single_use(client, google):
     state, nonce, cookie = _start(client)
     tok = google(nonce=nonce)
-    google_auth.exchange_code = lambda code: tok  # noqa: E731
+    google_auth.exchange_code = lambda code: tok
     try:
         first = _callback(client, cookie, code="c", state=state)
         # Same URL, no cookie: exactly what replaying the callback link does,

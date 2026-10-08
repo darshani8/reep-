@@ -300,8 +300,8 @@ def password_door_open(db: Session) -> bool:
 #: is "use Google", and a disabled account is refused by Google too, so the
 #: screen shows that one the server's own sentence. `X-Reep-Feature-Disabled`'s
 #: idiom (app/governance.py): the body stays human, the machine reads a header.
-PASSWORD_DOOR_HEADER: Final[str] = "X-Reep-Password-Door"
-PASSWORD_DOOR_CLOSED: Final[str] = "closed"
+PASSWORD_DOOR_HEADER: Final[str] = "X-Reep-Password-Door"  # noqa: S105  a header name, not a secret
+PASSWORD_DOOR_CLOSED: Final[str] = "closed"  # noqa: S105  a header value, not a secret
 
 # Where a signed-in user lands when the flow carries no `?next=`. Mirrors
 # HOME_FOR_ROLE in apps/web/src/app/core/session.ts (the SPA's `''` route now
@@ -406,7 +406,7 @@ def _payload_for(user: User) -> dict:
         # new door was written without one — which must be a 500 in the log
         # rather than a session for an offboarded account.
         raise AccountDisabledError(user.email)
-    payload = {
+    payload: dict[str, str | int] = {
         "userId": user.id,
         "email": user.email,
         "name": user.name,
@@ -535,7 +535,7 @@ def notification_state(user: User) -> dict[str, "NotificationPrefOut"]:
 #: cookie is being refreshed at the new token version rather than a new device
 #: being admitted. A "recent sign-ins" list that reports your own password
 #: change as a sign-in is a list people learn to ignore.
-DOOR_PASSWORD: Final[str] = "password"
+DOOR_PASSWORD: Final[str] = "password"  # noqa: S105  the name of a sign-in door, not a secret
 DOOR_CODE: Final[str] = "code"
 DOOR_GOOGLE: Final[str] = "google"
 DOOR_ACTIVATION: Final[str] = "activation"

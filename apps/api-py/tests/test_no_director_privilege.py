@@ -25,7 +25,6 @@ only assertion that would have failed during those hours.
 
 from __future__ import annotations
 
-import pytest
 from sqlalchemy import select
 
 from conftest import requires_db

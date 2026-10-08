@@ -900,7 +900,7 @@ class InterviewRecorder:
                 # creates nothing (see _store_root), so the writer — the one
                 # caller that cannot work without the directory — makes it.
                 path.parent.mkdir(parents=True, exist_ok=True)
-                handle = path.open("wb")
+                handle: IO[bytes] = path.open("wb")
                 writer = wave.open(handle, "wb")
                 writer.setnchannels(_CHANNELS)
                 writer.setsampwidth(_SAMPLE_WIDTH_BYTES)
@@ -1088,7 +1088,7 @@ class InterviewRecorder:
             for reader in readers:
                 try:
                     reader.close()
-                except Exception:  # pragma: no cover -- a closed reader
+                except Exception:  # noqa: S110  # pragma: no cover -- a closed reader
                     pass
             # Whatever is left of a failed attempt goes now, while we still know
             # its name. An orphan .part is a student's voice nothing points at.

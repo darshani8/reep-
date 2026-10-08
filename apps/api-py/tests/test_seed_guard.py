@@ -32,7 +32,7 @@ def _run(module: str, env_value: str) -> subprocess.CompletedProcess:
     env["DATABASE_URL"] = (
         "postgresql+psycopg://nobody:nobody@127.0.0.1:1/does_not_exist?connect_timeout=2"
     )
-    return subprocess.run(
+    return subprocess.run(  # noqa: S603  this interpreter, a fixed argv, no shell
         [sys.executable, "-m", module],
         cwd=API_ROOT,
         env=env,

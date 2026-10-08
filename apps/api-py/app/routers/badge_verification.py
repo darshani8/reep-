@@ -21,10 +21,11 @@ mentor can never see a confident number where the student sees a dash.
 
 from collections import defaultdict
 from datetime import datetime, timezone
+from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import badge_mail
@@ -34,7 +35,6 @@ from ..governance import require_capability
 from ..identity import get_current_session
 from ..models.badge import (
     BADGE_BY_CODE,
-    BADGES,
     CAPABILITY_LABEL,
     CATEGORY_LABEL,
     AssessmentCheckpoint,
@@ -61,7 +61,7 @@ from ..scope_views import scope_header
 from ..models.upload import Upload, UploadStatus
 from ..models.user import Student, User
 from .badges import BadgeDashboardOut, GrowthOut, compose_badges, compose_growth
-from .mentor import _assert_can_access_student, require_admin, require_mentor
+from .mentor import _assert_can_access_student, require_admin
 
 router = APIRouter(tags=["badge-admin"])
 
@@ -429,7 +429,8 @@ def manual_award(
         require_admin(session)
     _award(db, student_id, code, session["userId"], (body.note or "").strip() or "Manually awarded")
     db.commit()
-    return compose_badges(db.get(Student, student_id), db)
+    # The row's existence was checked (404) above.
+    return compose_badges(cast(Student, db.get(Student, student_id)), db)
 
 
 @router.post("/mentor/students/{student_id}/badges/{code}/revoke", response_model=BadgeDashboardOut)
@@ -488,7 +489,8 @@ def revoke_badge(
     )
     db.delete(row)
     db.commit()
-    return compose_badges(db.get(Student, student_id), db)
+    # The row's existence was checked (404) above.
+    return compose_badges(cast(Student, db.get(Student, student_id)), db)
 
 
 # --- assessment scores (§9, §18) --------------------------------------------
@@ -561,7 +563,8 @@ def student_badges(
     db: Session = Depends(get_db),
 ) -> BadgeDashboardOut:
     _assert_can_access_student(session, student_id, db)
-    return compose_badges(db.get(Student, student_id), db)
+    # The row's existence was checked (404) above.
+    return compose_badges(cast(Student, db.get(Student, student_id)), db)
 
 
 @router.get("/mentor/students/{student_id}/growth", response_model=GrowthOut)

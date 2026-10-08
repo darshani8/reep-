@@ -31,7 +31,6 @@ import path of a command that has to run on a console with a broken app.
 from __future__ import annotations
 
 import asyncio
-import logging
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -39,7 +38,6 @@ from typing import Any
 
 from sqlalchemy import select
 
-from ...config import settings
 from ...db import SessionLocal
 # `_safe_stem` beside `_store_root`, and both private on purpose: the platform's
 # recordings live INSIDE the interview-audio root (see `platform_audio_dir`), so
@@ -362,8 +360,9 @@ def _persist_close(
             "recording_truncated": row.recording_truncated,
         }
         with sentry.span("aws.dynamodb", "update_item"):
-            store = session_store_for(degree_level)
-            report.dynamo_synced = bool(store.update(row.id, doc)) and store.name != "memory"
+            # Its own name: `store` above is the recording store, a different type.
+            session_store = session_store_for(degree_level)
+            report.dynamo_synced = bool(session_store.update(row.id, doc)) and session_store.name != "memory"
         aurora.mark_synced(db, row.id, dynamo=report.dynamo_synced)
         db.commit()
     finally:

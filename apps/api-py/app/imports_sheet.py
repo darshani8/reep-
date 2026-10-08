@@ -359,7 +359,7 @@ def read_attendance_row(values: Mapping[str, Any]) -> dict[str, Any]:
     attended = _number(
         values, "sessions_attended", required=True, low=0, high=MAX_SESSIONS, integer=True
     )
-    assert held is not None and attended is not None  # required=True
+    assert held is not None and attended is not None  # noqa: S101  required=True
     if attended > held:
         raise RowError(
             "sessions_attended",

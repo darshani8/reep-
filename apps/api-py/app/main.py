@@ -349,7 +349,7 @@ def _openapi_with_honest_422() -> dict:
     return schema
 
 
-app.openapi = _openapi_with_honest_422
+app.openapi = _openapi_with_honest_422  # type: ignore[method-assign]  # FastAPI documents overriding openapi this way
 
 
 @app.exception_handler(DataError)
@@ -404,7 +404,7 @@ async def _unstorable_value(request: Request, exc: DataError) -> JSONResponse:
 # setdefault, never overwrite: a handler that deliberately sets one of these
 # knows more than this blanket does.
 @app.middleware("http")
-async def _security_headers(request: Request, call_next):  # type: ignore[no-untyped-def]
+async def _security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
@@ -422,7 +422,7 @@ async def _security_headers(request: Request, call_next):  # type: ignore[no-unt
 # typed (an address, a phone number, a USN). Every other route keeps FastAPI's
 # own handler untouched; the response body is unchanged for this one too.
 @app.exception_handler(RequestValidationError)
-async def _validation_error(request: Request, exc: RequestValidationError):  # type: ignore[no-untyped-def]
+async def _validation_error(request: Request, exc: RequestValidationError):
     if request.method == "POST" and request.url.path == "/api/register":
         registration.log_form_refusal(exc.errors())
     return await request_validation_exception_handler(request, exc)

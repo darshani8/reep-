@@ -190,9 +190,6 @@ _CLOSE_DAILY_CAP: Final[int] = 4015
 # that interview.service.ts has one list to mirror.
 
 
-_E = TypeVar("_E", bound=BaseException)
-
-
 # ---------------------------------------------------------------------------
 # Small helpers
 # ---------------------------------------------------------------------------

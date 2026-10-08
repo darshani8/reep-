@@ -76,8 +76,9 @@ def _renormalised(content: bytes) -> bytes | None:
         from PIL import Image, ImageOps
 
         with Image.open(io.BytesIO(content)) as image:
-            image = ImageOps.exif_transpose(image) or image
-            flat = image.convert("RGBA")
+            # A new name: `image` is typed ImageFile, exif_transpose returns an Image.
+            upright = ImageOps.exif_transpose(image) or image
+            flat = upright.convert("RGBA")
         out = io.BytesIO()
         flat.save(out, format="PNG")
         return out.getvalue()

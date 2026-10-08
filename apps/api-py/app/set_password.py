@@ -209,6 +209,8 @@ def main() -> int:
     # issuing a password on the wrong database is being told which one it is.
     print(f"database: {db_target()}")
 
+    # Declared once for both branches below; each narrows it on assignment.
+    user: User | None
     if args.revoke:
         with SessionLocal() as db:
             try:

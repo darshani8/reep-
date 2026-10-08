@@ -71,7 +71,7 @@ def transaction(name: str, *, op: str = "websocket.server", **tags: Any) -> Iter
             current.source = "custom"
             for key, value in tags.items():
                 current.set_tag(key, str(value))
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110  telemetry must never fail its caller
             pass
         yield current
         return
@@ -112,7 +112,7 @@ def annotate(**data: Any) -> None:
     for key, value in data.items():
         try:
             current.set_data(key, value)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110  telemetry must never fail its caller
             pass
 
 
@@ -124,7 +124,7 @@ def span(op: str, description: str | None = None, **data: Any) -> Any:
     for key, value in data.items():
         try:
             ctx.set_data(key, value)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110  telemetry must never fail its caller
             pass
     return ctx
 

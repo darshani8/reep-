@@ -34,10 +34,8 @@ from sqlalchemy import delete, select
 from conftest import TEST_PASSWORD, application_files, requires_db
 
 from app import mail_transport
-from app.config import settings
 from app.db import SessionLocal
 from app.models.auth_token import AuthToken
-from app.models.job import DegreeLevel
 from app.models.registration import EmailVerification, Registration, RegistrationRule, RegistrationStatus
 from app.models.student_profile import StudentProfile
 from app.models.user import LoginDay, Role, Student, User

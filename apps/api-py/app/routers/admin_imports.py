@@ -49,6 +49,7 @@ students would find none and refuse the office.
 import io
 import uuid
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING, cast
 
 from fastapi import (
     APIRouter,
@@ -103,6 +104,9 @@ from ..models.user import Student, User
 from ..policies import scope_filter
 from ..scope_views import import_run_scope_clause, scope_header
 from ..semester_bounds import ceiling_for_cohort, rejection
+
+if TYPE_CHECKING:
+    from openpyxl.worksheet.worksheet import Worksheet
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -512,7 +516,8 @@ async def preview_import(
     known_codes = _known_subject_codes(db)
     student_ids = [sid for sid, _name in roster.values()]
     already = (
-        _existing_marks(db, student_ids, semester)
+        # A marks import with no semester was refused above.
+        _existing_marks(db, student_ids, cast(int, semester))
         if kind == KIND_MARKS
         else _existing_attendance(db, student_ids)
     )
@@ -685,7 +690,8 @@ def _apply_marks(db: Session, run: ImportRun, rows: list[ImportRow]) -> tuple[in
             db.flush()
             result_id = result.id
         else:
-            result = db.get(SemesterResult, result_id)
+            # The id was just read from this table in this transaction.
+            result = cast(SemesterResult, db.get(SemesterResult, result_id))
         for field in ("sgpa", "cgpa", "live_backlogs"):
             value = next(
                 (r.payload.get(field) for r in student_rows if r.payload.get(field) is not None),
@@ -999,7 +1005,8 @@ def import_template(
 
     header, example, notes = template_rows(kind)
     book = openpyxl.Workbook()
-    sheet = book.active
+    # A fresh Workbook always carries one worksheet.
+    sheet = cast("Worksheet", book.active)
     sheet.title = kind.capitalize()
     sheet.append(header)
     sheet.append(example)

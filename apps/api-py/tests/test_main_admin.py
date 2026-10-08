@@ -48,7 +48,7 @@ def test_grant_access_mints_one_main_admin_and_never_a_director(make_user):
             db.rollback()
 
             # The Main Admin's own address: the idempotent update, not a refusal.
-            user, created = grant(db, main.email, f"Voice Test main-adm", Role.ADMIN)
+            user, created = grant(db, main.email, "Voice Test main-adm", Role.ADMIN)
             assert created is False and user.role is Role.ADMIN and user.id == main.user_id
             db.rollback()
 

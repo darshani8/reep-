@@ -59,7 +59,7 @@ log = logging.getLogger(__name__)
 # can be down in front of every sign-in, and these three URLs have been stable for
 # a decade. If Google ever moves them, this is the one place to change.
 _AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
-_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
+_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"  # noqa: S105  a public Google URL, not a secret
 _JWKS_ENDPOINT = "https://www.googleapis.com/oauth2/v3/certs"
 
 # Google spells its issuer both ways and always has; a token carrying either is

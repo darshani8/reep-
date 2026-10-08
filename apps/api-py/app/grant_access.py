@@ -43,6 +43,7 @@ import argparse
 import re
 import sys
 import uuid
+from typing import cast
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -109,7 +110,7 @@ def _refuse_second_main_admin(db: Session, email: str) -> None:
 # and rejects anything that is not exactly scrypt:<salt>:<digest>, so this value
 # returns False for every password ever tried â POST /api/auth/login answers with
 # its ordinary 401 and reveals nothing about which accounts are SSO-only.
-SSO_ONLY_PASSWORD_HASH = "google-only"
+SSO_ONLY_PASSWORD_HASH = "google-only"  # noqa: S105  the SSO-only sentinel: no password verifies against it
 
 # Exactly what app/security.py:hash_password emits: `scrypt:<salt>:<digest>`
 # with a 16-byte salt (32 hex chars) and dklen=64 (128 hex chars). Anchored and
@@ -417,7 +418,7 @@ def grant(
         # Only when the operator actually supplied one. Omitting --name is how a
         # role is changed without touching the person's name.
         if (name or "").strip():
-            user.name = name
+            user.name = cast("str", name)  # the test above rules out None
         user.role = role
         if role_changed:
             user.token_version = (user.token_version or 0) + 1

@@ -50,6 +50,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field, field_validator
@@ -442,7 +443,7 @@ def _delete_account(
         plan = account_deletion.build_plan(db, user, acting_user_id=session.get("userId"))
     except account_deletion.DeletionRefused as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc))
-    before = {
+    before: dict[str, Any] = {
         "email": user.email,
         "name": user.name,
         "role": user.role.value,

@@ -1,0 +1,108 @@
+# Static-analysis configuration for the API, and NOTHING ELSE.
+#
+# The API is not an installed package: there is no [project] table, no build
+# backend, and pip never reads this file (the Dockerfile installs
+# requirements.txt and copies app/ by path). pytest keeps reading pytest.ini,
+# which takes precedence over this file by pytest's own rules. What lives here
+# is what CI's "Static analysis (ruff, mypy, async blocking)" step reads.
+#
+# Run from apps/api-py, exactly as CI does:
+#   .venv/Scripts/python -m ruff check --config pyproject.toml . ../../tools/ci
+#   .venv/Scripts/python -m mypy
+#   .venv/Scripts/python ../../tools/ci/check_async_blocking.py
+
+[tool.ruff]
+# The interpreter CI runs. Without it ruff assumes an old floor and calls
+# BaseExceptionGroup (3.11+) an undefined name in app/interview_core.py.
+target-version = "py314"
+# Not a formatter here. Nothing in this file selects a style rule, and the
+# gate never runs `ruff format`: the point is findings, not a diff of every
+# file in the tree.
+line-length = 100
+
+[tool.ruff.lint]
+# EXPLICIT SELECTION, NEVER RUFF'S DEFAULTS. The default set reports roughly a
+# thousand style findings on this tree, and a gate that is mostly noise is a
+# gate somebody turns off. Every family below answers one of three questions.
+select = [
+    # -- Correctness and types ----------------------------------------------
+    "F",      # pyflakes: undefined names, unused imports, shadowing
+    "E9",     # the file does not even parse
+    # The bugbear rules that are bugs rather than style. Deliberately NOT B008
+    # (722 hits: it is FastAPI's `Depends()` idiom), B904 (`raise ... from`
+    # is a traceback nicety on an HTTPException) or B905 (making every zip
+    # strict= is a behaviour decision per call site, not a lint fix).
+    "B002", "B003", "B004", "B006", "B012", "B015", "B016", "B017", "B018",
+    "B020", "B021", "B022", "B023", "B025", "B026", "B029", "B030", "B031",
+    "B032", "B033", "B035", "B039",
+    # Zero findings today and already suppressed by `# noqa` on the lines that
+    # need them; selected so RUF100 can tell those suppressions are still live.
+    "E402", "E731",
+    # -- Unsafe code ---------------------------------------------------------
+    "S",      # flake8-bandit
+    # -- Blocking calls in async ---------------------------------------------
+    # Only what ruff can see from one call: time.sleep, open(), sync HTTP and
+    # subprocess inside `async def`. The case that actually froze production
+    # -- a sync SQLAlchemy Session reached through Depends(get_db) -- is
+    # invisible to it, which is why tools/ci/check_async_blocking.py exists.
+    "ASYNC",
+    # -- The gate keeping itself honest --------------------------------------
+    "RUF100", # a `# noqa` that suppresses nothing is a finding of its own
+]
+# Codes that appear in `# noqa` comments for rules this gate does not select.
+# Without them RUF100 reports every such comment as unused. BLE001 (blind
+# except) and PLC0415 (import outside top level) mark house conventions --
+# telemetry may never fail its caller; heavy imports stay lazy -- and selecting
+# PLC0415 for real would be ~470 findings of exactly that convention.
+external = ["BLE001", "PLC0415"]
+
+[tool.ruff.lint.per-file-ignores]
+# pytest IS assert. S101 is about `python -O` stripping asserts in shipped
+# code; a test suite is never run that way. B011 (`assert False`) likewise.
+# S105/S106: the suite signs in with the seeded passwords published in
+# AGENTS.md on purpose. F811: a fixture imported for its side effect and then
+# named as a test parameter is pytest's own idiom, not a redefinition.
+"tests/**" = ["S101", "S105", "S106", "B011", "F811"]
+# DDL and DML composed from module-level constants; a migration takes no input
+# from anybody, so S608's SQL-injection heuristic has nothing to point at.
+"migrations/versions/**" = ["S608"]
+# CI tooling run on a runner against this repository's own files. S603/S607 on
+# a fixed argv is the whole job of a script that shells out to git.
+"../../tools/ci/**" = ["S603", "S607"]
+
+[tool.mypy]
+python_version = "3.14"
+files = ["app"]
+# The models import across each other and the routers import the models; mypy
+# follows them all from `app`, so nothing needs listing twice.
+warn_unused_ignores = true
+warn_redundant_casts = true
+# On: the bodies of unannotated functions are checked too. It cost nothing
+# once the annotated half was clean (zero further findings when it was turned
+# on), and off it hides exactly the handlers nobody annotated.
+check_untyped_defs = true
+
+# Untyped third-party libraries, named one by one so a NEW untyped import is
+# an error until somebody decides about it -- a global ignore_missing_imports
+# would hide a typo'd module name exactly as well as a missing stub.
+[[tool.mypy.overrides]]
+module = [
+    # AWS SDKs: boto3/botocore ship no types and their stubs are generated per
+    # service (see requirements-dev.txt); aws_sdk_bedrock_runtime and smithy
+    # are Smithy-generated with no py.typed marker.
+    "boto3", "boto3.*", "botocore", "botocore.*",
+    "aws_sdk_bedrock_runtime", "aws_sdk_bedrock_runtime.*", "smithy_aws_core.*",
+    # Dev-only (requirements-dev.txt); imported lazily by app/dev_mcp.py.
+    "fastapi_mcp",
+    # The local interview engine's optional speech models: imported lazily and
+    # deliberately absent from requirements.txt (AGENTS.md, `local` engine).
+    "faster_whisper", "piper",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# The Lambda handler is deployed as its own bundle with sqs.py and
+# validation.py beside it at the top level, so it imports them flat; from the
+# api's root those names do not resolve and mypy is right to say so.
+module = ["sqs", "validation"]
+ignore_missing_imports = true

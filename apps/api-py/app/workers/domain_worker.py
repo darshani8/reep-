@@ -60,7 +60,7 @@ def process_event(db: Session, envelope: EventEnvelope, *, owner: str, handlers:
     if state in ("terminal", "owned"):
         db.rollback()
         return "noop"
-    assert job is not None
+    assert job is not None  # noqa: S101  type narrowing only; state says the row exists
     token = job.lease_token or ""
     db.commit()  # Claim first; external work must not hold the claim transaction.
     handler = handlers.get(job.job_type)
@@ -111,7 +111,7 @@ def consume_once(db: Session, transport: ReceiveTransport, queue_url: str, *, ow
         receipt = message.get("ReceiptHandle")
         try:
             result = process_message(db, message.get("Body", ""), owner=owner, handlers=handlers)
-            transport.delete(queue_url, receipt)
+            transport.delete(queue_url, receipt)  # type: ignore[arg-type]  # SQS always sends a ReceiptHandle
             if result == "completed": completed += 1
             elif result == "failed": failed += 1
             else: retried += 1

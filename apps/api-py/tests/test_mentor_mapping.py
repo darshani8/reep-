@@ -340,7 +340,6 @@ def test_capacity_comes_from_the_department_and_still_enforces_nothing(
     admin = make_user("mm-cap-adm", Role.ADMIN)
     faculty = make_user("mm-cap-fac", Role.MENTOR)
     _file_under(faculty.user_id, spine["here"])
-    sid = spine["student_here"]
     try:
         rows = client.get(f"{ADMIN_API}/mentor-load", headers=admin.headers).json()
         row = next(r for r in rows if r["user_id"] == faculty.user_id)

@@ -1964,7 +1964,7 @@ def _grid_filters(
         # ignored filter: a `?recorded_only=1` that quietly returned everything
         # would be a reviewer downloading a file they believe is the recorded
         # subset.
-        assert audio_recorded is not None, (
+        assert audio_recorded is not None, (  # noqa: S101  under -O the next line still fails on None
             "recorded_only has no meaning over a table with no audio column"
         )
         query = query.where(audio_recorded.is_(True))
@@ -2043,7 +2043,7 @@ def admin_interviews(
         # interviews shared a start time.
         query = query.where(
             tuple_(InterviewSession.started_at, InterviewSession.id)
-            < tuple_(at, last_id)
+            < tuple_(at, last_id)  # type: ignore[arg-type]  # plain values bind; SA coerces them
         )
 
     rows = db.execute(

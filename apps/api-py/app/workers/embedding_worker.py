@@ -12,7 +12,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..models.redesign import EmbeddingModel, EmbeddingStatus, KnowledgeChunkEmbedding, KnowledgeChunkV2
-from .leasing import retry_job
 
 
 class EmbeddingProvider(Protocol):
@@ -59,7 +58,7 @@ def process_embedding(db: Session, embedding_id: str, *, owner: str, provider: E
     if state in ("ready", "owned"):
         db.rollback()
         return "noop"
-    assert row is not None
+    assert row is not None  # noqa: S101  type narrowing only; state says the row exists
     token = row.lease_token or ""
     chunk = db.get(KnowledgeChunkV2, row.chunk_id)
     model = db.get(EmbeddingModel, row.embedding_model_id)

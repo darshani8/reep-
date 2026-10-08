@@ -231,23 +231,29 @@ description = "Published dev/CI values, and the placeholders the templates ship 
 # placeholder IS the finding. That is what "allowlisted by value" means, and
 # tools/ci/check_gitleaks_rules.py replays those six leaks on every run of the
 # gate to keep it meaning that.
+#
+# AND EVERY VALUE IS DELIMITED, because "the match CONTAINS it" is still too
+# wide: `postgresql://admin:reep_dev_passwordX1@prod/...` contains the dev
+# password and is not it. Each entry below is bounded by characters a key
+# cannot continue with. The template PLACEHOLDERS (change-me, <...>, ${...})
+# moved to the next block, which matches them against the WHOLE secret.
 regexTarget = "match"
 regexes = [
   # app/config.py:81 -- the dev AUTH_SECRET. Printed in apps/api-py/.env.example
   # line 35 and quoted in docs/codebase-mahabharath/{01,05} and
   # docs/audit-backend-voice-2026-08.md.
-  '''reep-dev-secret-change-me-in-production-0123456789abcdef''',
+  '''(^|[^A-Za-z0-9_-])reep-dev-secret-change-me-in-production-0123456789abcdef([^A-Za-z0-9_-]|$)''',
   # app/config.py:80 -- the dev database password. In .env.example line 14,
   # docker-compose.yml line 12 and ci.yml's service block.
-  '''reep_dev_password''',
+  ''':reep_dev_password@''',
   # .github/workflows/ci.yml -- the AUTH_SECRET the Postgres job runs under. It
   # is in a public workflow file and it guards a container that is destroyed
   # when the job ends.
-  '''ci-secret-not-used-outside-ci-0123456789abcdef''',
+  '''(^|[^A-Za-z0-9_-])ci-secret-not-used-outside-ci-0123456789abcdef([^A-Za-z0-9_-]|$)''',
   # tests/test_boot_guard.py:61 -- GOOD_DATABASE_URL's stand-in password, whose
   # only purpose is to be "not the repo password" so the guard's negative case
   # can be asserted at all.
-  '''not-the-repo-password''',
+  ''':not-the-repo-password@''',
   # tests/test_seed_guard.py:33 -- a URL aimed at 127.0.0.1:1 precisely so the
   # connection cannot succeed.
   '''nobody:nobody@''',
@@ -262,18 +268,6 @@ regexes = [
   # tests/test_boot_guard.py -- f-strings that interpolate the dev constants
   # instead of spelling them out.
   '''\{_DEV_(DB_PASSWORD|DATABASE_URL|AUTH_SECRET)\}''',
-  # Template placeholders. `change-me` in either case is one of the two shapes
-  # the boot guard itself treats as a placeholder; the angle-bracket form is
-  # what the deployment docs use.
-  '''(?i)change[-_]?me''',
-  '''<[A-Za-z0-9_ .-]{3,40}>''',
-  # Shell and compose interpolation is a REFERENCE, not a value:
-  # `${VOICE_WORKER_SECRET:?set VOICE_WORKER_SECRET}`, `${AUTH_SECRET}`.
-  '''\$\{[A-Z_]+''',
-  # AWS Secrets Manager / SSM references (infra/aws/ecs.tf in its day) -- an ARN
-  # and a key NAME on the left of a `valueFrom`, never a value. Against the
-  # match this frees only a finding whose matched text includes the word.
-  '''valueFrom''',
 ]
 paths = [
   # gitleaks re-scanning its own rules file reports every regex above as the
@@ -289,9 +283,61 @@ paths = [
   '''\.pyc$''',
 ]
 
+[[allowlists]]
+description = "Template placeholders, freed only when the WHOLE secret is the placeholder"
+# Matched against the SECRET a rule extracted, and anchored at both ends. Against
+# the match these were freeing any real value that merely CONTAINED one:
+# `OPENAI_API_KEY=changeme<40 hex>` and `postgresql://admin:changeme<hex>@db...`
+# were both quiet (DEF-QG-U01's observation, replayed in
+# tools/ci/check_gitleaks_rules.py). `change-me` in either case is one of the
+# two shapes app/config.py's boot guard treats as a placeholder; `<...>` is
+# what the deployment docs write; `${VAR}` / `${VAR:?message}` / `${VAR:-}` is a
+# shell or compose REFERENCE, not a value. Optional surrounding quotes, because
+# a rule's value group may carry them.
+regexTarget = "secret"
+regexes = [
+  '''(?i)^["']?change[-_]?me["']?$''',
+  '''^["']?<[A-Za-z0-9_ .-]{3,40}>["']?$''',
+  '''^["']?\$\{[A-Za-z_][A-Za-z0-9_]*(:[-?=+][^}]*)?\}["']?$''',
+]
+
+[[allowlists]]
+description = "reep-auth-secret: a value the ENV=prod boot guard refuses to boot on"
+# The one place a value merely CONTAINING a marker is freed, and it is freed for
+# this rule alone, because for AUTH_SECRET alone the product already refuses it:
+# app/config.py's production_boot_failures() rejects any AUTH_SECRET containing
+# one of _PLACEHOLDER_SECRET_MARKERS, case-insensitively, so such a value can
+# never sign a production cookie. The list below IS that tuple -- change one,
+# change both. tests/test_boot_guard.py's `CHANGE-ME-BEFORE-PRODUCTION-...` is
+# the line that needs it. OPENAI_API_KEY and the database password have no such
+# guard, so `changeme<40 hex>` is still a finding for them.
+targetRules = ["reep-auth-secret"]
+regexTarget = "secret"
+regexes = ['''(?i)(change-me|changeme|change_me|your-secret)''']
+
+[[allowlists]]
+description = "reep-database-url-password: a URL whose PASSWORD is a placeholder"
+# That rule has no value group, so its "secret" is the whole
+# `scheme://user:password@` and the anchored block above can never match it.
+# This frees the URL only when everything between `:` and `@` is a placeholder.
+targetRules = ["reep-database-url-password"]
+regexTarget = "secret"
+regexes = [
+  '''(?i)^postgres(?:ql)?(?:\+[a-z0-9]+)?://[A-Za-z0-9_.\-]+:(change[-_]?me|<[A-Za-z0-9_ .-]{3,40}>|\$\{[A-Za-z_][A-Za-z0-9_]*(:[-?=+][^}]*)?\})@$''',
+]
+
 # ---------------------------------------------------------------------------
 # Rule-scoped exemptions
 # ---------------------------------------------------------------------------
+#
+# RUN GITLEAKS FROM THE REPOSITORY ROOT, AS `gitleaks dir .` / `gitleaks git .`.
+# Every `paths` entry in this file is a regex over the path gitleaks REPORTS,
+# which is relative to the directory it was given: from the root that is
+# `apps/api-py/...` and the `^apps/...` anchors match; given an absolute path it
+# is `/home/.../apps/api-py/...`, they match nothing, and a clean tree reports
+# four findings. CI and preflight.sh run it this way. (The replay script scans a
+# temp directory by absolute path on purpose: none of its cases relies on a
+# path-scoped exemption, so none is in play there.)
 #
 # The global block above frees a VALUE for every rule. These free one
 # shape for ONE rule, so the same string under any other rule still fires. Each

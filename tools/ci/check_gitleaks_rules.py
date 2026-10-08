@@ -44,6 +44,11 @@ def _alnum(n: int, alphabet: str = string.ascii_letters + string.digits) -> str:
 PG = "postgres" + "ql"
 PG_SHORT = "post" + "gres"
 GROQ = "GROQ_" + "API_KEY"
+OPENAI = "OPENAI_" + "API_KEY"
+# gitleaks' inline allow marker, which every invocation in this repository
+# refuses to honour (--ignore-gitleaks-allow). Split so no line of this file
+# carries the marker itself.
+ALLOW_MARK = "gitleaks" + ":allow"
 
 
 def cases() -> tuple[dict[str, str], dict[str, str]]:
@@ -69,6 +74,16 @@ def cases() -> tuple[dict[str, str], dict[str, str]]:
         # And the originals, so a rule edit cannot quietly lose one.
         "l12/apps/api-py/.env": f"AUTH_SECRET={hex64}\nOPENAI_API_KEY=proxy-{pw}\n",
         "l13/apps/api-py/.env2": f"{GROQ}=gsk_{_alnum(48)}\n",
+        # DEF-QG-U04: an inline allow marker is not an allowlist here.
+        "l14/apps/api-py/.env": f"AUTH_SECRET={hex64}  # {ALLOW_MARK}\n",
+        "l15/docs/notes.md": f"token {ghp} <!-- {ALLOW_MARK} -->\n",
+        # OBS-QG-U01: a real-shaped value that merely CONTAINS a placeholder.
+        # (AUTH_SECRET=change-me-<40> is the one exception, and it is a quiet
+        # case below: the ENV=prod boot guard refuses it.)
+        "l16/apps/api-py/.env": f'AUTH_SECRET="${{X}}{_alnum(40)}"\n',
+        "l17/apps/api-py/.env": f"{OPENAI}=changeme{secrets.token_hex(20)}\n",
+        "l18/docs/runbook.md": f"psql {PG}://admin:changeme{secrets.token_hex(12)}@db.example.com/reep_py\n",
+        "l19/docs/runbook.md": f"psql {PG}://reep:reep_dev_password{_alnum(6)}@db.example.com/reep_py\n",
     }
     quiet = {
         "q01/apps/api-py/.env.example": (
@@ -87,6 +102,15 @@ def cases() -> tuple[dict[str, str], dict[str, str]]:
         "q04/k8s/secret.yaml": "data:\n  AUTH_SECRET:\n    valueFrom: x\nnext_key:\n  other: 1\n",
         "q05/docs/x.md": "a `--dbname=postgres://user:pass@...` is what not to do\n",
         "q06/apps/web/src/app/x.ts": "const rows: Array<string> = ['a', 'b'];\n",
+        # The boot guard's exception: production refuses to boot on this value.
+        "q07/apps/api-py/.env": f"AUTH_SECRET=change-me-{_alnum(40)}\n",
+        # WHOLE-secret placeholders stay quiet.
+        "q08/apps/api-py/.env.example": 'AUTH_SECRET="<paste-the-64-hex-secret-from-token-hex>"\n',
+        "q09/docs/deploy.md": (
+            f"DATABASE_URL={PG}://reep:<password>@db.example.com/reep_py\n"
+            f"DATABASE_URL={PG}://reep:${{DB_PASSWORD}}@db.example.com/reep_py\n"
+            f"DATABASE_URL={PG}://reep:change-me@db.example.com/reep_py\n"
+        ),
     }
     return leaks, quiet
 
@@ -106,7 +130,8 @@ def main() -> int:
         report = root.parent / f"{root.name}.json"
         try:
             run = subprocess.run(
-                [gitleaks, "dir", str(root), "--config", str(CONFIG), "--redact", "--no-banner",
+                [gitleaks, "dir", str(root), "--config", str(CONFIG), "--ignore-gitleaks-allow",
+                 "--redact", "--no-banner",
                  "--exit-code", "0", "--report-format", "json", "--report-path", str(report)],
                 capture_output=True, text=True,
             )

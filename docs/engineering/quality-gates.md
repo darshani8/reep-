@@ -81,10 +81,15 @@ repository root — the history of your commits, then the working tree:
 
 ```sh
 gitleaks git . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore \
-  --log-opts="origin/dev..HEAD" --redact --no-banner --exit-code 1
+  --ignore-gitleaks-allow --log-opts="origin/dev..HEAD" --redact --no-banner --exit-code 1
 gitleaks dir . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore \
-  --redact --no-banner --exit-code 1
+  --ignore-gitleaks-allow --redact --no-banner --exit-code 1
 ```
+
+Run both from the repository ROOT, as `.` -- not as an absolute path: the
+path-scoped exemptions in `.gitleaks.toml` are anchored to paths relative to the
+root, so pointing gitleaks at an absolute path to the checkout reports four findings on a clean
+tree.
 
 (In CI the range is the pull request's `base..head`; on a push to `main`,
 `stage` or `dev` it is every commit reachable from HEAD.)

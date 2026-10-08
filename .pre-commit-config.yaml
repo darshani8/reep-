@@ -68,7 +68,10 @@ repos:
         # database row involved -- and on a public repo there is no un-pushing
         # it, only rotation, which signs every live session out. See the header
         # of .gitleaks.toml for the rules and every allowlist entry's reason.
-        args: ["--config", ".gitleaks.toml"]
+        # --ignore-gitleaks-allow: an inline `gitleaks:allow` comment is an
+        # allowlist written by the leak's author and read by no reviewer; the
+        # CI gate refuses to honour one, so the hook does not either.
+        args: ["--config", ".gitleaks.toml", "--ignore-gitleaks-allow"]
 
   # ---------------------------------------------------------------------------
   # Commit message shape.

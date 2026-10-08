@@ -207,9 +207,15 @@ PY=$(venv_python "$API_DIR/.venv" || true)
 
 # The version secret-scan.yml installs, read from that file so the two cannot
 # drift: a scanner on another version has another default ruleset, and its
-# "no leaks" is an answer to a different question.
-GITLEAKS_PINNED=$(sed -n 's/^[[:space:]]*GITLEAKS_VERSION:[[:space:]]*"\([^"]*\)".*/\1/p' \
-  "$REPO_ROOT/.github/workflows/secret-scan.yml" 2>/dev/null | head -1)
+# "no leaks" is an answer to a different question. All three YAML spellings are
+# read -- "8.30.0", '8.30.0' and bare 8.30.0, with or without a trailing
+# comment -- because Actions reads all three, and a pin this script cannot read
+# is reported as exactly that rather than as the version "v".
+read_workflow_env() {  # $1 = key in secret-scan.yml's env block
+  sed -n -E "s/^[[:space:]]*$1:[[:space:]]*[\"']?([^\"'#[:space:]]+)[\"']?[[:space:]]*(#.*)?\$/\1/p" \
+    "$REPO_ROOT/.github/workflows/secret-scan.yml" 2>/dev/null | head -1
+}
+GITLEAKS_PINNED=$(read_workflow_env GITLEAKS_VERSION)
 GITLEAKS=""
 GITLEAKS_FOUND_VERSION=""
 if command -v gitleaks >/dev/null 2>&1; then
@@ -294,7 +300,9 @@ else
   note "cd infra/cdk && python3.12 -m venv .venv    # the cdk job pins 3.12"
   note "infra/cdk/.venv/bin/pip install -r requirements-dev.txt"
 fi
-if [ -n "$GITLEAKS" ] && [ "$GITLEAKS_FOUND_VERSION" = "$GITLEAKS_PINNED" ]; then
+if [ -z "$GITLEAKS_PINNED" ]; then
+  printf '  %-16s %scould not read the pinned version from secret-scan.yml%s\n' "gitleaks" "$YELLOW" "$RESET"
+elif [ -n "$GITLEAKS" ] && [ "$GITLEAKS_FOUND_VERSION" = "$GITLEAKS_PINNED" ]; then
   printf '  %-16s %s (%s)\n' "gitleaks" "$GITLEAKS" "$GITLEAKS_FOUND_VERSION"
 elif [ -n "$GITLEAKS" ]; then
   printf '  %-16s %s %s, CI pins %s%s\n' "gitleaks" "$YELLOW" "${GITLEAKS_FOUND_VERSION:-unknown version}" "$GITLEAKS_PINNED" "$RESET"
@@ -450,6 +458,9 @@ check_secrets() {
   local name="Secrets (gitleaks)" t0 rc=0 base range tree note_text=""
   if should_stop; then record "$name" SKIP 0 "a previous check failed (--keep-going runs them all)"; return; fi
   banner "3/6  $name"
+  if [ -z "$GITLEAKS_PINNED" ]; then
+    record "$name" SKIP 0 "could not read the pinned version from secret-scan.yml (GITLEAKS_VERSION in its env block)"; return
+  fi
   if [ -z "$GITLEAKS" ]; then
     record "$name" SKIP 0 "gitleaks is not on PATH - install v$GITLEAKS_PINNED, the version secret-scan.yml pins"; return
   fi
@@ -458,8 +469,10 @@ check_secrets() {
   fi
   t0=$(now)
 
+  # --ignore-gitleaks-allow: an inline `gitleaks:allow` comment must not
+  # silence a finding (secret-scan.yml says why); one array, all four scans.
   local cfg=("--config" "$REPO_ROOT/.gitleaks.toml" "--gitleaks-ignore-path" "$REPO_ROOT/.gitleaksignore"
-             "--redact" "--no-banner" "--exit-code" "1")
+             "--ignore-gitleaks-allow" "--redact" "--no-banner" "--exit-code" "1")
 
   # The commits a pull request from here would add. With no origin/main to
   # measure against, every commit - the push event's answer, and slower.

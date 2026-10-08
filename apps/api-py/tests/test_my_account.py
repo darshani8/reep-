@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import uuid
 
-import pytest
 from sqlalchemy import delete, select
 
 from conftest import TEST_PASSWORD, requires_db

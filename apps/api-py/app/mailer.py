@@ -87,7 +87,7 @@ def deliver_once(
         db.rollback()
         # A concurrent worker reserved the key between our read and flush; defer
         # to their row and send nothing.
-        return db.scalar(select(MailLog).where(MailLog.dedupe_key == dedupe_key))
+        return db.scalar(select(MailLog).where(MailLog.dedupe_key == dedupe_key))  # type: ignore[return-value]  # see qg report
 
     if not suppress:
         try:

@@ -16,7 +16,6 @@ the public endpoints are limited per address.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy import select, update

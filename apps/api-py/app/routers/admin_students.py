@@ -35,16 +35,15 @@ same helpers, so "move a batch" and "move a student" cannot drift.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Literal, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import delete, func, select
+from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.orm import Session, aliased
 
 from .. import batch_labels, dual_specialization
 from ..architecture_events import record_change
-from ..config import settings
 from ..db import get_db
 from ..governance import ancestry_of_student, ancestry_of_user, require_capability
 from ..institution_domains import college_id_for_cohort, domain_of, provisionable_domains_for
@@ -52,7 +51,7 @@ from ..identity import get_current_session
 from ..models.cohort import Cohort
 from ..models.institution import AcademicCourse, AcademicSpecialization, Department
 from ..models.student_profile import StudentProfile
-from ..models.user import Mentor, Role, Stage, Student, User
+from ..models.user import Mentor, Stage, Student, User
 from ..student_placement import (
     DepartmentContradiction,
     department_of_cohort,
@@ -67,7 +66,6 @@ from ..mentor_history import record_mentor_change
 # be in the student's own college. Two copies of a college rule disagree the
 # first time one of them is corrected.
 from .admin_mentoring import _assert_same_college, ensure_mentor_group
-from .registration import SSO_ONLY_PASSWORD_HASH
 
 router = APIRouter(prefix="/admin", tags=["admin-students"])
 
@@ -386,7 +384,8 @@ def _student_or_404(db: Session, student_id: str) -> tuple[Student, User]:
     student = db.get(Student, student_id)
     if student is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
-    return student, db.get(User, student.user_id)
+    # students.user_id is a NOT NULL foreign key, so the account row exists.
+    return student, cast(User, db.get(User, student.user_id))
 
 
 def _cohort_or_404(db: Session, cohort_id: str) -> Cohort:
@@ -463,7 +462,7 @@ def list_students(
     scope_header(response, reach)
     if reach.nothing:
         return []
-    where = [
+    where: list[ColumnElement[bool]] = [
         Student.id.in_(reach.student_ids()),
         User.deleted_at.is_not(None) if removed else User.deleted_at.is_(None),
     ]

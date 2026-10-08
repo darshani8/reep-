@@ -27,7 +27,7 @@ import uuid
 from datetime import date, datetime, timedelta, timezone
 
 import pytest
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, update
 
 from conftest import requires_db
 

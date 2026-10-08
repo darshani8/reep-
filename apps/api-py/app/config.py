@@ -4,7 +4,7 @@ Field names map to env vars case-insensitively (database_url <- DATABASE_URL).
 """
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from pydantic import AliasChoices, Field, ValidationInfo, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -72,8 +72,8 @@ _DEV_ENV_NAMES = frozenset({"dev", "development", "test", "testing", "ci", "loca
 # any more. Both are also printed in .env.example, i.e. in the repository, i.e.
 # known to everyone who has ever cloned it.
 _DEV_DATABASE_URL = "postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py"
-_DEV_DB_PASSWORD = "reep_dev_password"
-_DEV_AUTH_SECRET = "reep-dev-secret-change-me-in-production-0123456789abcdef"
+_DEV_DB_PASSWORD = "reep_dev_password"  # noqa: S105  the published DEV password, kept so the boot guard can refuse it
+_DEV_AUTH_SECRET = "reep-dev-secret-change-me-in-production-0123456789abcdef"  # noqa: S105  the published DEV secret, kept so the boot guard can refuse it
 
 # Substrings that mean "nobody has replaced this yet". A secret edited from the
 # committed default by a couple of characters is not a new secret, and the
@@ -91,7 +91,7 @@ AUTH_SECRET_MIN_CHARS = 32
 # How to replace it, quoted verbatim in every refusal below. An operator meeting
 # a boot failure at 2am needs the command, not a policy.
 _NEW_SECRET_HINT = (
-    'Generate one and set AUTH_SECRET in apps/api-py/.env: '
+    'Generate one and set AUTH_SECRET in apps/api-py/.env: '  # noqa: S105  a help sentence, not a secret
     'python -c "import secrets; print(secrets.token_hex(32))". '
     "Changing it signs out every live session, which is the correct trade."
 )
@@ -994,7 +994,8 @@ class Settings(BaseSettings):
         earlier by _blank_docs_flag_is_not_an_opt_in rather than defaulted here.
         """
         if isinstance(value, str) and not value.strip():
-            return cls.model_fields[info.field_name].default
+            # A field validator always runs with the field it was declared on.
+            return cls.model_fields[cast(str, info.field_name)].default
         return value
 
     @field_validator(
@@ -1274,7 +1275,7 @@ class Settings(BaseSettings):
             # close code and its own sentence, which is more useful than a
             # blanket "unavailable" here.
             return True
-        return self.realtime_ready
+        return self.realtime_ready  # type: ignore[attr-defined]  # see qg report: unreachable, _known_engine admits only nova/local
 
     @property
     def interview_unready_reason(self) -> str:
@@ -1603,4 +1604,4 @@ class Settings(BaseSettings):
         return f"{base}?{'&'.join(kept)}" if kept else base
 
 
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]  # every field has a default; the plugin misreads validation_alias

@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import uuid
 
-import pytest
 from sqlalchemy import select
 
 from app.db import SessionLocal

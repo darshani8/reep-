@@ -165,8 +165,8 @@ def encode_mp3(wav_path: Path, *, bitrate: str = "96k", timeout_s: float = 120.0
         return None
     out = wav_path.with_suffix(".mp3")
     try:
-        subprocess.run(
-            [
+        subprocess.run(  # noqa: S603  fixed argv list, no shell; paths are ours
+            [  # noqa: S607  ffmpeg is resolved on PATH by design
                 "ffmpeg", "-y", "-loglevel", "error", "-i", str(wav_path),
                 "-codec:a", "libmp3lame", "-b:a", bitrate, str(out),
             ],

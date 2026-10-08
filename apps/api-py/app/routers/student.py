@@ -9,6 +9,8 @@ from sqlalchemy import bindparam, func, select
 from sqlalchemy.orm import Session
 
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
+from typing import Any
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 
@@ -323,7 +325,8 @@ def _institution_for(db: Session, stu: Student | None) -> InstitutionOut:
     """
     if stu is None:
         return _empty_institution()
-    row = (
+    # Mapping, not RowMapping: the branch below may widen it into a plain dict.
+    row: Mapping[Any, Any] | None = (
         db.execute(_INSTITUTION_Q, {"cohort_id": stu.cohort_id}).mappings().first()
         if stu.cohort_id
         else None
@@ -2817,7 +2820,8 @@ def _board_values(db: Session, board: str, roster: list[tuple[str, str]]) -> dic
         return {sid: (float(pts), f"{pts} pts") for sid, pts in overall_points(components).items()}
 
     if board == "certificates":
-        rows = db.execute(
+        # Typed loosely: every branch below reuses the name for a different row shape.
+        rows: Sequence[Any] = db.execute(
             select(CertificationProgress.student_id, func.count())
             .where(
                 CertificationProgress.student_id.in_(sids),

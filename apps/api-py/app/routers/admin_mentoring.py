@@ -42,10 +42,11 @@ this phase.
 """
 
 from datetime import datetime
+from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import func, or_, select
+from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.orm import Session, aliased
 
 from ..config import settings
@@ -325,7 +326,9 @@ def mentor_load(
     faculty_where = [
         User.role == Role.MENTOR, User.id.in_(reach.user_ids()), User.deleted_at.is_(None),
     ]
-    student_where = [Student.id.in_(reach.student_ids()), User.deleted_at.is_(None)]
+    student_where: list[ColumnElement[bool]] = [
+        Student.id.in_(reach.student_ids()), User.deleted_at.is_(None),
+    ]
     if department_id:
         faculty_where.append(User.department_id == department_id)
         student_where.append(_student_department_expr() == department_id)
@@ -505,7 +508,7 @@ def mentor_load(
             # thing this field exists to prevent ("so a programme default is not
             # presented as a departmental decision").
             capacity=(
-                capacities[row_department_id]
+                cast(int, capacities[row_department_id])
                 if capacities.get(row_department_id) is not None
                 else settings.mentor_capacity
             ),
@@ -564,7 +567,9 @@ def unassigned_students(
         # as "there is nothing" — `X-Reep-Scope: none` beside it says which.
         _page_headers(response, total=0, page=page, page_size=page_size)
         return []
-    where = [Student.mentor_id.is_(None), Student.id.in_(reach.student_ids()), User.deleted_at.is_(None)]
+    where: list[ColumnElement[bool]] = [
+        Student.mentor_id.is_(None), Student.id.in_(reach.student_ids()), User.deleted_at.is_(None),
+    ]
     if department_id:
         where.append(_student_department_expr() == department_id)
     if college_id:

@@ -126,7 +126,6 @@ def _in_reach(db: Session, session: dict):
     `scope_views.interview_track_scope_clause`'s reason: they are the ones every
     student actually gets asked. Writing one is still refused by `_check_track`.
     """
-    from sqlalchemy import false as sa_false
     from sqlalchemy import or_
     from sqlalchemy import true as sa_true
 

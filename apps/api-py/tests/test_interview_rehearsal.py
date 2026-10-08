@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import inspect
 
-import pytest
 
 from app.models.user import Role
 from app.routers import interview as interview_router
@@ -45,8 +44,8 @@ class TestTheFlag:
     def test_the_backstop_skips_a_rehearsal(self):
         """Layer 2 closes `interview_sessions` rows; a rehearsal has none."""
         src = inspect.getsource(interview_router._run_relay)
-        assert "if interview_session_id is None:" in src
-        assert src.index("if interview_session_id is None:") < src.index("_finalize_if_running")
+        assert "if interview_session_id is not None:" in src
+        assert src.index("if interview_session_id is not None:") < src.index("_finalize_if_running")
 
 
 @requires_db

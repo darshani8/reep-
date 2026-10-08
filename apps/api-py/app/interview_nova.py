@@ -1473,7 +1473,7 @@ class NovaSonicSession:
 
     async def _pump_upstream(self) -> None:
         """Bedrock -> browser. One task, and the only one that reads the stream."""
-        assert self._upstream is not None
+        assert self._upstream is not None  # noqa: S101  type narrowing only; run() opens the stream first
         while True:
             event = await self._upstream.receive()
             if event is None:
@@ -1500,7 +1500,7 @@ class NovaSonicSession:
         session_id = payload.get("sessionId")
         if isinstance(session_id, str) and session_id and self._session_id is None:
             self._session_id = session_id
-            self._log.extra["session_id"] = session_id  # type: ignore[union-attr]
+            self._log.extra["session_id"] = session_id  # type: ignore[index]
 
         if name in _UPSTREAM_ERROR_EVENTS:
             # `message` here describes OUR event documents, never the student's

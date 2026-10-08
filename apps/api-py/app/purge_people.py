@@ -73,6 +73,7 @@ import sys
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy import delete, func, inspect as sa_inspect, select, table as sa_table, update
 from sqlalchemy.orm import Session
@@ -594,7 +595,8 @@ def destroy_document_files(rows: Iterable[tuple[str, str]]) -> list[str]:
     return failures
 
 
-def destroy_interview_audio(sessions: Iterable[tuple[str, str | None]]) -> list[str]:
+# Sequence, not tuple: callers hand in SQLAlchemy Rows of (id, audio_path).
+def destroy_interview_audio(sessions: Iterable[Sequence[Any]]) -> list[str]:
     """Interview audio through its own store, for EVERY session handed in and
     never only the ones whose row admits to having audio —
     retention._delete_interview_audio documents why the filesystem is the

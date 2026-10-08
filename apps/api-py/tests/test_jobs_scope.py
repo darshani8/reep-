@@ -56,7 +56,7 @@ from app.models.institution import (
     Department,
 )
 from app.models.job import DegreeLevel, Job, JobApplication
-from app.models.user import Role, Student, User
+from app.models.user import Role, Student
 
 
 @pytest.fixture

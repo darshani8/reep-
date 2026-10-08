@@ -115,7 +115,9 @@ def drain_once(
     messages = list(queue.pull(degree_level, max_messages=max_messages, wait_seconds=wait_seconds))
     if not messages:
         return 0
-    with job_run("candidate.drain", **{"queue.degree": degree_level}) as run:
+    # Typed Any so mypy does not match the str value against monitor_config.
+    tags: dict[str, Any] = {"queue.degree": degree_level}
+    with job_run("candidate.drain", **tags) as run:
         stored, permanent, retryable = _process(db, queue, degree_level, messages)
         tracing.annotate(
             received=len(messages), stored=stored, failed_permanent=permanent, failed_retryable=retryable

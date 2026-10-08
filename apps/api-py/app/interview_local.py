@@ -91,7 +91,7 @@ def _add_cuda_dlls() -> None:
         return
     for d in dirs:
         try:
-            os.add_dll_directory(d)
+            os.add_dll_directory(d)  # type: ignore[attr-defined,unused-ignore]  # Windows-only API, guarded by os.name above
         except OSError:
             pass
     os.environ["PATH"] = os.pathsep.join(dirs) + os.pathsep + os.environ.get("PATH", "")
@@ -933,7 +933,10 @@ def _ollama_client() -> Any:
     import httpx
 
     if not _CLIENT_BOX:
-        _CLIENT_BOX.append(httpx.AsyncClient(timeout=None))
+        # Reads stay unbounded on purpose -- a local model's first token can
+        # take minutes while it loads, and the report path has its own
+        # wait_for -- but a connect that never answers is a hang, not a model.
+        _CLIENT_BOX.append(httpx.AsyncClient(timeout=httpx.Timeout(None, connect=10.0)))
     return _CLIENT_BOX[0]
 
 

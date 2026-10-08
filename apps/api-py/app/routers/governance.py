@@ -65,7 +65,7 @@ from sqlalchemy.orm import Session
 from .. import batch_labels, policies
 from ..architecture_events import record_change
 from ..db import get_db
-from ..governance import capabilities_for, granted_capabilities, require_capability
+from ..governance import capabilities_for, require_capability
 from ..identity import get_current_session
 from ..models.cohort import Cohort
 from ..models.governance import (
@@ -81,7 +81,6 @@ from ..models.governance import (
     AccessGroup,
     AccessGroupMember,
     CapabilityGrant,
-    CapabilityScope,
     FeatureOverride,
     ScopeLevel,
     SubjectKind,

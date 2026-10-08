@@ -10,7 +10,6 @@ carry a per-turn channel (text|voice) so one thread can mix chat and voice, and
 an optional provider_turn_id so a streaming/voice provider's retries dedup.
 """
 
-import enum
 import uuid
 from datetime import datetime, timezone
 

@@ -25,7 +25,7 @@ guardrail about the test.
 """
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 
 import pytest
 from sqlalchemy import delete, func, select
@@ -51,9 +51,8 @@ from app.db import SessionLocal
 from app.governance import ROLE_BASELINE, capabilities_for, granted_reaches
 from app.mentor_functions import MENTOR_FUNCTIONS, mentee_count, mentor_functions_for
 from app.models.academics import SemesterResult
-from app.models.governance import CapabilityGrant, ScopeLevel, SubjectKind
-from app.models.institution import Department
-from app.models.user import Mentor, Role, Student, User
+from app.models.governance import CapabilityGrant, SubjectKind
+from app.models.user import Role, Student, User
 from app.policies import scope_filter
 from app.seed_roster import SSO_ONLY_PASSWORD_HASH
 

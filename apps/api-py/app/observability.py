@@ -36,7 +36,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 import sentry_sdk
 from sentry_sdk.crons import capture_checkin
@@ -45,6 +45,9 @@ from sentry_sdk.crons.consts import MonitorStatus
 from . import telemetry_scrub as scrub
 from . import tracing
 from .config import settings
+
+if TYPE_CHECKING:
+    from sentry_sdk._types import MonitorConfig
 
 log = logging.getLogger("reep.observability")
 
@@ -423,7 +426,7 @@ def _reset_for_tests() -> None:
     with _STATE_LOCK:
         try:
             sentry_sdk.flush(timeout=2.0)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110  telemetry must never fail its caller
             pass
         sentry_sdk.get_global_scope().set_client(None)
         sentry_sdk.get_global_scope().clear()
@@ -442,7 +445,7 @@ def flush(timeout: float = 5.0) -> None:
         return
     try:
         sentry_sdk.flush(timeout=timeout)
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001, S110  telemetry must never fail its caller
         pass
 
 
@@ -505,7 +508,8 @@ def job_run(
             run.check_in_id = capture_checkin(
                 monitor_slug=monitor_slug,
                 status=MonitorStatus.IN_PROGRESS,
-                monitor_config=monitor_config,
+                # A plain dict at the call sites; the SDK types it as a TypedDict.
+                monitor_config=cast("MonitorConfig | None", monitor_config),
             )
         except Exception:  # noqa: BLE001
             run.check_in_id = None
@@ -531,7 +535,7 @@ def job_run(
                             tx.set_data("job.duration_s", round(run.duration_s, 3))
                             if run.reason:
                                 tx.set_tag("job.reason", run.reason[:64])
-                        except Exception:  # noqa: BLE001
+                        except Exception:  # noqa: BLE001, S110  telemetry must never fail its caller
                             pass
     finally:
         if monitor_slug and run.check_in_id:
@@ -542,7 +546,7 @@ def job_run(
                     status=MonitorStatus.OK if run.outcome == "ok" else MonitorStatus.ERROR,
                     duration=run.duration_s,
                 )
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110  telemetry must never fail its caller
                 pass
         flush()
 

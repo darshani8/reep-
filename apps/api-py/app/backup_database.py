@@ -91,7 +91,6 @@ import argparse
 import logging
 import os
 import subprocess
-import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -160,8 +159,8 @@ def dump(path: Path, env: dict[str, str]) -> int:
     that discarded them at WRITE time could never be restored faithfully into a
     rebuilt copy of this same deployment. Keep the information; choose later.
     """
-    proc = subprocess.run(
-        ["pg_dump", "--format=custom", "--file", str(path)],
+    proc = subprocess.run(  # noqa: S603  fixed argv list, no shell; the password travels in PG* env
+        ["pg_dump", "--format=custom", "--file", str(path)],  # noqa: S607  pg_dump is resolved on PATH; the Dockerfile pins the PGDG client
         env={**os.environ, **env},
         capture_output=True,
         text=True,
@@ -185,8 +184,8 @@ def verify(path: Path) -> int:
     accounts are IN that list catches the other half -- a technically valid
     archive of the wrong thing.
     """
-    proc = subprocess.run(
-        ["pg_restore", "--list", str(path)], capture_output=True, text=True
+    proc = subprocess.run(  # noqa: S603  fixed argv list, no shell
+        ["pg_restore", "--list", str(path)], capture_output=True, text=True  # noqa: S607  pg_restore is resolved on PATH beside pg_dump
     )
     if proc.returncode != 0:
         raise RuntimeError(

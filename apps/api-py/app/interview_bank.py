@@ -140,7 +140,7 @@ def parse_bulk(text: str) -> tuple[list[tuple[str, str]], list[str]]:
             # comma is punctuation - "Why HR, and why now?" is one question.
             sep = _SEP.match(line)
             named = normalise_phase(sep.group(1)) if sep else None
-            if named is not None:
+            if sep is not None and named is not None:
                 phase, body = named, sep.group(2).strip()
         body = body.strip().strip('"').strip()
         if len(body) < 8:

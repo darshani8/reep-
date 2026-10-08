@@ -314,7 +314,7 @@ def test_a_question_written_on_a_new_track_carries_its_track_id(client, make_use
     """B5.2. The bank used to refuse any track that was not one of the four
     constants, which would have made a college's own track unusable on the one
     screen that exists to author its questions."""
-    from sqlalchemy import delete, select
+    from sqlalchemy import delete
 
     from app.models.interview_bank import InterviewBankQuestion
 

@@ -34,3 +34,20 @@ fastapi-mcp==0.4.0
 # 1.30.0 is the last 1.x. Its own pins intersect requirements.txt cleanly
 # (httpx <1.0, pydantic >=2.12, starlette >=0.48, uvicorn >=0.31).
 mcp==1.30.0
+
+# --- static analysis (CI's "Static analysis (ruff, mypy, async blocking)") ---
+#
+# Pinned == for requirements.txt's reason: a linter that floats is a gate whose
+# verdict changes on a rebuild with no change to the code, and the first
+# person to meet that meets it as a red pull request they did not cause. The
+# configuration is apps/api-py/pyproject.toml. Bumping either is a deliberate
+# commit that fixes, or records, whatever the new version finds.
+ruff==0.16.10
+mypy==2.4.0
+# Stubs for the two untyped libraries whose typeshed packages track the
+# versions pinned in requirements.txt (reportlab 5.0.0, openpyxl 3.1.5).
+# boto3/botocore are NOT stubbed: their stubs are generated per service and
+# would type-check ~15 lazy client calls against a few hundred megabytes of
+# generated signatures; pyproject.toml names them as untyped instead.
+types-reportlab==5.0.0.20260911
+types-openpyxl==3.1.5.20260827

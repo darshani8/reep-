@@ -17,7 +17,7 @@ import uuid
 
 import pytest
 from fastapi import HTTPException
-from sqlalchemy import delete, select
+from sqlalchemy import delete
 from sqlalchemy.exc import IntegrityError
 
 from conftest import requires_db

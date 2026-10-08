@@ -42,7 +42,7 @@ def _styles() -> dict:
         "ResumeSection",
         parent=base["Heading2"],
         fontSize=12,
-        textColor="#1a3c5e",
+        textColor="#1a3c5e",  # type: ignore[arg-type]  # stubs say Color; reportlab converts a hex str
         spaceBefore=10,
         spaceAfter=2,
         leading=15,
@@ -62,7 +62,8 @@ def render_resume_pdf(markdown: str, *, fallback_title: str = "Resume") -> bytes
         if pending_bullets:
             story.append(
                 ListFlowable(
-                    [ListItem(Paragraph(b, styles["bullet"]), leftIndent=10) for b in pending_bullets],
+                    # Stubs omit ListItem from _NestedFlowable; ListFlowable accepts it at runtime.
+                    [ListItem(Paragraph(b, styles["bullet"]), leftIndent=10) for b in pending_bullets],  # type: ignore[misc]
                     bulletType="bullet",
                     start="•",
                     leftIndent=12,
@@ -159,7 +160,8 @@ def _appendix_index(proofs: list[EvidenceProof]) -> bytes:
             line += f" (verified {html.escape(p.verified_on)})"
         items.append(ListItem(Paragraph(line, styles["bullet"]), leftIndent=10))
     if items:
-        story.append(ListFlowable(items, bulletType="bullet", start="•", leftIndent=12))
+        # Stubs omit ListItem from _NestedFlowable; ListFlowable accepts it at runtime.
+        story.append(ListFlowable(items, bulletType="bullet", start="•", leftIndent=12))  # type: ignore[arg-type]
 
     buf = io.BytesIO()
     SimpleDocTemplate(

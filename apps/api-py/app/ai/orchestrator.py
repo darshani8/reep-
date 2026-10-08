@@ -43,7 +43,7 @@ The return shape is an ``AssistantResponse`` dict::
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy.orm import Session
 
@@ -225,19 +225,22 @@ def answer_question(
         result["intent"] = intent
         return result
 
+    # Every student-data intent below returned above unless is_student, which
+    # requires a truthy student_id; the other branches never read it.
+    sid = cast("str", student_id)
     try:
         if intent == READINESS:
-            result = _readiness(db, student_id)
+            result = _readiness(db, sid)
         elif intent == GAPS:
-            result = _gaps(db, student_id)
+            result = _gaps(db, sid)
         elif intent == JOBS:
-            result = _jobs(db, student_id)
+            result = _jobs(db, sid)
         elif intent == SKILLS:
-            result = _skills(db, student_id)
+            result = _skills(db, sid)
         elif intent == PROFILE:
-            result = _profile(db, student_id)
+            result = _profile(db, sid)
         elif intent == DEADLINES:
-            result = _deadlines(db, student_id)
+            result = _deadlines(db, sid)
         elif intent == POLICY:
             result = _policy(db, question)
         else:

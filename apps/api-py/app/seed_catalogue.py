@@ -405,6 +405,9 @@ def seed(db: Session, cat: Catalogue) -> dict[str, Any]:
 
     course_rows: dict[str, Any] = {}
     spec_rows: dict[tuple[str, str], Any] = {}
+    # Declared once for both loops below: the second one yields None for a
+    # course-level leaf, which the first never does.
+    spec: Spec | None
     for course in cat.courses:
         row, made = _get_or_create(
             db,

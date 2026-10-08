@@ -18,7 +18,8 @@ flag — a student who opted out of the main leaderboards did not opt into these
 """
 
 from collections import defaultdict
-from datetime import date, datetime, timezone
+from datetime import date, datetime
+from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -222,7 +223,8 @@ def compose_badges(student: Student, db: Session) -> BadgeDashboardOut:
         earned = display == "EARNED"
         if earned:
             earned_total += 1
-            points_total += row.points_awarded
+            # EARNED is only ever derived from a row, so `row` is set here.
+            points_total += cast(StudentBadge, row).points_awarded
 
         categories[b.category].append(
             BadgeOut(
@@ -243,7 +245,7 @@ def compose_badges(student: Student, db: Session) -> BadgeDashboardOut:
                 advanced_evidence_available=earned
                 and not b.staff_awarded
                 and len(approved_types) < len(EvidenceType),
-                points_earned=row.points_awarded if earned else 0,
+                points_earned=cast(StudentBadge, row).points_awarded if earned else 0,
                 earned_at=row.earned_at if row else None,
                 evidence=[
                     EvidenceOut(
@@ -392,7 +394,7 @@ def start_badge(
     if row is None:
         db.add(StudentBadge(student_id=student_id, badge_code=code))
         db.commit()
-    return compose_badges(db.get(Student, student_id), db)
+    return compose_badges(db.get(Student, student_id), db)  # type: ignore[arg-type]  # see qg report
 
 
 class EvidenceIn(BaseModel):
@@ -439,7 +441,7 @@ def submit_evidence(
             )
         ev_type = catalogue_row.evidence_type
         title = catalogue_row.name
-        provider = catalogue_row.provider
+        provider: str | None = catalogue_row.provider
     else:
         try:
             ev_type = EvidenceType(body.evidence_type or "")
@@ -494,7 +496,7 @@ def submit_evidence(
     # mentor's account barred): a mail that did not go out is never the
     # reason a claim fails to file. app/badge_mail.py carries the reasoning.
     badge_mail.notify_mentor_of_claim(db, ev)
-    return compose_badges(db.get(Student, student_id), db)
+    return compose_badges(db.get(Student, student_id), db)  # type: ignore[arg-type]  # see qg report
 
 
 # --- leaderboards (§16) ------------------------------------------------------

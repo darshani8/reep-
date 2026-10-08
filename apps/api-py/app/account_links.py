@@ -38,6 +38,7 @@ import hmac
 import logging
 import secrets
 from datetime import datetime, timedelta, timezone
+from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
@@ -60,6 +61,10 @@ from .models.auth_token import (
 )
 from .models.registration import Registration
 from .models.user import Role, User
+
+if TYPE_CHECKING:
+    # An UPDATE/DELETE executes to a CursorResult; Session.execute is typed wider.
+    from sqlalchemy.engine import CursorResult
 
 log = logging.getLogger(__name__)
 
@@ -145,7 +150,7 @@ def revoke_user_tokens(db: Session, user_id: str, purpose: str) -> int:
         )
         .values(consumed_at=_now())
     )
-    return int(result.rowcount or 0)
+    return int(cast("CursorResult[Any]", result).rowcount or 0)
 
 
 def revoke_all_user_tokens(db: Session, user_id: str) -> int:
@@ -163,7 +168,7 @@ def revoke_all_user_tokens(db: Session, user_id: str) -> int:
         .where(AuthToken.user_id == user_id, AuthToken.consumed_at.is_(None))
         .values(consumed_at=_now())
     )
-    return int(result.rowcount or 0)
+    return int(cast("CursorResult[Any]", result).rowcount or 0)
 
 
 def issue_user_token(
@@ -338,7 +343,7 @@ def sweep_login_codes(db: Session, now: datetime | None = None) -> int:
             (AuthToken.consumed_at < cutoff) | (AuthToken.expires_at < cutoff),
         )
     )
-    return int(result.rowcount or 0)
+    return int(cast("CursorResult[Any]", result).rowcount or 0)
 
 
 # ---------------------------------------------- registration confirmation --

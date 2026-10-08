@@ -794,7 +794,7 @@ def submit_ledger(
             detail=view.submit_blocked_reason or "This day cannot be submitted yet.",
         )
 
-    assert ledger is not None  # can_submit is False for a day with no rows at all
+    assert ledger is not None  # noqa: S101  can_submit is False for a day with no rows at all
     ledger.status = LedgerDayStatus.SUBMITTED
     ledger.submitted_at = datetime.now(timezone.utc)
     db.commit()
@@ -894,8 +894,9 @@ def compose_english_baseline(db: Session, student_id: str) -> EnglishBaselineOut
                 label=SKILL_LABEL[skill],
                 icon=SKILL_ICON[skill],
                 status=(row.status.value if row else SectionStatus.PENDING.value),
-                score=row.score if is_scored else None,
-                band=row.band if is_scored else None,
+                # `row is not None` is implied by is_scored; spelled out for the checker.
+                score=row.score if row is not None and is_scored else None,
+                band=row.band if row is not None and is_scored else None,
                 minutes=row.minutes if row else 0,
                 subscores=[
                     EnglishSubscoreOut(label=str(s.get("label", "")), value=s.get("value"))

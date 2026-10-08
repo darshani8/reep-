@@ -18,7 +18,6 @@ recoverable dependency blip into a full outage.
 from fastapi import APIRouter, Response, status
 from sqlalchemy import text
 
-from ..config import settings
 from ..db import SessionLocal
 
 router = APIRouter()

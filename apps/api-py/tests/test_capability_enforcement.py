@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import uuid
 
-import pytest
 from conftest import requires_db
 from sqlalchemy import delete, select
 

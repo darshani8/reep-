@@ -153,7 +153,7 @@ def visible_clauses(audience: Audience, *, open_only: bool = True) -> list:
         # `cardinality` rather than `array_length`, which answers NULL — not 0 —
         # for the empty array every pre-B12.1 row carries.
         clauses.append(
-            or_(func.cardinality(Job.tracks) == 0, Job.tracks.any(audience.track))
+            or_(func.cardinality(Job.tracks) == 0, Job.tracks.any(audience.track))  # type: ignore[arg-type]  # ARRAY.any, not the relationship any()
         )
     return clauses
 

@@ -18,6 +18,8 @@
 | 0.2 | 2026-10-08 | L1 fixes merged (8914e83); L2 defects triaged and assigned; FV-QG-01 raised |
 | 0.3 | 2026-10-08 | L2 fixes and FV-QG-01 merged (4340d6c); every L1 and L2 defect awaiting re-test |
 | 0.4 | 2026-10-08 | L1 re-test round 1: U01–U06 closed; U07–U11 raised and assigned; FV-QG-01 acceptance narrowed (OBS-QG-U07) |
+| 0.5 | 2026-10-08 | L2 re-test: I01–I04 closed, I05 proposed deferred, I06 raised; L3 round 1 and its regression pass on 40201a1 recorded (0 defects) |
+| 0.6 | 2026-10-08 | U07–U11 fixed and merged (e55d139); L1 re-test round 2 requested |
 
 ---
 
@@ -42,7 +44,7 @@
 |---|---|---|---|---|---|---|---|---|
 | Development (INC-QG-D) | 52 | 2 | 14 | 36 | 46 | 6 | 0 | 0 |
 | L1 unit, round 1 (DEF-QG-U01–U06) | 6 | 0 | 3 | 3 | 6 | 0 | 0 | 0 |
-| L1 unit, re-test round 1 (DEF-QG-U07–U11) | 5 | 0 | 2 | 3 | 0 | 0 | 0 | 5 |
+| L1 unit, re-test round 1 (DEF-QG-U07–U11) | 5 | 0 | 2 | 3 | 0 | 0 | 0 | 5 (fixed, awaiting re-test) |
 | L2 integration, round 1 (DEF-QG-I01–I04) | 4 | 0 | 2 | 2 | 4 | 0 | 0 | 0 |
 | L2 integration, re-test round 1 (DEF-QG-I05, I06) | 2 | 0 | 0 | 2 | 0 | 0 | 1 (proposed) | 1 |
 | Fix verification (FV-QG) | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 |
@@ -154,11 +156,11 @@ Build under test: `a3688f0189c48287f376cf8c165d762a2f8ab8d8`. The full text of e
 
 | ID | Title | Sev. / Pri. | Status | Assigned | Fix commit | Re-test |
 |---|---|---|---|---|---|---|
-| DEF-QG-U07 | `# ruff: disable[...]` with no matching `enable` silences codes for a whole file in `app/`, with no reason; it passes ruff and §39 | Major / P2 | Assigned | Worker A | _pending_ | UT-G1-038 |
-| DEF-QG-U08 | The route audit still counts a refusal swallowed by `contextlib.suppress(HTTPException)`, by a qualified `except starlette.exceptions.HTTPException`, or through an import alias | Minor / P2 | Assigned | Worker C | _pending_ | UT-G3-031, 032, 033 |
-| DEF-QG-U09 | The route audit counts a gate inside a nested function that is never called | Minor / P3 | Assigned | Worker C | _pending_ | UT-G3-036 |
-| DEF-QG-U10 | The gitleaks replay no longer fails when `regexTarget` is set back to `"line"` (the INC-QG-D-22 regression): no case puts a real secret on the same line as a freed value | Major / P2 | Assigned | Worker B | _pending_ | UT-G2-017, UT-G2-026 |
-| DEF-QG-U11 | The reversibility classifier still reads `if not True:`, `while False:`, `return 0`, `for _ in ():` and `if 1 == 2:` downgrades as real | Minor / P3 | Assigned | Worker B | _pending_ | UT-G4-024 |
+| DEF-QG-U07 | `# ruff: disable[...]` with no matching `enable` silences codes for a whole file in `app/`, with no reason; it passes ruff and §39 | Major / P2 | Fixed, awaiting re-test | Worker A | 0631a96 | UT-G1-038 |
+| DEF-QG-U08 | The route audit still counts a refusal swallowed by `contextlib.suppress(HTTPException)`, by a qualified `except starlette.exceptions.HTTPException`, or through an import alias | Minor / P2 | Fixed, awaiting re-test | Worker C | 72a4ee4 | UT-G3-031, 032, 033 |
+| DEF-QG-U09 | The route audit counts a gate inside a nested function that is never called | Minor / P3 | Fixed, awaiting re-test | Worker C | 72a4ee4 | UT-G3-036 |
+| DEF-QG-U10 | The gitleaks replay no longer fails when `regexTarget` is set back to `"line"` (the INC-QG-D-22 regression): no case puts a real secret on the same line as a freed value | Major / P2 | Fixed, awaiting re-test | Worker B | 6acb07d | UT-G2-017, UT-G2-026 |
+| DEF-QG-U11 | The reversibility classifier still reads `if not True:`, `while False:`, `return 0`, `for _ in ():` and `if 1 == 2:` downgrades as real | Minor / P3 | Fixed, awaiting re-test | Worker B | 6acb07d | UT-G4-024 |
 
 **OBS-QG-U07 reverses part of the FV-QG-01 acceptance.** The acceptance rested on "no rule's key alphabet contains `<`". That premise is false: six rules admit `<`, and a usable database password with `<abc>` in the middle was freed. The acceptance is withdrawn. Worker B narrows the freedom to a value that is *wholly* one `<…>` placeholder, and the config comment is corrected. OBS-QG-U08 (gitleaks' own `openai-api-key` rule stops at `<`) is upstream behaviour and needs no action.
 
@@ -220,7 +222,7 @@ Found by the Test Manager while verifying a fix round, before any re-test.
 
 ### 4.3 L3: system ([04-system-testing.md](04-system-testing.md), §6)
 
-**Round 1 on a3688f0: 39 of 39 passed, no defects.** The OpenAPI document was byte-identical to the base (370 operations), and none of the base's backend passes were lost (1,981 → 2,075 passed). The `testing/api` suite gave the same verdicts as its published baseline, and every role worked end to end. The e2e failures that appeared only on the head were shown, by repetition, to be equally intermittent on the base. A regression pass on the post-fix head (40201a1) is executing.
+**Round 1 on a3688f0: 39 of 39 passed, no defects.** The OpenAPI document was byte-identical to the base (370 operations), and none of the base's backend passes were lost (1,981 → 2,075 passed). The `testing/api` suite gave the same verdicts as its published baseline, and every role worked end to end. The e2e failures that appeared only on the head were shown, by repetition, to be equally intermittent on the base. **Regression pass on 40201a1: 16 of 16 passed, no defects.** The product diff a3688f0..40201a1 in `app/` and `apps/web` is comment-only, proven by an AST and token comparison with a negative control (ST-040). OpenAPI is still byte-identical; 2,156 backend tests passed with no base pass lost; `testing/api` gave the same 281 passes; history is clean on an unshallowed clone (594 commits in the head's ancestry). The e2e suite run with one API worker gave 246 passed: the five cases intermittent under two workers now pass, confirming OBS-QG-S03, and the remaining 10 are the pre-existing state-dependent set (OBS-QG-S04).
 
 | Observation | Decision |
 |---|---|

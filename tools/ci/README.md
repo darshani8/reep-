@@ -105,9 +105,14 @@ is a ratchet: an entry that is not actually left behind fails the run.
 
 It refuses unless `ENV` is one of app.config's development names, every host
 and hostaddr psycopg would use (the URL's query string included) is loopback,
-the connected server reports a loopback address, and the database name does not
-say "prod". Production's database is also called `reep_py`, so the name alone
-cannot be the guard. It exits 2 if no downgrade on the chain can run, because a
+the connected server is not a managed cloud Postgres (no `rds.*`, `aurora*`,
+`cloudsql.*` or `azure.*` setting), and the database name does not say "prod".
+Production's database is also called `reep_py`, so the name alone cannot be the
+guard. It deliberately does NOT ask where the server is listening: behind a port
+mapping (the CI service container, `docker compose up -d`) that is a Docker
+bridge address, and RDS is on a private address too, so no address rule tells
+them apart. It never writes to `DATABASE_URL`'s database, only to its own
+`<name>_roundtrip`, which bounds what a tunnel could reach. It exits 2 if no downgrade on the chain can run, because a
 gate that proved nothing is not a pass.
 
 ## `preflight.sh`

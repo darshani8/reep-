@@ -14,9 +14,24 @@ WHAT IT DOES, from apps/api-py with DATABASE_URL set:
   1. refuses unless ENV is a development name (app.config's allowlist, never
      `not is_prod`), EVERY host libpq would use -- `host` and `hostaddr`, from
      the URL and from its query string, as psycopg will actually read them -- is
-     loopback, the connected server says it is local, and the database name does
-     not say "prod". It creates and drops a database; production's is also
-     named reep_py, so the name cannot be the guard on its own;
+     loopback, the connected server is not a managed production server (no
+     `rds.*`, `aurora*`, `cloudsql.*` or `azure.*` setting in pg_settings), and
+     the database name does not say "prod". It creates and drops a database;
+     production's is also named reep_py, so the name cannot be the guard on its
+     own.
+
+     WHY THE SERVER IS ASKED WHAT IT IS, NOT WHERE IT IS LISTENING. An earlier
+     version demanded `inet_server_addr()` be loopback. That refuses every
+     Postgres behind a port mapping -- the GitHub Actions service container
+     (it reported 172.18.0.2 and turned CI red) and this repository's own
+     `docker compose up -d` -- and widening it to private ranges would accept
+     production, because RDS sits on a private VPC address too (AWS's default
+     VPC is 172.31.0.0/16). What a tunnel to production cannot hide is that the
+     server is RDS. And the worst case a tunnel could still reach is bounded:
+     this script never writes to DATABASE_URL's database -- it reads it, and
+     creates and drops only `<db>_roundtrip` beside it -- so a guard that
+     refused every Docker-hosted Postgres would cost every developer the check
+     to buy protection against a CREATE DATABASE;
   2. refuses unless DATABASE_URL's database is at the single head, and dumps its
      catalogue -- the schema a straight `upgrade head` built;
   3. creates a scratch database beside it and walks the chain in SEGMENTS, cut
@@ -221,15 +236,39 @@ def refusal(settings, engine) -> str | None:
     return None
 
 
-def server_is_local(engine) -> str | None:
-    """Belt and braces after connecting: the server's own view of the socket."""
+#: Setting-name prefixes only a managed cloud Postgres carries: AWS RDS and
+#: Aurora, Google Cloud SQL, Azure. A development Postgres -- a laptop, docker
+#: compose, the CI service container -- has none of them.
+MANAGED_SETTING_PREFIXES = ("rds.", "aurora", "cloudsql.", "azure.")
+
+
+def managed_server(engine) -> str | None:
+    """Why the connected server looks like a managed production server, or None.
+
+    Asked of the SERVER, after connecting, because the client-side host checks
+    cannot see through an SSH or port-forward tunnel and the server's listening
+    address cannot tell a Docker bridge from a VPC (see the module docstring).
+
+    Two probes, because they see different things: pg_settings lists the
+    parameters a server has REGISTERED (RDS's rds.* are), and never lists a
+    placeholder; current_setting(..., true) reads a placeholder too. Measured
+    on a plain Postgres 16 with `rds.superuser_variables` written into
+    postgresql.conf: pg_settings showed nothing, current_setting refused it.
+    """
     from sqlalchemy import text
 
+    patterns = [f"{prefix}%" for prefix in MANAGED_SETTING_PREFIXES]
     with engine.connect() as conn:
-        addr = conn.execute(text("SELECT host(inet_server_addr())")).scalar()
-    if addr is None or ipaddress.ip_address(addr).is_loopback:
-        return None
-    return f"the server reports it is listening on {addr}, which is not loopback"
+        found = conn.execute(
+            text("SELECT name FROM pg_settings WHERE name LIKE ANY(:patterns) ORDER BY name LIMIT 1"),
+            {"patterns": patterns},
+        ).scalar()
+        rds_role = conn.execute(text("SELECT current_setting('rds.superuser_variables', true)")).scalar()
+    if found is not None:
+        return f"the server carries the setting {found!r}, which only a managed cloud Postgres has"
+    if rds_role is not None:
+        return "the server defines rds.superuser_variables, which only Amazon RDS does"
+    return None
 
 
 def dump(engine) -> list[str]:
@@ -356,11 +395,11 @@ def main(argv: list[str] | None = None) -> int:
                     "proved nothing is not a pass.", code=2)
 
     try:
-        local = server_is_local(engine)
-    except Exception as exc:  # noqa: BLE001 -- any failure here means "not proven local"
-        return fail(f"could not connect to check the server's address: {exc}")
-    if local:
-        return fail(f"refusing to run: {local}")
+        managed = managed_server(engine)
+    except Exception as exc:  # noqa: BLE001 -- any failure here means "not proven safe"
+        return fail(f"could not connect to ask the server what it is: {exc}")
+    if managed:
+        return fail(f"refusing to run: {managed}")
     at = current_revision(engine)
     if at != [head]:
         return fail(

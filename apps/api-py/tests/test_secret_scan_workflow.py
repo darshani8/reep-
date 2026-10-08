@@ -62,3 +62,35 @@ def test_both_scans_are_captured_and_one_verdict_ends_the_step() -> None:
     assert last == '[ "$history" -eq 0 ] && [ "$tree" -eq 0 ]', (
         f"the step must end on its single verdict, not {last!r}"
     )
+
+
+def test_the_checkout_feeding_the_scan_fetches_the_whole_history() -> None:
+    """`fetch-depth: 0`, or the push-mode scan of main/stage/dev reads one commit.
+
+    actions/checkout defaults to depth 1. Deleting this one line would leave the
+    check green while it scanned only the tip (DEF-QG-I06: depth 1 scanned 1
+    commit, depth 50 scanned 89, both exiting 0). The step's shallow refusal is
+    the backstop; this keeps the line it backs up."""
+    text = WORKFLOW.read_text(encoding="utf-8")
+    jobs = text.split("\njobs:\n", 1)[1]
+    scan_at = jobs.index("- name: Scan the commits and the tree")
+    checkouts = [m for m in re.finditer(r"- uses: actions/checkout@[^\n]+\n((?:        .*\n)*)", jobs) if m.start() < scan_at]
+    assert checkouts, "no actions/checkout step precedes the scan step"
+    block = checkouts[-1].group(1)
+    assert re.search(r"^\s+fetch-depth:\s*0\s*$", block, re.M), (
+        "the checkout step that feeds the secret scan must set `fetch-depth: 0`; without it "
+        "the history scan reads only the commits a shallow clone happened to fetch"
+    )
+
+
+def test_the_scan_step_refuses_a_shallow_clone_in_both_modes() -> None:
+    """The refusal comes before the mode branch, so a PR scan is not right by luck of depth."""
+    commands = _commands(_scan_step_script())
+    shallow = [i for i, c in enumerate(commands) if "--is-shallow-repository" in c]
+    mode = [i for i, c in enumerate(commands) if c.startswith('if [ "$EVENT" = "pull_request" ]')]
+    assert shallow, "the scan step no longer asks `git rev-parse --is-shallow-repository`"
+    assert mode and shallow[0] < mode[0], "the shallow refusal must come before the push/PR branch"
+    follow = commands[shallow[0] : shallow[0] + 3]
+    assert any("::error::" in c and "shallow" in c for c in follow) and "exit 1" in follow, (
+        f"the shallow check must emit an ::error:: naming the cause and exit 1, got {follow}"
+    )

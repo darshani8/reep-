@@ -51,7 +51,9 @@ run and needs nothing but the import to work.
 from __future__ import annotations
 
 import ast
+import builtins
 import collections.abc
+import contextlib
 import inspect
 import re
 import textwrap
@@ -59,6 +61,7 @@ import types
 import typing
 from dataclasses import dataclass
 
+import fastapi
 import pydantic
 import pytest
 from fastapi.routing import APIRoute, APIWebSocketRoute, iter_route_contexts
@@ -355,91 +358,180 @@ def _constant_truth(test: ast.expr) -> bool | None:
     return None if value is _UNKNOWN else bool(value)
 
 
-# An `except` that catches one of these, and does not raise again, turns every
-# refusal raised in its `try` into a value: `_may_see_raw_response` in
-# app/routers/interview_records.py calls `require_admin` exactly so, on purpose,
-# to get a boolean. A gate whose refusal is swallowed refuses nobody.
-_SWALLOWED_TYPES = frozenset({"HTTPException", "Exception", "BaseException"})
+# An `except` (or a `contextlib.suppress`) that catches the refusal, and does not
+# raise again, turns every refusal raised inside it into a value:
+# `_may_see_raw_response` in app/routers/interview_records.py calls
+# `require_admin` exactly so, on purpose, to get a boolean. A gate whose refusal
+# is swallowed refuses nobody.
+#
+# "Catches the refusal" is decided by IDENTITY, not spelling: the caught
+# expression is resolved through the function's own globals (so `HE` after
+# `from fastapi import HTTPException as HE`, `starlette.exceptions.HTTPException`
+# and `fastapi.exceptions.HTTPException` are all recognised), and it swallows when
+# the refusal every gate raises — fastapi's HTTPException — is a subclass of it.
+# A name that cannot be resolved falls back to its spelling, on the strict side.
+_REFUSAL = fastapi.HTTPException
+_SWALLOWED_SPELLINGS = frozenset({"HTTPException", "Exception", "BaseException"})
 _TERMINATORS = (ast.Return, ast.Raise, ast.Continue, ast.Break)
+_NESTED_SCOPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)
 
 
-def _caught_names(handler: ast.ExceptHandler) -> set[str]:
-    if handler.type is None:
-        return {"BaseException"}  # a bare `except:`
-    parts = handler.type.elts if isinstance(handler.type, ast.Tuple) else [handler.type]
-    return {p.id if isinstance(p, ast.Name) else getattr(p, "attr", "") for p in parts}
+def _resolve(expr: ast.expr, names: dict) -> object:
+    """The object an expression names, through `names` and builtins; None if unknown."""
+    if isinstance(expr, ast.Name):
+        if expr.id in names:
+            return names[expr.id]
+        return getattr(builtins, expr.id, None)
+    if isinstance(expr, ast.Attribute):
+        base = _resolve(expr.value, names)
+        return None if base is None else getattr(base, expr.attr, None)
+    return None
 
 
-def _swallows(handler: ast.ExceptHandler) -> bool:
-    if not _caught_names(handler) & _SWALLOWED_TYPES:
-        return False
-    reraises = any(
-        isinstance(n, ast.Raise) and not caught for n, caught in _live_block(handler.body, False)
-    )
-    return not reraises
+def _catches_refusal(expr: ast.expr, names: dict) -> bool:
+    parts = expr.elts if isinstance(expr, ast.Tuple) else [expr]
+    for part in parts:
+        target = _resolve(part, names)
+        if inspect.isclass(target):
+            if issubclass(_REFUSAL, target):
+                return True
+        else:
+            spelled = part.id if isinstance(part, ast.Name) else getattr(part, "attr", "")
+            if spelled in _SWALLOWED_SPELLINGS:
+                return True
+    return False
 
 
-def _live_block(stmts: list, caught: bool) -> typing.Iterator[tuple[ast.AST, bool]]:
-    """A statement list, stopping at the first unconditional return/raise/continue/break."""
-    for stmt in stmts:
-        yield from _live_pairs(stmt, caught)
-        if isinstance(stmt, _TERMINATORS):
-            return
-
-
-def _live_pairs(node: ast.AST, caught: bool = False) -> typing.Iterator[tuple[ast.AST, bool]]:
-    """Every node that can run, with whether a refusal raised there is swallowed.
+class _Walk:
+    """Every node of one function that can run, with whether a refusal raised there
+    is swallowed before it reaches the caller.
 
     Pruned as dead: the branch of an `if` whose test is a constant expression
     that rules it out (`if False`, `if not True`, `if True and 0`), the body of
     `while <falsy constant>`, and every statement after an unconditional
-    return/raise/continue/break in the same block. Marked `caught`: everything
-    in the body of a `try` that has a handler from `_swallows`.
+    return/raise/continue/break in the same block. Marked `caught`: everything in
+    the body of a `try` that has a swallowing handler, and in the body of a
+    `with contextlib.suppress(...)` that suppresses the refusal. A nested `def`
+    or lambda is entered only where it is CALLED on a live path of the enclosing
+    body (a lambda called in place is entered in place); one that is defined and
+    never called never runs, and neither does the gate inside it.
     """
-    yield node, caught
-    if isinstance(node, (ast.If, ast.While)):
-        truth = _constant_truth(node.test)
-        yield from _live_pairs(node.test, caught)
-        if truth is not False:
-            yield from _live_block(node.body, caught)
-        if truth is not True:
-            yield from _live_block(node.orelse, caught)
-        return
-    if isinstance(node, (ast.Try, getattr(ast, "TryStar", ast.Try))):
-        swallowed = any(_swallows(h) for h in node.handlers)
-        yield from _live_block(node.body, caught or swallowed)
-        for handler in node.handlers:
-            yield from _live_pairs(handler, caught)
-        yield from _live_block(node.orelse, caught or swallowed)
-        yield from _live_block(node.finalbody, caught)
-        return
-    for _field, value in ast.iter_fields(node):
-        if isinstance(value, list):
-            if value and all(isinstance(v, ast.stmt) for v in value):
-                yield from _live_block(value, caught)
-            else:
-                for item in value:
-                    if isinstance(item, ast.AST):
-                        yield from _live_pairs(item, caught)
-        elif isinstance(value, ast.AST):
-            yield from _live_pairs(value, caught)
+
+    def __init__(self, names: dict) -> None:
+        self.names = names
+
+    def swallows(self, handler: ast.ExceptHandler) -> bool:
+        if handler.type is not None and not _catches_refusal(handler.type, self.names):
+            return False
+        reraises = any(isinstance(n, ast.Raise) and not c for n, c in self.block(handler.body, False))
+        return not reraises
+
+    def suppresses(self, item: ast.withitem) -> bool:
+        call = item.context_expr
+        if not isinstance(call, ast.Call):
+            return False
+        func = _resolve(call.func, self.names)
+        spelled = call.func.id if isinstance(call.func, ast.Name) else getattr(call.func, "attr", "")
+        if func is not contextlib.suppress and not (func is None and spelled == "suppress"):
+            return False
+        return any(_catches_refusal(arg, self.names) for arg in call.args)
+
+    def block(self, stmts: list, caught: bool) -> typing.Iterator[tuple[ast.AST, bool]]:
+        """A statement list, stopping at the first unconditional terminator."""
+        for stmt in stmts:
+            yield from self.pairs(stmt, caught)
+            if isinstance(stmt, _TERMINATORS):
+                return
+
+    def pairs(self, node: ast.AST, caught: bool = False, root: ast.AST | None = None):
+        yield node, caught
+        if node is not root and isinstance(node, _NESTED_SCOPES):
+            return  # entered only where called; see `function`
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Lambda):
+            yield from self.pairs(node.func.body, caught)
+        if isinstance(node, (ast.If, ast.While)):
+            truth = _constant_truth(node.test)
+            yield from self.pairs(node.test, caught)
+            if truth is not False:
+                yield from self.block(node.body, caught)
+            if truth is not True:
+                yield from self.block(node.orelse, caught)
+            return
+        if isinstance(node, (ast.Try, getattr(ast, "TryStar", ast.Try))):
+            swallowed = any(self.swallows(h) for h in node.handlers)
+            yield from self.block(node.body, caught or swallowed)
+            for handler in node.handlers:
+                yield from self.pairs(handler, caught)
+            yield from self.block(node.orelse, caught or swallowed)
+            yield from self.block(node.finalbody, caught)
+            return
+        if isinstance(node, (ast.With, ast.AsyncWith)):
+            suppressed = any(self.suppresses(item) for item in node.items)
+            for item in node.items:
+                yield from self.pairs(item, caught)
+            yield from self.block(node.body, caught or suppressed)
+            return
+        for _field, value in ast.iter_fields(node):
+            if isinstance(value, list):
+                if value and all(isinstance(v, ast.stmt) for v in value):
+                    yield from self.block(value, caught)
+                else:
+                    for item in value:
+                        if isinstance(item, ast.AST):
+                            yield from self.pairs(item, caught)
+            elif isinstance(value, ast.AST):
+                yield from self.pairs(value, caught)
+
+    def function(self, root: ast.AST) -> list[tuple[ast.AST, bool]]:
+        """`root`'s live nodes, plus those of every nested def or lambda it calls."""
+        defs: dict[str, ast.AST] = {}
+        for n in ast.walk(root):
+            if n is not root and isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                defs.setdefault(n.name, n)
+            elif isinstance(n, ast.Assign) and isinstance(n.value, ast.Lambda):
+                for target in n.targets:
+                    if isinstance(target, ast.Name):
+                        defs.setdefault(target.id, n.value)
+        out: list[tuple[ast.AST, bool]] = []
+        entered: set[str] = set()
+        queue: list[ast.AST] = [root]
+        while queue:
+            scope = queue.pop()
+            for n, caught in self.pairs(scope, False, root=scope):
+                out.append((n, caught))
+                if (
+                    not caught
+                    and isinstance(n, ast.Call)
+                    and isinstance(n.func, ast.Name)
+                    and n.func.id in defs
+                    and n.func.id not in entered
+                ):
+                    entered.add(n.func.id)
+                    queue.append(defs[n.func.id])
+        return out
 
 
-def _live_nodes(node: ast.AST) -> typing.Iterator[ast.AST]:
-    """The nodes that can run AND whose refusal, if they raise one, reaches the caller."""
-    for n, caught in _live_pairs(node):
-        if not caught:
-            yield n
+def _function_node(tree: ast.AST) -> ast.AST:
+    body = getattr(tree, "body", None)
+    if isinstance(body, list) and len(body) == 1 and isinstance(body[0], (ast.FunctionDef, ast.AsyncFunctionDef)):
+        return body[0]
+    return tree
+
+
+def _live_nodes(fn) -> list[ast.AST]:
+    """The nodes of `fn` that can run AND whose refusal, if they raise one, reaches the caller."""
+    tree = _source_tree(fn)
+    if tree is None:
+        return []
+    walk = _Walk(getattr(fn, "__globals__", {}))
+    return [n for n, caught in walk.function(_function_node(tree)) if not caught]
 
 
 def _resolved_calls(fn) -> list:
     """The app functions `fn` calls on a live branch, resolved through its module's globals."""
-    tree = _source_tree(fn)
-    if tree is None:
-        return []
     names = getattr(fn, "__globals__", {})
     out = []
-    for node in _live_nodes(tree):
+    for node in _live_nodes(fn):
         if not isinstance(node, ast.Call):
             continue
         target = None
@@ -524,10 +616,10 @@ def _refuses_on_role_inline(fn) -> bool:
     `role = session.get("role")` and then `if role != ...: raise` is the same
     check one line apart, so the names the role was bound to count as the role.
     """
-    tree = _source_tree(fn)
-    if tree is None:
+    live = _live_nodes(fn)
+    if not live:
         return False
-    live = list(_live_nodes(tree))
+    walk = _Walk(getattr(fn, "__globals__", {}))
     role_names = {
         target.id
         for node in live
@@ -546,7 +638,7 @@ def _refuses_on_role_inline(fn) -> bool:
             continue
         if not mentions_role(node.test):
             continue
-        branches = [*_live_block(node.body, False), *_live_block(node.orelse, False)]
+        branches = [*walk.block(node.body, False), *walk.block(node.orelse, False)]
         if any(isinstance(n, ast.Raise) and not caught for n, caught in branches):
             return True
     return False
@@ -559,7 +651,7 @@ def _reaches_gate(fn, depth: int = 0) -> bool:
     """Does `fn`, or anything it calls inside `app` on a live branch, apply a gate?
 
     Calls in dead code and inside a `try` that swallows the refusal do not
-    count (`_live_pairs`). Otherwise branch-insensitive: `if x:
+    count (`_Walk`). Otherwise branch-insensitive: `if x:
     require_admin(s)` counts. That is the limit of a static check and the
     reason KNOWN_UNGATED is read by a human; what it reliably catches is a handler that calls no gate and refuses
     on no role ANYWHERE in its call tree — the shape of a forgotten check.
@@ -616,8 +708,7 @@ def _reaches_ws_session(fn, depth: int = 0, seen: set | None = None) -> bool:
     if fn in seen or depth > 4:
         return False
     seen.add(fn)
-    tree = _source_tree(fn)
-    if tree and any(isinstance(n, ast.Name) and n.id == "get_ws_session" for n in _live_nodes(tree)):
+    if any(isinstance(n, ast.Name) and n.id == "get_ws_session" for n in _live_nodes(fn)):
         return True
     return any(_reaches_ws_session(c, depth + 1, seen) for c in _resolved_calls(fn))
 

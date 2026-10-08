@@ -5,14 +5,15 @@
 | Field | Value |
 |---|---|
 | Document ID | REEP-STS-QG-2026-10 |
-| Version | 1.0 |
-| Status | Executed — submitted to the Test Manager for review |
+| Version | 1.1 |
+| Status | Executed; re-test round 1 (rt1) on the new head executed — submitted to the Test Manager for review |
 | Standard followed | ISO/IEC/IEEE 29119-3:2021 §8 (Test Design / Case Specification), §9 (Test Procedure), §11 (Test Execution Log), §12 (Incident Report); ISTQB® CTFL v4.0 terminology |
 | Parent document | [01 — Test Plan](01-test-plan.md) (REEP-TP-QG-2026-10 v1.0), level L3 |
 | Author | Tester session S (system level) — independent: wrote none of the code under test |
 | Reviewer | Test Manager (orchestrating session) |
 | Date | 2026-10-08 |
-| Build under test | `claude/clever-meitner-ndvc2e` @ **`a3688f0189c48287f376cf8c165d762a2f8ab8d8`** (PR darshani8/reep-#132 into `dev`) |
+| Build under test | `claude/clever-meitner-ndvc2e` @ **`a3688f0189c48287f376cf8c165d762a2f8ab8d8`** (PR darshani8/reep-#132 into `dev`) — round 1 |
+| Build re-tested (rt1) | same branch @ **`40201a140ba70f8be40d6b016f55ddb828fcaa91`** — after the L1/L2 fix rounds; see §5a |
 | Base for comparison | `15a9e7d` (`dev` / `main` before the change) |
 | Evidence | [`testing/results/quality-gates-2026-10/system/`](../../results/quality-gates-2026-10/system/) — one file (or PNG set) per case, named by case ID |
 
@@ -22,6 +23,7 @@
 |---|---|---|---|
 | 0.1 | 2026-10-08 | Tester session S | Cases designed from the Test Plan §2 before execution |
 | 1.0 | 2026-10-08 | Tester session S | All 39 cases executed; log, observations and level summary written |
+| 1.1 | 2026-10-08 | Tester session S | Regression pass at system level on the new head `40201a1` at the Test Manager's request: §5a re-test log (16 re-test runs, suffix `-rt1`, plus the new comment-only diff proof ST-040), observations updated in §6, new-head column in §7.3, recommendation updated in §7.5 |
 
 ---
 
@@ -458,6 +460,65 @@ procedure on the worktree at `15a9e7d` on a database of its own.
 
 ---
 
+## 5a. Re-test log — round 1 (rt1) on the new head `40201a1`
+
+**Why.** After round 1 the L1/L2 fix rounds changed the gate code (route
+audit, async guard, §34/§39 guards, `.gitleaks.toml`/`.gitleaksignore`,
+`secret-scan.yml`, `preflight.sh`, the round trip, the reversibility
+classifier, `release_gate.py`), the PR template and docs, and made 93
+comment-only edits in `apps/api-py/app/`. No product code was meant to change.
+This regression pass confirms that from the outside.
+
+**Build.** `40201a140ba70f8be40d6b016f55ddb828fcaa91` (all 7 required checks
+green, ST-038-rt1). Diff from `a3688f0`: 47 files. Unchanged:
+`apps/web`, `tests/`, `playwright.config.ts`, `test-management/`,
+`apps/api-py/requirements*.txt`, `apps/api-py/migrations/versions/`. Checked
+out as worktree `/tmp/new`. Every run used its own fresh migrated and seeded
+database (`reep_rt1_pt`, `reep_rt1_sys`, `reep_rt1_e2e`, `reep_631_base`,
+`reep_631_new`). The API ran from the new head with **one worker** unless the
+row says otherwise.
+
+**New case ST-040 — the fix rounds changed no product code** (REQ-GX-03;
+technique STA/CMP; priority P1)
+- Objective: `git diff a3688f0 40201a1 -- apps/api-py/app apps/web` contains
+  only comment changes.
+- Steps:
+  1. For each changed file, take its Python token stream with `COMMENT`/`NL`
+     tokens removed, and its `ast.dump()`, at both commits.
+  2. Require both to be equal.
+  3. Negative control: run the same script over `15a9e7d..a3688f0`, which
+     did change code.
+- Expected: every file comment-only; the control flags the round-1 code
+  changes.
+- Actual: 18 files changed (+93/−93), all **COMMENT-ONLY** (tokens and AST
+  equal); `apps/web` has no diff. The control reports `NON-COMMENT CHANGE
+  FOUND` for `interview_local.py`, `models/time_ledger.py`,
+  `routers/interview.py` and 53 others.
+- Verdict: **Pass**. Evidence: `ST-040-rt1-comment-only-diff.txt`.
+
+| Re-test | Date/time (UTC) | Requirement(s) | Verdict | Evidence | Result on `40201a1` |
+|---|---|---|---|---|---|
+| ST-040 (new) | 09:58 | GX-03 | Pass | ST-040-rt1-comment-only-diff.txt | 18/18 files comment-only; negative control fires |
+| ST-007-rt1 | 09:59 | G3-09, GX-03 | Pass | ST-007-rt1-openapi-new-head-vs-base.txt | OpenAPI **byte-identical** to base (sha256 `70c88fd0…6b1f`), generated and live |
+| ST-033-rt1 | 10:00 | GX-03, G3-09 | Pass | ST-033-rt1-get-surface-new-head-vs-base.txt | 655 comparisons, 1 difference: `/api/admin/audit` empty on the fresh head db at probe time (the probe's own exports write the rows later). Same item shape once rows exist — test data |
+| ST-016…019-rt1 | 10:00 | GX-04 | Pass | ST-01{6,7,8,9}-rt1-api-walk-*.txt | All four roles: every call 200, note write 201 and listed, alumni `created:false`, 401 after logout |
+| ST-024…026-rt1 | 10:01 | GX-04, GX-03 | Pass | ST-024-026-rt1-negative-cases.txt | 403 / 401 / `X-Reep-Session: retired` as in round 1. Same script on base gives **identical** output |
+| ST-023-rt1 | 10:01 | GX-04 | Pass | ST-023-rt1-browser-walk-admin.txt, ST-023-rt1-*.png | Admin browser walk; home counts 1/0/0/0/0 match the API; no page errors |
+| ST-008/009-rt1 | 09:59–10:04 | GX-03 | Pass | ST-008-009-rt1-backend-suite.txt | **2156 passed, 3 skipped** (2159). Base passes lost: **0**. Round-1 tests lost: **0**. 175 new vs base, 81 new vs round 1 |
+| ST-034-rt1 | 10:02 | G2-08 | Pass | ST-034-rt1-gitleaks-full-history.txt | Clone **unshallowed**. Head history: 746 commits (602 non-merge); 1564 reachable from all refs. New config + `--ignore-gitleaks-allow`: all refs, 1292 commits scanned, no leaks; head's ancestry only, 594 commits, no leaks |
+| ST-035-rt1 | 10:03 | G2-08 | Pass | ST-035-rt1-gitleaks-tracked-tree.txt | Tracked tree (1328 files), new config, `--ignore-gitleaks-allow`, from the root: no leaks. By absolute path: the 4 known findings, now documented in `.gitleaks.toml` §"RUN GITLEAKS FROM THE REPOSITORY ROOT" (OBS-QG-S02) |
+| ST-036-rt1 | 10:04 | G5-03 | Pass | ST-036-rt1-docs-links-and-paths.txt | 41/41 links resolve; 163 path mentions, all exist (one is the HTTP path `/openapi.json`) |
+| ST-037-rt1 | 10:05 | G5-03 | Pass | ST-037-rt1-docs-claims-vs-code.txt | 18/18 claims true: 10 round-1 claims re-checked, 8 new ones (CODEOWNERS and rulesets, `--ignore-gitleaks-allow` in CI, "four findings" measured, `_may_see_raw_response`, `route_audit_shapes.py`, "human — no gate" rows) |
+| ST-038-rt1 | 10:06 | GX-01, GX-03 | Pass | ST-038-rt1-pr132-ci-checks.txt | sha `40201a1`: all 7 required checks **success**; `review` skipped (draft) |
+| ST-011-rt1 | 10:07 | GX-03 | Pass | ST-011-rt1-api-suite.txt | `testing/api` against a live new-head API (2 workers): 281 passed, 2 skipped. **0** verdicts changed vs round 1 and vs the 2026-09-29 baseline |
+| ST-012…015-rt1 | 10:02–10:14 | GX-04, GX-03 | Pass | ST-012-015-rt1-e2e-new-head-1-worker.txt, CSV, console | Full suite, **one API worker**: **246 passed / 10 failed** (round 1: head 241/15, base 245/11). All four S03 cases now pass, as do TC-022 and TC-252. The 10 failures are the pre-existing state-dependent set. TC-631 passes 3/3 on brand-new databases on **both** base and new head (OBS-QG-S04) |
+| ST-039-rt1 | before commit | G2-06 | Pass | ST-039-rt1-evidence-hygiene.txt | Evidence and this document scanned with the **new** config and `--ignore-gitleaks-allow`: no leaks; no session tokens |
+
+**Re-test summary.** 16 re-test runs (15 re-executed cases or case groups,
+plus the new ST-040): 16 Pass, 0 Fail, 0 Blocked. New defects: 0.
+
+---
+
 ## 6. Defects and observations
 
 **Defects (DEF-QG-SNN): none.** No difference between expected and actual
@@ -467,23 +528,27 @@ result was found that is attributable to the change under test.
 - Requirement: none of §2 (the PR body is not a shipped document; REQ-G5-03 covers `docs/engineering` and `docs/adr`, which are exact — ST-037).
 - Build: a3688f0. What: the PR body says "65 unpaged lists are recorded", `tests/test_route_audit.py` "(16)" and `tests/test_async_blocking_guard.py` "(26)". At the head `KNOWN_UNPAGINATED` has **61** entries (plus 30 `BOUNDED`), the junit report has **17** route-audit tests and **40** async-guard tests (ST-009), and the docs say 61 correctly.
 - Why only an observation: no reader acts on the PR body after merge, and the shipped documents are right. Suggest the description be refreshed before merge so the record of the PR is accurate.
+- **rt1:** triaged by the Test Manager, who will refresh the description at the end. Still open on `40201a1`.
 
 ### OBS-QG-S02 — `.gitleaks.toml` path allowlists only match when gitleaks scans from the repository root (Minor, P3)
 - Requirement: REQ-G2-05 (system-level consequence). Build: a3688f0. Environment: gitleaks 8.30.0.
 - Steps: `git archive HEAD | tar -x -C <dir>`; from the repository root run `gitleaks dir <dir> --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore --redact`.
 - Expected (a developer's reasonable expectation): the same result as scanning the tree from its root. Actual: **4 findings** (`apps/api-py/tests/test_backup_database.py:59,100`, `apps/api-py/app/voice_platform/api/calls.py:219`, `infra/cdk/import-map.json:80`), because the `[[allowlists]] paths` are anchored `^apps/…`, `^infra/…` and gitleaks matches them against the path as given on the command line. `cd <dir> && gitleaks dir .` reports 0.
 - Impact: none on CI (it scans `.` from the checkout root, ST-038) or `preflight.sh`; a developer scanning a sub-path or an absolute path gets false positives. Evidence: `ST-035-gitleaks-tracked-tree.txt`. Suspected component: `.gitleaks.toml` lines ~326, 338, 350 (anchoring). Not a defect of the gate's purpose.
+- **rt1:** same as unit-level OBS-QG-U02. At `40201a1` the behaviour is unchanged (4 findings by absolute path, 0 from the root; ST-035-rt1), and it is now **documented**: `.gitleaks.toml` has a "RUN GITLEAKS FROM THE REPOSITORY ROOT" block, and `docs/engineering/quality-gates.md` §2 says so, with the "four findings" count measured true (ST-037-rt1 N5). Closed as documented.
 
 ### OBS-QG-S03 — Session revocation and the reset limiter are per process, so with `--workers 2` a retired session works for up to 60 s and four e2e cases are intermittent (pre-existing, Minor)
 - Requirement: REQ-GX-04 context. Build: a3688f0 **and** 15a9e7d (identical). Environment: uvicorn `--workers 2`, which is how `testing/README.md` starts the API.
 - Steps: ST-028 (two browser contexts), and e2e TC-022/TC-025/TC-524/TC-038 repeated 5× (ST-012…015).
 - Actual: the first request after a second sign-in can be served by the worker whose `token_version` cache is still warm, and is answered normally (ST-028 screenshot 03); after `auth_revocation_cache_seconds` (60 s) every request is refused with `X-Reep-Session: retired`. TC-025 passes 1/5, TC-524 3/5, TC-038 1–2/5 **on both base and head** with 2 workers, and 5/5 on head with 1 worker.
 - This is the behaviour `app/security.py` documents ("best-effort logout … takes UP TO auth_revocation_cache_seconds to reach the other workers"), and the PR does not touch it. It is recorded because (a) AGENTS.md's "signing in on a phone drops the laptop on its next request" is only true within one process, and (b) the e2e suite assumes immediacy while the documented way to run the stack uses two workers. Owner decision, not a defect of this change.
+- **rt1 (confirmation):** with **one** API worker, the full e2e run on `40201a1` passes all four cases (TC-022, TC-025, TC-038, TC-524) and TC-252 as well (ST-012…015-rt1). The Test Manager is raising it with the owner as a question, not a blocker.
 
 ### OBS-QG-S04 — Eleven e2e cases fail on a fresh database on both base and head (pre-existing)
 - Build: 15a9e7d and a3688f0, identical. Cases: TC-022 (also S03), TC-252, TC-506, TC-507, TC-510, TC-513, TC-532, TC-539, TC-651, TC-715, TC-735; and TC-631 fails 5/5 when run alone on both sides (it needs an offer year written by earlier cases).
 - Errors (abridged): TC-252 "Not ranked on this board yet" card text; TC-506/507/510/539 30 s timeouts choosing a batch; TC-513 expects "Master of Business Administration - Finance · 2024-26 Section B"; TC-532 save confirmation not shown; TC-651 import wizard summary; TC-715/735 `TypeError: Cannot read properties of undefined (reading 'student_id')` in the test's own setup.
 - Reading: most expect data (a "2024-26 Section B" batch, offers, imports) that another case or an earlier run creates, i.e. order/state dependence in the suite rather than product failures; not analysed further because every one fails identically on the base. Evidence: `ST-012-015-e2e-suite-head-vs-base.txt`. Suggested owner: the e2e suite's maintainers.
+- **rt1:** TC-631 is now decided. On brand-new databases it passes 3/3 on **both** base and new head. In every full run, earlier admin cases that did not finish (the timed-out batch actions TC-506/507/510/539) left the seeded student in an "E2E" batch. The seeded batch then has no offers, the Period select is disabled, and `selectOption` waits until the timeout. Observed on base too. On `40201a1` with one worker, 10 cases remain: TC-506, 507, 510, 513, 532, 539, 631, 651, 715, 735. All pre-existing.
 
 ### OBS-QG-S05 — The test bed's clone is shallow (test-bed note)
 - A shallow clone (219 commits) makes "full history" scans silently partial (140 commits scanned, "no leaks found"). CI is not affected (`secret-scan.yml` checks out with `fetch-depth: 0`). Other testers running gitleaks over history in this container should `git fetch --unshallow` first. Evidence: `ST-034-gitleaks-full-history.txt`.
@@ -494,53 +559,72 @@ result was found that is attributable to the change under test.
 
 ### 7.1 Counts
 
-| Planned | Executed | Passed | Failed | Blocked | Not run |
-|---|---|---|---|---|---|
-| 39 | 39 | 39 | 0 | 0 | 0 |
+| Round | Build | Planned | Executed | Passed | Failed | Blocked | Not run |
+|---|---|---|---|---|---|---|---|
+| 1 | `a3688f0` | 39 | 39 | 39 | 0 | 0 | 0 |
+| rt1 (§5a) | `40201a1` | 16 (15 re-tests + new ST-040) | 16 | 16 | 0 | 0 | 0 |
 
-**Pass rate: 100 %** (39/39). Defects: 0. Observations: 5 (S01–S05), of which
-S03 and S04 are pre-existing on the base.
+**Pass rate: 100 %** in both rounds. Defects: 0. Observations: 5 (S01–S05).
+S03 and S04 are pre-existing on the base. S02 is now documented.
 
 ### 7.2 Requirements covered by this level
 
-| Requirement | Cases |
-|---|---|
-| REQ-GX-03 (no unintended behaviour change) | ST-001, ST-004, ST-005, ST-007, ST-008, ST-009, ST-010, ST-011, ST-012…ST-015, ST-024…ST-027, ST-029…ST-033, ST-038 |
-| REQ-GX-04 (end to end for every role) | ST-001…ST-004, ST-006, ST-012…ST-026, ST-028 |
-| REQ-G3-09 (OpenAPI of branch equals base) | ST-007, ST-033 |
-| REQ-G2-08 (history clean under the shipped configuration) | ST-034, ST-035 |
-| REQ-G5-03 (docs consistent with code; links resolve) | ST-036, ST-037 |
-| REQ-GX-01 (five jobs + standalone checks agree; seen as CI results) | ST-037 (C03, C04), ST-038 |
-| REQ-G4-02, REQ-G4-05 (system half) | ST-002 |
-| REQ-G2-06 (applied to this level's artefacts) | ST-039 |
+| Requirement | Cases (round 1) | Re-tested on `40201a1` |
+|---|---|---|
+| REQ-GX-03 (no unintended behaviour change) | ST-001, ST-004, ST-005, ST-007, ST-008, ST-009, ST-010, ST-011, ST-012…ST-015, ST-024…ST-027, ST-029…ST-033, ST-038 | ST-040, ST-007, ST-008/009, ST-011, ST-012…015, ST-024…026, ST-033, ST-038 |
+| REQ-GX-04 (end to end for every role) | ST-001…ST-004, ST-006, ST-012…ST-026, ST-028 | ST-012…015, ST-016…019, ST-023, ST-024…026 |
+| REQ-G3-09 (OpenAPI of branch equals base) | ST-007, ST-033 | ST-007, ST-033 |
+| REQ-G2-08 (history clean under the shipped configuration) | ST-034, ST-035 | ST-034, ST-035 (new config, `--ignore-gitleaks-allow`) |
+| REQ-G5-03 (docs consistent with code; links resolve) | ST-036, ST-037 | ST-036, ST-037 |
+| REQ-GX-01 (five jobs + standalone checks agree; seen as CI results) | ST-037 (C03, C04), ST-038 | ST-037, ST-038 |
+| REQ-G4-02, REQ-G4-05 (system half) | ST-002 | — (only the round-trip tool changed; covered at L1/L2, and by CI on `40201a1`) |
+| REQ-G2-06 (applied to this level's artefacts) | ST-039 | ST-039 |
 
 ### 7.3 Regression comparison
 
-| Suite | Base 15a9e7d | Head a3688f0 | Delta |
-|---|---|---|---|
-| Backend pytest (own fresh db each) | 1981 passed, 3 skipped (1984) | 2075 passed, 3 skipped (2078) | +94 new gate tests; **0** base passes lost; 0 tests removed |
-| Web unit (`ng test`) | identical sources | 226/226 passed (32 files) | none (`apps/web` unchanged) |
-| `ng build` (production) | identical sources | pass, initial 228.22 kB < 250 kB | none |
-| `testing/api` (system API suite) | 281 passed, 2 skipped (published baseline 2026-09-29) | 281 passed, 2 skipped | **0** verdicts changed |
-| e2e (`tests/`, 256 tests; fresh db, API 2 workers) | 245 passed, 11 failed/timed out, 17 manual-only | 241 passed, 15 failed/timed out, 17 manual-only | 4 head-only failures, all intermittent and equally intermittent on base (TC-025, TC-038, TC-524) or order-dependent on both (TC-631); 0 attributable to the change |
-| OpenAPI document | 370 operations | 370 operations | byte-identical |
-| GET surface (131 paths × 5 identities) | — | — | 655 comparisons, 0 product differences |
-| Time-ledger walk (14 steps) | — | — | identical |
-| Interview status (5 identities, 2 engines) | — | — | identical |
+| Suite | Base 15a9e7d | Head a3688f0 (round 1) | New head 40201a1 (rt1) | Delta new head vs base |
+|---|---|---|---|---|
+| Product code diff | — | 3 intended fixes + typing/lint edits | vs a3688f0: **comment-only** in 18 files (ST-040) | none beyond round 1 |
+| Backend pytest (own fresh db each) | 1981 passed, 3 skipped (1984) | 2075 passed, 3 skipped (2078) | **2156 passed, 3 skipped (2159)** | +175 gate tests; **0** base passes lost; 0 tests removed |
+| Web unit (`ng test`) | identical sources | 226/226 passed (32 files) | identical sources | none |
+| `ng build` (production) | identical sources | pass, initial 228.22 kB < 250 kB | identical sources | none |
+| `testing/api` (system API suite) | 281 passed, 2 skipped (published baseline 2026-09-29) | 281 passed, 2 skipped | 281 passed, 2 skipped | **0** verdicts changed |
+| e2e (`tests/`, 256 tests, fresh db) | 245 passed, 11 failed (2 workers) | 241 passed, 15 failed (2 workers) | **246 passed, 10 failed (1 worker)** | 0 attributable to the change. The 10 failures are the pre-existing state-dependent set (OBS-QG-S04). With 1 worker the S03 cases pass |
+| OpenAPI document | 370 operations | byte-identical | **byte-identical** | none |
+| GET surface (131 paths × 5 identities) | — | 0 product differences | 0 product differences | none |
+| Negative cases (403 / 401 / retired) | identical script output | as expected | identical to base | none |
+| Time-ledger walk (14 steps) | — | identical | not re-run (comment-only diff) | none |
+| Interview status (5 identities, 2 engines) | — | identical | not re-run (comment-only diff) | none |
 
 ### 7.4 Residual risks
 
-1. **Python 3.14 / PostgreSQL 17 not exercised here** — mitigated by CI on the same sha (ST-038, all green).
-2. **The two interview fixes are not observable from the outside in this bed** (ST-031, ST-032); their effect rests on the new unit tests that passed in ST-008.
-3. **Browser cases ran against the Angular dev server**, not the static production build; the build itself passed (ST-005) and the front end is unchanged by the PR.
-4. **The e2e suite is not a clean signal with two API workers** (OBS-QG-S03/S04): eleven cases fail on both trees and four are intermittent. A real regression in those cases would be masked; it was ruled out here only by repetition and base comparison.
+1. **Python 3.14 / PostgreSQL 17 not exercised here.** Mitigated by CI on
+   both shas (ST-038, ST-038-rt1: all 7 required checks green).
+2. **The two interview fixes are not observable from outside in this bed**
+   (ST-031, ST-032). Their effect rests on the new unit tests, which passed in
+   both rounds.
+3. **Browser cases ran against the Angular dev server**, not the static
+   production build. The build itself passed (ST-005), and the front end is
+   unchanged by the PR.
+4. **The e2e suite is not a fully clean signal** (OBS-QG-S03/S04). With one
+   API worker it is down to 10 pre-existing state-dependent failures. A real
+   regression in those 10 cases would be masked; it was ruled out by base
+   comparison and by running TC-631 on fresh databases.
+5. **The secret gate can be silenced by the PR that it scans** (documented
+   residual risk OBS-QG-I01, from L2). Outside this level's scope; noted
+   because the docs now state it (ST-037-rt1 N1–N3).
 
 ### 7.5 Recommendation
 
-**GO** for the system level, with no conditions on this change. Before merge,
-optionally refresh the PR description's counts (OBS-QG-S01). OBS-QG-S02…S04
-are follow-ups for their owners and do not block this PR; S03/S04 exist on the
-base already.
+**GO** at system level for `40201a140ba70f8be40d6b016f55ddb828fcaa91`, with no
+conditions on this change.
+- The fix rounds changed no product code (ST-040), and the API contract is
+  byte-identical to the base.
+- Every regression suite holds on the new head with no base pass lost.
+- Every role works end to end.
+- Optional before merge: refresh the PR description's counts (OBS-QG-S01).
+- Owner follow-ups that do not block this PR: OBS-QG-S03/S04 (pre-existing on
+  the base) and the L2 residual risk on the secret gate.
 
 ---
 
@@ -548,5 +632,5 @@ base already.
 
 | Role | Name | Verdict | Date |
 |---|---|---|---|
-| Test Engineer — System (L3) | Tester session S | Executed as specified; 39/39 Pass; 0 defects; 5 observations; recommend GO | 2026-10-08 |
+| Test Engineer — System (L3) | Tester session S | Round 1 (`a3688f0`): 39/39 Pass, 0 defects, 5 observations. Re-test rt1 (`40201a1`): 16/16 Pass, 0 defects. Recommend GO | 2026-10-08 |
 | Reviewer | Test Manager | _pending_ | |

@@ -8,7 +8,7 @@
 
 Every new gate finds existing violations on its first run. The route audit found
 29 public operations, 22 authenticated handlers whose session is the whole
-answer, 13 untyped JSON answers, 1 status-code deviation and 92 list reads
+answer, 13 untyped JSON answers, 1 status-code deviation and 91 list reads
 without paging on 2026-10-08; a new linter or type checker finds far more. Many
 of those "violations" cannot be fixed without breaking a contract: changing an
 existing route's status code, response shape or parameters breaks the Angular

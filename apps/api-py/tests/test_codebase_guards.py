@@ -16,6 +16,8 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
+import pytest
+
 APP = Path(__file__).resolve().parent.parent / "app"
 MIGRATIONS = Path(__file__).resolve().parent.parent / "migrations" / "versions"
 REPO = Path(__file__).resolve().parent.parent.parent.parent
@@ -2603,12 +2605,29 @@ def test_the_release_gate_refuses_the_wrapper_and_its_registration() -> None:
 # purpose: it never ships, and its few reasonless E402 suppressions are the
 # house import idiom described where they sit.
 
+# Every spelling ruff 0.16.10 honours, measured against the binary rather than
+# remembered (DEF-QG-U07): the noqa family (`noqa`, `noqa: X`, and the file-level
+# `ruff: noqa` / `flake8: noqa`, with or without codes) and the `ruff:` bracket
+# family -- `ignore[X]` (this line, or the next when on its own line),
+# `disable[X]` ... `enable[X]` (a range; an UNCLOSED disable runs to the end of
+# the file) and `file-ignore[X]` (the whole file, from ANY line). Matched
+# case-insensitively and with optional spaces, which is wider than ruff is:
+# refusing a spelling ruff would ignore costs nothing, missing one it honours
+# is a silent gate.
 _NOQA = re.compile(
-    r"#\s*(?P<file>ruff\s*:\s*)?noqa\b"
-    r"(?::\s*(?P<codes>[A-Z]+[0-9]+(?:\s*,\s*[A-Z]+[0-9]+)*))?"
-    r"(?P<rest>.*)",
+    r"(?P<file>(?:ruff|flake8)\s*:\s*)?\bnoqa\b"
+    r"(?::\s*(?P<codes>[A-Z]+[0-9]+(?:\s*,\s*[A-Z]+[0-9]+)*))?",
     re.IGNORECASE,
 )
+_RUFF_DIRECTIVE = re.compile(
+    r"\bruff\s*:\s*(?P<verb>file-ignore|ignore|disable|enable)\b\s*"
+    r"(?:\[(?P<codes>[^\]]*)\])?",
+    re.IGNORECASE,
+)
+
+
+def _codes(text: str | None) -> frozenset[str]:
+    return frozenset(c.strip().upper() for c in (text or "").split(",") if c.strip())
 
 
 def _noqa_problems(source: str) -> list[tuple[int, str]]:
@@ -2617,20 +2636,47 @@ def _noqa_problems(source: str) -> list[tuple[int, str]]:
     import tokenize
 
     problems: list[tuple[int, str]] = []
+    open_ranges: list[tuple[int, frozenset[str]]] = []
     for tok in tokenize.generate_tokens(io.StringIO(source).readline):
         if tok.type != tokenize.COMMENT:
             continue
-        match = _NOQA.search(tok.string)
-        if match is None:
+        line, text = tok.start[0], tok.string
+        noqa = list(_NOQA.finditer(text))
+        ruff = list(_RUFF_DIRECTIVE.finditer(text))
+        if not noqa and not ruff:
             continue
-        line = tok.start[0]
-        if match.group("file"):
-            problems.append((line, "file-level `ruff: noqa`; suppress one line, with a reason"))
-        elif not match.group("codes"):
-            problems.append((line, "bare `noqa`; name the rule codes"))
-        elif not re.search(r"[A-Za-z]{2,}", match.group("rest")):
-            problems.append((line, f"`noqa: {match.group('codes')}` with no reason after the codes"))
-    return problems
+        # The reason is whatever words remain once every directive is removed.
+        rest = _RUFF_DIRECTIVE.sub(" ", _NOQA.sub(" ", text))
+        has_reason = re.search(r"[A-Za-z]{2,}", rest) is not None
+        for match in noqa:
+            if match.group("file"):
+                problems.append((line, "file-level `ruff: noqa`; suppress one line, with a reason"))
+            elif not match.group("codes"):
+                problems.append((line, "bare `noqa`; name the rule codes"))
+            elif not has_reason:
+                problems.append((line, f"`noqa: {match.group('codes')}` with no reason after the codes"))
+        for match in ruff:
+            verb, codes = match.group("verb").lower(), _codes(match.group("codes"))
+            if verb == "file-ignore":
+                problems.append((line, "`ruff: file-ignore` silences the whole file; suppress one line, with a reason"))
+                continue
+            if not codes:
+                problems.append((line, f"`ruff: {verb}` with no codes"))
+                continue
+            if verb == "enable":
+                open_ranges = [(at, c) for at, c in open_ranges if c != codes]
+                continue
+            if not has_reason:
+                problems.append((line, f"`ruff: {verb}[{', '.join(sorted(codes))}]` with no reason"))
+            if verb == "disable":
+                open_ranges.append((line, codes))
+    for line, codes in open_ranges:
+        problems.append((
+            line,
+            f"`ruff: disable[{', '.join(sorted(codes))}]` is never closed by a matching "
+            "`ruff: enable`, so it silences the rest of the file",
+        ))
+    return sorted(problems)
 
 
 def _shipped_python() -> list[Path]:
@@ -2679,3 +2725,54 @@ def test_ruff_itself_refuses_the_blanket_forms() -> None:
     pyproject = (APP.parent / "pyproject.toml").read_text(encoding="utf-8")
     select = pyproject.split("select = [", 1)[1].split("]", 1)[0]
     assert '"PGH004"' in select
+    # RUF103 (an invalid suppression comment) and RUF104 (a `disable` with no
+    # matching `enable`) are ruff's own half of DEF-QG-U07.
+    assert '"RUF103"' in select and '"RUF104"' in select
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        # The tester's case (UT-G1-038): an unclosed range at the top of a file.
+        ("# ruff: disable[S101, S602]\nassert x\n",
+         [(1, "`ruff: disable[S101, S602]` with no reason"),
+          (1, "`ruff: disable[S101, S602]` is never closed by a matching `ruff: enable`, "
+              "so it silences the rest of the file")]),
+        # A reason does not excuse leaving it open.
+        ("# ruff: disable[S101]  tests below\nassert x\n",
+         [(1, "`ruff: disable[S101]` is never closed by a matching `ruff: enable`, "
+              "so it silences the rest of the file")]),
+        # Closed, but by a DIFFERENT set: still open.
+        ("# ruff: disable[S101]  narrowing\nassert x\n# ruff: enable[S602]\n",
+         [(1, "`ruff: disable[S101]` is never closed by a matching `ruff: enable`, "
+              "so it silences the rest of the file")]),
+        ("x = 1  # ruff: ignore[S101]\n", [(1, "`ruff: ignore[S101]` with no reason")]),
+        ("# ruff: file-ignore[S101]  tests only\n",
+         [(1, "`ruff: file-ignore` silences the whole file; suppress one line, with a reason")]),
+        ("# flake8: noqa: S101  tests only\n",
+         [(1, "file-level `ruff: noqa`; suppress one line, with a reason")]),
+        ("# flake8: noqa\n", [(1, "file-level `ruff: noqa`; suppress one line, with a reason")]),
+        ("x = 1  #noqa:S101\n", [(1, "`noqa: S101` with no reason after the codes")]),
+        ("x = 1  # NOQA\n", [(1, "bare `noqa`; name the rule codes")]),
+        ("# ruff:disable[S101]\n# ruff:enable[S101]\n",
+         [(1, "`ruff: disable[S101]` with no reason")]),
+        ("# ruff: disable\n", [(1, "`ruff: disable` with no codes")]),
+        # A second directive is not a reason for the first.
+        ("x = 1  # noqa: S101  # ruff: ignore[S602]\n",
+         [(1, "`noqa: S101` with no reason after the codes"),
+          (1, "`ruff: ignore[S602]` with no reason")]),
+    ],
+)
+def test_every_spelling_ruff_honours_is_read(source: str, expected: list) -> None:
+    assert _noqa_problems(source) == sorted(expected)
+
+
+def test_a_closed_and_reasoned_range_and_a_reasoned_ignore_pass() -> None:
+    source = (
+        "def f(x):\n"
+        "    # ruff: disable[S101]  type narrowing for the block below\n"
+        "    assert x\n"
+        "    # ruff: enable[S101]\n"
+        "    return x  # ruff: ignore[S101]  the caller proved it\n"
+    )
+    assert _noqa_problems(source) == []

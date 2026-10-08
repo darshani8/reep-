@@ -23,6 +23,7 @@
 | 0.1 | 2026-10-08 | Tester session I | Cases designed from the test plan and the gate sources, before execution |
 | 1.0 | 2026-10-08 | Tester session I | All 48 cases executed; actual results, verdicts, 4 defects and 6 observations recorded |
 | 1.1 | 2026-10-08 | Tester session I | §6.1: re-test of DEF-QG-I02 and DEF-QG-I03 on `8914e839` — both still open |
+| 1.3 | 2026-10-08 | Tester session I | Test Manager addendum (shallow clones): IT-G2-013 added, DEF-QG-I06 raised; IT-G2-006's shallow-clone history recorded in §5a |
 | 1.2 | 2026-10-08 | Tester session I | Re-test round on `40201a14` (the Test Manager's request): confirmation of DEF-QG-I01…I04, full L2 regression, 5 new cases (§4.3), §5a re-test log, a Re-test field on every defect, DEF-QG-I05 raised, §7 updated. (The Test Manager asked for "v1.1"; 1.1 was already used for the 8914e839 re-test, so this is 1.2.) |
 
 ---
@@ -505,6 +506,7 @@ These test what the fixes introduced. They were designed before being run, like 
 | IT-GX-022 | GX-01, GX-02 | §34 against a preflight whose check is called only in a function that is never called (and other dead-call shapes) | Adversarial bypass | P1 |
 | IT-GX-023 | GX-02 | An untracked file inside an ignored directory is NOT scanned | Equivalence partitioning | P2 |
 | IT-GX-024 | GX-02, G2-05 | An untracked file under a path-scoped allowlist is treated as CI would treat it | Comparison | P2 |
+| IT-G2-013 | G2-02, G2-04 | The scan step on a SHALLOW checkout (`fetch-depth: 0` removed) | Error guessing; fail-open probe | P1 |
 | IT-GX-025 | GX-02 | Untracked filenames with a space, a leading dash and a newline go through the `ls-files -z \| tar --null` pipe | Boundary; error guessing | P2 |
 
 #### IT-G1-004 — Static step with only mypy failing
@@ -541,6 +543,20 @@ These test what the fixes introduced. They were designed before being run, like 
 - **Expected:** run 1: the untracked scan runs and the allowlist applies, because paths are relative to the copy's root exactly as in the tree scan; check 3 PASS. Run 2: the notes file is caught by name; FAIL; exit 1.
 - **Actual:** run 1: "1 untracked file(s) … no leaks found", PASS. Run 2: "2 untracked file(s)", `File: tools/qgprobe/notes.txt`, `RuleID: github-pat`, FAIL, exit 1; raw value 0 occurrences.
 - **Verdict:** **Pass** · **Evidence:** `IT-GX-024-rt1.txt`
+
+#### IT-G2-013 — The scan step on a shallow checkout
+- **Requirements:** REQ-G2-02, REQ-G2-04
+- **Objective:** find out whether anything would notice if `fetch-depth: 0` were removed from `secret-scan.yml`. That would give `actions/checkout`'s default depth of 1.
+- **Preconditions:** the extracted scan step at `40201a14`; clones made with `git clone --depth N` from `file://` at `40201a14`. The control is the full clone: `is-shallow-repository` = false, 746 commits.
+- **Steps:** [A] push mode, depth 1. [B] PR mode, depth 1, base `15a9e7d`. [C] PR mode, depth 50, where the base is reachable. [D] push mode, depth 50. Then search the step and the test suite for any shallow-clone check or any test pinning `fetch-depth`.
+- **Expected:** every shallow run either refuses or scans the complete range. A "full history" scan of a partial history is a scan of less than it says.
+- **Actual:**
+  - [A] "Range HEAD: 1 non-merge commit(s)", "1 commits scanned", "no leaks found", **exit 0**. One commit of 746 was scanned and the step passed.
+  - [B] exit 1, "base commit … is not in this clone". It fails closed.
+  - [C] exit 0, 34 commits scanned. The PR range was complete, so this is correct.
+  - [D] **exit 0** after 98 of 746 commits.
+  - Neither the step nor `tests/test_secret_scan_workflow.py` checks `git rev-parse --is-shallow-repository` or pins `fetch-depth: 0`. The only mention of it is a comment in `test_codebase_guards.py:1643`.
+- **Verdict:** **Fail** → **DEF-QG-I06** · **Evidence:** `IT-G2-013-rt1.txt`
 
 #### IT-GX-025 — Awkward filenames through the tar pipe
 - **Requirements:** REQ-GX-02
@@ -666,9 +682,13 @@ Executed 2026-10-08, 09:40–10:10 UTC, after a container restart (both Postgres
 | IT-GX-019 | Pass | Type error → check 6 FAIL at static analysis, 0 alembic runs, exit 1 |
 | IT-GX-020 | Pass | Postgres unreachable → check 6 SKIP after static analysis, exit 2 |
 
+**Addendum (Test Manager, shallow clones).**
+- **The clone used for history scans is not shallow.** Round 0 found it shallow (219 of 724 commits) and unshallowed it before IT-G2-006's verdict was taken. That verdict rests on the full history: 580 commits scanned of 586 non-merge. The shallow first attempt is in `IT-G2-006.txt`, marked as such. In round 1, `/tmp/ss-clone` reports `is-shallow-repository = false`; push mode scanned 594 commits of 602 non-merge, 746 in all (`IT-G2-006-rt1.txt`).
+- **New case IT-G2-013:** **Fail → DEF-QG-I06**.
+
 **New cases (§4.3):** IT-G1-004 Pass, **IT-GX-022 Fail (DEF-QG-I05)**, IT-GX-023 Pass, IT-GX-024 Pass, IT-GX-025 Pass.
 
-**Round totals:** 53 cases executed on `40201a14` (the 48 originals + 5 new): **52 Pass, 1 Fail, 0 Blocked, 0 Not run**. Four test-execution errors were caught and the affected steps re-executed: IT-G2-007, IT-G2-012 and IT-GX-025 here, and IT-GX-003 in round 0. None changed a verdict.
+**Round totals:** 54 cases executed on `40201a14` (the 48 originals + 6 new): **52 Pass, 2 Fail (IT-GX-022, IT-G2-013), 0 Blocked, 0 Not run**. Four test-execution errors were caught and the affected steps re-executed: IT-G2-007, IT-G2-012 and IT-GX-025 here, and IT-GX-003 in round 0. None changed a verdict.
 
 ---
 
@@ -753,6 +773,23 @@ Executed 2026-10-08, 09:40–10:10 UTC, after a container restart (both Postgres
 | Assessment | Both shapes need **deliberate** edits; neither is the drift DEF-QG-I02 was about (renames and deletions), which is now caught. A static text check cannot fully prove a shell call is reachable. Options: accept it as residual risk, or also require the dispatch branches to contain nothing but bare calls and the `record … SKIP` line. Not fixed by the tester. |
 | Re-test | — (new in this round) |
 
+### DEF-QG-I06 — The secret scan passes on a shallow checkout in push mode, and nothing pins `fetch-depth: 0`
+
+| Field | Value |
+|---|---|
+| Severity / Priority | **Minor / P2** |
+| Requirement | REQ-G2-02 (on a push, every reachable commit), REQ-G2-04 (fails closed) |
+| Build / environment | `40201a140ba70f8be40d6b016f55ddb828fcaa91`; gitleaks 8.30.0 |
+| Preconditions | A checkout made with `fetch-depth: 1`, which is `actions/checkout`'s default if the `fetch-depth: 0` line is removed |
+| Steps to reproduce | 1. `git clone --depth 1 file://<repo>` at the head. 2. Run the extracted "Scan the commits and the tree" step with `EVENT=push` under `bash --noprofile --norc -eo pipefail`. |
+| Expected | The step refuses, saying the history is incomplete, as it already refuses an unresolvable PR range |
+| Actual | "1 commits scanned", "no leaks found", exit 0. At depth 50: 98 of 746 commits, exit 0. PR mode is safe: it refuses when the base is missing, and the range is complete when the base is present |
+| Evidence | `IT-G2-013-rt1.txt` |
+| Frequency | Always, given the precondition |
+| Impact | Today `fetch-depth: 0` is set, so the live gate is correct. The gap is that a one-line workflow edit would turn push-mode scans of `main`, `stage` and `dev` into scans of one commit with a green check, and no test or guard would object. This is the same shape as OBS-QG-S05 (system level), which comes from the test-bed side. |
+| Suspected component | `.github/workflows/secret-scan.yml`, "Scan the commits and the tree": the push branch (`range="HEAD"`) has no `git rev-parse --is-shallow-repository` check; `tests/test_secret_scan_workflow.py` does not pin `fetch-depth: 0`. Not fixed by the tester. |
+| Re-test | — (new) |
+
 ### Observations
 
 **OBS-QG-I01 — The repository can silence its own secret gate in one PR.** A PR that plants a token and adds both its history and tree fingerprints to `.gitleaksignore` turns "Secrets (gitleaks)" green (IT-G2-007). The designed mitigation, CODEOWNERS on `.gitleaks.toml`/`.gitleaksignore`, has no effect today: every ruleset has `require_code_owner_review: false`, the only owner is the PR author, and `release_gate.py` classifies both files NO_DEPLOY. CODEOWNERS says this itself. Residual risk for the product owner to accept; a cheap detector would be a CI step that fails when a PR adds an ignore entry pointing at a commit inside the PR's own range.
@@ -796,9 +833,9 @@ Status for the incident register: both stay **Assigned**, not Fixed. The re-test
 
 | Cases | Executed | Passed | Failed | Blocked | Not run |
 |---|---|---|---|---|---|
-| 53 (48 + 5 new) | 53 | 52 | 1 (IT-GX-022) | 0 | 0 |
+| 54 (48 + 6 new) | 54 | 52 | 2 (IT-GX-022, IT-G2-013) | 0 | 0 |
 
-**Pass rate:** 52 / 53 = **98.1 %**.
+**Pass rate:** 52 / 54 = **96.3 %**.
 
 | Defect | Severity | Status |
 |---|---|---|
@@ -807,11 +844,12 @@ Status for the incident register: both stay **Assigned**, not Fixed. The re-test
 | DEF-QG-I03 | Major | **Closed** (still open on 8914e839, closed on 40201a14) |
 | DEF-QG-I04 | Minor | **Closed** |
 | DEF-QG-I05 | Minor, P3 | **New**: §34 accepts a check in a dead branch or after `exit` |
+| DEF-QG-I06 | Minor, P2 | **New**: push-mode secret scan passes on a shallow checkout; `fetch-depth: 0` is pinned by nothing |
 
 **Coverage added in this round:** REQ-G1-06 (IT-G1-004); REQ-G2-05 (IT-GX-024); REQ-GX-02 (IT-GX-023, IT-GX-025); REQ-GX-01 (IT-GX-022). REQ-G4-04 now also covers `PGHOSTADDR`.
 
 **Updated recommendation: GO for level L2.** No Critical or Major defect is open. All four first-round defects are closed by re-test on `40201a14`, and the full regression is green on that build: the CI `api` job on Python 3.14 behind a port mapping (2156 passed), every secret-scan workflow case under GitHub's shell, the required-check contract, and every preflight decision-table row.
-- **Condition:** DEF-QG-I05 (Minor, P3) is either fixed or accepted in writing as residual risk. It needs a deliberate edit to exploit.
+- **Condition:** DEF-QG-I05 (Minor, P3) and DEF-QG-I06 (Minor, P2) are each either fixed or accepted in writing. Neither affects the gate as configured today. Each would let a one-line edit weaken it unnoticed. I06 is the cheaper and more valuable fix: an `is-shallow-repository` refusal in the step, plus a test pinning `fetch-depth: 0`.
 - **Unchanged:** OBS-QG-I01 still needs the product owner's decision.
 
 The tables in §7.1–7.4 below record the first round, on `a3688f0`, and are kept for traceability.

@@ -1,0 +1,53 @@
+NOTE: NEW (Test Manager addendum): does the scan step notice a SHALLOW checkout (fetch-depth: 0 removed -> actions/checkout default depth 1)? Clones made with --depth from file:// of the test-bed repo, at 40201a140ba70f8be40d6b016f55ddb828fcaa91. Control: the full clone (/tmp/ss-clone) is not shallow.
+### 2026-10-08T10:13:28Z  cwd=/
+$ git -C /tmp/ss-clone rev-parse --is-shallow-repository; git -C /tmp/ss-clone rev-list --count 40201a140ba70f8be40d6b016f55ddb828fcaa91; git clone -q --depth 1 --branch qg-tmp file:///home/user/reep- /tmp/shallow1 2>&1 | tail -1; true
+false
+746
+fatal: Remote branch qg-tmp not found in upstream origin
+[exit 0, 0s]
+
+### 2026-10-08T10:13:28Z  cwd=/
+$ git clone -q --depth 1 --branch qg-tmp file:///home/user/reep- /tmp/shallow1 && git -C /tmp/shallow1 rev-parse --is-shallow-repository && git -C /tmp/shallow1 rev-list --count HEAD
+true
+1
+[exit 0, 2s]
+
+### 2026-10-08T10:13:30Z  cwd=/tmp/shallow1
+$ echo '[A] push mode, depth 1:'; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=push BASE_SHA= HEAD_SHA= RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-rt1.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|commits scanned|no leaks|leaks found|::error|fatal' | cut -c1-200; echo STEP_EXIT=${PIPESTATUS[0]}
+[A] push mode, depth 1:
+Range HEAD: 1 non-merge commit(s), 1 adding lines
+10:13AM INF 1 commits scanned.
+10:13AM INF no leaks found
+10:13AM INF no leaks found
+STEP_EXIT=0
+[exit 0, 16s]
+
+### 2026-10-08T10:13:46Z  cwd=/tmp/shallow1
+$ echo '[B] pull_request mode, depth 1, base 15a9e7d:'; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=pull_request BASE_SHA=15a9e7d1d89ad7971436235db9d606e976c46be4 HEAD_SHA=40201a140ba70f8be40d6b016f55ddb828fcaa91 RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-rt1.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|commits scanned|no leaks|leaks found|::error|fatal' | cut -c1-200; echo STEP_EXIT=${PIPESTATUS[0]}
+[B] pull_request mode, depth 1, base 15a9e7d:
+::error::the pull request's base commit '15a9e7d1d89ad7971436235db9d606e976c46be4' is not in this clone, so its commit range cannot be scanned. Refusing rather than scanning nothing: rebase the branch
+STEP_EXIT=1
+[exit 0, 0s]
+
+### 2026-10-08T10:13:46Z  cwd=/
+$ git clone -q --depth 50 --branch qg-tmp file:///home/user/reep- /tmp/shallow50 && git -C /tmp/shallow50 rev-list --count HEAD; git -C /tmp/shallow50 cat-file -e 15a9e7d1d89ad7971436235db9d606e976c46be4^{commit} && echo 'base present in depth-50 clone' || echo 'base absent in depth-50 clone'
+161
+base present in depth-50 clone
+[exit 0, 2s]
+
+### 2026-10-08T10:13:48Z  cwd=/tmp/shallow50
+$ echo '[C] pull_request mode, depth 50 (base reachable?):'; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=pull_request BASE_SHA=15a9e7d1d89ad7971436235db9d606e976c46be4 HEAD_SHA=40201a140ba70f8be40d6b016f55ddb828fcaa91 RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-rt1.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|commits scanned|no leaks|leaks found|::error|fatal' | cut -c1-200; echo STEP_EXIT=${PIPESTATUS[0]}; echo '[D] push mode, depth 50:'; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=push BASE_SHA= HEAD_SHA= RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-rt1.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|commits scanned|no leaks|leaks found|::error|fatal' | cut -c1-200; echo STEP_EXIT=${PIPESTATUS[0]}
+[C] pull_request mode, depth 50 (base reachable?):
+Range 15a9e7d1d89ad7971436235db9d606e976c46be4..40201a140ba70f8be40d6b016f55ddb828fcaa91: 39 non-merge commit(s), 34 adding lines
+10:13AM INF 34 commits scanned.
+10:13AM INF no leaks found
+10:13AM INF no leaks found
+STEP_EXIT=0
+[D] push mode, depth 50:
+Range HEAD: 103 non-merge commit(s), 97 adding lines
+10:14AM INF 98 commits scanned.
+10:14AM INF no leaks found
+10:14AM INF no leaks found
+STEP_EXIT=0
+[exit 0, 51s]
+

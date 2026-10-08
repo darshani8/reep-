@@ -636,7 +636,7 @@ Once step 2 is applied, the merge button is disabled until all four conclude `su
 
 ## 9. Schema steps, inside the API job
 
-> **Update 2026-10-08 — built.** The step "Migrations roll back (downgrade to the floor, then up again)" runs `tools/ci/check_migration_roundtrip.py` right after `alembic upgrade head`: (a) `alembic check`, (c) the round trip — to the newest revision whose downgrade refuses on purpose, declared in `apps/api-py/migrations/reversibility.py`, rather than `-1` — and (b) the single-head assertion lives in `tests/test_migration_reversibility.py`. The text below is the design record it was built from; `docs/engineering/quality-gates.md` is how it works now.
+> **Update 2026-10-08 — built.** The step "Migrations roll back (downgrade to the floor, then up again)" runs `tools/ci/check_migration_roundtrip.py` right after `alembic upgrade head`: (a) `alembic check`, (c) the round trip — every downgrade that can run, rather than `-1`, walked in a scratch database in segments cut at the revisions declared irreversible in `apps/api-py/migrations/reversibility.py`, with the catalogue compared at both ends of each segment — and (b) the single-head assertion lives in `tests/test_migration_reversibility.py`. The text below is the design record it was built from; `docs/engineering/quality-gates.md` is how it works now.
 
 *Stage: pr.* **[ASPIRATIONAL]** — `.github/workflows/ci.yml` contains no `alembic check`,
 no `alembic heads` assertion and no downgrade round trip. `grep -n 'alembic' .github/workflows/ci.yml`

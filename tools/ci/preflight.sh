@@ -625,38 +625,15 @@ check_web() {
 #   built from requirements-dev.txt, which is a PARTIAL, never a pass.
 #
 #   THE MIGRATION ROUND TRIP (tools/ci/check_migration_roundtrip.py) after
-#   `alembic upgrade head`. It DROPS whatever the newest revisions created, so it
-#   never runs on your dev database: a scratch database is made beside it,
-#   migrated, round-tripped and dropped - which is also CI's exact question,
-#   because CI asks it of a fresh database before the seed.
+#   `alembic upgrade head` and before the seed, CI's order. It only READS your
+#   dev database (the straight-path schema it compares against); every
+#   downgrade runs in a scratch database the script creates beside it and drops,
+#   so your rows are never touched. It needs the CREATEDB privilege, which the
+#   docker compose user has.
 # ===========================================================================
 
-# create|drop the round trip's scratch database next to the configured one.
-# `create` prints its URL. The URL comes from the APPLICATION, as the DB probe
-# above does, so the scratch lives on the server pytest will use.
-roundtrip_scratch() {
-  ( cd "$API_DIR" && "$PY" - "$1" <<'PY'
-import sys
-
-import psycopg
-
-from app.db import SessionLocal
-
-url = SessionLocal.kw["bind"].url
-scratch = url.set(database=f"{url.database}_preflight_roundtrip")
-server = url.set(drivername="postgresql", database="postgres")
-with psycopg.connect(server.render_as_string(hide_password=False), autocommit=True) as conn:
-    conn.execute(f'DROP DATABASE IF EXISTS "{scratch.database}"')
-    if sys.argv[1] == "create":
-        conn.execute(f'CREATE DATABASE "{scratch.database}"')
-if sys.argv[1] == "create":
-    print(scratch.render_as_string(hide_password=False))
-PY
-  )
-}
-
 check_api_tests() {
-  local name="API (FastAPI + Postgres)" t0 rc=0 partial="" scratch_url=""
+  local name="API (FastAPI + Postgres)" t0 rc=0 partial=""
   if should_stop; then record "$name" SKIP 0 "a previous check failed (--keep-going runs them all)"; return; fi
   banner "6/6  $name"
   if [ -z "$PY" ]; then
@@ -691,24 +668,6 @@ check_api_tests() {
 
   export REEP_REQUIRE_DB=1
 
-  # The step "Migrations roll back (downgrade to the floor, then up again)", on
-  # a scratch database (see the header). No CREATEDB privilege is a PARTIAL.
-  if scratch_url=$(roundtrip_scratch create 2>/dev/null) && [ -n "$scratch_url" ]; then
-    # Exported inside the subshell, not passed on the command line: `run` echoes
-    # its argv, and the URL carries the database password.
-    ( cd "$API_DIR" && export DATABASE_URL="$scratch_url" && run "$PY" -m alembic upgrade head >/dev/null ) || rc=1
-    if [ "$rc" -eq 0 ]; then
-      ( cd "$API_DIR" && export DATABASE_URL="$scratch_url" && run "$PY" ../../tools/ci/check_migration_roundtrip.py ) || rc=1
-    fi
-    roundtrip_scratch drop >/dev/null 2>&1 || note "could not drop the scratch database *_preflight_roundtrip"
-    if [ "$rc" -ne 0 ]; then
-      record "$name" FAIL $(( $(now) - t0 )) "a migration does not roll back to the floor and up again cleanly"; return
-    fi
-  else
-    partial="${partial:+$partial; }round trip not run: could not create a scratch database (needs CREATEDB)"
-    note "the migration round trip did not run: could not create a scratch database"
-  fi
-
   if [ "$SKIP_DB_SETUP" -eq 0 ]; then
     # CI applies migrations and seeds before pytest, and the DB-backed tests
     # authenticate as the seeded accounts, so skipping this locally produces
@@ -719,13 +678,20 @@ check_api_tests() {
     if [ "$rc" -ne 0 ]; then
       record "$name" FAIL $(( $(now) - t0 )) "alembic upgrade head failed"; return
     fi
+    # The step "Migrations roll back (downgrade to the floor, then up again)".
+    ( cd "$API_DIR" && run "$PY" ../../tools/ci/check_migration_roundtrip.py ) || rc=1
+    if [ "$rc" -ne 0 ]; then
+      record "$name" FAIL $(( $(now) - t0 )) "a migration does not roll back cleanly (the script printed which and why)"; return
+    fi
     ( cd "$API_DIR" && run "$PY" -m app.seed ) || rc=1
     if [ "$rc" -ne 0 ]; then
       record "$name" FAIL $(( $(now) - t0 )) "python -m app.seed failed (it refuses to run on ENV=prod)"; return
     fi
   else
-    note "--skip-db-setup: migrations and seed not run. A model change with no"
-    note "migration, or a missing seeded account, will look like a test failure."
+    note "--skip-db-setup: migrations, the round trip and seed not run. A model"
+    note "change with no migration, or a missing seeded account, will look like a"
+    note "test failure."
+    partial="${partial:+$partial; }--skip-db-setup: the migration round trip did not run"
   fi
 
   ( cd "$API_DIR" && run "$PY" -m pytest -q ) || rc=1

@@ -193,18 +193,24 @@ the way it is.
     it instead. It proves a gate is CALLED, not that it is the right one, which is still rule
     2's tests' job.
   * **Migration works and can roll back** — the `api` job's step "Migrations roll back
-    (downgrade to the floor, then up again)", right after `alembic upgrade head` and BEFORE
-    the seed, so the whole suite runs on the round-tripped schema.
-    `tools/ci/check_migration_roundtrip.py` downgrades to the FLOOR (the newest revision whose
-    downgrade refuses on purpose, derived from `IRREVERSIBLE` in
-    `apps/api-py/migrations/reversibility.py`), upgrades again, and fails unless a normalised
-    catalogue dump is identical and `alembic check` is clean. A `pass` or bare `raise`
-    downgrade needs an entry with its reason in words (`tests/test_migration_reversibility.py`
-    ratchets both ways); `"raises"` moves the floor and costs coverage, and `"no-op"` is only
-    honest when the upgrade can run twice, which the round trip proves. It refuses a non-dev
-    `ENV`, a non-loopback host and a production-named database — production's database is
-    also called `reep_py`. `preflight.sh` runs it on a SCRATCH database it creates and drops,
-    never on your dev data.
+    (downgrade to the floor, then up again)", right after `alembic upgrade head` and before
+    the seed. `tools/ci/check_migration_roundtrip.py` only READS that database (the
+    straight-path schema, which is what production has, so the seed and the suite still run
+    on it); it creates a scratch database beside it and walks the chain in SEGMENTS cut at
+    every revision whose downgrade refuses on purpose (`IRREVERSIBLE` in
+    `apps/api-py/migrations/reversibility.py`). Every other downgrade runs, and the
+    catalogue must match at each segment's BOTTOM — which is what catches a downgrade that
+    restores the wrong default, invisible at the top because the re-upgrade overwrites it —
+    and at its TOP, the walked head must match the straight one, and `alembic check` must be
+    clean. Columns compare as a set (Postgres can only append a restored column); the one
+    other licence is `KEPT_ON_DOWNGRADE`, for leftovers Postgres cannot remove (an enum
+    value), declared with the reason. A `pass` or bare `raise` downgrade needs an
+    `IRREVERSIBLE` entry in words (`tests/test_migration_reversibility.py` ratchets both
+    ways); `"raises"` cuts a segment, and `"no-op"` is only honest when the upgrade can run
+    twice, which the walk proves. It refuses a non-dev `ENV`, any non-loopback `host` or
+    `hostaddr` (the query string included) and a production-named database — production's
+    database is also called `reep_py`. `preflight.sh` runs it the same way; your dev rows are
+    never touched.
   * **Design, naming, "is this the right approach"** — a human, through the pull request
     template's "Design and approach" section and its engineering checklist, where every item
     names the gate that enforces it or says "human — no gate".

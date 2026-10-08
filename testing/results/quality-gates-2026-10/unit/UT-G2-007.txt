@@ -1,0 +1,42 @@
+# Evidence for UT-G2-007
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:35:22 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-007a-openai && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-007a-openai
+--- g2-007a-openai/.env
+OPENAI_API_KEY=proxy-<FAKE-VALUE-MASKED>
+findings: 1 [('reep-openai-key', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T08:35:23 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-007b-groq-name && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-007b-groq-name
+--- g2-007b-groq-name/.env
+GROQ_API_KEY=<FAKE-VALUE-MASKED>
+findings: 1 [('reep-groq-key', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T08:35:23 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-007c-groq-shape && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-007c-groq-shape
+--- g2-007c-groq-shape/notes.txt
+key gsk_<FAKE-VALUE-MASKED>
+findings: 1 [('reep-groq-key', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T08:35:24 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-007d-livekit && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-007d-livekit
+--- g2-007d-livekit/.env
+LIVEKIT_API_SECRET=<FAKE-VALUE-MASKED>
+findings: 2 [('generic-api-key', 1), ('reep-livekit-credentials', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T08:35:25 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-007e-voice && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-007e-voice
+--- g2-007e-voice/.env
+VOICE_WORKER_SECRET=<FAKE-VALUE-MASKED>
+findings: 1 [('reep-voice-worker-secret', 1)]
+gitleaks exit=1
+[exit=0]

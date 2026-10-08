@@ -1,0 +1,18 @@
+# Evidence for ENV-versions
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:38:19 UTC] cwd=/home/user/reep-/apps/api-py
+$ uname -sr; python3 -V; .venv/bin/python -V; .venv/bin/python -m ruff --version; .venv/bin/python -m mypy --version; .venv/bin/python -m pytest --version; .venv/bin/python -c 'import fastapi,sqlalchemy,alembic,pydantic;print("fastapi",fastapi.__version__,"sqlalchemy",sqlalchemy.__version__,"alembic",alembic.__version__,"pydantic",pydantic.__version__)'; psql -h localhost -p 5433 -U reep -d reep_py -Atc 'select version()'; psql -h localhost -p 5433 -U postgres -Atc "select default_version from pg_available_extensions where name='vector'"; gitleaks version; git -C /home/user/reep- rev-parse HEAD; bash --version | head -1
+Linux 6.18.44-fc-v80
+Python 3.13.16
+Python 3.13.16
+ruff 0.16.10
+mypy 2.4.0 (compiled: yes)
+pytest 9.1.1
+fastapi 0.141.1 sqlalchemy 2.0.52 alembic 1.19.1 pydantic 2.13.4
+PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit
+0.6.0
+8.30.0
+a3688f0189c48287f376cf8c165d762a2f8ab8d8
+GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)
+[exit=0]

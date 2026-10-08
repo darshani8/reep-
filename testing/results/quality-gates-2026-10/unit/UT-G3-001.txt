@@ -1,0 +1,15 @@
+# Evidence for UT-G3-001
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+# Method: synthetic handlers in app/routers/qg_probe.py (SCRATCH worktree /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt only), mounted in that worktree's app/main.py
+# with 'app.include_router(_qg_probe.router)'; then, from the scratch apps/api-py:
+#   .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_route_audit.py   (full output: UT-G3-run1-pytest-output.txt; p11: UT-G3-run2-gate-pytest-output.txt)
+
+--- probe source:
+@router.get("/p01-open")
+def p01_open() -> Out:
+    return Out()
+
+--- audit failure lines naming /api/qg/p01-open: 2
+E           GET /api/qg/p01-open  (app.routers.qg_probe.p01_open: no session dependency)
+E       assert not ['AUTH (session): 1 new violation(s). Add `session: dict = Depends(get_current_session)` to the handler. If it really ...n add it to PUBLIC with the reason.', '  GET /api/qg/p01-open  (app.routers.qg_probe.p01_open: no session dependency)']
+

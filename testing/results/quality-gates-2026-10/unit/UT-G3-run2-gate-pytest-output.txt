@@ -1,0 +1,62 @@
+.F.                                                                      [100%]
+=================================== FAILURES ===================================
+________ test_every_authenticated_handler_reaches_a_role_or_scope_gate _________
+
+    def test_every_authenticated_handler_reaches_a_role_or_scope_gate() -> None:
+        violations = {
+            op.key: (op.where, "no role or scope gate")
+            for op in OPERATIONS
+            if _requires_session(op) and not _gated(op)
+        }
+>       _ratchet(
+            "AUTH (gate)",
+            violations,
+            ex.KNOWN_UNGATED,
+            "A session proves who is asking, not that they may. Call the gate before "
+            "touching data: require_mentor / require_admin / require_capability, "
+            "_assert_can_access_student for a student in the path, _require_student "
+            "for a student's own screen. If the session alone IS the answer (the "
+            "caller's own rows keyed on session['userId']), add it to KNOWN_UNGATED "
+            "and say whose rows it reads.",
+        )
+
+tests/test_route_audit.py:510: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rule = 'AUTH (gate)'
+violations = {('GET', '/api/qg/p02-nogate'): ('app.routers.qg_probe.p02_nogate', 'no role or scope gate'), ('GET', '/api/qg/p04-inl..., 'no role or scope gate'), ('GET', '/api/agent/history'): ('app.routers.agent.history', 'no role or scope gate'), ...}
+known = {('DELETE', '/api/agent/conversation'): ('app.routers.agent.delete_conversation', "clears the caller's own assistant c...), ('GET', '/api/agent/runs'): ('app.routers.agent.runs', "the caller's own assistant runs (actor_id == userId)"), ...}
+fix = "A session proves who is asking, not that they may. Call the gate before touching data: require_mentor / require_admin...IS the answer (the caller's own rows keyed on session['userId']), add it to KNOWN_UNGATED and say whose rows it reads."
+
+    def _ratchet(rule: str, violations: dict, known: dict, fix: str) -> None:
+        """Fail on a new violation AND on an exception that no longer applies.
+    
+        `violations` is {(method, path): (handler, detail)}; `known` is
+        {(method, path): (handler, reason)}. An entry whose handler differs from the
+        one now mounted at that path is NOT an exception for it.
+        """
+        new = sorted(k for k in violations if k not in known or known[k][0] != violations[k][0])
+        stale = sorted(k for k in known if k not in violations)
+        lines = []
+        if new:
+            lines.append(f"{rule}: {len(new)} new violation(s). {fix}")
+            for key in new:
+                handler, detail = violations[key]
+                note = f"; the list grants this to {known[key][0]}, not this handler" if key in known else ""
+                lines.append(f"  {key[0]} {key[1]}  ({handler}: {detail}{note})")
+        if stale:
+            lines.append(
+                f"{rule}: {len(stale)} exception(s) no longer apply — the route was "
+                f"fixed or removed. Strike it off the list in tests/route_audit_exceptions.py:"
+            )
+            lines += [f"  {m} {p}" for m, p in stale]
+>       assert not lines, "\n".join(lines)
+E       AssertionError: AUTH (gate): 3 new violation(s). A session proves who is asking, not that they may. Call the gate before touching data: require_mentor / require_admin / require_capability, _assert_can_access_student for a student in the path, _require_student for a student's own screen. If the session alone IS the answer (the caller's own rows keyed on session['userId']), add it to KNOWN_UNGATED and say whose rows it reads.
+E           GET /api/qg/p02-nogate  (app.routers.qg_probe.p02_nogate: no role or scope gate)
+E           GET /api/qg/p04-inline-noraise  (app.routers.qg_probe.p04_inline_noraise: no role or scope gate)
+E           GET /api/qg/p05-if-false  (app.routers.qg_probe.p05_if_false: no role or scope gate)
+E       assert not ["AUTH (gate): 3 new violation(s). A session proves who is asking, not that they may. Call the gate before touching da...ise: no role or scope gate)', '  GET /api/qg/p05-if-false  (app.routers.qg_probe.p05_if_false: no role or scope gate)']
+
+tests/test_route_audit.py:269: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_route_audit.py::test_every_authenticated_handler_reaches_a_role_or_scope_gate

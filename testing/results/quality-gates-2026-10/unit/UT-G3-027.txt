@@ -1,0 +1,33 @@
+# Evidence for UT-G3-027
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:44:50 UTC] cwd=/home/user/reep-/apps/api-py
+$ ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/reep_py .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_route_audit.py tests/test_codebase_guards.py 2>&1 | tail -2
+........................................................................ [ 94%]
+....                                                                     [100%]
+[exit=0]
+
+[2026-10-08T08:45:01 UTC] cwd=/home/user/reep-/apps/api-py
+$ ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/reep_py .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_codebase_guards.py tests/test_route_audit.py 2>&1 | tail -2
+........................................................................ [ 94%]
+....                                                                     [100%]
+[exit=0]
+
+[2026-10-08T08:45:11 UTC] cwd=/home/user/reep-/apps/api-py
+$ ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/reep_py .venv/bin/python -m pytest -q -p no:cacheprovider -p no:randomly tests/test_route_audit.py 2>&1 | tail -2
+.................                                                        [100%]
+[exit=0]
+
+[2026-10-08T08:45:18 UTC] cwd=/home/user/reep-/apps/api-py
+$ ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/reep_py REEP_REQUIRE_DB=1 .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_route_audit.py 2>&1 | tail -3
+tests/conftest.py:77: in <module>
+    raise pytest.UsageError(
+E   pytest.UsageError: REEP_REQUIRE_DB is set but Postgres is not reachable. The DB-backed tests (conversations, voice, retention, RBAC) would have been SKIPPED and the suite would have reported success without exercising them. Start Postgres (docker compose up -d) or unset REEP_REQUIRE_DB.
+[exit=0]
+
+[2026-10-08T08:45:25 UTC] cwd=/home/user/reep-/apps/api-py
+$ echo '(re-run with -o addopts= so the summary line is printed)'; ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/reep_py .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_route_audit.py tests/test_codebase_guards.py 2>&1 | tail -1; ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/reep_py .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_codebase_guards.py tests/test_route_audit.py 2>&1 | tail -1
+(re-run with -o addopts= so the summary line is printed)
+76 passed in 7.91s
+76 passed in 7.44s
+[exit=0]

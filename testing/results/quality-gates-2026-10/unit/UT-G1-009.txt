@@ -1,0 +1,21 @@
+# Evidence for UT-G1-009
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:39:45 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py
+--- probe app/_qg_probe.py:
+     1	import asyncio
+     2	import subprocess
+     3	import time
+     4	
+     5	
+     6	async def ok():
+     7	    await asyncio.sleep(1)
+     8	    await asyncio.to_thread(time.sleep, 1)
+     9	
+    10	
+    11	def sync_is_fine(cmd):
+    12	    time.sleep(1)
+    13	    subprocess.run(cmd, check=True)  # noqa: S603  fixed argv from the caller
+All checks passed!
+[exit=0]

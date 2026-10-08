@@ -1,0 +1,12 @@
+# Evidence for UT-G3-026
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:44:38 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ cd /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py && sed -i 's/"app.routers.passwords.forgot",/"app.routers.passwords.forgot_v2",/' tests/route_audit_exceptions.py && git diff -U0 tests/route_audit_exceptions.py | grep '^[-+] ' ; .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_route_audit.py -k public 2>&1 | grep -E '^E  .*(new violation|forgot)' | head -3; git checkout -q tests/route_audit_exceptions.py; git status --short
+-        "app.routers.passwords.forgot",
++        "app.routers.passwords.forgot_v2",
+E       AssertionError: AUTH (session): 1 new violation(s). Add `session: dict = Depends(get_current_session)` to the handler. If it really must be callable with no account (sign-in, the public register form, health), read the handler, then add it to PUBLIC with the reason.
+E           POST /api/auth/forgot  (app.routers.passwords.forgot: no session dependency; the list grants this to app.routers.passwords.forgot_v2, not this handler)
+E       assert not ['AUTH (session): 1 new violation(s). Add `session: dict = Depends(get_current_session)` to the handler. If it really ...s.passwords.forgot: no session dependency; the list grants this to app.routers.passwords.forgot_v2, not this handler)']
+?? .venv
+[exit=0]

@@ -1,0 +1,26 @@
+# Evidence for UT-G2-010
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:35:41 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-010a-ghp-beside-devpw && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-010a-ghp-beside-devpw
+--- g2-010a-ghp-beside-devpw/.env.example
+DATABASE_PASSWORD=reep_dev_password GITHUB_TOKEN=ghp_<FAKE-VALUE-MASKED>
+findings: 1 [('github-pat', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T08:35:41 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-010b-auth-beside-changeme && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-010b-auth-beside-changeme
+--- g2-010b-auth-beside-changeme/.env.example
+AUTH_SECRET=<FAKE-VALUE-MASKED>  # change-me before deploying
+findings: 1 [('reep-auth-secret', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T08:35:42 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-010c-pgurl-beside-ci && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-010c-pgurl-beside-ci
+--- g2-010c-pgurl-beside-ci/ci.yml
+AUTH_SECRET: ci-secret-not-used-outside-ci-0123456789abcdef ; DB=postgresql://reep:<FAKE-VALUE-MASKED>@db.example.com/x
+findings: 1 [('reep-database-url-password', 1)]
+gitleaks exit=1
+[exit=0]

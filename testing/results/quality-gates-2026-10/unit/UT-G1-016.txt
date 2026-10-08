@@ -1,0 +1,15 @@
+# Evidence for UT-G1-016
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:40:19 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe app/_qg_probe.py:'; cat -n app/_qg_probe.py; .venv/bin/python -m mypy > /tmp/mp.out 2>&1; rc=$?; tail -6 /tmp/mp.out; echo mypy_exit=$rc
+--- probe app/_qg_probe.py:
+     1	from typing import cast
+     2	
+     3	
+     4	def f(x: int) -> int:
+     5	    return cast(int, x)
+app/_qg_probe.py:5: error: Redundant cast to "int"  [redundant-cast]
+Found 1 error in 1 file (checked 219 source files)
+mypy_exit=1
+[exit=0]

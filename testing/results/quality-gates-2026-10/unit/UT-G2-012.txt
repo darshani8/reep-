@@ -1,0 +1,48 @@
+# Evidence for UT-G2-012
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:35:52 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ gitleaks dir g2-008a-ghp --config /home/user/reep-/.gitleaks.toml --redact --verbose --no-banner --exit-code 1 --report-format json --report-path /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/r12-g2-008a-ghp.json > /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12-g2-008a-ghp.txt 2>&1; echo gitleaks_exit=$?; v=$(grep -oE 'ghp_[A-Za-z0-9]{36}|[0-9a-f]{64}|reep:[A-Za-z0-9]{20}' g2-008a-ghp/* | head -1 | sed 's/^reep://'); echo "raw value length=${#v}"; echo "occurrences in stdout/log: $(grep -cF "$v" /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12-g2-008a-ghp.txt)"; echo "occurrences in JSON report: $(grep -cF "$v" /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/r12-g2-008a-ghp.json)"; grep -E 'Secret|Match|RuleID|File|Line' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12-g2-008a-ghp.txt | sed -E 's/[A-Za-z0-9]{30,}/<masked>/g'
+gitleaks_exit=1
+raw value length=40
+occurrences in stdout/log: 0
+occurrences in JSON report: 0
+Secret:      REDACTED
+RuleID:      github-pat
+File:        g2-008a-ghp/x.ts
+Line:        1
+[exit=0]
+
+[2026-10-08T08:35:52 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ gitleaks dir g2-001-auth-dotenv --config /home/user/reep-/.gitleaks.toml --redact --verbose --no-banner --exit-code 1 --report-format json --report-path /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/r12-g2-001-auth-dotenv.json > /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12-g2-001-auth-dotenv.txt 2>&1; echo gitleaks_exit=$?; v=$(grep -oE 'ghp_[A-Za-z0-9]{36}|[0-9a-f]{64}|reep:[A-Za-z0-9]{20}' g2-001-auth-dotenv/* | head -1 | sed 's/^reep://'); echo "raw value length=${#v}"; echo "occurrences in stdout/log: $(grep -cF "$v" /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12-g2-001-auth-dotenv.txt)"; echo "occurrences in JSON report: $(grep -cF "$v" /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/r12-g2-001-auth-dotenv.json)"; grep -E 'Secret|Match|RuleID|File|Line' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12-g2-001-auth-dotenv.txt | sed -E 's/[A-Za-z0-9]{30,}/<masked>/g'
+gitleaks_exit=1
+grep: g2-001-auth-dotenv/*: No such file or directory
+raw value length=0
+occurrences in stdout/log: 11
+occurrences in JSON report: 26
+Secret:      REDACTED
+RuleID:      reep-auth-secret
+File:        g2-001-auth-dotenv/.env
+Line:        1
+[exit=0]
+
+[2026-10-08T08:35:53 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ gitleaks dir g2-006a-pgurl-psycopg --config /home/user/reep-/.gitleaks.toml --redact --verbose --no-banner --exit-code 1 --report-format json --report-path /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/r12-g2-006a-pgurl-psycopg.json > /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12-g2-006a-pgurl-psycopg.txt 2>&1; echo gitleaks_exit=$?; v=$(grep -oE 'ghp_[A-Za-z0-9]{36}|[0-9a-f]{64}|reep:[A-Za-z0-9]{20}' g2-006a-pgurl-psycopg/* | head -1 | sed 's/^reep://'); echo "raw value length=${#v}"; echo "occurrences in stdout/log: $(grep -cF "$v" /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12-g2-006a-pgurl-psycopg.txt)"; echo "occurrences in JSON report: $(grep -cF "$v" /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/r12-g2-006a-pgurl-psycopg.json)"; grep -E 'Secret|Match|RuleID|File|Line' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12-g2-006a-pgurl-psycopg.txt | sed -E 's/[A-Za-z0-9]{30,}/<masked>/g'
+gitleaks_exit=1
+raw value length=20
+occurrences in stdout/log: 0
+occurrences in JSON report: 0
+Secret:      REDACTED
+RuleID:      reep-database-url-password
+File:        g2-006a-pgurl-psycopg/doc.md
+Line:        1
+[exit=0]
+(note: the previous g2-001 block was a TEST-SCRIPT error: the glob 'g2-001-auth-dotenv/*' does not match the dotfile .env, so the value searched for was empty and every line matched. Re-run with the explicit path.)
+
+[2026-10-08T08:36:00 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ v=$(grep -oE '[0-9a-f]{64}' g2-001-auth-dotenv/.env); echo "raw value length=${#v}"; echo "occurrences in stdout/log: $(grep -cF "$v" /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/o12-g2-001-auth-dotenv.txt)"; echo "occurrences in JSON report: $(grep -cF "$v" /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/r12-g2-001-auth-dotenv.json)"; python3 -c "import json;f=json.load(open('/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/r12-g2-001-auth-dotenv.json'));print({k:f[0][k] for k in ('RuleID','Secret','Match','File','StartLine')})"
+raw value length=64
+occurrences in stdout/log: 0
+occurrences in JSON report: 0
+{'RuleID': 'reep-auth-secret', 'Secret': 'REDACTED', 'Match': 'AUTH_SECRET=REDACTED', 'File': 'g2-001-auth-dotenv/.env', 'StartLine': 1}
+[exit=0]

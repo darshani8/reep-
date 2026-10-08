@@ -1,0 +1,19 @@
+# Evidence for UT-G3-018
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:44:09 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ .venv/bin/python -c "
+from fastapi import APIRouter
+from pydantic import BaseModel
+class Out(BaseModel):
+    ok: bool = True
+r = APIRouter()
+try:
+    r.add_api_route('/x', lambda: Out(), methods=['DELETE'], status_code=204, response_model=Out)
+    print('FastAPI accepted a 204 with a response model; the audit rule is the only guard')
+except AssertionError as e:
+    print('FastAPI refuses at route creation:', e)
+"; grep -n 'code == 204 and op.route.response_model' tests/test_route_audit.py
+FastAPI refuses at route creation: Status code 204 must not have a response body
+678:        if code == 204 and op.route.response_model is not None:
+[exit=0]

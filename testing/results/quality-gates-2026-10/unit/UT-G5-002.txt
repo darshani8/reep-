@@ -1,0 +1,61 @@
+# Evidence for UT-G5-002
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:53:58 UTC] cwd=/home/user/reep-
+$ python3 - <<'EOF'
+import re, subprocess
+t = open('.github/pull_request_template.md').read()
+sec = t[t.index('## Engineering checklist'):t.index('## Checks')]
+items = [l for l in sec.splitlines() if l.startswith('- [ ]')]
+print(len(items), 'checklist items')
+for l in items:
+    tail = l.split(' — ', 1)[1] if ' — ' in l else '(NO GATE NAMED)'
+    kind = 'human-no-gate' if 'human — no gate' in tail and not re.search(r'\*(route audit|Static analysis|Secrets|migration|codebase guards)', tail) else ('machine(+human)' if re.search(r'route audit|Static analysis|Secrets \(gitleaks\)|migration round-trip|codebase guards', tail) else 'OTHER')
+    print(f'  [{kind:15}] {l[6:60]:55}| {tail[:70]}')
+def has(cmd): return subprocess.run(cmd, shell=True, capture_output=True).returncode == 0
+print('--- does each named gate exist?')
+for name, cmd in [
+  ('route audit: test_no_operation_returns_a_database_model', 'grep -q "def test_no_operation_returns_a_database_model" apps/api-py/tests/test_route_audit.py'),
+  ('route audit: PUBLIC / KNOWN_UNGATED / BOUNDED / KNOWN_UNPAGINATED', 'grep -qE "^(PUBLIC|KNOWN_UNGATED|BOUNDED|KNOWN_UNPAGINATED):" apps/api-py/tests/route_audit_exceptions.py'),
+  ('Static analysis step in ci.yml', 'grep -q "name: Static analysis (ruff, mypy, async blocking)" .github/workflows/ci.yml'),
+  ('Secrets (gitleaks) check', 'grep -q "name: Secrets (gitleaks)" .github/workflows/secret-scan.yml'),
+  ('migration round-trip step in ci.yml', 'grep -q "check_migration_roundtrip.py" .github/workflows/ci.yml'),
+  ('codebase guards: foreign keys indexed', 'grep -qiE "def test_.*(foreign_key|fk).*index|def test_every_foreign_key" apps/api-py/tests/test_codebase_guards.py'),
+  ('require_idempotency_key exists in app/', 'grep -rq "def require_idempotency_key" apps/api-py/app'),
+  ('docs/engineering/api-checklist.md exists', 'test -f docs/engineering/api-checklist.md'),
+]:
+    print(f'  {"yes" if has(cmd) else "NO "}  {name}')
+EOF
+22 checklist items
+  [human-no-gate  ] Request and response shapes agreed as Pydantic models  | *human — no gate*
+  [human-no-gate  ] Edge cases listed in "Why": empty, duplicate, huge inp | *human — no gate*
+  [machine(+human)] Separate input / output / DB models; the DB model is n | *route audit* (`test_no_operation_returns_a_database_model`)
+  [machine(+human)] Every JSON operation declares a typed response model ( | *route audit*
+  [human-no-gate  ] Input validated with Pydantic: types, `ge=`/`le=`, enu | *human — no gate* (FastAPI turns a schema failure into 422)
+  [machine(+human)] Auth and permission on every route: `Depends(get_curre | *route audit* (`PUBLIC` / `KNOWN_UNGATED` carry the exceptions, with r
+  [human-no-gate  ] Thin routes; shared logic in an `app/` module, not cop | *human — no gate* (REEP has no repository layer; see the checklist doc
+  [machine(+human)] Correct status codes: 201 create, 204 no body, 404, 40 | *route audit* for 204/DELETE and for a create on a collection path (`/
+  [OTHER          ] Errors use the one envelope, `{"detail": ...}` — *not  | *not enforced yet*
+  [human-no-gate  ] One transaction per request, committed after every ref | *human — no gate*
+  [machine(+human)] An index for every filter and sort column, declared on | *codebase guards* for foreign keys; others *human — no gate*
+  [machine(+human)] Lists are paginated (`limit` with `le=`, plus `offset` | *route audit* for a response that is a list (`BOUNDED` / `KNOWN_UNPAGI
+  [machine(+human)] `async def` only around async libraries; blocking work | *Static analysis* step
+  [human-no-gate  ] Retries are idempotent (a client key, `require_idempot | *human — no gate*
+  [machine(+human)] Config and secrets from the environment (`app/config.p | *Secrets (gitleaks)* check; the boot guard at runtime
+  [human-no-gate  ] Tests for the happy path, the failure path and the aut | *human — no gate* (see Tests below; the route audit proves a gate is c
+  [machine(+human)] ruff and mypy pass — *Static analysis* step            | *Static analysis* step
+  [machine(+human)] Migration written and checked for rollback, or listed  | *migration round-trip* step
+  [human-no-gate  ] Logs carry the request id and no passwords, tokens or  | *human — no gate* (only the access line carries `rid=` today)
+  [human-no-gate  ] Rate limit on any new login-like or public route — *hu | *human — no gate*
+  [human-no-gate  ] `/docs` examples and descriptions are correct for chan | *human — no gate*
+  [OTHER          ] Review done, including "Design and approach" above — * | *human*
+--- does each named gate exist?
+  yes  route audit: test_no_operation_returns_a_database_model
+  yes  route audit: PUBLIC / KNOWN_UNGATED / BOUNDED / KNOWN_UNPAGINATED
+  yes  Static analysis step in ci.yml
+  yes  Secrets (gitleaks) check
+  yes  migration round-trip step in ci.yml
+  yes  codebase guards: foreign keys indexed
+  yes  require_idempotency_key exists in app/
+  yes  docs/engineering/api-checklist.md exists
+[exit=0]

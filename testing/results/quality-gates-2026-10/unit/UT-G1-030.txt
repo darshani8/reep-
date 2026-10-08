@@ -1,0 +1,48 @@
+# Evidence for UT-G1-030
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:41:00 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/ab.py UT-G1-030a
+--- synthetic source:
+    import time
+    async def h():
+        (lambda: time.sleep(5))()
+
+expected FLAGGED; actual not flagged -> MISMATCH
+[exit=0]
+
+[2026-10-08T08:41:00 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/ab.py UT-G1-030b
+--- synthetic source:
+    async def h(p):
+        import pathlib
+        with pathlib.Path(p).open() as f:
+            return f.read()
+
+expected FLAGGED; actual not flagged -> MISMATCH
+[exit=0]
+
+[2026-10-08T08:41:00 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/ab.py UT-G1-030c
+--- synthetic source:
+    import os
+    async def h(p):
+        fd = os.open(p, os.O_RDONLY)
+        return os.read(fd, 10)
+
+expected FLAGGED; actual not flagged -> MISMATCH
+[exit=0]
+
+[2026-10-08T08:41:11 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py
+--- probe app/_qg_probe.py:
+     1	import os
+     2	import time
+     3	
+     4	
+     5	async def h(p):
+     6	    (lambda: time.sleep(5))()
+     7	    fd = os.open(p, os.O_RDONLY)
+     8	    return os.read(fd, 10)
+All checks passed!
+[exit=0]

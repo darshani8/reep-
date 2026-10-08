@@ -1,0 +1,14 @@
+# Evidence for UT-G1-034
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:41:37 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt
+$ sed -i 's/^async def close_call(/def close_call(/' apps/api-py/app/voice_platform/api/calls.py && grep -n '^def close_call' apps/api-py/app/voice_platform/api/calls.py && python3 tools/ci/check_async_blocking.py; echo script_exit=$?; git checkout -q apps/api-py/app/voice_platform/api/calls.py; git status --short | wc -l
+200:def close_call(
+
+These are in KNOWN but no longer block. Delete them from the dict in
+tools/ci/check_async_blocking.py so it keeps telling the truth:
+
+  voice_platform/api/calls.py::close_call
+script_exit=1
+1
+[exit=0]

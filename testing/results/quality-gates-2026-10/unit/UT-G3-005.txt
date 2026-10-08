@@ -1,0 +1,17 @@
+# Evidence for UT-G3-005
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+# Method: synthetic handlers in app/routers/qg_probe.py (SCRATCH worktree /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt only), mounted in that worktree's app/main.py
+# with 'app.include_router(_qg_probe.router)'; then, from the scratch apps/api-py:
+#   .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_route_audit.py   (full output: UT-G3-run1-pytest-output.txt; p11: UT-G3-run2-gate-pytest-output.txt)
+
+--- probe source:
+@router.get("/p05-if-false")
+def p05_if_false(session: dict = Depends(get_current_session)) -> Out:
+    if False:
+        require_admin(session)
+    return Out()
+
+--- audit failure lines naming /api/qg/p05-if-false: 2
+E           GET /api/qg/p05-if-false  (app.routers.qg_probe.p05_if_false: no role or scope gate)
+E       assert not ["AUTH (gate): 3 new violation(s). A session proves who is asking, not that they may. Call the gate before touching da...ise: no role or scope gate)', '  GET /api/qg/p05-if-false  (app.routers.qg_probe.p05_if_false: no role or scope gate)']
+

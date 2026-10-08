@@ -1,0 +1,17 @@
+# Evidence for UT-G1-021
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:40:33 UTC] cwd=/home/user/reep-/apps/api-py
+$ grep -nE '^(ruff|mypy|types-)' requirements-dev.txt; echo '--- requirements.txt:'; grep -ciE '^(ruff|mypy|types-)' requirements.txt; echo '--- non-== pins among them:'; grep -E '^(ruff|mypy|types-)' requirements-dev.txt | grep -v '==' | wc -l; echo '--- requirements.txt vs base 15a9e7d:'; git diff --stat 15a9e7d a3688f0 -- requirements.txt | tail -1; echo "(empty line above = unchanged)"; grep -n '^-r' requirements-dev.txt
+45:ruff==0.16.10
+46:mypy==2.4.0
+52:types-reportlab==5.0.0.20260911
+53:types-openpyxl==3.1.5.20260827
+--- requirements.txt:
+0
+--- non-== pins among them:
+0
+--- requirements.txt vs base 15a9e7d:
+(empty line above = unchanged)
+9:-r requirements.txt
+[exit=0]

@@ -1,0 +1,23 @@
+# Evidence for UT-G1-005
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:39:39 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py
+--- probe app/_qg_probe.py:
+     1	import subprocess
+     2	
+     3	import requests
+     4	
+     5	PASSWORD = "hunter2-not-real"
+     6	
+     7	
+     8	def f(cmd, url, x):
+     9	    assert x
+    10	    subprocess.run(cmd, shell=True)
+    11	    return requests.get(url)
+app/_qg_probe.py:5:12: S105 Possible hardcoded password assigned to: "PASSWORD"
+app/_qg_probe.py:9:5: S101 Use of `assert` detected
+app/_qg_probe.py:10:5: S602 `subprocess` call with `shell=True` identified, security issue
+app/_qg_probe.py:11:12: S113 Probable use of `requests` call without timeout
+Found 4 errors.
+[exit=1]

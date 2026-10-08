@@ -1,0 +1,30 @@
+# Evidence for UT-G2-018
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:36:35 UTC] cwd=/home/user/reep-
+$ gitleaks git . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore --redact --no-banner --exit-code 1 --log-opts='--all' 2>&1 | tail -4
+8:37AM INF 837 commits scanned.
+8:37AM INF scanned ~372475667 bytes (372.48 MB) in 58.4s
+8:37AM INF no leaks found
+[exit=0]
+
+[2026-10-08T08:37:34 UTC] cwd=/home/user/reep-
+$ gitleaks git . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore --redact --no-banner --exit-code 1 --log-opts='15a9e7d..a3688f0' 2>&1 | tail -3
+8:37AM INF 20 commits scanned.
+8:37AM INF scanned ~412883 bytes (412.88 KB) in 299ms
+8:37AM INF no leaks found
+[exit=0]
+
+[2026-10-08T08:37:35 UTC] cwd=/home/user/reep-
+$ d=$(mktemp -d); git archive a3688f0 | tar -x -C $d; gitleaks dir $d --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore --redact --no-banner --exit-code 1 2>&1 | tail -3; rm -rf $d
+8:37AM INF scanned ~31724253 bytes (31.72 MB) in 4.69s
+8:37AM WRN leaks found: 4
+[exit=0]
+(note: the block above scanned the archive by ABSOLUTE path; .gitleaks.toml's path-scoped allowlists are anchored relative to the scan root (^apps/..., ^infra/..., ^\.gitleaks\.toml$), so that run reported 4 path-allowlisted lines (test_backup_database.py:59,100; voice_platform/api/calls.py:219; infra/cdk/import-map.json:80). secret-scan.yml and preflight.sh both run 'gitleaks dir .' from the root; re-run that way below. Logged as OBS-QG-U02.)
+
+[2026-10-08T08:38:05 UTC] cwd=/home/user/reep-
+$ d=$(mktemp -d); git archive a3688f0 | tar -x -C $d; cd $d && gitleaks dir . --config /home/user/reep-/.gitleaks.toml --gitleaks-ignore-path /home/user/reep-/.gitleaksignore --redact --no-banner --exit-code 1 2>&1 | tail -2; echo "gitleaks exit=${PIPESTATUS[0]}"; rm -rf $d
+8:38AM INF scanned ~31724253 bytes (31.72 MB) in 4.85s
+8:38AM INF no leaks found
+gitleaks exit=0
+[exit=0]

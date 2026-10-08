@@ -1,0 +1,36 @@
+# Evidence for UT-G4-020
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:51:17 UTC] cwd=/home/user/reep-/apps/api-py
+$ echo 'Step 1: the refusal, with a loopback URL and PGHOSTADDR set in the environment:'; PGHOSTADDR=192.0.2.1 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/dt.sh dev 'postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py' REFUSED
+Step 1: the refusal, with a loopback URL and PGHOSTADDR set in the environment:
+ENV='dev'        URL=postgresql+psycopg://reep:***@localhost:5433/reep_py                             exit=0 RUNS    expected=REFUSED UNEXPECTED 
+[exit=0]
+
+[2026-10-08T08:51:18 UTC] cwd=/home/user/reep-/apps/api-py
+$ echo 'Step 2: where libpq actually connects with that environment (same URL, same engine construction as the script):'; PGHOSTADDR=192.0.2.1 PGCONNECT_TIMEOUT=3 ENV=dev AUTH_SECRET=x DATABASE_URL='postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py' .venv/bin/python -c "
+import sys; sys.path.insert(0, '../../tools/ci')
+from sqlalchemy import create_engine, text
+from app.config import settings
+import check_migration_roundtrip as rt
+e = create_engine(settings.sqlalchemy_url)
+print('libpq_hosts() sees:', rt.libpq_hosts(e), '; refusal() ->', rt.refusal(settings, e))
+try:
+    with e.connect() as c: print('connected to', c.execute(text('select inet_server_addr()')).scalar())
+except Exception as x: print('connect attempt:', str(x).splitlines()[0][:160])
+"
+Step 2: where libpq actually connects with that environment (same URL, same engine construction as the script):
+libpq_hosts() sees: ['localhost'] ; refusal() -> None
+connect attempt: (psycopg.OperationalError) connection failed: connection to server at "192.0.2.1", port 5433 failed: server closed the connection unexpectedly
+[exit=0]
+
+[2026-10-08T08:51:18 UTC] cwd=/home/user/reep-/apps/api-py
+$ echo 'Step 3 (control): same URL, no PGHOSTADDR:'; ENV=dev AUTH_SECRET=x DATABASE_URL='postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py' .venv/bin/python -c "
+from sqlalchemy import create_engine, text
+from app.config import settings
+e = create_engine(settings.sqlalchemy_url)
+with e.connect() as c: print('connected; server says', c.execute(text('select inet_server_addr()')).scalar())
+"
+Step 3 (control): same URL, no PGHOSTADDR:
+connected; server says 127.0.0.1
+[exit=0]

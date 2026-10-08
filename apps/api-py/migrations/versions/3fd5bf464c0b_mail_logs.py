@@ -41,3 +41,9 @@ def downgrade() -> None:
     op.drop_index('ix_maillog_kind_sent', table_name='mail_logs')
     op.drop_table('mail_logs')
     # ### end Alembic commands ###
+    # The enum type this revision created go with its tables. Autogenerate
+    # drops the table and leaves the type, so re-applying this revision after a
+    # rollback failed with `type ... already exists` -- found by
+    # tools/ci/check_migration_roundtrip.py. Every later revision is reverted
+    # before this one runs, so nothing still uses them.
+    op.execute("DROP TYPE IF EXISTS mail_status")

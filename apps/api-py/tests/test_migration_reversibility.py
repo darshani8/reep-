@@ -31,7 +31,8 @@ def _load_reversibility():
     spec = importlib.util.spec_from_file_location(
         "reep_migration_reversibility", API / "migrations" / "reversibility.py"
     )
-    assert spec and spec.loader
+    if spec is None or spec.loader is None:
+        raise SystemExit("cannot load apps/api-py/migrations/reversibility.py")
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
@@ -51,14 +52,16 @@ def revisions():
 def test_there_is_exactly_one_head(revisions) -> None:
     """Two heads is two revisions generated against the same parent. `alembic
     upgrade head` refuses to run at all, so this is the cheap place to say so."""
-    assert rev.heads(revisions) == [rev.chain(revisions)[-1].revision]
-    assert len(rev.heads(revisions)) == 1, rev.heads(revisions)
+    tips = rev.heads(revisions)
+    assert len(tips) == 1, f"expected one head, found {tips}: merge or re-parent one of them"
 
 
 def test_every_revision_is_on_one_unbranched_chain(revisions) -> None:
     ordered = rev.chain(revisions)
-    assert len(ordered) == len(revisions)
-    assert ordered[0].down_revision is None
+    assert len(ordered) == len(revisions), (
+        f"{len(revisions) - len(ordered)} revision(s) are not on the chain from the head"
+    )
+    assert ordered[0].down_revision is None, f"the chain starts at {ordered[0].revision}, which has a parent"
 
 
 def test_every_downgrade_does_real_work_or_is_declared_irreversible(revisions) -> None:
@@ -104,18 +107,70 @@ def test_no_migration_lacks_a_downgrade_function(revisions) -> None:
 
 
 def test_the_floor_is_the_newest_refusing_revision(revisions) -> None:
-    """The round trip's floor is derived, never typed: if it were a constant, a
-    new refusing migration would leave CI trying to roll back through it."""
+    """Derived, never typed: if it were a constant, a new refusing migration
+    would leave CI trying to roll back through it. A refusing revision AT THE
+    HEAD is legal -- SKILL.md says a new "raises" becomes the floor -- and then
+    the newest segment is empty, which the round trip prints as such."""
     ordered = [r.revision for r in rev.chain(revisions)]
-    refusing = [r for r in ordered if rev.IRREVERSIBLE.get(r, None) and rev.IRREVERSIBLE[r].downgrade == "raises"]
+    refusing = [r for r in ordered if r in rev.IRREVERSIBLE and rev.IRREVERSIBLE[r].downgrade == "raises"]
     floor = rev.rollback_floor(revisions)
-    assert floor == (refusing[-1] if refusing else None)
-    # Something above the floor must be exercised, or the step proves nothing.
-    assert floor is None or ordered.index(floor) < len(ordered) - 1
+    assert floor == (refusing[-1] if refusing else None), (
+        f"rollback_floor() says {floor}, but the newest refusing revision is "
+        f"{refusing[-1] if refusing else None}"
+    )
+
+
+def test_the_segments_cover_every_downgrade_that_can_run(revisions) -> None:
+    """Cut at each refusing revision, the segments must hold every other revision
+    exactly once -- that is the round trip's coverage claim -- and at least one
+    downgrade must run, or the CI step proves nothing (it exits 2 then)."""
+    plan = rev.segments(revisions)
+    downgraded = [r for s in plan for r in s.downgraded]
+    refusing = {r for r, e in rev.IRREVERSIBLE.items() if e.downgrade == "raises"}
+    expected = [r.revision for r in rev.chain(revisions) if r.revision not in refusing]
+    assert downgraded == expected, "the segments do not cover each runnable downgrade exactly once, in order"
+    assert len(plan) == len(refusing) + 1, f"{len(refusing)} refusing revisions should cut {len(refusing) + 1} segments"
+    for s in plan:
+        if s.downgraded:
+            assert s.top == s.downgraded[-1], f"segment from {s.bottom} has top {s.top}, not its last revision"
+    assert downgraded, "no downgrade on the chain can run; the round trip would prove nothing"
+
+
+def test_a_refusing_revision_at_the_head_makes_an_empty_last_segment(revisions) -> None:
+    """The shape SKILL.md promises, proved on a synthetic chain: a new "raises"
+    at the head is the floor, and the segment above it is empty rather than an
+    error."""
+    head = rev.chain(revisions)[-1].revision
+    saved = dict(rev.IRREVERSIBLE)
+    try:
+        rev.IRREVERSIBLE[head] = rev.Irreversible("raises", "synthetic: a refusing head")
+        plan = rev.segments(revisions)
+        assert rev.rollback_floor(revisions) == head, "a refusing head must be the floor"
+        assert plan[-1].bottom == head and plan[-1].downgraded == (), (
+            f"the last segment should be empty and start at the head, got {plan[-1]}"
+        )
+        assert any(s.downgraded for s in plan), "the segments below a refusing head still run"
+    finally:
+        rev.IRREVERSIBLE.clear()
+        rev.IRREVERSIBLE.update(saved)
+
+
+def test_every_declared_leftover_is_well_formed(revisions) -> None:
+    """KEPT_ON_DOWNGRADE is the only thing the round trip ignores at a segment's
+    bottom, so each entry must name a real revision, a known kind and a reason.
+    Whether the leftover really happens is the round trip's half of the ratchet."""
+    ids = {r.revision for r in revisions}
+    shapes = {"enum-value": 3, "extension": 2, "table": 2}
+    for revision, kept in rev.KEPT_ON_DOWNGRADE.items():
+        assert revision in ids, f"KEPT_ON_DOWNGRADE names {revision}, which is not a revision"
+        assert kept.reason.strip(), f"{revision}: a leftover with no reason is not a decision"
+        assert kept.entries, f"{revision}: declares no leftover"
+        for entry in kept.entries:
+            assert entry[0] in shapes and len(entry) == shapes[entry[0]], f"{revision}: malformed entry {entry}"
 
 
 def test_env_py_does_not_import_the_mapping() -> None:
     """Alembic loads env.py on every command, production included; knowing which
     migrations cannot be undone is CI's business, not the migration runner's."""
     env = (API / "migrations" / "env.py").read_text(encoding="utf-8")
-    assert "reversibility" not in env
+    assert "reversibility" not in env, "migrations/env.py imports the reversibility list; it must not"

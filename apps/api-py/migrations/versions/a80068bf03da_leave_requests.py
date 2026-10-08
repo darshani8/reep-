@@ -51,3 +51,10 @@ def downgrade() -> None:
     op.drop_index('ix_leave_requester', table_name='leave_requests')
     op.drop_table('leave_requests')
     # ### end Alembic commands ###
+    # The enum types this revision created go with its tables. Autogenerate
+    # drops the table and leaves the type, so re-applying this revision after a
+    # rollback failed with `type ... already exists` -- found by
+    # tools/ci/check_migration_roundtrip.py. Every later revision is reverted
+    # before this one runs, so nothing still uses them.
+    op.execute("DROP TYPE IF EXISTS leave_decision")
+    op.execute("DROP TYPE IF EXISTS leave_status")

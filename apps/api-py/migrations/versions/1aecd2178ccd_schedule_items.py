@@ -38,3 +38,9 @@ def downgrade() -> None:
     op.drop_index('ix_schedule_student_starts', table_name='schedule_items')
     op.drop_table('schedule_items')
     # ### end Alembic commands ###
+    # The enum type this revision created go with its tables. Autogenerate
+    # drops the table and leaves the type, so re-applying this revision after a
+    # rollback failed with `type ... already exists` -- found by
+    # tools/ci/check_migration_roundtrip.py. Every later revision is reverted
+    # before this one runs, so nothing still uses them.
+    op.execute("DROP TYPE IF EXISTS schedule_type")

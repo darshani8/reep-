@@ -1743,7 +1743,8 @@ def test_the_five_required_check_names_agree_across_all_four_files() -> None:
         assert name in reported, (
             f"the rulesets require {name!r}, which {workflow} does not report (its jobs report "
             f"{sorted(reported)}). A required check no job reports is never reported, and "
-            "GitHub does not wait for a check it has never seen: rename the job back, or "
+            "GitHub then waits for it FOREVER: every pull request into that branch shows it "
+            "as 'Expected' and cannot merge. Rename the job back, or "
             "edit the rulesets, protect-main.sh's STANDALONE_CHECKS and "
             "STANDALONE_REQUIRED_CHECKS in the same commit."
         )
@@ -1790,8 +1791,9 @@ def test_the_five_required_check_names_agree_across_all_four_files() -> None:
         "the committed ruleset and ci.yml disagree about the required checks.\n"
         f"  only in .github/rulesets/*.json:   {sorted(ruleset_names - ci_names)}\n"
         f"  only in ci.yml:                     {sorted(ci_names - ruleset_names)}\n"
-        "A required check no job reports is never reported, and GitHub does not "
-        "wait for a check it has never seen on that branch."
+        "A required check no job reports is never reported, and GitHub then waits "
+        "for it FOREVER: every pull request into that branch shows it as 'Expected' "
+        "and cannot merge, while the renamed job runs and gates nothing."
     )
     assert protect_names == ci_names, (
         "protect-main.sh's REQUIRED_CHECKS and ci.yml disagree.\n"

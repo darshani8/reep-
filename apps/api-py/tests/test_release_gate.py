@@ -48,6 +48,21 @@ def test_a_migration_needs_a_human() -> None:
     assert v.auto_ok is False and v.target == "api-only"
 
 
+def test_the_secret_scan_rules_are_known_and_deploy_nothing() -> None:
+    """.gitleaksignore is classified exactly as .gitleaks.toml is: a change to
+    either deploys nothing, so it is never "a path this gate cannot classify"."""
+    for path in (".gitleaks.toml", ".gitleaksignore"):
+        v = gate.classify([path])
+        assert (v.target, v.reasons) == ("none", []), (path, v.reasons)
+
+
+def test_the_rollback_floor_list_stays_on_the_migration_side() -> None:
+    """migrations/reversibility.py is read only by CI, but it decides how far CI
+    rolls the schema back: it stays refused, on purpose."""
+    v = gate.classify(["apps/api-py/migrations/reversibility.py"])
+    assert v.auto_ok is False and v.target == "api-only"
+
+
 def test_a_model_change_needs_a_human() -> None:
     assert gate.classify(["apps/api-py/app/models/user.py"]).auto_ok is False
 

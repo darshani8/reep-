@@ -101,17 +101,22 @@ jobs:
       # The downgrades had never been run by anything. `upgrade head` runs on
       # every job and every deploy; a downgrade runs on the night a bad
       # migration has already shipped, which is the worst moment to learn that
-      # it drops the wrong index. This rolls back to the FLOOR -- the newest
-      # revision whose downgrade refuses on purpose, derived from
-      # migrations/reversibility.py, never typed here -- upgrades again, and
-      # fails unless the catalogue is identical and `alembic check` is clean.
+      # it drops the wrong index. This leaves the database above alone (it is
+      # the straight-path schema), creates a scratch one beside it, and walks the
+      # chain in segments cut at each revision whose downgrade refuses on
+      # purpose (migrations/reversibility.py, never typed here): every other
+      # downgrade runs, the catalogue must match at each segment's BOTTOM (a
+      # downgrade that restores the wrong default) and TOP (one that leaves
+      # something behind), the walked head must match the straight one, and
+      # `alembic check` must be clean. Columns compare as a set, and only the
+      # leftovers KEPT_ON_DOWNGRADE declares are ignored, at a bottom.
       #
-      # BEFORE the seed, deliberately: everything after this step -- the seed
-      # and the whole suite -- then runs on the round-tripped schema, so a
-      # downgrade that subtly changed it is caught by two thousand tests as well
-      # as by the catalogue diff. A seeded round trip was measured passing
+      # Its position here, before the seed, is the contract's: it reads the
+      # migrated database and writes only its own scratch copy, so the seed and
+      # the suite still run on a database built by a straight `upgrade head`,
+      # which is what production has. A seeded round trip was measured passing
       # locally, but the dev seed is a handful of rows and proves little about
-      # real data, so it does not buy a second round trip here.
+      # real data, so it does not buy a second walk here.
       - name: Migrations roll back (downgrade to the floor, then up again)
         working-directory: apps/api-py
         run: python ../../tools/ci/check_migration_roundtrip.py

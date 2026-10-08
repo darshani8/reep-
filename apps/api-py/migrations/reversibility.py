@@ -3,9 +3,11 @@
 `tests/test_migration_reversibility.py` reads this statically, with no
 database: every file in `versions/` must have a `downgrade()` that does real
 work, or be named in `IRREVERSIBLE` with the reason in words.
-`tools/ci/check_migration_roundtrip.py` reads it against a real database: it
-rolls the schema back to `rollback_floor()`, upgrades it again, and proves the
-catalogue came back byte for byte. Two copies of this list would drift the day
+`tools/ci/check_migration_roundtrip.py` reads it against a real database: on a
+scratch copy it round-trips every SEGMENT between two refusing revisions
+(`segments()`), proving the catalogue matches at the bottom of each segment
+after its downgrades and at the top after the upgrades that follow -- minus the
+leftovers declared in `KEPT_ON_DOWNGRADE`, and minus column order. Two copies of this list would drift the day
 somebody adds a fifth entry to one of them, so there is one, and both import it.
 
 `migrations/env.py` must NOT import this. Alembic loads env.py on every
@@ -16,9 +18,11 @@ revision, and one without a `revision` identifier is an error.
 
 TWO KINDS OF IRREVERSIBLE, and the difference decides how far CI can roll back:
 
-  * "raises" -- the downgrade REFUSES. Nothing can be rolled back past it, so the
-    newest one on the chain is the FLOOR: the round trip goes down to it (it
-    stays applied) and up again, and everything above it is exercised.
+  * "raises" -- the downgrade REFUSES. Nothing can be rolled back THROUGH it, so
+    each one splits the chain into segments, and each segment is round-tripped
+    on its own: upgraded to just below the refusing revision, downgraded to the
+    one before, upgraded again. The newest is the FLOOR a real rollback of
+    production could reach (`rollback_floor()`).
   * "no-op" -- the downgrade does nothing ON PURPOSE and the rollback passes
     straight through. That is only honest when the upgrade is safe to run a
     second time over what the no-op left behind, and the round trip is what
@@ -80,6 +84,43 @@ IRREVERSIBLE: dict[str, Irreversible] = {
 }
 
 KINDS = frozenset({"raises", "no-op"})
+
+
+@dataclass(frozen=True)
+class Kept:
+    #: Catalogue entries this revision's downgrade leaves behind on purpose:
+    #: ("enum-value", type, value), ("extension", name) or ("table", name).
+    entries: tuple[tuple[str, ...], ...]
+    reason: str
+
+
+#: Downgrades that do REAL work but cannot undo all of it -- an enum value
+#: (Postgres has no DROP VALUE) or an extension something else may use. The
+#: round trip compares the bottom of a segment with these entries removed from
+#: both sides, and ONLY these: anything else a downgrade leaves behind fails.
+#: It is a RATCHET: an entry that is not actually left at the bottom of its
+#: segment fails too. That is why b8d2f7a4c619's NEEDS_CHANGES is NOT here: its
+#: segment rolls back to an empty database, where 5d48c6c2ffdd's downgrade drops
+#: the whole upload_status type, so the value never survives to be compared.
+KEPT_ON_DOWNGRADE: dict[str, Kept] = {
+    "b7e2f4a19c33": Kept(
+        (("extension", "vector"),),
+        "The pgvector extension stays installed: dropping it could break anything "
+        "else that came to depend on it, and an unused extension is inert.",
+    ),
+    "d5a1c8b30f47": Kept(
+        (("table", "students_orphaned_cohort_ids"),),
+        "The rescue table is an operator's receipt for rows the upgrade was about to "
+        "NULL (migrations/env.py, _PRESERVED_DATA_TABLES): the downgrade restores the "
+        "rows from it and keeps it, and the upgrade's CREATE TABLE IF NOT EXISTS "
+        "re-runs over it.",
+    ),
+    "c4f7b1e08d92": Kept(
+        (("enum-value", "registration_status", "HOLD"),),
+        "The three hold columns come back out; the HOLD value cannot -- Postgres "
+        "has no DROP VALUE, and rows holding it would need a data decision.",
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -171,6 +212,38 @@ def chain(revisions: list[Revision]) -> list[Revision]:
         stray = sorted(set(by_id) - {r.revision for r in ordered})
         raise ValueError(f"revisions not on the chain from the head: {stray}")
     return list(reversed(ordered))
+
+
+@dataclass(frozen=True)
+class Segment:
+    #: The revision the segment is rolled back TO (None = an empty database),
+    #: the revision it is upgraded to, and the revisions whose downgrades run.
+    bottom: str | None
+    top: str | None
+    downgraded: tuple[str, ...]
+
+
+def segments(revisions: list[Revision] | None = None) -> list[Segment]:
+    """The chain cut at every revision whose downgrade refuses.
+
+    A refusing revision can be upgraded through but never downgraded through, so
+    each stretch between two of them is round-tripped separately: from the
+    refusing revision below it (or an empty database) to the revision just
+    under the next one (or the head). A stretch with nothing in it -- two
+    refusing revisions in a row, or one at the head -- is an empty segment.
+    """
+    out: list[Segment] = []
+    bottom: str | None = None
+    run: list[str] = []
+    for rev in chain(revisions if revisions is not None else scan()):
+        entry = IRREVERSIBLE.get(rev.revision)
+        if entry is not None and entry.downgrade == "raises":
+            out.append(Segment(bottom, run[-1] if run else bottom, tuple(run)))
+            bottom, run = rev.revision, []
+        else:
+            run.append(rev.revision)
+    out.append(Segment(bottom, run[-1] if run else bottom, tuple(run)))
+    return out
 
 
 def rollback_floor(revisions: list[Revision] | None = None) -> str | None:

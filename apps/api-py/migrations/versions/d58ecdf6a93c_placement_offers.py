@@ -57,3 +57,12 @@ def downgrade() -> None:
     op.drop_index('ix_offer_student_status', table_name='placement_offers')
     op.drop_table('placement_offers')
     # ### end Alembic commands ###
+    # The enum types this revision created go with its tables. Autogenerate
+    # drops the table and leaves the type, so re-applying this revision after a
+    # rollback failed with `type ... already exists` -- found by
+    # tools/ci/check_migration_roundtrip.py. Every later revision is reverted
+    # before this one runs, so nothing still uses them.
+    op.execute("DROP TYPE IF EXISTS offer_channel")
+    op.execute("DROP TYPE IF EXISTS offer_role_type")
+    op.execute("DROP TYPE IF EXISTS offer_status")
+    op.execute("DROP TYPE IF EXISTS offer_work_mode")

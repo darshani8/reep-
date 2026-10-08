@@ -100,6 +100,9 @@ SENSITIVE = (
 NO_DEPLOY = (
     "docs/",
     "test-management/",
+    # The quality-gate test plans, results and evidence: documents about the
+    # product, shipped by no deploy -- the same answer as docs/.
+    "testing/",
     "tests/",
     "apps/api-py/tests/",
     "apps/api-py/tools/",

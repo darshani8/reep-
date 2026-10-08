@@ -38,6 +38,20 @@ def test_docs_and_tests_alone_deploy_nothing_and_are_never_auto() -> None:
     assert (v.target, v.auto_ok) == ("none", False)
 
 
+def test_test_documents_deploy_nothing_and_do_not_block_an_auto_deploy() -> None:
+    """testing/ (test plans, results, evidence) is NO_DEPLOY like docs/. Before
+    it was listed, any pull request carrying a test report was refused
+    auto-deploy as "a path this gate cannot classify" (OBS-QG-I03)."""
+    v = gate.classify(["testing/docs/quality-gates-2026-10/03-integration-testing.md",
+                       "testing/results/quality-gates-2026-10/integration/IT-GX-005.txt"])
+    assert (v.target, v.reasons) == ("none", [])
+    with_api = gate.classify(["apps/api-py/app/routers/swoc.py", "testing/docs/plan.md"])
+    plain_api = gate.classify(["apps/api-py/app/routers/swoc.py"])
+    assert (with_api.target, with_api.auto_ok, with_api.reasons) == (
+        plain_api.target, plain_api.auto_ok, plain_api.reasons,
+    )
+
+
 def test_an_empty_change_set_is_not_a_release() -> None:
     v = gate.classify([])
     assert (v.target, v.auto_ok) == ("none", False)

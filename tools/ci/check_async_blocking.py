@@ -24,10 +24,15 @@ and `lambda` bodies are excluded: they run wherever they are sent, which is
 usually `asyncio.to_thread`, and a nested `async def` is scanned on its own):
 
   (a) a parameter whose default or `Annotated[...]` metadata is
-      `Depends(<dep>)` where <dep> yields a sync Session -- `get_db`, plus any
-      generator in app/ that calls `SessionLocal()` and yields, found by
-      reading the source so a second such dependency cannot slip past;
-  (b) a call to `SessionLocal()`;
+      `Depends(<dep>)` -- positional or `dependency=` -- where <dep> yields a
+      sync Session: `get_db` (under any import alias), plus any generator in
+      app/ that calls `SessionLocal()` and yields, found by reading the source
+      so a second such dependency cannot slip past. FastAPI's documented
+      alias idiom counts too: `DbDep = Annotated[Session, Depends(get_db)]`,
+      `DbDep: TypeAlias = ...` and `type DbDep = ...`, declared anywhere in
+      app/ and used here by name, by import alias or as `deps.DbDep`;
+  (b) a call to `SessionLocal()` -- bare, imported under another name, or as
+      `db.SessionLocal()`;
   (c) a sync-Session method (`execute`, `query`, `commit`, ...) on a name that
       is such a parameter, a parameter annotated `Session`, or a name bound
       from `SessionLocal()` (assignment or `with ... as`);
@@ -40,7 +45,20 @@ usually `asyncio.to_thread`, and a nested `async def` is scanned on its own):
 
 A call is fine when it is HANDED to `asyncio.to_thread`, `anyio.to_thread`,
 `run_in_threadpool` or an executor rather than made: `to_thread(save_bytes,
-...)` names the function and calls nothing, so it is never reported.
+...)` names the function and calls nothing, so it is never reported. An
+AWAITED call is not reported either -- `await anyio.Path(p).read_text()` is
+the async twin of the pathlib call, and anything awaited returned an
+awaitable rather than blocking.
+
+EXCEPT A Depends(get_db) PARAMETER, WHICH NO HANDOFF EXCUSES, and that is a
+decision rather than a gap. `async def f(db=Depends(get_db))` with every query
+inside `run_in_threadpool(lambda: db.execute(...))` is still reported: the
+Session was opened by the dependency on the loop's side, its teardown
+(`db.close()`, a network round trip) runs on the loop, and a Session handed to
+a pool thread is shared across threads with nothing serialising it. The fix
+is the one /register took -- a plain `def`, which FastAPI runs whole on the
+threadpool, Session and all -- and a rule that let the lambda form through
+would bless the half-measure.
 
 DELIBERATELY NOT CLEVER. It does not follow calls into helpers (an `async def`
 calling a sync function of its own that opens a Session is not reported) and
@@ -51,10 +69,12 @@ gets deleted.
 
 KNOWN is a RATCHET, IN BOTH DIRECTIONS (`check_style_duplicates.py`'s rule).
 Every function in it is a true positive that was already on main when this
-check was written, with the reason it has not been changed yet. A new offender
-fails the build; so does an entry that no longer offends, because a list that
-names fixed code stops telling the truth and the next reader cannot tell which
-entries still matter. Fix one, strike it off in the same commit.
+check was written, with the reason it has not been changed yet AND the exact
+findings it had then. A new offender fails the build; so does a known one
+that grew a blocking call (a function on the list is not a licence to add
+`requests.get` to it); so does an entry whose findings shrank or vanished,
+because a list that names fixed code stops telling the truth. Fix one, update
+or strike its entry in the same commit.
 
 No imports of `app`: this reads source, runs in well under a second, and works
 on a machine with no database and no dependencies installed.
@@ -66,6 +86,7 @@ from __future__ import annotations
 
 import ast
 import sys
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -103,28 +124,53 @@ BLOCKING_APP_MODULES = ("document_store", "document_manifest", "mail_transport")
 #: SessionLocal() and yield are added to it by reading app/.
 SYNC_SESSION_DEPENDENCIES = frozenset({"get_db"})
 
+@dataclass(frozen=True)
+class Known:
+    """Why a known offender is still `async def`, and what it was caught doing.
+
+    `findings` is the multiset of `Finding.what` strings, without line numbers
+    so an unrelated edit above the function does not move the pin."""
+
+    reason: str
+    findings: tuple[str, ...]
+
+
+_DB_PARAM = "parameter `db` is Depends(get_db), a sync Session"
+
 #: True positives that were on main when this check was written. Key:
-#: "<path under app/>::<qualified name>". Value: why it is still `async def`.
-KNOWN: dict[str, str] = {
-    "routers/admin_imports.py::preview_import": (
+#: "<path under app/>::<qualified name>".
+KNOWN: dict[str, Known] = {
+    "routers/admin_imports.py::preview_import": Known(
         "The registration incident's exact shape: Depends(get_db) plus an"
         " openpyxl parse of the upload, all on the loop. It awaits"
         " UploadFile.read(MAX+1) for its size cap, so turning it into a plain"
         " def means rewriting that read against file.file -- a change to the"
         " upload path that wants its own commit and its own concurrency test,"
         " as registration's did. Main Admin only, so the blast radius is one"
-        " office clerk's import stalling other requests, not a cohort."
+        " office clerk's import stalling other requests, not a cohort.",
+        (
+            _DB_PARAM,
+            "calls db.get() on a sync Session",
+            "calls db.add() on a sync Session",
+            "calls db.flush() on a sync Session",
+            "calls db.commit() on a sync Session",
+            "calls db.add() on a sync Session",
+            "calls db.commit() on a sync Session",
+            "calls db.refresh() on a sync Session",
+        ),
     ),
-    "voice_platform/api/admin.py::bulk_candidates": (
+    "voice_platform/api/admin.py::bulk_candidates": Known(
         "Depends(get_db) and a bulk insert on the loop. Same fix as"
         " preview_import (an awaited UploadFile.read), same reason it is not"
-        " made here; Main Admin only."
+        " made here; Main Admin only.",
+        (_DB_PARAM, "calls db.commit() on a sync Session"),
     ),
-    "voice_platform/api/calls.py::close_call": (
+    "voice_platform/api/calls.py::close_call": Known(
         "Depends(get_db) for a primary-key read and a refresh, then db.close()"
         " before the real work, which finish_call already does through"
         " asyncio.to_thread. Two short queries on the loop; it stays async"
-        " because it awaits the live buffer's aclose()."
+        " because it awaits the live buffer's aclose().",
+        (_DB_PARAM, "calls db.refresh() on a sync Session", "calls db.close() on a sync Session"),
     ),
 }
 
@@ -155,10 +201,60 @@ def _depends_target(node: ast.expr | None) -> str | None:
     if not isinstance(node, ast.Call):
         return None
     name = _dotted(node.func)
-    if name is None or name.rsplit(".", 1)[-1] != "Depends" or not node.args:
+    if name is None or name.rsplit(".", 1)[-1] != "Depends":
         return None
-    target = _dotted(node.args[0])
+    arg = node.args[0] if node.args else next(
+        (k.value for k in node.keywords if k.arg == "dependency"), None
+    )
+    target = _dotted(arg) if arg is not None else None
     return target.rsplit(".", 1)[-1] if target else None
+
+
+def _original(name: str, imports: _Imports) -> str:
+    """The name a local binding was imported AS FROM: `from ..db import get_db
+    as database` makes "database" mean "get_db". Unimported names are themselves."""
+    origin = imports.names.get(name)
+    return origin[1] if origin else name
+
+
+def _is_session_local(func: ast.expr, imports: _Imports) -> bool:
+    """`SessionLocal`, `db.SessionLocal`, or `SL` after `import SessionLocal as SL`."""
+    if isinstance(func, ast.Name):
+        return _original(func.id, imports) == "SessionLocal"
+    return isinstance(func, ast.Attribute) and func.attr == "SessionLocal"
+
+
+def _annotation_expr(node: ast.expr | None) -> ast.expr | None:
+    """A quoted annotation ("DbDep") is parsed; anything else is returned as is."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        try:
+            return ast.parse(node.value, mode="eval").body
+        except SyntaxError:
+            return None
+    return node
+
+
+def session_aliases_of(source: str, session_deps: frozenset[str]) -> dict[str, str]:
+    """Module-level aliases whose Annotated metadata is Depends(<a session dep>):
+    `X = Annotated[...]`, `X: TypeAlias = Annotated[...]` and PEP 695's
+    `type X = Annotated[...]`. Alias name -> the dependency it carries."""
+    tree = ast.parse(source)
+    imports = _Imports()
+    imports.visit(tree)
+    found: dict[str, str] = {}
+    for node in tree.body:
+        name: str | None = None
+        value: ast.expr | None = None
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            name, value = node.targets[0].id, node.value
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            name, value = node.target.id, node.value
+        elif isinstance(node, ast.TypeAlias) and isinstance(node.name, ast.Name):
+            name, value = node.name.id, node.value
+        dep = _annotated_depends(value)
+        if name and dep and _original(dep, imports) in session_deps:
+            found[name] = _original(dep, imports)
+    return found
 
 
 def sync_functions_of(source: str) -> frozenset[str]:
@@ -171,12 +267,14 @@ def session_dependencies_of(source: str) -> frozenset[str]:
     """Generator functions that call SessionLocal() and yield: FastAPI
     dependencies that hand a sync Session to whoever names them."""
     found: set[str] = set()
-    for node in ast.walk(ast.parse(source)):
+    tree = ast.parse(source)
+    imports = _Imports()
+    imports.visit(tree)
+    for node in ast.walk(tree):
         if not isinstance(node, ast.FunctionDef):
             continue
         calls_session = any(
-            isinstance(n, ast.Call) and _dotted(n.func) in ("SessionLocal", "db.SessionLocal")
-            for n in ast.walk(node)
+            isinstance(n, ast.Call) and _is_session_local(n.func, imports) for n in ast.walk(node)
         )
         yields = any(isinstance(n, (ast.Yield, ast.YieldFrom)) for n in ast.walk(node))
         if calls_session and yields:
@@ -218,7 +316,7 @@ def _blocking_call(
     func = call.func
     if isinstance(func, ast.Name):
         name = func.id
-        if name == "SessionLocal":
+        if _is_session_local(func, imports):
             return "SessionLocal()"
         if name == "open":
             return "open()"
@@ -235,13 +333,17 @@ def _blocking_call(
     if not isinstance(func, ast.Attribute):
         return None
     attr = func.attr
+    if attr == "SessionLocal":
+        return "SessionLocal()"
     if attr in PATH_IO_METHODS:
         return f".{attr}()"
     if isinstance(func.value, ast.Name):
         base = func.value.id
         if base in session_names and attr in SESSION_METHODS:
             return f"{base}.{attr}() on a sync Session"
-        module = imports.modules.get(base, base if base in BLOCKING_MODULE_CALLS else None)
+        # Through the file's imports only: a local list called `requests` is
+        # not the requests library, and `requests.append()` blocks nothing.
+        module = imports.modules.get(base)
         if module in BLOCKING_MODULE_CALLS:
             allowed = BLOCKING_MODULE_CALLS[module]
             if allowed is None or attr in allowed:
@@ -285,12 +387,28 @@ def scan_source(
     *,
     session_deps: frozenset[str] = SYNC_SESSION_DEPENDENCIES,
     app_module_funcs: dict[str, frozenset[str]] | None = None,
+    session_aliases: dict[str, str] | None = None,
 ) -> list[Finding]:
     """Every blocking finding in one module's async defs."""
     tree = ast.parse(source, filename=path)
     imports = _Imports()
     imports.visit(tree)
     funcs = app_module_funcs or {}
+    # This module's own aliases count even when the caller passed none.
+    aliases = {**session_aliases_of(source, session_deps), **(session_aliases or {})}
+
+    def _param_dependency(arg: ast.arg, default: ast.expr | None) -> str | None:
+        dep = _depends_target(default)
+        annotation = _annotation_expr(arg.annotation)
+        dep = dep or _annotated_depends(annotation)
+        if dep is None and annotation is not None:
+            alias = (
+                _original(annotation.id, imports)
+                if isinstance(annotation, ast.Name)
+                else annotation.attr if isinstance(annotation, ast.Attribute) else None
+            )
+            dep = aliases.get(alias) if alias else None
+        return _original(dep, imports) if dep else None
     findings: list[Finding] = []
 
     def visit(node: ast.AST, scope: list[str]) -> None:
@@ -313,7 +431,7 @@ def scan_source(
         pairs = list(zip(positional, defaults, strict=True))
         pairs += list(zip(args.kwonlyargs, args.kw_defaults, strict=True))
         for arg, default in pairs:
-            dep = _depends_target(default) or _annotated_depends(arg.annotation)
+            dep = _param_dependency(arg, default)
             if dep in session_deps:
                 out.append(
                     Finding(path, qualname, arg.lineno, f"parameter `{arg.arg}` is Depends({dep}), a sync Session")
@@ -324,19 +442,21 @@ def scan_source(
         body = list(_own_body(fn))
         for node in body:  # names bound from SessionLocal() anywhere in the body
             if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
-                if _dotted(node.value.func) == "SessionLocal":
+                if _is_session_local(node.value.func, imports):
                     session_names.update(t.id for t in node.targets if isinstance(t, ast.Name))
             if isinstance(node, (ast.With, ast.AsyncWith)):
                 for item in node.items:
                     ctx = item.context_expr
                     if (
                         isinstance(ctx, ast.Call)
-                        and _dotted(ctx.func) == "SessionLocal"
+                        and _is_session_local(ctx.func, imports)
                         and isinstance(item.optional_vars, ast.Name)
                     ):
                         session_names.add(item.optional_vars.id)
+        # An awaited call returned an awaitable; it did not block the loop.
+        awaited = {id(n.value) for n in body if isinstance(n, ast.Await)}
         for node in body:
-            if isinstance(node, ast.Call):
+            if isinstance(node, ast.Call) and id(node) not in awaited:
                 what = _blocking_call(node, imports, session_names, funcs)
                 if what:
                     out.append(Finding(path, qualname, node.lineno, f"calls {what}"))
@@ -361,6 +481,11 @@ def scan_tree(app: Path = APP) -> list[Finding]:
             # quietly check less than the docstring promises.
             raise SystemExit(f"check_async_blocking: {path} is missing; update BLOCKING_APP_MODULES.")
         app_module_funcs[module] = sync_functions_of(sources[path])
+    # FastAPI's `DbDep = Annotated[Session, Depends(get_db)]` idiom: declared
+    # once, usually in a deps module, and imported everywhere it is used.
+    session_aliases: dict[str, str] = {}
+    for src in sources.values():
+        session_aliases.update(session_aliases_of(src, frozenset(session_deps)))
     findings: list[Finding] = []
     for path, src in sources.items():
         # A file that does not parse is NOT skipped: a check that did not run
@@ -371,6 +496,7 @@ def scan_tree(app: Path = APP) -> list[Finding]:
                 path.relative_to(app).as_posix(),
                 session_deps=frozenset(session_deps),
                 app_module_funcs=app_module_funcs,
+                session_aliases=session_aliases,
             )
         )
     return findings
@@ -384,7 +510,15 @@ def main() -> int:
 
     new = sorted(set(by_key) - set(KNOWN))
     stale = sorted(set(KNOWN) - set(by_key))
-    if not new and not stale:
+    # A known offender is pinned to the findings it had: one that GREW a
+    # blocking call is reported as new work, one that lost some must have its
+    # pin updated so the entry keeps describing the code.
+    drifted = sorted(
+        key
+        for key in set(KNOWN) & set(by_key)
+        if Counter(f.what for f in by_key[key]) != Counter(KNOWN[key].findings)
+    )
+    if not new and not stale and not drifted:
         print(
             f"check_async_blocking: no new blocking calls in async defs under app/ "
             f"({len(KNOWN)} known, each with its reason in this file)."
@@ -405,6 +539,20 @@ def main() -> int:
         for key in new:
             for f in by_key[key]:
                 print(f"  app/{f.path}:{f.line}: {f.qualname}: {f.what}", file=sys.stderr)
+    if drifted:
+        print(
+            "\nA function in KNOWN no longer does exactly what its entry pins. If it\n"
+            "gained a blocking call, move that work off the loop; if it lost one,\n"
+            "update `findings` in KNOWN to what it does now:\n",
+            file=sys.stderr,
+        )
+        for key in drifted:
+            now = Counter(f.what for f in by_key[key])
+            pinned = Counter(KNOWN[key].findings)
+            for what in sorted((now - pinned).elements()):
+                print(f"  {key}: NEW      {what}", file=sys.stderr)
+            for what in sorted((pinned - now).elements()):
+                print(f"  {key}: GONE     {what}", file=sys.stderr)
     if stale:
         print(
             "\nThese are in KNOWN but no longer block. Delete them from the dict in\n"

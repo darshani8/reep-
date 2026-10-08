@@ -217,10 +217,11 @@ def test_the_real_tree_matches_known_exactly():
     assert guard.main() == 0
 
 
-def test_every_known_entry_carries_a_reason():
-    for key, reason in guard.KNOWN.items():
+def test_every_known_entry_carries_a_reason_and_its_findings():
+    for key, known in guard.KNOWN.items():
         assert "::" in key, key
-        assert len(reason.split()) >= 8, f"{key}: write the reason, not a placeholder"
+        assert len(known.reason.split()) >= 8, f"{key}: write the reason, not a placeholder"
+        assert known.findings, f"{key}: pin what it was caught doing"
 
 
 def test_the_registration_endpoints_are_not_async_again():
@@ -262,7 +263,9 @@ def test_a_stale_known_entry_fails_main(tmp_path, monkeypatch, capsys):
         (app / f"{module}.py").write_text("def helper():\n    pass\n")
     real_scan = guard.scan_tree
     monkeypatch.setattr(guard, "scan_tree", lambda: real_scan(app))
-    monkeypatch.setattr(guard, "KNOWN", {"gone.py::fixed": "it was fixed and nobody struck it off"})
+    monkeypatch.setattr(
+        guard, "KNOWN", {"gone.py::fixed": guard.Known("it was fixed and nobody struck it off", ("x",))}
+    )
     assert guard.main() == 1
     assert "gone.py::fixed" in capsys.readouterr().err
 
@@ -275,3 +278,142 @@ def test_a_file_that_does_not_parse_fails_rather_than_passing(tmp_path):
     (app / "broken.py").write_text("async def (:\n")
     with pytest.raises(SyntaxError):
         guard.scan_tree(app)
+
+
+# --- review follow-ups: the shapes the first version missed ----------------------
+
+
+def _scan_with(source: str, **kwargs) -> list[str]:
+    return [f.what for f in guard.scan_source(textwrap.dedent(source), "x.py", **kwargs)]
+
+
+@pytest.mark.parametrize(
+    "declaration",
+    [
+        "DbDep = Annotated[Session, Depends(get_db)]",
+        "DbDep: TypeAlias = Annotated[Session, Depends(get_db)]",
+        "type DbDep = Annotated[Session, Depends(get_db)]",
+    ],
+)
+def test_fastapis_session_alias_idiom_is_reported(declaration):
+    """FastAPI's documented `SessionDep`: the Depends() is in the alias, not at
+    the parameter, and the body's calls must still count as Session calls."""
+    found = _scan_with(
+        f"""
+        from typing import Annotated, TypeAlias
+        from fastapi import Depends
+        from ..db import get_db
+
+        {declaration}
+
+        async def handler(db: DbDep):
+            db.execute(q)
+        """
+    )
+    assert "parameter `db` is Depends(get_db), a sync Session" in found
+    assert "calls db.execute() on a sync Session" in found
+
+
+def test_an_alias_declared_in_another_module_is_resolved_across_the_tree(tmp_path):
+    app = tmp_path / "app"
+    (app / "routers").mkdir(parents=True)
+    for module in guard.BLOCKING_APP_MODULES:
+        (app / f"{module}.py").write_text("def helper():\n    pass\n")
+    (app / "deps.py").write_text(
+        "from typing import Annotated\nfrom fastapi import Depends\nfrom .db import get_db\n"
+        "DbDep = Annotated[object, Depends(get_db)]\n"
+    )
+    (app / "routers" / "a.py").write_text(
+        "from ..deps import DbDep as D\nasync def h(db: D):\n    db.commit()\n"
+    )
+    (app / "routers" / "b.py").write_text(
+        "from .. import deps\nasync def h(db: deps.DbDep):\n    return 1\n"
+    )
+    (app / "routers" / "c.py").write_text(
+        "from ..deps import DbDep\nasync def h(db: 'DbDep'):\n    return 1\n"
+    )
+    keys = {f.key for f in guard.scan_tree(app)}
+    assert keys == {"routers/a.py::h", "routers/b.py::h", "routers/c.py::h"}
+
+
+def test_depends_by_keyword_is_reported():
+    found = _scan_with("async def h(db=Depends(dependency=get_db)):\n    db.commit()\n")
+    assert "calls db.commit() on a sync Session" in found
+
+
+def test_get_db_under_an_import_alias_is_reported():
+    found = _scan_with(
+        "from ..db import get_db as database\n"
+        "async def h(db=Depends(database)):\n    db.commit()\n"
+    )
+    assert any("Depends(get_db)" in w for w in found)
+
+
+@pytest.mark.parametrize(
+    "prelude, call",
+    [
+        ("from .. import db", "db.SessionLocal()"),
+        ("from ..db import SessionLocal as SL", "SL()"),
+    ],
+)
+def test_session_local_under_other_spellings_is_reported(prelude, call):
+    found = _scan_with(f"{prelude}\nasync def h():\n    s = {call}\n    s.commit()\n")
+    assert "calls SessionLocal()" in found
+    assert "calls s.commit() on a sync Session" in found
+
+
+def test_a_generator_yielding_session_local_under_an_alias_is_a_session_dependency():
+    deps = guard.session_dependencies_of(
+        "from .db import SessionLocal as SL\ndef get_other():\n    s = SL()\n    yield s\n"
+    )
+    assert deps == {"get_other"}
+
+
+def test_a_local_variable_named_like_a_module_is_not_that_module():
+    assert _scan_with("async def h():\n    requests = []\n    requests.append(1)\n") == []
+
+
+def test_an_awaited_path_call_is_the_async_twin_and_is_not_reported():
+    assert _scan_with(
+        "import anyio\nasync def h(p):\n    return await anyio.Path(p).read_text()\n"
+    ) == []
+
+
+def test_a_session_parameter_is_reported_even_when_every_call_is_handed_off():
+    """A decision, documented in the guard: holding a sync Session in an
+    `async def` is the defect, whatever the body does with it."""
+    found = _scan_with(
+        "async def h(db=Depends(get_db)):\n"
+        "    return await run_in_threadpool(lambda: db.execute(q))\n"
+    )
+    assert found == ["parameter `db` is Depends(get_db), a sync Session"]
+
+
+def test_a_known_offender_that_grows_a_blocking_call_fails_main(tmp_path, monkeypatch, capsys):
+    app = tmp_path / "app"
+    app.mkdir()
+    for module in guard.BLOCKING_APP_MODULES:
+        (app / f"{module}.py").write_text("def helper():\n    pass\n")
+    (app / "known.py").write_text(
+        "import requests\nasync def h(db=Depends(get_db)):\n    db.commit()\n    requests.get('x')\n"
+    )
+    real_scan = guard.scan_tree
+    monkeypatch.setattr(guard, "scan_tree", lambda: real_scan(app))
+    pinned = (guard._DB_PARAM, "calls db.commit() on a sync Session")
+    monkeypatch.setattr(guard, "KNOWN", {"known.py::h": guard.Known("on the list on purpose here", pinned)})
+    assert guard.main() == 1
+    assert "known.py::h: NEW      calls requests.get()" in capsys.readouterr().err
+
+
+def test_a_known_offender_that_shrank_must_update_its_pin(tmp_path, monkeypatch, capsys):
+    app = tmp_path / "app"
+    app.mkdir()
+    for module in guard.BLOCKING_APP_MODULES:
+        (app / f"{module}.py").write_text("def helper():\n    pass\n")
+    (app / "known.py").write_text("async def h(db=Depends(get_db)):\n    return 1\n")
+    real_scan = guard.scan_tree
+    monkeypatch.setattr(guard, "scan_tree", lambda: real_scan(app))
+    pinned = (guard._DB_PARAM, "calls db.commit() on a sync Session")
+    monkeypatch.setattr(guard, "KNOWN", {"known.py::h": guard.Known("on the list on purpose here", pinned)})
+    assert guard.main() == 1
+    assert "GONE     calls db.commit() on a sync Session" in capsys.readouterr().err

@@ -44,7 +44,7 @@
 | L1 unit, round 1 (DEF-QG-U01–U06) | 6 | 0 | 3 | 3 | 6 | 0 | 0 | 0 |
 | L1 unit, re-test round 1 (DEF-QG-U07–U11) | 5 | 0 | 2 | 3 | 0 | 0 | 0 | 5 |
 | L2 integration, round 1 (DEF-QG-I01–I04) | 4 | 0 | 2 | 2 | 4 | 0 | 0 | 0 |
-| L2 integration, re-test round 1 (DEF-QG-I05) | 1 | 0 | 0 | 1 | 0 | 0 | 1 (proposed) | 0 |
+| L2 integration, re-test round 1 (DEF-QG-I05, I06) | 2 | 0 | 0 | 2 | 0 | 0 | 1 (proposed) | 1 |
 | Fix verification (FV-QG) | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 |
 | L3 system (DEF-QG-S) | _executing_ | | | | | | | |
 
@@ -188,6 +188,7 @@ Build under test: `a3688f0189c48287f376cf8c165d762a2f8ab8d8`. The full text of e
 | ID | Title | Sev. / Pri. | Status | Decision |
 |---|---|---|---|---|
 | DEF-QG-I05 | §34's `called()` counts a line that is exactly the check function's name whatever surrounds it: wrapped in `if false; then … fi`, or placed after `exit 0`, it still passes. (A never-called function, a redefinition and a commented-out call are caught) | Minor / P3 | **Deferred (proposed)** | Accept as residual risk, subject to the owner's written acceptance (Q5). Both shapes need deliberate sabotage of the local, advisory runner. Such an edit is visible in review, and the CI jobs, not preflight, are the authoritative gate. Closing it means constraining how `preflight.sh` may be written, with no end to that arms race |
+| DEF-QG-I06 | The secret-scan step does not refuse a shallow checkout, and no test pins `fetch-depth: 0`. Removing that one line would shrink every push-mode scan of main, stage and dev to one commit while staying green (at depth 1: "1 commits scanned", exit 0). Found by the shallow-clone follow-up to OBS-QG-S05 | Minor / P2 | Assigned (Worker B) | Fix: refuse a shallow repository in both modes, and pin `fetch-depth: 0` and the refusal in `test_secret_scan_workflow.py` |
 
 | Observation | Decision |
 |---|---|

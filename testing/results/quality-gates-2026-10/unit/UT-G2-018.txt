@@ -28,3 +28,12 @@ $ d=$(mktemp -d); git archive a3688f0 | tar -x -C $d; cd $d && gitleaks dir . --
 8:38AM INF no leaks found
 gitleaks exit=0
 [exit=0]
+
+[2026-10-08T10:11:45 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/ob
+$ echo 'ADDENDUM (re-test round 1): the round-1 runs above were on a SHALLOW clone (219 of 724 commits reachable from a3688f0). Re-run on the unshallowed clone with the ROUND-1 config, full history from a3688f0:'; gitleaks git . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore --redact --no-banner --exit-code 1 --log-opts='a3688f0189c48287f376cf8c165d762a2f8ab8d8' > /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/hu3.log 2>&1; echo exit=$?; tail -3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/hu3.log | sed 's/\x1b\[[0-9;]*m//g'
+ADDENDUM (re-test round 1): the round-1 runs above were on a SHALLOW clone (219 of 724 commits reachable from a3688f0). Re-run on the unshallowed clone with the ROUND-1 config, full history from a3688f0:
+exit=0
+10:11AM INF 580 commits scanned.
+10:11AM INF scanned ~42082532 bytes (42.08 MB) in 10.1s
+10:11AM INF no leaks found
+[exit=0]

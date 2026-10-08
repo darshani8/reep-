@@ -22,7 +22,7 @@
 |---|---|---|---|
 | 0.1 | 2026-10-08 | Tester session U | Cases designed from the test basis (plan §2) and the gate sources, before execution |
 | 1.0 | 2026-10-08 | Tester session U | All 109 cases executed; actual results, verdicts, 6 defects and 6 observations recorded |
-| 1.1 | 2026-10-08 | Tester session U | Re-test round 1 on `40201a1`: all 109 cases re-executed (evidence `-rt1`); 22 new adversarial cases (UT-G1-037..039, UT-G2-022..026, UT-G3-029..040, UT-G4-024..025); §5a re-test log; a Re-test field on every defect; DEF-QG-U01..U06 Closed; new DEF-QG-U07..U11 and OBS-QG-U07..U08; round-1 evidence respelled to the new masking rule (§3, deviation 6); §7.5 counts and recommendation for the new build |
+| 1.1 | 2026-10-08 | Tester session U | Re-test round 1 on `40201a1`: all 109 cases re-executed (evidence `-rt1`); 22 new adversarial cases (UT-G1-037..039, UT-G2-022..026, UT-G3-029..040, UT-G4-024..025); §5a re-test log; a Re-test field on every defect; DEF-QG-U01..U06 Closed; new DEF-QG-U07..U11 and OBS-QG-U07..U08; round-1 evidence respelled to the new masking rule (§3, deviation 6); §7.5 counts and recommendation for the new build. Addendum the same day: the clone was shallow; UT-G2-018 was re-run on the full history (594 / 580 / 1294 commits, clean) and the round-1 verdict's reliance on a shallow scan is recorded |
 
 ---
 
@@ -75,6 +75,7 @@ Environment versions are recorded in `unit/ENV-versions.txt`.
 **Re-test round 1 (build `40201a1`).** Same container, same tools and versions (`requirements-dev.txt` is unchanged, so the same venv was used). Two scratch worktrees at `40201a1`: one read-only (`nb`) that the helper scripts point at, and one for mutations (`wt`). Deviations:
 
 6. Between rounds the container had stopped PostgreSQL. It was restarted on the same data directory with the same options (plus `192.0.2.2` for UT-G4-021). Two evidence files record the failed first attempt (UT-G4-010-rt1, UT-G4-011-rt1).
+8. **The clone was shallow** (11 grafts; `git rev-parse --is-shallow-repository` = true) for every history scan in round 1 and in the first part of this round, so those scans covered 219 of the 724 commits reachable from `a3688f0`. This was found by tester S (OBS-QG-S05) and relayed by the Test Manager. `git fetch --unshallow origin` was run and UT-G2-018 re-executed on the full history (§5a). No other unit case reads history.
 7. **Round-1 evidence was respelled after execution**, as the Test Manager asked. Every masked value is now the bare `<FAKE-VALUE-MASKED>` with at most a `NAME=` prefix, PEM armour lines are replaced by `<PEM armour line omitted>`, and the worded placeholder at `UT-G2-009.txt:32` is written as `OPENAI_API_KEY=<worded placeholder change-me-please-now-ok>`. Only the printing of inputs changed; no command output or verdict changed. The whole folder and this document scan clean (`gitleaks dir … --ignore-gitleaks-allow --redact`) with BOTH the new and the round-1 configuration.
 
 ## 4. Test case specification
@@ -145,7 +146,7 @@ Precondition sets used below (each case names one):
 | UT-G2-014 | REQ-G2-05 | Bypass attempt: a real-shaped value that contains an allowlisted placeholder | Error guessing / bypass | P2 |
 | UT-G2-016 | REQ-G2-05 | `check_gitleaks_rules.py` on the shipped configuration | Positive | P1 |
 | UT-G2-017 | REQ-G2-05 | The replay fails when the configuration is broken (scratch copy), and fails closed without gitleaks | State transition / negative | P1 |
-| UT-G2-018 | REQ-G2-08 | The repository's history and tree are clean under the shipped configuration | Regression | P1 |
+| UT-G2-018 | REQ-G2-08 | The repository's history and tree are clean under the shipped configuration (round-1 run was on a shallow clone; see §5a) | Regression | P1 |
 | UT-G2-020 | REQ-G2-01 | The sha256 pinned in `secret-scan.yml` matches the release, and a changed tarball fails the check | EP + negative | P1 |
 | UT-G2-021 | REQ-G2-05 | Bypass attempt: gitleaks' inline `gitleaks:allow` comment beside a real AUTH_SECRET | Error guessing / bypass | P1 |
 | UT-G3-000 | REQ-G3-01..07, REQ-G4-01 | Baseline: the unmodified audit and reversibility tests pass | Positive | P1 |
@@ -2503,7 +2504,7 @@ Every round-1 case was re-executed with its original steps on the new build (con
 | UT-G2-013 | Regression | 2026-10-08T09:50:38 | Pass | `unit/UT-G2-013-rt1.txt` | same result as round 1 |
 | UT-G2-016 | Regression | 2026-10-08T09:50:39 | Pass | `unit/UT-G2-016-rt1.txt` | 20 leaks caught, 11 placeholder files quiet |
 | UT-G2-017 | Regression | 2026-10-08T09:50:55 | Fail | `unit/UT-G2-017-rt1.txt` | DEF-QG-U10; the `{32,}`→`{80,}` and the unanchored-placeholder edits fail the replay; the `regexTarget = "line"` edit no longer does (DEF-QG-U10); no gitleaks → exit 1 |
-| UT-G2-018 | Confirmation | 2026-10-08T09:50:58 | Pass | `unit/UT-G2-018-rt1.txt` | clean from the build (154 commits) and the tree from the root; --all also walked this branch's own round-1 evidence commit 37060c2 (respelled at the tip); absolute-path scan still 4, now documented at .gitleaks.toml:361 → OBS-QG-U02 Closed |
+| UT-G2-018 | Confirmation | 2026-10-08T09:50:58 | Pass | `unit/UT-G2-018-rt1.txt` | clean from the build and the tree from the root; absolute-path scan still 4, now documented at .gitleaks.toml:361 → OBS-QG-U02 Closed. **Addendum (OBS-QG-S05): every earlier history scan, in round 1 and in this round, ran on a SHALLOW clone** (219 of 724 commits reachable from a3688f0; 241 of 746 from 40201a1). After `git fetch --unshallow`: full history from 40201a1 with the new config, **594 commits scanned, no leaks**; from a3688f0 with the round-1 config, **580 commits, no leaks**; every branch of a local mirror minus `qg-test-unit`, **1294 commits, no leaks**. Round 1's UT-G2-018 verdict rested on the shallow scan; it is these re-runs that support REQ-G2-08 |
 | UT-G2-020 | Regression | 2026-10-08T09:57:41 | Pass | `unit/UT-G2-020-rt1.txt` | same result as round 1 |
 | UT-G2-021 | Confirmation | 2026-10-08T09:57:42 | Pass | `unit/UT-G2-021-rt1.txt` | found with --ignore-gitleaks-allow, which every invocation now passes → DEF-QG-U04 Closed |
 | UT-G4-007 | Confirmation | 2026-10-08T09:58:14 | Pass | `unit/UT-G4-007-rt1.txt` | all three reported as no-op → DEF-QG-U06 Closed (new shapes: DEF-QG-U11) |
@@ -2884,7 +2885,7 @@ Pass rate on the new build: 93.1 % (122/131).
 
 **New defects (round 1):** Critical 0 · Major 2 (**DEF-QG-U07** ruff range suppression; **DEF-QG-U10** the rule replay no longer catches a revert to `regexTarget = "line"`) · Minor 3 (DEF-QG-U08, U09, U11). **New observations:** 2 (OBS-QG-U07, U08). All round-1 observations are closed.
 
-**Regression.** Every G1, G2, G3, G4, GX and G5 round-1 case gave the same result on the new build, with two exceptions, both intended. UT-G2-009's worded placeholder is now (correctly) a finding. UT-G2-017's line-target variant no longer fails the replay (DEF-QG-U10). The CI port-mapping fix still holds (UT-G4-021-rt1). The 227 guard and audit tests pass with no database.
+**Regression.** Every G1, G2, G3, G4, GX and G5 round-1 case gave the same result on the new build, with two exceptions, both intended. UT-G2-009's worded placeholder is now (correctly) a finding. UT-G2-017's line-target variant no longer fails the replay (DEF-QG-U10). The CI port-mapping fix still holds (UT-G4-021-rt1). **REQ-G2-08 rests on the unshallowed re-run of UT-G2-018 (594 commits from the build, clean), not on round 1's shallow scan.** The 227 guard and audit tests pass with no database.
 
 **Requirements covered on the new build:** the same as round 1 (§7.2), every one re-executed. The new cases add evidence to REQ-G1-02, REQ-G2-05, REQ-G3-03, REQ-G3-04, REQ-G4-01 and REQ-G4-04.
 

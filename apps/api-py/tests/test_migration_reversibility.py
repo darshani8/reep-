@@ -187,6 +187,19 @@ def test_env_py_does_not_import_the_mapping() -> None:
         ('    if 0:\n        op.execute("SELECT 2")\n    pass\n', "no-op"),
         ('    return\n    op.execute("UPDATE t SET x = 1")\n', "no-op"),  # dead after return
         ("    if True:\n        pass\n", "no-op"),
+        # DEF-QG-U11: constant tests and loops the old reading called "real".
+        ('    if not True:\n        op.execute("SELECT 2")\n', "no-op"),
+        ('    if 1 == 2:\n        op.execute("SELECT 2")\n', "no-op"),
+        ('    while False:\n        op.execute("SELECT 2")\n', "no-op"),
+        ('    for _ in ():\n        op.execute("SELECT 2")\n', "no-op"),
+        ("    return 0\n", "no-op"),
+        ('    if True and not False:\n        pass\n    for _ in []:\n        pass\n', "no-op"),
+        # ... and their live counterparts stay real.
+        ('    if 1 == 1:\n        op.drop_column("t", "c")\n', "real"),
+        ('    while False:\n        pass\n    else:\n        op.drop_column("t", "c")\n', "real"),
+        ('    for name in ("a",):\n        op.drop_column("t", name)\n', "real"),
+        ('    for name in names:\n        op.drop_column("t", name)\n', "real"),
+        ("    return op.drop_column('t', 'c')\n", "real"),
         # The branch a literal selects is what runs.
         ('    if False:\n        pass\n    else:\n        op.execute("UPDATE t SET x = 0")\n', "real"),
         ('    if True:\n        op.drop_column("t", "c")\n', "real"),

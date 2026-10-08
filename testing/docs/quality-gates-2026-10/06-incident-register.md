@@ -17,6 +17,7 @@
 | 0.1 | 2026-10-08 | Development-phase incidents recorded; L1 defects triaged and assigned |
 | 0.2 | 2026-10-08 | L1 fixes merged (8914e83); L2 defects triaged and assigned; FV-QG-01 raised |
 | 0.3 | 2026-10-08 | L2 fixes and FV-QG-01 merged (4340d6c); every L1 and L2 defect awaiting re-test |
+| 0.4 | 2026-10-08 | L1 re-test round 1: U01–U06 closed; U07–U11 raised and assigned; FV-QG-01 acceptance narrowed (OBS-QG-U07) |
 
 ---
 
@@ -40,7 +41,8 @@
 | Phase | Found | Critical | Major | Minor | Closed | Open (by design) | Deferred | In progress |
 |---|---|---|---|---|---|---|---|---|
 | Development (INC-QG-D) | 52 | 2 | 14 | 36 | 46 | 6 | 0 | 0 |
-| L1 unit (DEF-QG-U) | 6 | 0 | 3 | 3 | 0 | 0 | 0 | 6 (fixed, awaiting re-test) |
+| L1 unit, round 1 (DEF-QG-U01–U06) | 6 | 0 | 3 | 3 | 6 | 0 | 0 | 0 |
+| L1 unit, re-test round 1 (DEF-QG-U07–U11) | 5 | 0 | 2 | 3 | 0 | 0 | 0 | 5 |
 | L2 integration (DEF-QG-I) | 4 | 0 | 2 | 2 | 0 | 0 | 0 | 4 (fixed, awaiting re-test) |
 | Fix verification (FV-QG) | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 |
 | L3 system (DEF-QG-S) | _executing_ | | | | | | | |
@@ -140,12 +142,24 @@ Build under test: `a3688f0189c48287f376cf8c165d762a2f8ab8d8`. The full text of e
 
 | ID | Title | Sev. / Pri. | Status | Assigned | Fix commit | Re-test |
 |---|---|---|---|---|---|---|
-| DEF-QG-U01 | The route audit counts a gate whose refusal is caught (`try: require_admin(s) except HTTPException: pass`), including through a predicate helper such as `_may_see_raw_response` | Major / P2 | Fixed, awaiting re-test | Worker C | e9d4015 | UT-G3-008 |
-| DEF-QG-U02 | The route audit counts a gate in dead code other than `if <constant>`: after `return`, `if not True:`, `while False:` | Minor / P3 | Fixed, awaiting re-test | Worker C | e9d4015 | UT-G3-007, UT-G3-009 |
-| DEF-QG-U03 | One `# ruff: noqa` line switches the ruff gate off for a whole file in `app/`; a bare `# noqa` is accepted; nothing enforces "a reason on the line" | Major / P2 | Fixed, awaiting re-test | Worker A | f257442 | UT-G1-036 |
-| DEF-QG-U04 | An inline `gitleaks:allow` comment silences a real secret (a third, unreviewed allowlist) | Major / P2 | Fixed, awaiting re-test | Worker B | 20b5c68 | UT-G2-021 |
-| DEF-QG-U05 | The round trip's loopback refusal does not see libpq's `PGHOSTADDR` or a service entry | Minor / P3 | Fixed, awaiting re-test | Worker B | 28991b6 | UT-G4-020 |
-| DEF-QG-U06 | The static reversibility test classifies a do-nothing downgrade as "real" unless it is literally `pass` | Minor / P3 | Fixed, awaiting re-test | Worker B | 28991b6 | UT-G4-007 |
+| DEF-QG-U01 | The route audit counts a gate whose refusal is caught (`try: require_admin(s) except HTTPException: pass`), including through a predicate helper such as `_may_see_raw_response` | Major / P2 | **Closed** | Worker C | e9d4015 | Pass on 40201a1 (UT-G3-008-rt1) |
+| DEF-QG-U02 | The route audit counts a gate in dead code other than `if <constant>`: after `return`, `if not True:`, `while False:` | Minor / P3 | **Closed** | Worker C | e9d4015 | Pass on 40201a1 (UT-G3-007-rt1, UT-G3-009-rt1) |
+| DEF-QG-U03 | One `# ruff: noqa` line switches the ruff gate off for a whole file in `app/`; a bare `# noqa` is accepted; nothing enforces "a reason on the line" | Major / P2 | **Closed** | Worker A | f257442 | Pass on 40201a1 (UT-G1-036-rt1) |
+| DEF-QG-U04 | An inline `gitleaks:allow` comment silences a real secret (a third, unreviewed allowlist) | Major / P2 | **Closed** | Worker B | 20b5c68 | Pass on 40201a1 (UT-G2-021-rt1) |
+| DEF-QG-U05 | The round trip's loopback refusal does not see libpq's `PGHOSTADDR` or a service entry | Minor / P3 | **Closed** | Worker B | 28991b6 | Pass on 40201a1 (UT-G4-020-rt1, UT-G4-025) |
+| DEF-QG-U06 | The static reversibility test classifies a do-nothing downgrade as "real" unless it is literally `pass` | Minor / P3 | **Closed** | Worker B | 28991b6 | Pass on 40201a1 (UT-G4-007-rt1) |
+
+**Re-test round 1 on 40201a1** (tester U, 02-unit-testing.md v1.1): all six closed, and the observations behind them closed too. That run executed 131 cases: 122 passed and 9 failed. 108 of the 109 round-1 cases passed again; the one exception was UT-G2-017, which became DEF-QG-U10. 14 of the 22 new adversarial cases passed. The new defects:
+
+| ID | Title | Sev. / Pri. | Status | Assigned | Fix commit | Re-test |
+|---|---|---|---|---|---|---|
+| DEF-QG-U07 | `# ruff: disable[...]` with no matching `enable` silences codes for a whole file in `app/`, with no reason; it passes ruff and §39 | Major / P2 | Assigned | Worker A | _pending_ | UT-G1-038 |
+| DEF-QG-U08 | The route audit still counts a refusal swallowed by `contextlib.suppress(HTTPException)`, by a qualified `except starlette.exceptions.HTTPException`, or through an import alias | Minor / P2 | Assigned | Worker C | _pending_ | UT-G3-031, 032, 033 |
+| DEF-QG-U09 | The route audit counts a gate inside a nested function that is never called | Minor / P3 | Assigned | Worker C | _pending_ | UT-G3-036 |
+| DEF-QG-U10 | The gitleaks replay no longer fails when `regexTarget` is set back to `"line"` (the INC-QG-D-22 regression): no case puts a real secret on the same line as a freed value | Major / P2 | Assigned | Worker B | _pending_ | UT-G2-017, UT-G2-026 |
+| DEF-QG-U11 | The reversibility classifier still reads `if not True:`, `while False:`, `return 0`, `for _ in ():` and `if 1 == 2:` downgrades as real | Minor / P3 | Assigned | Worker B | _pending_ | UT-G4-024 |
+
+**OBS-QG-U07 reverses part of the FV-QG-01 acceptance.** The acceptance rested on "no rule's key alphabet contains `<`". That premise is false: six rules admit `<`, and a usable database password with `<abc>` in the middle was freed. The acceptance is withdrawn. Worker B narrows the freedom to a value that is *wholly* one `<…>` placeholder, and the config comment is corrected. OBS-QG-U08 (gitleaks' own `openai-api-key` rule stops at `<`) is upstream behaviour and needs no action.
 
 **Triage decision (TM):** all six are fixed in this PR rather than deferred. Each fix is a small change to a gate's own source, none touches product behaviour, and leaving a known bypass in a gate that was just merged would make the gate's green less meaningful from its first day.
 
@@ -187,7 +201,9 @@ Found by the Test Manager while verifying a fix round, before any re-test.
 |---|---|---|---|---|---|
 | FV-QG-01 | **Regression from the OBS-QG-U01 fix (816ac71):** anchoring the placeholder allowlists to the whole secret made `KEY=<FAKE-VALUE-MASKED>` a finding. Some rules' capture groups exclude the angle brackets, so the conventional `<placeholder>` spelling in documentation would turn the secret gate red. Seen on the unit tester's masked evidence (8 findings) | Major (CI red on a correct tree) | Fixed (verified by TM: replay 20 found / 11 quiet; the four OBS-QG-U01 bypasses still found) | Worker B | a34a900 |
 
-**Accepted with FV-QG-01 (TM):** the fix frees any single-line secret that contains a literal `<word>` run of 3–40 characters. None of these rules' key alphabets contains `<` or `>`, so such a value is documentation by construction. The one way to abuse it is to append `<x>` to a real key on purpose, which also makes the key unusable as written. That is recorded as residual risk alongside OBS-QG-I01: a deliberate author has easier ways past a secret gate (Q4).
+~~Accepted with FV-QG-01 (TM): the fix frees any single-line secret that contains a literal `<word>` run of 3–40 characters. None of these rules' key alphabets contains `<` or `>`, so such a value is documentation by construction. The one way to abuse it is to append `<x>` to a real key on purpose, which also makes the key unusable as written. That is recorded as residual risk alongside OBS-QG-I01: a deliberate author has easier ways past a secret gate (Q4).~~
+
+**Withdrawn after re-test (OBS-QG-U07):** the premise above is false. Six rules admit `<`, and a usable password with `<abc>` inside it was freed. The freedom is being narrowed to a value that is wholly one placeholder (§4.1).
 
 ### 4.3 L3: system ([04-system-testing.md](04-system-testing.md))
 

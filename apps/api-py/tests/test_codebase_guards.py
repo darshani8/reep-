@@ -1810,6 +1810,16 @@ def test_the_five_required_check_names_agree_across_all_four_files() -> None:
         "a developer discovers from a runner after the push, which is what that "
         "script exists to prevent."
     )
+    # And the standalone checks that HAVE a local answer. Branch policy is the
+    # one that does not: it asks which branch a pull request comes FROM.
+    local_standalone = {"Secrets (gitleaks)"}
+    assert local_standalone <= set(STANDALONE_REQUIRED_CHECKS)
+    unrun_standalone = sorted(n for n in local_standalone if n not in preflight)
+    assert not unrun_standalone, (
+        f"tools/ci/preflight.sh does not run, or does not name, {unrun_standalone}. A "
+        "required check outside ci.yml is still a required check, and a pushed secret "
+        "has no un-push."
+    )
 
 
 # --------------------------------------------------------------------------- #

@@ -64,8 +64,9 @@ usage() {
 tools/ci/preflight.sh - the CI jobs that gate main, run locally, before you push.
 
   --quick          Run only the fast checks: "API (dependency completeness)",
-                   Rule 1, the CDK synth guards and the design-system guards
-                   plus the Angular typecheck. Seconds, not minutes.
+                   Rule 1, the secret scan, the CDK synth guards and the
+                   design-system guards plus the Angular typecheck. Seconds,
+                   not minutes.
                    NOT SUFFICIENT FOR A PULL REQUEST - it does not run pytest,
                    ng test or ng build, and those are inside required checks
                    that run whether you did or not.
@@ -84,22 +85,36 @@ tools/ci/preflight.sh - the CI jobs that gate main, run locally, before you push
   --no-color       Plain output. NO_COLOR in the environment does the same.
   -h, --help       This text.
 
-ALL FIVE required checks run here, named exactly as the CI jobs are named, in
+ALL FIVE ci.yml checks run here, named exactly as the CI jobs are named, plus
+the one standalone required check that has something to run on a laptop, in
 the order that fails fastest:
 
   1. API (dependency completeness)                  seconds
   2. Rule 1 (every model call declares its cargo)   seconds
-  3. Infra (CDK synth guards)                       seconds - needs infra/cdk deps
-  4. Web (Angular)                                  design guards, typecheck, tests, build
-  5. API (FastAPI + Postgres)                       migrations, seed, pytest - needs Postgres
+  3. Secrets (gitleaks)                             seconds - needs gitleaks 8.30.0
+  4. Infra (CDK synth guards)                       seconds - needs infra/cdk deps
+  5. Web (Angular)                                  design guards, typecheck, tests, build
+  6. API (FastAPI + Postgres)                       ruff, mypy, async guard, migrations,
+                                                    the roll-back round trip, seed, pytest
+                                                    - needs Postgres
 
-  Those five strings are also the five required status checks in
-  .github/rulesets/main.json and tools/ci/protect-main.sh's REQUIRED_CHECKS, and
-  GitHub matches a required check by the job's DISPLAY NAME as a string. Rename a
-  job and all four files change in the same commit; apps/api-py/tests/
-  test_codebase_guards.py fails the build if they ever disagree.
+  "Secrets (gitleaks)" is .github/workflows/secret-scan.yml, not a ci.yml job
+  (it wants the whole history and a verdict in seconds). "Branch policy
+  (promotion path)" is the other standalone required check and is not run here:
+  it asks which branch a pull request comes FROM, which has no local answer.
+  Without gitleaks 8.30.0 on PATH check 3 reports SKIP - a different version
+  ships a different default ruleset, so its answer is not the gate's answer:
+      https://github.com/gitleaks/gitleaks/releases/tag/v8.30.0
+      (verify the sha256 pinned in .github/workflows/secret-scan.yml)
 
-  Check 3 needs aws-cdk-lib, which is NOT in either api venv - it lives under
+  The five ci.yml strings are also five of the required status checks in
+  .github/rulesets/*.json and tools/ci/protect-main.sh's REQUIRED_CHECKS (the
+  standalone ones live in its STANDALONE_CHECKS), and GitHub matches a required
+  check by the job's DISPLAY NAME as a string. Rename a job and every file that
+  names it changes in the same commit; apps/api-py/tests/test_codebase_guards.py
+  fails the build if they ever disagree.
+
+  Check 4 needs aws-cdk-lib, which is NOT in either api venv - it lives under
   infra/cdk on Python 3.12. Without it the check reports SKIP and this script
   exits 2, because a check that did not run is not a check that passed:
       cd infra/cdk && python3.12 -m venv .venv
@@ -189,6 +204,18 @@ venv_python() {  # venv dir -> prints interpreter path, or returns 1
 
 PY=$(venv_python "$API_DIR/.venv" || true)
 [ -n "$PY" ] && PY_VERSION=$("$PY" -c 'import platform; print(platform.python_version())' 2>/dev/null || echo "?")
+
+# The version secret-scan.yml installs, read from that file so the two cannot
+# drift: a scanner on another version has another default ruleset, and its
+# "no leaks" is an answer to a different question.
+GITLEAKS_PINNED=$(sed -n 's/^[[:space:]]*GITLEAKS_VERSION:[[:space:]]*"\([^"]*\)".*/\1/p' \
+  "$REPO_ROOT/.github/workflows/secret-scan.yml" 2>/dev/null | head -1)
+GITLEAKS=""
+GITLEAKS_FOUND_VERSION=""
+if command -v gitleaks >/dev/null 2>&1; then
+  GITLEAKS=$(command -v gitleaks)
+  GITLEAKS_FOUND_VERSION=$(gitleaks version 2>/dev/null | head -1 | sed 's/^v//')
+fi
 [ -d "$WEB_DIR/node_modules" ] && NODE_MODULES=1
 
 # The CDK guards need aws-cdk-lib, which is deliberately NOT in either api venv:
@@ -267,6 +294,14 @@ else
   note "cd infra/cdk && python3.12 -m venv .venv    # the cdk job pins 3.12"
   note "infra/cdk/.venv/bin/pip install -r requirements-dev.txt"
 fi
+if [ -n "$GITLEAKS" ] && [ "$GITLEAKS_FOUND_VERSION" = "$GITLEAKS_PINNED" ]; then
+  printf '  %-16s %s (%s)\n' "gitleaks" "$GITLEAKS" "$GITLEAKS_FOUND_VERSION"
+elif [ -n "$GITLEAKS" ]; then
+  printf '  %-16s %s %s, CI pins %s%s\n' "gitleaks" "$YELLOW" "${GITLEAKS_FOUND_VERSION:-unknown version}" "$GITLEAKS_PINNED" "$RESET"
+else
+  printf '  %-16s %sMISSING%s\n' "gitleaks" "$YELLOW" "$RESET"
+  note "https://github.com/gitleaks/gitleaks/releases/tag/v$GITLEAKS_PINNED (check the sha256 in secret-scan.yml)"
+fi
 if [ "$DB_UP" -eq 1 ]; then
   printf '  %-16s %s:%s reachable\n' "postgres" "$DB_HOST" "$DB_PORT"
 else
@@ -319,7 +354,7 @@ clean_venv() {  # base_interpreter name -> prints the new interpreter's path
 check_api_imports() {
   local name="API (dependency completeness)" t0 rc=0 interp="" note_text=""
   if should_stop; then record "$name" SKIP 0 "a previous check failed (--keep-going runs them all)"; return; fi
-  banner "1/5  $name"
+  banner "1/6  $name"
   if [ -z "$PY" ]; then
     record "$name" SKIP 0 "no apps/api-py/.venv - see the setup commands above"; return
   fi
@@ -374,7 +409,7 @@ check_api_imports() {
 check_rule_one() {
   local name="Rule 1 (every model call declares its cargo)" t0 rc=0
   if should_stop; then record "$name" SKIP 0 "a previous check failed (--keep-going runs them all)"; return; fi
-  banner "2/5  $name"
+  banner "2/6  $name"
   t0=$(now)
 
   # Deliberately the system python3 rather than the venv: the check imports
@@ -393,7 +428,71 @@ check_rule_one() {
 }
 
 # ===========================================================================
-# 3. Infra (CDK synth guards)
+# 3. Secrets (gitleaks)
+#
+# The standalone required check (.github/workflows/secret-scan.yml), asked here
+# the same three ways plus the one CI cannot ask. CI scans a pull request's
+# commits and the checked-out tree; this scans the commits this branch adds over
+# origin/main, the committed tree, and - which no runner ever sees - what you
+# have not committed yet, staged or not. That last one is the point of running
+# it here: on a public repository a pushed AUTH_SECRET has no un-push, only
+# rotation, and rotation signs every live session out.
+#
+# The tree is read through `git archive`, not the working directory, because
+# node_modules and the venvs are not the repository and CI's checkout has
+# neither: scanning them would be slow and its findings would be about files
+# nobody can commit. A version other than the pinned one SKIPs rather than
+# scans, because its default ruleset differs and "no leaks" from it answers a
+# different question.
+# ===========================================================================
+
+check_secrets() {
+  local name="Secrets (gitleaks)" t0 rc=0 base range tree note_text=""
+  if should_stop; then record "$name" SKIP 0 "a previous check failed (--keep-going runs them all)"; return; fi
+  banner "3/6  $name"
+  if [ -z "$GITLEAKS" ]; then
+    record "$name" SKIP 0 "gitleaks is not on PATH - install v$GITLEAKS_PINNED, the version secret-scan.yml pins"; return
+  fi
+  if [ "$GITLEAKS_FOUND_VERSION" != "$GITLEAKS_PINNED" ]; then
+    record "$name" SKIP 0 "gitleaks ${GITLEAKS_FOUND_VERSION:-?} is not v$GITLEAKS_PINNED; another version is another ruleset"; return
+  fi
+  t0=$(now)
+
+  local cfg=("--config" "$REPO_ROOT/.gitleaks.toml" "--gitleaks-ignore-path" "$REPO_ROOT/.gitleaksignore"
+             "--redact" "--no-banner" "--exit-code" "1")
+
+  # The commits a pull request from here would add. With no origin/main to
+  # measure against, every commit - the push event's answer, and slower.
+  base=$(git -C "$REPO_ROOT" merge-base HEAD origin/main 2>/dev/null || true)
+  if [ -n "$base" ]; then
+    range="$base..HEAD"
+  else
+    range="HEAD"
+    note_text="no origin/main here, so every commit was scanned"
+  fi
+  ( cd "$REPO_ROOT" && run gitleaks git . "${cfg[@]}" --log-opts="$range" ) || rc=1
+  ( cd "$REPO_ROOT" && run gitleaks git . --pre-commit "${cfg[@]}" ) || rc=1
+  ( cd "$REPO_ROOT" && run gitleaks git . --staged "${cfg[@]}" ) || rc=1
+
+  tree=$(mktemp -d 2>/dev/null || mktemp -d -t reep-gitleaks) || {
+    record "$name" SKIP $(( $(now) - t0 )) "could not make a scratch directory for the tree scan"; return
+  }
+  if git -C "$REPO_ROOT" archive HEAD | tar -x -C "$tree"; then
+    ( cd "$tree" && run gitleaks dir . "${cfg[@]}" ) || rc=1
+  else
+    rc=1
+  fi
+  rm -rf "$tree"
+
+  if [ "$rc" -eq 0 ]; then
+    record "$name" PASS $(( $(now) - t0 )) "$note_text"
+  else
+    record "$name" FAIL $(( $(now) - t0 )) "gitleaks found a secret (or could not finish). ROTATE it first; removing the line does not un-publish a pushed one"
+  fi
+}
+
+# ===========================================================================
+# 4. Infra (CDK synth guards)
 #
 # The fifth required check, and the one this script did not run for months. Its
 # absence was argued for in writing — "it needs its own Python 3.12 environment
@@ -417,7 +516,7 @@ check_rule_one() {
 check_cdk() {
   local name="Infra (CDK synth guards)" t0 rc=0
   if should_stop; then record "$name" SKIP 0 "a previous check failed (--keep-going runs them all)"; return; fi
-  banner "3/5  $name"
+  banner "4/6  $name"
   if [ ! -d "$CDK_DIR" ]; then
     record "$name" SKIP 0 "no infra/cdk directory in this checkout"; return
   fi
@@ -435,7 +534,7 @@ check_cdk() {
 }
 
 # ===========================================================================
-# 4. Web (Angular)
+# 5. Web (Angular)
 #
 # Four steps in CI: npm ci, tsc --noEmit, ng test, ng build. The build is not a
 # formality — it enforces the production bundle budget, which is set close
@@ -451,7 +550,7 @@ check_web() {
   local name="Web (Angular)" t0 rc=0 note_text=""
   if [ "$QUICK" -eq 1 ]; then name="Web (Angular) - guards and typecheck only"; fi
   if should_stop; then record "$name" SKIP 0 "a previous check failed (--keep-going runs them all)"; return; fi
-  banner "4/5  $name"
+  banner "5/6  $name"
   if [ "$NODE_MODULES" -eq 0 ] && [ "$NPM_CI" -eq 0 ]; then
     record "$name" SKIP 0 "no apps/web/node_modules - run: cd apps/web && npm ci"; return
   fi
@@ -508,7 +607,7 @@ check_web() {
 }
 
 # ===========================================================================
-# 5. API (FastAPI + Postgres)
+# 6. API (FastAPI + Postgres)
 #
 # REEP_REQUIRE_DB=1 is exported here for the same reason ci.yml sets it: almost
 # every test covering conversations, voice, retention and RBAC is @requires_db,
@@ -517,27 +616,98 @@ check_web() {
 # database is a hard collection error instead of a silent skip — which is why
 # this script probes the port FIRST and tells you to start Docker, rather than
 # handing you a pytest UsageError to interpret.
+#
+# The job runs two more gates than it used to, in CI's order:
+#
+#   STATIC ANALYSIS first (ruff, mypy, tools/ci/check_async_blocking.py), and
+#   before the database probe, because it needs the venv and nothing else - a
+#   type error should not wait for Docker. Missing ruff/mypy means .venv was not
+#   built from requirements-dev.txt, which is a PARTIAL, never a pass.
+#
+#   THE MIGRATION ROUND TRIP (tools/ci/check_migration_roundtrip.py) after
+#   `alembic upgrade head`. It DROPS whatever the newest revisions created, so it
+#   never runs on your dev database: a scratch database is made beside it,
+#   migrated, round-tripped and dropped - which is also CI's exact question,
+#   because CI asks it of a fresh database before the seed.
 # ===========================================================================
 
+# create|drop the round trip's scratch database next to the configured one.
+# `create` prints its URL. The URL comes from the APPLICATION, as the DB probe
+# above does, so the scratch lives on the server pytest will use.
+roundtrip_scratch() {
+  ( cd "$API_DIR" && "$PY" - "$1" <<'PY'
+import sys
+
+import psycopg
+
+from app.db import SessionLocal
+
+url = SessionLocal.kw["bind"].url
+scratch = url.set(database=f"{url.database}_preflight_roundtrip")
+server = url.set(drivername="postgresql", database="postgres")
+with psycopg.connect(server.render_as_string(hide_password=False), autocommit=True) as conn:
+    conn.execute(f'DROP DATABASE IF EXISTS "{scratch.database}"')
+    if sys.argv[1] == "create":
+        conn.execute(f'CREATE DATABASE "{scratch.database}"')
+if sys.argv[1] == "create":
+    print(scratch.render_as_string(hide_password=False))
+PY
+  )
+}
+
 check_api_tests() {
-  local name="API (FastAPI + Postgres)" t0 rc=0
+  local name="API (FastAPI + Postgres)" t0 rc=0 partial="" scratch_url=""
   if should_stop; then record "$name" SKIP 0 "a previous check failed (--keep-going runs them all)"; return; fi
-  banner "5/5  $name"
+  banner "6/6  $name"
   if [ -z "$PY" ]; then
     record "$name" SKIP 0 "no apps/api-py/.venv - see the setup commands above"; return
   fi
+  t0=$(now)
+
+  # The step "Static analysis (ruff, mypy, async blocking)". The async guard is
+  # standard library only, so it always runs; ruff and mypy come from
+  # requirements-dev.txt.
+  if ( cd "$API_DIR" && "$PY" -m ruff --version && "$PY" -m mypy --version ) >/dev/null 2>&1; then
+    ( cd "$API_DIR" && run "$PY" -m ruff check --config pyproject.toml . ../../tools/ci ) || rc=1
+    ( cd "$API_DIR" && run "$PY" -m mypy ) || rc=1
+  else
+    partial="ruff/mypy not installed in .venv - pip install -r requirements-dev.txt"
+    note "$partial"
+  fi
+  ( cd "$API_DIR" && run "$PY" ../../tools/ci/check_async_blocking.py ) || rc=1
+  if [ "$rc" -ne 0 ]; then
+    record "$name" FAIL $(( $(now) - t0 )) "static analysis failed (ruff, mypy or the async-blocking guard)"; return
+  fi
+
   if [ "$DB_UP" -eq 0 ]; then
     say "${YELLOW}Postgres is not answering on $DB_HOST:$DB_PORT.${RESET}"
     say "This check is the one that covers conversations, voice, retention and RBAC."
     say "Start the database and run this again:"
     say "    docker compose up -d"
     say "It is not skipped in CI, so skipping it here only moves the discovery."
-    record "$name" SKIP 0 "Postgres not reachable at $DB_HOST:$DB_PORT - run: docker compose up -d"
+    record "$name" SKIP $(( $(now) - t0 )) "static analysis ran; the rest needs Postgres at $DB_HOST:$DB_PORT - run: docker compose up -d"
     return
   fi
-  t0=$(now)
 
   export REEP_REQUIRE_DB=1
+
+  # The step "Migrations roll back (downgrade to the floor, then up again)", on
+  # a scratch database (see the header). No CREATEDB privilege is a PARTIAL.
+  if scratch_url=$(roundtrip_scratch create 2>/dev/null) && [ -n "$scratch_url" ]; then
+    # Exported inside the subshell, not passed on the command line: `run` echoes
+    # its argv, and the URL carries the database password.
+    ( cd "$API_DIR" && export DATABASE_URL="$scratch_url" && run "$PY" -m alembic upgrade head >/dev/null ) || rc=1
+    if [ "$rc" -eq 0 ]; then
+      ( cd "$API_DIR" && export DATABASE_URL="$scratch_url" && run "$PY" ../../tools/ci/check_migration_roundtrip.py ) || rc=1
+    fi
+    roundtrip_scratch drop >/dev/null 2>&1 || note "could not drop the scratch database *_preflight_roundtrip"
+    if [ "$rc" -ne 0 ]; then
+      record "$name" FAIL $(( $(now) - t0 )) "a migration does not roll back to the floor and up again cleanly"; return
+    fi
+  else
+    partial="${partial:+$partial; }round trip not run: could not create a scratch database (needs CREATEDB)"
+    note "the migration round trip did not run: could not create a scratch database"
+  fi
 
   if [ "$SKIP_DB_SETUP" -eq 0 ]; then
     # CI applies migrations and seeds before pytest, and the DB-backed tests
@@ -559,10 +729,12 @@ check_api_tests() {
   fi
 
   ( cd "$API_DIR" && run "$PY" -m pytest -q ) || rc=1
-  if [ "$rc" -eq 0 ]; then
-    record "$name" PASS $(( $(now) - t0 )) ""
-  else
+  if [ "$rc" -ne 0 ]; then
     record "$name" FAIL $(( $(now) - t0 )) "pytest failed"
+  elif [ -n "$partial" ]; then
+    record "$name" PARTIAL $(( $(now) - t0 )) "$partial"
+  else
+    record "$name" PASS $(( $(now) - t0 )) ""
   fi
 }
 
@@ -577,12 +749,14 @@ if [ "$QUICK" -eq 1 ]; then
   # it cannot be read in the summary as something that passed.
   check_api_imports
   check_rule_one
+  check_secrets
   check_cdk
   check_web
   record "API (FastAPI + Postgres)" SKIP 0 "--quick"
 else
   check_api_imports
   check_rule_one
+  check_secrets
   check_cdk
   check_web
   check_api_tests

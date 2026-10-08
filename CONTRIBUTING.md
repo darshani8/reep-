@@ -117,11 +117,11 @@ The branching strategy is `docs/branching-strategy.md`: `feature/*` → `dev` �
 ```
 git switch -c feature/mentor-scope-on-uploads origin/dev
 # ... edit ...
-tools/ci/preflight.sh                    # the four CI checks, locally, fail-fastest first
+tools/ci/preflight.sh                    # the required checks, locally, fail-fastest first
 git commit                               # house shape: subject + four-beat body
 git push -u origin HEAD
-gh pr create --base dev                  # template asks about rule 1 and rule 2 by file path
-# the four required checks go green, PR is up to date with main
+gh pr create --base dev                  # template asks about rule 1, rule 2 and the design, by file path
+# the required checks go green, PR is up to date with main
 gh pr merge --squash --delete-branch
 # Actions -> Deploy -> Run workflow -> type "deploy"
 ```
@@ -129,19 +129,24 @@ gh pr merge --squash --delete-branch
 Anything that is not that loop is either a one-time setup step (1, 2, 6, 17, 22) or a
 thing the deploy does for you (18, 20).
 
-**Four required check names today, not five.** `tools/ci/protect-main.sh`'s
-`REQUIRED_CHECKS` array lists the four jobs that exist in `ci.yml`, verbatim:
+**The required check names, as of 2026-10-08.** The five `ci.yml` jobs, verbatim, plus
+the standalone checks that live in their own workflows:
 
 ```
-API (FastAPI + Postgres)
-API (dependency completeness)
-Voice worker (dependency completeness)
-Web (Angular)
+API (FastAPI + Postgres)                       ci.yml  (now also: ruff, mypy, the async guard, the migration round trip)
+Rule 1 (every model call declares its cargo)   ci.yml
+API (dependency completeness)                  ci.yml
+Web (Angular)                                  ci.yml
+Infra (CDK synth guards)                       ci.yml
+Secrets (gitleaks)                             secret-scan.yml     (main, stage, dev)
+Branch policy (promotion path)                 branch-policy.yml   (main, stage)
 ```
 
-Step 12 proposes a fifth. Until that job is actually in `ci.yml`, adding its name to the
-required list produces a required check that is never reported — which is a merge button
-that waits forever for something that will never arrive. See step 2.
+`.github/rulesets/*.json`, `tools/ci/protect-main.sh` and `tools/ci/preflight.sh` carry the
+same strings, and §34 of `apps/api-py/tests/test_codebase_guards.py` fails the build when
+they disagree — a required name that no job reports is a merge button that waits forever.
+What each gate checks, how to run it alone and what to do when it fails is
+`docs/engineering/quality-gates.md`.
 
 ---
 
@@ -324,7 +329,7 @@ the required status checks on the pull request.
 
 ```bash
 tools/ci/preflight.sh              # everything
-tools/ci/preflight.sh --quick      # the two fast dependency checks only — exits 2, NOT sufficient for a PR
+tools/ci/preflight.sh --quick      # the fast checks only — exits 2, NOT sufficient for a PR
 ```
 
 The two underlying commands, if you would rather run them by hand, are the two AGENTS.md

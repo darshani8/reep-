@@ -137,7 +137,8 @@ def load_reversibility():
     spec = importlib.util.spec_from_file_location(
         "reep_migration_reversibility", API / "migrations" / "reversibility.py"
     )
-    assert spec and spec.loader
+    if spec is None or spec.loader is None:
+        raise SystemExit("cannot load apps/api-py/migrations/reversibility.py")
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)

@@ -166,12 +166,12 @@ it does today; today the marker column is the whole answer.
 | 5b | pre-commit | a root `.gitattributes` | **[ON MERGE]** | no — git applies it at checkout; nothing rejects a bad commit |
 | 6 | pre-commit | secret scanning, non-provider patterns | **[ADMIN — NOT YET APPLIED]** | **yes** — rejects the push |
 | 7 | pr | `.github/pull_request_template.md` | **[ON MERGE]** | no — a checkbox is not a gate |
-| 8 | pr | the four existing jobs in `ci.yml` | jobs **[IN FORCE]**, required-ness **[ADMIN — NOT YET APPLIED]** | **yes** |
-| 9 | pr | three `run:` steps inside "API (FastAPI + Postgres)" | **[ASPIRATIONAL]** | **yes** |
-| 9b | pr | `ruff --select F` step inside the same job | **[ASPIRATIONAL]** | **yes** |
+| 8 | pr | the five jobs in `ci.yml` plus the standalone "Secrets (gitleaks)" and "Branch policy" | jobs **[IN FORCE]**, required-ness **[ADMIN — NOT YET APPLIED]** | **yes** |
+| 9 | pr | the "Migrations roll back" step inside "API (FastAPI + Postgres)" (`alembic check`, one head, the round trip) | **[IN FORCE]** since 2026-10-08 | **yes** |
+| 9b | pr | the "Static analysis (ruff, mypy, async blocking)" step inside the same job | **[IN FORCE]** since 2026-10-08 | **yes** |
 | 10 | pr | `apps/api-py/tests/test_rule1_call_sites.py` | **[ASPIRATIONAL]** | **yes** |
-| 11 | pr | `apps/api-py/tests/test_route_gates.py` | **[ASPIRATIONAL]** | **yes** |
-| 12 | pr | job "Repo hygiene (secrets, ignores, format)" | **[ASPIRATIONAL]** (its `.gitleaks.toml` is **[ON MERGE]**) | **yes** |
+| 11 | pr | `apps/api-py/tests/test_route_audit.py` (every route reaches *a* gate); the `{student_id}`-specific check is still **[ASPIRATIONAL]** | audit **[IN FORCE]** since 2026-10-08 | **yes** |
+| 12 | pr | secrets: the standalone check "Secrets (gitleaks)"; ignores and format: still a job to write | secrets **[IN FORCE]** since 2026-10-08, the rest **[ASPIRATIONAL]** | **yes** |
 | 13 | review | `.github/CODEOWNERS` | **[ON MERGE]** | no — one collaborator today |
 | 14 | merge | strict required checks + `delete_branch_on_merge` | **[ADMIN — NOT YET APPLIED]** | **yes** |
 | 15 | release | immutable ECR tags + pinned task definition | **[ASPIRATIONAL]** | **yes**, by AWS |
@@ -636,6 +636,8 @@ Once step 2 is applied, the merge button is disabled until all four conclude `su
 
 ## 9. Schema steps, inside the API job
 
+> **Update 2026-10-08 — built.** The step "Migrations roll back (downgrade to the floor, then up again)" runs `tools/ci/check_migration_roundtrip.py` right after `alembic upgrade head`: (a) `alembic check`, (c) the round trip — to the newest revision whose downgrade refuses on purpose, declared in `apps/api-py/migrations/reversibility.py`, rather than `-1` — and (b) the single-head assertion lives in `tests/test_migration_reversibility.py`. The text below is the design record it was built from; `docs/engineering/quality-gates.md` is how it works now.
+
 *Stage: pr.* **[ASPIRATIONAL]** — `.github/workflows/ci.yml` contains no `alembic check`,
 no `alembic heads` assertion and no downgrade round trip. `grep -n 'alembic' .github/workflows/ci.yml`
 is the check. Deliberately specified as steps in an existing job, so the required-check
@@ -691,6 +693,8 @@ and step 2 is applied, "API (FastAPI + Postgres)" goes red and it is required. B
 have to be true; either one alone is a report.
 
 ## 9b. `ruff` with pyflakes rules only, in the same job
+
+> **Update 2026-10-08 — built, wider than proposed.** The step "Static analysis (ruff, mypy, async blocking)" selects F, E9, the bugbear rules that are bugs, S, ASYNC and RUF100 in `apps/api-py/pyproject.toml`, and adds mypy and `tools/ci/check_async_blocking.py`. See `docs/engineering/quality-gates.md`.
 
 *Stage: pr.* **[ASPIRATIONAL]** — there is no `ruff`, no `pyproject.toml`, no `ruff.toml`
 and no `setup.cfg` under `apps/api-py`. There is no Python static analysis in this
@@ -750,6 +754,8 @@ collected by the API job and needs no database, so it also fails on your laptop 
 second.
 
 ## 11. Rule 2: every `{student_id}` route reaches the scope gate
+
+> **Update 2026-10-08 — half built.** `apps/api-py/tests/test_route_audit.py` now proves every operation has a session and reaches *a* role or scope gate (or is listed, with a reason). It does not prove that a `{student_id}` route reaches *the student-scope* gate in particular; that narrower check below is still to write.
 
 *Stage: pr.* **[ASPIRATIONAL]** — `apps/api-py/tests/test_route_gates.py` does not exist.
 
@@ -812,6 +818,8 @@ it (see "Known gaps") and the allowlist goes to zero.
 already proves this class of check works, for one router.
 
 ## 12. Repo hygiene
+
+> **Update 2026-10-08 — the secrets half is built**, as its own required workflow rather than a job here: "Secrets (gitleaks)" (`.github/workflows/secret-scan.yml`, gitleaks pinned by version and sha256). The ignores and format halves below are still to write.
 
 *Stage: pr.* **[ASPIRATIONAL]** — no job named "Repo hygiene (secrets, ignores, format)"
 exists in `.github/workflows/ci.yml`. `grep -nE '^    name:' .github/workflows/ci.yml` returns the

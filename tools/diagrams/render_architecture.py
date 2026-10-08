@@ -43,7 +43,7 @@ add(f'<line x1="22" y1="86" x2="1658" y2="86" stroke="{INK}" stroke-width="2"/>'
 # 1 — users -------------------------------------------------------------------
 chip(22, 96, "1 · PEOPLE & ROLES", C_USER)
 UX = [22, 295, 568, 841]
-box(UX[0], 138, 259, 136, "STUDENT", [
+box(UX[0], 138, 259, 136, "STUDENT · role STUDENT", [
     "Google SSO · must exist on the roster",
     "Programme map · Reboot→Excel→Elevate",
     "Skills & Badge profile — 48 badges",
@@ -52,26 +52,26 @@ box(UX[0], 138, 259, 136, "STUDENT", [
     "Resume builder · document uploads",
     "AI mock interview + practice reports",
 ], C_USER, body=9.8, lh=12.6)
-box(UX[1], 138, 259, 136, "FACULTY / MENTOR", [
+box(UX[1], 138, 259, 136, "FACULTY · role MENTOR", [
+    "!A mentor only once assigned a mentee",
     "Mentee log — 1:1 notes students read",
-    "Leave — submit + two-approver queue",
-    "Badge Centre — verify evidence, award",
-    "Capability assessments T0 → T4",
+    "Leave — apply; the Main Admin sanctions",
+    "Badge Centre · assessments T0 → T4",
     "Upskilling — own certificates",
     "Scope: their own mentee group ONLY",
     "!No group ⇒ sees NOBODY (rule 2)",
 ], C_USER, body=9.8, lh=12.6)
-box(UX[2], 138, 259, 136, "DIRECTOR / ADMIN", [
+box(UX[2], 138, 259, 136, "MAIN ADMIN · role ADMIN", [
+    "!The placement office (TPO) — ONE account",
     "All a mentor sees, programme-wide",
     "Approved Certification Catalogue",
     "Manual award · revoke badges",
-    "Cohort growth view + CSV export",
     "Placement criteria · offers · intake",
     "Interview audio (consented only)",
-    "Roster seeding · access grants",
+    "Grants console screens to faculty",
 ], C_USER, body=9.8, lh=12.6)
-box(UX[3], 138, 259, 136, "ALUMNI", [
-    "A role with no Student/Mentor row",
+box(UX[3], 138, 259, 136, "ALUMNI · role ALUMNI", [
+    "A role with no student or mentor row",
     "First login ⇒ create profile",
     "Company + current resume (required)",
     "Resume kept if omitted on update",
@@ -136,7 +136,7 @@ box(40, 556, 590, 248, "API TASK — FastAPI + uvicorn on :3300", [
     "badges · badge_verification — 48-badge engine, evidence, growth",
     "mentor · mentee_records — mentee scope enforced (rule 2)",
     "alumni · staff_upskilling · leave — alumni + faculty surfaces",
-    "director · registration · health",
+    "console · admin_* (the Main Admin) · registration · health",
     "interview — WebSocket /api/interview, the realtime relay",
     "voice · agent — retained rollback path, no UI caller",
     "#SERVICE LAYER",
@@ -281,7 +281,7 @@ box(SX + 22, 1036, 484, 62, "TWO TRACKS, NEVER MIXED", [
 ], C_REC, body=10.2, lh=13)
 box(SX + 22, 1102, 484, 64, "CONSENT IS A ROW, NOT A SETTING", [
     "!Two switches: the deployment flag AND the student's own",
-    "store-audio tick · DIRECTOR/ADMIN only · deleted after 180 days",
+    "store-audio tick · Main Admin only (faculty by grant) · 180-day clock",
 ], C_REC, body=10.2, lh=13)
 
 # cross-column arrows

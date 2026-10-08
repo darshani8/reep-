@@ -6,11 +6,19 @@
 > voice worker". Both were removed in 2026-09: there is no fourth process and no
 > second venv, the one voice experience is `/student/assistant` (a WebSocket
 > *inside* the API process to Amazon Nova 2 Sonic on Bedrock, no API key), and CI
-> has **five** jobs — `api`, `pii-gate`, `api-imports`, `web`, `cdk`. **DIRECTOR
-> is not a role** either (removed 2026-09-10); there is one office account, role
-> ADMIN. The note is here rather than on the poster because a rendered sheet has
-> no room for a warning that would still be legible at A3, and re-drawing it is a
-> design job, not a docs job. `AGENTS.md` is the current truth.
+> has **five** jobs — `api`, `pii-gate`, `api-imports`, `web`, `cdk`. The note is
+> here rather than on the poster because a rendered sheet has no room for a
+> warning that would still be legible at A3, and re-drawing it is a design job,
+> not a docs job. `AGENTS.md` is the current truth.
+>
+> **The people vocabulary on all three sheets was corrected on 2026-10-08.** They
+> said "DIRECTOR / ADMIN", "FACULTY / MENTOR", "Directors", `/director/*` and
+> `require_director` for a month after DIRECTOR stopped being a role (2026-09-10).
+> They now draw the pair on-screen-name first — **Main Admin (role ADMIN)**, the
+> placement office, one account; **Faculty (role MENTOR)**, a mentor only once
+> assigned a mentee — and `/admin/*` and `require_admin`. The words are
+> `AGENTS.md` "Who is who"; a wording change here is a change to
+> `tools/diagrams/`, never to the rendered files.
 
 Three A3 sheets, each as `.svg` (source of truth), `.pdf` (print) and `.png`
 (150 dpi preview):
@@ -60,10 +68,26 @@ orientations come out at true size with no scaling.
 
 The generator validates its own geometry and refuses to pass silently: any card
 whose text would clip, or that would fall off the canvas, is reported on stdout
-("clean" when all is well). To refresh the PDF and PNG afterwards, render the
-SVG through any browser's print-to-PDF at A3 landscape, or:
+("clean" when all is well). To refresh the PDF and PNG afterwards:
+
+```bash
+python tools/diagrams/export_print.py              # all three: SVG → PDF (A3) → PNG (150 dpi)
+python tools/diagrams/export_print.py reep-flow-a3 # one sheet
+```
+
+It wraps each SVG in a page whose `@page` size is the SVG's own `width`/`height`
+(so the portrait sheet comes out portrait), prints it through headless Chromium
+(`CHROME=/path/to/chromium` if none is on `PATH`; Playwright's
+`/opt/pw-browsers/chromium` is tried), and rasterises the PDF with `pdftoppm` at
+150 dpi — A3 is 2482 × 1754 px, the size the committed previews have. It exits 2,
+never 0, when a tool is missing, so a missing Chromium cannot read as a refreshed
+poster. By hand it is the same two commands:
 
 ```bash
 chromium --headless --no-pdf-header-footer --print-to-pdf=out.pdf page.html
 pdftoppm -png -r 150 -singlefile out.pdf reep-architecture-a3
 ```
+
+The SVG names Inter, and Chromium prints with it where it is installed (the
+previews rendered before 2026-10-08 fell back to Liberation Sans, which is why
+their glyphs differ from the current ones).

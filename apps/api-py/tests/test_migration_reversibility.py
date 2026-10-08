@@ -174,3 +174,34 @@ def test_env_py_does_not_import_the_mapping() -> None:
     migrations cannot be undone is CI's business, not the migration runner's."""
     env = (API / "migrations" / "env.py").read_text(encoding="utf-8")
     assert "reversibility" not in env, "migrations/env.py imports the reversibility list; it must not"
+
+
+@pytest.mark.parametrize(
+    ("body", "kind"),
+    [
+        # DEF-QG-U06's three shapes, and their neighbours: all execute nothing.
+        ("    return\n", "no-op"),
+        ('    """Nothing."""\n    ...\n', "no-op"),
+        ('    """Nothing."""\n    return None\n', "no-op"),
+        ('    if False:\n        op.execute("SELECT 2")\n', "no-op"),
+        ('    if 0:\n        op.execute("SELECT 2")\n    pass\n', "no-op"),
+        ('    return\n    op.execute("UPDATE t SET x = 1")\n', "no-op"),  # dead after return
+        ("    if True:\n        pass\n", "no-op"),
+        # The branch a literal selects is what runs.
+        ('    if False:\n        pass\n    else:\n        op.execute("UPDATE t SET x = 0")\n', "real"),
+        ('    if True:\n        op.drop_column("t", "c")\n', "real"),
+        ('    op.execute("UPDATE t SET x = 0")\n', "real"),
+        ('    if settings.flag:\n        op.execute("SELECT 1")\n', "real"),  # not a literal: kept
+        # A refusal is a decision, wherever the dead code around it sits.
+        ('    """Cannot."""\n    raise RuntimeError("no")\n', "raises"),
+        ('    if False:\n        op.execute("SELECT 1")\n    raise RuntimeError("no")\n', "raises"),
+    ],
+)
+def test_a_downgrade_that_executes_nothing_is_a_no_op(body, kind) -> None:
+    """A data-only migration whose downgrade is `return` changes no catalogue, so
+    the round trip cannot catch it; this classification is the only thing that
+    can make it write an IRREVERSIBLE reason."""
+    import ast
+
+    tree = ast.parse("def upgrade() -> None:\n    pass\n\n\ndef downgrade() -> None:\n" + body)
+    assert rev._downgrade_kind(tree) == kind, f"{body!r} should classify as {kind!r}"

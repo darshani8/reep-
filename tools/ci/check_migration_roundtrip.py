@@ -196,24 +196,52 @@ def _is_loopback(host: str) -> bool:
         return False
 
 
-def libpq_hosts(engine) -> list[str]:
-    """Every host and hostaddr psycopg will hand libpq for this URL.
+#: libpq reads these from the ENVIRONMENT when the connection string does not
+#: set them, and the alembic subprocesses inherit the environment.
+#: PGHOST is not here: the URL always carries a host (or the script refuses
+#: "(libpq default)"), and a conninfo host wins over PGHOST.
+LIBPQ_ADDRESS_ENV = ("PGHOSTADDR",)
+#: A service names a connection whose host and hostaddr live in a file this
+#: script would have to parse the way libpq does (pg_service.conf, with
+#: PGSERVICEFILE and PGSYSCONFDIR deciding which). It is refused outright
+#: rather than read: a round trip has no reason to go through one.
+LIBPQ_SERVICE_ENV = ("PGSERVICE", "PGSERVICEFILE")
+
+
+def libpq_hosts(engine, environ=None) -> list[str]:
+    """Every host and hostaddr libpq could connect to for this URL and environment.
 
     Read from the dialect's own connect arguments rather than from `url.host`:
     `...@localhost/db?host=db.example.com` and `?hostaddr=192.0.2.1` both carry
     a loopback `url.host`, and psycopg really connects to the query string's.
-    Both keys may be comma-separated lists (libpq's multi-host form).
+    Both keys may be comma-separated lists (libpq's multi-host form). And libpq
+    takes `hostaddr` from PGHOSTADDR when the URL sets none -- so a localhost
+    URL with PGHOSTADDR=192.0.2.1 connects to 192.0.2.1 (DEF-QG-U05). The
+    environment variable is counted whether or not the URL overrides it: it is
+    inherited by every alembic subprocess, and refusing it costs nothing.
     """
+    environ = os.environ if environ is None else environ
     _, kwargs = engine.dialect.create_connect_args(engine.url)
     hosts: list[str] = []
-    for key in ("host", "hostaddr"):
-        value = kwargs.get(key)
+    for value in (kwargs.get("host"), kwargs.get("hostaddr"), *(environ.get(k) for k in LIBPQ_ADDRESS_ENV)):
         if value:
             hosts.extend(h.strip() for h in str(value).split(",") if h.strip())
     return hosts or ["(libpq default)"]
 
 
-def refusal(settings, engine) -> str | None:
+def libpq_service(engine, environ=None) -> str | None:
+    """The service this connection names, in the URL or the environment, if any."""
+    environ = os.environ if environ is None else environ
+    _, kwargs = engine.dialect.create_connect_args(engine.url)
+    if kwargs.get("service"):
+        return f"service={kwargs['service']} in the URL"
+    for key in LIBPQ_SERVICE_ENV:
+        if environ.get(key):
+            return f"{key}={environ[key]} in the environment"
+    return None
+
+
+def refusal(settings, engine, environ=None) -> str | None:
     """Why this database must not be touched, or None. Allowlists, not denylists."""
     url = engine.url
     if not settings.env_is_dev:
@@ -222,12 +250,19 @@ def refusal(settings, engine) -> str | None:
             "and drops a database and runs every downgrade; it runs only where ENV is one "
             "of app.config's development names."
         )
-    hosts = libpq_hosts(engine)
+    service = libpq_service(engine, environ)
+    if service:
+        return (
+            f"the connection names a libpq service ({service}), whose host and hostaddr "
+            "live in a service file this script does not read; a round trip has no reason "
+            "to go through one. Put the host in DATABASE_URL."
+        )
+    hosts = libpq_hosts(engine, environ)
     remote = [h for h in hosts if not _is_loopback(h)]
     if remote:
         return (
             f"the connection would go to {remote}, which is not loopback (host and hostaddr "
-            "are both read, including from the query string). CI's database and a "
+            "are both read, from the query string and from PGHOSTADDR). CI's database and a "
             "developer's docker compose are both local; production's database is ALSO "
             "named reep_py, so the name cannot be the guard on its own."
         )

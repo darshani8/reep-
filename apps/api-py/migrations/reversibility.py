@@ -145,25 +145,54 @@ def _module_constant(tree: ast.Module, name: str) -> object:
     raise LookupError(name)
 
 
+def _executed(body: list[ast.stmt]) -> list[ast.stmt]:
+    """The statements of `body` that can run and do something, read as source.
+
+    Not work: a docstring or any bare constant expression (`...` included),
+    `pass`, and everything after a `return`. A `return` with no value or
+    `return None` ends the body. An `if` whose test is a literal constant is
+    replaced by the branch that constant selects -- `if False: op.execute(...)`
+    executes nothing, `if True:` executes its body -- and anything else is kept
+    as it is. A RAISE is kept: it is not work, but it is a decision, and the
+    caller tells the two apart.
+    """
+    out: list[ast.stmt] = []
+    for stmt in body:
+        if isinstance(stmt, ast.Pass):
+            continue
+        if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant):
+            continue
+        if isinstance(stmt, ast.Return):
+            if stmt.value is None or (isinstance(stmt.value, ast.Constant) and stmt.value.value is None):
+                break
+            out.append(stmt)
+            break
+        if isinstance(stmt, ast.If) and isinstance(stmt.test, ast.Constant):
+            out.extend(_executed(stmt.body if stmt.test.value else stmt.orelse))
+            continue
+        out.append(stmt)
+    return out
+
+
 def _downgrade_kind(tree: ast.Module) -> str:
     """Classify the body of downgrade(), read as source -- nothing is executed.
 
-    A docstring and comments are not work. A body that is only `pass` (or only
-    a docstring) is a no-op; a body that is a single `raise` refuses. Anything
-    else is treated as real, deliberately loosely: this test cannot tell a
-    correct reverse from a wrong one -- the round trip against Postgres can --
-    it only refuses the two shapes that mean "no reverse was written".
+    "no-op" is a body that EXECUTES NOTHING (`_executed` is empty): only a
+    docstring, `pass`, `...`, a bare `return` / `return None`, or an `if` on a
+    falsy literal. It used to be "only `pass`", and the unit test level showed
+    why that was too loose (DEF-QG-U06): `return` alone, or `if False:
+    op.execute(...)`, read as "real", and a DATA-ONLY migration -- an UPDATE --
+    with such a downgrade changes no catalogue, so the round trip cannot see it
+    either; no IRREVERSIBLE reason was ever written for it. "raises" is a body
+    whose only executed statement is a `raise`. Anything else is "real", and
+    whether a real reverse is CORRECT is the round trip's question, not this one.
     """
     for node in tree.body:
         if isinstance(node, ast.FunctionDef) and node.name == "downgrade":
-            body = [
-                stmt
-                for stmt in node.body
-                if not (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant))
-            ]
-            if not body or all(isinstance(stmt, ast.Pass) for stmt in body):
+            executed = _executed(node.body)
+            if not executed:
                 return "no-op"
-            if len(body) == 1 and isinstance(body[0], ast.Raise):
+            if len(executed) == 1 and isinstance(executed[0], ast.Raise):
                 return "raises"
             return "real"
     return "missing"

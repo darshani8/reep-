@@ -1824,6 +1824,60 @@ def test_the_five_required_check_names_agree_across_all_four_files() -> None:
     )
 
 
+#: Every file that runs gitleaks, or prints a command for a person to run.
+GITLEAKS_CALLERS = (
+    ".github/workflows/secret-scan.yml",
+    "tools/ci/preflight.sh",
+    "tools/ci/preflight.ps1",
+    "tools/ci/check_gitleaks_rules.py",
+    ".pre-commit-config.yaml",
+    "docs/engineering/quality-gates.md",
+)
+
+
+def test_every_gitleaks_invocation_refuses_inline_allow_comments() -> None:
+    """`--ignore-gitleaks-allow` on every scan, or a comment is an allowlist.
+
+    Without the flag gitleaks honours a `gitleaks:allow` comment on the line and
+    drops the finding -- a third way to allowlist, written by whoever wrote the
+    leak, outside .gitleaks.toml (by value) and .gitleaksignore (by
+    fingerprint), the two this repository reviews. DEF-QG-U04 found every
+    invocation missing it. This reads each caller and demands the flag on every
+    `gitleaks git` / `gitleaks dir` command (shell continuation lines joined),
+    in preflight.sh's shared argument array, in the replay script's argv and in
+    the pre-commit hook's args -- so a new scan written without it fails here.
+    """
+    flag = "--ignore-gitleaks-allow"
+    missing: list[str] = []
+    for rel in GITLEAKS_CALLERS:
+        text = (REPO / rel).read_text(encoding="utf-8").replace("\\\n", " ")
+        if rel.endswith(".pre-commit-config.yaml"):
+            hook = re.search(r"- id: gitleaks\b.*?\n\s*args:\s*(\[[^\]]*\])", text, re.S)
+            if not hook or flag not in hook.group(1):
+                missing.append(f"{rel}: the gitleaks hook's args")
+            continue
+        if rel.endswith("check_gitleaks_rules.py"):
+            call = re.search(r"\[gitleaks, \"dir\".*?\]", text, re.S)
+            if not call or flag not in call.group(0):
+                missing.append(f"{rel}: the replay's gitleaks argv")
+            continue
+        if rel.endswith("preflight.sh"):
+            cfg = re.search(r"local cfg=\((.*?)\)", text, re.S)
+            if not cfg or flag not in cfg.group(1):
+                missing.append(f"{rel}: the shared cfg array")
+            for line in text.splitlines():
+                if re.search(r"\bgitleaks (git|dir)\b", line) and "run gitleaks" in line and '"${cfg[@]}"' not in line:
+                    missing.append(f"{rel}: a scan not using cfg: {line.strip()}")
+            continue
+        for line in text.splitlines():
+            if re.search(r"\bgitleaks (git|dir)\b", line) and not line.lstrip().startswith("#") and flag not in line:
+                missing.append(f"{rel}: {line.strip()[:100]}")
+    assert not missing, (
+        f"these gitleaks invocations do not pass {flag}, so a `gitleaks:allow` comment "
+        "silences a real secret on them:\n  " + "\n  ".join(missing)
+    )
+
+
 # --------------------------------------------------------------------------- #
 # §35  The nightly sweep never reaches identity                                #
 # --------------------------------------------------------------------------- #

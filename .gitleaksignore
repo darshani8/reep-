@@ -52,3 +52,8 @@
 2ea6ca647bfda16319f612c2bf2de5eb1fcbcac0:tools/ci/check_gitleaks_rules.py:reep-database-url-password:59
 2ea6ca647bfda16319f612c2bf2de5eb1fcbcac0:tools/ci/check_gitleaks_rules.py:reep-groq-key:62
 2ea6ca647bfda16319f612c2bf2de5eb1fcbcac0:tools/ci/check_gitleaks_rules.py:reep-groq-key:66
+
+# .env.selfhost.example (deleted): a DATABASE_URL whose password is the template
+# placeholder CHANGE_ME_database_password -- a placeholder with words after it,
+# which the anchored placeholder allowlist rightly no longer frees. History only.
+89ccd4dd6054b521b2cd8df057d763c3ce73eb51:.env.selfhost.example:reep-database-url-password:39

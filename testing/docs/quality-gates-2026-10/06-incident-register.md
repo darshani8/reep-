@@ -16,6 +16,7 @@
 |---|---|---|
 | 0.1 | 2026-10-08 | Development-phase incidents recorded; L1 defects triaged and assigned |
 | 0.2 | 2026-10-08 | L1 fixes merged (8914e83); L2 defects triaged and assigned; FV-QG-01 raised |
+| 0.3 | 2026-10-08 | L2 fixes and FV-QG-01 merged (4340d6c); every L1 and L2 defect awaiting re-test |
 
 ---
 
@@ -40,8 +41,8 @@
 |---|---|---|---|---|---|---|---|---|
 | Development (INC-QG-D) | 52 | 2 | 14 | 36 | 46 | 6 | 0 | 0 |
 | L1 unit (DEF-QG-U) | 6 | 0 | 3 | 3 | 0 | 0 | 0 | 6 (fixed, awaiting re-test) |
-| L2 integration (DEF-QG-I) | 4 | 0 | 2 | 2 | 0 | 0 | 0 | 4 |
-| Fix verification (FV-QG) | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 1 |
+| L2 integration (DEF-QG-I) | 4 | 0 | 2 | 2 | 0 | 0 | 0 | 4 (fixed, awaiting re-test) |
+| Fix verification (FV-QG) | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 |
 | L3 system (DEF-QG-S) | _executing_ | | | | | | | |
 
 "Closed" includes INC-QG-D-16 (accepted as negligible) and INC-QG-D-52 (a false alarm); INC-QG-D-48 is counted as open because two of its three stale documents are follow-ups.
@@ -162,10 +163,10 @@ Build under test: `a3688f0189c48287f376cf8c165d762a2f8ab8d8`. The full text of e
 
 | ID | Title | Sev. / Pri. | Status | Assigned | Fix commit | Re-test |
 |---|---|---|---|---|---|---|
-| DEF-QG-I01 | The secret-scan step aborts after the first scan that finds something, under GitHub's `bash -e`: no tree scan, no `::error::` annotation. Fails closed, but not as designed | Minor / P2 | Assigned | Worker B | _pending_ | IT-G2-003 |
-| DEF-QG-I02 | §34 accepts a `preflight.sh` that no longer runs, or no longer records, a required check: a substring test over the whole file, comments included | Major / P2 | Assigned | Worker A | _pending_ | IT-GX-005 |
-| DEF-QG-I03 | Preflight's secret check passes a secret in a new, untracked file | Major / P2 | Assigned | Worker A | _pending_ | IT-GX-015 |
-| DEF-QG-I04 | Preflight's secret check does not say where the secret is | Minor / P3 | Assigned | Worker A | _pending_ | IT-GX-014, IT-GX-016 |
+| DEF-QG-I01 | The secret-scan step aborts after the first scan that finds something, under GitHub's `bash -e`: no tree scan, no `::error::` annotation. Fails closed, but not as designed | Minor / P2 | Fixed, awaiting re-test | Worker B | c1b490c | IT-G2-003 |
+| DEF-QG-I02 | §34 accepts a `preflight.sh` that no longer runs, or no longer records, a required check: a substring test over the whole file, comments included | Major / P2 | Fixed, awaiting re-test | Worker A | 38be261 | IT-GX-005 |
+| DEF-QG-I03 | Preflight's secret check passes a secret in a new, untracked file | Major / P2 | Fixed, awaiting re-test | Worker A | 45a4ca5 | IT-GX-015 |
+| DEF-QG-I04 | Preflight's secret check does not say where the secret is | Minor / P3 | Fixed, awaiting re-test | Worker A | 45a4ca5 | IT-GX-014, IT-GX-016 |
 
 **Triage decision (TM):** all four are fixed in this PR. I02 is partly inherited: the five-check half of the substring test predates this PR. It is fixed here because this PR extended it, and a guard that a comment can satisfy is not a guard.
 
@@ -184,7 +185,9 @@ Found by the Test Manager while verifying a fix round, before any re-test.
 
 | ID | Title | Sev. | Status | Assigned | Fix commit |
 |---|---|---|---|---|---|
-| FV-QG-01 | **Regression from the OBS-QG-U01 fix (816ac71):** anchoring the placeholder allowlists to the whole secret made `KEY=<FAKE-VALUE-MASKED>` a finding. Some rules' capture groups exclude the angle brackets, so the conventional `<placeholder>` spelling in documentation would turn the secret gate red. Seen on the unit tester's masked evidence (8 findings) | Major (CI red on a correct tree) | Assigned | Worker B | _pending_ |
+| FV-QG-01 | **Regression from the OBS-QG-U01 fix (816ac71):** anchoring the placeholder allowlists to the whole secret made `KEY=<FAKE-VALUE-MASKED>` a finding. Some rules' capture groups exclude the angle brackets, so the conventional `<placeholder>` spelling in documentation would turn the secret gate red. Seen on the unit tester's masked evidence (8 findings) | Major (CI red on a correct tree) | Fixed (verified by TM: replay 20 found / 11 quiet; the four OBS-QG-U01 bypasses still found) | Worker B | a34a900 |
+
+**Accepted with FV-QG-01 (TM):** the fix frees any single-line secret that contains a literal `<word>` run of 3–40 characters. None of these rules' key alphabets contains `<` or `>`, so such a value is documentation by construction. The one way to abuse it is to append `<x>` to a real key on purpose, which also makes the key unusable as written. That is recorded as residual risk alongside OBS-QG-I01: a deliberate author has easier ways past a secret gate (Q4).
 
 ### 4.3 L3: system ([04-system-testing.md](04-system-testing.md))
 

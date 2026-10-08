@@ -28,8 +28,9 @@ a decision taken "before 3,000 students join"
 ([`../cost-review-2026-09.md`](../cost-review-2026-09.md) §3c).
 
 **Traffic.** The budget document's load model: 7,000 interviews a month, about
-318 a working day, **3–4 concurrent on average and bursts of 15–20** in a busy
-evening hour (§1, §4). The account's Bedrock quota allowed **2 concurrent Nova 2
+318 a working day: **3–4 running at once on average over twelve hours, 8–9 on a
+busy evening with bursts of 15–20** (§4's table; §1 and §8 quote the average and
+the bursts). The account's Bedrock quota allowed **2 concurrent Nova 2
 Sonic streams** when that was written — the binding constraint, not the API.
 
 **Data size.** Not measured in the repository.
@@ -125,9 +126,15 @@ task therefore relaxes per-process limits rather than breaking them.
 
 **Capacity.** `apiMinTasks` 2, `apiMaxTasks` 10, 0.5 vCPU / 1 GB ARM64 each
 (`infra/cdk/cdk.context.json`, `infra/cdk/cdk.json` `apiArm64`). Database
-`db.t4g.micro` live, `db.t4g.small` targeted by harden (`dbInstanceClassTarget`),
-with the pool set to 10 + 10 per task so ten tasks cannot exhaust it (`AGENTS.md`,
-"the headroom for a results day").
+`db.t4g.micro` live, `db.t4g.small` targeted by harden (`dbInstanceClassTarget`).
+The code default pool is 20 + 20 per task; the harden task definition sets 10 + 10
+(`API_DB_POOL_SIZE` / `API_DB_MAX_OVERFLOW`, `infra/cdk/reep_core/stack.py`), which
+at ten tasks is 200 connections against a `db.t4g.small` whose `max_connections`
+the stack's own comment puts "near 200" — at the edge, not under it. That variable
+is gated on `harden_ecs` like every other task-definition change, and the live
+database is still the micro, so until both land the pool math does not hold.
+The observed peak over thirty days was fifteen connections (the same comment;
+`AGENTS.md`, "the headroom for a results day").
 
 **Cache.** No shared cache (no Redis/ElastiCache). CloudFront caches the SPA's
 hashed assets; the service worker deliberately caches **no API response**
@@ -151,8 +158,11 @@ an httpOnly cookie. See [ADR 0005](../adr/0005-one-live-session-per-account.md)
 and [ADR 0006](../adr/0006-google-sign-in-roster-is-access-control.md).
 Authorisation is role gates plus spine-scoped capabilities (`app/governance.py`),
 checked separately from rule 2 on purpose. The route audit
-([`quality-gates.md`](quality-gates.md) §3) proves every operation needs a
-session or is declared public, and reaches a gate or is declared self-scoped.
+([`quality-gates.md`](quality-gates.md) §3) proves that every operation needs a
+session or is declared public, and that every authenticated handler calls a
+named gate (or raises on a role comparison) on some live path or is declared
+self-scoped. It does not prove that every branch reaches the gate, or that the
+gate is the right one for the data; rule 2's own tests carry that.
 
 **Secrets management.** AWS Secrets Manager into the task definition; nothing
 pasted for Bedrock or SES (task role). The boot guard refuses known-bad values;
@@ -213,9 +223,12 @@ lifespan since 2026-09-10. Only the access line carries the request id
 
 **Metrics and alarms.** Metric filters for dropped interview turns and failed
 mail; alarms on ALB 5xx, no healthy API task, RDS storage and CPU, API CPU at
-max, four backup alarms including "no job completed", and the public
-site-unreachable alarm (`infra/cdk/reep_core/stack.py`, `edge.py`), all to the
-`reep-alerts` SNS topic.
+max and four backup alarms including "no job completed" go to the `reep-alerts`
+SNS topic (`infra/cdk/reep_core/stack.py`). Two families go elsewhere on
+purpose: the public site-unreachable alarm to `reep-uptime-alerts` in us-east-1,
+where Route 53 publishes its metric (`infra/cdk/reep_core/edge.py`), and the SES
+bounce and complaint alarms to `reep-ses-notifications`, beside the per-message
+events that say which addresses are failing (`stack.py`).
 
 **Traces and errors.** Sentry, one project per process (`reep-api`,
 `reep-scheduled-jobs`, `reep-interview-worker`), scrubbed for rule 1
@@ -296,8 +309,9 @@ own task (`deployment-process.md` §6). Expand/contract for anything a running
 client reads.
 
 **Open questions.** No versioning policy says when `/api/v1` replaces `/api` or
-when the duplicate auth mounts retire; `alembic check` is still run by hand
-(`deployment-process.md` §6).
+when the duplicate auth mounts retire. (`deployment-process.md` §6 says nothing
+runs `alembic check`; that is no longer true — the migration round trip in CI
+runs it, see [`quality-gates.md`](quality-gates.md) §4.)
 
 ## 11. People
 

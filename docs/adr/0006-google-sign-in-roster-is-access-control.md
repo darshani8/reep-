@@ -15,8 +15,9 @@ token fully (RS256 against Google's JWKS, `aud`, `iss`, expiry,
 `email_verified`, a single-use `state` cookie and a `nonce`) and then looks the
 verified email up in `users`. **A Google account with no matching row is
 refused**; nothing self-provisions and no role is ever guessed. Accounts come
-from the roster (`python -m app.seed_roster`), from approving a registration, or
-from `python -m app.grant_access`. What Google issues is the same session cookie
+from the roster (`python -m app.seed_roster`), from approving a registration,
+from the Main Admin's "Add faculty member" (`POST /api/admin/faculty`), or from
+`python -m app.grant_access`. What Google issues is the same session cookie
 as every other door, so the `require_*` gates cannot tell the doors apart.
 
 ## Alternatives considered

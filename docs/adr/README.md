@@ -33,7 +33,7 @@ pull request as the change it records, or before it.
 | Status | Meaning |
 |---|---|
 | **Proposed** | Under review in an open pull request. |
-| **Accepted** | Merged; the decision is in force. |
+| **Accepted** | Merged; the decision is in force. An ADR that only RECORDS a decision already in force elsewhere (0005–0007 record `AGENTS.md`) is Accepted from the start, dated when the decision was made. |
 | **Superseded by NNNN** | Replaced by a later ADR. Leave the body as it was and add the pointer — the history is the point. |
 | **Deprecated** | No longer in force and not replaced (the thing it governed is gone). |
 
@@ -44,10 +44,10 @@ decision is a new ADR that supersedes the old one.
 
 | # | Title | Status |
 |---|---|---|
-| [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted |
-| [0002](0002-quality-gates-in-existing-ci-jobs.md) | Quality gates are steps in existing CI jobs, plus one standalone secret scan | Accepted |
-| [0003](0003-ratcheted-baselines-for-new-gates.md) | New gates start from a ratcheted baseline | Accepted |
-| [0004](0004-reversible-migrations-to-a-declared-floor.md) | Migrations are reversible down to a declared rollback floor | Accepted |
+| [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Proposed (Accepted on merge) |
+| [0002](0002-quality-gates-in-existing-ci-jobs.md) | Quality gates are steps in existing CI jobs, plus one standalone secret scan | Proposed (Accepted on merge) |
+| [0003](0003-ratcheted-baselines-for-new-gates.md) | New gates start from a ratcheted baseline | Proposed (Accepted on merge) |
+| [0004](0004-reversible-migrations-to-a-declared-floor.md) | Migrations are reversible down to a declared rollback floor | Proposed (Accepted on merge) |
 | [0005](0005-one-live-session-per-account.md) | One live session per account | Accepted |
 | [0006](0006-google-sign-in-roster-is-access-control.md) | Google sign-in, with the roster as the access control | Accepted |
 | [0007](0007-student-data-egress-gate.md) | Student data leaves the machine only through the egress gate | Accepted |

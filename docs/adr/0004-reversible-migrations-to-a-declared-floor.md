@@ -1,6 +1,6 @@
 # 0004. Migrations are reversible down to a declared rollback floor
 
-- **Status:** Accepted
+- **Status:** Proposed (Accepted on merge)
 - **Date:** 2026-10-08
 - **Deciders:** the quality-gate programme; review by the repository owner
 
@@ -19,15 +19,17 @@ MENTOR rows used to be DIRECTOR).
 
 ## Decision
 
-CI applies every migration and then **downgrades to a declared floor revision
-and upgrades back to head** on a real Postgres, in the API job's step
+CI applies every migration and then **downgrades to the declared floor(s) and
+upgrades back to head** on a real Postgres, diffs the schema catalogue against
+the one it started from, and runs `alembic check` — the API job's step
 "Migrations roll back (downgrade to the floor, then up again)"
-(`tools/ci/check_migration_roundtrip.py`,
-`apps/api-py/tests/test_migration_reversibility.py`). Every revision above the
-floor must round-trip. A revision that cannot is listed in an `IRREVERSIBLE`
-mapping with the reason, and the pull request says how production would recover
-instead (roll forward, or restore — `deployment-process.md` §9.3). The floor only
-moves up.
+(`tools/ci/check_migration_roundtrip.py`). Without a database,
+`apps/api-py/tests/test_migration_reversibility.py` requires every revision to
+have a `downgrade()` that does real work or an entry in `IRREVERSIBLE`
+(`apps/api-py/migrations/reversibility.py`) with the reason in words; the floor
+is derived from the entries whose downgrade refuses. The pull request that adds
+an entry says how production would recover instead (roll forward, or restore —
+`deployment-process.md` §9.3).
 
 ## Alternatives considered
 
@@ -43,9 +45,11 @@ moves up.
 ## Consequences
 
 - A new migration needs a working `downgrade()` or an explicit, reasoned entry in
-  `IRREVERSIBLE` — the PR template's "Schema" section asks.
+  `IRREVERSIBLE` — the PR template's Engineering checklist asks.
 - A downgrade that passes CI still does not restore DATA a migration dropped; the
   roll-forward-first advice in `deployment-process.md` is unchanged.
 - The API job takes longer by one downgrade/upgrade cycle.
-- Enforced by the round-trip step; the floor and the mapping change only by
-  review (ADR 0003's ratchet applies).
+- Enforced by the round-trip step and the reversibility test. Nothing makes
+  the floor move only upward: adding a refusing entry for an OLD revision would
+  lower it. What guards that is review of `IRREVERSIBLE`, whose entries ratchet
+  both ways (ADR 0003).

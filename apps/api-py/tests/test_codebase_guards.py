@@ -1801,27 +1801,164 @@ def test_the_five_required_check_names_agree_across_all_four_files() -> None:
         f"  only in ci.yml:          {sorted(ci_names - protect_names)}"
     )
 
-    # preflight.sh runs these locally. It names each check in the `record` call
-    # that reports it, so the string being present is the same string comparison
-    # the other three make — not a claim in a comment.
-    preflight = (REPO / "tools" / "ci" / "preflight.sh").read_text(encoding="utf-8")
-    unrun = sorted(n for n in ci_names if n not in preflight)
-    assert not unrun, (
-        f"tools/ci/preflight.sh does not run, or does not name, {unrun}. Every "
-        "required check belongs in the local runner: one it does not cover is one "
-        "a developer discovers from a runner after the push, which is what that "
-        "script exists to prevent."
-    )
-    # And the standalone checks that HAVE a local answer. Branch policy is the
-    # one that does not: it asks which branch a pull request comes FROM.
+    # preflight.sh runs these locally -- and "runs" is what is checked, not
+    # "mentions". A substring test over the raw file passed with a check renamed
+    # or never called, because every name also lives in a comment, the banner
+    # and the usage text (DEF-QG-I02). `_preflight_problems` reads the script
+    # with comments and heredocs stripped.
+    # Branch policy is the standalone check with no local answer: it asks which
+    # branch a pull request comes FROM.
     local_standalone = {"Secrets (gitleaks)"}
     assert local_standalone <= set(STANDALONE_REQUIRED_CHECKS)
-    unrun_standalone = sorted(n for n in local_standalone if n not in preflight)
-    assert not unrun_standalone, (
-        f"tools/ci/preflight.sh does not run, or does not name, {unrun_standalone}. A "
-        "required check outside ci.yml is still a required check, and a pushed secret "
-        "has no un-push."
+    preflight = (REPO / "tools" / "ci" / "preflight.sh").read_text(encoding="utf-8")
+    problems = _preflight_problems(preflight, ci_names | local_standalone)
+    assert not problems, (
+        "tools/ci/preflight.sh does not run every required check under its required "
+        "name:\n  " + "\n  ".join(problems) + "\nEvery required check belongs in the "
+        "local runner: one it does not cover is one a developer discovers from a "
+        "runner after the push, which is what that script exists to prevent."
     )
+
+
+def _shell_code(text: str) -> list[str]:
+    """preflight.sh's lines with comments and heredoc bodies removed.
+
+    Quotes are tracked per line, which is all this script needs: a `#` inside a
+    quoted string (`"$#"`, a URL fragment) is not a comment. A heredoc body is
+    text for a person -- the usage screen names every check -- and is dropped.
+    """
+    out: list[str] = []
+    heredoc_end: str | None = None
+    for raw in text.splitlines():
+        if heredoc_end is not None:
+            if raw.strip() == heredoc_end:
+                heredoc_end = None
+            out.append("")
+            continue
+        line, quote = [], None
+        for i, ch in enumerate(raw):
+            if quote:
+                if ch == quote and (quote == "'" or raw[i - 1] != "\\"):
+                    quote = None
+            elif ch in "'\"":
+                quote = ch
+            elif ch == "#" and (i == 0 or raw[i - 1] in " \t;"):
+                break
+            line.append(ch)
+        code = "".join(line).rstrip()
+        marker = re.search(r"<<-?\s*['\"]?([A-Za-z_]+)['\"]?", code)
+        if marker:
+            heredoc_end = marker.group(1)
+        out.append(code)
+    return out
+
+
+def _preflight_problems(text: str, required: set[str]) -> list[str]:
+    """Why preflight.sh does not run each required check, or [] if it does.
+
+    For every name: a function that declares `local name="<name>"` and calls
+    `record "$name"` -- so the summary row carries exactly the string GitHub
+    requires -- and that function CALLED on every dispatch path. The --quick
+    path may instead record the check by its literal name as SKIP, which is how
+    it says "not run" rather than staying silent.
+    """
+    lines = _shell_code(text)
+    functions: dict[str, list[str]] = {}
+    top: list[str] = []
+    current: str | None = None
+    for line in lines:
+        start = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)\(\)\s*\{(.*)$", line)
+        if current is None and start:
+            if start.group(2).rstrip().endswith("}"):
+                functions[start.group(1)] = [start.group(2)]  # one-line function
+                continue
+            current = start.group(1)
+            functions[current] = []
+            continue
+        if current is not None:
+            if line == "}":
+                current = None
+            else:
+                functions[current].append(line)
+            continue
+        top.append(line)
+
+    owner: dict[str, str] = {}
+    for fn, body in functions.items():
+        joined = "\n".join(body)
+        declared = re.search(r'^\s*local name="([^"]+)"', joined, re.M)
+        if declared and re.search(r'\brecord "\$name"', joined):
+            owner.setdefault(declared.group(1), fn)
+
+    # The dispatch: the top-level `if [ "$QUICK" ... ]; then A else B fi`, or
+    # one straight path when there is no such branch.
+    block = "\n".join(top)
+    branch = re.search(
+        r'^if \[ "\$QUICK" -eq 1 \]; then\n(?P<quick>.*?)^else\n(?P<full>.*?)^fi$',
+        block, re.S | re.M,
+    )
+    paths = (
+        {"--quick": branch.group("quick"), "full": branch.group("full")}
+        if branch else {"full": block}
+    )
+
+    def called(path: str, fn: str) -> bool:
+        return re.search(rf"^\s*{re.escape(fn)}\s*$", path, re.M) is not None
+
+    problems: list[str] = []
+    for name in sorted(required):
+        fn = owner.get(name)
+        if fn is None:
+            problems.append(f'no check function declares `local name="{name}"` and records it')
+            continue
+        for label, path in paths.items():
+            if called(path, fn):
+                continue
+            if label == "--quick" and re.search(
+                rf'^\s*record "{re.escape(name)}" SKIP\b', path, re.M
+            ):
+                continue
+            problems.append(f"the {label} path never calls {fn} ({name!r})")
+    return problems
+
+
+def _preflight_text() -> str:
+    return (REPO / "tools" / "ci" / "preflight.sh").read_text(encoding="utf-8")
+
+
+_REQUIRED_LOCALLY = {
+    "API (FastAPI + Postgres)", "API (dependency completeness)", "Infra (CDK synth guards)",
+    "Rule 1 (every model call declares its cargo)", "Web (Angular)", "Secrets (gitleaks)",
+}
+
+
+def test_preflight_reader_passes_the_real_script() -> None:
+    assert _preflight_problems(_preflight_text(), _REQUIRED_LOCALLY) == []
+
+
+def test_preflight_reader_refuses_a_renamed_check() -> None:
+    """Mutation A (IT-GX-005): the name survives in comments and the banner."""
+    text = _preflight_text().replace('local name="Secrets (gitleaks)"', 'local name="Secret scan"')
+    assert _preflight_problems(text, _REQUIRED_LOCALLY) == [
+        'no check function declares `local name="Secrets (gitleaks)"` and records it'
+    ]
+
+
+def test_preflight_reader_refuses_a_check_that_is_never_called() -> None:
+    """Mutations B and C: both call sites deleted, the function still defined."""
+    for fn, name in (("check_secrets", "Secrets (gitleaks)"), ("check_web", "Web (Angular)")):
+        text = re.sub(rf"^  {fn}\n", "", _preflight_text(), flags=re.M)
+        assert _preflight_problems(text, _REQUIRED_LOCALLY) == [
+            f"the --quick path never calls {fn} ({name!r})",
+            f"the full path never calls {fn} ({name!r})",
+        ], fn
+
+
+def test_preflight_reader_does_not_count_a_comment_or_the_usage_text() -> None:
+    text = _preflight_text().replace("  check_web\n", "  # check_web\n")
+    assert any("never calls check_web" in p for p in _preflight_problems(text, _REQUIRED_LOCALLY))
+    lines = _shell_code("say 'a # b'  # comment\ncat <<'X'\n  check_web\nX\nrun x \"$#\"\n")
+    assert lines == ["say 'a # b'", "cat <<'X'", "", "", 'run x "$#"']
 
 
 #: Every file that runs gitleaks, or prints a command for a person to run.

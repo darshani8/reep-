@@ -112,10 +112,15 @@ jobs:
       # required check nobody listed.
       - name: Static analysis (ruff, mypy, async blocking)
         working-directory: apps/api-py
+        # All three run even when one fails, so a pull request sees every
+        # finding in one round rather than ruff's, then mypy's on the next push.
+        # The step still fails if any of them did.
         run: |
-          python -m ruff check --config pyproject.toml . ../../tools/ci
-          python -m mypy
-          python ../../tools/ci/check_async_blocking.py
+          rc=0
+          python -m ruff check --config pyproject.toml . ../../tools/ci || rc=1
+          python -m mypy || rc=1
+          python ../../tools/ci/check_async_blocking.py || rc=1
+          exit "$rc"
 
       - name: Apply migrations
         working-directory: apps/api-py

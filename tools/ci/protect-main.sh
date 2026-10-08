@@ -111,7 +111,8 @@
 #
 # Usage:
 #   ./tools/ci/protect-main.sh                 # show the plan, ask, apply
-#   ./tools/ci/protect-main.sh --dry-run       # print the exact payload, send nothing
+#   ./tools/ci/protect-main.sh --dry-run       # reads the current protection, writes nothing;
+#                                              # prints the exact payload it would send
 #   ./tools/ci/protect-main.sh --yes           # non-interactive (runbook, CI)
 #   ./tools/ci/protect-main.sh --approvals 0   # option (b) above
 #   ./tools/ci/protect-main.sh --show          # print current protection and exit
@@ -211,7 +212,7 @@ if ! gh auth status >/dev/null 2>&1; then
   AUTH_OK=false
   AUTH_MSG="not authenticated to GitHub. Run:  gh auth login   (or export GH_TOKEN)"
   if [ "$DRY_RUN" = true ]; then
-    warn "$AUTH_MSG -- continuing anyway because --dry-run sends nothing."
+    warn "$AUTH_MSG -- continuing anyway because --dry-run writes nothing (it only reads)."
   else
     die "$AUTH_MSG"
   fi
@@ -411,7 +412,7 @@ say ""
 
 if [ "$DRY_RUN" = true ]; then
   rule
-  say "--dry-run: nothing was sent."
+  say "--dry-run: read the current protection, wrote nothing."
   exit 0
 fi
 

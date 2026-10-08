@@ -442,14 +442,21 @@ check_rule_one() {
 # the same three ways plus the one CI cannot ask. CI scans a pull request's
 # commits and the checked-out tree; this scans the commits this branch adds over
 # origin/main, the committed tree, and - which no runner ever sees - what you
-# have not committed yet, staged or not. That last one is the point of running
+# have not committed yet: staged, unstaged, and NEW files git does not track
+# yet. That last group is the point of running
 # it here: on a public repository a pushed AUTH_SECRET has no un-push, only
 # rotation, and rotation signs every live session out.
 #
 # The tree is read through `git archive`, not the working directory, because
 # node_modules and the venvs are not the repository and CI's checkout has
 # neither: scanning them would be slow and its findings would be about files
-# nobody can commit. A version other than the pinned one SKIPs rather than
+# nobody can commit. Untracked files are read the same way for the same
+# reason: `git ls-files --others --exclude-standard` is exactly the set a
+# `git add -A` would pick up, ignored files excluded, copied into a scratch
+# directory that keeps their paths so the path-scoped allowlists still apply.
+# A new `.env`-style file is the commonest way a secret is born, and
+# `git diff` (what --pre-commit and --staged read) never sees it.
+# A version other than the pinned one SKIPs rather than
 # scans, because its default ruleset differs and "no leaks" from it answers a
 # different question.
 # ===========================================================================
@@ -471,8 +478,11 @@ check_secrets() {
 
   # --ignore-gitleaks-allow: an inline `gitleaks:allow` comment must not
   # silence a finding (secret-scan.yml says why); one array, all four scans.
+  # --verbose: a FAIL must say which file, line and rule, as CI's does; the
+  # value itself stays redacted. --no-color follows this script's own switch.
   local cfg=("--config" "$REPO_ROOT/.gitleaks.toml" "--gitleaks-ignore-path" "$REPO_ROOT/.gitleaksignore"
-             "--ignore-gitleaks-allow" "--redact" "--no-banner" "--exit-code" "1")
+             "--ignore-gitleaks-allow" "--redact" "--verbose" "--no-banner" "--exit-code" "1")
+  if [ "$USE_COLOR" -eq 0 ]; then cfg+=("--no-color"); fi
 
   # The commits a pull request from here would add. With no origin/main to
   # measure against, every commit - the push event's answer, and slower.
@@ -496,6 +506,24 @@ check_secrets() {
     rc=1
   fi
   rm -rf "$tree"
+
+  # New files git does not track yet. tar rather than `cp --parents`, which is
+  # GNU-only; both GNU tar and bsdtar read a NUL-separated list with --null -T.
+  local untracked fresh
+  untracked=$(git -C "$REPO_ROOT" ls-files --others --exclude-standard | wc -l | tr -d ' ')
+  if [ "$untracked" -gt 0 ]; then
+    fresh=$(mktemp -d 2>/dev/null || mktemp -d -t reep-gitleaks-new) || {
+      record "$name" SKIP $(( $(now) - t0 )) "could not make a scratch directory for the untracked files"; return
+    }
+    note "$untracked untracked file(s), not ignored: scanned as a git add -A would see them"
+    if ( cd "$REPO_ROOT" && git ls-files -z --others --exclude-standard | tar --null -T - -cf - ) \
+         | tar -x -C "$fresh"; then
+      ( cd "$fresh" && run gitleaks dir . "${cfg[@]}" ) || rc=1
+    else
+      rc=1
+    fi
+    rm -rf "$fresh"
+  fi
 
   if [ "$rc" -eq 0 ]; then
     record "$name" PASS $(( $(now) - t0 )) "$note_text"
@@ -707,7 +735,9 @@ check_api_tests() {
     partial="${partial:+$partial; }--skip-db-setup: the migration round trip did not run"
   fi
 
-  ( cd "$API_DIR" && run "$PY" -m pytest -q ) || rc=1
+  # No -q here: pytest.ini already sets it, and -q twice suppresses the
+  # "N passed" summary line, which is the one line worth reading.
+  ( cd "$API_DIR" && run "$PY" -m pytest ) || rc=1
   if [ "$rc" -ne 0 ]; then
     record "$name" FAIL $(( $(now) - t0 )) "pytest failed"
   elif [ -n "$partial" ]; then

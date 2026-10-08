@@ -329,7 +329,7 @@ def run(*, dry_run: bool = False, now: datetime | None = None) -> dict[str, int]
             continue
         try:
             have = _archived_names(root, client)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001  one prefix's listing failing must not stop the sweep
             log.exception(
                 "Could not list the archive under %s, so its %d file(s) were not "
                 "swept this pass.",

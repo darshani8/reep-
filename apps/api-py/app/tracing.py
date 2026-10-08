@@ -105,7 +105,7 @@ def annotate(**data: Any) -> None:
         return
     try:
         current = sentry_sdk.get_current_span()
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001  telemetry must never fail its caller
         return
     if current is None:
         return

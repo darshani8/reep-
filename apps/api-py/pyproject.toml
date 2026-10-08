@@ -27,7 +27,11 @@ line-length = 100
 select = [
     # -- Correctness and types ----------------------------------------------
     "F",      # pyflakes: undefined names, unused imports, shadowing
-    "E9",     # the file does not even parse
+    # E9 is E902 alone on ruff 0.16 (a file that cannot be READ -- a broken
+    # symlink, a permission). A file that does not PARSE is ruff's built-in
+    # `invalid-syntax`, reported whatever is selected; E999 is gone. Kept for
+    # E902: a path the gate was pointed at and could not open must fail it.
+    "E9",
     # The bugbear rules that are bugs rather than style. Deliberately NOT B008
     # (722 hits: it is FastAPI's `Depends()` idiom), B904 (`raise ... from`
     # is a traceback nicety on an HTTPException) or B905 (making every zip
@@ -48,6 +52,9 @@ select = [
     "ASYNC",
     # -- The gate keeping itself honest --------------------------------------
     "RUF100", # a `# noqa` that suppresses nothing is a finding of its own
+    "PGH004", # a bare `# noqa`, or `# ruff: noqa` switching a whole file off
+              # (DEF-QG-U03). The reason after the codes is §39 in
+              # tests/test_codebase_guards.py, which ruff cannot check.
 ]
 # Codes that appear in `# noqa` comments for rules this gate does not select.
 # Without them RUF100 reports every such comment as unused. BLE001 (blind

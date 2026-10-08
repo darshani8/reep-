@@ -1,56 +1,56 @@
 # Importing the model modules registers them on Base.metadata (for create_all
 # and Alembic autogenerate). Add new model modules here as the schema grows.
-from . import academic_history  # noqa: F401
-from . import account_events  # noqa: F401
-from . import academics  # noqa: F401
-from . import agent_run  # noqa: F401
-from . import alert  # noqa: F401
-from . import alumni  # noqa: F401
-from . import analytics_snapshot  # noqa: F401
-from . import archived_document  # noqa: F401
-from . import auth_token  # noqa: F401
-from . import attendance  # noqa: F401
-from . import badge  # noqa: F401
-from . import catalogue  # noqa: F401
-from . import certification  # noqa: F401
-from . import cohort  # noqa: F401
-from . import conversation  # noqa: F401
-from . import course  # noqa: F401
-from . import data_import  # noqa: F401
-from . import english_baseline  # noqa: F401
-from . import feedback  # noqa: F401
-from . import governance  # noqa: F401
-from . import institution  # noqa: F401
-from . import interview  # noqa: F401
-from . import job  # noqa: F401
-from . import knowledge  # noqa: F401
-from . import lab  # noqa: F401
-from . import leave  # noqa: F401
-from . import leave_attachment  # noqa: F401
-from . import leave_policy  # noqa: F401
-from . import mail  # noqa: F401
-from . import mentor_assignment  # noqa: F401
-from . import mentor_note  # noqa: F401
-from . import milestone  # noqa: F401
-from . import mock_test  # noqa: F401
-from . import offer  # noqa: F401
-from . import placement_criteria  # noqa: F401
-from . import student_profile  # noqa: F401
-from . import registration  # noqa: F401
-from . import redesign  # noqa: F401
-from . import resume  # noqa: F401
-from . import resume_profile  # noqa: F401
-from . import schedule  # noqa: F401
-from . import semester_history  # noqa: F401
-from . import skill  # noqa: F401
-from . import staff_upskilling  # noqa: F401
-from . import swoc  # noqa: F401
-from . import time_ledger  # noqa: F401
-from . import timesheet  # noqa: F401
-from . import upload  # noqa: F401
-from . import user  # noqa: F401
-from . import interview_bank  # noqa: F401
-from . import interview_policy  # noqa: F401
-from . import interview_track  # noqa: F401
-from . import staff_signature  # noqa: F401
-from . import voice_platform  # noqa: F401
+from . import academic_history  # noqa: F401  registers the table on Base.metadata
+from . import account_events  # noqa: F401  registers the table on Base.metadata
+from . import academics  # noqa: F401  registers the table on Base.metadata
+from . import agent_run  # noqa: F401  registers the table on Base.metadata
+from . import alert  # noqa: F401  registers the table on Base.metadata
+from . import alumni  # noqa: F401  registers the table on Base.metadata
+from . import analytics_snapshot  # noqa: F401  registers the table on Base.metadata
+from . import archived_document  # noqa: F401  registers the table on Base.metadata
+from . import auth_token  # noqa: F401  registers the table on Base.metadata
+from . import attendance  # noqa: F401  registers the table on Base.metadata
+from . import badge  # noqa: F401  registers the table on Base.metadata
+from . import catalogue  # noqa: F401  registers the table on Base.metadata
+from . import certification  # noqa: F401  registers the table on Base.metadata
+from . import cohort  # noqa: F401  registers the table on Base.metadata
+from . import conversation  # noqa: F401  registers the table on Base.metadata
+from . import course  # noqa: F401  registers the table on Base.metadata
+from . import data_import  # noqa: F401  registers the table on Base.metadata
+from . import english_baseline  # noqa: F401  registers the table on Base.metadata
+from . import feedback  # noqa: F401  registers the table on Base.metadata
+from . import governance  # noqa: F401  registers the table on Base.metadata
+from . import institution  # noqa: F401  registers the table on Base.metadata
+from . import interview  # noqa: F401  registers the table on Base.metadata
+from . import job  # noqa: F401  registers the table on Base.metadata
+from . import knowledge  # noqa: F401  registers the table on Base.metadata
+from . import lab  # noqa: F401  registers the table on Base.metadata
+from . import leave  # noqa: F401  registers the table on Base.metadata
+from . import leave_attachment  # noqa: F401  registers the table on Base.metadata
+from . import leave_policy  # noqa: F401  registers the table on Base.metadata
+from . import mail  # noqa: F401  registers the table on Base.metadata
+from . import mentor_assignment  # noqa: F401  registers the table on Base.metadata
+from . import mentor_note  # noqa: F401  registers the table on Base.metadata
+from . import milestone  # noqa: F401  registers the table on Base.metadata
+from . import mock_test  # noqa: F401  registers the table on Base.metadata
+from . import offer  # noqa: F401  registers the table on Base.metadata
+from . import placement_criteria  # noqa: F401  registers the table on Base.metadata
+from . import student_profile  # noqa: F401  registers the table on Base.metadata
+from . import registration  # noqa: F401  registers the table on Base.metadata
+from . import redesign  # noqa: F401  registers the table on Base.metadata
+from . import resume  # noqa: F401  registers the table on Base.metadata
+from . import resume_profile  # noqa: F401  registers the table on Base.metadata
+from . import schedule  # noqa: F401  registers the table on Base.metadata
+from . import semester_history  # noqa: F401  registers the table on Base.metadata
+from . import skill  # noqa: F401  registers the table on Base.metadata
+from . import staff_upskilling  # noqa: F401  registers the table on Base.metadata
+from . import swoc  # noqa: F401  registers the table on Base.metadata
+from . import time_ledger  # noqa: F401  registers the table on Base.metadata
+from . import timesheet  # noqa: F401  registers the table on Base.metadata
+from . import upload  # noqa: F401  registers the table on Base.metadata
+from . import user  # noqa: F401  registers the table on Base.metadata
+from . import interview_bank  # noqa: F401  registers the table on Base.metadata
+from . import interview_policy  # noqa: F401  registers the table on Base.metadata
+from . import interview_track  # noqa: F401  registers the table on Base.metadata
+from . import staff_signature  # noqa: F401  registers the table on Base.metadata
+from . import voice_platform  # noqa: F401  registers the table on Base.metadata

@@ -239,7 +239,7 @@ def _before_send(event: dict[str, Any], hint: dict[str, Any], *, service: str) -
         if scrubbed is None:
             return None
         return scrub.stamp_tags(scrubbed, service=service, application=APPLICATION)
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001  a scrubber that raises drops the event rather than shipping it
         log.warning("telemetry scrubber failed; the event was dropped", exc_info=True)
         return None
 
@@ -250,7 +250,7 @@ def _before_send_transaction(event: dict[str, Any], hint: dict[str, Any], *, ser
         if scrubbed is None:
             return None
         return scrub.stamp_tags(scrubbed, service=service, application=APPLICATION)
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001  a scrubber that raises drops the transaction rather than shipping it
         log.warning("telemetry scrubber failed; the transaction was dropped", exc_info=True)
         return None
 
@@ -258,14 +258,14 @@ def _before_send_transaction(event: dict[str, Any], hint: dict[str, Any], *, ser
 def _before_breadcrumb(crumb: dict[str, Any], hint: dict[str, Any]) -> dict[str, Any] | None:
     try:
         return scrub.scrub_breadcrumb(crumb, hint)
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001  a scrubber that raises drops the breadcrumb rather than shipping it
         return None
 
 
 def _before_send_log(record: dict[str, Any], hint: dict[str, Any]) -> dict[str, Any] | None:
     try:
         return scrub.scrub_log(record, hint)
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001  a scrubber that raises drops the log rather than shipping it
         return None
 
 
@@ -511,7 +511,7 @@ def job_run(
                 # A plain dict at the call sites; the SDK types it as a TypedDict.
                 monitor_config=cast("MonitorConfig | None", monitor_config),
             )
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001  a cron check-in must never fail the job it reports on
             run.check_in_id = None
 
     try:

@@ -1,15 +1,15 @@
 # 0003. New gates start from a ratcheted baseline, not a big-bang clean-up
 
-- **Status:** Accepted
+- **Status:** Proposed (Accepted on merge)
 - **Date:** 2026-10-08
 - **Deciders:** the quality-gate programme; review by the repository owner
 
 ## Context
 
-Every new gate finds existing violations on its first run. The route audit found
-29 public operations, 22 authenticated handlers whose session is the whole
-answer, 13 untyped JSON answers, 1 status-code deviation and 91 list reads
-without paging on 2026-10-08; a new linter or type checker finds far more. Many
+Every new gate finds existing violations on its first run. The route audit
+records 29 public operations, 26 authenticated handlers whose session is the
+whole answer, 13 untyped JSON answers, 2 status-code deviations and 91 list reads
+without paging (30 capped by construction, 61 real gaps); a new linter or type checker finds far more. Many
 of those "violations" cannot be fixed without breaking a contract: changing an
 existing route's status code, response shape or parameters breaks the Angular
 client, and the installed PWA keeps the previous client alive for a while after
@@ -27,11 +27,14 @@ baseline, and the baseline **ratchets both ways**:
 - a **new** violation fails, with a message saying what rule broke and how to fix
   it;
 - a baseline entry that **no longer violates** — fixed, or the code is gone —
-  also fails, with "strike it off", so the baseline only shrinks and an exception
-  cannot outlive its reason to cover the next thing at the same address.
+  also fails, with "strike it off", so an exception cannot outlive its reason.
 
-Each entry carries a one-line reason written after reading the code, and the
-lists are kept sorted so a diff shows exactly what moved.
+Each entry carries a one-line reason written after reading the code, and — where
+the thing excused has a name — that name: the route audit's entries are
+`(handler, reason)`, so a different handler later mounted at a listed (method,
+path) fails as new instead of inheriting an exception granted after reading
+somebody else's function. Lists are kept sorted so a diff shows exactly what
+moved. Entries are only ever ADDED by review, with the reason in the diff.
 
 ## Alternatives considered
 

@@ -1,6 +1,6 @@
 # 0002. Quality gates are steps in existing CI jobs, plus one standalone required secret scan
 
-- **Status:** Accepted
+- **Status:** Proposed (Accepted on merge)
 - **Date:** 2026-10-08
 - **Deciders:** the quality-gate programme; review by the repository owner
 
@@ -39,18 +39,28 @@ name that can drift.
 - **One job per gate.** Four more names in four files each, and a failure in one
   would not stop the others running — which is the point of separate jobs, and
   not worth sixteen edits and §34's comparison growing by four.
-- **The secret scan as a step in the API job too.** It would run only when the
-  API job runs and inherit its failure modes; a secret in `infra/` or
-  `apps/web/` is as leaked as one in `apps/api-py/`. A secret scan must also
-  run on every push regardless of paths, and before the slow jobs, so it is the
-  one gate that earns its own workflow.
+- **The secret scan as a step in the API job too.** That job runs on every pull
+  request (`ci.yml` has no path filters), so coverage would not be the problem;
+  coupling would. The API job needs a Postgres service, a Python install and the
+  whole dependency set before its first step, and a scan that reports red
+  because `pip install` broke has not said anything about secrets. The scan
+  reads the whole repository — `infra/`, `apps/web/`, workflows — not the API,
+  needs only a checkout with history, finishes in seconds in parallel with the
+  slow jobs, and runs on pushes to `main`, `stage` and `dev` as well as on pull
+  requests. It is the one gate that earns its own workflow.
 
 ## Consequences
 
-- `ci.yml` still has exactly five jobs, and §34 does not change.
+- `ci.yml` still has exactly five jobs, and §34's comparison of those five names
+  across the four files is unchanged.
 - The API job is slower and its log is longer; a static-analysis failure shows as
   "API (FastAPI + Postgres)" failing, and the step name says which gate.
-- The required-check list on `main` grows by one name ("Secrets (gitleaks)"),
-  which must be added to the ruleset in the same change that adds the workflow.
-- Enforced by `test_codebase_guards.py` §34 for the five job names; the secret
-  scan's place in the ruleset is enforced by review.
+- "Secrets (gitleaks)" is required on `main`, `stage` **and** `dev`
+  (`.github/rulesets/*.json`), beside "Branch policy (promotion path)" on `main`
+  and `stage`.
+- §34 grows a second half for the standalone checks:
+  `STANDALONE_REQUIRED_CHECKS` names each one and the workflow that reports it,
+  and `STANDALONE_CHECKS_BY_BRANCH` says which branch's ruleset requires which.
+- Enforced by test, both halves: `test_codebase_guards.py` §34 fails if a
+  required check's name, the workflow reporting it, `protect-main.sh` or any
+  branch's ruleset disagree.

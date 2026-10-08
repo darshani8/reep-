@@ -1,6 +1,6 @@
 # 0001. Record architecture decisions as ADRs
 
-- **Status:** Accepted
+- **Status:** Proposed (Accepted on merge)
 - **Date:** 2026-10-08
 - **Deciders:** the quality-gate programme; review by the repository owner
 

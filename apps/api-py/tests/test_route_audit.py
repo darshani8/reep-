@@ -12,26 +12,36 @@ WHAT IT CHECKS, one test per rule:
 
   * AUTH       every operation needs a session (`get_current_session` somewhere
                in its dependency tree), or is in `PUBLIC` with the reason it may
-               be called by anybody. Stricter: every authenticated handler
-               reaches a role or scope gate, or is in `KNOWN_UNGATED` with the
-               reason a session alone is the whole answer.
+               be called by anybody. Stricter: every authenticated handler calls
+               a named role or scope gate, or REFUSES on an inline role
+               comparison, or is in `KNOWN_UNGATED` with the reason a session
+               alone is the whole answer.
   * WEBSOCKET  every socket authenticates from the cookie in its own body
                (`get_ws_session`), because a WebSocket dependency cannot answer
                401 — see `app/identity.py`.
-  * RESPONSE   every JSON operation declares a response model, and none of them
-               is a SQLAlchemy model: a DB row returned as-is ships every column
-               it will ever grow, including the ones added next year.
+  * RESPONSE   every JSON operation declares a typed response model — no bare
+               dict, Mapping, Any or object anywhere in it — and none of them is
+               a SQLAlchemy model: a DB row returned as-is ships every column it
+               will ever grow, including the ones added next year.
   * STATUS     a 204 has no body; a DELETE answers 204 or a body model; a POST
-               that creates under a collection answers 201.
-  * PAGINATION a GET returning a list accepts a bounded page size plus an
+               to a collection answers 201.
+  * PAGINATION a GET returning a bare list accepts a bounded page size plus an
                offset/cursor, or is recorded as bounded by construction
                (`BOUNDED`) or as a known gap (`KNOWN_UNPAGINATED`).
 
 THE EXCEPTION LISTS RATCHET IN BOTH DIRECTIONS (`route_audit_exceptions.py`). A
 new violation fails with the fix. An entry that no longer violates — fixed, or
 the route is gone — fails too, with "strike it off", because a list that only
-grows is how an exception outlives the reason it was granted and then quietly
-covers the next route mounted at the same path.
+grows is how an exception outlives the reason it was granted. Every entry also
+names the HANDLER it was granted to: a different function mounted at a listed
+(method, path) does not inherit the exception, it fails as new.
+
+WHAT IT CANNOT PROVE, said once here so nobody reads more into a green run. The
+gate check is static: it proves a gate is CALLED on some path through the
+handler, or that the handler refuses on a role comparison — not that the gate
+is the right one for the data, and not that every branch reaches it. Rule 2's
+own tests (`test_mentee_records.py`, `test_no_director_privilege.py`) still
+carry that.
 
 NO DATABASE. This imports the app and reads it; it is part of the plain pytest
 run and needs nothing but the import to work.
@@ -40,6 +50,7 @@ run and needs nothing but the import to work.
 from __future__ import annotations
 
 import ast
+import collections.abc
 import inspect
 import re
 import textwrap
@@ -48,19 +59,12 @@ import typing
 from dataclasses import dataclass
 
 import pytest
-from fastapi.routing import APIRoute, APIWebSocketRoute
+from fastapi.routing import APIRoute, APIWebSocketRoute, iter_route_contexts
 from starlette.responses import Response
 
 from app.db import Base
 from app.main import app
-
 from tests import route_audit_exceptions as ex
-
-try:  # FastAPI >= 0.140 keeps included routers nested; this walks them.
-    from fastapi.routing import iter_route_contexts as _iter_route_contexts
-except ImportError:  # pragma: no cover - older FastAPI flattened app.routes itself
-    _iter_route_contexts = None
-
 
 # --------------------------------------------------------------------------- #
 # The inventory
@@ -78,6 +82,20 @@ MIN_WEBSOCKETS = 2
 # Starlette routes FastAPI mounts for itself. Gated by `settings.docs_exposed`
 # in app/main.py (dev only), and they carry no handler of ours to audit.
 DOCUMENTATION_ROUTES = frozenset({"/openapi.json", "/docs", "/docs/oauth2-redirect", "/redoc"})
+
+# Operations whose handler is NOT ours, by top-level package. The dev MCP
+# surface (`app/dev_mcp.py`) mounts `fastapi_mcp`'s own routes at /mcp, and only
+# when `settings.mcp_enabled` — an ENV allowlist AND the explicit
+# MCP_DEV_SURFACE flag, which docs/redesign-2026-09/MCP-SETUP.md tells a
+# developer to put in their .env. Its access control is its own (it forwards
+# the caller's cookie to the GET routes this audit already checks), so auditing
+# its handlers would fail every developer who followed the setup guide and
+# prove nothing about REEP. An allowlist and not "anything outside app.": a
+# third-party decorator that hid one of OUR handlers behind its own module
+# would otherwise make that handler silently unaudited.
+FOREIGN_HANDLER_PACKAGES = {
+    "fastapi_mcp": "the dev-only MCP surface; mounted only when settings.mcp_enabled",
+}
 
 
 @dataclass(frozen=True)
@@ -100,68 +118,98 @@ class Operation:
         return f"{fn.__module__}.{fn.__qualname__}"
 
 
-def _contexts():
-    if _iter_route_contexts is None:
-        return list(app.routes)
-    return list(_iter_route_contexts(app.routes))
+def _contexts() -> list:
+    return list(iter_route_contexts(app.routes))
 
 
-def _route_of(ctx):
-    return getattr(ctx, "original_route", ctx)
+def _is_ours(fn) -> bool:
+    return getattr(fn, "__module__", "").split(".")[0] == "app"
 
 
-def _http_operations() -> list[Operation]:
+def _all_http_operations() -> list[Operation]:
     out = []
     for ctx in _contexts():
-        if isinstance(_route_of(ctx), APIRoute):
+        if isinstance(ctx.original_route, APIRoute):
             for method in sorted(ctx.methods):
                 out.append(Operation(method, ctx.path, ctx))
     return out
 
 
+ALL_OPERATIONS = _all_http_operations()
+OPERATIONS = [op for op in ALL_OPERATIONS if _is_ours(op.endpoint)]
+FOREIGN_OPERATIONS = [op for op in ALL_OPERATIONS if not _is_ours(op.endpoint)]
+
+
 def _websockets() -> list[tuple[str, typing.Any]]:
     out = []
     for ctx in _contexts():
-        route = _route_of(ctx)
+        route = ctx.original_route
         if isinstance(route, APIWebSocketRoute):
-            starlette = getattr(ctx, "starlette_route", None) or route
-            out.append((starlette.path, inspect.unwrap(route.endpoint)))
+            out.append((ctx.starlette_route.path, inspect.unwrap(route.endpoint)))
     return out
 
 
-OPERATIONS = _http_operations()
 WEBSOCKETS = _websockets()
+
+
+def _independent_walk(routes, prefix: str = "") -> typing.Iterator[tuple[str, str]]:
+    """The same inventory, reached WITHOUT `iter_route_contexts`.
+
+    FastAPI's own OpenAPI generator calls `iter_route_contexts` too, so the
+    OpenAPI cross-check below is not independent of the walk: a bug in that
+    function would drop the same routes from both sides and the comparison would
+    still agree. This recurses the included routers' own `.routes` and adds the
+    include prefixes itself. It reads FastAPI internals (`original_router`,
+    `include_context.prefix`) on purpose; if they are renamed, this fails and
+    says so rather than passing over nothing.
+    """
+    for route in routes:
+        nested = getattr(route, "original_router", None)
+        if nested is not None:
+            yield from _independent_walk(nested.routes, prefix + route.include_context.prefix)
+        elif isinstance(route, APIRoute):
+            for method in route.methods:
+                yield (method, prefix + route.path)
+        elif isinstance(route, APIWebSocketRoute):
+            yield ("WEBSOCKET", prefix + route.path)
 
 
 def test_the_inventory_is_the_whole_application() -> None:
     assert len(OPERATIONS) >= MIN_HTTP_OPERATIONS, (
         f"The route walk found {len(OPERATIONS)} HTTP operations; the app has "
         f"hundreds. The walk is broken (FastAPI changed how it nests included "
-        f"routers?) and every rule in this module would pass over nothing. Fix "
-        f"`_contexts()` before trusting any of them."
+        f"routers?) and every rule in this module would pass over nothing."
     )
     assert len(WEBSOCKETS) >= MIN_WEBSOCKETS, f"Found {len(WEBSOCKETS)} WebSocket routes."
-    keys = [op.key for op in OPERATIONS]
+    keys = [op.key for op in ALL_OPERATIONS]
     assert len(keys) == len(set(keys)), "Two routes claim one (method, path)."
 
-    # Cross-check against the OpenAPI document, which FastAPI builds by its own
-    # walk: the two must name exactly the same operations (hidden ones aside).
+    walked = {op.key for op in ALL_OPERATIONS} | {("WEBSOCKET", path) for path, _ in WEBSOCKETS}
+    independent = set(_independent_walk(app.routes))
+    assert walked == independent, (
+        f"The two walks disagree. Only iter_route_contexts: {sorted(walked - independent)}; "
+        f"only the independent walk: {sorted(independent - walked)}."
+    )
+
+    # And against the OpenAPI document (hidden routes and foreign ones aside).
     documented = {
         (method.upper(), path)
         for path, item in app.openapi()["paths"].items()
         for method in item
         if method in {"get", "post", "put", "patch", "delete"}
     }
-    walked = {op.key for op in OPERATIONS if op.route.include_in_schema}
-    assert walked == documented, (
-        f"Walked but not in OpenAPI: {sorted(walked - documented)}; "
-        f"in OpenAPI but not walked: {sorted(documented - walked)}."
+    foreign_paths = {op.path for op in FOREIGN_OPERATIONS}
+    documented = {(m, p) for m, p in documented if p not in foreign_paths}
+    in_schema = {op.key for op in OPERATIONS if op.route.include_in_schema}
+    assert in_schema == documented, (
+        f"Walked but not in OpenAPI: {sorted(in_schema - documented)}; "
+        f"in OpenAPI but not walked: {sorted(documented - in_schema)}."
     )
 
     stray = sorted(
         getattr(ctx, "path", repr(ctx))
         for ctx in _contexts()
-        if not isinstance(_route_of(ctx), (APIRoute, APIWebSocketRoute))
+        if not isinstance(ctx.original_route, (APIRoute, APIWebSocketRoute))
         and getattr(ctx, "path", None) not in DOCUMENTATION_ROUTES
     )
     assert not stray, (
@@ -170,19 +218,48 @@ def test_the_inventory_is_the_whole_application() -> None:
     )
 
 
+def test_only_allowlisted_foreign_handlers_are_left_out() -> None:
+    """The exclusion above can never hide one of OUR routes.
+
+    `_is_ours` keeps every handler defined under `app.`; what it drops must come
+    from a package named in FOREIGN_HANDLER_PACKAGES, so an `app` handler that a
+    decorator re-homed to some other module fails here instead of vanishing.
+    """
+    unexpected = sorted(
+        f"{op.method} {op.path} ({op.where})"
+        for op in FOREIGN_OPERATIONS
+        if op.endpoint.__module__.split(".")[0] not in FOREIGN_HANDLER_PACKAGES
+    )
+    assert not unexpected, (
+        f"Handlers outside the app package that this audit would silently skip: "
+        f"{unexpected}. Either the handler is ours (use functools.wraps in its "
+        f"decorator) or the package is a deliberate mount — add it to "
+        f"FOREIGN_HANDLER_PACKAGES with the reason."
+    )
+    assert all(_is_ours(op.endpoint) for op in OPERATIONS)
+
+
 # --------------------------------------------------------------------------- #
 # Ratchet helper
 # --------------------------------------------------------------------------- #
 
 
 def _ratchet(rule: str, violations: dict, known: dict, fix: str) -> None:
-    """Fail on a new violation AND on an exception that no longer applies."""
-    new = sorted(set(violations) - set(known))
-    stale = sorted(set(known) - set(violations))
+    """Fail on a new violation AND on an exception that no longer applies.
+
+    `violations` is {(method, path): (handler, detail)}; `known` is
+    {(method, path): (handler, reason)}. An entry whose handler differs from the
+    one now mounted at that path is NOT an exception for it.
+    """
+    new = sorted(k for k in violations if k not in known or known[k][0] != violations[k][0])
+    stale = sorted(k for k in known if k not in violations)
     lines = []
     if new:
         lines.append(f"{rule}: {len(new)} new violation(s). {fix}")
-        lines += [f"  {m} {p}  ({violations[(m, p)]})" for m, p in new]
+        for key in new:
+            handler, detail = violations[key]
+            note = f"; the list grants this to {known[key][0]}, not this handler" if key in known else ""
+            lines.append(f"  {key[0]} {key[1]}  ({handler}: {detail}{note})")
     if stale:
         lines.append(
             f"{rule}: {len(stale)} exception(s) no longer apply — the route was "
@@ -210,9 +287,14 @@ def test_every_exception_list_is_sorted_and_says_why(name: str) -> None:
     assert keys == sorted(keys, key=lambda k: (k[1], k[0])), (
         f"{name} must be sorted by (path, method) so a diff shows where an entry went."
     )
-    for (method, path), reason in entries.items():
+    for (method, path), value in entries.items():
         assert method in {"GET", "POST", "PUT", "PATCH", "DELETE"}, (name, method, path)
         assert path.startswith("/"), (name, method, path)
+        assert isinstance(value, tuple) and len(value) == 2, (
+            f"{name}[{method} {path}] must be (handler, reason)."
+        )
+        handler, reason = value
+        assert handler.startswith("app."), f"{name}[{method} {path}]: {handler!r} is not a handler"
         assert isinstance(reason, str) and len(reason.strip()) >= 15, (
             f"{name}[{method} {path}] needs a one-line reason, not a placeholder."
         )
@@ -224,14 +306,76 @@ def test_pagination_lists_do_not_overlap() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# AUTH
+# Reading handler source
 # --------------------------------------------------------------------------- #
-
-SESSION_DEPENDENCIES = frozenset({"app.identity.get_current_session"})
 
 
 def _qualname(fn) -> str:
     return f"{getattr(fn, '__module__', '?')}.{getattr(fn, '__qualname__', repr(fn))}"
+
+
+def _source_tree(fn) -> ast.AST | None:
+    try:
+        return ast.parse(textwrap.dedent(inspect.getsource(fn)))
+    except (OSError, TypeError, SyntaxError):
+        return None
+
+
+def _constant_truth(test: ast.expr) -> bool | None:
+    """True/False for `if True` / `if 0` and friends; None for a real test."""
+    if isinstance(test, ast.Constant):
+        return bool(test.value)
+    return None
+
+
+def _live_nodes(node: ast.AST) -> typing.Iterator[ast.AST]:
+    """`ast.walk`, minus the branches that can never run.
+
+    `if False: require_admin(session)` is a gate nobody passes through, and it
+    must not count as one; likewise the `else` of an `if True`.
+    """
+    yield node
+    if isinstance(node, ast.If):
+        truth = _constant_truth(node.test)
+        yield from _live_nodes(node.test)
+        if truth is not False:
+            for child in node.body:
+                yield from _live_nodes(child)
+        if truth is not True:
+            for child in node.orelse:
+                yield from _live_nodes(child)
+        return
+    for child in ast.iter_child_nodes(node):
+        yield from _live_nodes(child)
+
+
+def _resolved_calls(fn) -> list:
+    """The app functions `fn` calls on a live branch, resolved through its module's globals."""
+    tree = _source_tree(fn)
+    if tree is None:
+        return []
+    names = getattr(fn, "__globals__", {})
+    out = []
+    for node in _live_nodes(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        target = None
+        if isinstance(node.func, ast.Name):
+            target = names.get(node.func.id)
+        elif isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name):
+            base = names.get(node.func.value.id)
+            if isinstance(base, types.ModuleType):
+                target = getattr(base, node.func.attr, None)
+        if inspect.isfunction(target) and _is_ours(target):
+            out.append(inspect.unwrap(target))
+    return out
+
+
+# --------------------------------------------------------------------------- #
+# AUTH
+# --------------------------------------------------------------------------- #
+
+SESSION_DEPENDENCIES = frozenset({"app.identity.get_current_session"})
 
 
 def _dependency_calls(dependant) -> list:
@@ -247,7 +391,7 @@ def _requires_session(op: Operation) -> bool:
 
 
 def test_every_operation_requires_a_session_or_is_declared_public() -> None:
-    violations = {op.key: op.where for op in OPERATIONS if not _requires_session(op)}
+    violations = {op.key: (op.where, "no session dependency") for op in OPERATIONS if not _requires_session(op)}
     _ratchet(
         "AUTH (session)",
         violations,
@@ -279,60 +423,48 @@ GATE_FUNCTIONS = frozenset(
     }
 )
 
-# An inline `session.get("role") != Role.STUDENT.value` (or `session["role"]`)
-# compared and raised on is the same decision written in place. It is accepted
-# because a dozen handlers are written that way and every one was read.
+# `session.get("role")` or `session["role"]`.
 _INLINE_ROLE = re.compile(r"""session(?:\.get\(|\[)\s*["']role["']""")
 
 
-def _source_tree(fn) -> ast.AST | None:
-    try:
-        return ast.parse(textwrap.dedent(inspect.getsource(fn)))
-    except (OSError, TypeError, SyntaxError):
-        return None
+def _refuses_on_role_inline(fn) -> bool:
+    """Does `fn` itself RAISE on a comparison of the session's role?
 
+    The same decision as a gate call, written in place —
+    `if session.get("role") != Role.STUDENT.value: raise HTTPException(403, ...)`
+    — and a dozen handlers are written that way. A comparison that raises
+    nothing is NOT a gate: `is_admin = session.get("role") == "ADMIN"` and the
+    nineteen role-predicate helpers in `app/` (`capabilities_for`,
+    `_is_rehearsal`, `scope_filter` …) only decide what to show, so a handler
+    that calls one of them has not been refused anything.
 
-def _resolved_calls(fn) -> list:
-    """The app functions `fn` calls, resolved through its module's globals."""
-    tree = _source_tree(fn)
-    if tree is None:
-        return []
-    names = getattr(fn, "__globals__", {})
-    out = []
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Call):
-            continue
-        target = None
-        if isinstance(node.func, ast.Name):
-            target = names.get(node.func.id)
-        elif isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name):
-            base = names.get(node.func.value.id)
-            if isinstance(base, types.ModuleType):
-                target = getattr(base, node.func.attr, None)
-        if inspect.isfunction(target) and target.__module__.startswith("app."):
-            out.append(inspect.unwrap(target))
-    return out
-
-
-def _compares_role_inline(fn) -> bool:
+    `role = session.get("role")` and then `if role != ...: raise` is the same
+    check one line apart, so the names the role was bound to count as the role.
+    """
     tree = _source_tree(fn)
     if tree is None:
         return False
-    # `role = session.get("role")` and then `if role != ...` is the same check
-    # one line apart, so the names the role was bound to count as the role.
+    live = list(_live_nodes(tree))
     role_names = {
         target.id
-        for node in ast.walk(tree)
+        for node in live
         if isinstance(node, ast.Assign) and _INLINE_ROLE.search(ast.unparse(node.value))
         for target in node.targets
         if isinstance(target, ast.Name)
     }
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Compare):
-            continue
-        if _INLINE_ROLE.search(ast.unparse(node)):
+
+    def mentions_role(test: ast.expr) -> bool:
+        if _INLINE_ROLE.search(ast.unparse(test)):
             return True
-        if any(isinstance(n, ast.Name) and n.id in role_names for n in ast.walk(node)):
+        return any(isinstance(n, ast.Name) and n.id in role_names for n in ast.walk(test))
+
+    for node in live:
+        if not (isinstance(node, ast.If) and _constant_truth(node.test) is None):
+            continue
+        if not mentions_role(node.test):
+            continue
+        branches = [*node.body, *node.orelse]
+        if any(isinstance(n, ast.Raise) for branch in branches for n in _live_nodes(branch)):
             return True
     return False
 
@@ -341,12 +473,12 @@ _GATE_MEMO: dict = {}
 
 
 def _reaches_gate(fn, depth: int = 0) -> bool:
-    """Does `fn`, or anything it calls inside `app`, apply a gate?
+    """Does `fn`, or anything it calls inside `app` on a live branch, apply a gate?
 
-    Branch-insensitive by construction — `if x: require_admin(s)` counts. That
+    Branch-insensitive beyond dead code: `if x: require_admin(s)` counts. That
     is the limit of a static check and the reason KNOWN_UNGATED is read by a
-    human; what it reliably catches is the handler that never reaches a gate on
-    ANY path, which is the shape of every scope bug this repository has had.
+    human; what it reliably catches is a handler that calls no gate and refuses
+    on no role ANYWHERE in its call tree — the shape of a forgotten check.
     """
     if _qualname(fn) in GATE_FUNCTIONS:
         return True
@@ -355,7 +487,7 @@ def _reaches_gate(fn, depth: int = 0) -> bool:
     if depth > 6:
         return False
     _GATE_MEMO[fn] = False  # cycle guard
-    hit = _compares_role_inline(fn) or any(_reaches_gate(c, depth + 1) for c in _resolved_calls(fn))
+    hit = _refuses_on_role_inline(fn) or any(_reaches_gate(c, depth + 1) for c in _resolved_calls(fn))
     _GATE_MEMO[fn] = hit
     return hit
 
@@ -370,7 +502,11 @@ def _gated(op: Operation) -> bool:
 
 
 def test_every_authenticated_handler_reaches_a_role_or_scope_gate() -> None:
-    violations = {op.key: op.where for op in OPERATIONS if _requires_session(op) and not _gated(op)}
+    violations = {
+        op.key: (op.where, "no role or scope gate")
+        for op in OPERATIONS
+        if _requires_session(op) and not _gated(op)
+    }
     _ratchet(
         "AUTH (gate)",
         violations,
@@ -398,7 +534,9 @@ def test_every_websocket_authenticates_in_its_body() -> None:
         seen.add(fn)
         tree = _source_tree(fn)
         if tree and any(
-            isinstance(n, ast.Name) and n.id == "get_ws_session" for n in ast.walk(tree)
+            isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == "get_ws_session"
+            or isinstance(n, ast.Name) and n.id == "get_ws_session"
+            for n in _live_nodes(tree)
         ):
             return True
         return any(reaches_ws_session(c, depth + 1, seen) for c in _resolved_calls(fn))
@@ -432,12 +570,34 @@ def _declared_class(op: Operation):
     return getattr(cls, "value", cls)  # unwrap FastAPI's DefaultPlaceholder
 
 
+_UNTYPED_MAPPINGS = (dict, collections.abc.Mapping, collections.abc.MutableMapping)
+
+
+def _untyped_parts(t) -> list[str]:
+    """The parts of a declared type that pin no shape.
+
+    Any, object, and a dict/Mapping with no type arguments, anywhere in the type
+    — `list[dict]` and `dict[str, Any]` included. A Pydantic model is a leaf and
+    is never looked inside: its fields are its own contract. `dict[str, SomeOut]`
+    is typed and passes. The point is mypy: annotating `-> dict[str, Any]` makes
+    the type checker quiet and the API contract exactly as empty as before.
+    """
+    if t is typing.Any or t is object:
+        return [repr(t)]
+    if t in _UNTYPED_MAPPINGS or t is typing.Dict:  # the bare alias is the thing being refused
+        return [getattr(t, "__name__", repr(t))]
+    origin = typing.get_origin(t)
+    args = typing.get_args(t)
+    if origin in _UNTYPED_MAPPINGS and not args:
+        return [repr(t)]
+    return [part for arg in args for part in _untyped_parts(arg)]
+
+
 def _response_model_problem(op: Operation) -> str | None:
     model = op.route.response_model
-    if model is dict:
-        return "bare dict: no schema, nothing pins the shape"
     if model is not None:
-        return None
+        untyped = _untyped_parts(model)
+        return f"untyped response model ({', '.join(untyped)})" if untyped else None
     if op.route.status_code == 204 or _returns_a_response(op):
         return None
     cls = _declared_class(op)
@@ -451,13 +611,14 @@ def test_every_json_operation_declares_a_response_model() -> None:
     for op in OPERATIONS:
         problem = _response_model_problem(op)
         if problem:
-            violations[op.key] = f"{op.where}: {problem}"
+            violations[op.key] = (op.where, problem)
     _ratchet(
         "RESPONSE_MODEL",
         violations,
         ex.KNOWN_NO_RESPONSE_MODEL,
-        "Declare `response_model=` (or a return annotation naming a Pydantic "
-        "model). A file, CSV or redirect returns a Response subclass instead.",
+        "Declare `response_model=` (or a return annotation) naming a Pydantic "
+        "model — not dict, dict[str, Any] or Any, which type-check and pin "
+        "nothing. A file, CSV or redirect returns a Response subclass instead.",
     )
 
 
@@ -491,22 +652,35 @@ def test_no_operation_returns_a_database_model() -> None:
 # --------------------------------------------------------------------------- #
 
 
+def _is_collection_post(op: Operation, paths: set[str]) -> bool:
+    """A POST that creates something in a collection.
+
+    Two shapes, both cheap and both honest: the path has `/{id}` children (the
+    collection is visibly addressable item by item), or its last segment is a
+    plural noun (`/assessments`, `/members`). A POST to a singular or verb
+    segment (`/request`, `/timesheet`, `/approve`) is NOT judged — telling an
+    action from a singleton create needs a human, and a rule that guessed would
+    fill KNOWN_STATUS with entries nobody believes.
+    """
+    last = op.path.rstrip("/").rsplit("/", 1)[-1]
+    if last.startswith("{"):
+        return False
+    if any(p.startswith(op.path + "/{") for p in paths):
+        return True
+    return last.endswith("s") and not last.endswith("ss") and "." not in last
+
+
 def _status_problems() -> dict:
     out = {}
     paths = {op.path for op in OPERATIONS}
     for op in OPERATIONS:
         code = op.route.status_code
         if code == 204 and op.route.response_model is not None:
-            out[op.key] = f"{op.where}: 204 declares a response model"
+            out[op.key] = (op.where, "204 declares a response model")
         if op.method == "DELETE" and code != 204 and op.route.response_model is None:
-            out[op.key] = f"{op.where}: DELETE answers {code or 200} with no body model"
-        if op.method == "POST":
-            last = op.path.rstrip("/").rsplit("/", 1)[-1]
-            is_collection = not last.startswith("{") and any(
-                p.startswith(op.path + "/{") for p in paths
-            )
-            if is_collection and code != 201:
-                out[op.key] = f"{op.where}: POST to a collection answers {code or 200}, not 201"
+            out[op.key] = (op.where, f"DELETE answers {code or 200} with no body model")
+        if op.method == "POST" and _is_collection_post(op, paths) and code != 201:
+            out[op.key] = (op.where, f"POST to a collection answers {code or 200}, not 201")
     return out
 
 
@@ -546,6 +720,9 @@ def _upper_bound(field) -> float | None:
 
 
 def _returns_a_list(op: Operation) -> bool:
+    # A BARE list only. A model WITH list fields (`/api/admin/exports/history`,
+    # `/api/student/mentor-meetings`, ~50 GETs) is not judged: whether its list
+    # grows without bound depends on what fills it, which needs reading.
     return typing.get_origin(op.route.response_model) is list
 
 
@@ -559,7 +736,7 @@ def _is_paginated(op: Operation) -> bool:
 
 def test_list_reads_are_paginated_or_recorded() -> None:
     violations = {
-        op.key: op.where
+        op.key: (op.where, "unpaginated list")
         for op in OPERATIONS
         if op.method == "GET" and _returns_a_list(op) and not _is_paginated(op)
     }

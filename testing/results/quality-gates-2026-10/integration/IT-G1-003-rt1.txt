@@ -1,0 +1,55 @@
+NOTE: Same three variants as IT-G1-003, worktree /tmp/ci-r1 at 40201a14, DATABASE_URL on a closed port. Variant A (mypy only) is also the NEW case IT-G1-004-rt1's first half.
+### 2026-10-08T09:53:07Z  cwd=/tmp/ci-r1
+$ echo 'qg_probe: int = "x"  # QG plant' >> apps/api-py/app/clock.py; PATH=/tmp/py314/bin:$PATH /home/user/reep-/apps/api-py/.venv/bin/python /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/bin/replay_job.py .github/workflows/ci.yml api /tmp/ci-r1 DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:5499/reep_py 2>&1 | grep -E '^(---|===|JOB)|error:|Found|All checks passed|Success: no issues|S[0-9]{3} |check_async_blocking:|blocking work|qg_probe' | grep -v 'Requirement already' | cut -c1-200; echo REPLAY_EXIT=${PIPESTATUS[0]}; git checkout -q -- .; git status --porcelain | wc -l
+JOB 'api' name='API (FastAPI + Postgres)'
+--- step 1: uses actions/checkout@v4  (not executed: provided by the test bed)
+--- step 2: uses actions/setup-python@v5  (not executed: provided by the test bed)
+--- step 3: 'Install dependencies'  working-directory=apps/api-py
+=== step 3 'Install dependencies': exit 0 in 1.4s
+--- step 4: 'Static analysis (ruff, mypy, async blocking)'  working-directory=apps/api-py
+All checks passed!
+app/clock.py:62: error: Incompatible types in assignment (expression has type "str", variable has type "int")  [assignment]
+Found 1 error in 1 file (checked 218 source files)
+check_async_blocking: no new blocking calls in async defs under app/ (3 known, each with its reason in this file).
+=== step 4 'Static analysis (ruff, mypy, async blocking)': exit 1 in 4.8s
+JOB FAILED at this step; later steps not run (as on a runner)
+REPLAY_EXIT=1
+0
+[exit 0, 6s]
+
+### 2026-10-08T09:53:13Z  cwd=/tmp/ci-r1
+$ echo 'eval("1")  # QG plant' >> tools/ci/check_pii_gate.py; PATH=/tmp/py314/bin:$PATH /home/user/reep-/apps/api-py/.venv/bin/python /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/bin/replay_job.py .github/workflows/ci.yml api /tmp/ci-r1 DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:5499/reep_py 2>&1 | grep -E '^(---|===|JOB)|error:|Found|All checks passed|Success: no issues|S[0-9]{3} |check_async_blocking:|blocking work|qg_probe' | grep -v 'Requirement already' | cut -c1-200; echo REPLAY_EXIT=${PIPESTATUS[0]}; git checkout -q -- .; git status --porcelain | wc -l
+JOB 'api' name='API (FastAPI + Postgres)'
+--- step 1: uses actions/checkout@v4  (not executed: provided by the test bed)
+--- step 2: uses actions/setup-python@v5  (not executed: provided by the test bed)
+--- step 3: 'Install dependencies'  working-directory=apps/api-py
+=== step 3 'Install dependencies': exit 0 in 1.7s
+--- step 4: 'Static analysis (ruff, mypy, async blocking)'  working-directory=apps/api-py
+S307 Use of possibly insecure function; consider using `ast.literal_eval`
+Found 1 error.
+Success: no issues found in 218 source files
+check_async_blocking: no new blocking calls in async defs under app/ (3 known, each with its reason in this file).
+=== step 4 'Static analysis (ruff, mypy, async blocking)': exit 1 in 4.8s
+JOB FAILED at this step; later steps not run (as on a runner)
+REPLAY_EXIT=1
+0
+[exit 0, 7s]
+
+### 2026-10-08T09:53:20Z  cwd=/tmp/ci-r1
+$ cp /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/bin/qg_probe.py apps/api-py/app/qg_probe.py; PATH=/tmp/py314/bin:$PATH /home/user/reep-/apps/api-py/.venv/bin/python /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/bin/replay_job.py .github/workflows/ci.yml api /tmp/ci-r1 DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:5499/reep_py 2>&1 | grep -E '^(---|===|JOB)|error:|Found|All checks passed|Success: no issues|S[0-9]{3} |check_async_blocking:|blocking work|qg_probe' | grep -v 'Requirement already' | cut -c1-200; echo REPLAY_EXIT=${PIPESTATUS[0]}; git clean -fdq; git checkout -q -- .; git status --porcelain | wc -l
+JOB 'api' name='API (FastAPI + Postgres)'
+--- step 1: uses actions/checkout@v4  (not executed: provided by the test bed)
+--- step 2: uses actions/setup-python@v5  (not executed: provided by the test bed)
+--- step 3: 'Install dependencies'  working-directory=apps/api-py
+=== step 3 'Install dependencies': exit 0 in 1.4s
+--- step 4: 'Static analysis (ruff, mypy, async blocking)'  working-directory=apps/api-py
+All checks passed!
+Success: no issues found in 219 source files
+An `async def` under apps/api-py/app does blocking work on the event loop.
+  app/qg_probe.py:10: qg_probe: parameter `db` is Depends(get_db), a sync Session
+=== step 4 'Static analysis (ruff, mypy, async blocking)': exit 1 in 4.5s
+JOB FAILED at this step; later steps not run (as on a runner)
+REPLAY_EXIT=1
+0
+[exit 0, 6s]
+

@@ -1,0 +1,20 @@
+import sys,re
+p='tools/ci/preflight.sh'; s=open(p).read(); v=sys.argv[1]
+full_old = "else\n  check_api_imports\n  check_rule_one\n  check_secrets\n"
+quick_old = "  check_rule_one\n  check_secrets\n  check_cdk\n  check_web\n  record \"API (FastAPI + Postgres)\" SKIP 0 \"--quick\"\n"
+assert s.count(full_old)==1 and s.count(quick_old)==1
+if v=='nested':   # calls only inside a function that is never called
+    s=s.replace(quick_old, quick_old.replace("  check_secrets\n",""))
+    s=s.replace(full_old, "else\n  check_api_imports\n  check_rule_one\n")
+    s=s.replace("STARTED=$(now)", "never_called() {\n  check_secrets\n}\n\nSTARTED=$(now)",1)
+elif v=='deadif':  # call kept on its own line, inside a branch that cannot run
+    s=s.replace(quick_old, quick_old.replace("  check_secrets\n","  if false; then\n  check_secrets\n  fi\n"))
+    s=s.replace(full_old, "else\n  check_api_imports\n  check_rule_one\n  if false; then\n  check_secrets\n  fi\n")
+elif v=='afterexit':  # call placed after an exit on both paths
+    s=s.replace(quick_old, quick_old.replace("  check_secrets\n","  exit 0\n  check_secrets\n"))
+    s=s.replace(full_old, "else\n  check_api_imports\n  check_rule_one\n  exit 0\n  check_secrets\n")
+elif v=='redefined':  # check_secrets redefined later as a no-op, so the call does nothing
+    s=s.replace("STARTED=$(now)", "check_secrets() { :; }\n\nSTARTED=$(now)",1)
+elif v=='commented':  # control: the call commented out
+    s=s.replace(full_old, "else\n  check_api_imports\n  check_rule_one\n  # check_secrets\n")
+open(p,'w').write(s); print('mutated:',v)

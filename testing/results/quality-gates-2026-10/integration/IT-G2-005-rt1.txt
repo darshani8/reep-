@@ -1,0 +1,9 @@
+### 2026-10-08T09:42:02Z  cwd=/tmp/ss-clone
+$ rm -rf /tmp/rt && mkdir /tmp/rt && EVENT=pull_request BASE_SHA=40201a140ba70f8be40d6b016f55ddb828fcaa91 HEAD_SHA=40201a140ba70f8be40d6b016f55ddb828fcaa91 RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-rt1.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|RuleID|File:|Line:|Commit:|Secret:|commits scanned|no leaks|leaks found|::error'; echo STEP_EXIT=${PIPESTATUS[0]}
+Range 40201a140ba70f8be40d6b016f55ddb828fcaa91..40201a140ba70f8be40d6b016f55ddb828fcaa91: 0 non-merge commit(s), 0 adding lines
+9:42AM INF 0 commits scanned.
+9:42AM INF no leaks found
+9:42AM INF no leaks found
+STEP_EXIT=0
+[exit 0, 6s]
+

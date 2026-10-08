@@ -6,10 +6,10 @@
 |---|---|
 | Document ID | REEP-ITS-QG-2026-10 |
 | Version | 1.0 |
-| Status | Executed — submitted to the Test Manager for triage |
+| Status | v1.2: re-test round executed on the fix build; submitted to the Test Manager |
 | Author | Tester session I |
 | Date | 2026-10-08 |
-| Build under test | `claude/clever-meitner-ndvc2e` (PR darshani8/reep-#132 → `dev`), head **`a3688f0189c48287f376cf8c165d762a2f8ab8d8`** |
+| Build under test | `claude/clever-meitner-ndvc2e` (PR darshani8/reep-#132 → `dev`): first round on **`a3688f0189c48287f376cf8c165d762a2f8ab8d8`**; re-test round (§5a) on **`40201a140ba70f8be40d6b016f55ddb828fcaa91`** |
 | Base for comparison | `15a9e7d1d89ad7971436235db9d606e976c46be4` |
 | Test basis | [01-test-plan.md](01-test-plan.md) v1.0 (REQ-G1-01 … REQ-GX-04) |
 | Standard followed | ISO/IEC/IEEE 29119-3:2021 (test specification, test execution log, incident report); ISTQB CTFL v4.0 terminology |
@@ -23,6 +23,7 @@
 | 0.1 | 2026-10-08 | Tester session I | Cases designed from the test plan and the gate sources, before execution |
 | 1.0 | 2026-10-08 | Tester session I | All 48 cases executed; actual results, verdicts, 4 defects and 6 observations recorded |
 | 1.1 | 2026-10-08 | Tester session I | §6.1: re-test of DEF-QG-I02 and DEF-QG-I03 on `8914e839` — both still open |
+| 1.2 | 2026-10-08 | Tester session I | Re-test round on `40201a14` (the Test Manager's request): confirmation of DEF-QG-I01…I04, full L2 regression, 5 new cases (§4.3), §5a re-test log, a Re-test field on every defect, DEF-QG-I05 raised, §7 updated. (The Test Manager asked for "v1.1"; 1.1 was already used for the 8914e839 re-test, so this is 1.2.) |
 
 ---
 
@@ -494,6 +495,60 @@ Common preconditions unless stated: build `a3688f0` checked out; environment of 
 - **Actual:** default: "FAIL Rule 1 …" naming `apps/api-py/app/qg_pii.py:5 complete_chat(...)`, 3–6 SKIP with that reason, exit 1. `--keep-going`: Rule 1 FAIL, Secrets/CDK/Web PASS, API FAIL (mypy line 62), exit 1. Reverted.
 - **Verdict:** **Pass** · **Evidence:** `IT-GX-021.txt`
 
+### 4.3 Cases added in the re-test round (v1.2)
+
+These test what the fixes introduced. They were designed before being run, like the others, and were executed only on `40201a14`.
+
+| ID | Requirement(s) | Title | Technique | Priority |
+|---|---|---|---|---|
+| IT-G1-004 | G1-06 | Static step with only mypy failing: all three tools run and the step fails at the end; two tools failing are both reported | Decision table | P1 |
+| IT-GX-022 | GX-01, GX-02 | §34 against a preflight whose check is called only in a function that is never called (and other dead-call shapes) | Adversarial bypass | P1 |
+| IT-GX-023 | GX-02 | An untracked file inside an ignored directory is NOT scanned | Equivalence partitioning | P2 |
+| IT-GX-024 | GX-02, G2-05 | An untracked file under a path-scoped allowlist is treated as CI would treat it | Comparison | P2 |
+| IT-GX-025 | GX-02 | Untracked filenames with a space, a leading dash and a newline go through the `ls-files -z \| tar --null` pipe | Boundary; error guessing | P2 |
+
+#### IT-G1-004 — Static step with only mypy failing
+- **Requirements:** REQ-G1-06 (and OBS-QG-I06a's fix)
+- **Preconditions:** worktree at `40201a14`; job replay as IT-G1-003; `DATABASE_URL` on a closed port.
+- **Test data:** run 1: type error in `app/clock.py` only; run 2: that plus `eval("1")` in `tools/ci/check_pii_gate.py`.
+- **Expected:** run 1: ruff "All checks passed!", mypy reports the error, the async guard still runs ("3 known"), step 4 exits 1, later steps not run. Run 2: S307 **and** the mypy error both reported in the same run, exit 1.
+- **Actual:** exactly as expected in both runs.
+- **Verdict:** **Pass** · **Evidence:** `IT-G1-004-rt1.txt`
+
+#### IT-GX-022 — §34 against dead or unreachable calls
+- **Requirements:** REQ-GX-01, REQ-GX-02
+- **Preconditions:** scratch worktree at `40201a14`; mutation script `IT-GX-022-rt1-m34.py.txt`; `bash -n` must accept each mutated file.
+- **Test data:** five variants of `tools/ci/preflight.sh`:
+  - `nested`: both `check_secrets` calls removed from the dispatch, and the call put inside `never_called() { check_secrets; }`, a function nothing calls.
+  - `deadif`: each call wrapped in `if false; then … fi`.
+  - `afterexit`: `exit 0` placed before each call.
+  - `redefined`: `check_secrets() { :; }` defined after the real one.
+  - `commented` (control): the full-path call commented out.
+- **Expected:** §34 fails on every variant; each one leaves preflight without a working secret scan.
+- **Actual:** `nested`: fails, naming both paths ("the --quick path never calls check_secrets"). `redefined`: fails, "no check function declares `local name=\"Secrets (gitleaks)\"`". `commented`: fails. **`deadif`: 1 passed. `afterexit`: 1 passed.** `bash -n` accepted all five.
+- **Verdict:** **Fail** → **DEF-QG-I05** · **Evidence:** `IT-GX-022-rt1.txt`
+
+#### IT-GX-023 — Untracked file inside an ignored directory
+- **Requirements:** REQ-GX-02
+- **Test data:** `apps/api-py/app/__pycache__/qg_leak.txt` (ignored by `apps/api-py/.gitignore:6`) holding `<FAKE-VALUE-MASKED>`; `--quick`.
+- **Expected:** `git ls-files --others --exclude-standard` lists 0 files; no untracked scan; check 3 PASS. The file can never be committed by `git add -A`, so scanning it would be noise.
+- **Actual:** `check-ignore` names `.gitignore:6`; 0 untracked; no "untracked file(s)" line; check 3 PASS; exit 2 (only the `--quick` rows).
+- **Verdict:** **Pass** · **Evidence:** `IT-GX-023-rt1.txt`
+
+#### IT-GX-024 — Untracked file under a path-scoped allowlist
+- **Requirements:** REQ-GX-02, REQ-G2-05
+- **Test data:** run 1: `tools/qgprobe/package-lock.json` (global path allowlist `(^|/)package-lock\.json$`) holding `<FAKE-VALUE-MASKED>`. Run 2: the same content also in `tools/qgprobe/notes.txt` (no allowlist).
+- **Expected:** run 1: the untracked scan runs and the allowlist applies, because paths are relative to the copy's root exactly as in the tree scan; check 3 PASS. Run 2: the notes file is caught by name; FAIL; exit 1.
+- **Actual:** run 1: "1 untracked file(s) … no leaks found", PASS. Run 2: "2 untracked file(s)", `File: tools/qgprobe/notes.txt`, `RuleID: github-pat`, FAIL, exit 1; raw value 0 occurrences.
+- **Verdict:** **Pass** · **Evidence:** `IT-GX-024-rt1.txt`
+
+#### IT-GX-025 — Awkward filenames through the tar pipe
+- **Requirements:** REQ-GX-02
+- **Test data:** in `tools/qg probe/` (a space in the directory name): `a file.txt`, `-dash.txt`, and `new<LF>line.txt`, all created with Python so the newline is real (`ls -b` shows `new\nline.txt`). Run A: all three clean. Run B: the newline-named file holds `<FAKE-VALUE-MASKED>`.
+- **Expected:** A: three files scanned, no tar error, PASS. B: FAIL, exit 1.
+- **Actual:** the first attempt created a literal `$'\n'` instead of a newline (a test-execution error, recorded in the evidence) and was re-executed. A: "3 untracked file(s)", no tar error, PASS. B: FAIL, exit 1, `File: tools/qg probe/new` (gitleaks prints the rest of the name on the next line, OBS-QG-I08); raw value 0 occurrences.
+- **Verdict:** **Pass** · **Evidence:** `IT-GX-025-rt1.txt`
+
 ---
 
 ## 5. Test execution log
@@ -552,6 +607,69 @@ Times are UTC start times on 2026-10-08, in execution order (long runs overlappe
 | IT-G1-002 | 09:16:30 | Pass | `IT-G1-002.txt` | |
 | IT-G2-012 | 09:16:44 | Pass | `IT-G2-012.txt` | |
 
+
+## 5a. Re-test log (round 1, build `40201a140ba70f8be40d6b016f55ddb828fcaa91`)
+
+Executed 2026-10-08, 09:40–10:10 UTC, after a container restart (both Postgres clusters, the 192.0.2.2 alias and socat rebuilt; `IT-G4-002-rt1.txt`).
+- **Steps and expected results:** the original ones unless the row says otherwise.
+- **Evidence:** each file carries the suffix `-rt1`.
+- **Isolation:** every mutation was made in a scratch worktree or clone at `40201a14` and reverted, with `git status --porcelain` = 0 recorded.
+- **Symlinks:** the worktrees' `.venv` and `node_modules` symlinks were listed in `info/exclude` for the run, so that preflight's new untracked-file scan saw a clean tree. The entries were removed afterwards.
+
+**Confirmation of the fixes**
+
+| ID | Fix confirmed | Verdict | Actual (short) |
+|---|---|---|---|
+| IT-G2-003 | DEF-QG-I01 | Pass | GitHub's shell: both scans ran, the `::error::` history verdict was printed, all four report files exist, exit 1 |
+| IT-GX-005 | DEF-QG-I02 | Pass | Mutations A, B and C now fail §34 ("does not run every required check under its required name"). Control D still fails |
+| IT-GX-015 | DEF-QG-I03 | Pass | Untracked file: "1 untracked file(s), not ignored", `File: apps/api-py/app/leak_probe.py`, FAIL, exit 1, value redacted |
+| IT-GX-014 | DEF-QG-I04 | Pass | Tracked change: `File: tools/ci/README.md`, `Line: 340`, `RuleID: github-pat`, FAIL, exit 1; 0 ANSI escapes with `--no-color` |
+| IT-GX-016 | DEF-QG-I04 | Pass | Staged: file, line and rule printed; FAIL, exit 1 |
+| IT-GX-007 | OBS-QG-I02 | Pass | Usage says "reads the current protection, writes nothing"; closing line "--dry-run: read the current protection, wrote nothing."; 7 contexts; 0 PUTs |
+| IT-GX-009 | OBS-QG-I03 | Pass | `testing/…` is now `none`/NO_DEPLOY with no reason; tests 17 passed; the PR is still refused auto-deploy (42 reasons: migrations, sensitive files, the gate itself, size) |
+| IT-G1-003 | OBS-QG-I06a | Pass | Each of A, B and C fails step 4. All three tools now run in every variant: B shows S307 and then "Success: no issues" from mypy |
+| IT-GX-021 | (regression) | Pass | Default run: Rule 1 FAIL, rest SKIP, exit 1. `--keep-going`: Rule 1 and API both FAIL, exit 1 |
+
+**Regression**
+
+| ID | Verdict | Actual (short) |
+|---|---|---|
+| IT-G1-001 / IT-G4-001 | Pass | Job replay on Python 3.14.6 behind the port mapping: all steps 0. Round trip "OK: 90 of 92 … 2118 lines". **2156 passed, 3 skipped** |
+| IT-G1-002 | Pass | Order unchanged; the static step is now `rc=0 … \|\| rc=1 … exit "$rc"`; no tool in `requirements.txt` |
+| IT-G2-001 | Pass | 15a9e7d..40201a14: 39 non-merge commits, 34 scanned, clean, exit 0 |
+| IT-G2-002 | Pass | Added-then-removed: `github-pat`, file/line/commit named, REDACTED, `::error::`, exit 1; raw value 0 |
+| IT-G2-004 | Pass | Unknown, empty and tree-object base, and unknown head: all exit 1 before scanning |
+| IT-G2-005 | Pass | Empty range: 0/0, exit 0 |
+| IT-G2-006 | Pass | Push mode, full history (746 commits): 594 scanned, clean, exit 0 |
+| IT-G2-007 | Pass | History fingerprint only: the tree still catches it (exit 1). Both fingerprints: exit 0 — unchanged, and now stated as unenforced in `docs/engineering/quality-gates.md:113`. The first execution left the clone at the branch tip while scanning earlier heads; recorded as a test error and re-run |
+| IT-G2-008 / 009 | Pass | Pinned hash installs; wrong, stale and empty hashes exit 1 with `GITHUB_PATH` empty |
+| IT-G2-010 | Pass | Self-test "20 leaks caught, 11 placeholder files quiet". Deleting `reep-auth-secret` still fails (exit 1), but now as "gitleaks did not complete" — see OBS-QG-I07 |
+| IT-G2-011 | Pass | Hook args now carry `--ignore-gitleaks-allow`; version 8.30.0 = workflow; clean → Passed; staged token → Failed, `github-pat`, redacted |
+| IT-G2-012 | Pass | Allowlisted CI value alone → 0. Same line plus a token → 1, with both history and tree verdicts printed (the I01 fix seen from another angle). First execution had the same checkout error as 007; re-run |
+| IT-G3-001 / 002 | Pass | Audit with no DB, in three orders: 58 / 144 / 144 passed. A new unauthenticated route is caught under AUTH and RESPONSE MODEL |
+| IT-G4-002 | Pass | Server reports 192.0.2.2 through 127.0.0.1:5435; a no-password connection is refused; 0 scratch DBs left |
+| IT-G4-003 | Pass | Seeded CI-topology DB: `--plan` exit 0; full round trip OK |
+| IT-G4-004 / 005 / 006 | Pass | Injections A, A2 and B all caught at the segment bottom with the column named; the static test names A only, as before |
+| IT-G4-007 | Pass | One head `f4a2c9e7b1d3`; `alembic check` clean |
+| IT-G4-008 | Pass | All seven refusals as before, plus a new one: a loopback URL with `PGHOSTADDR=192.0.2.2` in the environment is refused |
+| IT-G4-009 | Pass | Standalone round trip: full dump md5 identical before and after |
+| IT-G4-010 | Pass | After a full preflight: schema md5 identical, 0 `*roundtrip*` DBs |
+| IT-GX-001 | Pass | §34 green; `test_codebase_guards.py` 69 passed |
+| IT-GX-002 / 003 / 004 / 006 | Pass | Each mutation fails §34 with the same named message as before |
+| IT-GX-008 | Pass | Rulesets "ALL OK" |
+| IT-GX-010 | Pass | actionlint 1.7.12 exit 0; all files parse |
+| IT-GX-011 | Pass | Full preflight: six PASS, exit 0 (8 m 07 s). pytest now prints "2156 passed, 3 skipped" (OBS-QG-I06b fixed) |
+| IT-GX-012 | Pass | `--quick` → PARTIAL + SKIP, exit 2 |
+| IT-GX-013 | Pass | No gitleaks on PATH → SKIP, five PASS, exit 2 |
+| IT-GX-017 | Pass | gitleaks 8.18.4 → SKIP naming both versions, 0 gitleaks invocations, exit 2 |
+| IT-GX-018 | Pass | `--skip-db-setup` → PARTIAL "the migration round trip did not run", pytest ran, exit 2 |
+| IT-GX-019 | Pass | Type error → check 6 FAIL at static analysis, 0 alembic runs, exit 1 |
+| IT-GX-020 | Pass | Postgres unreachable → check 6 SKIP after static analysis, exit 2 |
+
+**New cases (§4.3):** IT-G1-004 Pass, **IT-GX-022 Fail (DEF-QG-I05)**, IT-GX-023 Pass, IT-GX-024 Pass, IT-GX-025 Pass.
+
+**Round totals:** 53 cases executed on `40201a14` (the 48 originals + 5 new): **52 Pass, 1 Fail, 0 Blocked, 0 Not run**. Four test-execution errors were caught and the affected steps re-executed: IT-G2-007, IT-G2-012 and IT-GX-025 here, and IT-GX-003 in round 0. None changed a verdict.
+
 ---
 
 ## 6. Defects and observations
@@ -569,6 +687,7 @@ Times are UTC start times on 2026-10-08, in execution order (long runs overlappe
 | Actual | Exit 1 immediately after the history pipeline: no tree scan, no `::error::` annotation, only `history.json`/`history.log` exist. Plain bash gives the designed behaviour. Same for the tree pipeline: a tree finding exits before the verdict loop. Fails **closed** — never a false pass. |
 | Evidence | `IT-G2-003.txt` |
 | Frequency | Always |
+| **Re-test** | **Closed** on `40201a14` (fix c1b490c, `set +e -uo pipefail`): IT-G2-003-rt1 and IT-G2-012-rt1 show both scans, both verdict lines and four reports under GitHub's shell |
 | Suspected component | `.github/workflows/secret-scan.yml:118` `set -uo pipefail` leaves the runner's `-e` on, so the failing pipeline at `:141-144` (`gitleaks … | tee …history.log`) terminates the script before `history=$?` (`:145`); likewise the tree pipeline before `tree=$?`. Not fixed by the tester. |
 
 ### DEF-QG-I02 — §34 accepts a `preflight.sh` that no longer runs a required check
@@ -584,6 +703,7 @@ Times are UTC start times on 2026-10-08, in execution order (long runs overlappe
 | Actual | All three pass (1 passed). The string still appears 3–4 times in comments, the banner and the usage text. Only removing **every** occurrence (control D) fails. |
 | Evidence | `IT-GX-005.txt` |
 | Frequency | Always |
+| **Re-test** | Still open on `8914e839` (§6.1). **Closed** on `40201a14` (fix 38be261): IT-GX-005-rt1 — A, B and C fail §34, D still fails. Two further dead-call shapes still pass; raised separately as DEF-QG-I05 rather than re-opening this defect, because this one's reproduction is fixed |
 | Suspected component | `apps/api-py/tests/test_codebase_guards.py:1808` (`n not in preflight`) and `:1819` — a substring test over the whole file, comments included. The five-check half is inherited from the base (`15a9e7d`, line 1745); this PR extended the same test to "Secrets (gitleaks)". The test's own docstring states the property it does not check ("It names each check in the `record` call that reports it"). |
 
 ### DEF-QG-I03 — Preflight's secret check passes a secret in a new, untracked file
@@ -599,6 +719,7 @@ Times are UTC start times on 2026-10-08, in execution order (long runs overlappe
 | Actual | Check 3 **PASS** (`--pre-commit` and `--staged` read `git diff`, which excludes untracked files; the tree scan reads `git archive HEAD`); exit 2 only because `--quick` skips checks. Once staged, it is caught (IT-GX-016). A new `.env`-style file is the commonest way a secret is created, and the most likely file to be added with `git add -A` right after a green preflight. CI would still catch it once pushed — which is exactly what the local check exists to prevent ("a pushed AUTH_SECRET has no un-push"). |
 | Evidence | `IT-GX-015.txt` |
 | Frequency | Always |
+| **Re-test** | Still open on `8914e839` (§6.1). **Closed** on `40201a14` (fix 45a4ca5): IT-GX-015-rt1 FAIL, exit 1, file named. New edge cases IT-GX-023/024/025 pass |
 | Suspected component | `tools/ci/preflight.sh:474-484` (`check_secrets`): no scan of untracked, non-ignored files (e.g. `gitleaks dir` over `git ls-files --others --exclude-standard`). |
 
 ### DEF-QG-I04 — Preflight's secret check does not say where the secret is
@@ -613,6 +734,24 @@ Times are UTC start times on 2026-10-08, in execution order (long runs overlappe
 | Evidence | `IT-GX-014.txt`, `IT-GX-016.txt` |
 | Frequency | Always |
 | Suspected component | `tools/ci/preflight.sh:461-462` — `cfg` has `--redact` but not `--verbose`. |
+| **Re-test** | **Closed** on `40201a14` (fix 45a4ca5): IT-GX-014-rt1 / 016-rt1 / 015-rt1 print file, line, rule and fingerprint, redacted; no ANSI codes with `--no-color` |
+
+### DEF-QG-I05 — §34 still accepts a preflight check that cannot run (dead branch, or after `exit`)
+
+| Field | Value |
+|---|---|
+| Severity / Priority | **Minor / P3** |
+| Requirement | REQ-GX-01, REQ-GX-02 |
+| Build / environment | `40201a140ba70f8be40d6b016f55ddb828fcaa91`; Python 3.13 venv |
+| Preconditions | Scratch worktree |
+| Steps to reproduce | Run `IT-GX-022-rt1-m34.py.txt deadif`: each `check_secrets` call in the dispatch is wrapped in `if false; then … fi`. Or run it with `afterexit`: `exit 0` goes on the line before each call. Then run `pytest tests/test_codebase_guards.py::test_the_five_required_check_names_agree_across_all_four_files`. |
+| Expected | Fails: preflight no longer runs the secret scan on either path |
+| Actual | "1 passed" for both; `bash -n` accepts both files |
+| Evidence | `IT-GX-022-rt1.txt` |
+| Frequency | Always |
+| Suspected component | `test_codebase_guards.py` `_preflight_problems` → `called()`: a line that is exactly the function name, anywhere in the dispatch text, counts as a call, whatever control flow surrounds it |
+| Assessment | Both shapes need **deliberate** edits; neither is the drift DEF-QG-I02 was about (renames and deletions), which is now caught. A static text check cannot fully prove a shell call is reachable. Options: accept it as residual risk, or also require the dispatch branches to contain nothing but bare calls and the `record … SKIP` line. Not fixed by the tester. |
+| Re-test | — (new in this round) |
 
 ### Observations
 
@@ -628,6 +767,18 @@ Times are UTC start times on 2026-10-08, in execution order (long runs overlappe
 
 **OBS-QG-I06 — Local and CI feedback differ in shape.** (a) CI's static step stops at the first failing tool (`bash -e`), so a PR with a ruff and a mypy error shows only ruff; preflight runs all three (IT-G1-003 vs IT-GX-021). (b) Preflight's pytest prints no pass count (pytest.ini `-q` + `-q`). (c) `--no-color` does not remove gitleaks' own colour codes. Cosmetic.
 
+
+**Observation status after the re-test round (`40201a14`):**
+- **OBS-QG-I01:** stated in `docs/engineering/quality-gates.md:113` as "CODEOWNERS is not enforced". Behaviour unchanged (IT-G2-007-rt1). It is with the product owner (register Q4).
+- **OBS-QG-I02:** fixed (IT-GX-007-rt1).
+- **OBS-QG-I03:** fixed (IT-GX-009-rt1).
+- **OBS-QG-I04, I05:** no action, as triaged.
+- **OBS-QG-I06:** (a) fixed (IT-G1-003-rt1 / G1-004-rt1); (b) fixed (IT-GX-011-rt1 prints the count); (c) fixed (0 ANSI escapes with `--no-color`).
+
+**OBS-QG-I07 — The rule self-test fails less informatively when a rule is deleted.** With the new targeted allowlists (`targetRules = ["reep-auth-secret"]`), deleting that rule makes gitleaks refuse to load the config. `check_gitleaks_rules.py` then fails with "gitleaks did not complete; the rules were not checked" rather than naming the leaks no longer caught (IT-G2-010-rt1). It still fails closed, so this is cosmetic.
+
+**OBS-QG-I08 — A finding in a file whose name contains a newline prints a truncated `File:` line.** gitleaks writes the raw name, so the line reads `File: tools/qg probe/new` (IT-GX-025-rt1). The verdict is correct. Cosmetic, and a gitleaks behaviour.
+
 ### 6.1 Re-test record
 
 | Defect | Build re-tested | Date | Result | Evidence |
@@ -635,11 +786,35 @@ Times are UTC start times on 2026-10-08, in execution order (long runs overlappe
 | DEF-QG-I02 | `8914e8396c66c993cf3d975c4b786ea30d3a338a` | 2026-10-08 | **Still open.** None of the 10 commits after `a3688f0` names it. `test_codebase_guards.py` and `preflight.sh` both changed, but the comparison is still a whole-file substring test. Mutations A (rename the recorded name), B (delete `check_secrets` calls) and C (delete `check_web` calls) each still give "1 passed". Control D still fails as before. | `RT-DEF-QG-I02.txt` |
 | DEF-QG-I03 | `8914e8396c66c993cf3d975c4b786ea30d3a338a` | 2026-10-08 | **Still open.** `preflight.sh`'s secret check gained `--ignore-gitleaks-allow` and a pinned-version read, but still has no scan of untracked files. A new untracked file holding a fake `ghp_` token: all four scans report "no leaks found", "PASS Secrets (gitleaks)". (The worktree's venv links did not resolve, so checks 1 and 4 SKIPped; check 3 does not depend on them.) | `RT-DEF-QG-I03.txt` |
 
-Status for the incident register: both stay **Assigned**, not Fixed. The re-test will be repeated when a commit that names them lands on the integration branch.
+Status for the incident register: both stay **Assigned**, not Fixed. The re-test will be repeated when a commit that names them lands on the integration branch. *(Superseded: both were re-tested and **Closed** on `40201a14`; see §5a and each defect's Re-test field.)*
 
 ---
 
 ## 7. Level summary
+
+### 7.0 After the re-test round (current status, build `40201a14`)
+
+| Cases | Executed | Passed | Failed | Blocked | Not run |
+|---|---|---|---|---|---|
+| 53 (48 + 5 new) | 53 | 52 | 1 (IT-GX-022) | 0 | 0 |
+
+**Pass rate:** 52 / 53 = **98.1 %**.
+
+| Defect | Severity | Status |
+|---|---|---|
+| DEF-QG-I01 | Minor | **Closed** (re-tested on 40201a14) |
+| DEF-QG-I02 | Major | **Closed** (still open on 8914e839, closed on 40201a14) |
+| DEF-QG-I03 | Major | **Closed** (still open on 8914e839, closed on 40201a14) |
+| DEF-QG-I04 | Minor | **Closed** |
+| DEF-QG-I05 | Minor, P3 | **New**: §34 accepts a check in a dead branch or after `exit` |
+
+**Coverage added in this round:** REQ-G1-06 (IT-G1-004); REQ-G2-05 (IT-GX-024); REQ-GX-02 (IT-GX-023, IT-GX-025); REQ-GX-01 (IT-GX-022). REQ-G4-04 now also covers `PGHOSTADDR`.
+
+**Updated recommendation: GO for level L2.** No Critical or Major defect is open. All four first-round defects are closed by re-test on `40201a14`, and the full regression is green on that build: the CI `api` job on Python 3.14 behind a port mapping (2156 passed), every secret-scan workflow case under GitHub's shell, the required-check contract, and every preflight decision-table row.
+- **Condition:** DEF-QG-I05 (Minor, P3) is either fixed or accepted in writing as residual risk. It needs a deliberate edit to exploit.
+- **Unchanged:** OBS-QG-I01 still needs the product owner's decision.
+
+The tables in §7.1–7.4 below record the first round, on `a3688f0`, and are kept for traceability.
 
 ### 7.1 Counts
 
@@ -704,5 +879,5 @@ Not covered here (by design, other levels): REQ-G1-02, G1-05, G3-03, G3-05, G3-0
 
 | Role | Name | Date | Statement |
 |---|---|---|---|
-| Test Engineer — Integration | Tester session I | 2026-10-08 | I designed, executed and recorded the 48 cases above against build `a3688f0189c48287f376cf8c165d762a2f8ab8d8`. I did not modify the code under test; every violation was made and reverted in a scratch worktree or clone. |
+| Test Engineer — Integration | Tester session I | 2026-10-08 | I designed, executed and recorded the 48 cases above against build `a3688f0189c48287f376cf8c165d762a2f8ab8d8`, re-tested DEF-QG-I02/I03 on `8914e839`, and executed the 53-case re-test round on `40201a140ba70f8be40d6b016f55ddb828fcaa91`. I did not modify the code under test; every violation was made and reverted in a scratch worktree or clone. |
 | Test Manager (review) | | | |

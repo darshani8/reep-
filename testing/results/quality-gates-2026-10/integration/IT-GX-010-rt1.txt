@@ -1,0 +1,7 @@
+### 2026-10-08T09:52:37Z  cwd=/tmp/pfr
+$ actionlint --version | head -1; actionlint -no-color .github/workflows/*.yml; echo ACTIONLINT_EXIT=$?; /home/user/reep-/apps/api-py/.venv/bin/python -c "import yaml,glob,json; [yaml.safe_load(open(f)) for f in glob.glob('.github/workflows/*.yml')+['.pre-commit-config.yaml']]; [json.load(open(f)) for f in glob.glob('.github/rulesets/*.json')]; print('all parse')"
+1.7.12
+ACTIONLINT_EXIT=0
+all parse
+[exit 0, 0s]
+

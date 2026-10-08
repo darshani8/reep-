@@ -1,0 +1,7 @@
+### 2026-10-08T09:54:17Z  cwd=/tmp/ci-r1/apps/api-py
+$ env -u REEP_REQUIRE_DB DATABASE_URL=postgresql+psycopg://reep:x@127.0.0.1:5499/none /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= tests/test_route_audit.py 2>&1 | tail -1; env -u REEP_REQUIRE_DB DATABASE_URL=postgresql+psycopg://reep:x@127.0.0.1:5499/none /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= -p no:cacheprovider tests/test_release_gate.py tests/test_codebase_guards.py tests/test_route_audit.py 2>&1 | tail -1; env -u REEP_REQUIRE_DB DATABASE_URL=postgresql+psycopg://reep:x@127.0.0.1:5499/none /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= -p no:cacheprovider tests/test_route_audit.py tests/test_codebase_guards.py tests/test_release_gate.py 2>&1 | tail -1
+58 passed in 5.19s
+144 passed in 8.32s
+144 passed in 7.58s
+[exit 0, 27s]
+

@@ -1,0 +1,23 @@
+### 2026-10-08T10:10:40Z  cwd=/tmp/ci-r1
+$ /home/user/reep-/apps/api-py/.venv/bin/python - <<'EOF'
+import yaml
+wf=yaml.safe_load(open('.github/workflows/ci.yml')); st=wf['jobs']['api']['steps']
+names=[s.get('name') or s.get('uses') for s in st]
+exp=['actions/checkout@v4','actions/setup-python@v5','Install dependencies','Static analysis (ruff, mypy, async blocking)','Apply migrations','Migrations roll back (downgrade to the floor, then up again)','Seed the dev dataset','Run tests']
+print('jobs:', [v.get('name') for v in wf['jobs'].values()])
+print('ORDER MATCHES CONTRACT:', names==exp)
+print('static step:'); print(st[3]['run'])
+EOF
+grep -ciE '^(ruff|mypy|types-)' apps/api-py/requirements.txt
+jobs: ['API (FastAPI + Postgres)', 'Rule 1 (every model call declares its cargo)', 'API (dependency completeness)', 'Web (Angular)', 'Infra (CDK synth guards)']
+ORDER MATCHES CONTRACT: True
+static step:
+rc=0
+python -m ruff check --config pyproject.toml . ../../tools/ci || rc=1
+python -m mypy || rc=1
+python ../../tools/ci/check_async_blocking.py || rc=1
+exit "$rc"
+
+0
+[exit 1, 0s]
+

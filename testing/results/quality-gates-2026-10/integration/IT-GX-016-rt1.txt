@@ -1,0 +1,55 @@
+### 2026-10-08T09:47:25Z  cwd=/tmp/pfr
+$ printf 'GITHUB_TOKEN = "%s"\n' "$(cat /tmp/faketok)" > apps/api-py/app/leak_probe.py; git add apps/api-py/app/leak_probe.py; git status --porcelain; bash tools/ci/preflight.sh --quick --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; sed -n '/3\/6  Secrets/,/4\/6/p' /tmp/pf.out | grep -vE '^\s*$|^-+$|4/6' | cut -c1-170; grep -E '^  (Secrets|Web|API \(F)' /tmp/pf.out; echo raw-token-in-output: $(grep -c "$(cat /tmp/faketok)" /tmp/pf.out); echo ansi-escapes-in-output: $(grep -c $'\x1b' /tmp/pf.out); git rm -q --cached apps/api-py/app/leak_probe.py; rm apps/api-py/app/leak_probe.py; git status --porcelain | wc -l
+A  apps/api-py/app/leak_probe.py
+PREFLIGHT_EXIT=1
+3/6  Secrets (gitleaks)
+  $ gitleaks git . --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit-code 1 -
+9:47AM INF 34 commits scanned.
+9:47AM INF scanned ~510576 bytes (510.58 KB) in 335ms
+9:47AM INF no leaks found
+  $ gitleaks git . --pre-commit --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --
+9:47AM INF 0 commits scanned.
+9:47AM INF scanned ~0 bytes (0) in 157ms
+9:47AM INF no leaks found
+  $ gitleaks git . --staged --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit
+Finding:     REDACTED
+Secret:      REDACTED
+RuleID:      github-pat
+Entropy:     3.834184
+File:        apps/api-py/app/leak_probe.py
+Line:        1
+Fingerprint: apps/api-py/app/leak_probe.py:github-pat:1
+9:47AM INF 0 commits scanned.
+9:47AM INF scanned ~58 bytes (58 bytes) in 176ms
+9:47AM WRN leaks found: 1
+  $ gitleaks dir . --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit-code 1 -
+9:47AM INF scanned ~31798700 bytes (31.80 MB) in 4.69s
+9:47AM INF no leaks found
+FAIL  Secrets (gitleaks)
+SKIP  Infra (CDK synth guards) - a previous check failed (--keep-going runs them all)
+SKIP  Web (Angular) - guards and typecheck only - a previous check failed (--keep-going runs them all)
+SKIP  API (FastAPI + Postgres) - --quick
+Summary
+  CHECK                                        RESULT   TIME
+  ---------------------------------------------------------------------
+  API (dependency completeness)                PASS     4s
+  Rule 1 (every model call declares its cargo) PASS     1s
+  Secrets (gitleaks)                           FAIL     7s
+  Infra (CDK synth guards)                     SKIP     0s
+  Web (Angular) - guards and typecheck only    SKIP     0s
+  API (FastAPI + Postgres)                     SKIP     0s
+  PASS: ran in .venv (requirements-dev.txt); --clean-deps asks CI's question
+  FAIL: gitleaks found a secret (or could not finish). ROTATE it first; removing the line does not un-publish a pushed one
+  SKIP: a previous check failed (--keep-going runs them all)
+  SKIP: a previous check failed (--keep-going runs them all)
+  SKIP: --quick
+  total 12s
+NOT READY. A required check is red here, so it is red on the pull request too.
+  Secrets (gitleaks)                           FAIL     7s
+  Web (Angular) - guards and typecheck only    SKIP     0s
+  API (FastAPI + Postgres)                     SKIP     0s
+raw-token-in-output: 0
+ansi-escapes-in-output: 0
+0
+[exit 0, 14s]
+

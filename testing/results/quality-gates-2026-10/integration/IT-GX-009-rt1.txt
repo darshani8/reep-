@@ -1,0 +1,10 @@
+### 2026-10-08T09:52:34Z  cwd=/tmp/pfr
+$ (cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= tests/test_release_gate.py 2>&1 | tail -1); python3 tools/ci/release_gate.py --base 15a9e7d --head 40201a14 | python3 -c "import json,sys,collections;d=json.load(sys.stdin);print(d['target'],'auto_ok=',d['auto_ok'],len(d['reasons']));print(collections.Counter(r.split(': ',1)[1] for r in d['reasons']))"; for p in testing/docs/quality-gates-2026-10/01-test-plan.md .gitleaks.toml .gitleaksignore; do printf '%-55s ' $p; echo $p | python3 tools/ci/release_gate.py | tr -d '\n ' ; echo; done
+17 passed in 0.69s
+api-only auto_ok= False 42
+Counter({'a migration runs once, against production, in one direction': 19, 'rule 1 / rule 2 / auth / deletion code needs a human': 14, 'a model change needs its migration applied by a human': 7, 'this gate changed': 1, 'a big release gets a human': 1})
+testing/docs/quality-gates-2026-10/01-test-plan.md      {"target":"none","auto_ok":false,"reasons":[],"files":1}
+.gitleaks.toml                                          {"target":"none","auto_ok":false,"reasons":[],"files":1}
+.gitleaksignore                                         {"target":"none","auto_ok":false,"reasons":[],"files":1}
+[exit 0, 3s]
+

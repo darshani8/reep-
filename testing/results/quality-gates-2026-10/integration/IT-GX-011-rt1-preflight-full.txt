@@ -1,0 +1,176 @@
+IT-GX-011-rt1: tools/ci/preflight.sh --no-color, full run, worktree /tmp/pfr at 40201a14 (clean; .venv/node_modules symlinks excluded via info/exclude), DATABASE_URL=...:5433/reep_pf (migrated+seeded beforehand).
+40201a140ba70f8be40d6b016f55ddb828fcaa91
+------------------------------------------------------------------------
+Environment
+  repo             /tmp/pfr
+  api venv         apps/api-py/.venv/bin/python (Python 3.13.16)
+  web deps         apps/web/node_modules
+  cdk deps         infra/cdk/.venv/bin/python
+  gitleaks         /usr/local/bin/gitleaks (8.30.0)
+  postgres         localhost:5433 reachable
+  ENV              <unset, defaults to dev>
+------------------------------------------------------------------------
+1/6  API (dependency completeness)
+  Running in your .venv, which also has pytest. --clean-deps builds the
+  runtime-only environment CI uses and asks the stricter question.
+  $ /tmp/pfr/apps/api-py/.venv/bin/python ../../tools/ci/check_api_imports.py
+imported 217 modules under app/
+OK — every module imports against requirements.txt alone.
+PASS  API (dependency completeness)
+------------------------------------------------------------------------
+2/6  Rule 1 (every model call declares its cargo)
+  $ python3 tools/ci/check_pii_gate.py
+OK: every complete_chat/stream_chat call declares carries_student_data.
+PASS  Rule 1 (every model call declares its cargo)
+------------------------------------------------------------------------
+3/6  Secrets (gitleaks)
+  $ gitleaks git . --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit-code 1 --no-color --log-opts=15a9e7d1d89ad7971436235db9d606e976c46be4..HEAD
+9:54AM INF 34 commits scanned.
+9:54AM INF scanned ~510576 bytes (510.58 KB) in 396ms
+9:54AM INF no leaks found
+  $ gitleaks git . --pre-commit --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit-code 1 --no-color
+9:54AM INF 0 commits scanned.
+9:54AM INF scanned ~0 bytes (0) in 215ms
+9:54AM INF no leaks found
+  $ gitleaks git . --staged --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit-code 1 --no-color
+9:54AM INF 0 commits scanned.
+9:54AM INF scanned ~0 bytes (0) in 176ms
+9:54AM INF no leaks found
+  $ gitleaks dir . --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit-code 1 --no-color
+9:54AM INF scanned ~31798700 bytes (31.80 MB) in 6.54s
+9:54AM INF no leaks found
+PASS  Secrets (gitleaks)
+------------------------------------------------------------------------
+4/6  Infra (CDK synth guards)
+  $ /tmp/pfr/infra/cdk/.venv/bin/python -m pytest -q
+....ssssssssssssssssssss................................................ [ 44%]
+......................................s..............................s.. [ 88%]
+141 passed, 22 skipped in 44.33s
+PASS  Infra (CDK synth guards)
+------------------------------------------------------------------------
+5/6  Web (Angular)
+  $ python3 tools/ci/check_brand_magenta.py
+Magenta is only in the gradient. Checked 314 files.
+  $ python3 tools/ci/check_style_duplicates.py
+No new cross-sheet duplicate. 211 top-level selectors in reep-v2.scss, 43 in reep-v2-resume.scss, 30 known duplicates still to merge.
+  $ python3 tools/ci/check_theme_tokens.py
+Grid and chart themes match reep-v2.scss. 25 colours checked.
+  $ python3 tools/ci/check_form_submit.py
+check_form_submit: every <form> has an owner for its submit.
+  $ npx tsc --noEmit -p tsconfig.app.json
+  $ npx ng test --watch=false
+❯ Building...
+✔ Building...
+Application bundle generation complete. [28.226 seconds] - 2026-10-08T09:55:42.803Z
+ RUN  v4.1.11 /tmp/pfr/apps/web
+ Test Files  32 passed (32)
+      Tests  226 passed (226)
+   Start at  09:55:43
+   Duration  9.58s (transform 4.15s, setup 2.78s, import 6.44s, tests 13.81s, environment 36.61s)
+  $ npx ng build
+❯ Building...
+✔ Building...
+Initial chunk files   | Names                     |  Raw size | Estimated transfer size
+main-RRYOU6WA.js      | main                      | 159.31 kB |                39.88 kB
+styles-VW5DXS7T.css   | styles                    |  67.90 kB |                10.65 kB
+polyfills-RZ7KSO6A.js | polyfills                 |   1.01 kB |               960 bytes
+                      | Initial total             | 228.22 kB |                51.49 kB
+Lazy chunk files      | Names                     |  Raw size | Estimated transfer size
+chunk-BSXRNWg2.js     | -                         |   1.13 MB |               251.40 kB
+chunk-BJwRzPzk2.js    | -                         | 643.09 kB |               184.44 kB
+chunk-9rH0Ikz42.js    | resume-builder-component  | 169.04 kB |                30.93 kB
+chunk-DO8Do2GY.js     | -                         | 166.62 kB |                49.33 kB
+chunk-LtRXTj3a2.js    | sentry-lazy               | 151.44 kB |                45.23 kB
+chunk-1QMRf0FB2.js    | students-component        |  94.02 kB |                19.31 kB
+chunk-CRCnW5tg.js     | -                         |  90.24 kB |                25.02 kB
+chunk-mFo6sgGV.js     | leave-approvals-component |  67.38 kB |                15.13 kB
+chunk-CeP151dc2.js    | governance-component      |  61.29 kB |                14.07 kB
+chunk-BHN8p0UV2.js    | catalogue-component       |  59.64 kB |                13.62 kB
+chunk-C7qMe2mG2.js    | student-detail-component  |  59.25 kB |                14.38 kB
+chunk-nKGVjWMV.js     | registrations-component   |  58.17 kB |                14.16 kB
+chunk-bubJQo2z.js     | institution-component     |  54.29 kB |                12.46 kB
+chunk-O6o0nMLR.js     | -                         |  52.85 kB |                10.77 kB
+chunk-DQyqrJQp.js     | interviews-component      |  50.38 kB |                12.52 kB
+...and 56 more lazy chunks files. Use "--verbose" to show all the files.
+Application bundle generation complete. [33.151 seconds] - 2026-10-08T09:56:27.152Z
+Output location: /tmp/pfr/apps/web/dist/web
+PASS  Web (Angular)
+------------------------------------------------------------------------
+6/6  API (FastAPI + Postgres)
+  $ /tmp/pfr/apps/api-py/.venv/bin/python -m ruff check --config pyproject.toml . ../../tools/ci
+All checks passed!
+  $ /tmp/pfr/apps/api-py/.venv/bin/python -m mypy
+Success: no issues found in 218 source files
+  $ /tmp/pfr/apps/api-py/.venv/bin/python ../../tools/ci/check_async_blocking.py
+check_async_blocking: no new blocking calls in async defs under app/ (3 known, each with its reason in this file).
+  $ /tmp/pfr/apps/api-py/.venv/bin/python -m alembic upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+  $ /tmp/pfr/apps/api-py/.venv/bin/python ../../tools/ci/check_migration_roundtrip.py
+database   postgresql+psycopg://reep:***@localhost:5433/reep_pf  (read only: compared against)
+scratch    reep_pf_roundtrip  (created, walked, dropped)
+head       f4a2c9e7b1d3
+floor      9b2d47f0ce15  (the furthest a real rollback can go)
+segment    base .. 31ca99852acd: 66 downgrade(s)
+segment    7c4e0b21d9aa .. 31f7a4c60b12: 2 downgrade(s)
+segment    9b2d47f0ce15 .. f4a2c9e7b1d3: 22 downgrade(s)
+exercised  90 of 92 downgrades; the rest refuse on purpose
+straight path: 2118 catalogue lines at f4a2c9e7b1d3
+== segment base .. 31ca99852acd
+$ python -m alembic upgrade 31ca99852acd
+$ python -m alembic downgrade base
+$ python -m alembic upgrade 31ca99852acd
+   declared leftovers ignored at the bottom: [('extension', 'vector'), ('table', 'students_orphaned_cohort_ids')]
+   OK: 66 downgrade(s), identical at both ends
+== segment 7c4e0b21d9aa .. 31f7a4c60b12
+$ python -m alembic upgrade 7c4e0b21d9aa
+$ python -m alembic upgrade 31f7a4c60b12
+$ python -m alembic downgrade 7c4e0b21d9aa
+$ python -m alembic upgrade 31f7a4c60b12
+   OK: 2 downgrade(s), identical at both ends
+== segment 9b2d47f0ce15 .. f4a2c9e7b1d3
+$ python -m alembic upgrade 9b2d47f0ce15
+$ python -m alembic upgrade f4a2c9e7b1d3
+$ python -m alembic downgrade 9b2d47f0ce15
+$ python -m alembic upgrade f4a2c9e7b1d3
+   declared leftovers ignored at the bottom: [('enum-value', 'registration_status', 'HOLD')]
+   OK: 22 downgrade(s), identical at both ends
+$ python -m alembic check
+OK: 90 of 92 downgrades run in 3 segment(s), catalogues identical at every bottom and top, the round-tripped head matches the straight one (2118 lines), alembic check clean (19 s).
+  $ /tmp/pfr/apps/api-py/.venv/bin/python -m app.seed
+admin@bgscet.ac.in already exists
+student@bgscet.ac.in already exists
+  $ /tmp/pfr/apps/api-py/.venv/bin/python -m pytest
+...................................................
+GOLDEN pass rate: 12/12 = 100%
+..................................s..................................... [ 46%]
+................................ss...................................... [ 56%]
+=============================== warnings summary ===============================
+.venv/lib/python3.13/site-packages/fastapi/testclient.py:1
+  /tmp/pfr/apps/api-py/.venv/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+tests/test_governance.py::test_a_grant_adds_a_screen_and_a_group_hands_it_to_its_members
+  /tmp/pfr/apps/api-py/tests/test_governance.py:79: SAWarning: DELETE statement on table 'capability_grants' expected to delete 2 row(s); 1 were matched.  Please set confirm_deleted_rows=False within the mapper configuration to prevent this warning.
+    db.commit()
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+2156 passed, 3 skipped, 2 warnings in 276.07s (0:04:36)
+PASS  API (FastAPI + Postgres)
+------------------------------------------------------------------------
+Summary
+  CHECK                                        RESULT   TIME
+  ---------------------------------------------------------------------
+  API (dependency completeness)                PASS     4s
+  Rule 1 (every model call declares its cargo) PASS     1s
+  Secrets (gitleaks)                           PASS     9s
+  Infra (CDK synth guards)                     PASS     46s
+  Web (Angular)                                PASS     82s
+  API (FastAPI + Postgres)                     PASS     343s
+  PASS: ran in .venv (requirements-dev.txt); --clean-deps asks CI's question
+  PASS: used your node_modules; CI runs npm ci from package-lock.json
+  total 485s
+READY. The checks this script runs are green on this machine.
+They are advisory here and authoritative on the pull request.
+real	8m6.532s
+user	7m31.616s
+sys	0m30.574s
+PREFLIGHT_EXIT=0

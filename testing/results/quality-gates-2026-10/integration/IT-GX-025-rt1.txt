@@ -1,0 +1,126 @@
+NOTE: NEW: filenames with a space, a leading dash and an embedded NEWLINE through the 'git ls-files -z | tar --null -T -' pipe. Run A: three CLEAN such files (must not break the scan). Run B: the newline-named file holds <FAKE-VALUE-MASKED> (must be caught).
+### 2026-10-08T09:49:47Z  cwd=/tmp/pfr
+$ mkdir -p 'tools/qg probe' && echo hello > 'tools/qg probe/a file.txt' && echo hello > 'tools/qg probe/-dash.txt' && printf hello > "tools/qg probe/new$'\n'line.txt"; ls -b 'tools/qg probe'; git ls-files --others --exclude-standard; bash tools/ci/preflight.sh --quick --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; sed -n '/3\/6  Secrets/,/4\/6/p' /tmp/pf.out | grep -vE '^\s*$|^-+$|4/6' | cut -c1-170; grep -E '^  (Secrets|Web|API \(F)' /tmp/pf.out; echo raw-token-in-output: $(grep -c "$(cat /tmp/faketok)" /tmp/pf.out); echo ansi-escapes-in-output: $(grep -c $'\x1b' /tmp/pf.out)
+-dash.txt
+a\ file.txt
+new$'\\n'line.txt
+tools/qg probe/-dash.txt
+tools/qg probe/a file.txt
+"tools/qg probe/new$'\\n'line.txt"
+PREFLIGHT_EXIT=2
+3/6  Secrets (gitleaks)
+  $ gitleaks git . --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit-code 1 -
+9:49AM INF 34 commits scanned.
+9:49AM INF scanned ~510576 bytes (510.58 KB) in 328ms
+9:49AM INF no leaks found
+  $ gitleaks git . --pre-commit --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --
+9:49AM INF 0 commits scanned.
+9:49AM INF scanned ~0 bytes (0) in 228ms
+9:49AM INF no leaks found
+  $ gitleaks git . --staged --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit
+9:49AM INF 0 commits scanned.
+9:49AM INF scanned ~0 bytes (0) in 165ms
+9:49AM INF no leaks found
+  $ gitleaks dir . --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit-code 1 -
+9:50AM INF scanned ~31798700 bytes (31.80 MB) in 4.08s
+9:50AM INF no leaks found
+  3 untracked file(s), not ignored: scanned as a git add -A would see them
+  $ gitleaks dir . --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit-code 1 -
+9:50AM INF scanned ~17 bytes (17 bytes) in 2.81ms
+9:50AM INF no leaks found
+PASS  Secrets (gitleaks)
+  Secrets (gitleaks)                           PASS     8s
+  Web (Angular) - guards and typecheck only    PARTIAL  6s
+  API (FastAPI + Postgres)                     SKIP     0s
+raw-token-in-output: 0
+ansi-escapes-in-output: 0
+[exit 0, 54s]
+
+### 2026-10-08T09:50:41Z  cwd=/tmp/pfr
+$ printf 'GITHUB_TOKEN=%s\n' "$(cat /tmp/faketok)" > "tools/qg probe/new$'\n'line.txt"; bash tools/ci/preflight.sh --quick --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; sed -n '/3\/6  Secrets/,/4\/6/p' /tmp/pf.out | grep -vE '^\s*$|^-+$|4/6' | cut -c1-170; grep -E '^  (Secrets|Web|API \(F)' /tmp/pf.out; echo raw-token-in-output: $(grep -c "$(cat /tmp/faketok)" /tmp/pf.out); echo ansi-escapes-in-output: $(grep -c $'\x1b' /tmp/pf.out); rm -rf 'tools/qg probe'; git status --porcelain | wc -l
+PREFLIGHT_EXIT=1
+3/6  Secrets (gitleaks)
+  $ gitleaks git . --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit-code 1 -
+9:50AM INF 34 commits scanned.
+9:50AM INF scanned ~510576 bytes (510.58 KB) in 335ms
+9:50AM INF no leaks found
+  $ gitleaks git . --pre-commit --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --
+9:50AM INF 0 commits scanned.
+9:50AM INF scanned ~0 bytes (0) in 238ms
+9:50AM INF no leaks found
+  $ gitleaks git . --staged --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit
+9:50AM INF 0 commits scanned.
+9:50AM INF scanned ~0 bytes (0) in 228ms
+9:50AM INF no leaks found
+  $ gitleaks dir . --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit-code 1 -
+9:50AM INF scanned ~31798700 bytes (31.80 MB) in 4.06s
+9:50AM INF no leaks found
+  3 untracked file(s), not ignored: scanned as a git add -A would see them
+  $ gitleaks dir . --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit-code 1 -
+Finding:     REDACTED
+Secret:      REDACTED
+RuleID:      github-pat
+Entropy:     3.834184
+File:        tools/qg probe/new$'\n'line.txt
+Line:        1
+Fingerprint: tools/qg probe/new$'\n'line.txt:github-pat:1
+9:50AM INF scanned ~66 bytes (66 bytes) in 9.17ms
+9:50AM WRN leaks found: 1
+FAIL  Secrets (gitleaks)
+SKIP  Infra (CDK synth guards) - a previous check failed (--keep-going runs them all)
+SKIP  Web (Angular) - guards and typecheck only - a previous check failed (--keep-going runs them all)
+SKIP  API (FastAPI + Postgres) - --quick
+Summary
+  CHECK                                        RESULT   TIME
+  ---------------------------------------------------------------------
+  API (dependency completeness)                PASS     4s
+  Rule 1 (every model call declares its cargo) PASS     1s
+  Secrets (gitleaks)                           FAIL     8s
+  Infra (CDK synth guards)                     SKIP     0s
+  Web (Angular) - guards and typecheck only    SKIP     0s
+  API (FastAPI + Postgres)                     SKIP     0s
+  PASS: ran in .venv (requirements-dev.txt); --clean-deps asks CI's question
+  FAIL: gitleaks found a secret (or could not finish). ROTATE it first; removing the line does not un-publish a pushed one
+  SKIP: a previous check failed (--keep-going runs them all)
+  SKIP: a previous check failed (--keep-going runs them all)
+  SKIP: --quick
+  total 13s
+NOT READY. A required check is red here, so it is red on the pull request too.
+  Secrets (gitleaks)                           FAIL     8s
+  Web (Angular) - guards and typecheck only    SKIP     0s
+  API (FastAPI + Postgres)                     SKIP     0s
+raw-token-in-output: 0
+ansi-escapes-in-output: 0
+0
+[exit 0, 14s]
+
+NOTE: TEST-EXECUTION ERROR above: the 'newline' name was created with a literal $'\n' (quoting inside the evidence wrapper), so no real newline was tested. Re-executed below creating the names with Python (os.open), proven with ls -b and a byte dump of git ls-files -z.
+### 2026-10-08T09:51:06Z  cwd=/tmp/pfr
+$ python3 -c "import os; os.makedirs('tools/qg probe',exist_ok=True); [open(os.path.join('tools/qg probe',n),'w').write('hello\n') for n in ('a file.txt','-dash.txt','new\nline.txt')]"; ls -b 'tools/qg probe'; git ls-files -z --others --exclude-standard | od -c | grep -c '\\n'; bash tools/ci/preflight.sh --quick --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; grep -E 'untracked file|File:|leaks found|no leaks|tar:|^(PASS|FAIL|SKIP)  Secrets' /tmp/pf.out | tail -6; echo raw-token-in-output: $(grep -c "$(cat /tmp/faketok)" /tmp/pf.out)
+-dash.txt
+a\ file.txt
+new\nline.txt
+1
+PREFLIGHT_EXIT=2
+9:51AM INF no leaks found
+9:51AM INF no leaks found
+9:51AM INF no leaks found
+  3 untracked file(s), not ignored: scanned as a git add -A would see them
+9:51AM INF no leaks found
+PASS  Secrets (gitleaks)
+raw-token-in-output: 0
+[exit 0, 53s]
+
+### 2026-10-08T09:51:59Z  cwd=/tmp/pfr
+$ python3 -c "open('tools/qg probe/new\nline.txt','w').write('GITHUB_TOKEN=' + open('/tmp/faketok').read().strip() + '\n')"; bash tools/ci/preflight.sh --quick --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; grep -E 'untracked file|File:|leaks found|no leaks|tar:|^(PASS|FAIL|SKIP)  Secrets' /tmp/pf.out | tail -6; echo raw-token-in-output: $(grep -c "$(cat /tmp/faketok)" /tmp/pf.out); rm -rf 'tools/qg probe'; git status --porcelain | wc -l
+PREFLIGHT_EXIT=1
+9:52AM INF no leaks found
+  3 untracked file(s), not ignored: scanned as a git add -A would see them
+File:        tools/qg probe/new
+9:52AM WRN leaks found: 1
+FAIL  Secrets (gitleaks)
+  FAIL: gitleaks found a secret (or could not finish). ROTATE it first; removing the line does not un-publish a pushed one
+raw-token-in-output: 0
+0
+[exit 0, 14s]
+

@@ -1,0 +1,38 @@
+NOTE: pr-ignore-rt1 on 40201a140ba70f8be40d6b016f55ddb828fcaa91: C1 plants <FAKE-VALUE-MASKED> (kept), C2 adds the history fingerprint, C3 the tree fingerprint. Also checks the docs now state the gap.
+### 2026-10-08T09:42:53Z  cwd=/tmp/ss-clone
+$ for h in 7982ba6ed192bd4543c88e66d49a445b641be3c6 42fdc20cacf62924d21f87f92cf3c71c83bfb7bf; do rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=pull_request BASE_SHA=40201a140ba70f8be40d6b016f55ddb828fcaa91 HEAD_SHA=$h RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-rt1.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|RuleID|File:|Line:|commits scanned|no leaks|leaks found|::error' | cut -c1-160; echo STEP_EXIT=${PIPESTATUS[0]}; done; grep -nE 'require_code_owner_review' .github/rulesets/*.json; grep -niE 'unguarded|not enforced|unenforced' .github/workflows/secret-scan.yml .gitleaksignore docs/engineering/quality-gates.md | head -4 | cut -c1-200
+Range 40201a140ba70f8be40d6b016f55ddb828fcaa91..7982ba6ed192bd4543c88e66d49a445b641be3c6: 2 non-merge commit(s), 2 adding lines
+9:42AM INF 2 commits scanned.
+9:42AM INF no leaks found
+9:43AM INF no leaks found
+STEP_EXIT=0
+Range 40201a140ba70f8be40d6b016f55ddb828fcaa91..42fdc20cacf62924d21f87f92cf3c71c83bfb7bf: 3 non-merge commit(s), 3 adding lines
+9:43AM INF 3 commits scanned.
+9:43AM INF no leaks found
+9:43AM INF no leaks found
+STEP_EXIT=0
+.github/rulesets/dev.json:18:        "require_code_owner_review": false,
+.github/rulesets/main.json:18:        "require_code_owner_review": false,
+.github/rulesets/stage.json:18:        "require_code_owner_review": false,
+docs/engineering/quality-gates.md:113:but **CODEOWNERS is not enforced**: every ruleset has
+[exit 0, 13s]
+
+NOTE: TEST-EXECUTION ERROR in the run above: the clone's working tree was left at the branch tip while earlier heads were scanned, but CI's checkout is the scanned head. The tree-scan half of the run above is therefore invalid. Re-executed below with 'git checkout <head>' before each scan.
+### 2026-10-08T09:43:43Z  cwd=/tmp/ss-clone
+$ for h in $(git rev-parse pr-ignore-rt1~1) $(git rev-parse pr-ignore-rt1); do git checkout -q -f --detach $h; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=pull_request BASE_SHA=40201a140ba70f8be40d6b016f55ddb828fcaa91 HEAD_SHA=$h RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-rt1.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|RuleID|File:|Line:|commits scanned|no leaks|leaks found|::error' | cut -c1-160; echo STEP_EXIT=${PIPESTATUS[0]}; done
+Range 40201a140ba70f8be40d6b016f55ddb828fcaa91..7982ba6ed192bd4543c88e66d49a445b641be3c6: 2 non-merge commit(s), 2 adding lines
+9:43AM INF 2 commits scanned.
+9:43AM INF no leaks found
+RuleID:      github-pat
+File:        apps/api-py/leak_probe.py
+Line:        1
+9:43AM WRN leaks found: 1
+::error::gitleaks found a secret in the tree scan (file, line and rule above; the value is redacted). Rotate it first -- removing the line does not un-publish i
+STEP_EXIT=1
+Range 40201a140ba70f8be40d6b016f55ddb828fcaa91..42fdc20cacf62924d21f87f92cf3c71c83bfb7bf: 3 non-merge commit(s), 3 adding lines
+9:43AM INF 3 commits scanned.
+9:43AM INF no leaks found
+9:43AM INF no leaks found
+STEP_EXIT=0
+[exit 0, 13s]
+

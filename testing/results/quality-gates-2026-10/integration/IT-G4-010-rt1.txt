@@ -1,0 +1,10 @@
+### 2026-10-08T10:02:24Z  cwd=/tmp/pfr
+$ pg_dump -h localhost -p 5433 -U postgres -s --no-owner reep_pf | grep -vE '^-- Dumped|^\\(un)?restrict ' | md5sum > /tmp/rt1_schema_after; echo before: $(cat /tmp/rt1_schema_before); echo after:  $(cat /tmp/rt1_schema_after); cmp /tmp/rt1_schema_before /tmp/rt1_schema_after && echo 'SCHEMA IDENTICAL after a full preflight run'; psql -h localhost -p 5433 -U postgres -d reep_pf -Atc "select relname||'='||n_live_tup from pg_stat_user_tables where n_live_tup>0 order by 1" > /tmp/rt1_rows_after; echo 'tables whose live row count changed (seed + pytest write here; the round trip must not):'; diff /tmp/rt1_rows_before /tmp/rt1_rows_after | grep -cE '^[<>]'; psql -h localhost -p 5433 -U postgres -Atc "select count(*) from pg_database where datname like '%roundtrip%'"
+before: 1e1ca80ced813d128f889ee915d8ac0d -
+after: 1e1ca80ced813d128f889ee915d8ac0d -
+SCHEMA IDENTICAL after a full preflight run
+tables whose live row count changed (seed + pytest write here; the round trip must not):
+61
+0
+[exit 0, 0s]
+

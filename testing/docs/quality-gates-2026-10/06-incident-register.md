@@ -15,6 +15,7 @@
 | Version | Date | Change |
 |---|---|---|
 | 0.1 | 2026-10-08 | Development-phase incidents recorded; L1 defects triaged and assigned |
+| 0.2 | 2026-10-08 | L1 fixes merged (8914e83); L2 defects triaged and assigned; FV-QG-01 raised |
 
 ---
 
@@ -38,8 +39,9 @@
 | Phase | Found | Critical | Major | Minor | Closed | Open (by design) | Deferred | In progress |
 |---|---|---|---|---|---|---|---|---|
 | Development (INC-QG-D) | 52 | 2 | 14 | 36 | 46 | 6 | 0 | 0 |
-| L1 unit (DEF-QG-U) | 6 | 0 | 3 | 3 | 0 | 0 | 0 | 6 |
-| L2 integration (DEF-QG-I) | _executing_ | | | | | | | |
+| L1 unit (DEF-QG-U) | 6 | 0 | 3 | 3 | 0 | 0 | 0 | 6 (fixed, awaiting re-test) |
+| L2 integration (DEF-QG-I) | 4 | 0 | 2 | 2 | 0 | 0 | 0 | 4 |
+| Fix verification (FV-QG) | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 1 |
 | L3 system (DEF-QG-S) | _executing_ | | | | | | | |
 
 "Closed" includes INC-QG-D-16 (accepted as negligible) and INC-QG-D-52 (a false alarm); INC-QG-D-48 is counted as open because two of its three stale documents are follow-ups.
@@ -137,12 +139,12 @@ Build under test: `a3688f0189c48287f376cf8c165d762a2f8ab8d8`. The full text of e
 
 | ID | Title | Sev. / Pri. | Status | Assigned | Fix commit | Re-test |
 |---|---|---|---|---|---|---|
-| DEF-QG-U01 | The route audit counts a gate whose refusal is caught (`try: require_admin(s) except HTTPException: pass`), including through a predicate helper such as `_may_see_raw_response` | Major / P2 | Assigned | Worker C | _pending_ | UT-G3-008 |
-| DEF-QG-U02 | The route audit counts a gate in dead code other than `if <constant>`: after `return`, `if not True:`, `while False:` | Minor / P3 | Assigned | Worker C | _pending_ | UT-G3-007, UT-G3-009 |
-| DEF-QG-U03 | One `# ruff: noqa` line switches the ruff gate off for a whole file in `app/`; a bare `# noqa` is accepted; nothing enforces "a reason on the line" | Major / P2 | Assigned | Worker A | _pending_ | UT-G1-036 |
-| DEF-QG-U04 | An inline `gitleaks:allow` comment silences a real secret (a third, unreviewed allowlist) | Major / P2 | Assigned | Worker B | _pending_ | UT-G2-021 |
-| DEF-QG-U05 | The round trip's loopback refusal does not see libpq's `PGHOSTADDR` or a service entry | Minor / P3 | Assigned | Worker B | _pending_ | UT-G4-020 |
-| DEF-QG-U06 | The static reversibility test classifies a do-nothing downgrade as "real" unless it is literally `pass` | Minor / P3 | Assigned | Worker B | _pending_ | UT-G4-007 |
+| DEF-QG-U01 | The route audit counts a gate whose refusal is caught (`try: require_admin(s) except HTTPException: pass`), including through a predicate helper such as `_may_see_raw_response` | Major / P2 | Fixed, awaiting re-test | Worker C | e9d4015 | UT-G3-008 |
+| DEF-QG-U02 | The route audit counts a gate in dead code other than `if <constant>`: after `return`, `if not True:`, `while False:` | Minor / P3 | Fixed, awaiting re-test | Worker C | e9d4015 | UT-G3-007, UT-G3-009 |
+| DEF-QG-U03 | One `# ruff: noqa` line switches the ruff gate off for a whole file in `app/`; a bare `# noqa` is accepted; nothing enforces "a reason on the line" | Major / P2 | Fixed, awaiting re-test | Worker A | f257442 | UT-G1-036 |
+| DEF-QG-U04 | An inline `gitleaks:allow` comment silences a real secret (a third, unreviewed allowlist) | Major / P2 | Fixed, awaiting re-test | Worker B | 20b5c68 | UT-G2-021 |
+| DEF-QG-U05 | The round trip's loopback refusal does not see libpq's `PGHOSTADDR` or a service entry | Minor / P3 | Fixed, awaiting re-test | Worker B | 28991b6 | UT-G4-020 |
+| DEF-QG-U06 | The static reversibility test classifies a do-nothing downgrade as "real" unless it is literally `pass` | Minor / P3 | Fixed, awaiting re-test | Worker B | 28991b6 | UT-G4-007 |
 
 **Triage decision (TM):** all six are fixed in this PR rather than deferred. Each fix is a small change to a gate's own source, none touches product behaviour, and leaving a known bypass in a gate that was just merged would make the gate's green less meaningful from its first day.
 
@@ -156,9 +158,33 @@ Build under test: `a3688f0189c48287f376cf8c165d762a2f8ab8d8`. The full text of e
 | OBS-QG-U06: two checklist lines in the PR template use non-uniform wording | Fix: uniform "gate name" or "human — no gate" | Worker C |
 | (note) `E9` comment in `pyproject.toml` describes ruff's built-in behaviour | Fix the comment | Worker A |
 
-### 4.2 L2: integration ([03-integration-testing.md](03-integration-testing.md))
+### 4.2 L2: integration ([03-integration-testing.md](03-integration-testing.md), §6)
 
-_Executing._
+| ID | Title | Sev. / Pri. | Status | Assigned | Fix commit | Re-test |
+|---|---|---|---|---|---|---|
+| DEF-QG-I01 | The secret-scan step aborts after the first scan that finds something, under GitHub's `bash -e`: no tree scan, no `::error::` annotation. Fails closed, but not as designed | Minor / P2 | Assigned | Worker B | _pending_ | IT-G2-003 |
+| DEF-QG-I02 | §34 accepts a `preflight.sh` that no longer runs, or no longer records, a required check: a substring test over the whole file, comments included | Major / P2 | Assigned | Worker A | _pending_ | IT-GX-005 |
+| DEF-QG-I03 | Preflight's secret check passes a secret in a new, untracked file | Major / P2 | Assigned | Worker A | _pending_ | IT-GX-015 |
+| DEF-QG-I04 | Preflight's secret check does not say where the secret is | Minor / P3 | Assigned | Worker A | _pending_ | IT-GX-014, IT-GX-016 |
+
+**Triage decision (TM):** all four are fixed in this PR. I02 is partly inherited: the five-check half of the substring test predates this PR. It is fixed here because this PR extended it, and a guard that a comment can satisfy is not a guard.
+
+| Observation | Decision | Assigned |
+|---|---|---|
+| OBS-QG-I01: a PR can silence the secret gate by fingerprinting its own leak in `.gitleaksignore`; CODEOWNERS is not enforced (`require_code_owner_review: false`, one owner) | No detector in this PR. The docs are made to say plainly that CODEOWNERS is not enforced; raised to the owner as Q4 | Worker B (docs) |
+| OBS-QG-I02: `protect-main.sh --dry-run` makes read-only API calls | Usage text says it reads and writes nothing | Worker A |
+| OBS-QG-I03: the release gate does not know `testing/` | Classify `testing/` as NO_DEPLOY | Worker A |
+| OBS-QG-I04: actionlint 1.7.7 reports `ops-task.yml` (14 inputs) | No action: an outdated actionlint rule, file not touched; 1.7.12 is clean | — |
+| OBS-QG-I05: the brief expected workflows to need a human at the release gate | No action: the gate is consistent with AGENTS.md (a CI workflow change deploys nothing); the traceability matrix will not claim otherwise | — |
+| OBS-QG-I06: CI's static step stops at the first tool; preflight's pytest prints no count; gitleaks colour survives `--no-color` | Fix all three (cosmetic, cheap) | Worker A |
+
+### 4.2a Fix-verification findings (FV-QG)
+
+Found by the Test Manager while verifying a fix round, before any re-test.
+
+| ID | Title | Sev. | Status | Assigned | Fix commit |
+|---|---|---|---|---|---|
+| FV-QG-01 | **Regression from the OBS-QG-U01 fix (816ac71):** anchoring the placeholder allowlists to the whole secret made `KEY=<FAKE-VALUE-MASKED>` a finding. Some rules' capture groups exclude the angle brackets, so the conventional `<placeholder>` spelling in documentation would turn the secret gate red. Seen on the unit tester's masked evidence (8 findings) | Major (CI red on a correct tree) | Assigned | Worker B | _pending_ |
 
 ### 4.3 L3: system ([04-system-testing.md](04-system-testing.md))
 
@@ -173,3 +199,4 @@ _Executing._
 | Q1 | Should an ALUMNI account be able to file a leave request (`POST /api/leaves` answers 201 today)? | INC-QG-D-46 | It changes who may use an endpoint; it is a product decision |
 | Q2 | Accept the six "Open (by design)" items (§3) as tracked follow-ups rather than blockers? | §3 | Each changes product behaviour or the client contract |
 | Q3 | Apply the committed rulesets (`.github/rulesets/{main,stage,dev}.json`) in the repository settings? | TM | Requires a repository admin. Until then no required check blocks a merge on GitHub |
+| Q4 | Accept OBS-QG-I01 as residual risk: one PR can fingerprint its own leak in `.gitleaksignore`, and CODEOWNERS is not enforced while there is one maintainer? | OBS-QG-I01 | Closing it needs enforced code-owner review and a second maintainer, a governance decision |

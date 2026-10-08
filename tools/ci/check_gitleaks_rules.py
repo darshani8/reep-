@@ -49,6 +49,17 @@ OPENAI = "OPENAI_" + "API_KEY"
 # refuses to honour (--ignore-gitleaks-allow). Split so no line of this file
 # carries the marker itself.
 ALLOW_MARK = "gitleaks" + ":allow"
+DB_URL = "DATABASE" + "_URL"
+AUTH = "AUTH_" + "SECRET"
+VOICE = "VOICE_WORKER_" + "SECRET"
+LIVEKIT = "LIVEKIT_API_" + "SECRET"
+PEM_BEGIN = "-----" + "BEGIN RSA PRIVATE KEY-----"
+PEM_END = "-----" + "END RSA PRIVATE KEY-----"
+MASK = "<FAKE-VALUE-MASKED>"
+
+
+def _pem(body_lines: list[str]) -> str:
+    return "\n".join([PEM_BEGIN, *body_lines, PEM_END]) + "\n"
 
 
 def cases() -> tuple[dict[str, str], dict[str, str]]:
@@ -84,6 +95,9 @@ def cases() -> tuple[dict[str, str], dict[str, str]]:
         "l17/apps/api-py/.env": f"{OPENAI}=changeme{secrets.token_hex(20)}\n",
         "l18/docs/runbook.md": f"psql {PG}://admin:changeme{secrets.token_hex(12)}@db.example.com/reep_py\n",
         "l19/docs/runbook.md": f"psql {PG}://reep:reep_dev_password{_alnum(6)}@db.example.com/reep_py\n",
+        # FV-QG-01: a PEM block with ONE real body line is a key, however many
+        # of its other lines are masked.
+        "l20/docs/report.txt": _pem([MASK, _alnum(64, string.ascii_letters + string.digits + "+/"), MASK]),
     }
     quiet = {
         "q01/apps/api-py/.env.example": (
@@ -111,6 +125,16 @@ def cases() -> tuple[dict[str, str], dict[str, str]]:
             f"DATABASE_URL={PG}://reep:${{DB_PASSWORD}}@db.example.com/reep_py\n"
             f"DATABASE_URL={PG}://reep:change-me@db.example.com/reep_py\n"
         ),
+        # FV-QG-01: the unit tester's masked spellings, every rule. A `<...>`
+        # is documentation whatever surrounds it; no key is written with `<`.
+        "q10/docs/evidence.txt": (
+            f"{OPENAI}={MASK}\n{GROQ}={MASK}\n{AUTH}={MASK}\n"
+            f"{DB_URL}={PG}://reep:{MASK}@host/db\n{OPENAI}=<your OpenAI key>\n"
+            f"{OPENAI}=proxy-{MASK}\n{VOICE}={MASK}\n{LIVEKIT}={MASK}\n"
+            f"psql {PG}://admin:changeme<hex>@db.example.com/reep_py\n"
+            f"{VOICE}=change-me\n"
+        ),
+        "q11/docs/evidence-key.txt": _pem([MASK] * 6),
     }
     return leaks, quiet
 

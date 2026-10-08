@@ -419,7 +419,7 @@
   There is no fourth process and no second venv: the one voice experience is <code>/student/assistant</code>,
   a WebSocket <em>inside</em> the API process speaking to Amazon Nova 2 Sonic on Bedrock, with no API key.
   CI has five jobs &mdash; <code>api</code>, <code>pii-gate</code>, <code>api-imports</code>, <code>web</code>, <code>cdk</code>.
-  The <strong>DIRECTOR role</strong> was removed on 2026-09-10; there is one office account, role ADMIN.
+  The <strong>DIRECTOR role</strong> was removed on 2026-09-10; there is one office account, role ADMIN. The labels on this sheet were corrected on 2026-10-08 to the product's words — <strong>Main Admin (role ADMIN)</strong>, the placement office; <strong>Faculty (role MENTOR)</strong>, a mentor only once assigned a mentee; <code>/api/admin</code> and <code>require_admin</code> — see <code>AGENTS.md</code> &ldquo;Who is who&rdquo;.
 </div>
 
 <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
@@ -495,7 +495,7 @@
 
               <!-- ===== BROWSER ===== -->
               <rect class="bx" x="30" y="30" width="930" height="150" />
-              <text class="t-h" x="44" y="52">① BROWSER — STUDENT · MENTOR · DIRECTOR</text>
+              <text class="t-h" x="44" y="52">① BROWSER — STUDENT · FACULTY (role MENTOR) · MAIN ADMIN (role ADMIN) · ALUMNI</text>
 
               <rect class="bx-flat" x="44" y="66" width="384" height="100" />
               <text class="t-lab" x="56" y="86" style="font-weight:700">Angular 22.1 SPA</text>
@@ -545,7 +545,7 @@
               <text class="t-mini" x="56" y="449">/api/auth   login (403 in prod) · sso/status · sso/google · callback · me · logout</text>
               <text class="t-mini" x="56" y="464">/api/student   43 endpoints — dashboard results attendance swoc mocks skills</text>
               <text class="t-mini" x="56" y="479">   streak timesheet academics jobs offers resume uploads leaderboards courses</text>
-              <text class="t-mini" x="56" y="494">/api/mentor · /api/director · /api/leaves · /api/register · /api/agent · /api/voice</text>
+              <text class="t-mini" x="56" y="494">/api/mentor · /api/admin · /api/leaves · /api/register · /api/agent · /api/voice</text>
               <text class="t-mini" x="56" y="509">/health liveness (no deps)   /ready per-dependency, 503 only on the DB</text>
 
               <rect class="bx" x="616" y="412" width="330" height="112" />
@@ -751,7 +751,7 @@
               <li>student/resume — 17 section components</li>
               <li>student/interviews — history + report card</li>
               <li>assistant/ — one chunk, three routes</li>
-              <li>placeholder/ — mentor + director nav stubs</li>
+              <li>admin/ — the Main Admin console (was director/)</li>
             </ul>
           </div>
           <div>
@@ -845,7 +845,7 @@
           <h4>Why the boot guard is fatal and has no override flag</h4>
           <p>
             <code>AUTH_SECRET</code> signs the <code>reep_session</code> cookie. A production host running on the
-            repo default is one forged <code>{"role":"DIRECTOR"}</code> cookie away from every student's marks,
+            repo default is one forged <code>{"role":"ADMIN"}</code> cookie away from every student's marks,
             attendance and USN — no login, no Google round-trip, no database row involved. A warning about that
             is a line in a log nobody reads.
           </p>
@@ -1012,7 +1012,7 @@
         <figure>
           <div class="figframe">
             <svg class="dg" viewBox="0 0 960 330" role="img"
-                 aria-label="A request's session cookie resolves to a role. require_mentor admits MENTOR, DIRECTOR and ADMIN; narrowing to students goes through _assert_can_access_student, where a MENTOR sees only their own group and a MENTOR with no group sees nobody, while DIRECTOR and ADMIN see all students.">
+                 aria-label="A request's session cookie resolves to a role. require_mentor admits MENTOR (Faculty) and ADMIN (the Main Admin); narrowing to students goes through _assert_can_access_student, where a MENTOR sees only their own group and a MENTOR with no group sees nobody, while the Main Admin (ADMIN) sees all students.">
               <rect class="bx" x="20" y="132" width="150" height="56" />
               <text class="t-lab t-c" x="95" y="156">request +</text>
               <text class="t-lab t-c" x="95" y="174">reep_session</text>
@@ -1028,13 +1028,13 @@
               <path class="ed" d="M414,180 H478" />
 
               <rect class="bx-acc" x="480" y="42" width="200" height="72" />
-              <text class="t-lab t-c" x="580" y="66" style="font-weight:700">require_director</text>
-              <text class="t-mini t-c" x="580" y="85">DIRECTOR ✓  ADMIN ✓</text>
+              <text class="t-lab t-c" x="580" y="66" style="font-weight:700">require_admin</text>
+              <text class="t-mini t-c" x="580" y="85">ADMIN ✓ only</text>
               <text class="t-mini t-c" x="580" y="103">everything else 403</text>
 
               <rect class="bx-acc" x="480" y="128" width="200" height="72" />
               <text class="t-lab t-c" x="580" y="152" style="font-weight:700">require_mentor</text>
-              <text class="t-mini t-c" x="580" y="171">MENTOR ✓ DIRECTOR ✓ ADMIN ✓</text>
+              <text class="t-mini t-c" x="580" y="171">MENTOR ✓ ADMIN ✓</text>
               <text class="t-mini t-c" x="580" y="189">admits staff, not a scope</text>
 
               <path class="ed" d="M580,200 V244 H620" />
@@ -1045,12 +1045,12 @@
 
               <path class="ed-acc" d="M680,78 H780 V150 H756" />
               <rect class="bx" x="700" y="128" width="240" height="52" />
-              <text class="t-lab t-c" x="820" y="152">DIRECTOR / ADMIN</text>
+              <text class="t-lab t-c" x="820" y="152">ADMIN · the Main Admin</text>
               <text class="t-mini t-c" x="820" y="170">all students</text>
 
               <path class="ed-guard" d="M620,268 H698" />
               <rect class="bx-guard" x="700" y="222" width="240" height="86" />
-              <text class="t-lab t-c" x="820" y="246" style="fill:var(--guard);font-weight:700">MENTOR</text>
+              <text class="t-lab t-c" x="820" y="246" style="fill:var(--guard);font-weight:700">MENTOR · Faculty</text>
               <text class="t-mini t-c" x="820" y="265">only students in their own group</text>
               <text class="t-mini t-c" x="820" y="285" style="fill:var(--guard)">no group ⇒ NOBODY</text>
               <text class="t-mini t-c" x="820" y="302">never “the whole programme”</text>
@@ -1478,7 +1478,7 @@ select channel, count(*), max(created_at) from messages group by channel;</pre>
           <table>
             <thead><tr><th>Command</th><th>Safe in prod?</th><th>What it does</th></tr></thead>
             <tbody>
-              <tr class="hot"><td class="k">python -m app.seed</td><td class="k">refuses</td><td class="d">creates the three demo logins — including a DIRECTOR, who by rule 2 reads every student's marks, attendance and USN — behind passwords published in <code>AGENTS.md</code>. That account must never exist on a production host, so there is <b>no override flag</b>.</td></tr>
+              <tr class="hot"><td class="k">python -m app.seed</td><td class="k">refuses</td><td class="d">creates the demo logins — including the Main Admin (role ADMIN), who by rule 2 reads every student's marks, attendance and USN — behind passwords published in <code>AGENTS.md</code>. That account must never exist on a production host, so there is <b>no override flag</b>.</td></tr>
               <tr><td class="k">python -m app.seed_kb</td><td class="k">yes</td><td class="d">the Knowledge Base, no accounts. Production needs it — without it the grounded assistant has nothing to ground against — and never needs the demo users, which is why they no longer travel together.</td></tr>
               <tr><td class="k">python -m app.seed_roster</td><td class="k">yes</td><td class="d">idempotent student roster from USNs, no passwords</td></tr>
               <tr><td class="k">python -m app.grant_access</td><td class="k">yes</td><td class="d">one person, one row — the single-account counterpart for people a roster never contains</td></tr>
@@ -1653,7 +1653,7 @@ cd ../web &amp;&amp; npx ng build                              <span class="cm">
             <thead><tr><th>#</th><th>Invariant</th><th>Enforced by</th></tr></thead>
             <tbody>
               <tr><td class="n">1</td><td class="k">student PII never reaches a remote model unbidden</td><td class="d"><code>student_data_egress_allowed()</code>; the resume path degrades to <code>used_ai=false</code> and says so</td></tr>
-              <tr><td class="n">2</td><td class="k">staff scope is role-decided; a MENTOR with no group sees nobody</td><td class="d"><code>require_mentor</code> / <code>require_director</code> / <code>_assert_can_access_student</code></td></tr>
+              <tr><td class="n">2</td><td class="k">staff scope is role-decided; a MENTOR with no group sees nobody</td><td class="d"><code>require_mentor</code> / <code>require_admin</code> / <code>_assert_can_access_student</code></td></tr>
               <tr class="hot"><td class="n">3</td><td class="k">exactly one <code>response.create</code> call site after the handshake</td><td class="d">the relay's call graph — a second site kills “one open question at a time” and <b>no test will notice</b></td></tr>
               <tr><td class="n">4</td><td class="k">no student transcript is ever composed into model instructions</td><td class="d">persona + specialization block + phase directive, all fixed strings</td></tr>
               <tr><td class="n">5</td><td class="k">a <code>running</code> interview row is always closed</td><td class="d">three layers, one <code>AND status='running'</code> predicate</td></tr>

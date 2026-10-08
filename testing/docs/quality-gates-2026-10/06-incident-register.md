@@ -43,7 +43,8 @@
 | Development (INC-QG-D) | 52 | 2 | 14 | 36 | 46 | 6 | 0 | 0 |
 | L1 unit, round 1 (DEF-QG-U01–U06) | 6 | 0 | 3 | 3 | 6 | 0 | 0 | 0 |
 | L1 unit, re-test round 1 (DEF-QG-U07–U11) | 5 | 0 | 2 | 3 | 0 | 0 | 0 | 5 |
-| L2 integration (DEF-QG-I) | 4 | 0 | 2 | 2 | 0 | 0 | 0 | 4 (fixed, awaiting re-test) |
+| L2 integration, round 1 (DEF-QG-I01–I04) | 4 | 0 | 2 | 2 | 4 | 0 | 0 | 0 |
+| L2 integration, re-test round 1 (DEF-QG-I05) | 1 | 0 | 0 | 1 | 0 | 0 | 1 (proposed) | 0 |
 | Fix verification (FV-QG) | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 |
 | L3 system (DEF-QG-S) | _executing_ | | | | | | | |
 
@@ -177,10 +178,21 @@ Build under test: `a3688f0189c48287f376cf8c165d762a2f8ab8d8`. The full text of e
 
 | ID | Title | Sev. / Pri. | Status | Assigned | Fix commit | Re-test |
 |---|---|---|---|---|---|---|
-| DEF-QG-I01 | The secret-scan step aborts after the first scan that finds something, under GitHub's `bash -e`: no tree scan, no `::error::` annotation. Fails closed, but not as designed | Minor / P2 | Fixed, awaiting re-test | Worker B | c1b490c | IT-G2-003 |
-| DEF-QG-I02 | §34 accepts a `preflight.sh` that no longer runs, or no longer records, a required check: a substring test over the whole file, comments included | Major / P2 | Fixed, awaiting re-test | Worker A | 38be261 | IT-GX-005 |
-| DEF-QG-I03 | Preflight's secret check passes a secret in a new, untracked file | Major / P2 | Fixed, awaiting re-test | Worker A | 45a4ca5 | IT-GX-015 |
-| DEF-QG-I04 | Preflight's secret check does not say where the secret is | Minor / P3 | Fixed, awaiting re-test | Worker A | 45a4ca5 | IT-GX-014, IT-GX-016 |
+| DEF-QG-I01 | The secret-scan step aborts after the first scan that finds something, under GitHub's `bash -e`: no tree scan, no `::error::` annotation. Fails closed, but not as designed | Minor / P2 | **Closed** | Worker B | c1b490c | Pass on 40201a1 (IT-G2-003-rt1, IT-G2-012-rt1) |
+| DEF-QG-I02 | §34 accepts a `preflight.sh` that no longer runs, or no longer records, a required check: a substring test over the whole file, comments included | Major / P2 | **Closed** | Worker A | 38be261 | Pass on 40201a1 (IT-GX-005-rt1) |
+| DEF-QG-I03 | Preflight's secret check passes a secret in a new, untracked file | Major / P2 | **Closed** | Worker A | 45a4ca5 | Pass on 40201a1 (IT-GX-015-rt1) |
+| DEF-QG-I04 | Preflight's secret check does not say where the secret is | Minor / P3 | **Closed** | Worker A | 45a4ca5 | Pass on 40201a1 (IT-GX-014-rt1, IT-GX-016-rt1) |
+
+**Re-test round 1 on 40201a1** (tester I, 03-integration-testing.md v1.2): all four closed. 53 cases were executed: 52 passed and 1 failed. Regression is green, including the CI api-job replay on Python 3.14 behind a port mapping (2,156 passed, 3 skipped, round trip OK), every secret-scan case, every required-check mutation, every preflight decision-table row (the dev database schema was identical before and after), and pre-commit agreeing with CI.
+
+| ID | Title | Sev. / Pri. | Status | Decision |
+|---|---|---|---|---|
+| DEF-QG-I05 | §34's `called()` counts a line that is exactly the check function's name whatever surrounds it: wrapped in `if false; then … fi`, or placed after `exit 0`, it still passes. (A never-called function, a redefinition and a commented-out call are caught) | Minor / P3 | **Deferred (proposed)** | Accept as residual risk, subject to the owner's written acceptance (Q5). Both shapes need deliberate sabotage of the local, advisory runner. Such an edit is visible in review, and the CI jobs, not preflight, are the authoritative gate. Closing it means constraining how `preflight.sh` may be written, with no end to that arms race |
+
+| Observation | Decision |
+|---|---|
+| OBS-QG-I07: deleting a rule makes the replay fail with "gitleaks did not complete" rather than naming the lost leaks | No action: it still fails closed; cosmetic |
+| OBS-QG-I08: a newline in a filename truncates gitleaks' `File:` line | No action: upstream output formatting |
 
 **Triage decision (TM):** all four are fixed in this PR. I02 is partly inherited: the five-check half of the substring test predates this PR. It is fixed here because this PR extended it, and a guard that a comment can satisfy is not a guard.
 
@@ -205,9 +217,17 @@ Found by the Test Manager while verifying a fix round, before any re-test.
 
 **Withdrawn after re-test (OBS-QG-U07):** the premise above is false. Six rules admit `<`, and a usable password with `<abc>` inside it was freed. The freedom is being narrowed to a value that is wholly one placeholder (§4.1).
 
-### 4.3 L3: system ([04-system-testing.md](04-system-testing.md))
+### 4.3 L3: system ([04-system-testing.md](04-system-testing.md), §6)
 
-_Executing._
+**Round 1 on a3688f0: 39 of 39 passed, no defects.** The OpenAPI document was byte-identical to the base (370 operations), and none of the base's backend passes were lost (1,981 → 2,075 passed). The `testing/api` suite gave the same verdicts as its published baseline, and every role worked end to end. The e2e failures that appeared only on the head were shown, by repetition, to be equally intermittent on the base. A regression pass on the post-fix head (40201a1) is executing.
+
+| Observation | Decision |
+|---|---|
+| OBS-QG-S01: the PR description quotes counts the code no longer has | TM refreshes the PR description before merge |
+| OBS-QG-S02: path allowlists match only when gitleaks runs from the repository root | Same finding as OBS-QG-U02; documented by Worker B (20b5c68) |
+| OBS-QG-S03: session revocation and the reset limiter are per process. With `uvicorn --workers 2`, a retired session keeps working for up to `auth_revocation_cache_seconds` (60 s), so four e2e cases are intermittent. **Pre-existing on the base** | Not this PR's. Raised to the owner (Q6): AGENTS.md's "drops the laptop on its next request" holds only within one process, and `testing/README.md` starts two workers |
+| OBS-QG-S04: eleven e2e cases fail on a fresh database on both base and head (order and state dependence in the suite) | Not this PR's; a follow-up for the e2e suite's maintainers |
+| OBS-QG-S05: the test bed's clone is shallow, so a "full history" scan covered 140 commits | Forwarded to testers U and I. **TM re-verified REQ-G2-08 on an unshallowed clone:** 1,295 commits across every branch, one finding, on the unit tester's own round-1 evidence commit (37060c2), which is never merged (tester documents are imported as a fresh commit) |
 
 ---
 
@@ -219,3 +239,5 @@ _Executing._
 | Q2 | Accept the six "Open (by design)" items (§3) as tracked follow-ups rather than blockers? | §3 | Each changes product behaviour or the client contract |
 | Q3 | Apply the committed rulesets (`.github/rulesets/{main,stage,dev}.json`) in the repository settings? | TM | Requires a repository admin. Until then no required check blocks a merge on GitHub |
 | Q4 | Accept OBS-QG-I01 as residual risk: one PR can fingerprint its own leak in `.gitleaksignore`, and CODEOWNERS is not enforced while there is one maintainer? | OBS-QG-I01 | Closing it needs enforced code-owner review and a second maintainer, a governance decision |
+| Q5 | Accept the Deferred (proposed) Minor items as residual risk: DEF-QG-I05 (and any later item marked so) | §4 | Plan §6 exit criterion 3 needs the owner's written acceptance for an unfixed Minor |
+| Q6 | Decide whether session revocation must be immediate across API workers (OBS-QG-S03, pre-existing); today it is best-effort within `auth_revocation_cache_seconds` | OBS-QG-S03 | A product and architecture decision outside this PR |

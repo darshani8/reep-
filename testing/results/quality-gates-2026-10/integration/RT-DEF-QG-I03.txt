@@ -1,0 +1,30 @@
+NOTE: Re-test on 8914e839 (no commit names DEF-QG-I03). New UNTRACKED file holding <fake ghp_ token, 40 chars>; preflight --quick.
+### 2026-10-08T09:24:48Z  cwd=/tmp/rt34
+$ git rev-parse HEAD; git diff a3688f0 HEAD -- tools/ci/preflight.sh | grep -E '^[-+]' | grep -iE 'gitleaks|untracked|others' | head; printf 'GITHUB_TOKEN = "%s"\n' "$(cat /tmp/faketok)" > apps/api-py/app/leak_probe.py; git status --porcelain | grep -v .venv; bash tools/ci/preflight.sh --quick --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; sed 's/\x1b\[[0-9;]*m//g' /tmp/pf.out | grep -E '^(PASS|FAIL|SKIP|PARTIAL) |leaks found|no leaks'; echo raw-token-in-output: $(grep -c "$(cat /tmp/faketok)" /tmp/pf.out); rm apps/api-py/app/leak_probe.py; git status --porcelain | grep -v .venv | wc -l
+8914e8396c66c993cf3d975c4b786ea30d3a338a
+-GITLEAKS_PINNED=$(sed -n 's/^[[:space:]]*GITLEAKS_VERSION:[[:space:]]*"\([^"]*\)".*/\1/p' \
++GITLEAKS_PINNED=$(read_workflow_env GITLEAKS_VERSION)
+-if [ -n "$GITLEAKS" ] && [ "$GITLEAKS_FOUND_VERSION" = "$GITLEAKS_PINNED" ]; then
++if [ -z "$GITLEAKS_PINNED" ]; then
++  printf '  %-16s %scould not read the pinned version from secret-scan.yml%s\n' "gitleaks" "$YELLOW" "$RESET"
++elif [ -n "$GITLEAKS" ] && [ "$GITLEAKS_FOUND_VERSION" = "$GITLEAKS_PINNED" ]; then
++  if [ -z "$GITLEAKS_PINNED" ]; then
++    record "$name" SKIP 0 "could not read the pinned version from secret-scan.yml (GITLEAKS_VERSION in its env block)"; return
++  # --ignore-gitleaks-allow: an inline `gitleaks:allow` comment must not
++             "--ignore-gitleaks-allow" "--redact" "--no-banner" "--exit-code" "1")
+?? apps/api-py/app/leak_probe.py
+PREFLIGHT_EXIT=2
+SKIP  API (dependency completeness) - no apps/api-py/.venv - see the setup commands above
+PASS  Rule 1 (every model call declares its cargo)
+9:24AM INF no leaks found
+9:24AM INF no leaks found
+9:24AM INF no leaks found
+9:24AM INF no leaks found
+PASS  Secrets (gitleaks)
+SKIP  Infra (CDK synth guards) - aws-cdk-lib is not importable - see the setup commands above
+SKIP  Web (Angular) - guards and typecheck only - no apps/web/node_modules - run: cd apps/web && npm ci
+SKIP  API (FastAPI + Postgres) - --quick
+raw-token-in-output: 0
+0
+[exit 0, 9s]
+

@@ -1,0 +1,12 @@
+### 2026-10-08T09:42:02Z  cwd=/tmp/ss-clone
+$ for b in 0123456789abcdef0123456789abcdef01234567 '' $(git rev-parse HEAD^{tree}); do rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=pull_request BASE_SHA=$b HEAD_SHA=40201a140ba70f8be40d6b016f55ddb828fcaa91 RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-rt1.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|RuleID|File:|Line:|Commit:|Secret:|commits scanned|no leaks|leaks found|::error'; echo STEP_EXIT=${PIPESTATUS[0]}; done; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=pull_request BASE_SHA=40201a140ba70f8be40d6b016f55ddb828fcaa91 HEAD_SHA=deadbeef RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-rt1.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|RuleID|File:|Line:|Commit:|Secret:|commits scanned|no leaks|leaks found|::error'; echo STEP_EXIT=${PIPESTATUS[0]}
+::error::the pull request's base commit '0123456789abcdef0123456789abcdef01234567' is not in this clone, so its commit range cannot be scanned. Refusing rather than scanning nothing: rebase the branch onto its base, or re-run once the base exists.
+STEP_EXIT=1
+::error::the pull request's base commit '' is not in this clone, so its commit range cannot be scanned. Refusing rather than scanning nothing: rebase the branch onto its base, or re-run once the base exists.
+STEP_EXIT=1
+::error::the pull request's base commit '0a4d00c888c48ad44c1d36afa7943be16067cf63' is not in this clone, so its commit range cannot be scanned. Refusing rather than scanning nothing: rebase the branch onto its base, or re-run once the base exists.
+STEP_EXIT=1
+::error::the pull request's head commit 'deadbeef' is not in this clone, so its commit range cannot be scanned. Refusing rather than scanning nothing: rebase the branch onto its base, or re-run once the base exists.
+STEP_EXIT=1
+[exit 0, 0s]
+

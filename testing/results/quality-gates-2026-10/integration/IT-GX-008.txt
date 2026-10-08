@@ -1,0 +1,34 @@
+### 2026-10-08T08:42:34Z  cwd=/home/user/reep-
+$ python3 - <<'EOF'
+import json
+five={'API (FastAPI + Postgres)','Rule 1 (every model call declares its cargo)','API (dependency completeness)','Web (Angular)','Infra (CDK synth guards)'}
+exp={'main':five|{'Secrets (gitleaks)','Branch policy (promotion path)'},'stage':five|{'Secrets (gitleaks)','Branch policy (promotion path)'},'dev':five|{'Secrets (gitleaks)'}}
+ok=True
+for b in ('main','stage','dev'):
+    d=json.load(open(f'.github/rulesets/{b}.json'))
+    inc=d.get('conditions',{}).get('ref_name',{}).get('include')
+    req=[r for r in d['rules'] if r['type']=='required_status_checks'][0]['parameters']
+    ctx=[c['context'] for c in req['required_status_checks']]
+    dup=len(ctx)!=len(set(ctx))
+    print(b, 'enforcement=',d.get('enforcement'),'target=',d.get('target'),'include=',inc,'strict=',req.get('strict_required_status_checks_policy'))
+    print('   contexts:', sorted(ctx), 'duplicates:', dup)
+    print('   integration_ids:', sorted({c.get('integration_id') for c in req['required_status_checks']}, key=str))
+    good = set(ctx)==exp[b] and not dup
+    ok &= good; print('   matches expected set:', good)
+print('ALL OK' if ok else 'MISMATCH')
+EOF
+main enforcement= active target= branch include= ['~DEFAULT_BRANCH'] strict= True
+   contexts: ['API (FastAPI + Postgres)', 'API (dependency completeness)', 'Branch policy (promotion path)', 'Infra (CDK synth guards)', 'Rule 1 (every model call declares its cargo)', 'Secrets (gitleaks)', 'Web (Angular)'] duplicates: False
+   integration_ids: [None]
+   matches expected set: True
+stage enforcement= active target= branch include= ['refs/heads/stage'] strict= True
+   contexts: ['API (FastAPI + Postgres)', 'API (dependency completeness)', 'Branch policy (promotion path)', 'Infra (CDK synth guards)', 'Rule 1 (every model call declares its cargo)', 'Secrets (gitleaks)', 'Web (Angular)'] duplicates: False
+   integration_ids: [None]
+   matches expected set: True
+dev enforcement= active target= branch include= ['refs/heads/dev'] strict= True
+   contexts: ['API (FastAPI + Postgres)', 'API (dependency completeness)', 'Infra (CDK synth guards)', 'Rule 1 (every model call declares its cargo)', 'Secrets (gitleaks)', 'Web (Angular)'] duplicates: False
+   integration_ids: [None]
+   matches expected set: True
+ALL OK
+[exit 0, 0s]
+

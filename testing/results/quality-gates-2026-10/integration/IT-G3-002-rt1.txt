@@ -1,0 +1,11 @@
+### 2026-10-08T09:54:44Z  cwd=/tmp/ci-r1/apps/api-py
+$ cp /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/bin/qg_route.py app/routers/qg_route.py && sed -i 's/^app.include_router(health.router)$/app.include_router(health.router)\nfrom app.routers import qg_route  # QG plant\napp.include_router(qg_route.router)/' app/main.py && git diff --stat | tail -1; env -u REEP_REQUIRE_DB DATABASE_URL=postgresql+psycopg://reep:x@127.0.0.1:5499/none /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= --tb=short tests/test_route_audit.py 2>&1 | grep -E 'qg_open_probe|passed|failed' | cut -c1-200; git clean -fdq; git checkout -q -- .; git status --porcelain | wc -l
+ 1 file changed, 2 insertions(+)
+E       GET /api/qg/probe  (app.routers.qg_route.qg_open_probe: no session dependency)
+E   assert not ['AUTH (session): 1 new violation(s). Add `session: dict = Depends(get_current_session)` to the handler. If it really ...add it to PUBLIC with the reason.', '  GET /api/qg/probe  (app.r
+E       GET /api/qg/probe  (app.routers.qg_route.qg_open_probe: JSON body with no response model)
+E   assert not ['RESPONSE_MODEL: 1 new violation(s). Declare `response_model=` (or a return annotation) naming a Pydantic model — not...onse subclass instead.', '  GET /api/qg/probe  (app.routers.qg
+2 failed, 56 passed in 4.68s
+0
+[exit 0, 7s]
+

@@ -1,0 +1,21 @@
+### 2026-10-08T09:45:22Z  cwd=/tmp/w34r
+$ sed -i '/^STANDALONE_CHECKS=(/,/^)/{/Secrets (gitleaks)/d}' tools/ci/preflight.sh tools/ci/protect-main.sh; echo '--- diff:'; git diff --stat; git diff | grep -E '^[-+][^-+]' | head -8 | cut -c1-200
+--- diff:
+ tools/ci/protect-main.sh | 1 -
+ 1 file changed, 1 deletion(-)
+-  "Secrets (gitleaks)|.github/workflows/secret-scan.yml"
+[exit 0, 0s]
+
+### 2026-10-08T09:45:22Z  cwd=/tmp/w34r
+$ (cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= --tb=line tests/test_codebase_guards.py::test_the_five_required_check_names_agree_across_all_four_files 2>&1 | grep -E 'Error|passed|failed' | cut -c1-260)
+E   AssertionError: protect-main.sh's STANDALONE_CHECKS disagree with what main.json requires outside ci.yml: {'Branch policy (promotion path)': '.github/workflows/branch-policy.yml'}. The script and the ruleset are two ways to protect one branch, and must not
+/tmp/w34r/apps/api-py/tests/test_codebase_guards.py:1782: AssertionError: protect-main.sh's STANDALONE_CHECKS disagree with what main.json requires outside ci.yml: {'Branch policy (promotion path)': '.github/workflows/branch-policy.yml'}. The script and the ru
+1 failed in 0.61s
+[exit 0, 2s]
+
+### 2026-10-08T09:45:24Z  cwd=/tmp/w34r
+$ git checkout -q -- . && git clean -fdq && echo restored; git status --porcelain | wc -l
+restored
+0
+[exit 0, 0s]
+

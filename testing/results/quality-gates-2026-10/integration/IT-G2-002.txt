@@ -1,0 +1,31 @@
+NOTE: Scratch clone /tmp/ss-clone, branch pr-leak = a3688f0 + empty commit + commit adding apps/api-py/leak_probe.py with <fake ghp_ token, 40 chars> + commit deleting it. Final tree has no secret.
+### 2026-10-08T08:36:19Z  cwd=/tmp/ss-clone
+$ rm -rf /tmp/rt2 && mkdir /tmp/rt2 && EVENT=pull_request BASE_SHA=a3688f0189c48287f376cf8c165d762a2f8ab8d8 HEAD_SHA=cddd54ea6f774ca4dea82d6062b1d69c785fc2d9 RUNNER_TEMP=/tmp/rt2 bash -e /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step.sh; echo STEP_EXIT=$?
+Range a3688f0189c48287f376cf8c165d762a2f8ab8d8..cddd54ea6f774ca4dea82d6062b1d69c785fc2d9: 3 non-merge commit(s), 1 adding lines
+8:36AM INF Unknown SCM platform. Use --platform to include links in findings. host=
+Finding:     GITHUB_TOKEN = "REDACTED
+Secret:      REDACTED
+RuleID:      github-pat
+Entropy:     3.834184
+File:        apps/api-py/leak_probe.py
+Line:        1
+Commit:      7ae6f4a0d2908ceb8f34148332b199ba4459e6cb
+Author:      tester
+Email:       t@example.invalid
+Date:        2026-10-08T08:36:19Z
+Fingerprint: 7ae6f4a0d2908ceb8f34148332b199ba4459e6cb:apps/api-py/leak_probe.py:github-pat:1
+
+8:36AM INF 1 commits scanned.
+8:36AM INF scanned ~58 bytes (58 bytes) in 176ms
+8:36AM WRN leaks found: 1
+STEP_EXIT=1
+[exit 0, 1s]
+
+### 2026-10-08T08:36:20Z  cwd=/
+$ grep -c "$(cat /tmp/faketok)" /tmp/rt2/gitleaks-report/* ; echo 'count of raw token in log+json reports above (0 = redacted)'; python3 -c "import json;d=json.load(open('/tmp/rt2/gitleaks-report/history.json'));[print({k:f[k] for k in ('RuleID','File','StartLine','Commit','Secret','Match')}) for f in d]"
+/tmp/rt2/gitleaks-report/history.json:0
+/tmp/rt2/gitleaks-report/history.log:0
+count of raw token in log+json reports above (0 = redacted)
+{'RuleID': 'github-pat', 'File': 'apps/api-py/leak_probe.py', 'StartLine': 1, 'Commit': '7ae6f4a0d2908ceb8f34148332b199ba4459e6cb', 'Secret': 'REDACTED', 'Match': 'REDACTED'}
+[exit 0, 0s]
+

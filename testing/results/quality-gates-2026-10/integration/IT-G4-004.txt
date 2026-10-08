@@ -1,0 +1,54 @@
+NOTE: Injection A in scratch worktree /tmp/wtmig (a3688f0): newest migration f4a2c9e7b1d3's downgrade has its drop_column replaced by 'pass'. Fresh database reep_inj on the primary cluster. Then CI's two commands from apps/api-py: alembic upgrade head, check_migration_roundtrip.py; and the static test.
+### 2026-10-08T08:44:28Z  cwd=/tmp/wtmig/apps/api-py
+$ /home/user/reep-/apps/api-py/.venv/bin/python /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/bin/inject_a.py; git diff | grep -E '^[-+] '; psql -h localhost -p 5433 -U postgres -qc 'drop database if exists reep_inj' -c 'create database reep_inj owner reep'; /home/user/reep-/apps/api-py/.venv/bin/python -m alembic upgrade head 2>&1 | tail -1; echo UPGRADE_EXIT=${PIPESTATUS[0]}
+-    op.drop_column("registrations", "submission_key_hash")
++    pass  # INJECTED DEFECT: the drop_column was omitted
+NOTICE:  database "reep_inj" does not exist, skipping
+INFO  [alembic.runtime.migration] Running upgrade e2b7c4d9f1a6 -> f4a2c9e7b1d3, registrations.submission_key_hash — a retry after a lost reply is the same application.
+UPGRADE_EXIT=0
+[exit 0, 3s]
+
+### 2026-10-08T08:44:31Z  cwd=/tmp/wtmig/apps/api-py
+$ /home/user/reep-/apps/api-py/.venv/bin/python ../../tools/ci/check_migration_roundtrip.py 2>&1 | grep -vE '^INFO|^\$ python'; echo RT_EXIT=${PIPESTATUS[0]}; psql -h localhost -p 5433 -U postgres -Atc "select count(*) from pg_database where datname='reep_inj_roundtrip'"
+database   postgresql+psycopg://reep:***@localhost:5433/reep_inj  (read only: compared against)
+scratch    reep_inj_roundtrip  (created, walked, dropped)
+head       f4a2c9e7b1d3
+floor      9b2d47f0ce15  (the furthest a real rollback can go)
+segment    base .. 31ca99852acd: 66 downgrade(s)
+segment    7c4e0b21d9aa .. 31f7a4c60b12: 2 downgrade(s)
+segment    9b2d47f0ce15 .. f4a2c9e7b1d3: 22 downgrade(s)
+exercised  90 of 92 downgrades; the rest refuse on purpose
+
+straight path: 2118 catalogue lines at f4a2c9e7b1d3
+
+== segment base .. 31ca99852acd
+   declared leftovers ignored at the bottom: [('extension', 'vector'), ('table', 'students_orphaned_cohort_ids')]
+   OK: 66 downgrade(s), identical at both ends
+
+== segment 7c4e0b21d9aa .. 31f7a4c60b12
+   OK: 2 downgrade(s), identical at both ends
+
+== segment 9b2d47f0ce15 .. f4a2c9e7b1d3
+--- before
++++ after
+@@ -781,0 +782 @@
++column | registrations | submission_key_hash | character varying(64) | False |  |  |  | 
+
+FAILED: the catalogue at 9b2d47f0ce15 after 22 downgrade(s) differs ('-' lost, '+' left behind). A downgrade in this segment did not restore what its upgrade changed. If the leftover is genuinely impossible to remove (an enum value), declare it in KEPT_ON_DOWNGRADE with the reason.
+RT_EXIT=1
+0
+[exit 0, 16s]
+
+### 2026-10-08T08:44:47Z  cwd=/tmp/wtmig/apps/api-py
+$ /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= --tb=short tests/test_migration_reversibility.py 2>&1 | grep -E 'f4a2c9e7b1d3|Error|passed|failed' | head -8 | cut -c1-300
+E   AssertionError: these migrations cannot be rolled back and do not say why:
+E       f4a2c9e7b1d3 (f4a2c9e7b1d3_registration_submission_key.py): downgrade is no-op
+E   assert not ['f4a2c9e7b1d3 (f4a2c9e7b1d3_registration_submission_key.py): downgrade is no-op']
+1 failed, 9 passed in 0.77s
+[exit 0, 2s]
+
+### 2026-10-08T08:44:49Z  cwd=/tmp/wtmig/apps/api-py
+$ git checkout -q -- . && git status --porcelain | wc -l
+0
+[exit 0, 0s]
+

@@ -1,0 +1,84 @@
+NOTE: CONFIRMATION of DEF-QG-I06 on 988e732207de9869243d9343a51a6a391b352911. Three fresh clones from file:// of the test bed: depth 1, depth 50, full. Each run in push mode and in PR mode (base 15a9e7d) under GitHub's shell.
+### 2026-10-08T10:40:27Z  cwd=/tmp/sh1
+$ echo "== sh1: shallow=$(git rev-parse --is-shallow-repository) commits=$(git rev-list --count HEAD) base-present=$(git cat-file -e 15a9e7d1d89ad7971436235db9d606e976c46be4^{commit} 2>/dev/null && echo yes || echo no)"; echo '-- push:'; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=push BASE_SHA= HEAD_SHA= RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-fc.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|commits scanned|no leaks|leaks found|::error' | cut -c1-230; echo STEP_EXIT=${PIPESTATUS[0]}; echo '-- pull_request:'; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=pull_request BASE_SHA=15a9e7d1d89ad7971436235db9d606e976c46be4 HEAD_SHA=988e732207de9869243d9343a51a6a391b352911 RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-fc.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|commits scanned|no leaks|leaks found|::error' | cut -c1-230; echo STEP_EXIT=${PIPESTATUS[0]}
+== sh1: shallow=true commits=1 base-present=no
+-- push:
+::error::this checkout is shallow, so the history scan would read only the commits that were fetched. Set fetch-depth: 0 on the checkout step; refusing rather than reporting a partial history as clean.
+STEP_EXIT=1
+-- pull_request:
+::error::this checkout is shallow, so the history scan would read only the commits that were fetched. Set fetch-depth: 0 on the checkout step; refusing rather than reporting a partial history as clean.
+STEP_EXIT=1
+[exit 0, 0s]
+
+### 2026-10-08T10:40:27Z  cwd=/tmp/sh50
+$ echo "== sh50: shallow=$(git rev-parse --is-shallow-repository) commits=$(git rev-list --count HEAD) base-present=$(git cat-file -e 15a9e7d1d89ad7971436235db9d606e976c46be4^{commit} 2>/dev/null && echo yes || echo no)"; echo '-- push:'; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=push BASE_SHA= HEAD_SHA= RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-fc.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|commits scanned|no leaks|leaks found|::error' | cut -c1-230; echo STEP_EXIT=${PIPESTATUS[0]}; echo '-- pull_request:'; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=pull_request BASE_SHA=15a9e7d1d89ad7971436235db9d606e976c46be4 HEAD_SHA=988e732207de9869243d9343a51a6a391b352911 RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-fc.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|commits scanned|no leaks|leaks found|::error' | cut -c1-230; echo STEP_EXIT=${PIPESTATUS[0]}
+== sh50: shallow=true commits=142 base-present=yes
+-- push:
+::error::this checkout is shallow, so the history scan would read only the commits that were fetched. Set fetch-depth: 0 on the checkout step; refusing rather than reporting a partial history as clean.
+STEP_EXIT=1
+-- pull_request:
+::error::this checkout is shallow, so the history scan would read only the commits that were fetched. Set fetch-depth: 0 on the checkout step; refusing rather than reporting a partial history as clean.
+STEP_EXIT=1
+[exit 0, 0s]
+
+### 2026-10-08T10:40:27Z  cwd=/tmp/shfull
+$ echo "== shfull: shallow=$(git rev-parse --is-shallow-repository) commits=$(git rev-list --count HEAD) base-present=$(git cat-file -e 15a9e7d1d89ad7971436235db9d606e976c46be4^{commit} 2>/dev/null && echo yes || echo no)"; echo '-- push:'; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=push BASE_SHA= HEAD_SHA= RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-fc.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|commits scanned|no leaks|leaks found|::error' | cut -c1-230; echo STEP_EXIT=${PIPESTATUS[0]}; echo '-- pull_request:'; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=pull_request BASE_SHA=15a9e7d1d89ad7971436235db9d606e976c46be4 HEAD_SHA=988e732207de9869243d9343a51a6a391b352911 RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-fc.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|commits scanned|no leaks|leaks found|::error' | cut -c1-230; echo STEP_EXIT=${PIPESTATUS[0]}
+== shfull: shallow=false commits=759 base-present=yes
+-- push:
+Range HEAD: 611 non-merge commit(s), 600 adding lines
+10:40AM INF 602 commits scanned.
+10:40AM INF no leaks found
+10:40AM INF no leaks found
+STEP_EXIT=0
+-- pull_request:
+Range 15a9e7d1d89ad7971436235db9d606e976c46be4..988e732207de9869243d9343a51a6a391b352911: 48 non-merge commit(s), 42 adding lines
+10:40AM INF 42 commits scanned.
+10:40AM INF no leaks found
+10:40AM INF no leaks found
+STEP_EXIT=0
+[exit 0, 25s]
+
+### 2026-10-08T10:40:52Z  cwd=/tmp/ss-clone
+$ grep -nE 'fetch-depth|shallow' apps/api-py/tests/test_secret_scan_workflow.py | head -8; git show 988e732207de9869243d9343a51a6a391b352911:.github/workflows/secret-scan.yml | grep -nE 'fetch-depth' 
+68:    """`fetch-depth: 0`, or the push-mode scan of main/stage/dev reads one commit.
+72:    commit, depth 50 scanned 89, both exiting 0). The step's shallow refusal is
+80:    assert re.search(r"^\s+fetch-depth:\s*0\s*$", block, re.M), (
+81:        "the checkout step that feeds the secret scan must set `fetch-depth: 0`; without it "
+82:        "the history scan reads only the commits a shallow clone happened to fetch"
+86:def test_the_scan_step_refuses_a_shallow_clone_in_both_modes() -> None:
+89:    shallow = [i for i, c in enumerate(commands) if "--is-shallow-repository" in c]
+91:    assert shallow, "the scan step no longer asks `git rev-parse --is-shallow-repository`"
+22:# (fetch-depth: 0), which no ci.yml job wants to pay for. §34 reads this file to
+61:      # fetch-depth: 0 because a secret added in commit 1 of a pull request and
+66:          fetch-depth: 0
+138:          # found"; at 50 it read 98 of 746 (DEF-QG-I06). fetch-depth: 0 above
+143:            echo "::error::this checkout is shallow, so the history scan would read only the commits that were fetched. Set fetch-depth: 0 on the checkout step; refusing rather than reporting a partial history as clean."
+[exit 0, 0s]
+
+### 2026-10-08T10:40:52Z  cwd=/tmp/ss-clone
+$ cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= tests/test_secret_scan_workflow.py 2>&1 | tail -1
+5 passed in 0.80s
+[exit 0, 3s]
+
+NOTE: Mutation: delete the 'fetch-depth: 0' line from secret-scan.yml; the pinning test must fail.
+### 2026-10-08T10:40:55Z  cwd=/tmp/ss-clone
+$ sed -i '/fetch-depth: 0/d' .github/workflows/secret-scan.yml; git diff --stat | tail -1; cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= --tb=line tests/test_secret_scan_workflow.py 2>&1 | grep -E 'Error|passed|failed' | cut -c1-200; cd ../..; git checkout -q -- .; git status --porcelain | wc -l
+ 1 file changed, 5 deletions(-)
+E   AssertionError: the checkout step that feeds the secret scan must set `fetch-depth: 0`; without it the history scan reads only the commits a shallow clone happened to fetch
+/tmp/ss-clone/apps/api-py/tests/test_secret_scan_workflow.py:80: AssertionError: the checkout step that feeds the secret scan must set `fetch-depth: 0`; without it the history scan reads only the comm
+E   AssertionError: the shallow check must emit an ::error:: naming the cause and exit 1, got ['if [ "$(git rev-parse --is-shallow-repository)" != "false" ]; then', 'exit 1', 'fi']
+/tmp/ss-clone/apps/api-py/tests/test_secret_scan_workflow.py:94: AssertionError: the shallow check must emit an ::error:: naming the cause and exit 1, got ['if [ "$(git rev-parse --is-shallow-reposito
+2 failed, 3 passed in 0.60s
+0
+[exit 0, 2s]
+
+NOTE: The mutation above was too broad: the sed also removed comment lines and the ::error:: echo that mention fetch-depth: 0, which caused the second failure. Precise re-run below: delete ONLY the YAML key line '          fetch-depth: 0' (line 66).
+### 2026-10-08T10:41:05Z  cwd=/tmp/ss-clone
+$ sed -i '/^          fetch-depth: 0$/d' .github/workflows/secret-scan.yml; git diff | grep -E '^[-+] '; cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= --tb=line tests/test_secret_scan_workflow.py 2>&1 | grep -E 'Error|passed|failed' | cut -c1-200; cd ../..; git checkout -q -- .; git status --porcelain | wc -l
+-          fetch-depth: 0
+E   AssertionError: the checkout step that feeds the secret scan must set `fetch-depth: 0`; without it the history scan reads only the commits a shallow clone happened to fetch
+/tmp/ss-clone/apps/api-py/tests/test_secret_scan_workflow.py:80: AssertionError: the checkout step that feeds the secret scan must set `fetch-depth: 0`; without it the history scan reads only the comm
+1 failed, 4 passed in 0.53s
+0
+[exit 0, 2s]
+

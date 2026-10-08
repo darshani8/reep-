@@ -1,0 +1,22 @@
+### 2026-10-08T10:39:51Z  cwd=/tmp/ss-clone
+$ git checkout -q -f --detach fc-same~1; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=pull_request BASE_SHA=988e732207de9869243d9343a51a6a391b352911 HEAD_SHA=$(git rev-parse fc-same~1) RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-fc.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|RuleID|File:|Line:|commits scanned|no leaks|leaks found|::error' | cut -c1-170; echo STEP_EXIT=${PIPESTATUS[0]}; git checkout -q -f --detach fc-same; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=pull_request BASE_SHA=988e732207de9869243d9343a51a6a391b352911 HEAD_SHA=$(git rev-parse fc-same) RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-fc.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|RuleID|File:|Line:|commits scanned|no leaks|leaks found|::error' | cut -c1-170; echo STEP_EXIT=${PIPESTATUS[0]}; git checkout -q -f --detach 988e732207de9869243d9343a51a6a391b352911
+Range 988e732207de9869243d9343a51a6a391b352911..2d111dcb58f61a5379469964b9cbc795e7b66172: 1 non-merge commit(s), 1 adding lines
+10:39AM INF 1 commits scanned.
+10:39AM INF no leaks found
+10:39AM INF no leaks found
+STEP_EXIT=0
+Range 988e732207de9869243d9343a51a6a391b352911..3fbe733d75444721a117da0f9f18cc99701cce5e: 2 non-merge commit(s), 2 adding lines
+RuleID:      github-pat
+File:        apps/api-py/.env.qg
+Line:        1
+10:39AM INF 2 commits scanned.
+10:39AM WRN leaks found: 1
+RuleID:      github-pat
+File:        apps/api-py/.env.qg
+Line:        1
+10:40AM WRN leaks found: 1
+::error::gitleaks found a secret in the history scan (file, line and rule above; the value is redacted). Rotate it first -- removing the line does not un-publish it -- th
+::error::gitleaks found a secret in the tree scan (file, line and rule above; the value is redacted). Rotate it first -- removing the line does not un-publish it -- then 
+STEP_EXIT=1
+[exit 0, 12s]
+

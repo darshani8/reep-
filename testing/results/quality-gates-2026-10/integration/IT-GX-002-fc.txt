@@ -1,0 +1,22 @@
+### 2026-10-08T10:41:51Z  cwd=/tmp/w34f
+$ sed -i 's/^    name: Secrets (gitleaks)$/    name: Secrets (gitleaks v8)/' .github/workflows/secret-scan.yml; echo '--- diff:'; git diff --stat; git diff | grep -E '^[-+][^-+]' | head -8 | cut -c1-200
+--- diff:
+ .github/workflows/secret-scan.yml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+-    name: Secrets (gitleaks)
++    name: Secrets (gitleaks v8)
+[exit 0, 0s]
+
+### 2026-10-08T10:41:51Z  cwd=/tmp/w34f
+$ (cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= --tb=line tests/test_codebase_guards.py::test_the_five_required_check_names_agree_across_all_four_files 2>&1 | grep -E 'Error|passed|failed' | cut -c1-220)
+E   AssertionError: the rulesets require 'Secrets (gitleaks)', which .github/workflows/secret-scan.yml does not report (its jobs report ['Secrets (gitleaks v8)']). A required check no job reports is never reported, and G
+/tmp/w34f/apps/api-py/tests/test_codebase_guards.py:1745: AssertionError: the rulesets require 'Secrets (gitleaks)', which .github/workflows/secret-scan.yml does not report (its jobs report ['Secrets (gitleaks v8)']). A 
+1 failed in 0.53s
+[exit 0, 2s]
+
+### 2026-10-08T10:41:53Z  cwd=/tmp/w34f
+$ git checkout -q -- . && git clean -fdq && echo restored; git status --porcelain | wc -l
+restored
+0
+[exit 0, 0s]
+

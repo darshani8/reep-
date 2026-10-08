@@ -1,0 +1,30 @@
+### 2026-10-08T08:37:13Z  cwd=/tmp/ss-clone
+$ git checkout -q --detach a3688f0189c48287f376cf8c165d762a2f8ab8d8; rm -rf /tmp/rt && mkdir /tmp/rt && EVENT=push RUNNER_TEMP=/tmp/rt BASE_SHA= HEAD_SHA= bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step.sh 2>&1 | grep -vE '^\s*$'; echo STEP_EXIT=${PIPESTATUS[0]}; git rev-list --no-merges --count HEAD; git rev-list --count HEAD
+Range HEAD: 143 non-merge commit(s), 139 adding lines
+8:37AM INF Unknown SCM platform. Use --platform to include links in findings. host=
+8:38AM INF 140 commits scanned.
+8:38AM INF scanned ~308018420 bytes (308.02 MB) in 1m3.3s
+8:38AM INF no leaks found
+8:38AM INF scanned ~31724253 bytes (31.72 MB) in 6.07s
+8:38AM INF no leaks found
+STEP_EXIT=0
+143
+219
+[exit 0, 73s]
+
+NOTE: The run above was in a SHALLOW clone (219 of 724 commits). Test-bed fix: 'git fetch --unshallow' (equivalent to actions/checkout fetch-depth: 0). Re-run below on the full history = the authoritative result.
+### 2026-10-08T08:38:50Z  cwd=/tmp/ss-clone
+$ git rev-parse --is-shallow-repository; rm -rf /tmp/rt && mkdir /tmp/rt && EVENT=push RUNNER_TEMP=/tmp/rt BASE_SHA= HEAD_SHA= bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step.sh 2>&1 | grep -vE '^\s*$'; echo STEP_EXIT=${PIPESTATUS[0]}; git rev-list --no-merges --count HEAD; git rev-list --count HEAD
+false
+Range HEAD: 586 non-merge commit(s), 578 adding lines
+8:38AM INF Unknown SCM platform. Use --platform to include links in findings. host=
+8:39AM INF 580 commits scanned.
+8:39AM INF scanned ~42082532 bytes (42.08 MB) in 13.6s
+8:39AM INF no leaks found
+8:39AM INF scanned ~31724253 bytes (31.72 MB) in 5.55s
+8:39AM INF no leaks found
+STEP_EXIT=0
+586
+724
+[exit 0, 21s]
+

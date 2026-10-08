@@ -1,0 +1,15 @@
+### 2026-10-08T10:51:02Z  cwd=/tmp/w34f
+$ DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:5499/reep_pf3 bash tools/ci/preflight.sh --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; grep -E 'untracked file|^File:|^RuleID:|leaks found|^  gitleaks |^  postgres |^(PASS|FAIL|SKIP|PARTIAL) +(Secrets|API \(F)|error:' /tmp/pf.out | cut -c1-170; echo raw-token-in-output: $(grep -c "$(cat /tmp/faketok)" /tmp/pf.out); echo ansi: $(grep -c $'\x1b' /tmp/pf.out)
+PREFLIGHT_EXIT=2
+  gitleaks         /usr/local/bin/gitleaks (8.30.0)
+  postgres         127.0.0.1:5499 NOT REACHABLE
+10:51AM INF no leaks found
+10:51AM INF no leaks found
+10:51AM INF no leaks found
+10:51AM INF no leaks found
+PASS  Secrets (gitleaks)
+SKIP  API (FastAPI + Postgres) - static analysis ran; the rest needs Postgres at 127.0.0.1:5499 - run: docker compose up -d
+raw-token-in-output: 0
+ansi: 5
+[exit 0, 122s]
+

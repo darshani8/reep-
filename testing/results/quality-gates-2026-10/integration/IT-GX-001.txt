@@ -1,0 +1,12 @@
+### 2026-10-08T08:40:48Z  cwd=/tmp/wt34/apps/api-py
+$ /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= tests/test_codebase_guards.py::test_the_five_required_check_names_agree_across_all_four_files 2>&1 | tail -2
+.                                                                        [100%]
+1 passed in 1.04s
+[exit 0, 3s]
+
+### 2026-10-08T08:40:51Z  cwd=/tmp/wt34/apps/api-py
+$ /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= tests/test_codebase_guards.py 2>&1 | tail -2
+...........................................................              [100%]
+59 passed in 4.22s
+[exit 0, 6s]
+

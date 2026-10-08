@@ -1,0 +1,63 @@
+set -uo pipefail
+# Reports go OUTSIDE the checkout, or the tree scan reads them.
+report="$RUNNER_TEMP/gitleaks-report"
+mkdir -p "$report"
+if [ "$EVENT" = "pull_request" ]; then
+  for end in "base:$BASE_SHA" "head:$HEAD_SHA"; do
+    if ! git cat-file -e "${end#*:}^{commit}" 2>/dev/null; then
+      echo "::error::the pull request's ${end%%:*} commit '${end#*:}' is not in this clone, so its commit range cannot be scanned. Refusing rather than scanning nothing: rebase the branch onto its base, or re-run once the base exists."
+      exit 1
+    fi
+  done
+  range="$BASE_SHA..$HEAD_SHA"
+else
+  range="HEAD"
+fi
+if ! commits="$(git rev-list --no-merges --count "$range")"; then
+  echo "::error::git rev-list could not read '$range'; refusing rather than scanning nothing."
+  exit 1
+fi
+# Commits that add at least one line -- the only ones gitleaks reads.
+adding="$(git log --no-merges --format='format:@@commit' --numstat "$range" \
+  | awk '$0=="@@commit"{c=1;next} c&&NF&&($1!="0"){n++;c=0} END{print n+0}')"
+echo "Range $range: $commits non-merge commit(s), $adding adding lines"
+
+gitleaks git . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore \
+  --log-opts="$range" --redact --verbose --no-banner --exit-code 1 \
+  --report-format json --report-path "$report/history.json" 2>&1 | tee "$report/history.log"
+history=$?
+# gitleaks colours its log even off a terminal; strip that before
+# reading it, and match the LEVEL column, not the word anywhere (a
+# verbose finding prints the commit message, which may say "ERR").
+sed -i 's/\x1b\[[0-9;]*m//g' "$report/history.log"
+scanned="$(sed -n 's/.*[^0-9]\([0-9][0-9]*\) commits scanned.*/\1/p' "$report/history.log" | tail -n 1)"
+if grep -Eq '^[0-9]{1,2}:[0-9]{2}(AM|PM) ERR ' "$report/history.log"; then
+  echo "::error::gitleaks logged an error during the history scan (above); its 'no leaks found' cannot be trusted."
+  history=2
+elif [ -z "$scanned" ]; then
+  echo "::error::gitleaks did not report how many commits it scanned; treating the history scan as not run."
+  history=2
+elif [ "$scanned" -eq 0 ] && [ "$adding" -gt 0 ]; then
+  echo "::error::gitleaks scanned 0 commits of a range holding $adding that add lines; that is a scan of nothing, not a clean scan."
+  history=2
+fi
+
+gitleaks dir . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore \
+  --redact --verbose --no-banner --exit-code 1 \
+  --report-format json --report-path "$report/tree.json" 2>&1 | tee "$report/tree.log"
+tree=$?
+sed -i 's/\x1b\[[0-9;]*m//g' "$report/tree.log"
+if grep -Eq '^[0-9]{1,2}:[0-9]{2}(AM|PM) ERR ' "$report/tree.log"; then
+  echo "::error::gitleaks logged an error during the tree scan (above)."
+  tree=2
+fi
+# Exit 1 is "found something"; anything else is the scan failing to
+# run, and a scan that did not run is never a pass.
+for result in "history:$history" "tree:$tree"; do
+  case "${result#*:}" in
+    0) ;;
+    1) echo "::error::gitleaks found a secret in the ${result%%:*} scan (file, line and rule above; the value is redacted). Rotate it first -- removing the line does not un-publish it -- then see .gitleaks.toml for how a published dev value is allowlisted." ;;
+    *) echo "::error::the ${result%%:*} scan did not complete, so it is not a pass." ;;
+  esac
+done
+[ "$history" -eq 0 ] && [ "$tree" -eq 0 ]

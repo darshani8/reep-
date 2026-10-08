@@ -1,0 +1,14 @@
+### 2026-10-08T10:39:50Z  cwd=/tmp/ss-clone
+$ git checkout -q -f --detach 988e732207de9869243d9343a51a6a391b352911; python3 tools/ci/check_gitleaks_rules.py | tail -2; echo RULES_EXIT=${PIPESTATUS[0]}; python3 -c "
+import re;p='.gitleaks.toml';s=open(p).read();b=re.split(r'(?m)^(?=\[\[rules\]\])',s);open(p,'w').write(''.join(x for x in b if 'id = \"reep-auth-secret\"' not in x))"; git diff --stat | tail -1; python3 tools/ci/check_gitleaks_rules.py | grep -E 'FAILED|no longer|did not' | head -3; echo RULES_EXIT=${PIPESTATUS[0]}; git checkout -q -- .; git status --porcelain | wc -l
+
+OK: 54 leaks caught, 11 placeholder files quiet.
+RULES_EXIT=0
+ 1 file changed, 29 deletions(-)
+10:39AM FTL Failed to load config error="[[allowlists]] target rule ID 'reep-auth-secret' does not exist"
+
+FAILED: gitleaks did not complete; the rules were not checked
+RULES_EXIT=1
+0
+[exit 0, 1s]
+

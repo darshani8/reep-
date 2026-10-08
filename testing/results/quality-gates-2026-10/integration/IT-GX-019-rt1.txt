@@ -1,0 +1,17 @@
+### 2026-10-08T10:04:35Z  cwd=/tmp/pfr
+$ echo 'qg_probe: int = "not an int"  # QG plant' >> apps/api-py/app/clock.py; bash tools/ci/preflight.sh --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; grep -E '^  gitleaks |^  postgres |^(PASS|FAIL|SKIP|PARTIAL) |error:|qg_pii|NOT READY|INCOMPLETE|^READY' /tmp/pf.out | cut -c1-200; echo alembic-runs: $(grep -c 'alembic upgrade' /tmp/pf.out); git checkout -q -- .; git status --porcelain | wc -l
+PREFLIGHT_EXIT=1
+  gitleaks         /usr/local/bin/gitleaks (8.30.0)
+  postgres         localhost:5433 reachable
+PASS  API (dependency completeness)
+PASS  Rule 1 (every model call declares its cargo)
+PASS  Secrets (gitleaks)
+PASS  Infra (CDK synth guards)
+PASS  Web (Angular)
+app/clock.py:62: error: Incompatible types in assignment (expression has type "str", variable has type "int")  [assignment]
+FAIL  API (FastAPI + Postgres)
+NOT READY. A required check is red here, so it is red on the pull request too.
+alembic-runs: 0
+0
+[exit 0, 115s]
+

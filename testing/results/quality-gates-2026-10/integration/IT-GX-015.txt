@@ -1,0 +1,63 @@
+NOTE: Same, but the fake token is in a NEW, UNTRACKED file (never git-added): apps/api-py/app/leak_probe.py
+### 2026-10-08T08:48:06Z  cwd=/tmp/wtpf
+$ printf 'GITHUB_TOKEN = "%s"\n' "$(cat /tmp/faketok)" > apps/api-py/app/leak_probe.py; git status --porcelain | grep -v .venv; bash tools/ci/preflight.sh --quick --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; sed -n '/= Summary/,$p' /tmp/pf.out | grep -vE '^\s*$'; grep -cE 'REDACTED' /tmp/pf.out; grep -c "$(cat /tmp/faketok)" /tmp/pf.out
+?? apps/api-py/app/leak_probe.py
+PREFLIGHT_EXIT=2
+0
+0
+[exit 1, 59s]
+
+NOTE: Re-run to capture check 3's commands and the Summary block:
+### 2026-10-08T08:49:52Z  cwd=/tmp/wtpf
+$ printf 'GITHUB_TOKEN = "%s"\n' "$(cat /tmp/faketok)" > apps/api-py/app/leak_probe.py; git status --porcelain | grep -v .venv; bash tools/ci/preflight.sh --quick --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; sed 's/\x1b\[[0-9;]*m//g' /tmp/pf.out | sed -n '/3\/6  Secrets/,$p' | grep -vE '^\s*$'; echo raw-token-occurrences-in-output: $(grep -c "$(cat /tmp/faketok)" /tmp/pf.out); rm apps/api-py/app/leak_probe.py; git status --porcelain | grep -v .venv | wc -l
+?? apps/api-py/app/leak_probe.py
+PREFLIGHT_EXIT=2
+3/6  Secrets (gitleaks)
+  $ gitleaks git . --config /tmp/wtpf/.gitleaks.toml --gitleaks-ignore-path /tmp/wtpf/.gitleaksignore --redact --no-banner --exit-code 1 --log-opts=15a9e7d1d89ad7971436235db9d606e976c46be4..HEAD
+8:50AM INF 20 commits scanned.
+8:50AM INF scanned ~412883 bytes (412.88 KB) in 344ms
+8:50AM INF no leaks found
+  $ gitleaks git . --pre-commit --config /tmp/wtpf/.gitleaks.toml --gitleaks-ignore-path /tmp/wtpf/.gitleaksignore --redact --no-banner --exit-code 1
+8:50AM INF 0 commits scanned.
+8:50AM INF scanned ~0 bytes (0) in 184ms
+8:50AM INF no leaks found
+  $ gitleaks git . --staged --config /tmp/wtpf/.gitleaks.toml --gitleaks-ignore-path /tmp/wtpf/.gitleaksignore --redact --no-banner --exit-code 1
+8:50AM INF 0 commits scanned.
+8:50AM INF scanned ~0 bytes (0) in 169ms
+8:50AM INF no leaks found
+  $ gitleaks dir . --config /tmp/wtpf/.gitleaks.toml --gitleaks-ignore-path /tmp/wtpf/.gitleaksignore --redact --no-banner --exit-code 1
+8:50AM INF scanned ~31724253 bytes (31.72 MB) in 5.27s
+8:50AM INF no leaks found
+PASS  Secrets (gitleaks)
+------------------------------------------------------------------------
+4/6  Infra (CDK synth guards)
+  $ /tmp/wtpf/infra/cdk/.venv/bin/python -m pytest -q
+....ssssssssssssssssssss................................................ [ 44%]
+......................................s..............................s.. [ 88%]
+...................                                                      [100%]
+141 passed, 22 skipped in 35.38s
+PASS  Infra (CDK synth guards)
+------------------------------------------------------------------------
+5/6  Web (Angular) - guards and typecheck only
+SKIP  Web (Angular) - guards and typecheck only - no apps/web/node_modules - run: cd apps/web && npm ci
+SKIP  API (FastAPI + Postgres) - --quick
+------------------------------------------------------------------------
+Summary
+  CHECK                                        RESULT   TIME
+  ---------------------------------------------------------------------
+  API (dependency completeness)                PASS     4s
+  Rule 1 (every model call declares its cargo) PASS     1s
+  Secrets (gitleaks)                           PASS     8s
+  Infra (CDK synth guards)                     PASS     37s
+  Web (Angular) - guards and typecheck only    SKIP     0s
+  API (FastAPI + Postgres)                     SKIP     0s
+  PASS: ran in .venv (requirements-dev.txt); --clean-deps asks CI's question
+  SKIP: no apps/web/node_modules - run: cd apps/web && npm ci
+  SKIP: --quick
+  total 50s
+INCOMPLETE. --quick ran only the fast checks. It is not sufficient for a
+pull request: run tools/ci/preflight.sh with no flags before you push.
+raw-token-occurrences-in-output: 0
+0
+[exit 0, 52s]
+

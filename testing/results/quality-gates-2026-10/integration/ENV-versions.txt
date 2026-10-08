@@ -1,0 +1,23 @@
+### 2026-10-08T08:34:41Z  cwd=/home/user/reep-
+$ uname -sr; git rev-parse HEAD; git log -1 --format="%H %s"; /usr/lib/postgresql/16/bin/postgres --version; psql -h localhost -p 5433 -U postgres -Atc "select extversion from pg_available_extensions where name=\$\$vector\$\$"; apps/api-py/.venv/bin/python --version; /root/.local/share/uv/python/cpython-3.14-linux-x86_64-gnu/bin/python3.14 --version; python3.12 --version; /opt/node-v22.22.3-linux-x64/bin/node --version; /opt/node-v22.22.3-linux-x64/bin/npm --version; gitleaks version; actionlint --version | head -1; socat -V | sed -n 2p; apps/api-py/.venv/bin/python -m ruff --version; apps/api-py/.venv/bin/python -m mypy --version; apps/api-py/.venv/bin/python -m alembic --version; bash --version | head -1
+Linux 6.18.44-fc-v80
+a3688f0189c48287f376cf8c165d762a2f8ab8d8
+a3688f0189c48287f376cf8c165d762a2f8ab8d8 Merge worker B's fix: the round trip refuses a managed server, not a port mapping
+postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+ERROR:  column "extversion" does not exist
+LINE 1: select extversion from pg_available_extensions where name=$$...
+               ^
+Python 3.13.16
+Python 3.14.6
+Python 3.12.3
+v22.22.3
+10.9.8
+8.30.0
+1.7.7
+socat version 1.8.0.0 on 03 Jul 2026 12:45:49
+ruff 0.16.10
+mypy 2.4.0 (compiled: yes)
+alembic 1.19.1
+GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)
+[exit 0, 1s]
+

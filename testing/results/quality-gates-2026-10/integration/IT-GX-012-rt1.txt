@@ -1,0 +1,14 @@
+### 2026-10-08T10:02:40Z  cwd=/tmp/pfr
+$ bash tools/ci/preflight.sh --quick --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; grep -E '^  gitleaks |^  postgres |^(PASS|FAIL|SKIP|PARTIAL) |error:|qg_pii|NOT READY|INCOMPLETE|^READY' /tmp/pf.out | cut -c1-200
+PREFLIGHT_EXIT=2
+  gitleaks         /usr/local/bin/gitleaks (8.30.0)
+  postgres         localhost:5433 reachable
+PASS  API (dependency completeness)
+PASS  Rule 1 (every model call declares its cargo)
+PASS  Secrets (gitleaks)
+PASS  Infra (CDK synth guards)
+PARTIAL  Web (Angular) - guards and typecheck only - --quick: ng test and ng build did NOT run, and both are inside a required check
+SKIP  API (FastAPI + Postgres) - --quick
+INCOMPLETE. --quick ran only the fast checks. It is not sufficient for a
+[exit 0, 60s]
+

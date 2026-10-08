@@ -1,0 +1,37 @@
+### 2026-10-08T09:04:22Z  cwd=/home/user/reep-
+$ grep -nE '^\s+rev: v8' .pre-commit-config.yaml; grep -nE 'GITLEAKS_VERSION:' .github/workflows/secret-scan.yml; grep -nE 'id: gitleaks' -A16 .pre-commit-config.yaml | grep -E 'args|entry|language|pass_filenames' ; echo; a=$(sed -n 's/^ *rev: v\(8[0-9.]*\)$/\1/p' .pre-commit-config.yaml); b=$(sed -n 's/^ *GITLEAKS_VERSION: "\(.*\)"/\1/p' .github/workflows/secret-scan.yml); echo pre-commit=$a workflow=$b; [ "$a" = "$b" ] && echo VERSIONS EQUAL
+54:    rev: v8.30.0
+52:  GITLEAKS_VERSION: "8.30.0"
+70-        # of .gitleaks.toml for the rules and every allowlist entry's reason.
+71-        args: ["--config", ".gitleaks.toml"]
+
+pre-commit=8.30.0 workflow=8.30.0
+VERSIONS EQUAL
+[exit 0, 0s]
+
+### 2026-10-08T09:04:40Z  cwd=/tmp/ss-clone
+$ /tmp/pcvenv/bin/pre-commit --version; timeout 900 /tmp/pcvenv/bin/pre-commit run gitleaks --all-files 2>&1 | tail -15; echo PRECOMMIT_EXIT=${PIPESTATUS[0]}
+pre-commit 4.6.2
+[INFO] Initializing environment for https://github.com/gitleaks/gitleaks.
+[INFO] Initializing environment for https://github.com/compilerla/conventional-pre-commit.
+[INFO] Initializing environment for https://github.com/pre-commit/pre-commit-hooks.
+[INFO] Installing environment for https://github.com/gitleaks/gitleaks.
+[INFO] Once installed this environment will be reused.
+[INFO] This may take a few minutes...
+gitleaks (REEP's own secret shapes)......................................Passed
+PRECOMMIT_EXIT=0
+[exit 0, 57s]
+
+NOTE: Agreement on a positive: stage apps/api-py/leak_probe.py holding <fake ghp_ token, 40 chars> in the scratch clone and run the hook; the CI scan of the same content (IT-G2-002/007) reports github-pat.
+### 2026-10-08T09:05:45Z  cwd=/tmp/ss-clone
+$ printf 'GITHUB_TOKEN = "%s"\n' "$(cat /tmp/faketok)" > apps/api-py/leak_probe.py; git add apps/api-py/leak_probe.py; /tmp/pcvenv/bin/pre-commit run gitleaks --all-files > /tmp/pc.out 2>&1; echo PRECOMMIT_EXIT=$?; sed 's/\x1b\[[0-9;]*m//g' /tmp/pc.out | grep -E 'Passed|Failed|RuleID|File:|Secret:|leaks found'; echo raw-token-in-output: $(grep -c "$(cat /tmp/faketok)" /tmp/pc.out); git rm -q --cached apps/api-py/leak_probe.py; rm apps/api-py/leak_probe.py; git status --porcelain | wc -l
+PRECOMMIT_EXIT=1
+gitleaks (REEP's own secret shapes)......................................Failed
+Secret:      REDACTED
+RuleID:      github-pat
+File:        apps/api-py/leak_probe.py
+9:05AM WRN leaks found: 1
+raw-token-in-output: 0
+0
+[exit 0, 0s]
+

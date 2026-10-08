@@ -1,0 +1,25 @@
+NOTE: Injection A2 (bypass attempt on the static test): the downgrade does 'op.execute("SELECT 1")' instead of the drop_column -- not a pass/no-op, so the static test may accept it; the round trip must still catch it.
+### 2026-10-08T08:45:01Z  cwd=/tmp/wtmig/apps/api-py
+$ /home/user/reep-/apps/api-py/.venv/bin/python /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/bin/inject_a2.py; git diff | grep -E '^[-+] '; psql -h localhost -p 5433 -U postgres -qc 'drop database if exists reep_inj' -c 'create database reep_inj owner reep' 2>/dev/null; /home/user/reep-/apps/api-py/.venv/bin/python -m alembic upgrade head >/dev/null 2>&1; echo UPGRADE_EXIT=$?; /home/user/reep-/apps/api-py/.venv/bin/python ../../tools/ci/check_migration_roundtrip.py 2>&1 | grep -E '^(FAILED|---|\+\+\+|@@|[-+](column|default|index|constraint)|   OK|== seg|OK:)'; echo RT_EXIT=${PIPESTATUS[0]}; /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= --tb=short tests/test_migration_reversibility.py 2>&1 | grep -E 'f4a2c9e7b1d3|passed|failed' | head -4 | cut -c1-300
+-    op.drop_column("registrations", "submission_key_hash")
++    op.execute("SELECT 1")  # INJECTED DEFECT: looks like work, removes nothing
+UPGRADE_EXIT=0
+== segment base .. 31ca99852acd
+   OK: 66 downgrade(s), identical at both ends
+== segment 7c4e0b21d9aa .. 31f7a4c60b12
+   OK: 2 downgrade(s), identical at both ends
+== segment 9b2d47f0ce15 .. f4a2c9e7b1d3
+--- before
++++ after
+@@ -781,0 +782 @@
++column | registrations | submission_key_hash | character varying(64) | False |  |  |  | 
+FAILED: the catalogue at 9b2d47f0ce15 after 22 downgrade(s) differs ('-' lost, '+' left behind). A downgrade in this segment did not restore what its upgrade changed. If the leftover is genuinely impossible to remove (an enum value), declare it in KEPT_ON_DOWNGRADE with the reason.
+RT_EXIT=1
+10 passed in 0.71s
+[exit 0, 23s]
+
+### 2026-10-08T08:45:24Z  cwd=/tmp/wtmig/apps/api-py
+$ git checkout -q -- . && git status --porcelain | wc -l
+0
+[exit 0, 0s]
+

@@ -1,0 +1,16 @@
+### 2026-10-08T10:03:40Z  cwd=/tmp/pfr
+$ PATH=/tmp/gl818bin:$PATH; gitleaks version; bash tools/ci/preflight.sh --quick --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; grep -E '^  gitleaks |^  postgres |^(PASS|FAIL|SKIP|PARTIAL) |error:|qg_pii|NOT READY|INCOMPLETE|^READY' /tmp/pf.out | cut -c1-200; echo gitleaks-invocations: $(grep -c '$ gitleaks' /tmp/pf.out)
+8.18.4
+PREFLIGHT_EXIT=2
+  gitleaks          8.18.4, CI pins 8.30.0
+  postgres         localhost:5433 reachable
+PASS  API (dependency completeness)
+PASS  Rule 1 (every model call declares its cargo)
+SKIP  Secrets (gitleaks) - gitleaks 8.18.4 is not v8.30.0; another version is another ruleset
+PASS  Infra (CDK synth guards)
+PARTIAL  Web (Angular) - guards and typecheck only - --quick: ng test and ng build did NOT run, and both are inside a required check
+SKIP  API (FastAPI + Postgres) - --quick
+INCOMPLETE. --quick ran only the fast checks. It is not sufficient for a
+gitleaks-invocations: 0
+[exit 0, 55s]
+

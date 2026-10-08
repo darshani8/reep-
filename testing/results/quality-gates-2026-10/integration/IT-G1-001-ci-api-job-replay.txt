@@ -1,0 +1,653 @@
+IT-G1-001 / IT-G4-001: replay of ci.yml job 'api' (driver: /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/bin/replay_job.py, copied as IT-G1-001-replay_job.py.txt)
+Checkout: git worktree /tmp/ci-replay at a3688f0; python on PATH = /tmp/py314 (CPython 3.14.6 venv, stands in for actions/setup-python 3.14)
+Postgres: second PG16 cluster listening ONLY on 192.0.2.2:5432, reached through socat 127.0.0.1:5435 -> 192.0.2.2:5432 (CI topology: service container behind a port mapping). Override: DATABASE_URL port 5435 (CI: 5433), everything else from ci.yml's job env.
+PYTEST_ADDOPTS='-o addopts=' set in the environment only so the summary line prints (pytest.ini adds a second -q). The step's command is unchanged.
+
+JOB 'api' name='API (FastAPI + Postgres)'
+job env: {'DATABASE_URL': 'postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py', 'AUTH_SECRET': 'ci-secret-not-used-outside-ci-0123456789abcdef', 'ENV': 'dev', 'REEP_REQUIRE_DB': '1'} overrides: {'DATABASE_URL': 'postgresql+psycopg://reep:reep_dev_password@localhost:5435/reep_py'}
+
+--- step 1: uses actions/checkout@v4  (not executed: provided by the test bed)
+
+--- step 2: uses actions/setup-python@v5  (not executed: provided by the test bed)
+
+--- step 3: 'Install dependencies'  working-directory=apps/api-py
+python -m pip install --upgrade pip
+pip install -r requirements-dev.txt
+Requirement already satisfied: pip in /tmp/py314/lib/python3.14/site-packages (26.1.2)
+Collecting pip
+  Downloading pip-26.2.1-py3-none-any.whl.metadata (4.6 kB)
+Downloading pip-26.2.1-py3-none-any.whl (1.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 1.9 MB/s  0:00:00
+Installing collected packages: pip
+  Attempting uninstall: pip
+    Found existing installation: pip 26.1.2
+    Uninstalling pip-26.1.2:
+      Successfully uninstalled pip-26.1.2
+Successfully installed pip-26.2.1
+Collecting fastapi==0.141.1 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 15))
+  Using cached fastapi-0.141.1-py3-none-any.whl.metadata (27 kB)
+Collecting uvicorn==0.52.3 (from uvicorn[standard]==0.52.3->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 16))
+  Using cached uvicorn-0.52.3-py3-none-any.whl.metadata (6.6 kB)
+Collecting websockets==15.0.1 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 27))
+  Downloading websockets-15.0.1-py3-none-any.whl.metadata (6.8 kB)
+Collecting sqlalchemy==2.0.52 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 28))
+  Downloading sqlalchemy-2.0.52-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (9.6 kB)
+Collecting alembic==1.19.1 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 29))
+  Using cached alembic-1.19.1-py3-none-any.whl.metadata (7.3 kB)
+Collecting pydantic==2.13.4 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 30))
+  Using cached pydantic-2.13.4-py3-none-any.whl.metadata (109 kB)
+Collecting pydantic-settings==2.15.0 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 31))
+  Using cached pydantic_settings-2.15.0-py3-none-any.whl.metadata (3.9 kB)
+Collecting psycopg==3.3.4 (from psycopg[binary]==3.3.4->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 32))
+  Using cached psycopg-3.3.4-py3-none-any.whl.metadata (4.3 kB)
+Collecting pgvector==0.5.0 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 35))
+  Using cached pgvector-0.5.0-py3-none-any.whl.metadata (19 kB)
+Collecting pyjwt==2.13.0 (from pyjwt[crypto]==2.13.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 45))
+  Using cached pyjwt-2.13.0-py3-none-any.whl.metadata (3.4 kB)
+Collecting cryptography==50.0.0 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 46))
+  Using cached cryptography-50.0.0-cp311-abi3-manylinux_2_34_x86_64.whl.metadata (4.3 kB)
+Collecting python-multipart==0.0.32 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 47))
+  Using cached python_multipart-0.0.32-py3-none-any.whl.metadata (2.1 kB)
+Collecting httpx==0.28.1 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 51))
+  Using cached httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+Collecting boto3==1.43.80 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 56))
+  Using cached boto3-1.43.80-py3-none-any.whl.metadata (6.6 kB)
+Collecting aws-sdk-bedrock-runtime==0.11.0 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 66))
+  Using cached aws_sdk_bedrock_runtime-0.11.0-py3-none-any.whl.metadata (1.7 kB)
+Collecting awscrt==0.36.2 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 76))
+  Using cached awscrt-0.36.2-cp313-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (11 kB)
+Collecting sentry-sdk==2.68.1 (from sentry-sdk[fastapi]==2.68.1->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 80))
+  Using cached sentry_sdk-2.68.1-py3-none-any.whl.metadata (11 kB)
+Collecting reportlab==5.0.0 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 83))
+  Using cached reportlab-5.0.0-py3-none-any.whl.metadata (1.6 kB)
+Collecting pillow==12.3.0 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 85))
+  Downloading pillow-12.3.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (9.1 kB)
+Collecting pypdf==6.18.0 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 87))
+  Using cached pypdf-6.18.0-py3-none-any.whl.metadata (7.5 kB)
+Collecting numpy==2.3.5 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 101))
+  Downloading numpy-2.3.5-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (62 kB)
+Collecting openpyxl==3.1.5 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 117))
+  Using cached openpyxl-3.1.5-py2.py3-none-any.whl.metadata (2.5 kB)
+Collecting google-adk==2.7.0 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached google_adk-2.7.0-py3-none-any.whl.metadata (24 kB)
+Collecting litellm==1.96.2 (from -r /tmp/ci-replay/apps/api-py/requirements.txt (line 122))
+  Using cached litellm-1.96.2-cp310-abi3-manylinux_2_28_x86_64.whl.metadata (41 kB)
+Collecting pytest==9.1.1 (from -r requirements-dev.txt (line 11))
+  Using cached pytest-9.1.1-py3-none-any.whl.metadata (7.6 kB)
+Collecting fastapi-mcp==0.4.0 (from -r requirements-dev.txt (line 21))
+  Using cached fastapi_mcp-0.4.0-py3-none-any.whl.metadata (7.2 kB)
+Collecting mcp==1.30.0 (from -r requirements-dev.txt (line 36))
+  Using cached mcp-1.30.0-py3-none-any.whl.metadata (9.3 kB)
+Collecting ruff==0.16.10 (from -r requirements-dev.txt (line 45))
+  Using cached ruff-0.16.10-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (20 kB)
+Collecting mypy==2.4.0 (from -r requirements-dev.txt (line 46))
+  Downloading mypy-2.4.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.4 kB)
+Collecting types-reportlab==5.0.0.20260911 (from -r requirements-dev.txt (line 52))
+  Using cached types_reportlab-5.0.0.20260911-py3-none-any.whl.metadata (1.8 kB)
+Collecting types-openpyxl==3.1.5.20260827 (from -r requirements-dev.txt (line 53))
+  Using cached types_openpyxl-3.1.5.20260827-py3-none-any.whl.metadata (1.8 kB)
+Collecting starlette>=0.46.0 (from fastapi==0.141.1->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 15))
+  Using cached starlette-1.7.0-py3-none-any.whl.metadata (6.6 kB)
+Collecting typing-extensions>=4.8.0 (from fastapi==0.141.1->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 15))
+  Using cached typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting typing-inspection>=0.4.2 (from fastapi==0.141.1->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 15))
+  Using cached typing_inspection-0.4.4-py3-none-any.whl.metadata (2.6 kB)
+Collecting annotated-doc>=0.0.2 (from fastapi==0.141.1->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 15))
+  Using cached annotated_doc-0.0.5-py3-none-any.whl.metadata (6.5 kB)
+Collecting click>=7.0 (from uvicorn==0.52.3->uvicorn[standard]==0.52.3->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 16))
+  Using cached click-8.5.0-py3-none-any.whl.metadata (2.6 kB)
+Collecting h11>=0.8 (from uvicorn==0.52.3->uvicorn[standard]==0.52.3->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 16))
+  Using cached h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+Collecting greenlet>=1 (from sqlalchemy==2.0.52->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 28))
+  Downloading greenlet-3.5.6-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (3.8 kB)
+Collecting Mako (from alembic==1.19.1->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 29))
+  Using cached mako-1.4.3-py3-none-any.whl.metadata (2.9 kB)
+Collecting annotated-types>=0.6.0 (from pydantic==2.13.4->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 30))
+  Using cached annotated_types-0.8.0-py3-none-any.whl.metadata (15 kB)
+Collecting pydantic-core==2.46.4 (from pydantic==2.13.4->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 30))
+  Downloading pydantic_core-2.46.4-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.6 kB)
+Collecting python-dotenv>=0.21.0 (from pydantic-settings==2.15.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 31))
+  Using cached python_dotenv-1.2.4-py3-none-any.whl.metadata (29 kB)
+Collecting cffi>=2.0.0 (from cryptography==50.0.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 46))
+  Downloading cffi-2.1.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.5 kB)
+Collecting anyio (from httpx==0.28.1->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 51))
+  Using cached anyio-4.15.1-py3-none-any.whl.metadata (4.7 kB)
+Collecting certifi (from httpx==0.28.1->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 51))
+  Using cached certifi-2026.7.22-py3-none-any.whl.metadata (2.5 kB)
+Collecting httpcore==1.* (from httpx==0.28.1->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 51))
+  Using cached httpcore-1.0.9-py3-none-any.whl.metadata (21 kB)
+Collecting idna (from httpx==0.28.1->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 51))
+  Using cached idna-3.20-py3-none-any.whl.metadata (7.2 kB)
+Collecting botocore<1.44.0,>=1.43.80 (from boto3==1.43.80->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 56))
+  Using cached botocore-1.43.109-py3-none-any.whl.metadata (5.6 kB)
+Collecting jmespath<2.0.0,>=0.7.1 (from boto3==1.43.80->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 56))
+  Using cached jmespath-1.1.0-py3-none-any.whl.metadata (7.6 kB)
+Collecting s3transfer<0.20.0,>=0.19.0 (from boto3==1.43.80->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 56))
+  Using cached s3transfer-0.19.2-py3-none-any.whl.metadata (1.7 kB)
+Collecting smithy-aws-core~=0.11.0 (from smithy-aws-core[eventstream,json]~=0.11.0->aws-sdk-bedrock-runtime==0.11.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 66))
+  Using cached smithy_aws_core-0.11.0-py3-none-any.whl.metadata (1.9 kB)
+Collecting smithy-core~=0.8.0 (from aws-sdk-bedrock-runtime==0.11.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 66))
+  Using cached smithy_core-0.8.1-py3-none-any.whl.metadata (1.5 kB)
+Collecting smithy-http~=0.5.0 (from smithy-http[aiohttp]~=0.5.0->aws-sdk-bedrock-runtime==0.11.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 66))
+  Using cached smithy_http-0.5.0-py3-none-any.whl.metadata (3.5 kB)
+Collecting urllib3>=1.26.11 (from sentry-sdk==2.68.1->sentry-sdk[fastapi]==2.68.1->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 80))
+  Using cached urllib3-2.8.0-py3-none-any.whl.metadata (7.4 kB)
+Collecting charset-normalizer (from reportlab==5.0.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 83))
+  Downloading charset_normalizer-3.5.2-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (46 kB)
+Collecting et-xmlfile (from openpyxl==3.1.5->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 117))
+  Using cached et_xmlfile-2.0.0-py3-none-any.whl.metadata (2.7 kB)
+Collecting aiohttp!=3.14.2 (from google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Downloading aiohttp-3.14.4-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (8.3 kB)
+Collecting aiosqlite>=0.21 (from google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached aiosqlite-0.22.1-py3-none-any.whl.metadata (4.3 kB)
+Collecting authlib<2,>=1.6.6 (from google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached authlib-1.8.0-py2.py3-none-any.whl.metadata (10 kB)
+Collecting google-auth>=2.47 (from google-auth[pyopenssl]>=2.47->google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached google_auth-2.61.0-py3-none-any.whl.metadata (6.0 kB)
+Collecting google-genai<3,>=2.12.1 (from google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached google_genai-2.29.0-py3-none-any.whl.metadata (57 kB)
+Collecting graphviz<1,>=0.20.2 (from google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached graphviz-0.21-py3-none-any.whl.metadata (12 kB)
+Collecting jsonschema<5,>=4.23 (from google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached jsonschema-4.26.0-py3-none-any.whl.metadata (7.6 kB)
+Collecting opentelemetry-api<=1.43,>=1.39 (from google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached opentelemetry_api-1.43.0-py3-none-any.whl.metadata (1.4 kB)
+Collecting opentelemetry-sdk<=1.43,>=1.39 (from google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached opentelemetry_sdk-1.43.0-py3-none-any.whl.metadata (1.7 kB)
+Collecting packaging>=21 (from google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+Collecting pyyaml<7,>=6.0.2 (from google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Downloading pyyaml-6.0.3-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.4 kB)
+Collecting requests<3,>=2.32.4 (from google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached requests-2.34.2-py3-none-any.whl.metadata (4.8 kB)
+Collecting tenacity<10,>=9 (from google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached tenacity-9.2.1-py3-none-any.whl.metadata (1.4 kB)
+Collecting tzlocal<6,>=5.3 (from google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached tzlocal-5.4.4-py3-none-any.whl.metadata (7.7 kB)
+Collecting watchdog<7,>=6 (from google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached watchdog-6.0.0-py3-none-manylinux2014_x86_64.whl.metadata (44 kB)
+Collecting fastuuid<1.0,>=0.14.0 (from litellm==1.96.2->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 122))
+  Downloading fastuuid-0.14.0-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (1.1 kB)
+Collecting openai<3.0.0,>=2.20.0 (from litellm==1.96.2->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 122))
+  Using cached openai-2.54.0-py3-none-any.whl.metadata (40 kB)
+Collecting tiktoken<1.0,>=0.8.0 (from litellm==1.96.2->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 122))
+  Downloading tiktoken-0.14.0-cp314-cp314-manylinux_2_28_x86_64.whl.metadata (6.7 kB)
+Collecting importlib-metadata<9.0,>=8.0.0 (from litellm==1.96.2->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 122))
+  Using cached importlib_metadata-8.9.0-py3-none-any.whl.metadata (4.5 kB)
+Collecting tokenizers<1.0,>=0.21.0 (from litellm==1.96.2->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 122))
+  Using cached tokenizers-0.23.2-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (9.8 kB)
+Collecting jinja2<4.0,>=3.1.6 (from litellm==1.96.2->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 122))
+  Using cached jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+Collecting iniconfig>=1.0.1 (from pytest==9.1.1->-r requirements-dev.txt (line 11))
+  Using cached iniconfig-2.3.1-py3-none-any.whl.metadata (2.8 kB)
+Collecting pluggy<2,>=1.5 (from pytest==9.1.1->-r requirements-dev.txt (line 11))
+  Using cached pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+Collecting pygments>=2.7.2 (from pytest==9.1.1->-r requirements-dev.txt (line 11))
+  Using cached pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)
+Collecting rich>=13.0.0 (from fastapi-mcp==0.4.0->-r requirements-dev.txt (line 21))
+  Using cached rich-15.0.0-py3-none-any.whl.metadata (18 kB)
+Collecting tomli>=2.2.1 (from fastapi-mcp==0.4.0->-r requirements-dev.txt (line 21))
+  Downloading tomli-2.5.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (10 kB)
+Collecting typer>=0.9.0 (from fastapi-mcp==0.4.0->-r requirements-dev.txt (line 21))
+  Using cached typer-0.27.3-py3-none-any.whl.metadata (16 kB)
+Collecting httpx-sse>=0.4 (from mcp==1.30.0->-r requirements-dev.txt (line 36))
+  Using cached httpx_sse-0.4.3-py3-none-any.whl.metadata (9.7 kB)
+Collecting sse-starlette>=1.6.1 (from mcp==1.30.0->-r requirements-dev.txt (line 36))
+  Using cached sse_starlette-3.5.0-py3-none-any.whl.metadata (15 kB)
+Collecting mypy_extensions>=1.0.0 (from mypy==2.4.0->-r requirements-dev.txt (line 46))
+  Using cached mypy_extensions-1.1.0-py3-none-any.whl.metadata (1.1 kB)
+Collecting pathspec>=1.0.0 (from mypy==2.4.0->-r requirements-dev.txt (line 46))
+  Using cached pathspec-1.1.1-py3-none-any.whl.metadata (14 kB)
+Collecting librt>=0.16.0 (from mypy==2.4.0->-r requirements-dev.txt (line 46))
+  Downloading librt-0.16.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (1.3 kB)
+Collecting ast-serialize<1.0.0,>=0.11.2 (from mypy==2.4.0->-r requirements-dev.txt (line 46))
+  Using cached ast_serialize-0.12.1-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (1.4 kB)
+Collecting psycopg-binary==3.3.4 (from psycopg[binary]==3.3.4->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 32))
+  Downloading psycopg_binary-3.3.4-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.7 kB)
+Collecting httptools>=0.8.0 (from uvicorn[standard]==0.52.3->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 16))
+  Downloading httptools-0.8.0-cp314-cp314-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (3.5 kB)
+Collecting uvloop>=0.15.1 (from uvicorn[standard]==0.52.3->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 16))
+  Downloading uvloop-0.23.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.1 kB)
+Collecting watchfiles>=0.20 (from uvicorn[standard]==0.52.3->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 16))
+  Using cached watchfiles-1.3.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+Collecting aiohappyeyeballs>=2.5.0 (from aiohttp!=3.14.2->google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached aiohappyeyeballs-2.7.1-py3-none-any.whl.metadata (5.9 kB)
+Collecting aiosignal>=1.4.0 (from aiohttp!=3.14.2->google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached aiosignal-1.4.0-py3-none-any.whl.metadata (3.7 kB)
+Collecting attrs>=17.3.0 (from aiohttp!=3.14.2->google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
+Collecting frozenlist>=1.1.1 (from aiohttp!=3.14.2->google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Downloading frozenlist-1.8.0-cp314-cp314-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (20 kB)
+Collecting multidict<7.0,>=4.5 (from aiohttp!=3.14.2->google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Downloading multidict-6.9.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.3 kB)
+Collecting propcache>=0.2.0 (from aiohttp!=3.14.2->google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Downloading propcache-0.5.4-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (25 kB)
+Collecting yarl<2.0,>=1.25.1 (from aiohttp!=3.14.2->google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Downloading yarl-1.25.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (111 kB)
+Collecting joserfc>=1.6.1 (from authlib<2,>=1.6.6->google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached joserfc-1.7.5-py3-none-any.whl.metadata (3.1 kB)
+Collecting python-dateutil<3.0.0,>=2.1 (from botocore<1.44.0,>=1.43.80->boto3==1.43.80->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 56))
+  Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+Collecting tenacity<10,>=9 (from google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached tenacity-9.1.4-py3-none-any.whl.metadata (1.2 kB)
+Collecting distro<2,>=1.7.0 (from google-genai<3,>=2.12.1->google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached distro-1.9.0-py3-none-any.whl.metadata (6.8 kB)
+Collecting sniffio (from google-genai<3,>=2.12.1->google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached sniffio-1.3.1-py3-none-any.whl.metadata (3.9 kB)
+Collecting pyasn1-modules>=0.2.1 (from google-auth>=2.47->google-auth[pyopenssl]>=2.47->google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached pyasn1_modules-0.4.2-py3-none-any.whl.metadata (3.5 kB)
+Collecting zipp>=3.20 (from importlib-metadata<9.0,>=8.0.0->litellm==1.96.2->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 122))
+  Using cached zipp-4.1.1-py3-none-any.whl.metadata (3.6 kB)
+Collecting MarkupSafe>=2.0 (from jinja2<4.0,>=3.1.6->litellm==1.96.2->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 122))
+  Downloading markupsafe-3.0.4-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+Collecting jsonschema-specifications>=2023.03.6 (from jsonschema<5,>=4.23->google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached jsonschema_specifications-2025.9.1-py3-none-any.whl.metadata (2.9 kB)
+Collecting referencing>=0.28.4 (from jsonschema<5,>=4.23->google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached referencing-0.37.0-py3-none-any.whl.metadata (2.8 kB)
+Collecting rpds-py>=0.25.0 (from jsonschema<5,>=4.23->google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Downloading rpds_py-2026.9.1-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.1 kB)
+Collecting jiter<1,>=0.10.0 (from openai<3.0.0,>=2.20.0->litellm==1.96.2->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 122))
+  Downloading jiter-0.17.0-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (5.2 kB)
+Collecting tqdm>4 (from openai<3.0.0,>=2.20.0->litellm==1.96.2->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 122))
+  Using cached tqdm-4.70.1-py3-none-any.whl.metadata (57 kB)
+Collecting opentelemetry-semantic-conventions==0.64b0 (from opentelemetry-sdk<=1.43,>=1.39->google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached opentelemetry_semantic_conventions-0.64b0-py3-none-any.whl.metadata (2.4 kB)
+Collecting six>=1.5 (from python-dateutil<3.0.0,>=2.1->botocore<1.44.0,>=1.43.80->boto3==1.43.80->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 56))
+  Using cached six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Collecting aws-sdk-signers~=0.3.0 (from smithy-aws-core~=0.11.0->smithy-aws-core[eventstream,json]~=0.11.0->aws-sdk-bedrock-runtime==0.11.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 66))
+  Using cached aws_sdk_signers-0.3.1-py3-none-any.whl.metadata (3.6 kB)
+Collecting smithy-aws-event-stream~=0.3.0 (from smithy-aws-core[eventstream,json]~=0.11.0->aws-sdk-bedrock-runtime==0.11.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 66))
+  Using cached smithy_aws_event_stream-0.3.0-py3-none-any.whl.metadata (1.6 kB)
+Collecting smithy-json~=0.3.0 (from smithy-aws-core[eventstream,json]~=0.11.0->aws-sdk-bedrock-runtime==0.11.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 66))
+  Using cached smithy_json-0.3.0-py3-none-any.whl.metadata (1.6 kB)
+Collecting ijson>=3.3.0 (from smithy-json~=0.3.0->smithy-aws-core[eventstream,json]~=0.11.0->aws-sdk-bedrock-runtime==0.11.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 66))
+  Downloading ijson-3.5.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (23 kB)
+Collecting regex (from tiktoken<1.0,>=0.8.0->litellm==1.96.2->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 122))
+  Downloading regex-2026.9.29-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (40 kB)
+Collecting huggingface-hub<2.0,>=0.16.4 (from tokenizers<1.0,>=0.21.0->litellm==1.96.2->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 122))
+  Using cached huggingface_hub-1.33.0-py3-none-any.whl.metadata (16 kB)
+Collecting filelock>=3.10.0 (from huggingface-hub<2.0,>=0.16.4->tokenizers<1.0,>=0.21.0->litellm==1.96.2->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 122))
+  Using cached filelock-4.0.12-py3-none-any.whl.metadata (2.0 kB)
+Collecting fsspec>=2023.5.0 (from huggingface-hub<2.0,>=0.16.4->tokenizers<1.0,>=0.21.0->litellm==1.96.2->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 122))
+  Using cached fsspec-2026.9.0-py3-none-any.whl.metadata (10 kB)
+Collecting hf-xet<2.0.0,>=1.6.0 (from huggingface-hub<2.0,>=0.16.4->tokenizers<1.0,>=0.21.0->litellm==1.96.2->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 122))
+  Using cached hf_xet-1.7.0-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (4.9 kB)
+Collecting pycparser (from cffi>=2.0.0->cryptography==50.0.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 46))
+  Using cached pycparser-3.0-py3-none-any.whl.metadata (8.2 kB)
+Collecting pyasn1<0.7.0,>=0.6.1 (from pyasn1-modules>=0.2.1->google-auth>=2.47->google-auth[pyopenssl]>=2.47->google-adk==2.7.0->-r /tmp/ci-replay/apps/api-py/requirements.txt (line 120))
+  Using cached pyasn1-0.6.4-py3-none-any.whl.metadata (8.4 kB)
+Collecting markdown-it-py>=2.2.0 (from rich>=13.0.0->fastapi-mcp==0.4.0->-r requirements-dev.txt (line 21))
+  Using cached markdown_it_py-4.2.0-py3-none-any.whl.metadata (7.4 kB)
+Collecting mdurl~=0.1 (from markdown-it-py>=2.2.0->rich>=13.0.0->fastapi-mcp==0.4.0->-r requirements-dev.txt (line 21))
+  Using cached mdurl-0.1.2-py3-none-any.whl.metadata (1.6 kB)
+Collecting shellingham>=1.3.0 (from typer>=0.9.0->fastapi-mcp==0.4.0->-r requirements-dev.txt (line 21))
+  Using cached shellingham-1.5.4-py2.py3-none-any.whl.metadata (3.5 kB)
+Using cached fastapi-0.141.1-py3-none-any.whl (131 kB)
+Using cached uvicorn-0.52.3-py3-none-any.whl (79 kB)
+Downloading websockets-15.0.1-py3-none-any.whl (169 kB)
+Downloading sqlalchemy-2.0.52-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (3.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.3/3.3 MB 4.4 MB/s  0:00:00
+Using cached alembic-1.19.1-py3-none-any.whl (265 kB)
+Using cached pydantic-2.13.4-py3-none-any.whl (472 kB)
+Using cached pydantic_settings-2.15.0-py3-none-any.whl (69 kB)
+Using cached psycopg-3.3.4-py3-none-any.whl (213 kB)
+Using cached pgvector-0.5.0-py3-none-any.whl (30 kB)
+Using cached pyjwt-2.13.0-py3-none-any.whl (31 kB)
+Using cached cryptography-50.0.0-cp311-abi3-manylinux_2_34_x86_64.whl (4.7 MB)
+Using cached python_multipart-0.0.32-py3-none-any.whl (30 kB)
+Using cached httpx-0.28.1-py3-none-any.whl (73 kB)
+Using cached boto3-1.43.80-py3-none-any.whl (140 kB)
+Using cached aws_sdk_bedrock_runtime-0.11.0-py3-none-any.whl (97 kB)
+Using cached awscrt-0.36.2-cp313-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (4.3 MB)
+Using cached sentry_sdk-2.68.1-py3-none-any.whl (520 kB)
+Using cached reportlab-5.0.0-py3-none-any.whl (2.0 MB)
+Downloading pillow-12.3.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (6.9 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.9/6.9 MB 4.3 MB/s  0:00:01
+Using cached pypdf-6.18.0-py3-none-any.whl (393 kB)
+Downloading numpy-2.3.5-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.6/16.6 MB 2.9 MB/s  0:00:05
+Using cached openpyxl-3.1.5-py2.py3-none-any.whl (250 kB)
+Using cached google_adk-2.7.0-py3-none-any.whl (4.4 MB)
+Using cached litellm-1.96.2-cp310-abi3-manylinux_2_28_x86_64.whl (24.3 MB)
+Using cached pytest-9.1.1-py3-none-any.whl (386 kB)
+Using cached fastapi_mcp-0.4.0-py3-none-any.whl (25 kB)
+Using cached mcp-1.30.0-py3-none-any.whl (234 kB)
+Using cached ruff-0.16.10-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (10.4 MB)
+Downloading mypy-2.4.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (15.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 15.4/15.4 MB 3.6 MB/s  0:00:04
+Using cached types_reportlab-5.0.0.20260911-py3-none-any.whl (113 kB)
+Using cached types_openpyxl-3.1.5.20260827-py3-none-any.whl (165 kB)
+Downloading psycopg_binary-3.3.4-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (5.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.2/5.2 MB 3.8 MB/s  0:00:01
+Downloading pydantic_core-2.46.4-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 2.5 MB/s  0:00:00
+Downloading aiohttp-3.14.4-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.9 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.9/1.9 MB 3.8 MB/s  0:00:00
+Using cached ast_serialize-0.12.1-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (1.3 MB)
+Using cached authlib-1.8.0-py2.py3-none-any.whl (260 kB)
+Using cached botocore-1.43.109-py3-none-any.whl (16.0 MB)
+Using cached click-8.5.0-py3-none-any.whl (125 kB)
+Downloading fastuuid-0.14.0-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (278 kB)
+Using cached google_genai-2.29.0-py3-none-any.whl (1.2 MB)
+Using cached anyio-4.15.1-py3-none-any.whl (132 kB)
+Using cached distro-1.9.0-py3-none-any.whl (20 kB)
+Using cached google_auth-2.61.0-py3-none-any.whl (268 kB)
+Using cached graphviz-0.21-py3-none-any.whl (47 kB)
+Using cached httpcore-1.0.9-py3-none-any.whl (78 kB)
+Using cached importlib_metadata-8.9.0-py3-none-any.whl (27 kB)
+Using cached jinja2-3.1.6-py3-none-any.whl (134 kB)
+Using cached jmespath-1.1.0-py3-none-any.whl (20 kB)
+Using cached jsonschema-4.26.0-py3-none-any.whl (90 kB)
+Downloading multidict-6.9.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (333 kB)
+Using cached openai-2.54.0-py3-none-any.whl (1.7 MB)
+Downloading jiter-0.17.0-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (345 kB)
+Using cached opentelemetry_api-1.43.0-py3-none-any.whl (61 kB)
+Using cached opentelemetry_sdk-1.43.0-py3-none-any.whl (178 kB)
+Using cached opentelemetry_semantic_conventions-0.64b0-py3-none-any.whl (203 kB)
+Using cached pluggy-1.6.0-py3-none-any.whl (20 kB)
+Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+Using cached python_dotenv-1.2.4-py3-none-any.whl (23 kB)
+Downloading pyyaml-6.0.3-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (794 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 794.2/794.2 kB 2.6 MB/s  0:00:00
+Using cached requests-2.34.2-py3-none-any.whl (73 kB)
+Downloading charset_normalizer-3.5.2-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (255 kB)
+Using cached idna-3.20-py3-none-any.whl (69 kB)
+Using cached s3transfer-0.19.2-py3-none-any.whl (90 kB)
+Using cached smithy_aws_core-0.11.0-py3-none-any.whl (58 kB)
+Using cached aws_sdk_signers-0.3.1-py3-none-any.whl (21 kB)
+Using cached smithy_aws_event_stream-0.3.0-py3-none-any.whl (15 kB)
+Using cached smithy_core-0.8.1-py3-none-any.whl (68 kB)
+Using cached smithy_http-0.5.0-py3-none-any.whl (42 kB)
+Using cached smithy_json-0.3.0-py3-none-any.whl (10 kB)
+Using cached starlette-1.7.0-py3-none-any.whl (78 kB)
+Using cached tenacity-9.1.4-py3-none-any.whl (28 kB)
+Downloading tiktoken-0.14.0-cp314-cp314-manylinux_2_28_x86_64.whl (1.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 3.4 MB/s  0:00:00
+Using cached tokenizers-0.23.2-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3.4 MB)
+Using cached huggingface_hub-1.33.0-py3-none-any.whl (846 kB)
+Using cached hf_xet-1.7.0-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (4.2 MB)
+Using cached typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+Using cached tzlocal-5.4.4-py3-none-any.whl (18 kB)
+Using cached urllib3-2.8.0-py3-none-any.whl (135 kB)
+Using cached watchdog-6.0.0-py3-none-manylinux2014_x86_64.whl (79 kB)
+Downloading yarl-1.25.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (117 kB)
+Using cached aiohappyeyeballs-2.7.1-py3-none-any.whl (15 kB)
+Using cached aiosignal-1.4.0-py3-none-any.whl (7.5 kB)
+Using cached aiosqlite-0.22.1-py3-none-any.whl (17 kB)
+Using cached annotated_doc-0.0.5-py3-none-any.whl (5.3 kB)
+Using cached annotated_types-0.8.0-py3-none-any.whl (13 kB)
+Using cached attrs-26.1.0-py3-none-any.whl (67 kB)
+Using cached certifi-2026.7.22-py3-none-any.whl (136 kB)
+Downloading cffi-2.1.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (221 kB)
+Using cached filelock-4.0.12-py3-none-any.whl (111 kB)
+Downloading frozenlist-1.8.0-cp314-cp314-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (231 kB)
+Using cached fsspec-2026.9.0-py3-none-any.whl (221 kB)
+Downloading greenlet-3.5.6-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (670 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 670.8/670.8 kB 5.6 MB/s  0:00:00
+Using cached h11-0.16.0-py3-none-any.whl (37 kB)
+Downloading httptools-0.8.0-cp314-cp314-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (481 kB)
+Using cached httpx_sse-0.4.3-py3-none-any.whl (9.0 kB)
+Downloading ijson-3.5.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (149 kB)
+Using cached iniconfig-2.3.1-py3-none-any.whl (7.6 kB)
+Using cached joserfc-1.7.5-py3-none-any.whl (71 kB)
+Using cached jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)
+Downloading librt-0.16.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (523 kB)
+Downloading markupsafe-3.0.4-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (23 kB)
+Using cached mypy_extensions-1.1.0-py3-none-any.whl (5.0 kB)
+Using cached packaging-26.3-py3-none-any.whl (129 kB)
+Using cached pathspec-1.1.1-py3-none-any.whl (57 kB)
+Downloading propcache-0.5.4-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (232 kB)
+Using cached pyasn1_modules-0.4.2-py3-none-any.whl (181 kB)
+Using cached pyasn1-0.6.4-py3-none-any.whl (84 kB)
+Using cached pygments-2.21.0-py3-none-any.whl (1.3 MB)
+Using cached referencing-0.37.0-py3-none-any.whl (26 kB)
+Using cached rich-15.0.0-py3-none-any.whl (310 kB)
+Using cached markdown_it_py-4.2.0-py3-none-any.whl (91 kB)
+Using cached mdurl-0.1.2-py3-none-any.whl (10.0 kB)
+Downloading rpds_py-2026.9.1-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (371 kB)
+Using cached six-1.17.0-py2.py3-none-any.whl (11 kB)
+Using cached sse_starlette-3.5.0-py3-none-any.whl (17 kB)
+Downloading tomli-2.5.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (283 kB)
+Using cached tqdm-4.70.1-py3-none-any.whl (80 kB)
+Using cached typer-0.27.3-py3-none-any.whl (123 kB)
+Using cached shellingham-1.5.4-py2.py3-none-any.whl (9.8 kB)
+Using cached typing_inspection-0.4.4-py3-none-any.whl (14 kB)
+Downloading uvloop-0.23.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (4.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.4/4.4 MB 3.0 MB/s  0:00:01
+Using cached watchfiles-1.3.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (458 kB)
+Using cached zipp-4.1.1-py3-none-any.whl (10 kB)
+Using cached et_xmlfile-2.0.0-py3-none-any.whl (18 kB)
+Using cached mako-1.4.3-py3-none-any.whl (80 kB)
+Using cached pycparser-3.0-py3-none-any.whl (48 kB)
+Downloading regex-2026.9.29-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (807 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 807.2/807.2 kB 3.7 MB/s  0:00:00
+Using cached sniffio-1.3.1-py3-none-any.whl (10 kB)
+Installing collected packages: zipp, websockets, watchdog, uvloop, urllib3, tzlocal, typing-extensions, types-reportlab, types-openpyxl, tqdm, tomli, tenacity, sniffio, smithy-core, six, shellingham, ruff, rpds-py, regex, pyyaml, python-multipart, python-dotenv, pypdf, pyjwt, pygments, pycparser, pyasn1, psycopg-binary, psycopg, propcache, pluggy, pillow, pgvector, pathspec, packaging, numpy, mypy_extensions, multidict, mdurl, MarkupSafe, librt, jmespath, jiter, iniconfig, ijson, idna, httpx-sse, httptools, hf-xet, h11, greenlet, graphviz, fsspec, frozenlist, filelock, fastuuid, et-xmlfile, distro, click, charset-normalizer, certifi, awscrt, aws-sdk-signers, attrs, ast-serialize, annotated-types, annotated-doc, aiosqlite, aiohappyeyeballs, yarl, uvicorn, typing-inspection, sqlalchemy, smithy-json, smithy-http, smithy-aws-event-stream, sentry-sdk, requests, reportlab, referencing, python-dateutil, pytest, pydantic-core, pyasn1-modules, opentelemetry-api, openpyxl, mypy, markdown-it-py, Mako, jinja2, importlib-metadata, httpcore, cffi, anyio, aiosignal, watchfiles, tiktoken, starlette, smithy-aws-core, rich, pydantic, opentelemetry-semantic-conventions, jsonschema-specifications, httpx, cryptography, botocore, alembic, aiohttp, typer, sse-starlette, s3transfer, pydantic-settings, opentelemetry-sdk, openai, jsonschema, joserfc, huggingface-hub, google-auth, fastapi, tokenizers, mcp, boto3, aws-sdk-bedrock-runtime, authlib, litellm, google-genai, fastapi-mcp, google-adk
+
+Successfully installed Mako-1.4.3 MarkupSafe-3.0.4 aiohappyeyeballs-2.7.1 aiohttp-3.14.4 aiosignal-1.4.0 aiosqlite-0.22.1 alembic-1.19.1 annotated-doc-0.0.5 annotated-types-0.8.0 anyio-4.15.1 ast-serialize-0.12.1 attrs-26.1.0 authlib-1.8.0 aws-sdk-bedrock-runtime-0.11.0 aws-sdk-signers-0.3.1 awscrt-0.36.2 boto3-1.43.80 botocore-1.43.109 certifi-2026.7.22 cffi-2.1.1 charset-normalizer-3.5.2 click-8.5.0 cryptography-50.0.0 distro-1.9.0 et-xmlfile-2.0.0 fastapi-0.141.1 fastapi-mcp-0.4.0 fastuuid-0.14.0 filelock-4.0.12 frozenlist-1.8.0 fsspec-2026.9.0 google-adk-2.7.0 google-auth-2.61.0 google-genai-2.29.0 graphviz-0.21 greenlet-3.5.6 h11-0.16.0 hf-xet-1.7.0 httpcore-1.0.9 httptools-0.8.0 httpx-0.28.1 httpx-sse-0.4.3 huggingface-hub-1.33.0 idna-3.20 ijson-3.5.1 importlib-metadata-8.9.0 iniconfig-2.3.1 jinja2-3.1.6 jiter-0.17.0 jmespath-1.1.0 joserfc-1.7.5 jsonschema-4.26.0 jsonschema-specifications-2025.9.1 librt-0.16.0 litellm-1.96.2 markdown-it-py-4.2.0 mcp-1.30.0 mdurl-0.1.2 multidict-6.9.1 mypy-2.4.0 mypy_extensions-1.1.0 numpy-2.3.5 openai-2.54.0 openpyxl-3.1.5 opentelemetry-api-1.43.0 opentelemetry-sdk-1.43.0 opentelemetry-semantic-conventions-0.64b0 packaging-26.3 pathspec-1.1.1 pgvector-0.5.0 pillow-12.3.0 pluggy-1.6.0 propcache-0.5.4 psycopg-3.3.4 psycopg-binary-3.3.4 pyasn1-0.6.4 pyasn1-modules-0.4.2 pycparser-3.0 pydantic-2.13.4 pydantic-core-2.46.4 pydantic-settings-2.15.0 pygments-2.21.0 pyjwt-2.13.0 pypdf-6.18.0 pytest-9.1.1 python-dateutil-2.9.0.post0 python-dotenv-1.2.4 python-multipart-0.0.32 pyyaml-6.0.3 referencing-0.37.0 regex-2026.9.29 reportlab-5.0.0 requests-2.34.2 rich-15.0.0 rpds-py-2026.9.1 ruff-0.16.10 s3transfer-0.19.2 sentry-sdk-2.68.1 shellingham-1.5.4 six-1.17.0 smithy-aws-core-0.11.0 smithy-aws-event-stream-0.3.0 smithy-core-0.8.1 smithy-http-0.5.0 smithy-json-0.3.0 sniffio-1.3.1 sqlalchemy-2.0.52 sse-starlette-3.5.0 starlette-1.7.0 tenacity-9.1.4 tiktoken-0.14.0 tokenizers-0.23.2 tomli-2.5.0 tqdm-4.70.1 typer-0.27.3 types-openpyxl-3.1.5.20260827 types-reportlab-5.0.0.20260911 typing-extensions-4.16.0 typing-inspection-0.4.4 tzlocal-5.4.4 urllib3-2.8.0 uvicorn-0.52.3 uvloop-0.23.0 watchdog-6.0.0 watchfiles-1.3.0 websockets-15.0.1 yarl-1.25.1 zipp-4.1.1
+=== step 3 'Install dependencies': exit 0 in 81.1s
+
+--- step 4: 'Static analysis (ruff, mypy, async blocking)'  working-directory=apps/api-py
+python -m ruff check --config pyproject.toml . ../../tools/ci
+python -m mypy
+python ../../tools/ci/check_async_blocking.py
+All checks passed!
+Success: no issues found in 218 source files
+check_async_blocking: no new blocking calls in async defs under app/ (3 known, each with its reason in this file).
+=== step 4 'Static analysis (ruff, mypy, async blocking)': exit 0 in 43.8s
+
+--- step 5: 'Apply migrations'  working-directory=apps/api-py
+python -m alembic upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> f65867efe738, auth slice: users students mentors login_days
+INFO  [alembic.runtime.migration] Running upgrade f65867efe738 -> 4e4ac34a89a7, student_profiles
+INFO  [alembic.runtime.migration] Running upgrade 4e4ac34a89a7 -> 5b3419986605, semester_results subject_marks
+INFO  [alembic.runtime.migration] Running upgrade 5b3419986605 -> 047481d26bbd, attendance_records
+INFO  [alembic.runtime.migration] Running upgrade 047481d26bbd -> 9ac9f4696b0d, student core fields (usn stage semester)
+INFO  [alembic.runtime.migration] Running upgrade 9ac9f4696b0d -> 442f409fe2b2, swoc_entries
+INFO  [alembic.runtime.migration] Running upgrade 442f409fe2b2 -> 7b9f0d2b94c9, mock_attempts
+INFO  [alembic.runtime.migration] Running upgrade 7b9f0d2b94c9 -> 76bc4771604c, skills student_skills
+INFO  [alembic.runtime.migration] Running upgrade 76bc4771604c -> 89c58184d2c4, time_sheet_entries
+INFO  [alembic.runtime.migration] Running upgrade 89c58184d2c4 -> bd74d3af53de, academic_qualifications academic_gaps
+INFO  [alembic.runtime.migration] Running upgrade bd74d3af53de -> 617fc28a1a31, mentor_notes
+INFO  [alembic.runtime.migration] Running upgrade 617fc28a1a31 -> efa345768652, alerts
+INFO  [alembic.runtime.migration] Running upgrade efa345768652 -> 01c7bb72b68d, jobs job_applications
+INFO  [alembic.runtime.migration] Running upgrade 01c7bb72b68d -> d58ecdf6a93c, placement_offers
+INFO  [alembic.runtime.migration] Running upgrade d58ecdf6a93c -> a80068bf03da, leave_requests
+INFO  [alembic.runtime.migration] Running upgrade a80068bf03da -> 1aecd2178ccd, schedule_items
+INFO  [alembic.runtime.migration] Running upgrade 1aecd2178ccd -> cd202d22b107, resumes
+INFO  [alembic.runtime.migration] Running upgrade cd202d22b107 -> fdf358b2dc69, courses enrollments
+INFO  [alembic.runtime.migration] Running upgrade fdf358b2dc69 -> 8dc0602056e9, certifications certification_progress
+INFO  [alembic.runtime.migration] Running upgrade 8dc0602056e9 -> 69d81a708980, lab_sessions
+INFO  [alembic.runtime.migration] Running upgrade 69d81a708980 -> fea4515cdba5, cohorts
+INFO  [alembic.runtime.migration] Running upgrade fea4515cdba5 -> 2b3f9aa4b8f2, placement_criteria
+INFO  [alembic.runtime.migration] Running upgrade 2b3f9aa4b8f2 -> 094277ababc9, agent_runs
+INFO  [alembic.runtime.migration] Running upgrade 094277ababc9 -> 5d48c6c2ffdd, uploads
+INFO  [alembic.runtime.migration] Running upgrade 5d48c6c2ffdd -> 9ecfa486074d, registrations
+INFO  [alembic.runtime.migration] Running upgrade 9ecfa486074d -> 3fd5bf464c0b, mail_logs
+INFO  [alembic.runtime.migration] Running upgrade 3fd5bf464c0b -> b73e107ffbc2, alert_rule_configs
+INFO  [alembic.runtime.migration] Running upgrade b73e107ffbc2 -> 496d83735a1d, job_import_runs
+INFO  [alembic.runtime.migration] Running upgrade 496d83735a1d -> 6111de4784aa, skill_claims
+INFO  [alembic.runtime.migration] Running upgrade 6111de4784aa -> 3c8af3d95253, resume_profiles
+INFO  [alembic.runtime.migration] Running upgrade 3c8af3d95253 -> c4e4c58eac29, conversations messages
+INFO  [alembic.runtime.migration] Running upgrade c4e4c58eac29 -> d2f7a1c9e4b0, voice worker heartbeats
+INFO  [alembic.runtime.migration] Running upgrade d2f7a1c9e4b0 -> 1aa19fa788e9, knowledge_base_documents_chunks
+INFO  [alembic.runtime.migration] Running upgrade 1aa19fa788e9 -> e1a7c9d34f20, agent_run intent + resolved grounding signal
+INFO  [alembic.runtime.migration] Running upgrade e1a7c9d34f20 -> f2b8d05e6a11, assistant_feedback (+ feedbackrating enum)
+INFO  [alembic.runtime.migration] Running upgrade f2b8d05e6a11 -> b7e2f4a19c33, knowledge_chunks.embedding -> pgvector `vector` (+ CREATE EXTENSION vector)
+INFO  [alembic.runtime.migration] Running upgrade b7e2f4a19c33 -> d989bec4286d, conversation greeted_at
+INFO  [alembic.runtime.migration] Running upgrade d989bec4286d -> 6afb55d18ed8, one active conversation per owner
+INFO  [alembic.runtime.migration] Running upgrade 6afb55d18ed8 -> a3f1c7d5b820, user google_sub pin + token_version revocation
+INFO  [alembic.runtime.migration] Running upgrade a3f1c7d5b820 -> c7e91a4d0f36, interview records — sessions, turns, evaluations, consents
+INFO  [alembic.runtime.migration] Running upgrade c7e91a4d0f36 -> b41c9e2d7f05, students.cohort_id + students.mentor_id indexes
+INFO  [alembic.runtime.migration] Running upgrade b41c9e2d7f05 -> e4c1b7a9d203, v2 UI: time allocation ledger, english baseline, programme milestones
+INFO  [alembic.runtime.migration] Running upgrade e4c1b7a9d203 -> a91d47c6b3e8, Alumni role + profile, and staff upskilling certificates
+INFO  [alembic.runtime.migration] Running upgrade a91d47c6b3e8 -> b4e8d21f9c57, Skills & Badge dashboard — evidence, awards, cert catalogue, growth
+INFO  [alembic.runtime.migration] Running upgrade b4e8d21f9c57 -> c8f4d9e2a101, Additive Phase 4 redesign foundation.
+INFO  [alembic.runtime.migration] Running upgrade c8f4d9e2a101 -> d6a4e7f91b22, Add durable execution state for Phase 4 workers.
+INFO  [alembic.runtime.migration] Running upgrade d6a4e7f91b22 -> f3c81a5d2e70, skill claim student_note
+INFO  [alembic.runtime.migration] Running upgrade f3c81a5d2e70 -> b8d2f7a4c619, upload_status NEEDS_CHANGES
+INFO  [alembic.runtime.migration] Running upgrade b8d2f7a4c619 -> c4e91b7d3a58, BGSCET leave form fields
+INFO  [alembic.runtime.migration] Running upgrade c4e91b7d3a58 -> a71c3e5d9f42, alumni joined_on
+INFO  [alembic.runtime.migration] Running upgrade a71c3e5d9f42 -> b8f2d4c6a1e0, voice platform: dual-path (UG/PG) interview catalogue, candidates, policies, calls
+INFO  [alembic.runtime.migration] Running upgrade b8f2d4c6a1e0 -> c4a9e7b21d38, Drop voice_worker_heartbeats — the LiveKit voice worker was removed.
+INFO  [alembic.runtime.migration] Running upgrade c4a9e7b21d38 -> d5a1c8b30f47, students.cohort_id becomes a real foreign key to cohorts.id.
+INFO  [alembic.runtime.migration] Running upgrade d5a1c8b30f47 -> e6b2d9c41a83, colleges + departments, and cohorts.department_id.
+INFO  [alembic.runtime.migration] Running upgrade e6b2d9c41a83 -> f7c3a1d92e54, academic_courses, academic_specializations, the two nullable ancestor columns
+on cohorts, and created_by_user_id on all four institution tables.
+INFO  [alembic.runtime.migration] Running upgrade f7c3a1d92e54 -> a8e5c3f17b92, auth_tokens — single-use hashed links for activation and password reset.
+INFO  [alembic.runtime.migration] Running upgrade a8e5c3f17b92 -> c2f7a9d41e63, CHECK constraints for every documented bound, and an index behind every foreign key.
+INFO  [alembic.runtime.migration] Running upgrade c2f7a9d41e63 -> b9d4e7a2c318, mentor_notes.deleted_at — retracting a note stops destroying it.
+INFO  [alembic.runtime.migration] Running upgrade b9d4e7a2c318 -> d1f8b06c4e37, Drop platform_call_sessions.opensearch_synced — the projection is gone.
+INFO  [alembic.runtime.migration] Running upgrade d1f8b06c4e37 -> e3c9a4d15f80, skill_claims.upload_id: CASCADE -> SET NULL, and nullable.
+INFO  [alembic.runtime.migration] Running upgrade e3c9a4d15f80 -> f2a5d83c91b4, Governance — capability grants, access groups, and student feature overrides.
+INFO  [alembic.runtime.migration] Running upgrade f2a5d83c91b4 -> a3d7e5f9c2b1, Registration documents — a CV and a photo attached before the application is decided.
+INFO  [alembic.runtime.migration] Running upgrade a3d7e5f9c2b1 -> b4e8f2a6d1c3, Interview question bank - admin-authored questions per track and phase.
+INFO  [alembic.runtime.migration] Running upgrade b4e8f2a6d1c3 -> c5f9a3e7d2b4, Registration hierarchy claim - College, Department, Course, Specialization,
+Batch, as the applicant picked them on the public form.
+INFO  [alembic.runtime.migration] Running upgrade c5f9a3e7d2b4 -> e7b1c9d4a2f6, Staff signatures - one uploaded image per staff account, for the leave paper.
+INFO  [alembic.runtime.migration] Running upgrade e7b1c9d4a2f6 -> 31ca99852acd, staff belong to a department, and through it a college
+INFO  [alembic.runtime.migration] Running upgrade 31ca99852acd -> 7c4e0b21d9aa, DIRECTOR is not a role any more: every holder becomes faculty
+[director-removal] 0 DIRECTOR account(s) converted to MENTOR
+INFO  [alembic.runtime.migration] Running upgrade 7c4e0b21d9aa -> a91f3c5d80e4, Three indexes the query plans asked for, and thirteen that were paying rent
+INFO  [alembic.runtime.migration] Running upgrade a91f3c5d80e4 -> 31f7a4c60b12, students belong to a department too, not only to a batch
+INFO  [alembic.runtime.migration] Running upgrade 31f7a4c60b12 -> 9b2d47f0ce15, Move every PENDING_VERIFICATION application into the review queue.
+INFO  [alembic.runtime.migration] Running upgrade 9b2d47f0ce15 -> a1f4c7d92e08, colleges.email_domains: the fence belongs to the tenant, not the deployment
+INFO  [alembic.runtime.migration] Running upgrade a1f4c7d92e08 -> b2c9e04a7731, capability_grants: where a grant reaches
+INFO  [alembic.runtime.migration] Running upgrade b2c9e04a7731 -> d4e7b93a15c8, Grants gain a review date, an approval state and the role they were given to
+INFO  [alembic.runtime.migration] Running upgrade d4e7b93a15c8 -> e5f2c86d40b1, users.disabled_at, notification prefs, and the two append-only event tables
+INFO  [alembic.runtime.migration] Running upgrade e5f2c86d40b1 -> c3a9f1e7d2b4, course shape, semester history, batch/student status and the per-course catalogue
+INFO  [alembic.runtime.migration] Running upgrade c3a9f1e7d2b4 -> f1a7c93d5e26, imports, the weekly snapshot, criteria per course, jobs scope — and the job-import delete
+INFO  [alembic.runtime.migration] Running upgrade f1a7c93d5e26 -> a4f7d2c80b93, interview tracks, the college's policy, the retained score and the cap reset
+INFO  [alembic.runtime.migration] Running upgrade a4f7d2c80b93 -> c7e91a4b26d3, mentor assignment history, the department's capacity, and SWOC history
+INFO  [alembic.runtime.migration] Running upgrade c7e91a4b26d3 -> d8a3f16c05be, leave attachments, balances, the academic calendar, the signing function and
+the withdrawal timestamp
+INFO  [alembic.runtime.migration] Running upgrade d8a3f16c05be -> c4f7b1e08d92, registration_status HOLD + the hold stamp
+INFO  [alembic.runtime.migration] Running upgrade c4f7b1e08d92 -> f3a8d61c07be, Drop ix_login_events_user_id — covered by ix_login_events_user_at.
+INFO  [alembic.runtime.migration] Running upgrade f3a8d61c07be -> b7e4d21af905, archived_documents — the manifest for the permanent document archive.
+INFO  [alembic.runtime.migration] Running upgrade b7e4d21af905 -> e1c4b7a209d6, One open mentor spell per student, and the last two json columns become jsonb
+INFO  [alembic.runtime.migration] Running upgrade e1c4b7a209d6 -> d7e2f9a41c86, A rejected applicant may apply again: one LIVE application per address
+INFO  [alembic.runtime.migration] Running upgrade d7e2f9a41c86 -> c7d3e9a1f5b2, users.deleted_at — removed from the roster, still in the database
+INFO  [alembic.runtime.migration] Running upgrade c7d3e9a1f5b2 -> d8b1f4c2a7e9, Leave approval is the Main Admin's alone: revoke every grant of the key that went
+INFO  [alembic.runtime.migration] Running upgrade d8b1f4c2a7e9 -> a4e7c92d1f38, A batch is a year: take the course and the specialization back out of cohorts.name
+INFO  [alembic.runtime.migration] Running upgrade a4e7c92d1f38 -> a3f9c2e17b48, registrations.personal_email / linkedin_url — the two boxes the public form
+asked for and threw away.
+INFO  [alembic.runtime.migration] Running upgrade a3f9c2e17b48 -> b7d2e4f9a1c3, interview_sessions.audio_skipped_reason — why an interview has no recording.
+INFO  [alembic.runtime.migration] Running upgrade b7d2e4f9a1c3 -> d4c8e1f7a2b9, registrations.second_specialization_id — the second tick of a dual
+specialization.
+INFO  [alembic.runtime.migration] Running upgrade d4c8e1f7a2b9 -> e2b7c4d9f1a6, students.second_specialization_id — the other half of a dual specialization.
+INFO  [alembic.runtime.migration] Running upgrade e2b7c4d9f1a6 -> f4a2c9e7b1d3, registrations.submission_key_hash — a retry after a lost reply is the same application.
+=== step 5 'Apply migrations': exit 0 in 4.4s
+
+--- step 6: 'Migrations roll back (downgrade to the floor, then up again)'  working-directory=apps/api-py
+python ../../tools/ci/check_migration_roundtrip.py
+database   postgresql+psycopg://reep:***@localhost:5435/reep_py  (read only: compared against)
+scratch    reep_py_roundtrip  (created, walked, dropped)
+head       f4a2c9e7b1d3
+floor      9b2d47f0ce15  (the furthest a real rollback can go)
+segment    base .. 31ca99852acd: 66 downgrade(s)
+segment    7c4e0b21d9aa .. 31f7a4c60b12: 2 downgrade(s)
+segment    9b2d47f0ce15 .. f4a2c9e7b1d3: 22 downgrade(s)
+exercised  90 of 92 downgrades; the rest refuse on purpose
+
+straight path: 2118 catalogue lines at f4a2c9e7b1d3
+
+== segment base .. 31ca99852acd
+$ python -m alembic upgrade 31ca99852acd
+$ python -m alembic downgrade base
+$ python -m alembic upgrade 31ca99852acd
+   declared leftovers ignored at the bottom: [('extension', 'vector'), ('table', 'students_orphaned_cohort_ids')]
+   OK: 66 downgrade(s), identical at both ends
+
+== segment 7c4e0b21d9aa .. 31f7a4c60b12
+$ python -m alembic upgrade 7c4e0b21d9aa
+$ python -m alembic upgrade 31f7a4c60b12
+$ python -m alembic downgrade 7c4e0b21d9aa
+$ python -m alembic upgrade 31f7a4c60b12
+   OK: 2 downgrade(s), identical at both ends
+
+== segment 9b2d47f0ce15 .. f4a2c9e7b1d3
+$ python -m alembic upgrade 9b2d47f0ce15
+$ python -m alembic upgrade f4a2c9e7b1d3
+$ python -m alembic downgrade 9b2d47f0ce15
+$ python -m alembic upgrade f4a2c9e7b1d3
+   declared leftovers ignored at the bottom: [('enum-value', 'registration_status', 'HOLD')]
+   OK: 22 downgrade(s), identical at both ends
+
+$ python -m alembic check
+
+OK: 90 of 92 downgrades run in 3 segment(s), catalogues identical at every bottom and top, the round-tripped head matches the straight one (2118 lines), alembic check clean (24 s).
+=== step 6 'Migrations roll back (downgrade to the floor, then up again)': exit 0 in 25.1s
+
+--- step 7: 'Seed the dev dataset'  working-directory=apps/api-py
+python -m app.seed
+created admin@bgscet.ac.in / admin123
+created student@bgscet.ac.in / student123 (+ profile)
+created mentor@bgscet.ac.in / mentor123
+created alumni@bgscet.ac.in / alumni123 (no profile — first-login flow)
+backfilled student USN + stage
+assigned student to mentor group
+added a mentor note
+added an alert
+added a semester result (2 subjects) for the test student
+added attendance (40 sessions across 2 courses)
+added SWOC entries (4 across quadrants)
+added mock attempts (2)
+added skill catalogue (3)
+added student skills (3)
+seeded 5 login-day(s) for a streak
+added timesheet entries (15)
+added academic qualifications (3)
+added academic gap row
+added jobs (3)
+added schedule items (3)
+added courses (2)
+added enrollments (2)
+added certification (1)
+added certification progress (1)
+added lab sessions (2)
+added college (1)
+added department (1)
+added academic course (1)
+added academic specialization (1)
+added cohort (1)
+assigned student to cohort
+filed student under the cohort's department
+added placement criteria (default)
+added uploads (3: 2 pending, 1 verified)
+added skill claim (1, pending)
+added registration rules (2)
+added registrations (3: 1 auto-approved, 1 pending review, 1 held)
+added alert rule configs (3)
+added mail logs (2)
+added knowledge documents (10, APPROVED, student audience)
+added time allocation ledger (yesterday submitted, today 23.5/24 h)
+added english baseline (3 of 4 sections scored, speaking pending)
+added programme milestones (7)
+titled mentor meeting notes (1)
+added approved certification catalogue (3)
+added badge dashboard slice (2 earned, 1 pending, 1 more-info)
+added capability assessments (20 scores, T0–T2)
+=== step 7 'Seed the dev dataset': exit 0 in 3.0s
+
+--- step 8: 'Run tests'  working-directory=apps/api-py
+python -m pytest -q
+...................................................
+GOLDEN pass rate: 12/12 = 100%
+.................s...................................................... [ 48%]
+...............ss....................................................... [ 58%]
+=============================== warnings summary ===============================
+../../../py314/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /tmp/py314/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+tests/test_governance.py::test_a_grant_adds_a_screen_and_a_group_hands_it_to_its_members
+  /tmp/ci-replay/apps/api-py/tests/test_governance.py:79: SAWarning: DELETE statement on table 'capability_grants' expected to delete 2 row(s); 1 were matched.  Please set confirm_deleted_rows=False within the mapper configuration to prevent this warning.
+    db.commit()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+2075 passed, 3 skipped, 2 warnings in 302.60s (0:05:02)
+=== step 8 'Run tests': exit 0 in 307.9s
+
+JOB PASSED: every step exited 0

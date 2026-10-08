@@ -1,0 +1,17 @@
+### 2026-10-08T09:52:34Z  cwd=/tmp/pfr
+$ python3 - <<'EOF'
+import json
+five={'API (FastAPI + Postgres)','Rule 1 (every model call declares its cargo)','API (dependency completeness)','Web (Angular)','Infra (CDK synth guards)'}
+exp={'main':five|{'Secrets (gitleaks)','Branch policy (promotion path)'},'stage':five|{'Secrets (gitleaks)','Branch policy (promotion path)'},'dev':five|{'Secrets (gitleaks)'}}
+ok=True
+for b in exp:
+    d=json.load(open(f'.github/rulesets/{b}.json')); req=[r for r in d['rules'] if r['type']=='required_status_checks'][0]['parameters']
+    ctx=[c['context'] for c in req['required_status_checks']]; g=set(ctx)==exp[b] and len(ctx)==len(set(ctx)); ok&=g; print(b, g, sorted(ctx))
+print('ALL OK' if ok else 'MISMATCH')
+EOF
+main True ['API (FastAPI + Postgres)', 'API (dependency completeness)', 'Branch policy (promotion path)', 'Infra (CDK synth guards)', 'Rule 1 (every model call declares its cargo)', 'Secrets (gitleaks)', 'Web (Angular)']
+stage True ['API (FastAPI + Postgres)', 'API (dependency completeness)', 'Branch policy (promotion path)', 'Infra (CDK synth guards)', 'Rule 1 (every model call declares its cargo)', 'Secrets (gitleaks)', 'Web (Angular)']
+dev True ['API (FastAPI + Postgres)', 'API (dependency completeness)', 'Infra (CDK synth guards)', 'Rule 1 (every model call declares its cargo)', 'Secrets (gitleaks)', 'Web (Angular)']
+ALL OK
+[exit 0, 0s]
+

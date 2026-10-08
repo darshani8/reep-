@@ -1,0 +1,95 @@
+NOTE: CONFIRMATION of DEF-QG-I02: the original four mutations A-D, unchanged.
+### 2026-10-08T09:45:13Z  cwd=/tmp/w34r
+$ sed -i 's/local name="Secrets (gitleaks)"/local name="Secret scan"/' tools/ci/preflight.sh; echo '--- diff:'; git diff --stat; git diff | grep -E '^[-+][^-+]' | head -8 | cut -c1-200
+--- diff:
+ tools/ci/preflight.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+-  local name="Secrets (gitleaks)" t0 rc=0 base range tree note_text=""
++  local name="Secret scan" t0 rc=0 base range tree note_text=""
+[exit 0, 0s]
+
+### 2026-10-08T09:45:13Z  cwd=/tmp/w34r
+$ (cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= --tb=line tests/test_codebase_guards.py::test_the_five_required_check_names_agree_across_all_four_files 2>&1 | grep -E 'Error|passed|failed' | cut -c1-260)
+E   AssertionError: tools/ci/preflight.sh does not run every required check under its required name:
+/tmp/w34r/apps/api-py/tests/test_codebase_guards.py:1815: AssertionError: tools/ci/preflight.sh does not run every required check under its required name:
+1 failed in 0.66s
+[exit 0, 2s]
+
+### 2026-10-08T09:45:15Z  cwd=/tmp/w34r
+$ git checkout -q -- . && git clean -fdq && echo restored; git status --porcelain | wc -l
+restored
+0
+[exit 0, 0s]
+
+### 2026-10-08T09:45:15Z  cwd=/tmp/w34r
+$ sed -i '/^  check_secrets$/d' tools/ci/preflight.sh; echo '--- diff:'; git diff --stat; git diff | grep -E '^[-+][^-+]' | head -8 | cut -c1-200
+--- diff:
+ tools/ci/preflight.sh | 2 --
+ 1 file changed, 2 deletions(-)
+-  check_secrets
+-  check_secrets
+[exit 0, 0s]
+
+### 2026-10-08T09:45:15Z  cwd=/tmp/w34r
+$ (cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= --tb=line tests/test_codebase_guards.py::test_the_five_required_check_names_agree_across_all_four_files 2>&1 | grep -E 'Error|passed|failed' | cut -c1-260)
+E   AssertionError: tools/ci/preflight.sh does not run every required check under its required name:
+/tmp/w34r/apps/api-py/tests/test_codebase_guards.py:1815: AssertionError: tools/ci/preflight.sh does not run every required check under its required name:
+1 failed in 0.66s
+[exit 0, 3s]
+
+### 2026-10-08T09:45:18Z  cwd=/tmp/w34r
+$ git checkout -q -- . && git clean -fdq && echo restored; git status --porcelain | wc -l
+restored
+0
+[exit 0, 0s]
+
+### 2026-10-08T09:45:18Z  cwd=/tmp/w34r
+$ sed -i '/^  check_web$/d' tools/ci/preflight.sh; echo '--- diff:'; git diff --stat; git diff | grep -E '^[-+][^-+]' | head -8 | cut -c1-200
+--- diff:
+ tools/ci/preflight.sh | 2 --
+ 1 file changed, 2 deletions(-)
+-  check_web
+-  check_web
+[exit 0, 0s]
+
+### 2026-10-08T09:45:18Z  cwd=/tmp/w34r
+$ (cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= --tb=line tests/test_codebase_guards.py::test_the_five_required_check_names_agree_across_all_four_files 2>&1 | grep -E 'Error|passed|failed' | cut -c1-260)
+E   AssertionError: tools/ci/preflight.sh does not run every required check under its required name:
+/tmp/w34r/apps/api-py/tests/test_codebase_guards.py:1815: AssertionError: tools/ci/preflight.sh does not run every required check under its required name:
+1 failed in 0.80s
+[exit 0, 2s]
+
+### 2026-10-08T09:45:20Z  cwd=/tmp/w34r
+$ git checkout -q -- . && git clean -fdq && echo restored; git status --porcelain | wc -l
+restored
+0
+[exit 0, 0s]
+
+### 2026-10-08T09:45:20Z  cwd=/tmp/w34r
+$ sed -i 's/Web (Angular)/Web/g' tools/ci/preflight.sh; echo '--- diff:'; git diff --stat; git diff | grep -E '^[-+][^-+]' | head -8 | cut -c1-200
+--- diff:
+ tools/ci/preflight.sh | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+-  5. Web (Angular)                                  design guards, typecheck, tests, build
++  5. Web                                  design guards, typecheck, tests, build
+-# 5. Web (Angular)
++# 5. Web
+-  local name="Web (Angular)" t0 rc=0 note_text=""
+-  if [ "$QUICK" -eq 1 ]; then name="Web (Angular) - guards and typecheck only"; fi
++  local name="Web" t0 rc=0 note_text=""
++  if [ "$QUICK" -eq 1 ]; then name="Web - guards and typecheck only"; fi
+[exit 0, 0s]
+
+### 2026-10-08T09:45:20Z  cwd=/tmp/w34r
+$ (cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= --tb=line tests/test_codebase_guards.py::test_the_five_required_check_names_agree_across_all_four_files 2>&1 | grep -E 'Error|passed|failed' | cut -c1-260)
+E   AssertionError: tools/ci/preflight.sh does not run every required check under its required name:
+/tmp/w34r/apps/api-py/tests/test_codebase_guards.py:1815: AssertionError: tools/ci/preflight.sh does not run every required check under its required name:
+1 failed in 0.57s
+[exit 0, 2s]
+
+### 2026-10-08T09:45:22Z  cwd=/tmp/w34r
+$ git checkout -q -- . && git clean -fdq && echo restored; git status --porcelain | wc -l
+restored
+0
+[exit 0, 0s]
+

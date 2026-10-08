@@ -1,0 +1,13 @@
+### 2026-10-08T10:44:04Z  cwd=/tmp/w34f
+$ PATH=/tmp/gl818bin:$PATH; gitleaks version; bash tools/ci/preflight.sh --quick --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; grep -E 'untracked file|^File:|^RuleID:|leaks found|^  gitleaks |^  postgres |^(PASS|FAIL|SKIP|PARTIAL) +(Secrets|API \(F)|error:' /tmp/pf.out | cut -c1-170; echo raw-token-in-output: $(grep -c "$(cat /tmp/faketok)" /tmp/pf.out); echo ansi: $(grep -c $'\x1b' /tmp/pf.out); echo gitleaks-invocations: $(grep -c '$ gitleaks' /tmp/pf.out)
+8.18.4
+PREFLIGHT_EXIT=2
+  gitleaks          8.18.4, CI pins 8.30.0
+  postgres         localhost:5433 reachable
+SKIP  Secrets (gitleaks) - gitleaks 8.18.4 is not v8.30.0; another version is another ruleset
+SKIP  API (FastAPI + Postgres) - --quick
+raw-token-in-output: 0
+ansi: 0
+gitleaks-invocations: 0
+[exit 0, 53s]
+

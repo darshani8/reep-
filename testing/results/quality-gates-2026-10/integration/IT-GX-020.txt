@@ -1,0 +1,20 @@
+NOTE: Postgres unreachable: DATABASE_URL points at 127.0.0.1:5499 where nothing listens (what preflight's probe sees when the server is stopped). Clean tree, no node_modules.
+### 2026-10-08T08:53:05Z  cwd=/tmp/wtpf
+$ DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:5499/reep_pf bash tools/ci/preflight.sh --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; sed 's/\x1b\[[0-9;]*m//g' /tmp/pf.out | grep -E 'postgres|^SKIP|^PASS|^FAIL|PARTIAL|Summary|ruff|mypy|check_async|INCOMPLETE|NOT READY|READY'
+PREFLIGHT_EXIT=2
+  postgres         127.0.0.1:5499 NOT REACHABLE
+  docker compose up -d          # Postgres 17 + pgvector, container reep-postgres
+PASS  API (dependency completeness)
+PASS  Rule 1 (every model call declares its cargo)
+PASS  Secrets (gitleaks)
+PASS  Infra (CDK synth guards)
+SKIP  Web (Angular) - no apps/web/node_modules - run: cd apps/web && npm ci
+  $ /tmp/wtpf/apps/api-py/.venv/bin/python -m ruff check --config pyproject.toml . ../../tools/ci
+  $ /tmp/wtpf/apps/api-py/.venv/bin/python -m mypy
+  $ /tmp/wtpf/apps/api-py/.venv/bin/python ../../tools/ci/check_async_blocking.py
+check_async_blocking: no new blocking calls in async defs under app/ (3 known, each with its reason in this file).
+SKIP  API (FastAPI + Postgres) - static analysis ran; the rest needs Postgres at 127.0.0.1:5499 - run: docker compose up -d
+Summary
+INCOMPLETE. Nothing failed, but a check did not run - and a check that did
+[exit 0, 58s]
+

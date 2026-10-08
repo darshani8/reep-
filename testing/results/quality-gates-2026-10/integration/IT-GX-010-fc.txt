@@ -1,0 +1,6 @@
+### 2026-10-08T10:42:47Z  cwd=/tmp/w34f
+$ actionlint --version | head -1; actionlint -no-color .github/workflows/*.yml; echo ACTIONLINT_EXIT=$?
+1.7.12
+ACTIONLINT_EXIT=0
+[exit 0, 0s]
+

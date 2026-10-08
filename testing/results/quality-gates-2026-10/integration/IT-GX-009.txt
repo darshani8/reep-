@@ -1,0 +1,76 @@
+### 2026-10-08T08:42:43Z  cwd=/home/user/reep-/apps/api-py
+$ /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= tests/test_release_gate.py 2>&1 | tail -2
+................                                                         [100%]
+16 passed in 0.87s
+[exit 0, 2s]
+
+### 2026-10-08T08:42:45Z  cwd=/home/user/reep-
+$ python3 tools/ci/release_gate.py --base 15a9e7d --head a3688f0; echo GATE_EXIT=$?
+{
+  "target": "api-only",
+  "auto_ok": false,
+  "reasons": [
+    "apps/api-py/app/ai/llm.py: rule 1 / rule 2 / auth / deletion code needs a human",
+    "apps/api-py/app/config.py: rule 1 / rule 2 / auth / deletion code needs a human",
+    "apps/api-py/app/deletion_walk.py: rule 1 / rule 2 / auth / deletion code needs a human",
+    "apps/api-py/app/google_auth.py: rule 1 / rule 2 / auth / deletion code needs a human",
+    "apps/api-py/app/models/conversation.py: a model change needs its migration applied by a human",
+    "apps/api-py/app/models/english_baseline.py: a model change needs its migration applied by a human",
+    "apps/api-py/app/models/feedback.py: a model change needs its migration applied by a human",
+    "apps/api-py/app/models/milestone.py: a model change needs its migration applied by a human",
+    "apps/api-py/app/models/time_ledger.py: a model change needs its migration applied by a human",
+    "apps/api-py/app/models/timesheet.py: a model change needs its migration applied by a human",
+    "apps/api-py/app/observability.py: rule 1 / rule 2 / auth / deletion code needs a human",
+    "apps/api-py/app/purge_people.py: rule 1 / rule 2 / auth / deletion code needs a human",
+    "apps/api-py/app/purge_students.py: rule 1 / rule 2 / auth / deletion code needs a human",
+    "apps/api-py/app/retention.py: rule 1 / rule 2 / auth / deletion code needs a human",
+    "apps/api-py/app/routers/admin_deletion.py: rule 1 / rule 2 / auth / deletion code needs a human",
+    "apps/api-py/app/routers/auth.py: rule 1 / rule 2 / auth / deletion code needs a human",
+    "apps/api-py/app/routers/interview.py: rule 1 / rule 2 / auth / deletion code needs a human",
+    "apps/api-py/app/routers/passwords.py: rule 1 / rule 2 / auth / deletion code needs a human",
+    "apps/api-py/migrations/reversibility.py: a migration runs once, against production, in one direction",
+    "apps/api-py/migrations/versions/01c7bb72b68d_jobs_job_applications.py: a migration runs once, against production, in one direction",
+    "apps/api-py/migrations/versions/094277ababc9_agent_runs.py: a migration runs once, against production, in one direction",
+    "apps/api-py/migrations/versions/1aa19fa788e9_knowledge_base_documents_chunks.py: a migration runs once, against production, in one direction",
+    "apps/api-py/migrations/versions/1aecd2178ccd_schedule_items.py: a migration runs once, against production, in one direction",
+    "apps/api-py/migrations/versions/3fd5bf464c0b_mail_logs.py: a migration runs once, against production, in one direction",
+    "apps/api-py/migrations/versions/442f409fe2b2_swoc_entries.py: a migration runs once, against production, in one direction",
+    "apps/api-py/migrations/versions/5d48c6c2ffdd_uploads.py: a migration runs once, against production, in one direction",
+    "apps/api-py/migrations/versions/617fc28a1a31_mentor_notes.py: a migration runs once, against production, in one direction",
+    "apps/api-py/migrations/versions/69d81a708980_lab_sessions.py: a migration runs once, against production, in one direction",
+    "apps/api-py/migrations/versions/7b9f0d2b94c9_mock_attempts.py: a migration runs once, against production, in one direction",
+    "apps/api-py/migrations/versions/89c58184d2c4_time_sheet_entries.py: a migration runs once, against production, in one direction",
+    "apps/api-py/migrations/versions/9ecfa486074d_registrations.py: a migration runs once, against production, in one direction",
+    "apps/api-py/migrations/versions/a80068bf03da_leave_requests.py: a migration runs once, against production, in one direction",
+    "apps/api-py/migrations/versions/bd74d3af53de_academic_qualifications_academic_gaps.py: a migration runs once, against production, in one direction",
+    "apps/api-py/migrations/versions/cd202d22b107_resumes.py: a migration runs once, against production, in one direction",
+    "apps/api-py/migrations/versions/d58ecdf6a93c_placement_offers.py: a migration runs once, against production, in one direction",
+    "apps/api-py/migrations/versions/efa345768652_alerts.py: a migration runs once, against production, in one direction",
+    "apps/api-py/migrations/versions/f65867efe738_auth_slice_users_students_mentors_login_.py: a migration runs once, against production, in one direction",
+    "testing/docs/quality-gates-2026-10/01-test-plan.md: not a path this gate knows how to classify",
+    "testing/docs/quality-gates-2026-10/README.md: not a path this gate knows how to classify",
+    "tools/ci/release_gate.py: this gate changed",
+    "169 files changed (more than 40): a big release gets a human"
+  ],
+  "files": 169
+}
+GATE_EXIT=0
+[exit 0, 0s]
+
+### 2026-10-08T08:42:45Z  cwd=/home/user/reep-
+$ for p in .gitleaks.toml .gitleaksignore .github/workflows/secret-scan.yml .github/rulesets/dev.json apps/api-py/migrations/reversibility.py tools/ci/release_gate.py tools/ci/preflight.sh tools/ci/check_migration_roundtrip.py apps/api-py/pyproject.toml apps/api-py/tests/test_route_audit.py .pre-commit-config.yaml .github/CODEOWNERS docs/engineering/quality-gates.md; do printf '%-45s ' $p; echo $p | python3 tools/ci/release_gate.py >/tmp/g.out 2>&1; echo "exit=$? $(head -c 160 /tmp/g.out | tr '\n' ' ')"; done
+.gitleaks.toml                                exit=0 {   "target": "none",   "auto_ok": false,   "reasons": [],   "files": 1 } 
+.gitleaksignore                               exit=0 {   "target": "none",   "auto_ok": false,   "reasons": [],   "files": 1 } 
+.github/workflows/secret-scan.yml             exit=0 {   "target": "none",   "auto_ok": false,   "reasons": [],   "files": 1 } 
+.github/rulesets/dev.json                     exit=0 {   "target": "none",   "auto_ok": false,   "reasons": [],   "files": 1 } 
+apps/api-py/migrations/reversibility.py       exit=0 {   "target": "api-only",   "auto_ok": false,   "reasons": [     "apps/api-py/migrations/reversibility.py: a migration runs once, against production, in one dir
+tools/ci/release_gate.py                      exit=0 {   "target": "none",   "auto_ok": false,   "reasons": [     "tools/ci/release_gate.py: this gate changed"   ],   "files": 1 } 
+tools/ci/preflight.sh                         exit=0 {   "target": "none",   "auto_ok": false,   "reasons": [],   "files": 1 } 
+tools/ci/check_migration_roundtrip.py         exit=0 {   "target": "none",   "auto_ok": false,   "reasons": [],   "files": 1 } 
+apps/api-py/pyproject.toml                    exit=0 {   "target": "api-only",   "auto_ok": true,   "reasons": [],   "files": 1 } 
+apps/api-py/tests/test_route_audit.py         exit=0 {   "target": "none",   "auto_ok": false,   "reasons": [],   "files": 1 } 
+.pre-commit-config.yaml                       exit=0 {   "target": "none",   "auto_ok": false,   "reasons": [],   "files": 1 } 
+.github/CODEOWNERS                            exit=0 {   "target": "none",   "auto_ok": false,   "reasons": [],   "files": 1 } 
+docs/engineering/quality-gates.md             exit=0 {   "target": "none",   "auto_ok": false,   "reasons": [],   "files": 1 } 
+[exit 0, 1s]
+

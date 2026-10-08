@@ -1,0 +1,57 @@
+### 2026-10-08T09:16:30Z  cwd=/home/user/reep-
+$ /home/user/reep-/apps/api-py/.venv/bin/python - <<'EOF'
+import yaml
+wf=yaml.safe_load(open('.github/workflows/ci.yml'))
+print('jobs:', [(k, v.get('name')) for k,v in wf['jobs'].items()])
+steps=wf['jobs']['api']['steps']
+names=[s.get('name') or s.get('uses') for s in steps]
+for i,s in enumerate(steps,1): print(i, repr(s.get('name') or s.get('uses')), '| wd=', s.get('working-directory'), '| run=', (s.get('run') or '').strip().replace(chr(10),' ; '))
+exp=['actions/checkout@v4','actions/setup-python@v5','Install dependencies','Static analysis (ruff, mypy, async blocking)','Apply migrations','Migrations roll back (downgrade to the floor, then up again)','Seed the dev dataset','Run tests']
+print('ORDER MATCHES CONTRACT:', names==exp)
+st=steps[3]['run'].split(chr(10))
+print('ruff line exact:', st[0].strip()=='python -m ruff check --config pyproject.toml . ../../tools/ci')
+print('mypy no args:', st[1].strip()=='python -m mypy', '| guard:', st[2].strip())
+print('round trip cmd:', steps[5]['run'].strip())
+print('api env:', {k:v for k,v in wf['jobs']['api']['env'].items() if k!='DATABASE_URL'})
+EOF
+jobs: [('api', 'API (FastAPI + Postgres)'), ('pii-gate', 'Rule 1 (every model call declares its cargo)'), ('api-imports', 'API (dependency completeness)'), ('web', 'Web (Angular)'), ('cdk', 'Infra (CDK synth guards)')]
+1 'actions/checkout@v4' | wd= None | run= 
+2 'actions/setup-python@v5' | wd= None | run= 
+3 'Install dependencies' | wd= apps/api-py | run= python -m pip install --upgrade pip ; pip install -r requirements-dev.txt
+4 'Static analysis (ruff, mypy, async blocking)' | wd= apps/api-py | run= python -m ruff check --config pyproject.toml . ../../tools/ci ; python -m mypy ; python ../../tools/ci/check_async_blocking.py
+5 'Apply migrations' | wd= apps/api-py | run= python -m alembic upgrade head
+6 'Migrations roll back (downgrade to the floor, then up again)' | wd= apps/api-py | run= python ../../tools/ci/check_migration_roundtrip.py
+7 'Seed the dev dataset' | wd= apps/api-py | run= python -m app.seed
+8 'Run tests' | wd= apps/api-py | run= python -m pytest -q
+ORDER MATCHES CONTRACT: True
+ruff line exact: True
+mypy no args: True | guard: python ../../tools/ci/check_async_blocking.py
+round trip cmd: python ../../tools/ci/check_migration_roundtrip.py
+api env: {'AUTH_SECRET': 'ci-secret-not-used-outside-ci-0123456789abcdef', 'ENV': 'dev', 'REEP_REQUIRE_DB': '1'}
+[exit 0, 0s]
+
+### 2026-10-08T09:16:30Z  cwd=/home/user/reep-
+$ git diff 15a9e7d a3688f0 -- .github/workflows/ci.yml | grep -E '^[-+]  +(- name|run|working-directory|  python)' 
++      - name: Static analysis (ruff, mypy, async blocking)
++        working-directory: apps/api-py
++        run: |
++          python -m ruff check --config pyproject.toml . ../../tools/ci
++          python -m mypy
++          python ../../tools/ci/check_async_blocking.py
++      - name: Migrations roll back (downgrade to the floor, then up again)
++        working-directory: apps/api-py
++        run: python ../../tools/ci/check_migration_roundtrip.py
+[exit 0, 0s]
+
+NOTE: REQ-G1-07 wiring: the static-analysis tools come from requirements-dev.txt only (what the api job installs), never requirements.txt (what api-imports and the Dockerfile install); requirements.txt unchanged by the PR.
+### 2026-10-08T09:17:38Z  cwd=/home/user/reep-
+$ grep -nE '^(ruff|mypy|types-)' apps/api-py/requirements-dev.txt; grep -ciE '^(ruff|mypy|types-)' apps/api-py/requirements.txt; git diff --stat 15a9e7d a3688f0 -- apps/api-py/requirements.txt apps/api-py/requirements-dev.txt apps/api-py/Dockerfile
+45:ruff==0.16.10
+46:mypy==2.4.0
+52:types-reportlab==5.0.0.20260911
+53:types-openpyxl==3.1.5.20260827
+0
+ apps/api-py/requirements-dev.txt | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+[exit 0, 0s]
+

@@ -1,0 +1,302 @@
+IT-GX-013: full preflight in worktree /tmp/wtpf (a3688f0; .venv/node_modules symlinked from the test bed), PATH=/opt/node-v22.22.3-linux-x64/bin:/usr/bin:/bin so gitleaks (installed in /usr/local/bin) is NOT on PATH; DATABASE_URL=...:5433/reep_pf ENV=dev.
+gitleaks: not on PATH
+------------------------------------------------------------------------
+Environment
+  repo             /tmp/wtpf
+  api venv         apps/api-py/.venv/bin/python (Python 3.13.16)
+  web deps         apps/web/node_modules
+  cdk deps         infra/cdk/.venv/bin/python
+  gitleaks         MISSING
+  https://github.com/gitleaks/gitleaks/releases/tag/v8.30.0 (check the sha256 in secret-scan.yml)
+  postgres         localhost:5433 reachable
+  ENV              <unset, defaults to dev>
+------------------------------------------------------------------------
+1/6  API (dependency completeness)
+  Running in your .venv, which also has pytest. --clean-deps builds the
+  runtime-only environment CI uses and asks the stricter question.
+  $ /tmp/wtpf/apps/api-py/.venv/bin/python ../../tools/ci/check_api_imports.py
+imported 217 modules under app/
+OK — every module imports against requirements.txt alone.
+PASS  API (dependency completeness)
+------------------------------------------------------------------------
+2/6  Rule 1 (every model call declares its cargo)
+  $ python3 tools/ci/check_pii_gate.py
+OK: every complete_chat/stream_chat call declares carries_student_data.
+PASS  Rule 1 (every model call declares its cargo)
+------------------------------------------------------------------------
+3/6  Secrets (gitleaks)
+SKIP  Secrets (gitleaks) - gitleaks is not on PATH - install v8.30.0, the version secret-scan.yml pins
+------------------------------------------------------------------------
+4/6  Infra (CDK synth guards)
+  $ /tmp/wtpf/infra/cdk/.venv/bin/python -m pytest -q
+....ssssssssssssssssssss................................................ [ 44%]
+......................................s..............................s.. [ 88%]
+141 passed, 22 skipped in 45.91s
+PASS  Infra (CDK synth guards)
+------------------------------------------------------------------------
+5/6  Web (Angular)
+  $ python3 tools/ci/check_brand_magenta.py
+Magenta is only in the gradient. Checked 314 files.
+  $ python3 tools/ci/check_style_duplicates.py
+No new cross-sheet duplicate. 211 top-level selectors in reep-v2.scss, 43 in reep-v2-resume.scss, 30 known duplicates still to merge.
+  $ python3 tools/ci/check_theme_tokens.py
+Grid and chart themes match reep-v2.scss. 25 colours checked.
+  $ python3 tools/ci/check_form_submit.py
+check_form_submit: every <form> has an owner for its submit.
+  $ npx tsc --noEmit -p tsconfig.app.json
+  $ npx ng test --watch=false
+❯ Building...
+✔ Building...
+Application bundle generation complete. [24.864 seconds] - 2026-10-08T09:05:46.716Z
+ RUN  v4.1.11 /tmp/wtpf/apps/web
+ Test Files  32 passed (32)
+      Tests  226 passed (226)
+   Start at  09:05:47
+   Duration  9.49s (transform 3.85s, setup 2.25s, import 5.69s, tests 13.94s, environment 33.48s)
+  $ npx ng build
+❯ Building...
+✔ Building...
+Initial chunk files   | Names                     |  Raw size | Estimated transfer size
+main-RRYOU6WA.js      | main                      | 159.31 kB |                39.88 kB
+styles-VW5DXS7T.css   | styles                    |  67.90 kB |                10.65 kB
+polyfills-RZ7KSO6A.js | polyfills                 |   1.01 kB |               960 bytes
+                      | Initial total             | 228.22 kB |                51.49 kB
+Lazy chunk files      | Names                     |  Raw size | Estimated transfer size
+chunk-BSXRNWg2.js     | -                         |   1.13 MB |               251.40 kB
+chunk-BJwRzPzk2.js    | -                         | 643.09 kB |               184.44 kB
+chunk-9rH0Ikz42.js    | resume-builder-component  | 169.04 kB |                30.93 kB
+chunk-DO8Do2GY.js     | -                         | 166.62 kB |                49.33 kB
+chunk-LtRXTj3a2.js    | sentry-lazy               | 151.44 kB |                45.23 kB
+chunk-1QMRf0FB2.js    | students-component        |  94.02 kB |                19.31 kB
+chunk-CRCnW5tg.js     | -                         |  90.24 kB |                25.02 kB
+chunk-mFo6sgGV.js     | leave-approvals-component |  67.38 kB |                15.13 kB
+chunk-CeP151dc2.js    | governance-component      |  61.29 kB |                14.07 kB
+chunk-BHN8p0UV2.js    | catalogue-component       |  59.64 kB |                13.62 kB
+chunk-C7qMe2mG2.js    | student-detail-component  |  59.25 kB |                14.38 kB
+chunk-nKGVjWMV.js     | registrations-component   |  58.17 kB |                14.16 kB
+chunk-bubJQo2z.js     | institution-component     |  54.29 kB |                12.46 kB
+chunk-O6o0nMLR.js     | -                         |  52.85 kB |                10.77 kB
+chunk-DQyqrJQp.js     | interviews-component      |  50.38 kB |                12.52 kB
+...and 56 more lazy chunks files. Use "--verbose" to show all the files.
+Application bundle generation complete. [43.721 seconds] - 2026-10-08T09:06:42.105Z
+Output location: /tmp/wtpf/apps/web/dist/web
+PASS  Web (Angular)
+------------------------------------------------------------------------
+6/6  API (FastAPI + Postgres)
+  $ /tmp/wtpf/apps/api-py/.venv/bin/python -m ruff check --config pyproject.toml . ../../tools/ci
+All checks passed!
+  $ /tmp/wtpf/apps/api-py/.venv/bin/python -m mypy
+Success: no issues found in 218 source files
+  $ /tmp/wtpf/apps/api-py/.venv/bin/python ../../tools/ci/check_async_blocking.py
+check_async_blocking: no new blocking calls in async defs under app/ (3 known, each with its reason in this file).
+  $ /tmp/wtpf/apps/api-py/.venv/bin/python -m alembic upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> f65867efe738, auth slice: users students mentors login_days
+INFO  [alembic.runtime.migration] Running upgrade f65867efe738 -> 4e4ac34a89a7, student_profiles
+INFO  [alembic.runtime.migration] Running upgrade 4e4ac34a89a7 -> 5b3419986605, semester_results subject_marks
+INFO  [alembic.runtime.migration] Running upgrade 5b3419986605 -> 047481d26bbd, attendance_records
+INFO  [alembic.runtime.migration] Running upgrade 047481d26bbd -> 9ac9f4696b0d, student core fields (usn stage semester)
+INFO  [alembic.runtime.migration] Running upgrade 9ac9f4696b0d -> 442f409fe2b2, swoc_entries
+INFO  [alembic.runtime.migration] Running upgrade 442f409fe2b2 -> 7b9f0d2b94c9, mock_attempts
+INFO  [alembic.runtime.migration] Running upgrade 7b9f0d2b94c9 -> 76bc4771604c, skills student_skills
+INFO  [alembic.runtime.migration] Running upgrade 76bc4771604c -> 89c58184d2c4, time_sheet_entries
+INFO  [alembic.runtime.migration] Running upgrade 89c58184d2c4 -> bd74d3af53de, academic_qualifications academic_gaps
+INFO  [alembic.runtime.migration] Running upgrade bd74d3af53de -> 617fc28a1a31, mentor_notes
+INFO  [alembic.runtime.migration] Running upgrade 617fc28a1a31 -> efa345768652, alerts
+INFO  [alembic.runtime.migration] Running upgrade efa345768652 -> 01c7bb72b68d, jobs job_applications
+INFO  [alembic.runtime.migration] Running upgrade 01c7bb72b68d -> d58ecdf6a93c, placement_offers
+INFO  [alembic.runtime.migration] Running upgrade d58ecdf6a93c -> a80068bf03da, leave_requests
+INFO  [alembic.runtime.migration] Running upgrade a80068bf03da -> 1aecd2178ccd, schedule_items
+INFO  [alembic.runtime.migration] Running upgrade 1aecd2178ccd -> cd202d22b107, resumes
+INFO  [alembic.runtime.migration] Running upgrade cd202d22b107 -> fdf358b2dc69, courses enrollments
+INFO  [alembic.runtime.migration] Running upgrade fdf358b2dc69 -> 8dc0602056e9, certifications certification_progress
+INFO  [alembic.runtime.migration] Running upgrade 8dc0602056e9 -> 69d81a708980, lab_sessions
+INFO  [alembic.runtime.migration] Running upgrade 69d81a708980 -> fea4515cdba5, cohorts
+INFO  [alembic.runtime.migration] Running upgrade fea4515cdba5 -> 2b3f9aa4b8f2, placement_criteria
+INFO  [alembic.runtime.migration] Running upgrade 2b3f9aa4b8f2 -> 094277ababc9, agent_runs
+INFO  [alembic.runtime.migration] Running upgrade 094277ababc9 -> 5d48c6c2ffdd, uploads
+INFO  [alembic.runtime.migration] Running upgrade 5d48c6c2ffdd -> 9ecfa486074d, registrations
+INFO  [alembic.runtime.migration] Running upgrade 9ecfa486074d -> 3fd5bf464c0b, mail_logs
+INFO  [alembic.runtime.migration] Running upgrade 3fd5bf464c0b -> b73e107ffbc2, alert_rule_configs
+INFO  [alembic.runtime.migration] Running upgrade b73e107ffbc2 -> 496d83735a1d, job_import_runs
+INFO  [alembic.runtime.migration] Running upgrade 496d83735a1d -> 6111de4784aa, skill_claims
+INFO  [alembic.runtime.migration] Running upgrade 6111de4784aa -> 3c8af3d95253, resume_profiles
+INFO  [alembic.runtime.migration] Running upgrade 3c8af3d95253 -> c4e4c58eac29, conversations messages
+INFO  [alembic.runtime.migration] Running upgrade c4e4c58eac29 -> d2f7a1c9e4b0, voice worker heartbeats
+INFO  [alembic.runtime.migration] Running upgrade d2f7a1c9e4b0 -> 1aa19fa788e9, knowledge_base_documents_chunks
+INFO  [alembic.runtime.migration] Running upgrade 1aa19fa788e9 -> e1a7c9d34f20, agent_run intent + resolved grounding signal
+INFO  [alembic.runtime.migration] Running upgrade e1a7c9d34f20 -> f2b8d05e6a11, assistant_feedback (+ feedbackrating enum)
+INFO  [alembic.runtime.migration] Running upgrade f2b8d05e6a11 -> b7e2f4a19c33, knowledge_chunks.embedding -> pgvector `vector` (+ CREATE EXTENSION vector)
+INFO  [alembic.runtime.migration] Running upgrade b7e2f4a19c33 -> d989bec4286d, conversation greeted_at
+INFO  [alembic.runtime.migration] Running upgrade d989bec4286d -> 6afb55d18ed8, one active conversation per owner
+INFO  [alembic.runtime.migration] Running upgrade 6afb55d18ed8 -> a3f1c7d5b820, user google_sub pin + token_version revocation
+INFO  [alembic.runtime.migration] Running upgrade a3f1c7d5b820 -> c7e91a4d0f36, interview records — sessions, turns, evaluations, consents
+INFO  [alembic.runtime.migration] Running upgrade c7e91a4d0f36 -> b41c9e2d7f05, students.cohort_id + students.mentor_id indexes
+INFO  [alembic.runtime.migration] Running upgrade b41c9e2d7f05 -> e4c1b7a9d203, v2 UI: time allocation ledger, english baseline, programme milestones
+INFO  [alembic.runtime.migration] Running upgrade e4c1b7a9d203 -> a91d47c6b3e8, Alumni role + profile, and staff upskilling certificates
+INFO  [alembic.runtime.migration] Running upgrade a91d47c6b3e8 -> b4e8d21f9c57, Skills & Badge dashboard — evidence, awards, cert catalogue, growth
+INFO  [alembic.runtime.migration] Running upgrade b4e8d21f9c57 -> c8f4d9e2a101, Additive Phase 4 redesign foundation.
+INFO  [alembic.runtime.migration] Running upgrade c8f4d9e2a101 -> d6a4e7f91b22, Add durable execution state for Phase 4 workers.
+INFO  [alembic.runtime.migration] Running upgrade d6a4e7f91b22 -> f3c81a5d2e70, skill claim student_note
+INFO  [alembic.runtime.migration] Running upgrade f3c81a5d2e70 -> b8d2f7a4c619, upload_status NEEDS_CHANGES
+INFO  [alembic.runtime.migration] Running upgrade b8d2f7a4c619 -> c4e91b7d3a58, BGSCET leave form fields
+INFO  [alembic.runtime.migration] Running upgrade c4e91b7d3a58 -> a71c3e5d9f42, alumni joined_on
+INFO  [alembic.runtime.migration] Running upgrade a71c3e5d9f42 -> b8f2d4c6a1e0, voice platform: dual-path (UG/PG) interview catalogue, candidates, policies, calls
+INFO  [alembic.runtime.migration] Running upgrade b8f2d4c6a1e0 -> c4a9e7b21d38, Drop voice_worker_heartbeats — the LiveKit voice worker was removed.
+INFO  [alembic.runtime.migration] Running upgrade c4a9e7b21d38 -> d5a1c8b30f47, students.cohort_id becomes a real foreign key to cohorts.id.
+INFO  [alembic.runtime.migration] Running upgrade d5a1c8b30f47 -> e6b2d9c41a83, colleges + departments, and cohorts.department_id.
+INFO  [alembic.runtime.migration] Running upgrade e6b2d9c41a83 -> f7c3a1d92e54, academic_courses, academic_specializations, the two nullable ancestor columns
+on cohorts, and created_by_user_id on all four institution tables.
+INFO  [alembic.runtime.migration] Running upgrade f7c3a1d92e54 -> a8e5c3f17b92, auth_tokens — single-use hashed links for activation and password reset.
+INFO  [alembic.runtime.migration] Running upgrade a8e5c3f17b92 -> c2f7a9d41e63, CHECK constraints for every documented bound, and an index behind every foreign key.
+INFO  [alembic.runtime.migration] Running upgrade c2f7a9d41e63 -> b9d4e7a2c318, mentor_notes.deleted_at — retracting a note stops destroying it.
+INFO  [alembic.runtime.migration] Running upgrade b9d4e7a2c318 -> d1f8b06c4e37, Drop platform_call_sessions.opensearch_synced — the projection is gone.
+INFO  [alembic.runtime.migration] Running upgrade d1f8b06c4e37 -> e3c9a4d15f80, skill_claims.upload_id: CASCADE -> SET NULL, and nullable.
+INFO  [alembic.runtime.migration] Running upgrade e3c9a4d15f80 -> f2a5d83c91b4, Governance — capability grants, access groups, and student feature overrides.
+INFO  [alembic.runtime.migration] Running upgrade f2a5d83c91b4 -> a3d7e5f9c2b1, Registration documents — a CV and a photo attached before the application is decided.
+INFO  [alembic.runtime.migration] Running upgrade a3d7e5f9c2b1 -> b4e8f2a6d1c3, Interview question bank - admin-authored questions per track and phase.
+INFO  [alembic.runtime.migration] Running upgrade b4e8f2a6d1c3 -> c5f9a3e7d2b4, Registration hierarchy claim - College, Department, Course, Specialization,
+Batch, as the applicant picked them on the public form.
+INFO  [alembic.runtime.migration] Running upgrade c5f9a3e7d2b4 -> e7b1c9d4a2f6, Staff signatures - one uploaded image per staff account, for the leave paper.
+INFO  [alembic.runtime.migration] Running upgrade e7b1c9d4a2f6 -> 31ca99852acd, staff belong to a department, and through it a college
+INFO  [alembic.runtime.migration] Running upgrade 31ca99852acd -> 7c4e0b21d9aa, DIRECTOR is not a role any more: every holder becomes faculty
+[director-removal] 0 DIRECTOR account(s) converted to MENTOR
+INFO  [alembic.runtime.migration] Running upgrade 7c4e0b21d9aa -> a91f3c5d80e4, Three indexes the query plans asked for, and thirteen that were paying rent
+INFO  [alembic.runtime.migration] Running upgrade a91f3c5d80e4 -> 31f7a4c60b12, students belong to a department too, not only to a batch
+INFO  [alembic.runtime.migration] Running upgrade 31f7a4c60b12 -> 9b2d47f0ce15, Move every PENDING_VERIFICATION application into the review queue.
+INFO  [alembic.runtime.migration] Running upgrade 9b2d47f0ce15 -> a1f4c7d92e08, colleges.email_domains: the fence belongs to the tenant, not the deployment
+INFO  [alembic.runtime.migration] Running upgrade a1f4c7d92e08 -> b2c9e04a7731, capability_grants: where a grant reaches
+INFO  [alembic.runtime.migration] Running upgrade b2c9e04a7731 -> d4e7b93a15c8, Grants gain a review date, an approval state and the role they were given to
+INFO  [alembic.runtime.migration] Running upgrade d4e7b93a15c8 -> e5f2c86d40b1, users.disabled_at, notification prefs, and the two append-only event tables
+INFO  [alembic.runtime.migration] Running upgrade e5f2c86d40b1 -> c3a9f1e7d2b4, course shape, semester history, batch/student status and the per-course catalogue
+INFO  [alembic.runtime.migration] Running upgrade c3a9f1e7d2b4 -> f1a7c93d5e26, imports, the weekly snapshot, criteria per course, jobs scope — and the job-import delete
+INFO  [alembic.runtime.migration] Running upgrade f1a7c93d5e26 -> a4f7d2c80b93, interview tracks, the college's policy, the retained score and the cap reset
+INFO  [alembic.runtime.migration] Running upgrade a4f7d2c80b93 -> c7e91a4b26d3, mentor assignment history, the department's capacity, and SWOC history
+INFO  [alembic.runtime.migration] Running upgrade c7e91a4b26d3 -> d8a3f16c05be, leave attachments, balances, the academic calendar, the signing function and
+the withdrawal timestamp
+INFO  [alembic.runtime.migration] Running upgrade d8a3f16c05be -> c4f7b1e08d92, registration_status HOLD + the hold stamp
+INFO  [alembic.runtime.migration] Running upgrade c4f7b1e08d92 -> f3a8d61c07be, Drop ix_login_events_user_id — covered by ix_login_events_user_at.
+INFO  [alembic.runtime.migration] Running upgrade f3a8d61c07be -> b7e4d21af905, archived_documents — the manifest for the permanent document archive.
+INFO  [alembic.runtime.migration] Running upgrade b7e4d21af905 -> e1c4b7a209d6, One open mentor spell per student, and the last two json columns become jsonb
+INFO  [alembic.runtime.migration] Running upgrade e1c4b7a209d6 -> d7e2f9a41c86, A rejected applicant may apply again: one LIVE application per address
+INFO  [alembic.runtime.migration] Running upgrade d7e2f9a41c86 -> c7d3e9a1f5b2, users.deleted_at — removed from the roster, still in the database
+INFO  [alembic.runtime.migration] Running upgrade c7d3e9a1f5b2 -> d8b1f4c2a7e9, Leave approval is the Main Admin's alone: revoke every grant of the key that went
+INFO  [alembic.runtime.migration] Running upgrade d8b1f4c2a7e9 -> a4e7c92d1f38, A batch is a year: take the course and the specialization back out of cohorts.name
+INFO  [alembic.runtime.migration] Running upgrade a4e7c92d1f38 -> a3f9c2e17b48, registrations.personal_email / linkedin_url — the two boxes the public form
+asked for and threw away.
+INFO  [alembic.runtime.migration] Running upgrade a3f9c2e17b48 -> b7d2e4f9a1c3, interview_sessions.audio_skipped_reason — why an interview has no recording.
+INFO  [alembic.runtime.migration] Running upgrade b7d2e4f9a1c3 -> d4c8e1f7a2b9, registrations.second_specialization_id — the second tick of a dual
+specialization.
+INFO  [alembic.runtime.migration] Running upgrade d4c8e1f7a2b9 -> e2b7c4d9f1a6, students.second_specialization_id — the other half of a dual specialization.
+INFO  [alembic.runtime.migration] Running upgrade e2b7c4d9f1a6 -> f4a2c9e7b1d3, registrations.submission_key_hash — a retry after a lost reply is the same application.
+  $ /tmp/wtpf/apps/api-py/.venv/bin/python ../../tools/ci/check_migration_roundtrip.py
+database   postgresql+psycopg://reep:***@localhost:5433/reep_pf  (read only: compared against)
+scratch    reep_pf_roundtrip  (created, walked, dropped)
+head       f4a2c9e7b1d3
+floor      9b2d47f0ce15  (the furthest a real rollback can go)
+segment    base .. 31ca99852acd: 66 downgrade(s)
+segment    7c4e0b21d9aa .. 31f7a4c60b12: 2 downgrade(s)
+segment    9b2d47f0ce15 .. f4a2c9e7b1d3: 22 downgrade(s)
+exercised  90 of 92 downgrades; the rest refuse on purpose
+straight path: 2118 catalogue lines at f4a2c9e7b1d3
+== segment base .. 31ca99852acd
+$ python -m alembic upgrade 31ca99852acd
+$ python -m alembic downgrade base
+$ python -m alembic upgrade 31ca99852acd
+   declared leftovers ignored at the bottom: [('extension', 'vector'), ('table', 'students_orphaned_cohort_ids')]
+   OK: 66 downgrade(s), identical at both ends
+== segment 7c4e0b21d9aa .. 31f7a4c60b12
+$ python -m alembic upgrade 7c4e0b21d9aa
+$ python -m alembic upgrade 31f7a4c60b12
+$ python -m alembic downgrade 7c4e0b21d9aa
+$ python -m alembic upgrade 31f7a4c60b12
+   OK: 2 downgrade(s), identical at both ends
+== segment 9b2d47f0ce15 .. f4a2c9e7b1d3
+$ python -m alembic upgrade 9b2d47f0ce15
+$ python -m alembic upgrade f4a2c9e7b1d3
+$ python -m alembic downgrade 9b2d47f0ce15
+$ python -m alembic upgrade f4a2c9e7b1d3
+   declared leftovers ignored at the bottom: [('enum-value', 'registration_status', 'HOLD')]
+   OK: 22 downgrade(s), identical at both ends
+$ python -m alembic check
+OK: 90 of 92 downgrades run in 3 segment(s), catalogues identical at every bottom and top, the round-tripped head matches the straight one (2118 lines), alembic check clean (19 s).
+  $ /tmp/wtpf/apps/api-py/.venv/bin/python -m app.seed
+created admin@bgscet.ac.in / admin123
+created student@bgscet.ac.in / student123 (+ profile)
+created mentor@bgscet.ac.in / mentor123
+created alumni@bgscet.ac.in / alumni123 (no profile — first-login flow)
+backfilled student USN + stage
+assigned student to mentor group
+added a mentor note
+added an alert
+added a semester result (2 subjects) for the test student
+added attendance (40 sessions across 2 courses)
+added SWOC entries (4 across quadrants)
+added mock attempts (2)
+added skill catalogue (3)
+added student skills (3)
+seeded 5 login-day(s) for a streak
+added timesheet entries (15)
+added academic qualifications (3)
+added academic gap row
+added jobs (3)
+added schedule items (3)
+added courses (2)
+added enrollments (2)
+added certification (1)
+added certification progress (1)
+added lab sessions (2)
+added college (1)
+added department (1)
+added academic course (1)
+added academic specialization (1)
+added cohort (1)
+assigned student to cohort
+filed student under the cohort's department
+added placement criteria (default)
+added uploads (3: 2 pending, 1 verified)
+added skill claim (1, pending)
+added registration rules (2)
+added registrations (3: 1 auto-approved, 1 pending review, 1 held)
+added alert rule configs (3)
+added mail logs (2)
+added knowledge documents (10, APPROVED, student audience)
+added time allocation ledger (yesterday submitted, today 23.5/24 h)
+added english baseline (3 of 4 sections scored, speaking pending)
+added programme milestones (7)
+titled mentor meeting notes (1)
+added approved certification catalogue (3)
+added badge dashboard slice (2 earned, 1 pending, 1 more-info)
+added capability assessments (20 scores, T0–T2)
+  $ /tmp/wtpf/apps/api-py/.venv/bin/python -m pytest -q
+...................................................
+GOLDEN pass rate: 12/12 = 100%
+.................s...................................................... [ 48%]
+...............ss....................................................... [ 58%]
+=============================== warnings summary ===============================
+.venv/lib/python3.13/site-packages/fastapi/testclient.py:1
+  /tmp/wtpf/apps/api-py/.venv/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+tests/test_governance.py::test_a_grant_adds_a_screen_and_a_group_hands_it_to_its_members
+  /tmp/wtpf/apps/api-py/tests/test_governance.py:79: SAWarning: DELETE statement on table 'capability_grants' expected to delete 2 row(s); 1 were matched.  Please set confirm_deleted_rows=False within the mapper configuration to prevent this warning.
+    db.commit()
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+PASS  API (FastAPI + Postgres)
+------------------------------------------------------------------------
+Summary
+  CHECK                                        RESULT   TIME
+  ---------------------------------------------------------------------
+  API (dependency completeness)                PASS     5s
+  Rule 1 (every model call declares its cargo) PASS     1s
+  Secrets (gitleaks)                           SKIP     0s
+  Infra (CDK synth guards)                     PASS     48s
+  Web (Angular)                                PASS     93s
+  API (FastAPI + Postgres)                     PASS     314s
+  PASS: ran in .venv (requirements-dev.txt); --clean-deps asks CI's question
+  SKIP: gitleaks is not on PATH - install v8.30.0, the version secret-scan.yml pins
+  PASS: used your node_modules; CI runs npm ci from package-lock.json
+  total 461s
+INCOMPLETE. Nothing failed, but a check did not run - and a check that did
+not run is not a check that passed. CI runs them all regardless.
+PREFLIGHT_EXIT=2

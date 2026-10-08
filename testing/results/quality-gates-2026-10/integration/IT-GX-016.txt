@@ -1,0 +1,60 @@
+NOTE: Now the same untracked file is STAGED (git add).
+### 2026-10-08T08:49:05Z  cwd=/tmp/wtpf
+$ git add apps/api-py/app/leak_probe.py; git status --porcelain | grep -v .venv; bash tools/ci/preflight.sh --quick --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; sed -n '/= Summary/,$p' /tmp/pf.out | grep -vE '^\s*$'; grep -cE 'REDACTED' /tmp/pf.out; grep -c "$(cat /tmp/faketok)" /tmp/pf.out
+A  apps/api-py/app/leak_probe.py
+PREFLIGHT_EXIT=1
+0
+0
+[exit 1, 16s]
+
+### 2026-10-08T08:49:21Z  cwd=/tmp/wtpf
+$ git rm -q --cached apps/api-py/app/leak_probe.py; rm apps/api-py/app/leak_probe.py; git status --porcelain | grep -v .venv | wc -l
+0
+[exit 0, 0s]
+
+NOTE: Summary of the staged run (captured from that run's output file):
+### 2026-10-08T08:50:53Z  cwd=/tmp/wtpf
+$ printf 'GITHUB_TOKEN = "%s"\n' "$(cat /tmp/faketok)" > apps/api-py/app/leak_probe.py; git add apps/api-py/app/leak_probe.py; git status --porcelain | grep -v .venv; bash tools/ci/preflight.sh --quick --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; sed 's/\x1b\[[0-9;]*m//g' /tmp/pf.out | sed -n '/3\/6  Secrets/,$p' | grep -vE '^\s*$'; echo raw-token-occurrences-in-output: $(grep -c "$(cat /tmp/faketok)" /tmp/pf.out); git rm -q --cached apps/api-py/app/leak_probe.py; rm apps/api-py/app/leak_probe.py; git status --porcelain | grep -v .venv | wc -l
+A  apps/api-py/app/leak_probe.py
+PREFLIGHT_EXIT=1
+3/6  Secrets (gitleaks)
+  $ gitleaks git . --config /tmp/wtpf/.gitleaks.toml --gitleaks-ignore-path /tmp/wtpf/.gitleaksignore --redact --no-banner --exit-code 1 --log-opts=15a9e7d1d89ad7971436235db9d606e976c46be4..HEAD
+8:51AM INF 20 commits scanned.
+8:51AM INF scanned ~412883 bytes (412.88 KB) in 332ms
+8:51AM INF no leaks found
+  $ gitleaks git . --pre-commit --config /tmp/wtpf/.gitleaks.toml --gitleaks-ignore-path /tmp/wtpf/.gitleaksignore --redact --no-banner --exit-code 1
+8:51AM INF 0 commits scanned.
+8:51AM INF scanned ~0 bytes (0) in 177ms
+8:51AM INF no leaks found
+  $ gitleaks git . --staged --config /tmp/wtpf/.gitleaks.toml --gitleaks-ignore-path /tmp/wtpf/.gitleaksignore --redact --no-banner --exit-code 1
+8:51AM INF 0 commits scanned.
+8:51AM INF scanned ~58 bytes (58 bytes) in 283ms
+8:51AM WRN leaks found: 1
+  $ gitleaks dir . --config /tmp/wtpf/.gitleaks.toml --gitleaks-ignore-path /tmp/wtpf/.gitleaksignore --redact --no-banner --exit-code 1
+8:51AM INF scanned ~31724253 bytes (31.72 MB) in 5.5s
+8:51AM INF no leaks found
+FAIL  Secrets (gitleaks)
+SKIP  Infra (CDK synth guards) - a previous check failed (--keep-going runs them all)
+SKIP  Web (Angular) - guards and typecheck only - a previous check failed (--keep-going runs them all)
+SKIP  API (FastAPI + Postgres) - --quick
+------------------------------------------------------------------------
+Summary
+  CHECK                                        RESULT   TIME
+  ---------------------------------------------------------------------
+  API (dependency completeness)                PASS     5s
+  Rule 1 (every model call declares its cargo) PASS     1s
+  Secrets (gitleaks)                           FAIL     8s
+  Infra (CDK synth guards)                     SKIP     0s
+  Web (Angular) - guards and typecheck only    SKIP     0s
+  API (FastAPI + Postgres)                     SKIP     0s
+  PASS: ran in .venv (requirements-dev.txt); --clean-deps asks CI's question
+  FAIL: gitleaks found a secret (or could not finish). ROTATE it first; removing the line does not un-publish a pushed one
+  SKIP: a previous check failed (--keep-going runs them all)
+  SKIP: a previous check failed (--keep-going runs them all)
+  SKIP: --quick
+  total 14s
+NOT READY. A required check is red here, so it is red on the pull request too.
+raw-token-occurrences-in-output: 0
+0
+[exit 0, 16s]
+

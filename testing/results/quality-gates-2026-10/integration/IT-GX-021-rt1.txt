@@ -1,0 +1,34 @@
+### 2026-10-08T10:08:26Z  cwd=/tmp/pfr
+$ printf 'from app.ai.llm import complete_chat\n\n\ndef qg_probe() -> object:  # QG plant\n    return complete_chat([{"role": "user", "content": "x"}])\n' > apps/api-py/app/qg_pii.py; echo 'qg_probe: int = "x"  # QG plant' >> apps/api-py/app/clock.py; git status --porcelain; bash tools/ci/preflight.sh --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; grep -E '^  gitleaks |^  postgres |^(PASS|FAIL|SKIP|PARTIAL) |error:|qg_pii|NOT READY|INCOMPLETE|^READY' /tmp/pf.out | cut -c1-200
+ M apps/api-py/app/clock.py
+?? apps/api-py/app/qg_pii.py
+PREFLIGHT_EXIT=1
+  gitleaks         /usr/local/bin/gitleaks (8.30.0)
+  postgres         localhost:5433 reachable
+PASS  API (dependency completeness)
+  apps/api-py/app/qg_pii.py:5  complete_chat(...)
+FAIL  Rule 1 (every model call declares its cargo)
+SKIP  Secrets (gitleaks) - a previous check failed (--keep-going runs them all)
+SKIP  Infra (CDK synth guards) - a previous check failed (--keep-going runs them all)
+SKIP  Web (Angular) - a previous check failed (--keep-going runs them all)
+SKIP  API (FastAPI + Postgres) - a previous check failed (--keep-going runs them all)
+NOT READY. A required check is red here, so it is red on the pull request too.
+[exit 0, 7s]
+
+### 2026-10-08T10:08:33Z  cwd=/tmp/pfr
+$ bash tools/ci/preflight.sh --keep-going --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; grep -E '^  gitleaks |^  postgres |^(PASS|FAIL|SKIP|PARTIAL) |error:|qg_pii|NOT READY|INCOMPLETE|^READY' /tmp/pf.out | cut -c1-200; rm -f apps/api-py/app/qg_pii.py; git checkout -q -- .; git status --porcelain | wc -l
+PREFLIGHT_EXIT=1
+  gitleaks         /usr/local/bin/gitleaks (8.30.0)
+  postgres         localhost:5433 reachable
+PASS  API (dependency completeness)
+  apps/api-py/app/qg_pii.py:5  complete_chat(...)
+FAIL  Rule 1 (every model call declares its cargo)
+PASS  Secrets (gitleaks)
+PASS  Infra (CDK synth guards)
+PASS  Web (Angular)
+app/clock.py:62: error: Incompatible types in assignment (expression has type "str", variable has type "int")  [assignment]
+FAIL  API (FastAPI + Postgres)
+NOT READY. A required check is red here, so it is red on the pull request too.
+0
+[exit 0, 110s]
+

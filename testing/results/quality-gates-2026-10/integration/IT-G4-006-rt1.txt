@@ -1,0 +1,16 @@
+### 2026-10-08T09:55:37Z  cwd=/tmp/ci-r1/apps/api-py
+$ /home/user/reep-/apps/api-py/.venv/bin/python /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/bin/inject_b.py; git diff | grep -E '^[-+] '; psql -h localhost -p 5433 -U postgres -qc 'drop database if exists reep_inj' -c 'create database reep_inj owner reep' 2>/dev/null; DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_inj /home/user/reep-/apps/api-py/.venv/bin/python -m alembic upgrade head >/dev/null 2>&1; echo UPGRADE_EXIT=$?; DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_inj /home/user/reep-/apps/api-py/.venv/bin/python ../../tools/ci/check_migration_roundtrip.py 2>&1 | grep -E '^(FAILED|[-+](column|default))|OK:'; echo RT_EXIT=${PIPESTATUS[0]}; /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= --tb=short tests/test_migration_reversibility.py 2>&1 | grep -E 'f4a2c9e7b1d3|passed|failed' | head -3 | cut -c1-220; psql -h localhost -p 5433 -U postgres -Atc "select count(*) from pg_database where datname like '%roundtrip%'"; git checkout -q -- .; git status --porcelain | wc -l; psql -h localhost -p 5433 -U postgres -qc 'drop database if exists reep_inj'
++    op.alter_column("registrations", "status", server_default="PENDING_REVIEW")  # INJECTED
++    op.alter_column("registrations", "status", server_default="HOLD")  # INJECTED DEFECT: was DRAFT
+UPGRADE_EXIT=0
+   OK: 66 downgrade(s), identical at both ends
+   OK: 2 downgrade(s), identical at both ends
+-column | registrations | status | registration_status | True | 'DRAFT'::registration_status |  |  | 
++column | registrations | status | registration_status | True | 'HOLD'::registration_status |  |  | 
+FAILED: the catalogue at 9b2d47f0ce15 after 22 downgrade(s) differs ('-' lost, '+' left behind). A downgrade in this segment did not restore what its upgrade changed. If the leftover is genuinely impossible to remove (an enum value), declare it in KEPT_ON_DOWNGRADE with the reason.
+RT_EXIT=1
+23 passed in 0.63s
+0
+0
+[exit 0, 27s]
+

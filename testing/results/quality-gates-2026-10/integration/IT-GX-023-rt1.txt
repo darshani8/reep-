@@ -1,0 +1,31 @@
+NOTE: NEW: untracked file inside an IGNORED directory (apps/api-py/app/__pycache__/, ignored by apps/api-py/.gitignore:6) holding <FAKE-VALUE-MASKED>. Must NOT be scanned (it can never be committed by git add -A).
+### 2026-10-08T09:47:39Z  cwd=/tmp/pfr
+$ mkdir -p apps/api-py/app/__pycache__ && printf 'GITHUB_TOKEN=%s\n' "$(cat /tmp/faketok)" > apps/api-py/app/__pycache__/qg_leak.txt; git check-ignore -v apps/api-py/app/__pycache__/qg_leak.txt; git ls-files --others --exclude-standard | wc -l; bash tools/ci/preflight.sh --quick --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; sed -n '/3\/6  Secrets/,/4\/6/p' /tmp/pf.out | grep -vE '^\s*$|^-+$|4/6' | cut -c1-170; grep -E '^  (Secrets|Web|API \(F)' /tmp/pf.out; echo raw-token-in-output: $(grep -c "$(cat /tmp/faketok)" /tmp/pf.out); echo ansi-escapes-in-output: $(grep -c $'\x1b' /tmp/pf.out); rm apps/api-py/app/__pycache__/qg_leak.txt; git status --porcelain | wc -l
+apps/api-py/.gitignore:6:__pycache__/	apps/api-py/app/__pycache__/qg_leak.txt
+0
+PREFLIGHT_EXIT=2
+3/6  Secrets (gitleaks)
+  $ gitleaks git . --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit-code 1 -
+9:47AM INF 34 commits scanned.
+9:47AM INF scanned ~510576 bytes (510.58 KB) in 349ms
+9:47AM INF no leaks found
+  $ gitleaks git . --pre-commit --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --
+9:47AM INF 0 commits scanned.
+9:47AM INF scanned ~0 bytes (0) in 242ms
+9:47AM INF no leaks found
+  $ gitleaks git . --staged --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit
+9:47AM INF 0 commits scanned.
+9:47AM INF scanned ~0 bytes (0) in 177ms
+9:47AM INF no leaks found
+  $ gitleaks dir . --config /tmp/pfr/.gitleaks.toml --gitleaks-ignore-path /tmp/pfr/.gitleaksignore --ignore-gitleaks-allow --redact --verbose --no-banner --exit-code 1 -
+9:47AM INF scanned ~31798700 bytes (31.80 MB) in 4.85s
+9:47AM INF no leaks found
+PASS  Secrets (gitleaks)
+  Secrets (gitleaks)                           PASS     8s
+  Web (Angular) - guards and typecheck only    PARTIAL  10s
+  API (FastAPI + Postgres)                     SKIP     0s
+raw-token-in-output: 0
+ansi-escapes-in-output: 0
+0
+[exit 0, 62s]
+

@@ -1,0 +1,10 @@
+### 2026-10-08T09:56:57Z  cwd=/tmp/ci-r1/apps/api-py
+$ export DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5435/reep_py; PGPASSWORD=reep_dev_password psql 'host=127.0.0.1 port=5435 user=reep dbname=reep_py' -Atc 'select count(*) from users'; /tmp/py314/bin/python ../../tools/ci/check_migration_roundtrip.py --plan | tail -2; echo PLAN_EXIT=${PIPESTATUS[0]}; /tmp/py314/bin/python ../../tools/ci/check_migration_roundtrip.py 2>&1 | tail -1; echo RT_EXIT=${PIPESTATUS[0]}
+5
+segment    9b2d47f0ce15 .. f4a2c9e7b1d3: 22 downgrade(s)
+exercised  90 of 92 downgrades; the rest refuse on purpose
+PLAN_EXIT=0
+OK: 90 of 92 downgrades run in 3 segment(s), catalogues identical at every bottom and top, the round-tripped head matches the straight one (2118 lines), alembic check clean (21 s).
+RT_EXIT=0
+[exit 0, 22s]
+

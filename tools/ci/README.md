@@ -21,6 +21,7 @@ down here rather than left to be discovered.
 | file | what it proves | who runs it | can it block a merge? |
 |---|---|---|---|
 | `check_api_imports.py` | `app/` imports nothing `requirements.txt` fails to declare | CI job **API (dependency completeness)**, every push to `main` and every PR | **not yet** — the job fails, but no check is *required*: `main` has no protection (see `protect-main.sh`) |
+| `check_migration_roundtrip.py` | every downgrade above the floor runs, and `upgrade head` after it rebuilds an identical catalogue | step **Migrations roll back** in CI job **API (FastAPI + Postgres)** | yes, through that required check |
 | `preflight.sh` | all five CI jobs, run locally, before you push | a developer, by hand | **no**, and it is not meant to — it is invoked by nothing |
 | `preflight.ps1` | nothing of its own — it finds `bash` and hands `preflight.sh` the arguments | a developer on Windows | **no** |
 | `protect-main.sh` | nothing; it *applies* branch protection to `main` | a repository admin, by hand, with `gh auth login` | **no** — but every other row's ability to block comes from it |
@@ -70,6 +71,23 @@ completeness)"` for months afterwards. Had that ruleset ever been applied, every
 pull request would have blocked on a check that could never report — a job is
 matched by its DISPLAY NAME as a string, so deleting one does not retire its
 requirement.
+
+## `check_migration_roundtrip.py`
+
+```bash
+cd apps/api-py && python ../../tools/ci/check_migration_roundtrip.py --plan   # read-only
+cd apps/api-py && python ../../tools/ci/check_migration_roundtrip.py
+```
+
+Dumps the catalogue, runs `alembic downgrade <floor>` and `alembic upgrade
+head`, dumps it again, demands the two match, then runs `alembic check`. The
+floor is the newest revision whose downgrade refuses, derived from
+`apps/api-py/migrations/reversibility.py` -- the same `IRREVERSIBLE` list
+`tests/test_migration_reversibility.py` checks statically. It DROPS things on
+the way down, so it refuses unless `ENV` is one of app.config's development
+names, the host is loopback and the database name does not say "prod"
+(production's database is also called `reep_py`, so the name alone cannot be
+the guard). It refuses a database not at the single head.
 
 ## `preflight.sh`
 

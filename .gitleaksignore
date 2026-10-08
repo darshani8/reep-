@@ -1,0 +1,30 @@
+# Findings gitleaks reports in this repository's HISTORY that are not
+# credentials. One fingerprint per line (commit:file:rule:line), so each
+# exemption is pinned to the exact commit and line that was read; the same
+# string anywhere else, or in any later commit, is still a finding.
+#
+# Nothing goes here because it is inconvenient. A line belongs here only once it
+# has been read and shown to be something other than a live credential. A value
+# that MIGHT be live is not ignored: it is rotated, and then ignored with the
+# date of the rotation. None of the entries below ever was one.
+#
+# Reproduce: gitleaks git . --config .gitleaks.toml --redact --log-opts="--all"
+
+# apps/api/README.md (the deleted NestJS API): the stock `nest new` README's
+# CircleCI badge URL, `...circleci/build/github/nestjs/nest/master?token=...`.
+# NestJS's own public read-only badge token, published in every project that
+# scaffold has ever produced; it was never REEP's.
+29e237dbf9e925e4a73c533210fb101df01ecccb:apps/api/README.md:generic-api-key:5
+642208a55352322ebe521f3e90a06c2c61c8524e:apps/api/README.md:generic-api-key:5
+
+# src/lib/registration/provision.ts (the deleted Next.js app):
+# `PASSWORD_ALPHABET`, the 32 characters a generated first password was drawn
+# from (no 0/O/1/l). An alphabet, not a password.
+7ffadb80ceed3d6a0cda0243a7a8066b5352bd46:src/lib/registration/provision.ts:generic-api-key:96
+86417068907a1bf29d26796afddd033f8b325e3d:src/lib/registration/provision.ts:generic-api-key:96
+
+# tools/diagrams/render_n8n_workflow.py, before it was trimmed: a
+# DATABASE_URL set with os.environ.setdefault only so `from app.main import app`
+# could import for a route walk. A five-letter placeholder user and password,
+# localhost:5433, database `none`; nothing ever connected with it.
+96b29ce8a8374180e1406de8ac3e9d9e0fa4fa46:tools/diagrams/render_n8n_workflow.py:reep-database-url-password:921

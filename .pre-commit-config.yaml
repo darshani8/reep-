@@ -45,7 +45,12 @@ repos:
   # Secrets. The one hook here that guards something unrecoverable.
   # ---------------------------------------------------------------------------
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.18.4
+    # The SAME version as .github/workflows/secret-scan.yml's GITLEAKS_VERSION,
+    # and it is not cosmetic: .gitleaks.toml uses `[[allowlists]]`, which
+    # v8.18.4 (this pin until the CI gate landed) silently ignores -- measured
+    # over the tracked files, it reported 20 findings where v8.30.0 reports none.
+    # Bump both together.
+    rev: v8.30.0
     hooks:
       - id: gitleaks
         name: gitleaks (REEP's own secret shapes)

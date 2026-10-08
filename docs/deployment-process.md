@@ -538,11 +538,12 @@ plan. **Do not run
   this path means inside the migration task, after the image is pushed.
 - **`alembic check` must pass** — it fails exactly when a model changed and no
   migration describes it. `env.py` already supplies `target_metadata` and
-  `compare_type=True`, so it needs no wiring at all. Nothing runs it:
-  **[NOT WRITTEN]**, in CI and in `tools/ci/preflight.sh` both. Run it by hand —
-  `cd apps/api-py && python -m alembic check` — and note that this is the single
-  most common mistake in this repository, so "by hand" means every time, not when
-  you remember.
+  `compare_type=True`, so it needs no wiring at all. **Since 2026-10-08 CI runs
+  it** — `tools/ci/check_migration_roundtrip.py`, the `api` job's step "Migrations
+  roll back (downgrade to the floor, then up again)", ends with it, and
+  `tools/ci/preflight.sh` runs the same script on a scratch database. Run it by
+  hand too — `cd apps/api-py && python -m alembic check` — before you push: it is
+  the single most common mistake in this repository.
 - **Migrations run once, as their own task.** Never from the API entrypoint:
   every replica would race on the version table on boot and the loser can leave
   the schema half-applied (`docs/deployment-env.md`, "Startup order").
@@ -1130,8 +1131,8 @@ that is still true.
 | `web` does not depend on `api`, so a failed migration still ships the new SPA against the old API (§4 item 4) | `grep -n 'needs:' .github/workflows/deploy.yml` | **[NOT WRITTEN]** |
 | No pre-migration snapshot step; §5.2 is a command a human types (§5.2) | `grep -c create-db-snapshot .github/workflows/deploy.yml` → `0` | **[NOT WRITTEN]** |
 | No `verify` job comparing the running digest with the pushed one (§8.1) | `grep -c verify .github/workflows/deploy.yml` | **[NOT WRITTEN]** |
-| No `alembic check`, no one-head assertion, no downgrade round trip — in CI or in `preflight.sh` (§2 item 4, §6) | `grep -c 'alembic check' .github/workflows/ci.yml tools/ci/preflight.sh` | **[NOT WRITTEN]** |
-| No `Repo hygiene (secrets, ignores, format)` job. Referenced as a fifth required check; `ci.yml` has four jobs (§2 item 2, §10.3) | `grep -c 'Repo hygiene' .github/workflows/ci.yml` → `0` | **[NOT WRITTEN]** |
+| ~~No `alembic check`, no one-head assertion, no downgrade round trip~~ — written 2026-10-08: `tools/ci/check_migration_roundtrip.py` (CI step "Migrations roll back", and `preflight.sh`) and `tests/test_migration_reversibility.py` (one head) | `grep -c check_migration_roundtrip .github/workflows/ci.yml tools/ci/preflight.sh` | **[IN FORCE]** |
+| No `Repo hygiene (ignores, format)` job. The secrets half exists since 2026-10-08 as the standalone required check "Secrets (gitleaks)" (`.github/workflows/secret-scan.yml`); ignores and format do not (§2 item 2, §10.3) | `grep -c 'Repo hygiene' .github/workflows/ci.yml` → `0` | secrets **[IN FORCE]**, the rest **[NOT WRITTEN]** |
 | No `SECURITY.md`, which `protect-main.sh` tells the operator to record the activation date in | `ls SECURITY.md` | **[NOT WRITTEN]** |
 | Nothing installs the pre-commit hook, so `.pre-commit-config.yaml` is inert until each person runs `pre-commit install` (§10.3) | `ls .git/hooks/pre-commit` | **[NOT WRITTEN]**, and unfixable by a committed file |
 | Nothing tags a production deploy, and nothing notices that nothing did. `git tag` is empty (§3, §5.3) | `git tag` | **[NOT WRITTEN]** |

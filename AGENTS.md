@@ -181,11 +181,14 @@ the way it is.
     ASSEMBLED app through `fastapi.routing.iter_route_contexts` (a flat walk of `app.routes`
     finds the four documentation routes and nothing else, and the audit fails below 300
     operations so a broken walk cannot pass) and asks of every operation: a session in its
-    dependency tree or a `PUBLIC` entry; a role or scope gate reached from the handler or a
-    `KNOWN_UNGATED` entry saying whose rows the session alone reads; a Pydantic response
+    dependency tree or a `PUBLIC` entry; a named gate called, or a raise on a role
+    comparison, on a live path from the handler (a comparison that refuses nothing, or a
+    gate in a dead branch, does not count) or a `KNOWN_UNGATED` entry saying whose rows the
+    session alone reads; a Pydantic response
     model and never an ORM class; 201 on a create, 204 without a body; a bounded page size on
     a list, or a `BOUNDED`/`KNOWN_UNPAGINATED` entry. The lists in
-    `tests/route_audit_exceptions.py` ratchet both ways. **Never change an existing route's
+    `tests/route_audit_exceptions.py` ratchet both ways, and every entry names its HANDLER,
+    so a different handler mounted at a listed path does not inherit the exception. **Never change an existing route's
     status code, model or parameters to satisfy it** — that breaks the Angular client; record
     it instead. It proves a gate is CALLED, not that it is the right one, which is still rule
     2's tests' job.

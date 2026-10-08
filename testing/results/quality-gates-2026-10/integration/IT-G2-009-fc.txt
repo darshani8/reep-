@@ -1,0 +1,10 @@
+### 2026-10-08T10:39:48Z  cwd=/tmp
+$ for v in '8.30.0 79a3ab579b53f71efd634f3aaf7e04a0fa0cf206b7ed434638d1547a2470a66f' '8.29.1 79a3ab579b53f71efd634f3aaf7e04a0fa0cf206b7ed434638d1547a2470a66e' '8.30.0 x'; do set -- $v; [ "$2" = x ] && set -- $1 ''; rm -rf /tmp/rti && mkdir /tmp/rti && : > /tmp/rti/ghpath; GITLEAKS_VERSION=$1 GITLEAKS_SHA256=$2 RUNNER_TEMP=/tmp/rti GITHUB_PATH=/tmp/rti/ghpath bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/install-step-fc.sh 2>&1 | tail -1; echo "STEP_EXIT=${PIPESTATUS[0]} GITHUB_PATH=[$(cat /tmp/rti/ghpath)]"; done
+sha256sum: WARNING: 1 computed checksum did NOT match
+STEP_EXIT=1 GITHUB_PATH=[]
+sha256sum: WARNING: 1 computed checksum did NOT match
+STEP_EXIT=1 GITHUB_PATH=[]
+sha256sum: 'standard input': no properly formatted checksum lines found
+STEP_EXIT=1 GITHUB_PATH=[]
+[exit 0, 2s]
+

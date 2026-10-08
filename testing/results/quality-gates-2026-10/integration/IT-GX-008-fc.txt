@@ -1,0 +1,10 @@
+### 2026-10-08T10:42:45Z  cwd=/tmp/w34f
+$ python3 -c "
+import json
+five={'API (FastAPI + Postgres)','Rule 1 (every model call declares its cargo)','API (dependency completeness)','Web (Angular)','Infra (CDK synth guards)'}
+exp={'main':five|{'Secrets (gitleaks)','Branch policy (promotion path)'},'stage':five|{'Secrets (gitleaks)','Branch policy (promotion path)'},'dev':five|{'Secrets (gitleaks)'}}
+ok=all(set(c['context'] for c in [r for r in json.load(open(f'.github/rulesets/{b}.json'))['rules'] if r['type']=='required_status_checks'][0]['parameters']['required_status_checks'])==exp[b] for b in exp)
+print('ALL OK' if ok else 'MISMATCH')"
+ALL OK
+[exit 0, 0s]
+

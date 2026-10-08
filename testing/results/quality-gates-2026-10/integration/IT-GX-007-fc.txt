@@ -1,0 +1,8 @@
+### 2026-10-08T10:42:45Z  cwd=/tmp/w34f
+$ rm -f /tmp/ghshim/calls.log; PATH=/tmp/ghshim:$PATH SHIM_AUTH=yes bash tools/ci/protect-main.sh --dry-run > /tmp/pm.out 2>&1; echo SCRIPT_EXIT=$?; sed 's/\x1b\[[0-9;]*m//g' /tmp/pm.out | grep -cE '"context"'; sed 's/\x1b\[[0-9;]*m//g' /tmp/pm.out | tail -1; echo PUT-calls: $(grep -c PUT /tmp/ghshim/calls.log)
+SCRIPT_EXIT=0
+7
+--dry-run: read the current protection, wrote nothing.
+PUT-calls: 0
+[exit 0, 0s]
+

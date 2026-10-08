@@ -1,0 +1,22 @@
+### 2026-10-08T10:43:24Z  cwd=/tmp/w34f
+$ python3 -c "import sys,os;p=sys.argv[1];os.makedirs(os.path.dirname(p),exist_ok=True);open(p,'w').write('GITHUB_TOKEN = \"'+open('/tmp/faketok').read().strip()+'\"\n')" apps/api-py/app/leak_probe.py; git status --porcelain; bash tools/ci/preflight.sh --quick --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; grep -E 'untracked file|^File:|^RuleID:|leaks found|^  gitleaks |^  postgres |^(PASS|FAIL|SKIP|PARTIAL) +(Secrets|API \(F)|error:' /tmp/pf.out | cut -c1-170; echo raw-token-in-output: $(grep -c "$(cat /tmp/faketok)" /tmp/pf.out); echo ansi: $(grep -c $'\x1b' /tmp/pf.out); rm apps/api-py/app/leak_probe.py; git status --porcelain | wc -l
+?? apps/api-py/app/leak_probe.py
+PREFLIGHT_EXIT=1
+  gitleaks         /usr/local/bin/gitleaks (8.30.0)
+  postgres         localhost:5433 reachable
+10:43AM INF no leaks found
+10:43AM INF no leaks found
+10:43AM INF no leaks found
+10:43AM INF no leaks found
+  1 untracked file(s), not ignored: scanned as a git add -A would see them
+RuleID:      github-pat
+File:        apps/api-py/app/leak_probe.py
+10:43AM WRN leaks found: 1
+FAIL  Secrets (gitleaks)
+SKIP  API (FastAPI + Postgres) - --quick
+  FAIL: gitleaks found a secret (or could not finish). ROTATE it first; removing the line does not un-publish a pushed one
+raw-token-in-output: 0
+ansi: 0
+0
+[exit 0, 20s]
+

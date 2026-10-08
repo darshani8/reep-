@@ -1,0 +1,13 @@
+### 2026-10-08T10:39:04Z  cwd=/tmp/ss-clone
+$ git checkout -q -f --detach fc-leak; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=pull_request BASE_SHA=988e732207de9869243d9343a51a6a391b352911 HEAD_SHA=$(git rev-parse fc-leak) RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-fc.sh > /tmp/o 2>&1; echo STEP_EXIT=$?; sed 's/\x1b\[[0-9;]*m//g' /tmp/o | grep -E 'commits scanned|no leaks|leaks found|::error' | cut -c1-120; ls /tmp/rt/gitleaks-report
+STEP_EXIT=1
+10:39AM INF 1 commits scanned.
+10:39AM WRN leaks found: 1
+10:39AM INF no leaks found
+::error::gitleaks found a secret in the history scan (file, line and rule above; the value is redacted). Rotate it first
+history.json
+history.log
+tree.json
+tree.log
+[exit 0, 6s]
+

@@ -1,0 +1,11 @@
+### 2026-10-08T10:39:17Z  cwd=/tmp/ss-clone
+$ git rev-parse --is-shallow-repository; git checkout -q -f --detach 988e732207de9869243d9343a51a6a391b352911; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=push BASE_SHA= HEAD_SHA=$(git rev-parse 988e732207de9869243d9343a51a6a391b352911) RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-fc.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|RuleID|File:|Line:|commits scanned|no leaks|leaks found|::error' | cut -c1-170; echo STEP_EXIT=${PIPESTATUS[0]}; git rev-list --count 988e732207de9869243d9343a51a6a391b352911
+false
+Range HEAD: 611 non-merge commit(s), 600 adding lines
+10:39AM INF 602 commits scanned.
+10:39AM INF no leaks found
+10:39AM INF no leaks found
+STEP_EXIT=0
+759
+[exit 0, 18s]
+

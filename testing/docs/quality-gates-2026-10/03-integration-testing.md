@@ -6,10 +6,10 @@
 |---|---|
 | Document ID | REEP-ITS-QG-2026-10 |
 | Version | 1.0 |
-| Status | v1.2: re-test round executed on the fix build; submitted to the Test Manager |
+| Status | v1.4: final confirmation executed on the final build; submitted to the Test Manager |
 | Author | Tester session I |
 | Date | 2026-10-08 |
-| Build under test | `claude/clever-meitner-ndvc2e` (PR darshani8/reep-#132 → `dev`): first round on **`a3688f0189c48287f376cf8c165d762a2f8ab8d8`**; re-test round (§5a) on **`40201a140ba70f8be40d6b016f55ddb828fcaa91`** |
+| Build under test | `claude/clever-meitner-ndvc2e` (PR darshani8/reep-#132 → `dev`): first round on **`a3688f0189c48287f376cf8c165d762a2f8ab8d8`**; re-test round (§5a) on **`40201a140ba70f8be40d6b016f55ddb828fcaa91`**; final confirmation (§5b) on **`988e732207de9869243d9343a51a6a391b352911`** |
 | Base for comparison | `15a9e7d1d89ad7971436235db9d606e976c46be4` |
 | Test basis | [01-test-plan.md](01-test-plan.md) v1.0 (REQ-G1-01 … REQ-GX-04) |
 | Standard followed | ISO/IEC/IEEE 29119-3:2021 (test specification, test execution log, incident report); ISTQB CTFL v4.0 terminology |
@@ -23,6 +23,7 @@
 | 0.1 | 2026-10-08 | Tester session I | Cases designed from the test plan and the gate sources, before execution |
 | 1.0 | 2026-10-08 | Tester session I | All 48 cases executed; actual results, verdicts, 4 defects and 6 observations recorded |
 | 1.1 | 2026-10-08 | Tester session I | §6.1: re-test of DEF-QG-I02 and DEF-QG-I03 on `8914e839` — both still open |
+| 1.4 | 2026-10-08 | Tester session I | Final confirmation on `988e7322` (§5b): DEF-QG-I06 closed, I05 re-run for the record (deferred), targeted regression green, §7 final |
 | 1.3 | 2026-10-08 | Tester session I | Test Manager addendum (shallow clones): IT-G2-013 added, DEF-QG-I06 raised; IT-G2-006's shallow-clone history recorded in §5a |
 | 1.2 | 2026-10-08 | Tester session I | Re-test round on `40201a14` (the Test Manager's request): confirmation of DEF-QG-I01…I04, full L2 regression, 5 new cases (§4.3), §5a re-test log, a Re-test field on every defect, DEF-QG-I05 raised, §7 updated. (The Test Manager asked for "v1.1"; 1.1 was already used for the 8914e839 re-test, so this is 1.2.) |
 
@@ -690,6 +691,48 @@ Executed 2026-10-08, 09:40–10:10 UTC, after a container restart (both Postgres
 
 **Round totals:** 54 cases executed on `40201a14` (the 48 originals + 6 new): **52 Pass, 2 Fail (IT-GX-022, IT-G2-013), 0 Blocked, 0 Not run**. Four test-execution errors were caught and the affected steps re-executed: IT-G2-007, IT-G2-012 and IT-GX-025 here, and IT-GX-003 in round 0. None changed a verdict.
 
+
+## 5b. Final confirmation (build `988e732207de9869243d9343a51a6a391b352911`)
+
+Executed 2026-10-08, 10:38–10:58 UTC, after another container restart (test bed rebuilt as before).
+- **Evidence:** suffix `-fc`. Every scratch branch was rebuilt on `988e7322`, and each scanned head was checked out before its scan (the lesson from round 1).
+- **Isolation:** worktrees and mutations reverted to `git status --porcelain` = 0. The temporary `info/exclude` entries were removed.
+- **Evidence scan:** the final `.gitleaks.toml` with `--ignore-gitleaks-allow` reports no leaks over `testing/`. The raw fake value occurs 0 times and there are no PEM lines. Masks are whole `<FAKE-VALUE-MASKED>` tokens.
+
+**Confirmation**
+
+| ID | Verdict | Actual (short) |
+|---|---|---|
+| IT-G2-013 | **Pass** | Depth 1 and depth 50, in push **and** PR mode: each exits 1 with "::error::this checkout is shallow … Set fetch-depth: 0 …; refusing". Full clone (not shallow, 759 commits): push mode scans 602, PR mode scans 42, both exit 0. `tests/test_secret_scan_workflow.py`: 5 passed. Deleting only the `fetch-depth: 0` key fails `test_…fetch-depth` (1 failed). (A first, too-broad sed also deleted the `::error::` echo; recorded as a test error and repeated precisely.) |
+| IT-GX-022 | Fail, for the record | Unchanged from round 1: `deadif` and `afterexit` still pass §34; `nested`, `redefined` and `commented` fail. DEF-QG-I05 is proposed deferred (register Q5) |
+
+**Regression, targeted**
+
+| ID | Verdict | Actual (short) |
+|---|---|---|
+| IT-G1-001 / IT-G4-001 | Pass | Job replay on Python 3.14.6 behind the port mapping: all steps 0. Round trip "OK: 90 of 92 … 2118 lines". **2195 passed, 3 skipped** |
+| IT-G2-001 | Pass | 15a9e7d..988e7322: 48 non-merge commits, 42 scanned, clean |
+| IT-G2-002 / 003 | Pass | Added-then-removed is caught and redacted. Under GitHub's shell, both scans run, the `::error::` line prints and four reports exist |
+| IT-G2-004 / 005 | Pass | Unresolvable ranges exit 1; an empty range exits 0 |
+| IT-G2-006 | Pass | Full clone (`is-shallow-repository` false), push mode: 602 commits scanned, clean |
+| IT-G2-007 | Pass | A history fingerprint alone is caught by the tree scan; both fingerprints give exit 0 (OBS-QG-I01, documented) |
+| IT-G2-008 / 009 | Pass | Pinned hash installs; wrong, stale and empty hashes exit 1 with `GITHUB_PATH` empty |
+| IT-G2-010 | Pass | "54 leaks caught, 11 placeholder files quiet" (the round-2 replay). Deleting a rule still fails closed (OBS-QG-I07) |
+| IT-G2-011 | Pass | pre-commit (8.30.0, `--ignore-gitleaks-allow`): clean → Passed; staged token → Failed, `github-pat`, redacted. Agrees with CI |
+| IT-G2-012 | Pass | Allowlisted value alone → 0; same line plus a token → 1, with both verdicts printed |
+| IT-GX-001…006 | Pass | §34 green (82 passed in the module); every mutation fails with its named message; DEF-QG-I02's A–D all fail |
+| IT-GX-007 / 008 / 009 / 010 | Pass | Dry-run: 7 contexts, "wrote nothing", 0 PUTs. Rulesets ALL OK. Release gate: 17 passed, PR refused (42 reasons), `testing/` NO_DEPLOY. actionlint 1.7.12 exit 0 |
+| IT-GX-011 | Pass | Full preflight: six PASS, exit 0; pytest "2195 passed, 3 skipped" |
+| IT-G4-010 | Pass | Dev schema md5 identical before and after; 0 `*roundtrip*` DBs on either cluster |
+| IT-GX-013 / 017 | Pass | No gitleaks → SKIP, exit 2. gitleaks 8.18.4 → SKIP, 0 invocations, exit 2 |
+| IT-GX-014 / 015 / 016 | Pass | Tracked, untracked and staged secrets: each FAIL, exit 1, with file and rule named; value redacted; no ANSI codes in the secret check's output |
+| IT-GX-023 / 024 / 025 | Pass | Ignored directory not scanned; path allowlist applies to untracked files; a space, dash or real newline in a name works through the pipe, and the newline file's secret is caught |
+| IT-GX-018 / 019 / 020 | Pass | `--skip-db-setup` → PARTIAL, exit 2. Type error → check 6 FAIL before any alembic run, exit 1. Postgres unreachable → check 6 SKIP after static analysis, exit 2 |
+
+**Final-confirmation totals:** 39 executions, **38 Pass, 1 Fail** (IT-GX-022, for the record; DEF-QG-I05 deferred). 0 Blocked.
+
+**New observation:** OBS-QG-I09 (cosmetic). With `--no-color`, a full preflight run still contains 5 ANSI escape sequences. They come from vitest's report inside the Web check (`ng test`), not from gitleaks. OBS-QG-I06c, which was about gitleaks, holds.
+
 ---
 
 ## 6. Defects and observations
@@ -771,7 +814,7 @@ Executed 2026-10-08, 09:40–10:10 UTC, after a container restart (both Postgres
 | Frequency | Always |
 | Suspected component | `test_codebase_guards.py` `_preflight_problems` → `called()`: a line that is exactly the function name, anywhere in the dispatch text, counts as a call, whatever control flow surrounds it |
 | Assessment | Both shapes need **deliberate** edits; neither is the drift DEF-QG-I02 was about (renames and deletions), which is now caught. A static text check cannot fully prove a shell call is reachable. Options: accept it as residual risk, or also require the dispatch branches to contain nothing but bare calls and the `record … SKIP` line. Not fixed by the tester. |
-| Re-test | — (new in this round) |
+| Re-test | Re-run on `988e7322` for the record (IT-GX-022-fc): unchanged. **Deferred**: proposed as residual risk (register Q5), awaiting the product owner's written acceptance |
 
 ### DEF-QG-I06 — The secret scan passes on a shallow checkout in push mode, and nothing pins `fetch-depth: 0`
 
@@ -788,7 +831,7 @@ Executed 2026-10-08, 09:40–10:10 UTC, after a container restart (both Postgres
 | Frequency | Always, given the precondition |
 | Impact | Today `fetch-depth: 0` is set, so the live gate is correct. The gap is that a one-line workflow edit would turn push-mode scans of `main`, `stage` and `dev` into scans of one commit with a green check, and no test or guard would object. This is the same shape as OBS-QG-S05 (system level), which comes from the test-bed side. |
 | Suspected component | `.github/workflows/secret-scan.yml`, "Scan the commits and the tree": the push branch (`range="HEAD"`) has no `git rev-parse --is-shallow-repository` check; `tests/test_secret_scan_workflow.py` does not pin `fetch-depth: 0`. Not fixed by the tester. |
-| Re-test | — (new) |
+| **Re-test** | **Closed** on `988e7322` (fix 9348164): IT-G2-013-fc. Shallow checkouts at depth 1 and 50 are refused in both modes with a named `::error::`; a full clone passes in both modes; the test pins `fetch-depth: 0` and fails when it is removed |
 
 ### Observations
 
@@ -814,6 +857,8 @@ Executed 2026-10-08, 09:40–10:10 UTC, after a container restart (both Postgres
 
 **OBS-QG-I07 — The rule self-test fails less informatively when a rule is deleted.** With the new targeted allowlists (`targetRules = ["reep-auth-secret"]`), deleting that rule makes gitleaks refuse to load the config. `check_gitleaks_rules.py` then fails with "gitleaks did not complete; the rules were not checked" rather than naming the leaks no longer caught (IT-G2-010-rt1). It still fails closed, so this is cosmetic.
 
+**OBS-QG-I09 — vitest's colours survive `--no-color`** (§5b). Cosmetic.
+
 **OBS-QG-I08 — A finding in a file whose name contains a newline prints a truncated `File:` line.** gitleaks writes the raw name, so the line reads `File: tools/qg probe/new` (IT-GX-025-rt1). The verdict is correct. Cosmetic, and a gitleaks behaviour.
 
 ### 6.1 Re-test record
@@ -828,6 +873,34 @@ Status for the incident register: both stay **Assigned**, not Fixed. The re-test
 ---
 
 ## 7. Level summary
+
+### 7.F Final status (build `988e732207de9869243d9343a51a6a391b352911`) — supersedes §7.0
+
+| Round | Build | Executed | Pass | Fail | Blocked |
+|---|---|---|---|---|---|
+| 0 (first execution) | `a3688f0` | 48 | 45 | 3 | 0 |
+| 1 (re-test) | `40201a14` | 54 | 52 | 2 | 0 |
+| Final confirmation | `988e7322` | 39 (targeted) | 38 | 1 | 0 |
+
+| Defect | Severity | Final status |
+|---|---|---|
+| DEF-QG-I01 | Minor | Closed (40201a14; regression green on 988e7322) |
+| DEF-QG-I02 | Major | Closed (40201a14; regression green on 988e7322) |
+| DEF-QG-I03 | Major | Closed (40201a14; regression green on 988e7322) |
+| DEF-QG-I04 | Minor | Closed (40201a14; regression green on 988e7322) |
+| DEF-QG-I05 | Minor, P3 | **Deferred**, awaiting the owner's written acceptance (Q5) |
+| DEF-QG-I06 | Minor, P2 | **Closed** (988e7322) |
+
+Open observations: OBS-QG-I01 (with the owner); I07, I08 and I09 are cosmetic.
+
+**Final recommendation: GO for level L2.**
+- No Critical or Major defect is open, and every defect raised at this level is closed except DEF-QG-I05.
+- On the final build, everything ran green:
+  - the CI `api` job (Python 3.14, Postgres behind a port mapping, 2195 passed);
+  - every secret-scan workflow case under GitHub's shell, including the shallow-checkout refusal;
+  - the required-check contract;
+  - every preflight row that touches the secret and API checks.
+- The single condition: the product owner signs the deferral of DEF-QG-I05 (Q5) and decides on OBS-QG-I01 (Q4).
 
 ### 7.0 After the re-test round (current status, build `40201a14`)
 
@@ -917,5 +990,5 @@ Not covered here (by design, other levels): REQ-G1-02, G1-05, G3-03, G3-05, G3-0
 
 | Role | Name | Date | Statement |
 |---|---|---|---|
-| Test Engineer — Integration | Tester session I | 2026-10-08 | I designed, executed and recorded the 48 cases above against build `a3688f0189c48287f376cf8c165d762a2f8ab8d8`, re-tested DEF-QG-I02/I03 on `8914e839`, and executed the 53-case re-test round on `40201a140ba70f8be40d6b016f55ddb828fcaa91`. I did not modify the code under test; every violation was made and reverted in a scratch worktree or clone. |
+| Test Engineer — Integration | Tester session I | 2026-10-08 | I designed, executed and recorded the 48 cases above against build `a3688f0189c48287f376cf8c165d762a2f8ab8d8`, re-tested DEF-QG-I02/I03 on `8914e839`, executed the re-test round on `40201a140ba70f8be40d6b016f55ddb828fcaa91`, and the final confirmation on `988e732207de9869243d9343a51a6a391b352911`. I did not modify the code under test; every violation was made and reverted in a scratch worktree or clone. |
 | Test Manager (review) | | | |

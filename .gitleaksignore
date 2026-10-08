@@ -41,3 +41,14 @@
 30235511521abf87de75b479d77953f4f3a096b2:test/confirmed-defects.test.ts:reep-database-url-password:48
 497b04211611e8a44fd47bb0ed293c29440ff55b:src/lib/ai/agent/loop.test.ts:reep-database-url-password:24
 7b9c8a2bbbf75c0f5e273962358fd2a2c65b7d98:src/lib/ai/agent/loop.test.ts:reep-database-url-password:24
+
+# tools/ci/check_gitleaks_rules.py as first committed (2ea6ca64): the
+# f-string TEMPLATES for its replayed database-URL and Groq leaks, and one quiet
+# case written with a literal backslash-n after the variable name, matched the
+# rules in the source itself. No value was ever in the file -- every case is
+# generated at run time -- and the following commit spells the scheme and the
+# variable name in two halves so the source no longer matches.
+2ea6ca647bfda16319f612c2bf2de5eb1fcbcac0:tools/ci/check_gitleaks_rules.py:reep-database-url-password:58
+2ea6ca647bfda16319f612c2bf2de5eb1fcbcac0:tools/ci/check_gitleaks_rules.py:reep-database-url-password:59
+2ea6ca647bfda16319f612c2bf2de5eb1fcbcac0:tools/ci/check_gitleaks_rules.py:reep-groq-key:62
+2ea6ca647bfda16319f612c2bf2de5eb1fcbcac0:tools/ci/check_gitleaks_rules.py:reep-groq-key:66

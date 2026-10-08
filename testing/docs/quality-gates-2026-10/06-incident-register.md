@@ -20,6 +20,7 @@
 | 0.4 | 2026-10-08 | L1 re-test round 1: U01–U06 closed; U07–U11 raised and assigned; FV-QG-01 acceptance narrowed (OBS-QG-U07) |
 | 0.5 | 2026-10-08 | L2 re-test: I01–I04 closed, I05 proposed deferred, I06 raised; L3 round 1 and its regression pass on 40201a1 recorded (0 defects) |
 | 0.6 | 2026-10-08 | U07–U11 fixed and merged (e55d139); L1 re-test round 2 requested |
+| 0.7 | 2026-10-08 | L1 re-test round 2: U07–U11 closed; U12–U14 raised and proposed for deferral; I06 fixed (9348164) |
 
 ---
 
@@ -44,7 +45,8 @@
 |---|---|---|---|---|---|---|---|---|
 | Development (INC-QG-D) | 52 | 2 | 14 | 36 | 46 | 6 | 0 | 0 |
 | L1 unit, round 1 (DEF-QG-U01–U06) | 6 | 0 | 3 | 3 | 6 | 0 | 0 | 0 |
-| L1 unit, re-test round 1 (DEF-QG-U07–U11) | 5 | 0 | 2 | 3 | 0 | 0 | 0 | 5 (fixed, awaiting re-test) |
+| L1 unit, re-test round 1 (DEF-QG-U07–U11) | 5 | 0 | 2 | 3 | 5 | 0 | 0 | 0 |
+| L1 unit, re-test round 2 (DEF-QG-U12–U14) | 3 | 0 | 0 | 3 | 0 | 0 | 3 (proposed) | 0 |
 | L2 integration, round 1 (DEF-QG-I01–I04) | 4 | 0 | 2 | 2 | 4 | 0 | 0 | 0 |
 | L2 integration, re-test round 1 (DEF-QG-I05, I06) | 2 | 0 | 0 | 2 | 0 | 0 | 1 (proposed) | 1 |
 | Fix verification (FV-QG) | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 |
@@ -156,11 +158,23 @@ Build under test: `a3688f0189c48287f376cf8c165d762a2f8ab8d8`. The full text of e
 
 | ID | Title | Sev. / Pri. | Status | Assigned | Fix commit | Re-test |
 |---|---|---|---|---|---|---|
-| DEF-QG-U07 | `# ruff: disable[...]` with no matching `enable` silences codes for a whole file in `app/`, with no reason; it passes ruff and §39 | Major / P2 | Fixed, awaiting re-test | Worker A | 0631a96 | UT-G1-038 |
-| DEF-QG-U08 | The route audit still counts a refusal swallowed by `contextlib.suppress(HTTPException)`, by a qualified `except starlette.exceptions.HTTPException`, or through an import alias | Minor / P2 | Fixed, awaiting re-test | Worker C | 72a4ee4 | UT-G3-031, 032, 033 |
-| DEF-QG-U09 | The route audit counts a gate inside a nested function that is never called | Minor / P3 | Fixed, awaiting re-test | Worker C | 72a4ee4 | UT-G3-036 |
-| DEF-QG-U10 | The gitleaks replay no longer fails when `regexTarget` is set back to `"line"` (the INC-QG-D-22 regression): no case puts a real secret on the same line as a freed value | Major / P2 | Fixed, awaiting re-test | Worker B | 6acb07d | UT-G2-017, UT-G2-026 |
-| DEF-QG-U11 | The reversibility classifier still reads `if not True:`, `while False:`, `return 0`, `for _ in ():` and `if 1 == 2:` downgrades as real | Minor / P3 | Fixed, awaiting re-test | Worker B | 6acb07d | UT-G4-024 |
+| DEF-QG-U07 | `# ruff: disable[...]` with no matching `enable` silences codes for a whole file in `app/`, with no reason; it passes ruff and §39 | Major / P2 | **Closed** | Worker A | 0631a96 | Pass on e55d139 (UT-G1-038-rt2) |
+| DEF-QG-U08 | The route audit still counts a refusal swallowed by `contextlib.suppress(HTTPException)`, by a qualified `except starlette.exceptions.HTTPException`, or through an import alias | Minor / P2 | **Closed** | Worker C | 72a4ee4 | Pass on e55d139 (UT-G3-031..033-rt2) |
+| DEF-QG-U09 | The route audit counts a gate inside a nested function that is never called | Minor / P3 | **Closed** | Worker C | 72a4ee4 | Pass on e55d139 (UT-G3-036-rt2) |
+| DEF-QG-U10 | The gitleaks replay no longer fails when `regexTarget` is set back to `"line"` (the INC-QG-D-22 regression): no case puts a real secret on the same line as a freed value | Major / P2 | **Closed** | Worker B | 6acb07d | Pass on e55d139 (UT-G2-017-rt2, UT-G2-026-rt2) |
+| DEF-QG-U11 | The reversibility classifier still reads `if not True:`, `while False:`, `return 0`, `for _ in ():` and `if 1 == 2:` downgrades as real | Minor / P3 | **Closed** | Worker B | 6acb07d | Pass on e55d139 (UT-G4-024-rt2) |
+
+**Re-test round 2 on e55d139** (tester U, 02-unit-testing.md v1.2): U07–U11 closed. 97 cases were executed: 93 passed and 4 failed. Of the 81 confirmation and targeted-regression cases, 80 passed; the one failure is UT-G2-025, which is OBS-QG-U08 (upstream, unchanged). Of the 16 new adversarial cases, 13 passed. The replay now fails all three configuration mutations. OBS-QG-U07 closed. **Tester verdict: GO for L1; no open Critical or Major.**
+
+| ID | Title | Sev. / Pri. | Status | Decision |
+|---|---|---|---|---|
+| DEF-QG-U12 | A *reasoned* `ruff: disable` … `enable` range that spans a whole module is accepted. It is a file-level suppression by another spelling, but its reason is written on the line a reviewer reads | Minor / P3 | **Deferred (proposed)** | Follow-up (Q5) |
+| DEF-QG-U13 | The route audit counts a swallowed refusal when the caught class is rebound to a local name inside the handler (`Refusal = HTTPException` … `except Refusal:`) | Minor / P3 | **Deferred (proposed)** | Follow-up (Q5) |
+| DEF-QG-U14 | The reversibility classifier does not end the body at a `return` inside a constant-true branch (`if True: return` then work), and keeps `while True: break` as work | Minor / P3 | **Deferred (proposed)** | Follow-up (Q5) |
+
+**Triage decision (TM):** the three are deferred rather than fixed, which ends the fix-and-retest loop at this round. The common and the second-order spellings of every one of these shapes are now refused and pinned by tests. What remains is a third-order spelling that has to be written on purpose, and two rounds running have each found exactly one further spelling per gate. Each round costs a full fix, merge and re-test cycle, and that cost now exceeds the risk. Plan §6 exit criterion 3 allows a Minor to be accepted in writing as residual risk with a tracked follow-up. The four proposed deferrals are listed together in Q5.
+
+OBS-QG-U09 (a real value written *wholly* inside one `<…>` of up to 40 characters is freed) is the inherent limit of keeping `<your key>` legal in documentation; it is bounded by the 40-character cap, and a real 64-hex AUTH_SECRET is always found. No action.
 
 **OBS-QG-U07 reverses part of the FV-QG-01 acceptance.** The acceptance rested on "no rule's key alphabet contains `<`". That premise is false: six rules admit `<`, and a usable database password with `<abc>` in the middle was freed. The acceptance is withdrawn. Worker B narrows the freedom to a value that is *wholly* one `<…>` placeholder, and the config comment is corrected. OBS-QG-U08 (gitleaks' own `openai-api-key` rule stops at `<`) is upstream behaviour and needs no action.
 
@@ -190,7 +204,7 @@ Build under test: `a3688f0189c48287f376cf8c165d762a2f8ab8d8`. The full text of e
 | ID | Title | Sev. / Pri. | Status | Decision |
 |---|---|---|---|---|
 | DEF-QG-I05 | §34's `called()` counts a line that is exactly the check function's name whatever surrounds it: wrapped in `if false; then … fi`, or placed after `exit 0`, it still passes. (A never-called function, a redefinition and a commented-out call are caught) | Minor / P3 | **Deferred (proposed)** | Accept as residual risk, subject to the owner's written acceptance (Q5). Both shapes need deliberate sabotage of the local, advisory runner. Such an edit is visible in review, and the CI jobs, not preflight, are the authoritative gate. Closing it means constraining how `preflight.sh` may be written, with no end to that arms race |
-| DEF-QG-I06 | The secret-scan step does not refuse a shallow checkout, and no test pins `fetch-depth: 0`. Removing that one line would shrink every push-mode scan of main, stage and dev to one commit while staying green (at depth 1: "1 commits scanned", exit 0). Found by the shallow-clone follow-up to OBS-QG-S05 | Minor / P2 | Assigned (Worker B) | Fix: refuse a shallow repository in both modes, and pin `fetch-depth: 0` and the refusal in `test_secret_scan_workflow.py` |
+| DEF-QG-I06 | The secret-scan step does not refuse a shallow checkout, and no test pins `fetch-depth: 0`. Removing that one line would shrink every push-mode scan of main, stage and dev to one commit while staying green (at depth 1: "1 commits scanned", exit 0). Found by the shallow-clone follow-up to OBS-QG-S05 | Minor / P2 | Fixed (9348164), awaiting final confirmation | The scan refuses a shallow repository in both modes; `test_secret_scan_workflow.py` pins `fetch-depth: 0` and the refusal |
 
 | Observation | Decision |
 |---|---|
@@ -242,5 +256,5 @@ Found by the Test Manager while verifying a fix round, before any re-test.
 | Q2 | Accept the six "Open (by design)" items (§3) as tracked follow-ups rather than blockers? | §3 | Each changes product behaviour or the client contract |
 | Q3 | Apply the committed rulesets (`.github/rulesets/{main,stage,dev}.json`) in the repository settings? | TM | Requires a repository admin. Until then no required check blocks a merge on GitHub |
 | Q4 | Accept OBS-QG-I01 as residual risk: one PR can fingerprint its own leak in `.gitleaksignore`, and CODEOWNERS is not enforced while there is one maintainer? | OBS-QG-I01 | Closing it needs enforced code-owner review and a second maintainer, a governance decision |
-| Q5 | Accept the Deferred (proposed) Minor items as residual risk: DEF-QG-I05 (and any later item marked so) | §4 | Plan §6 exit criterion 3 needs the owner's written acceptance for an unfixed Minor |
+| Q5 | Accept the four Deferred (proposed) Minor items as residual risk with tracked follow-ups: DEF-QG-I05, DEF-QG-U12, DEF-QG-U13, DEF-QG-U14 | §4 | Plan §6 exit criterion 3 needs the owner's written acceptance for an unfixed Minor |
 | Q6 | Decide whether session revocation must be immediate across API workers (OBS-QG-S03, pre-existing); today it is best-effort within `auth_revocation_cache_seconds` | OBS-QG-S03 | A product and architecture decision outside this PR |

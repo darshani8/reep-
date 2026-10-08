@@ -146,12 +146,12 @@
       (keydown)="onComposerKeydown($event)"
     ></textarea>
     @if (pending()) {
-      <button type="button" class="ag-send ag-send--stop" (click)="stop()">
-        <span class="icon" aria-hidden="true">stop</span>Stop
+      <button type="button" class="ag-send ag-send--stop" aria-label="Stop" (click)="stop()">
+        <span class="icon" aria-hidden="true">stop</span><span class="ag-send__label">Stop</span>
       </button>
     } @else {
-      <button type="button" class="ag-send" [disabled]="!canSend()" (click)="submit()">
-        <span class="icon" aria-hidden="true">send</span>Send
+      <button type="button" class="ag-send" aria-label="Send" [disabled]="!canSend()" (click)="submit()">
+        <span class="icon" aria-hidden="true">send</span><span class="ag-send__label">Send</span>
       </button>
     }
   </div>

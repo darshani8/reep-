@@ -10,8 +10,8 @@
 
 <div class="card">
   <h3>Identity</h3>
-  <div style="display: flex; gap: 22px">
-    <div style="width: 190px; flex: 0 0 auto">
+  <div class="id-row">
+    <div class="id-photo">
       <div class="field">
         <label>Photo</label>
         @if (photoUrl(); as url) {
@@ -50,7 +50,7 @@
         }
       </div>
     </div>
-    <div style="flex: 1">
+    <div class="id-fields">
       <div class="field">
         <label>USN <span class="req">*</span><span class="lock">Synced</span></label>
         <input class="ctrl" [value]="usn()" placeholder="—" disabled />

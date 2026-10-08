@@ -260,6 +260,33 @@
             (input)="setQuickFilter($event)"
           />
         </div>
+        @if (phone()) {
+          <ul class="m-list" aria-label="Mentor load">
+            @for (row of mentorCards(); track row.mentorName + row.department) {
+              <li class="m-card">
+                <div class="m-card__top">
+                  <span class="m-card__title">{{ row.mentorName }}</span>
+                  <span class="chip dot {{ row.loadTone }}">{{ row.loadStatus }}</span>
+                </div>
+                <div class="m-card__meta">{{ row.department ?? 'Not on record' }}</div>
+                <dl class="mentor-figures">
+                  <div><dt>Mentees</dt><dd>{{ row.menteeCount }} / {{ row.capacity }}</dd></div>
+                  <div>
+                    <dt>Attendance</dt>
+                    <dd>{{ row.averageAttendancePercent === null ? '—' : row.averageAttendancePercent + '%' }}</dd>
+                  </div>
+                  <div><dt>Skills</dt><dd>{{ row.averageVerifiedSkills ?? '—' }}</dd></div>
+                  <div>
+                    <dt>Hours logged</dt>
+                    <dd>{{ row.averageLoggedHours === null ? '—' : row.averageLoggedHours + ' h' }}</dd>
+                  </div>
+                </dl>
+              </li>
+            } @empty {
+              <li class="m-empty">No faculty account matches that search.</li>
+            }
+          </ul>
+        } @else {
         <ag-grid-angular
           class="mentor-grid"
           [theme]="gridTheme"
@@ -273,6 +300,7 @@
           [domLayout]="'autoHeight'"
           [suppressCellFocus]="true"
         />
+        }
       }
     </section>
 

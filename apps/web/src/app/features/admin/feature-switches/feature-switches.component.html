@@ -68,7 +68,23 @@
       </a>
     </div>
 
-    <div class="fs-filters">
+    <button
+      type="button"
+      class="btn secondary fs-filters-toggle"
+      [attr.aria-expanded]="filtersOpen()"
+      (click)="filtersOpen.set(true)"
+    >
+      <span class="icon" aria-hidden="true">tune</span> Filters
+    </button>
+    @if (filtersOpen()) {
+      <button
+        type="button"
+        class="fs-filters-scrim"
+        aria-label="Close filters"
+        (click)="filtersOpen.set(false)"
+      ></button>
+    }
+    <div class="fs-filters" [class.is-open]="filtersOpen()">
 
       <div class="select fs-scope-filter">
         <span class="lbl">Applies to</span>
@@ -103,6 +119,9 @@
         by default. The most specific rule wins, and a student with no batch is reached only by a
         student-level rule.
       </p>
+      <button type="button" class="btn primary m-filters-done" (click)="filtersOpen.set(false)">
+        Done
+      </button>
     </div>
 
     <!-- The honest headline. Enforcement is the catalogue's own `enforced`
@@ -114,10 +133,10 @@
       </div>
     </div>
 
-    <div class="fs-board">
+    <div class="fs-board" [class.has-detail]="selectedRow() !== null">
       <div class="dt-frame fs-grid-frame">
         <div class="fs-grid-scroll">
-          <table class="dt-table fs-table" aria-label="Student feature switches">
+          <table class="dt-table fs-table m-rows" aria-label="Student feature switches">
             <thead>
               <tr>
                 <th class="pinned fs-feature-col">Feature</th>
@@ -142,9 +161,9 @@
                       <span class="fs-key">{{ row.key }}</span>
                     </button>
                   </td>
-                  <td><span class="chip dot good">{{ defaultValueLabel }}</span></td>
-                  <td class="fs-scope-col">{{ row.scopeSummary }}</td>
-                  <td>
+                  <td data-label="Default"><span class="chip dot good">{{ defaultValueLabel }}</span></td>
+                  <td class="fs-scope-col" data-label="Applies to">{{ row.scopeSummary }}</td>
+                  <td data-label="Value">
                     @if (row.valueVaries) {
                       <span class="chip dot warn">{{ row.valueLabel }}</span>
                     } @else if (row.valueIsSwitchedOff) {
@@ -153,12 +172,12 @@
                       <span class="chip dot good">{{ row.valueLabel }}</span>
                     }
                   </td>
-                  <td class="fs-enforcement-col">
+                  <td class="fs-enforcement-col" data-label="Enforcement">
                     <span class="chip dot" [class.good]="row.isServerEnforced" [class.warn]="!row.isServerEnforced">
                       {{ row.enforcementLabel }}
                     </span>
                   </td>
-                  <td class="fs-nums">{{ row.changedLabel }}</td>
+                  <td class="fs-nums" data-label="Changed">{{ row.changedLabel }}</td>
                 </tr>
               } @empty {
                 <tr>
@@ -215,6 +234,9 @@
       <!-- ============================================= the 380px panel === -->
       <section class="card fs-panel" aria-label="Override">
         @if (selectedRow(); as row) {
+          <button type="button" class="m-back" (click)="closeFeature()">
+            <span class="icon" aria-hidden="true">arrow_back</span> Back
+          </button>
           <h2 class="fs-card-title">Override · {{ row.label }}</h2>
 
           <div class="field synced">

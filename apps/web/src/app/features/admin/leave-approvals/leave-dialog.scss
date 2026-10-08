@@ -10,6 +10,8 @@
  * are used exactly as they are.
  */
 
+@use '../../../../styles/mobile' as m;
+
 .dialog-backdrop {
   position: fixed;
   inset: 0;
@@ -170,4 +172,31 @@
   display: inline-flex;
   gap: 6px;
   align-items: center;
+}
+
+/* --- the phone (2026-10): both dialogs are bottom sheets ------------------ */
+
+@include m.bottom-sheet('.dialog-backdrop', '.dialog');
+
+@include m.phone {
+  .dialog-head,
+  .dialog-body,
+  .dialog-foot {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .row-fields .field.narrow {
+    flex: 1 1 140px;
+  }
+  .table-scroll {
+    max-height: none;
+  }
+  .num-cell .ctrl {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  .row-actions .btn,
+  .check-row label {
+    min-height: 44px;
+  }
 }

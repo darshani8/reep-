@@ -1,3 +1,5 @@
+@use '../../../../styles/mobile' as m;
+
 /* The chrome the Alert rules dialog wears.
  *
  * The same panel `leave-approvals/leave-dialog.scss` draws, for the same reason
@@ -243,5 +245,45 @@
 @media (max-width: 720px) {
   .rule-save {
     margin-left: 0;
+  }
+}
+
+/* --- phone width: the dialog is a bottom sheet ---------------------------- */
+@include m.bottom-sheet('.dialog-backdrop', '.dialog');
+
+@include m.phone {
+  .dialog-head {
+    padding: 14px 16px 10px;
+  }
+  .dialog-head .btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .dialog-body {
+    padding: 14px 16px;
+  }
+  .dialog-foot {
+    padding: 12px 16px;
+  }
+  .rule-head {
+    flex-wrap: wrap;
+  }
+  .field.narrow {
+    flex: 1 1 100%;
+  }
+  .ctrl {
+    min-height: 44px;
+  }
+  .field.toggle {
+    min-height: 44px;
+  }
+  .field.toggle input {
+    width: 22px;
+    height: 22px;
+  }
+  .rule-save {
+    flex: 1 1 100%;
+    min-height: 44px;
+    justify-content: center;
   }
 }

@@ -20,3 +20,9 @@
 /* Resume Builder component classes (docs/design-v2/resume-builder.html) that
  * reep-v2 does not already define. Loaded LAST so it wins on equal specificity. */
 @use './styles/reep-v2-resume';
+
+/* The app at phone width: the fixed-name phone classes (`.m-card`, `.m-back`,
+ * `table.m-rows`, ...). The same module's mixins are @use'd by component
+ * sheets, which emits nothing; only this include writes CSS. */
+@use './styles/mobile';
+@include mobile.globals;

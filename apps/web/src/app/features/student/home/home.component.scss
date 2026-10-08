@@ -495,3 +495,27 @@
 .swoc-note {
   margin-top: 10px;
 }
+
+/* The landing on a phone (below 600px). The programme rows are links into
+   whole screens and were 30px tall: they grow to a thumb's height and press
+   down when tapped. The academic-history cards go one per row, since two
+   160px cards split a school's name across four lines. */
+@media (max-width: 599.98px) {
+  .stage-rows .link-row {
+    min-height: 44px;
+    padding: 0;
+  }
+  .stage-rows .link-row .lbl {
+    font-size: 14px;
+  }
+  .acad-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+@media (hover: none) {
+  .stage-rows a.link-row:active {
+    background: var(--tint-1);
+    border-radius: 8px;
+  }
+}

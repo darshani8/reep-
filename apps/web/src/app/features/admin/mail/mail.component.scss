@@ -1,3 +1,5 @@
+@use '../../../../styles/mobile' as m;
+
 /* Local to this screen only — the design system's globals own everything else
    (`.panel`, `.card`, `.dt-table`, `.chip`, `.notice`, `.ctrl`, `.btn`). See
    the two-stylesheets note in AGENTS.md before adding a class here. */
@@ -25,4 +27,87 @@
 .dt-title.sm {
   font-size: 15px;
   margin-bottom: 8px;
+}
+
+/* --- the phone (2026-10): the log is a stack of cards -------------------- */
+
+@include m.phone {
+  .filters > .ctrl,
+  .filters > .btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+  .inline-check {
+    min-height: 44px;
+    font-size: 15px;
+    input {
+      width: 20px;
+      height: 20px;
+    }
+  }
+  .footbar .btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .mail-table {
+    display: block;
+    thead {
+      display: none;
+    }
+    tbody {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    tr {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 4px 10px;
+      padding: 12px 14px;
+      background: var(--surface);
+      border: 1px solid var(--hairline);
+      border-radius: var(--r-card);
+    }
+    td {
+      display: block;
+      padding: 0;
+      border: 0;
+      min-width: 0;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    .m-to {
+      grid-column: 1;
+      grid-row: 1;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    td:nth-child(4) {
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .m-kind,
+    .m-when {
+      grid-column: 1 / -1;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .m-detail {
+      grid-column: 1 / -1;
+      font-size: 13px;
+    }
+    .m-detail.is-empty {
+      display: none;
+    }
+    .m-check {
+      grid-column: 1 / -1;
+      .btn {
+        width: 100%;
+        justify-content: center;
+        min-height: 44px;
+      }
+    }
+  }
 }

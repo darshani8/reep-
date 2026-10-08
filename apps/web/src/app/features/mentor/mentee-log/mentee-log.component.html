@@ -12,7 +12,12 @@
       <div>{{ error() }}</div>
     </div>
   } @else {
-    <div class="ml-split">
+    <!-- ONE SCREEN AT A TIME ON A PHONE. Side by side at 900px and up, exactly
+         as before; below it the list and the selected mentee are two pushed
+         views, and `is-detail` says which one is showing. The auto-selection on
+         load still happens (the desktop needs it) but never pushes — only a
+         tap on a row does. -->
+    <div class="ml-split" [class.is-detail]="detailOpen()">
       <!-- LEFT: my students -->
       <div class="card ml-list">
         <div class="ml-card-title">My students</div>
@@ -35,10 +40,11 @@
                   type="button"
                   class="ml-row"
                   [class.active]="m.student_id === selectedId()"
-                  (click)="select(m.student_id)"
+                  (click)="open(m.student_id)"
                 >
                   <strong>{{ m.name }}</strong>
                   <span>{{ m.usn || 'No USN' }} · Sem {{ m.current_semester }} · {{ m.current_stage }}</span>
+                  <span class="icon ml-row__chev" aria-hidden="true">chevron_right</span>
                 </button>
               } @empty {
                 <div class="ml-empty">No student matches that search.</div>
@@ -51,8 +57,13 @@
       </div>
 
       <!-- RIGHT: log a meeting + the notes -->
-      <div class="ml-main">
+      <div class="ml-main" #mainCol>
         @if (selected(); as s) {
+          <!-- The way back to the list, drawn only where the list is not on
+               screen beside this column (below 900px). -->
+          <button type="button" class="m-back--wide" (click)="back()">
+            <span class="icon" aria-hidden="true">arrow_back</span> My students
+          </button>
           <div class="card ml-compose">
             <div class="ml-card-title ml-card-title--row">
               <span>Log a meeting with {{ s.name }}</span>

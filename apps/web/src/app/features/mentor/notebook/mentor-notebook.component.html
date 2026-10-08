@@ -118,12 +118,12 @@
                       <span class="nb-pub"><span class="icon" aria-hidden="true">visibility</span>Published</span>
                     }
                   </td>
-                  <td class="nb-text">
+                  <td class="nb-text nb-cell-body" data-label="Key discussions">
                     @if (row.title) { <strong class="nb-title">{{ row.title }}</strong> }
                     {{ row.body }}
                   </td>
-                  <td class="nb-text">{{ followup(row) }}</td>
-                  <td>
+                  <td class="nb-text nb-cell-follow" data-label="Follow up">{{ followup(row) }}</td>
+                  <td class="nb-cell-remark" data-label="Remarks">
                     @if (remark(row); as r) {
                       <span class="chip {{ remarkTone(r) }}">{{ r }}</span>
                     } @else {

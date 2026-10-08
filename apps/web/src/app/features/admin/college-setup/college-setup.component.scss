@@ -2,6 +2,8 @@
    the one action. Every token is global (reep-v2.scss); what is here is the
    layout of a row of fields, a leaf card and the create plan. */
 
+@use '../../../../styles/mobile' as m;
+
 :host {
   display: block;
 }
@@ -202,4 +204,118 @@
 .wizard-actions {
   display: flex;
   gap: 10px;
+}
+
+/* --- phone ------------------------------------------------------------------
+   The rail is six numbered dots on one line, the current step named beside
+   its dot (the others keep their names for a screen reader); every control is
+   44px; the footer's Back / Continue sticks above the tab bar. */
+@include m.sticky-action('.wizard-foot');
+
+@include m.phone {
+  .wizard-rail {
+    flex-wrap: nowrap;
+    gap: 4px;
+    padding: 10px 12px;
+  }
+  .wizard-rail .sep {
+    flex: 1 1 6px;
+    width: auto;
+    min-width: 6px;
+  }
+  .wizard-rail .step:not(.active) > span:not(.n),
+  .wizard-rail .step-jump > span:not(.n) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .wizard-rail .step .n {
+    width: 28px;
+    height: 28px;
+    font-size: 12.5px;
+  }
+  .step-jump {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .step-jump:active .n {
+    transform: scale(0.92);
+  }
+
+  .wizard-body {
+    padding: 16px 14px;
+  }
+
+  .ctrl {
+    min-height: 44px;
+  }
+
+  .field.grow,
+  .field-row .field.narrow {
+    flex: 1 1 100%;
+  }
+  .row .field.grow {
+    flex: 1 1 100%;
+  }
+  .row .field.narrow {
+    flex: 1 1 120px;
+  }
+  .row .field.tiny {
+    flex: 1 1 80px;
+  }
+  .row-remove {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .leaf-check {
+    min-height: 44px;
+  }
+  .leaf-body .field.tiny {
+    flex: 1 1 120px;
+  }
+  .leaf-facts {
+    flex-basis: 100%;
+  }
+
+  .plan-row--1 {
+    margin-left: 10px;
+  }
+  .plan-row--2 {
+    margin-left: 20px;
+  }
+  .plan-row--3 {
+    margin-left: 30px;
+  }
+
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .actions .btn {
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .wizard-foot {
+    background: var(--surface);
+    box-shadow: 0 -6px 16px rgba(58, 31, 82, 0.08);
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    border-radius: 0 0 var(--r-card) var(--r-card);
+  }
+  .wizard-actions {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+  }
+  .wizard-actions .btn {
+    min-height: 44px;
+    justify-content: center;
+  }
+  .wizard-actions .btn.primary {
+    flex: 1 1 auto;
+  }
 }

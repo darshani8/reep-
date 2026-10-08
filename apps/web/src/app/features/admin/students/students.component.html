@@ -58,7 +58,19 @@
   <!-- The board's filter row. Batch is the one the API applies (`cohort_id` /
        `unseated`); the other four narrow what is already loaded, each reading a
        field the roster row already carries. -->
-  <div class="filters">
+  <!-- On a phone the five pickers fold behind this button into a sheet. -->
+  <button
+    type="button"
+    class="btn secondary m-filters-toggle"
+    [attr.aria-expanded]="filtersOpen()"
+    (click)="filtersOpen.set(true)"
+  >
+    <span class="icon" aria-hidden="true">filter_list</span> Filters
+  </button>
+  @if (filtersOpen()) {
+    <button type="button" class="m-filters-scrim" aria-label="Close filters" (click)="filtersOpen.set(false)"></button>
+  }
+  <div class="filters" [class.is-open]="filtersOpen()">
     <div class="select">
       <span class="lbl">Department</span>
       <span class="val">{{ departmentFilterLabel() }}</span>
@@ -126,6 +138,7 @@
     <a class="btn ghost filters-end" routerLink="/admin/registrations">
       <span class="icon" aria-hidden="true">how_to_reg</span> Students arrive from Registrations
     </a>
+    <button type="button" class="btn primary m-filters-done" (click)="filtersOpen.set(false)">Show students</button>
   </div>
 
   <div class="roster">
@@ -203,29 +216,87 @@
              the name, the address and the USN whichever columns are shown,
              and a filter that read only the shown ones emptied the grid
              under a row the server had just matched. -->
-        <ag-grid-angular
-          class="roster-ag"
-          [theme]="gridTheme"
-          [context]="gridContext()"
-          [rowData]="visibleRows()"
-          [columnDefs]="columns"
-          [defaultColDef]="defaultColumn"
-          [rowSelection]="rowSelection"
-          [selectionColumnDef]="selectionColumn"
-          [overlayNoRowsTemplate]="emptyOverlay()"
-          [getRowId]="rowId"
-          [quickFilterText]="quickFilter()"
-          [includeHiddenColumnsInQuickFilter]="true"
-          [rowHeight]="rowHeight()"
-          [pagination]="true"
-          [paginationPageSize]="pageSize()"
-          [suppressPaginationPanel]="true"
-          [suppressCellFocus]="true"
-          (gridReady)="onGridReady($event)"
-          (selectionChanged)="onSelectionChanged()"
-          (paginationChanged)="onPaginationChanged()"
-          (cellClicked)="onCellClicked($event)"
-        />
+        @if (phone()) {
+          <!-- The phone's roster: the same rows as cards, the same actions.
+               The tick writes the same selection the grid's checkbox does. -->
+          @if (phoneRows().length === 0) {
+            <p class="m-empty">No students match these filters.</p>
+          } @else {
+            <ul class="m-list">
+              @for (row of phoneRows(); track row.studentId) {
+                <li class="m-card" [class.is-selected]="isRowSelected(row)">
+                  <div class="m-card__top">
+                    <label class="roster-card__tick">
+                      <input
+                        type="checkbox"
+                        [checked]="isRowSelected(row)"
+                        [attr.aria-label]="'Select ' + row.name"
+                        (change)="toggleRowSelected(row)"
+                      />
+                    </label>
+                    <div class="roster-card__who">
+                      <span class="m-card__title">{{ row.name }}</span>
+                      <span class="m-card__meta">{{ row.usn ?? 'No USN' }} · {{ row.batchName ?? 'No batch yet' }}</span>
+                    </div>
+                    <span class="chip dot {{ row.statusTone }}">{{ row.statusLabel }}</span>
+                  </div>
+                  <div class="m-card__meta">
+                    {{ row.mentorName ?? 'No faculty member' }} · {{ row.stageLabel }} · Semester {{ row.semester }}
+                  </div>
+                  <div class="m-card__actions">
+                    @if (gridContext().canOpenDetail) {
+                      <button type="button" class="btn secondary" (click)="openRecord(row)">
+                        <span class="icon" aria-hidden="true">visibility</span> View
+                      </button>
+                    }
+                    <button type="button" class="btn secondary" (click)="startEdit(row)">
+                      <span class="icon" aria-hidden="true">edit</span> Edit
+                    </button>
+                    @if (!row.isRemoved) {
+                      <button
+                        type="button"
+                        class="btn ghost roster-card__delete"
+                        [attr.aria-label]="'Remove or delete ' + row.name"
+                        (click)="startDelete(row)"
+                      >
+                        <span class="icon" aria-hidden="true">person_remove</span>
+                      </button>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+            @if (phoneHasMore()) {
+              <button type="button" class="btn secondary roster-more" (click)="showMorePhoneRows()">
+                Show more · {{ phoneRows().length }} of {{ visibleRows().length }}
+              </button>
+            }
+          }
+        } @else {
+          <ag-grid-angular
+            class="roster-ag"
+            [theme]="gridTheme"
+            [context]="gridContext()"
+            [rowData]="visibleRows()"
+            [columnDefs]="columns"
+            [defaultColDef]="defaultColumn"
+            [rowSelection]="rowSelection"
+            [selectionColumnDef]="selectionColumn"
+            [overlayNoRowsTemplate]="emptyOverlay()"
+            [getRowId]="rowId"
+            [quickFilterText]="quickFilter()"
+            [includeHiddenColumnsInQuickFilter]="true"
+            [rowHeight]="rowHeight()"
+            [pagination]="true"
+            [paginationPageSize]="pageSize()"
+            [suppressPaginationPanel]="true"
+            [suppressCellFocus]="true"
+            (gridReady)="onGridReady($event)"
+            (selectionChanged)="onSelectionChanged()"
+            (paginationChanged)="onPaginationChanged()"
+            (cellClicked)="onCellClicked($event)"
+          />
+        }
       }
 
       <div class="dt-statusbar">

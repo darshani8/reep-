@@ -11,6 +11,8 @@
  * beside its 380px override panel, and the list of rules in force inside it.
  */
 
+@use '../../../../styles/mobile' as m;
+
 :host {
   display: block;
 }
@@ -343,4 +345,135 @@
   text-align: right;
   font-size: 11.5px;
   color: var(--muted);
+}
+
+/* --- phone ------------------------------------------------------------------
+   A list, then a pushed detail: each feature a card (its values under their
+   column names); picking one shows its override panel full width with a Back
+   that returns to the list. The two filters fold behind a Filters sheet. */
+@include m.header-actions('.dt-header > .dt-toolbar');
+@include m.scroll-strip('.fs-tabs');
+@include m.filters-sheet('.fs-filters', '.fs-filters-toggle', '.fs-filters-scrim');
+@include m.pushed-detail('.fs-board', '.fs-grid-frame', '.fs-panel');
+
+@include m.phone {
+  .dt-header {
+    flex-wrap: wrap;
+  }
+  .crumb a {
+    display: inline-block;
+    padding: 14px 0;
+    margin: -14px 0;
+  }
+  .fs-tabs .tab {
+    min-height: 44px;
+  }
+
+  .fs-filters-toggle {
+    margin-bottom: 12px;
+    min-height: 44px;
+  }
+  .fs-filters.is-open .select {
+    max-width: none;
+    min-height: 48px;
+  }
+  .fs-filters-note {
+    margin-left: 0;
+    max-width: none;
+  }
+  /* Taller than the global Done. */
+  .fs-filters.is-open .m-filters-done {
+    min-height: 48px;
+  }
+
+  .fs-board {
+    align-items: stretch;
+  }
+  .panel:has(.fs-board.has-detail) :is(.fs-tabs, .fs-filters-toggle, .fs-note.accent) {
+    display: none;
+  }
+
+  /* table.m-rows is global; only this screen's differences follow. The table
+     sits inside .fs-grid-scroll, so the global frame rule does not reach. */
+  .fs-grid-scroll,
+  .fs-grid-frame {
+    overflow: visible;
+  }
+  table.m-rows tbody {
+    padding: 8px;
+  }
+  table.m-rows tr {
+    gap: 8px 12px;
+    padding: 4px 12px 12px;
+  }
+  /* The screen's own .fs-table / .pinned cell rules outrank the global's. */
+  table.m-rows td {
+    position: static;
+    min-width: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+    white-space: normal;
+  }
+  table.m-rows td.pinned,
+  table.m-rows td.fs-empty {
+    grid-column: 1 / -1;
+  }
+  table.m-rows td[data-label]::before {
+    margin-bottom: 2px;
+  }
+  table.m-rows .chip {
+    max-width: 100%;
+    height: auto;
+    white-space: normal;
+  }
+  .fs-rowpick {
+    min-height: 52px;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .fs-rowpick:active {
+    opacity: 0.7;
+  }
+  .fs-feature-name {
+    font-family: var(--font-display);
+    font-size: 15px;
+  }
+
+  .dt-statusbar {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .fs-pagesize select {
+    height: 40px;
+  }
+
+  .fs-panel .ctrl:not(textarea) {
+    min-height: 44px;
+  }
+  .fs-pair {
+    flex-direction: column;
+  }
+  .fs-search .btn,
+  .fs-rule-actions .btn {
+    min-height: 44px;
+  }
+  .fs-rule-actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .fs-rule-target {
+    white-space: normal;
+  }
+  .fs-results button {
+    min-height: 44px;
+  }
+}
+
+@include m.phone {
+  .fs-actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 48px;
+  }
 }

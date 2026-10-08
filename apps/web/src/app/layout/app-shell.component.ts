@@ -32,11 +32,15 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { UpperCasePipe } from '@angular/common';
 import { Title } from '@angular/platform-browser';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { filter, map } from 'rxjs';
 
 import { environment } from '../../environments/environment';
+import { AgentDockService } from '../core/agent-dock.service';
 import { AuthService } from '../core/auth.service';
 import type { Role } from '../core/session';
+import { bindBackToClose } from '../core/back-close';
 import { AgentDockComponent } from './agent-dock.component';
 import { AgentOrbComponent } from './agent-orb.component';
 
@@ -65,6 +69,15 @@ export interface NavigationItem {
   readonly arrivesIn?: string;
   /** Match the route exactly, for a path that prefixes its siblings. */
   readonly exact?: boolean;
+  /** Also drawn in the phone's bottom tab bar (below 900px). The first four
+   *  that survive the capability filter are drawn; everything else stays one
+   *  tap away behind "More", which opens this same list as the drawer. A flag
+   *  on the row rather than a second list, so a tab can never point at a
+   *  screen the sidebar would have hidden from this session. */
+  readonly tab?: boolean;
+  /** The tab bar's word, where the sidebar's does not fit a fifth of 360px.
+   *  The sidebar keeps the full label; the tab carries this one. */
+  readonly short?: string;
 }
 
 /** A titled run of rows. A blank title renders the rows with no heading. */
@@ -108,7 +121,7 @@ export const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
   {
     title: '',
     items: [
-      { label: 'Home', icon: 'home', path: '/admin', exact: true, mainAdminOnly: true },
+      { label: 'Home', icon: 'home', path: '/admin', tab: true, exact: true, mainAdminOnly: true },
       {
         label: 'Charts & numbers',
         icon: 'insights',
@@ -124,12 +137,16 @@ export const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
         label: 'New applications',
         icon: 'pending_actions',
         path: '/admin/registrations',
+        tab: true,
+        short: 'Applications',
         capability: 'admin.registrations',
       },
       {
         label: 'Students & batches',
         icon: 'how_to_reg',
         path: '/admin/students',
+        tab: true,
+        short: 'Students',
         capability: 'admin.students',
       },
       {
@@ -153,6 +170,8 @@ export const ADMIN_NAVIGATION: readonly NavigationGroup[] = [
         label: 'Leave requests',
         icon: 'event_available',
         path: '/admin/leave-approvals',
+        tab: true,
+        short: 'Leave',
         capability: 'admin.leave_approvals',
       },
       {
@@ -261,11 +280,17 @@ const STUDENT_NAVIGATION: readonly NavigationGroup[] = [
   {
     title: '',
     items: [
-      { label: 'Home', icon: 'home', path: '/student', exact: true },
-      { label: 'Jobs', icon: 'work', path: '/student/jobs' },
-      { label: 'Skilling', icon: 'verified', path: '/student/skilling' },
+      { label: 'Home', icon: 'home', path: '/student', tab: true, exact: true },
+      { label: 'Jobs', icon: 'work', path: '/student/jobs', tab: true },
+      { label: 'Skilling', icon: 'verified', path: '/student/skilling', tab: true },
       { label: 'Leaderboards', icon: 'leaderboard', path: '/student/leaderboards' },
-      { label: 'Time Sheet', icon: 'schedule', path: '/student/time-log' },
+      {
+        label: 'Time Sheet',
+        icon: 'schedule',
+        path: '/student/time-log',
+        tab: true,
+        short: 'Time',
+      },
     ],
   },
   {
@@ -311,22 +336,32 @@ const FACULTY_NAVIGATION: readonly NavigationGroup[] = [
         label: 'Notebook',
         icon: 'menu_book',
         path: '/mentor/notebook',
+        tab: true,
         capability: 'mentor.notebook',
       },
       {
         label: 'Mentee Log',
         icon: 'groups',
         path: '/mentor/mentees',
+        tab: true,
         capability: 'mentor.mentees',
       },
-      { label: 'Leave Requests', icon: 'event_available', path: '/mentor/leave' },
+      {
+        label: 'Leave Requests',
+        icon: 'event_available',
+        path: '/mentor/leave',
+        tab: true,
+        short: 'Leave',
+      },
       {
         label: 'Skill Verifications',
         icon: 'verified',
         path: '/mentor/verifications',
+        tab: true,
+        short: 'Verify',
         capability: 'mentor.verifications',
       },
-      { label: 'Upskilling', icon: 'workspace_premium', path: '/mentor/upskilling' },
+      { label: 'Upskilling', icon: 'workspace_premium', path: '/mentor/upskilling', tab: true },
     ],
   },
 ];
@@ -335,8 +370,8 @@ const ALUMNI_NAVIGATION: readonly NavigationGroup[] = [
   {
     title: '',
     items: [
-      { label: 'My Profile', icon: 'person', path: '/alumni', exact: true },
-      { label: 'Jobs Sheet', icon: 'work', path: '/alumni/jobs' },
+      { label: 'My Profile', icon: 'person', path: '/alumni', tab: true, exact: true },
+      { label: 'Jobs Sheet', icon: 'work', path: '/alumni/jobs', tab: true },
     ],
   },
 ];
@@ -497,6 +532,30 @@ const CONSOLE_NAME: Record<Role, string> = {
 export class AppShellComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly dock = inject(AgentDockService);
+
+  private readonly url = toSignal(
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      map((event) => event.urlAfterRedirects),
+    ),
+    { initialValue: this.router.url },
+  );
+
+  /**
+   * The orb opens the REEP Agent chat, and on an /agent page that chat IS the
+   * screen — so the orb was a second door to the room you are standing in,
+   * parked over the composer's Send button. It steps aside there, but never
+   * while the dock is open or an interview is live: then it is the dock's
+   * close control and the only "Live 04:12" on screen. Hidden, not destroyed,
+   * so its dragged position survives the visit.
+   */
+  readonly hideOrb = computed(
+    () =>
+      /^\/(student|mentor|admin)\/agent(\/|\?|$)/.test(this.url()) &&
+      !this.dock.open() &&
+      !this.dock.live(),
+  );
   private readonly title = inject(Title);
 
   readonly session = this.auth.session;
@@ -553,6 +612,20 @@ export class AppShellComponent {
     if (granted.length) groups.push({ title: 'Granted access', items: granted });
     return groups;
   });
+
+  /**
+   * The phone's bottom tab bar: the first four rows flagged `tab` among those
+   * this session's sidebar actually shows. Read off `navigation()` and never
+   * off the raw arrays, so the capability filter applies to the tabs exactly
+   * as it does to the sidebar. A faculty member with no mentees holds no
+   * Notebook, so their bar starts at Leave — correct, not a gap.
+   */
+  readonly tabs = computed<readonly NavigationItem[]>(() =>
+    this.navigation()
+      .flatMap((group) => group.items)
+      .filter((item) => item.tab && item.path)
+      .slice(0, 4),
+  );
 
   /**
    * Admin screens a FACULTY session has been granted. Only screens whose API
@@ -624,6 +697,15 @@ export class AppShellComponent {
    */
   private readonly _navOpen = signal(false);
   readonly navOpen = this._navOpen.asReadonly();
+
+  /** The phone's Back closes the open drawer instead of leaving the screen.
+   *  Same breakpoint as the drawer itself (reep-v2.scss, 900px); above it the
+   *  drawer is the sidebar and nothing is pushed. */
+  private readonly _navBack = bindBackToClose(
+    () => this._navOpen(),
+    () => this.closeNav(),
+    '(max-width: 900px)',
+  );
 
   constructor() {
     if (this.session()?.role === 'STUDENT') void this.loadUsn();

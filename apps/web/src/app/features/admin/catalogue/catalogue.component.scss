@@ -7,6 +7,8 @@
  * of those; what is here is the two-column body, the drawer and the few pieces
  * of type this screen needs. */
 
+@use '../../../../styles/mobile' as m;
+
 :host {
   display: block;
 }
@@ -376,4 +378,128 @@
   color: var(--brand-purple);
   text-decoration: underline;
   cursor: pointer;
+}
+
+/* --- phone width (2026-10) ------------------------------------------------ */
+@include m.header-actions('.dt-toolbar');
+@include m.scroll-strip('.cat-tabs');
+@include m.filters-sheet('.cat-filters', '.cat-filters-toggle');
+@include m.sticky-action('.cat-form-foot');
+/* The badge detail is pushed over the list rather than drawn beside it. */
+@include m.pushed-detail('.cat-body', '.cat-main', '.cat-drawer');
+
+@include m.phone {
+  .dt-header {
+    flex-wrap: wrap;
+  }
+  .cat-tabs .tab {
+    min-height: 44px;
+  }
+  .cat-filters-toggle {
+    min-height: 44px;
+    margin-bottom: 12px;
+    gap: 6px;
+  }
+  .cat-filters.is-open .cat-select {
+    max-width: none;
+    min-height: 44px;
+  }
+  .cat-filters.is-open .cat-filters-note {
+    margin-left: 0;
+    max-width: none;
+  }
+  .cat-filters.is-open .m-filters-done {
+    min-height: 44px;
+  }
+
+  .dt-gridbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .dt-gridbar .dt-quickfilter {
+    flex: 1 1 100%;
+    width: 100%;
+    min-height: 44px;
+  }
+  .dt-gridbar .btn {
+    flex: 1 1 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .dt-frame .cat-cards {
+    padding: 10px;
+  }
+  .cat-cards > li {
+    list-style: none;
+  }
+  .cat-cards .cat-chips {
+    display: flex;
+  }
+
+  .cat-drawer {
+    padding: 14px;
+    scroll-margin-top: 8px;
+  }
+  .cat-drawer-head .iconbtn {
+    display: none;
+  }
+  .cat-drawer-row {
+    flex-wrap: wrap;
+  }
+  .cat-cert {
+    flex-wrap: wrap;
+  }
+  .cat-cert .btn,
+  .cat-drawer-section > .btn {
+    min-height: 44px;
+  }
+  .cat-cert-name a,
+  .cat-linkish {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .cat-cert .btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .cat-form-grid,
+  .cat-copy-pair {
+    grid-template-columns: 1fr;
+  }
+  .cat-form-foot .btn {
+    flex: 1 1 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+  .cat-filelabel {
+    min-height: 44px;
+  }
+  .cat-form .ctrl {
+    min-height: 44px;
+  }
+  .footbar {
+    flex-wrap: wrap;
+  }
+  .footbar .btn {
+    flex: 1 1 auto;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .cat-stage-form .field,
+  .cat-stage-form .field.narrow {
+    min-width: 0;
+    max-width: none;
+    flex: 1 1 100%;
+  }
+  .cat-stage-form .btn {
+    flex: 1 1 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .cat-stage-form input {
+    min-height: 44px;
+  }
 }

@@ -63,6 +63,8 @@ import { Component, computed, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
 import { PluralPipe } from '../../../shared/text/plural.pipe';
+import { bindBackToClose } from '../../../core/back-close';
+import { phoneSignal } from '../../../core/mobile';
 
 /** The three words `app/scope_views.py` writes into `X-Reep-Scope`. Three and
  *  not a boolean, for its reason: `programme` and `none` are opposite facts and
@@ -238,6 +240,21 @@ export class AdminSwocComponent {
   readonly query = signal('');
   readonly batchFilter = signal(ALL_BATCHES);
   readonly selectedStudentId = signal<string | null>(null);
+
+  /** Phone width: the picked student is pushed over the list. */
+  readonly phone = phoneSignal();
+
+  /** The batch and semester pills, folded behind a "Filters" button on a phone. */
+  readonly filtersOpen = signal(false);
+  private readonly _filtersBack = bindBackToClose(
+    () => this.filtersOpen(),
+    () => this.filtersOpen.set(false),
+  );
+  /** On a phone the student's board is pushed over the list: Back returns. */
+  private readonly _studentBack = bindBackToClose(
+    () => !!this.selected(),
+    () => this.clearSelection(),
+  );
 
   /**
    * B7.4's semester filter, and it goes to the SERVER — `GET /admin/swoc`
@@ -487,6 +504,18 @@ export class AdminSwocComponent {
     this.historyOpen.set(false);
     this.revisions.set(null);
     this.historyError.set(null);
+    this.semesterViewOpen.set(false);
+    // On a phone the student replaces the list; bring their top into view.
+    if (this.phone()) {
+      setTimeout(() => document.querySelector('.sw-editor')?.scrollIntoView({ block: 'start' }));
+    }
+  }
+
+  /** The phone's Back: the student list again, nothing picked. */
+  clearSelection(): void {
+    this.selectedStudentId.set(null);
+    this.closeComposer();
+    this.historyOpen.set(false);
     this.semesterViewOpen.set(false);
   }
 

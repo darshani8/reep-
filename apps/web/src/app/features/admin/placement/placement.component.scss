@@ -7,6 +7,8 @@
  * this board: the filter row, the funnel beside its three side cards, the
  * drop-off rows, the rejection strip and the offers grid.
  */
+@use '../../../../styles/mobile' as m;
+
 :host {
   display: block;
 }
@@ -233,4 +235,132 @@
 .state-note .icon {
   font-size: 16px;
   color: var(--purple-mid);
+}
+
+/* --- at phone width (2026-10) --------------------------------------------
+   The offers are cards (see .offer-cards); Approve and Reject follow the list
+   and stay in reach while it scrolls; the remarks rise as a sheet; Batch and
+   Period fold behind Filters. */
+@include m.filters-sheet('.filters', '.m-filters-toggle');
+/* The rejection remarks: a panel the template renders only while open,
+   always a sheet here, with its own scrim. */
+@include m.fixed-sheet('.rejection-sheet', '.m-rejection-scrim');
+@include m.header-actions('.dt-toolbar');
+@include m.scroll-strip('.placement-tabs');
+
+@include m.phone {
+  .dt-header {
+    flex-wrap: wrap;
+  }
+  .filters.is-open .select {
+    min-height: 48px;
+  }
+  .m-filters-done {
+    min-height: 48px;
+  }
+  .placement-tabs .tab {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .funnel-card,
+  .side-card,
+  .offers-card {
+    padding: 14px;
+  }
+  .dropoff-row {
+    flex-wrap: wrap;
+    font-size: 14px;
+  }
+  .dropoff-link {
+    min-height: 44px;
+    padding: 0 4px;
+    font-size: 14px;
+  }
+  .card-note {
+    font-size: 12px;
+  }
+
+  .rejection {
+    flex-direction: column;
+    align-items: stretch;
+    margin: 0;
+  }
+  .rejection-field {
+    flex: none;
+    min-width: 0;
+  }
+  .rejection-field input {
+    min-height: 48px;
+  }
+  .rejection > .btn {
+    min-height: 48px;
+    justify-content: center;
+  }
+  .rejection-error {
+    margin: 0;
+  }
+
+  /* The decision buttons after the list, held at the bottom while it
+     scrolls. */
+  .offers-card {
+    display: flex;
+    flex-direction: column;
+  }
+  .offers-card > .card-head {
+    display: contents;
+  }
+  .offers-card .card-actions {
+    order: 10;
+    position: sticky;
+    bottom: 8px;
+    z-index: 5;
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 8px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-card);
+    box-shadow: 0 6px 18px rgba(58, 31, 82, 0.18);
+  }
+  .offers-card .card-actions .btn {
+    flex: 1 1 0;
+    min-height: 48px;
+    justify-content: center;
+  }
+  .grid-toolbar .dt-quickfilter {
+    width: 100%;
+    height: 44px;
+  }
+  .offer-cards .m-card.is-locked {
+    cursor: default;
+  }
+  .offer-cards .m-card.is-locked:active {
+    transform: none;
+  }
+  .offer-card__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .offer-card__ctc {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+  .offer-card__tick {
+    color: var(--purple-mid);
+  }
+  .offers-card .dt-statusbar {
+    flex-wrap: wrap;
+    background: transparent;
+    border: 0;
+    padding: 10px 2px 0;
+  }
+  .statusbar-note {
+    margin-left: 0;
+  }
 }

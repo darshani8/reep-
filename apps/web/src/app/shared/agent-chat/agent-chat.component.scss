@@ -487,3 +487,135 @@
     height: max(420px, calc(100vh - 380px));
   }
 }
+
+/* --- THE PHONE: a messaging app ------------------------------------------
+   Nothing below applies at 900px and up, and none of it touches the dock's
+   frame sizing (`:host.is-dock`), which the dock owns.
+
+   The page variant's frame FILLS whatever its host gives it here instead of
+   sizing itself to the viewport: the REEP Agent page makes itself exactly the
+   height between the app bar and the tab bar (or the keyboard) and hands the
+   rest of it to this frame, so the composer sits on the bottom edge the way
+   every chat app's does. */
+@media (max-width: 899px) {
+  :host {
+    flex: 1;
+  }
+  .ag-frame {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+    border-radius: 16px;
+  }
+  .ag-scroll {
+    padding: 14px 12px;
+    gap: 12px;
+    overscroll-behavior: contain;
+  }
+  .ag-stack {
+    max-width: 86%;
+  }
+  /* The tail: the corner nearest the speaker is squared off, so which side
+     spoke reads at a glance without the mark. */
+  .ag-bubble {
+    font-size: 15px;
+    border-radius: 18px 18px 18px 6px;
+  }
+  .ag-bubble--user {
+    border-radius: 18px 18px 6px 18px;
+  }
+  .ag-mark {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+
+  /* Once the thread has started, the starters are one swipeable row rather
+     than four wrapped lines eating the thread. */
+  .ag-starters--row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 8px 12px 2px;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+  .ag-starters--row::-webkit-scrollbar {
+    display: none;
+  }
+  .ag-starters--row .ag-starter {
+    flex: none;
+    white-space: nowrap;
+  }
+  .ag-starter {
+    min-height: 40px;
+    padding: 8px 14px;
+  }
+  .ag-starter:active:not(:disabled),
+  .ag-action:active {
+    background: var(--tint-2);
+  }
+
+  /* Finger-sized feedback controls. */
+  .ag-textbtn {
+    min-height: 40px;
+    padding: 4px 10px;
+  }
+  .ag-vote {
+    width: 40px;
+    height: 40px;
+  }
+  .ag-vote .icon {
+    font-size: 18px;
+  }
+
+  /* The composer: a pill field and a round send button, its label read out
+     but not drawn. */
+  .ag-composer {
+    padding: 8px 10px;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  .ag-composer textarea {
+    min-height: 44px;
+    max-height: 132px;
+    padding: 10px 16px;
+    border-radius: 22px;
+  }
+  .ag-send {
+    min-width: 44px;
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .ag-send .icon {
+    font-size: 20px;
+  }
+  .ag-send__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .ag-send:active:not(:disabled) {
+    transform: scale(0.94);
+  }
+  .ag-composer textarea::placeholder {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* No room is kept for the floating orb: the shell hides it on /agent pages
+     (app-shell.component.ts, `hideOrb`), so Send sits at the right edge. */
+}
+
+/* "Enter to send" is not true where Enter is a new line (agent-chat.component
+   .ts, `touchFirst`), and there is no Shift key to mention. */
+@media (pointer: coarse) {
+  .ag-hint {
+    display: none;
+  }
+}

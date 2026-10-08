@@ -287,11 +287,47 @@
       <router-outlet></router-outlet>
     </main>
   </div>
+
+  <!-- THE PHONE'S TAB BAR. Below 900px only (reep-v2.scss); above it this is
+       `display: none` and not a tab stop. The tabs are `tabs()` — rows of the
+       SAME navigation data flagged `tab`, already filtered by capability — and
+       "More" opens the drawer, which is the whole list. So there is still one
+       navigation; this is four of its rows drawn a second time where a thumb
+       can reach them, which is what makes the installed app feel like an app
+       rather than a web page with a hamburger. -->
+  @if (tabs().length) {
+    <nav class="tabbar" aria-label="Quick links">
+      @for (item of tabs(); track item.path) {
+        <a
+          class="tabbar__tab"
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.exact === true }"
+          ariaCurrentWhenActive="page"
+          (click)="closeNav()"
+        >
+          <span class="icon" aria-hidden="true">{{ item.icon }}</span>
+          <span class="tabbar__label">{{ item.short ?? item.label }}</span>
+        </a>
+      }
+      <button
+        type="button"
+        class="tabbar__tab"
+        [class.active]="navOpen()"
+        [attr.aria-expanded]="navOpen()"
+        aria-controls="app-navigation"
+        (click)="toggleNav()"
+      >
+        <span class="icon" aria-hidden="true">{{ navOpen() ? 'close' : 'menu' }}</span>
+        <span class="tabbar__label">More</span>
+      </button>
+    </nav>
+  }
 </div>
 
 <!-- On every authenticated screen, per the design. The orb is draggable; a
      tap opens the dock beside it — the REEP Agent chat and, for a student,
      the mock interviewer, as two tabs of one panel — which is why the student
      sidebar carries no agent link and no interview link of its own. -->
-<app-agent-orb />
+<app-agent-orb [hidden]="hideOrb()" />
 <app-agent-dock />

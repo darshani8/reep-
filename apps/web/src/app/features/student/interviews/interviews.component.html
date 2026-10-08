@@ -62,18 +62,18 @@
         <th scope="col">Answers</th>
         <th scope="col">Length</th>
         <th scope="col">Report</th>
-        <th scope="col"><span class="iv-sr">Open</span></th>
+        <th scope="col"><span class="sr-only">Open</span></th>
       </tr>
     </thead>
     <tbody>
       @for (row of sessions(); track row.id) {
         <tr [class.iv-row--open]="selectedId() === row.id">
-          <td>
+          <td class="iv-when">
             <div class="iv-date">{{ fmtDate(row.started_at) }}</div>
             <div class="iv-time">{{ fmtTime(row.started_at) }}</div>
           </td>
-          <td>{{ trackLabel(row.specialization) }}</td>
-          <td>
+          <td class="iv-track">{{ trackLabel(row.specialization) }}</td>
+          <td class="iv-status">
             @if (statusChip(row.status); as chip) {
               <span class="chip {{ chip.tone }}"
                 ><span class="icon" aria-hidden="true">{{ chip.icon }}</span
@@ -91,9 +91,9 @@
               >
             }
           </td>
-          <td class="iv-num">{{ row.answers_accepted }}</td>
-          <td class="iv-num">{{ durationLabel(row) ?? '—' }}</td>
-          <td>
+          <td class="iv-num" data-label="Answers">{{ row.answers_accepted }}</td>
+          <td class="iv-num" data-label="Length">{{ durationLabel(row) ?? '—' }}</td>
+          <td class="iv-report" data-label="Report">
             @if (reportChip(row.report_status); as chip) {
               <span class="chip {{ chip.tone }}"
                 ><span class="icon" aria-hidden="true">{{ chip.icon }}</span

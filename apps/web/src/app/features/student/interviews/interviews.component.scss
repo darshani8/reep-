@@ -40,17 +40,6 @@
   color: var(--reep-text-secondary);
 }
 
-/* Visually hidden, still announced — the "Open" column header has no visible
-   label because the button says it, but a screen reader still needs one. */
-.iv-sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
 .iv-stats {
   /* The global .dense-grid is a fixed 4 columns; this screen has 3. */
   grid-template-columns: repeat(3, 1fr);
@@ -193,8 +182,11 @@
 }
 
 @media (max-width: 640px) {
+  /* Three small tiles side by side read as one strip of numbers; stacked,
+     they pushed the list a whole screen down. */
   .iv-stats {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
   }
   .iv-turn {
     grid-template-columns: 1fr;
@@ -202,5 +194,91 @@
   }
   .iv-detail__head {
     flex-direction: column;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   THE HISTORY ON A PHONE (below 600px). Seven columns became a sideways
+   scroll with the Open button past the edge. The same rows restack as one
+   card each: the date and the track on top, the status chips under them, the
+   three figures as a labelled row (the column heading travels as
+   `data-label`), and Open as a full-width target.
+   ------------------------------------------------------------------------- */
+@media (max-width: 599.98px) {
+  .iv-table {
+    display: block;
+    border: 0;
+  }
+  .iv-table thead {
+    display: none;
+  }
+  .iv-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .iv-table tr {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      'when when track'
+      'status status status'
+      'a b c'
+      'open open open';
+    gap: 8px 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    background: var(--surface);
+  }
+  .iv-table td,
+  .iv-row--open td {
+    display: block;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    white-space: normal;
+  }
+  .iv-row--open {
+    border-color: var(--brand-purple);
+    box-shadow: inset 3px 0 0 var(--brand-purple);
+  }
+  .iv-when {
+    grid-area: when;
+  }
+  .iv-track {
+    grid-area: track;
+    justify-self: end;
+    text-align: right;
+    font-weight: 600;
+  }
+  .iv-status {
+    grid-area: status;
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .iv-chip2 {
+    margin-left: 0;
+  }
+  .iv-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+  .iv-open {
+    grid-area: open;
+    text-align: left;
+  }
+  .iv-open .dt-btn {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
   }
 }

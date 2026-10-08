@@ -1,4 +1,4 @@
-<div class="panel" data-p="registrations">
+<div class="panel" data-p="registrations" [class.is-pushed]="detailPushed()">
   <div class="dt-header">
     <div>
       <div class="crumb"><span>People</span><span class="sep">/</span><span>New applications</span></div>
@@ -44,7 +44,18 @@
     }
   </div>
 
-  <div class="filters">
+  <button
+    type="button"
+    class="btn secondary m-filters-toggle"
+    [attr.aria-expanded]="filtersOpen()"
+    (click)="filtersOpen.set(true)"
+  >
+    <span class="icon" aria-hidden="true">tune</span> Filters
+  </button>
+  @if (filtersOpen()) {
+    <button type="button" class="m-filters-scrim" aria-label="Close filters" (click)="filtersOpen.set(false)"></button>
+  }
+  <div class="filters" [class.is-open]="filtersOpen()">
     <div class="select">
       <span class="lbl">College</span>
       <span class="val">{{ collegeFilterLabel() }}</span>
@@ -93,6 +104,7 @@
     @if (autoApproveLine(); as line) {
       <span class="filters-note">{{ line }}</span>
     }
+    <button type="button" class="btn primary m-filters-done" (click)="filtersOpen.set(false)">Done</button>
   </div>
 
   @if (error()) {
@@ -214,6 +226,42 @@
 
       @if (isLoading()) {
         <p class="queue-state" role="status">Loading applications…</p>
+      } @else if (phone()) {
+        @if (selectedCount() > 0) {
+          <div class="m-selbar" role="status">
+            <span><b>{{ selectedCount() }}</b> selected</span>
+            <button type="button" class="btn ghost sm" (click)="clearReview()">Clear</button>
+            <button type="button" class="btn primary sm" (click)="pushDetail()">Decide</button>
+          </div>
+        }
+        <ul class="m-list" aria-label="Applications">
+          @for (row of phoneRows(); track row.registrationId) {
+            <li class="m-card m-app" [class.is-selected]="isTicked(row)">
+              <label class="m-tick">
+                <input
+                  type="checkbox"
+                  [checked]="isTicked(row)"
+                  [attr.aria-label]="'Select ' + row.name"
+                  (change)="toggleTick(row)"
+                />
+              </label>
+              <button type="button" class="m-app__open" (click)="openRow(row)">
+                <span class="m-card__top">
+                  <span class="m-card__title">{{ row.name }}</span>
+                  <span class="chip {{ row.domainTone }}">{{ row.emailDomain }}{{ row.domainCheck?.status === 'blocked' ? ' · off-domain' : '' }}</span>
+                </span>
+                <span class="m-card__meta">{{ row.email }}</span>
+                <span class="m-card__meta">{{ row.usn ?? 'No USN' }} · {{ row.batchLabel }}</span>
+                <span class="m-app__chips">
+                  <span class="chip dot {{ row.documentsTone }}">{{ row.documentsLabel }}</span>
+                  <span class="m-card__meta">{{ row.submittedLabel }}</span>
+                </span>
+              </button>
+            </li>
+          } @empty {
+            <li class="m-empty">No application matches.</li>
+          }
+        </ul>
       } @else {
         <!-- Mounted once and never torn down: an @if around the grid destroys
              the GridApi the toolbar and the status bar hold, so the empty case
@@ -238,6 +286,7 @@
           (selectionChanged)="onSelectionChanged()"
           (paginationChanged)="onPaginationChanged()"
           (cellClicked)="onCellClicked($event)"
+          (gridPreDestroyed)="onGridDestroyed()"
         />
       }
 
@@ -279,6 +328,9 @@
 
     <!-- ------------------------------------------------- the 380px panel -->
     <aside class="card queue-panel" aria-label="Decision">
+      <button type="button" class="m-back" (click)="backToList()">
+        <span class="icon" aria-hidden="true">chevron_left</span> Applications
+      </button>
       @if (reviewedApplication(); as reviewed) {
         <div class="panel-head">
           <span class="avatar lg" aria-hidden="true">{{ reviewed.initials }}</span>

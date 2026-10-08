@@ -84,6 +84,7 @@ import { AuthService } from '../../../core/auth.service';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { plural } from '../../../shared/text/plural.pipe';
+import { phoneSignal } from '../../../core/mobile';
 
 /** One extract on the board: a card, and either a file or a stated absence. */
 interface ExtractCard {
@@ -383,6 +384,21 @@ export class AdminExportsComponent implements OnDestroy {
         return '';
     }
   });
+
+  /** Phone width: the history grid is drawn as a list of cards instead. */
+  readonly phone = phoneSignal();
+
+  /** The card list's rows, newest first — the grid's own default sort. */
+  readonly historyCards = computed<ExportDownloadRow[]>(() =>
+    [...this.downloadHistory()].sort((a, b) => b.downloadedAt.localeCompare(a.downloadedAt)),
+  );
+
+  whenLabel(row: ExportDownloadRow): string {
+    return formatDownloadedAt({ value: row.downloadedAt } as ValueFormatterParams<
+      ExportDownloadRow,
+      string
+    >);
+  }
 
   readonly historyColumns: ColDef<ExportDownloadRow>[] = [
     { headerName: 'File', field: 'file', flex: 1.1, minWidth: 150 },

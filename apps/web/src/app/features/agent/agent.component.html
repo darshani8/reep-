@@ -1,5 +1,5 @@
 <div class="agent">
-  <p class="crumb">REEP Agent</p>
+  <p class="crumb ag-crumb">REEP Agent</p>
   <div class="ag-head">
     <div class="ag-title">
       <h1>REEP Agent</h1>
@@ -10,7 +10,8 @@
     </div>
     <div class="ag-actions">
       <button type="button" class="ag-ghost" [disabled]="!canClear()" (click)="clear()">
-        Clear conversation
+        <span class="icon ag-ghost__icon" aria-hidden="true">delete</span>
+        <span class="ag-ghost__label">Clear conversation</span>
       </button>
     </div>
   </div>

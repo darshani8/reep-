@@ -30,7 +30,26 @@
     </div>
   </div>
 
-  <div class="filters">
+  <button
+    type="button"
+    class="btn secondary filters-toggle"
+    [attr.aria-expanded]="filtersOpen()"
+    (click)="filtersOpen.set(true)"
+  >
+    <span class="icon" aria-hidden="true">tune</span> Filters
+    @if (hasFilters()) {
+      <span class="filters-on">· on</span>
+    }
+  </button>
+  @if (filtersOpen()) {
+    <button
+      type="button"
+      class="filters-scrim"
+      aria-label="Close filters"
+      (click)="filtersOpen.set(false)"
+    ></button>
+  }
+  <div class="filters" [class.is-open]="filtersOpen()">
     <div class="select">
       <span class="lbl">Who</span>
       <span class="val">{{ actorLabel() }}</span>
@@ -83,6 +102,9 @@
     }
 
     <span class="filter-hint">Reads are never recorded; not every write is.</span>
+    <button type="button" class="btn primary m-filters-done" (click)="filtersOpen.set(false)">
+      Done
+    </button>
   </div>
 
   @if (error(); as message) {
@@ -92,7 +114,7 @@
     </div>
   }
 
-  <div class="board-columns">
+  <div class="board-columns" [class.has-detail]="openEventId() !== null">
     <section class="card grid-card">
       <div class="dt-gridbar">
         <input
@@ -150,6 +172,37 @@
       <!-- Mounted once and never torn down: an @if around the grid destroys the
            GridApi the toolbar and the column panel hold, so the loading and the
            empty cases are said in the status bar and the no-rows overlay. -->
+      @if (phone()) {
+        <ul class="m-list audit-cards" aria-label="Events">
+          @for (row of phoneRows(); track row.id) {
+            <li>
+              <button
+                type="button"
+                class="m-card"
+                [class.is-selected]="openEventId() === row.id"
+                (click)="openCard(row.id)"
+              >
+                <span class="m-card__top">
+                  <span class="m-card__title">{{ row.action }}</span>
+                  <span class="m-card__meta audit-card__when">{{ occurredLabel(row.occurredAt) }}</span>
+                </span>
+                <span class="m-card__meta">{{ row.actorLabel }}</span>
+                <span class="m-card__meta">{{ row.targetLabel }}</span>
+              </button>
+            </li>
+          } @empty {
+            <li class="m-empty">
+              @if (isLoading()) {
+                Reading the trail…
+              } @else if (hasFilters()) {
+                No events match these filters.
+              } @else {
+                No events recorded yet.
+              }
+            </li>
+          }
+        </ul>
+      } @else {
       <ag-grid-angular
         class="audit-grid"
         [theme]="gridTheme()"
@@ -165,6 +218,7 @@
         (gridReady)="onGridReady($event)"
         (cellClicked)="onCellClicked($event)"
       />
+      }
 
       <div class="dt-statusbar">
         @if (isLoading()) {
@@ -205,6 +259,9 @@
     </section>
 
     <aside class="card event-card" aria-labelledby="audit-event-heading">
+      <button type="button" class="m-back" (click)="closeDetail()">
+        <span class="icon" aria-hidden="true">arrow_back</span> Back
+      </button>
       <div class="card-head">
         <div>
           <h2 class="card-heading" id="audit-event-heading">Event</h2>

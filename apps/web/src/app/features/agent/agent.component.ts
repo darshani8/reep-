@@ -31,11 +31,12 @@
  * which half is a rule and which half is not reported.
  */
 
-import { Component, computed, inject, viewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, computed, inject, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { AuthService } from '../../core/auth.service';
 import { AgentChatComponent } from '../../shared/agent-chat/agent-chat.component';
+import { watchKeyboardInset } from '../../core/keyboard-inset';
 
 // Re-exported so nothing that imported these from the page breaks.
 export type {
@@ -78,6 +79,16 @@ export class AgentComponent {
 
   /** Whether the page-head Clear button has anything to clear. */
   readonly canClear = computed(() => this.chat()?.canClear() ?? false);
+
+  constructor() {
+    // On a phone this page is exactly the height between the app bar and
+    // whatever covers the bottom of the screen — the tab bar, or the keyboard
+    // when it is up — so the thread's composer sits on that edge. The keyboard
+    // half needs `--kb-inset` on THIS element (the stylesheet sizes the page
+    // from it), which is why the page watches as well as the thread.
+    const stop = watchKeyboardInset(inject<ElementRef<HTMLElement>>(ElementRef).nativeElement);
+    inject(DestroyRef).onDestroy(stop);
+  }
 
   clear(): void {
     void this.chat()?.clear();

@@ -93,6 +93,7 @@
         <textarea
           id="mtg-reason"
           rows="3"
+          enterkeyhint="next"
           [value]="reason()"
           (input)="reason.set($any($event.target).value)"
           placeholder="e.g. GD delivery before the mock next month"
@@ -102,6 +103,9 @@
         <label for="mtg-when">Preferred time (optional)</label>
         <input
           id="mtg-when"
+          type="text"
+          autocomplete="off"
+          enterkeyhint="send"
           [value]="preferred()"
           (input)="preferred.set($any($event.target).value)"
           placeholder="e.g. Thursday afternoon"

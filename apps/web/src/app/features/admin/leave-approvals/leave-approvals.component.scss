@@ -18,6 +18,8 @@
  * two states everywhere else.
  */
 
+@use '../../../../styles/mobile' as m;
+
 :host {
   display: block;
 }
@@ -464,4 +466,87 @@
 .attach-meta {
   font-size: 11px;
   color: var(--faint);
+}
+
+/* The remarks and the decision buttons, held together so a phone can keep
+   them on screen. On desktop it is the panel's own column, unchanged. */
+.panel-decide {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* --- the phone (2026-10) -------------------------------------------------
+   Below 600px: the table is a card list (the template swaps it), a picked
+   request is pushed full width with Back, the filters are a sheet, and the
+   two dialogs rise from the bottom (leave-dialog.scss). */
+
+@include m.header-actions('.dt-toolbar');
+@include m.scroll-strip('.queue-tabs');
+@include m.filters-sheet('.filters', '.m-filters-toggle');
+/* List or detail, never both: the list gives way to the pushed request. */
+@include m.pushed-detail('.panel', '.queue-left', '.queue-panel', 'is-pushed');
+@include m.sticky-action('.panel-decide');
+
+@include m.phone {
+  .m-filters-toggle {
+    margin-bottom: 12px;
+  }
+  .filters .select {
+    max-width: none;
+  }
+
+  .queue {
+    flex-direction: column;
+  }
+  .queue-grid.dt-frame {
+    border: 0;
+    background: none;
+  }
+  .dt-statusbar {
+    display: none;
+  }
+  .m-card .chip.neutral {
+    margin-right: 4px;
+  }
+
+  /* The rest of the list's chrome goes with it. */
+  .panel.is-pushed .dt-header,
+  .panel.is-pushed .queue-tabs,
+  .panel.is-pushed .m-filters-toggle {
+    display: none;
+  }
+  .queue-panel {
+    width: auto;
+  }
+  .panel-name {
+    font-size: 17px;
+  }
+  .facts dd,
+  .reason-text,
+  .alt-list,
+  .chain-label {
+    font-size: 14px;
+  }
+  .panel-actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 44px;
+  }
+  .paper-link {
+    margin-left: 0;
+  }
+
+  /* The decision rides at the bottom of the screen. */
+  .panel-decide {
+    padding: 12px;
+    margin: 0 -4px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-card);
+    box-shadow: 0 -8px 24px rgba(58, 31, 82, 0.14);
+    textarea {
+      min-height: 64px;
+    }
+  }
 }

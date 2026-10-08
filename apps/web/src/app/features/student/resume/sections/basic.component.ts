@@ -42,6 +42,29 @@ interface BasicData {
   templateUrl: './basic.component.html',
   styles: [
     `
+      /* Photo beside the synced fields; stacked on a phone, where a 190px
+         photo column left the fields 90px to be read in. */
+      .id-row {
+        display: flex;
+        gap: 22px;
+      }
+      .id-photo {
+        width: 190px;
+        flex: 0 0 auto;
+      }
+      .id-fields {
+        flex: 1;
+        min-width: 0;
+      }
+      @media (max-width: 599.98px) {
+        .id-row {
+          flex-direction: column;
+          gap: 0;
+        }
+        .id-photo {
+          width: auto;
+        }
+      }
       .dropzone--action {
         display: block;
         width: 100%;

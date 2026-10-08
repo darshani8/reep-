@@ -34,6 +34,7 @@
 
 import {
   Component,
+  DestroyRef,
   ElementRef,
   computed,
   effect,
@@ -47,6 +48,7 @@ import { RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth.service';
 import { featureRefusal } from '../../core/feature-refusal';
+import { watchKeyboardInset } from '../../core/keyboard-inset';
 
 /** One routed next step the agent suggests — rendered as an arrow card. */
 export interface AgentAction {
@@ -156,12 +158,32 @@ export class AgentChatComponent {
   private readonly scroller = viewChild<ElementRef<HTMLDivElement>>('scroller');
   private readonly composer = viewChild<ElementRef<HTMLTextAreaElement>>('composer');
 
+  /**
+   * A touch-first device, where Enter in the composer is a new line and the
+   * round Send button is how a message goes — every phone messaging app's
+   * contract, and the on-screen keyboard has no Shift to hold. Read once: a
+   * device does not change what it is pointed with mid-conversation.
+   */
+  private readonly touchFirst =
+    typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
+
   private inflight: AbortController | null = null;
   private nextId = 1;
   private copiedTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     void this.loadHistory();
+    // The on-screen keyboard: its height lands on the host as `--kb-inset`
+    // (keyboard-inset.ts says why the layout cannot see it otherwise), and
+    // while the composer has focus the newest turn is kept in view above it.
+    const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+    const stop = watchKeyboardInset(host, () => {
+      const scroller = this.scroller()?.nativeElement;
+      if (scroller && document.activeElement === this.composer()?.nativeElement) {
+        requestAnimationFrame(() => (scroller.scrollTop = scroller.scrollHeight));
+      }
+    });
+    inject(DestroyRef).onDestroy(stop);
     // Keep the newest turn in view: every change to the thread or to the
     // pending indicator scrolls the message pane to its bottom.
     effect(() => {
@@ -228,7 +250,7 @@ export class AgentChatComponent {
 
   /** Enter sends; Shift+Enter inserts a newline (the textarea's default). */
   onComposerKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+    if (event.key === 'Enter' && !event.shiftKey && !event.isComposing && !this.touchFirst) {
       event.preventDefault();
       this.submit();
     }

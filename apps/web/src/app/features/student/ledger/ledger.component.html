@@ -36,9 +36,12 @@
       </button>
     }
 
+    <!-- On a phone this button moves to the sticky bar under the table (see
+         .footbar's phone-only twin), so the primary action sits under the
+         thumb instead of above a screen of inputs. -->
     <button
       type="button"
-      class="btn primary"
+      class="btn primary submit-head"
       [disabled]="saving() || !editable() || dayTotal() !== 24"
       [attr.title]="ledger()?.submit_blocked_reason"
       (click)="submitDay()"
@@ -192,9 +195,19 @@
                   </td>
 
                   @for (a of l.activities; track a.key) {
-                    <td>
+                    <td class="cell">
+                      <!-- The label is drawn only on a phone, where the
+                           table is restacked as one card per slot and the
+                           column headings are no longer above the box. -->
+                      <label class="cell-label" [attr.for]="'cell-' + s.key + '-' + a.key">
+                        <span class="sw" [style.background]="a.colour" aria-hidden="true"></span>
+                        {{ a.label }}
+                      </label>
                       <input
+                        [id]="'cell-' + s.key + '-' + a.key"
                         type="number"
+                        inputmode="decimal"
+                        enterkeyhint="next"
                         min="0"
                         step="0.5"
                         [max]="s.capacity_hours"
@@ -236,7 +249,7 @@
               <tr class="total-row">
                 <td class="slot-col"><span class="lbl">Day total</span></td>
                 @for (a of l.activities; track a.key) {
-                  <td class="logged">{{ columnTotal(a.key) }}</td>
+                  <td class="logged cell" [attr.data-label]="a.label">{{ columnTotal(a.key) }}</td>
                 }
                 <td class="logged logged-col">
                   @let ds = dayState();
@@ -285,6 +298,15 @@
             <button type="button" class="btn" [disabled]="!dirty() || saving()" (click)="save()">
               <span class="icon" aria-hidden="true">save</span>
               {{ saving() ? 'Saving…' : 'Save draft' }}
+            </button>
+            <button
+              type="button"
+              class="btn primary submit-foot"
+              [disabled]="saving() || !editable() || dayTotal() !== 24"
+              (click)="submitDay()"
+            >
+              <span class="icon" aria-hidden="true">task_alt</span>
+              Submit day
             </button>
           }
         </div>

@@ -75,6 +75,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
+import { bindBackToClose } from '../../../core/back-close';
 
 interface AltRow {
   date: string;
@@ -243,6 +244,14 @@ export class LeaveComponent {
   /// null = the dashboard; a row = reading that form; composing = filling one in.
   readonly viewing = signal<LeaveRow | null>(null);
   readonly composing = signal(false);
+  /** Below 900px the form (or a request) is a screen of its own with a back
+   *  arrow; Android's Back returns to the requests, as that arrow does. At
+   *  900px and up nothing is pushed and Back leaves the screen as before. */
+  private readonly _formBack = bindBackToClose(
+    () => this.composing() || this.viewing() !== null,
+    () => this.backToDash(),
+    '(max-width: 899.98px)',
+  );
   readonly submitting = signal(false);
   readonly formError = signal<string | null>(null);
   /// The draft kept on this device, if any.

@@ -12,6 +12,8 @@
  * nothing here can be mistaken for a global the next screen might expect.
  */
 
+@use '../../../../styles/mobile' as m;
+
 :host {
   display: block;
 }
@@ -314,4 +316,224 @@
   font-family: inherit;
   font-size: 12px;
   color: var(--ink);
+}
+
+/* --- at phone width (2026-10) --------------------------------------------
+   The track tabs are one sideways strip; every question row is a card (the
+   same table, laid out as a grid per row); nothing is revealed only on
+   hover; every control is a thumb's width. */
+@include m.header-actions('.dt-header > .dt-toolbar');
+@include m.scroll-strip('.bank-tracks');
+
+@include m.phone {
+  .dt-header {
+    flex-wrap: wrap;
+  }
+  .bank-tab {
+    min-height: 44px;
+  }
+  .bank-stack {
+    min-width: 0;
+  }
+  .bank-stack > .card {
+    padding: 14px;
+    min-width: 0;
+  }
+  .bank-row .field.grow,
+  .bank-row .field.narrow {
+    flex: 1 1 100%;
+  }
+  .card .ctrl {
+    min-height: 44px;
+  }
+  .card-head {
+    flex-wrap: wrap;
+  }
+  .card-head .dt-toolbar,
+  .bank-track-actions {
+    width: 100%;
+  }
+  .card-head .dt-toolbar .btn,
+  .bank-track-actions .btn {
+    flex: 1 1 0;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .bank-enabled {
+    min-height: 44px;
+  }
+  .bank-form {
+    padding: 12px;
+  }
+  .bank-form .footbar {
+    flex-wrap: wrap;
+  }
+  .bank-form .footbar .btn {
+    flex: 1 1 auto;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .bank-frame {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+  .bank-frame .dt-gridbar {
+    flex-wrap: wrap;
+    padding: 0 0 10px;
+    background: transparent;
+    border: 0;
+  }
+  .bank-frame .dt-quickfilter {
+    width: 100%;
+    height: 44px;
+  }
+  .bank-frame .dt-gridbar .btn {
+    flex: 1 1 0;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  /* The table, one card per question. */
+  .bank-scroll {
+    max-height: none;
+    overflow: visible;
+  }
+  .bank-table {
+    min-width: 0;
+    display: block;
+    background: transparent;
+  }
+  .bank-table thead,
+  .bank-table tbody {
+    display: block;
+  }
+  .bank-table thead tr {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 2px 8px;
+  }
+  .bank-table thead th {
+    display: none;
+  }
+  .bank-table thead th.bank-tick {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-size: 13px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .bank-table thead th.bank-tick::after {
+    content: 'All on this page';
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .bank-table tbody tr {
+    display: grid;
+    grid-template-columns: 32px 32px minmax(0, 1fr) auto;
+    grid-template-areas:
+      'tick num phase status'
+      'text text text text'
+      'act act act act';
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-card);
+    box-shadow: var(--sh-card);
+  }
+  .bank-table tbody tr.selected {
+    border-color: var(--purple-mid);
+  }
+  .bank-table tbody td {
+    display: block;
+    padding: 0;
+    border: 0;
+    width: auto;
+    background: transparent;
+  }
+  .bank-table td.bank-tick {
+    grid-area: tick;
+  }
+  .bank-table tbody td.bank-number {
+    box-shadow: none;
+    grid-area: num;
+    position: static;
+    text-align: left;
+    font-weight: 700;
+    color: var(--muted);
+  }
+  .bank-table td.bank-phase {
+    grid-area: phase;
+  }
+  .bank-table td.bank-status {
+    grid-area: status;
+  }
+  .bank-table td:not([class]) {
+    grid-area: text;
+  }
+  .bank-table tbody td.bank-actions {
+    grid-area: act;
+    display: flex;
+    gap: 8px;
+    text-align: left;
+  }
+  .bank-table td.bank-empty {
+    grid-column: 1 / -1;
+  }
+  .bank-tick input {
+    width: 22px;
+    height: 22px;
+  }
+  .bank-phase-select {
+    height: 44px;
+    font-size: 16px;
+    width: 100%;
+  }
+  .bank-status-toggle {
+    min-height: 44px;
+  }
+  /* Editable on touch, so it looks editable without a hover. */
+  .bank-question-text {
+    font-size: 16px;
+    min-height: 72px;
+    border-color: var(--hairline-26);
+    background: var(--surface);
+  }
+  .bank-table td.bank-actions .bank-icon-btn {
+    flex: 1 1 0;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .bank-frame .dt-statusbar {
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    background: transparent;
+    border: 0;
+    padding: 4px 2px 0;
+  }
+  .bank-frame .pager {
+    flex-wrap: wrap;
+    margin-left: 0;
+  }
+  .bank-pagesize select {
+    height: 44px;
+    font-size: 16px;
+  }
+  .pager .bank-icon-btn {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
 }

@@ -86,6 +86,8 @@ import { LegendComponent, TooltipComponent } from 'echarts/components';
 import { SVGRenderer } from 'echarts/renderers';
 
 import { environment } from '../../../../environments/environment';
+import { bindBackToClose } from '../../../core/back-close';
+import { phoneSignal } from '../../../core/mobile';
 import {
   REEP_CHART_THEME,
   SEQUENTIAL_RAMP,
@@ -839,6 +841,60 @@ export class AdminPlacementComponent implements OnDestroy {
 
   onGridReady(event: GridReadyEvent<OfferGridRow>): void {
     this.gridApi = event.api;
+  }
+
+  // --- at phone width ------------------------------------------------------
+  /** Below 600px the offers are a list of cards over the same rows and quick
+   *  filter; tapping an offer awaiting approval ticks it, exactly as the
+   *  grid's checkbox does, and only those can be ticked. */
+  readonly phone = phoneSignal();
+  readonly filtersOpen = signal(false);
+  /** Android's Back folds the filters sheet and cancels the rejection sheet,
+   *  each exactly as its own button does. */
+  private readonly _filtersBack = bindBackToClose(
+    () => this.filtersOpen(),
+    () => this.filtersOpen.set(false),
+  );
+  private readonly _rejectionBack = bindBackToClose(
+    () => this.rejectionOpen(),
+    () => this.cancelRejection(),
+  );
+  readonly phoneOfferRows = computed<OfferGridRow[]>(() => {
+    const typed = this.quickFilter().trim().toLowerCase();
+    const rows = this.offerRows();
+    if (typed === '') return rows;
+    return rows.filter((row) =>
+      [row.studentName, row.usn ?? '', row.organisation, row.jobTitle, row.statusLabel]
+        .join(' ')
+        .toLowerCase()
+        .includes(typed),
+    );
+  });
+
+  togglePhoneOffer(row: OfferGridRow): void {
+    if (row.status !== 'PENDING_APPROVAL') return;
+    this.selectedOffers.update((chosen) =>
+      chosen.some((one) => one.id === row.id)
+        ? chosen.filter((one) => one.id !== row.id)
+        : [...chosen, row],
+    );
+  }
+
+  isPhoneOfferSelected(row: OfferGridRow): boolean {
+    return this.selectedOffers().some((one) => one.id === row.id);
+  }
+
+  phoneCtc(row: OfferGridRow): string {
+    return ctcInLakhs(row.ctcInr);
+  }
+
+  phoneOfferDate(row: OfferGridRow): string {
+    if (row.offerDate === null) return '—';
+    return new Date(row.offerDate).toLocaleDateString(undefined, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
   }
 
   onOfferSelectionChanged(event: SelectionChangedEvent<OfferGridRow>): void {

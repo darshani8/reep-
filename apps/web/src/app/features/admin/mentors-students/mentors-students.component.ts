@@ -61,6 +61,8 @@ import type {
 } from 'ag-grid-community';
 
 import { environment } from '../../../../environments/environment';
+import { bindBackToClose } from '../../../core/back-close';
+import { phoneSignal } from '../../../core/mobile';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme } from '../../../shared/grid/reep-grid-theme';
 import { PluralPipe, plural } from '../../../shared/text/plural.pipe';
@@ -244,6 +246,37 @@ export class AdminMentorsStudentsComponent {
   readonly gridTheme = reepGridTheme;
   readonly everything = EVERYTHING;
 
+  // --- at phone width ------------------------------------------------------
+  /** Below 600px the board is a list of faculty; picking one pushes their
+   *  group, the pool and the history full width (see the scss tail). The pool
+   *  is a list of cards there, not the grid. */
+  readonly phone = phoneSignal();
+  /** Whether the pushed detail is showing. Separate from the selection: the
+   *  first faculty member is selected on load so the desktop board is never an
+   *  empty prompt, and that must not push a detail nobody asked for. */
+  readonly phoneDetail = signal(false);
+  readonly filtersOpen = signal(false);
+  /** Android's Back closes whichever phone overlay is on top — the filters
+   *  sheet, the batch sheet, the pushed detail — exactly as its own button. */
+  private readonly _detailBack = bindBackToClose(
+    () => this.phoneDetail(),
+    () => this.closePhoneDetail(),
+  );
+  private readonly _filtersBack = bindBackToClose(
+    () => this.filtersOpen(),
+    () => this.filtersOpen.set(false),
+  );
+  readonly poolCards = computed(() => {
+    const typed = this.poolSearch().trim().toLowerCase();
+    const rows = this.pool() ?? [];
+    if (typed === '') return rows;
+    return rows.filter((student) =>
+      [student.name, student.usn ?? '', student.stage ?? ''].some((text) =>
+        text.toLowerCase().includes(typed),
+      ),
+    );
+  });
+
   readonly mentors = signal<MentorLoad[] | null>(null);
   readonly pool = signal<Mentee[] | null>(null);
   readonly error = signal<string | null>(null);
@@ -337,6 +370,10 @@ export class AdminMentorsStudentsComponent {
   /** The batch bar. Closed until asked for: it writes to every student in a
    *  batch at once and should not sit open beside the single-student action. */
   readonly batchOpen = signal(false);
+  private readonly _batchBack = bindBackToClose(
+    () => this.batchOpen(),
+    () => this.toggleBatchBar(),
+  );
   readonly batchCohortId = signal(EVERYTHING);
   readonly batchReason = signal('');
   readonly batchBusy = signal(false);
@@ -504,6 +541,26 @@ export class AdminMentorsStudentsComponent {
   selectMentor(userId: string): void {
     this.selectedMentorUserId.set(userId);
     this.flash.set(null);
+    if (this.phone()) {
+      this.phoneDetail.set(true);
+      document.querySelector('.desktop-main')?.scrollTo({ top: 0 });
+    }
+  }
+
+  /** The pushed detail's Back. */
+  closePhoneDetail(): void {
+    this.phoneDetail.set(false);
+  }
+
+  /** A pool card's tap: the grid's row tick, on the same list of ids. */
+  togglePoolStudent(studentId: string): void {
+    this.selectedStudentIds.update((ids) =>
+      ids.includes(studentId) ? ids.filter((id) => id !== studentId) : [...ids, studentId],
+    );
+  }
+
+  isPoolStudentSelected(studentId: string): boolean {
+    return this.selectedStudentIds().includes(studentId);
   }
 
   isSelectedMentor(mentor: MentorLoad): boolean {

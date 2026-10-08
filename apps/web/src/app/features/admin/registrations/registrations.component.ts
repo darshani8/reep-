@@ -138,6 +138,8 @@ import { specializationLabel } from '../../../core/specializations';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme, reepGridThemeCompact } from '../../../shared/grid/reep-grid-theme';
 import { plural } from '../../../shared/text/plural.pipe';
+import { phoneSignal } from '../../../core/mobile';
+import { bindBackToClose } from '../../../core/back-close';
 
 // ----------------------------------------------------------------- rules --
 
@@ -704,6 +706,79 @@ export class AdminRegistrationsComponent {
   // --- the grid's own state ----------------------------------------------
 
   private gridApi: GridApi<QueueRow> | null = null;
+
+  // --- the phone (2026-10) ------------------------------------------------
+  //
+  // Below 600px the grid is not mounted: the same rows render as cards and
+  // the decision panel is pushed full width over the list. `pushed` is what
+  // separates "I ticked three cards" from "show me the decision": ticking
+  // must not throw the reviewer out of the list mid-selection.
+  readonly phone = phoneSignal();
+  readonly filtersOpen = signal(false);
+  private readonly pushed = signal(false);
+  readonly detailPushed = computed(() => this.phone() && this.pushed() && this.hasDecisionTarget());
+
+  // Android Back closes what is on top: the pushed review, the filters
+  // sheet, the seating-rules sheet — each exactly as its own button does.
+  private readonly _detailBack = bindBackToClose(
+    () => this.detailPushed(),
+    () => this.backToList(),
+  );
+  private readonly _filtersBack = bindBackToClose(
+    () => this.filtersOpen(),
+    () => this.filtersOpen.set(false),
+  );
+  private readonly _rulesBack = bindBackToClose(
+    () => this.seatingRulesOpen(),
+    () => this.closeSeatingRules(),
+  );
+
+  /** The grid's quick filter, applied by hand — the cards have no grid. */
+  readonly phoneRows = computed(() => {
+    const needle = this.quickFilter().trim().toLowerCase();
+    const rows = this.visibleRows();
+    if (needle === '') return rows;
+    return rows.filter((row) =>
+      [row.name, row.email, row.usn ?? '', row.batchLabel].some((text) => text.toLowerCase().includes(needle)),
+    );
+  });
+
+  isTicked(row: QueueRow): boolean {
+    return this.selectedRows().some((ticked) => ticked.registrationId === row.registrationId);
+  }
+
+  toggleTick(row: QueueRow): void {
+    this.selectedRows.update((ticked) =>
+      this.isTicked(row)
+        ? ticked.filter((one) => one.registrationId !== row.registrationId)
+        : [...ticked, row],
+    );
+    this.pushed.set(false);
+    this.noteError.set(null);
+  }
+
+  /** Tapping a card is clicking its row: that one application, on its own. */
+  openRow(row: QueueRow): void {
+    this.selectedRows.set([]);
+    this.focusedRegistrationId.set(row.registrationId);
+    this.noteError.set(null);
+    this.pushDetail();
+  }
+
+  pushDetail(): void {
+    this.pushed.set(true);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
+    document.querySelector('.desktop-main')?.scrollTo({ top: 0 });
+  }
+
+  backToList(): void {
+    this.pushed.set(false);
+    this.clearReview();
+  }
+
+  onGridDestroyed(): void {
+    this.gridApi = null;
+  }
   readonly filteredRowCount = signal(0);
   readonly currentPage = signal(0);
   readonly totalPages = signal(1);
@@ -1298,11 +1373,31 @@ export class AdminRegistrationsComponent {
    * Submitted column would export past its own `valueFormatter`.
    */
   exportVisibleRows(): void {
-    this.gridApi?.exportDataAsCsv({
+    if (this.gridApi === null) {
+      this.exportPhoneRows();
+      return;
+    }
+    this.gridApi.exportDataAsCsv({
       fileName: 'reep-registrations.csv',
       processCellCallback: (params: ProcessCellForExportParams<QueueRow>): string =>
         csvCellAsText(params.formatValue(params.value) ?? ''),
     });
+  }
+
+  /** The phone has no grid to export from; the same rows, the same guard. */
+  private exportPhoneRows(): void {
+    const header = ['Applicant', 'Email', 'USN', 'College', 'Batch', 'Submitted', 'Documents', 'Rule'];
+    const lines = this.phoneRows().map((row) =>
+      [row.name, row.email, row.usn ?? '', row.collegeName ?? '', row.batchLabel, row.submittedLabel, row.documentsLabel, row.ruleLabel]
+        .map((cell) => `"${csvCellAsText(cell).replace(/"/g, '""')}"`)
+        .join(','),
+    );
+    const blob = new Blob([[header.join(','), ...lines].join('\r\n')], { type: 'text/csv' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'reep-registrations.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
   }
 
   // ------- the plain inputs the template binds --------------------------

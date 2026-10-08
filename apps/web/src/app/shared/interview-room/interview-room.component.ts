@@ -61,6 +61,7 @@ import { RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { AgentDockService, DockLiveState } from '../../core/agent-dock.service';
 import { AuthService } from '../../core/auth.service';
+import { bindBackToClose } from '../../core/back-close';
 import { InterviewService, InterviewState } from '../../core/interview.service';
 // Shared with the interview-history screen rather than duplicated. The two
 // screens render the SAME scorecard from two sources, and the calibration copy
@@ -354,6 +355,12 @@ export class InterviewRoomComponent implements AfterViewInit, OnDestroy {
   readonly policy = signal<InterviewPolicyCard | null>(null);
   readonly consentBusy = signal(false);
   readonly consentError = signal<string | null>(null);
+  /** On a phone the disclosure is a bottom sheet, and Back closes it exactly
+   *  as Cancel does instead of leaving the screen. */
+  private readonly _consentBack = bindBackToClose(
+    () => this.showConsent(),
+    () => this.cancelConsent(),
+  );
 
   /** Mock interviews are a student feature; the backend refuses anyone else —
    *  except the Main Admin's REHEARSAL, below. */

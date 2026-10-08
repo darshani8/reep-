@@ -4,6 +4,8 @@
    global (styles/reep-v2.scss). The one rule below that names a global class is
    the `.card-title` override, and it carries only the declaration that differs;
    every other class here is named for a box on this screen. */
+
+@use '../../../../styles/mobile' as m;
 :host {
   display: block;
 }
@@ -308,4 +310,104 @@
 .seating .seat-add .field {
   flex: 1;
   min-width: 0;
+}
+
+/* --- phone ------------------------------------------------------------------
+   The header's button under the title; pick rows two lines tall rather than
+   truncated; the domain chip's remove a real 44px target; and the batch and
+   seating tables a stack of cards (`table.m-rows`), each value under its own label, the row's
+   buttons full width at the foot of the card. */
+@include m.header-actions('.dt-header > .dt-toolbar');
+
+@include m.phone {
+  .dt-header {
+    flex-wrap: wrap;
+  }
+
+  .pick-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    column-gap: 10px;
+    row-gap: 2px;
+    min-height: 52px;
+  }
+  .pick-row .pick-count {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .pick-row > .icon {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+  .pick-row:active {
+    background: var(--tint-2);
+  }
+  .pick-code {
+    min-width: 48px;
+    grid-row: 1 / span 2;
+  }
+  .pick-name {
+    white-space: normal;
+  }
+
+  .card-head {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .card-head > .btn,
+  .card-head > .dt-toolbar > .btn,
+  .edit-head .btn {
+    min-height: 44px;
+  }
+  .card-head > .dt-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .domain-drop {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    margin: -14px -14px -14px -8px;
+  }
+  .domain-drop .icon {
+    font-size: 18px;
+  }
+  .domain-add {
+    margin-left: 0;
+    width: 100%;
+  }
+  .domain-add .ctrl {
+    flex: 1 1 auto;
+    width: auto;
+  }
+
+  .ctrl,
+  .form-row input,
+  .form-row select,
+  .batch-form input,
+  .batch-form select {
+    min-height: 44px;
+  }
+  .form-row .field.narrow {
+    flex: 1 1 120px;
+  }
+
+  .seating .seat-add {
+    flex-wrap: wrap;
+  }
+  .seating .seat-add .field {
+    flex: 1 1 100%;
+  }
+  .seating .seat-add .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  /* The batch and seating tables are `table.m-rows` (global, styles/_mobile.scss).
+     The one delta: this sheet's own `.row-actions { white-space: nowrap }`
+     outranks the global card rule, so the card's action cell says normal
+     again, as it did when the card rules lived here. */
+  table.m-rows td.row-actions {
+    white-space: normal;
+  }
 }

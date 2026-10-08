@@ -164,11 +164,91 @@
   color: var(--muted);
 }
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+/* --- THE PHONE ------------------------------------------------------------
+   Nothing below applies at 900px and up; the camera button is display:none
+   there. */
+.up-camera {
+  display: none;
+}
+@media (max-width: 899px) {
+  .up-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .up-actions .btn {
+    justify-content: center;
+  }
+  .up-camera {
+    display: inline-flex;
+  }
+  .up-actions > :not(.btn) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* The shelf as one card per certificate: title on top, the three facts
+   labelled under it, View / Remove as a full-width pair. Deliberately NOT the
+   global `table.m-rows`: the label sits in a 92px column BESIDE its value and
+   the rows are ruled, not bordered cards, from 640px. Same table markup;
+   three classes of specificity beat the global `.desktop-main table` phone
+   rules without !important. */
+@media (max-width: 640px) {
+  .up-scroll .up-table,
+  .up-scroll .up-table tbody,
+  .up-scroll .up-table tr,
+  .up-scroll .up-table td {
+    display: block;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    overflow: visible;
+  }
+  .up-scroll .up-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .up-scroll .up-table tr {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .up-scroll .up-table tr:last-child {
+    border-bottom: 0;
+  }
+  .up-scroll .up-table td {
+    padding: 0;
+    border: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .up-scroll .up-table td[data-label] {
+    display: grid;
+    grid-template-columns: 92px 1fr;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 14px;
+  }
+  .up-scroll .up-table td[data-label]::before {
+    content: attr(data-label);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink-soft);
+  }
+  .up-scroll .up-table td.up-cell-title strong {
+    font-size: 15px;
+  }
+  .up-scroll .up-table td.up-cell-actions {
+    margin-top: 10px;
+  }
+  .up-scroll .up-row-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .up-scroll .up-row-actions .btn {
+    justify-content: center;
+  }
 }

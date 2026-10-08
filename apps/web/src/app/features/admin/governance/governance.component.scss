@@ -15,6 +15,8 @@
  * not.
  */
 
+@use '../../../../styles/mobile' as m;
+
 :host {
   display: block;
 }
@@ -389,4 +391,179 @@
    they sit outside it. `display: contents` keeps the row one flex line. */
 .gov-tablist {
   display: contents;
+}
+
+/* --- phone ------------------------------------------------------------------
+   The header's two buttons under the title; the tabs one sideways strip; the
+   four filters behind a "Filters" sheet (the quick filter stays on the grid
+   bar); every table a stack of cards, each value under its column's name; the
+   one reason box a sheet over the list that opened it. */
+@include m.header-actions('.dt-header > .dt-toolbar');
+@include m.scroll-strip('.gov-tabs');
+@include m.filters-sheet('.gov-filters', '.gov-filters-toggle', '.gov-filters-scrim');
+
+/* The one reason box: the global fixed sheet, with this card's own gap, a
+   taller ceiling (it lists the rows it acts on) and no glass behind it. */
+@include m.fixed-sheet('.gov-action', '.gov-action-scrim');
+
+@include m.phone {
+  .dt-header {
+    flex-wrap: wrap;
+  }
+
+  .gov-tabs .tab {
+    flex: 0 0 auto;
+    min-height: 44px;
+  }
+
+  .gov-filters-toggle {
+    margin-bottom: 12px;
+    min-height: 44px;
+  }
+  .gov-filters.is-open .select {
+    max-width: none;
+    min-height: 48px;
+  }
+  .gov-filters-note {
+    margin-left: 0;
+    max-width: none;
+  }
+  /* Taller than the global Done. */
+  .gov-filters.is-open .m-filters-done {
+    min-height: 48px;
+  }
+
+  .gov-board {
+    align-items: stretch;
+  }
+
+  .dt-gridbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .dt-gridbar .dt-quickfilter {
+    flex: 1 1 100%;
+    width: auto;
+    min-height: 44px;
+  }
+  .dt-gridbar > .btn {
+    flex: 1 1 0;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .gov-gridbar-end {
+    display: none;
+  }
+
+  .dt-statusbar {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .gov-pagesize select {
+    height: 40px;
+  }
+
+  /* table.m-rows is global; what follows is only where this screen differs.
+     The grants table sits inside .gov-grid-scroll, so the global's
+     direct-child frame rule does not reach its frame. */
+  .dt-frame:has(table.m-rows),
+  .gov-grid-scroll {
+    overflow: visible;
+  }
+  table.m-rows tbody {
+    padding: 8px;
+  }
+  table.m-rows tr {
+    gap: 8px 12px;
+    padding: 12px;
+  }
+  /* The screen's own .gov-table / .gov-compact / .pinned cell rules outrank
+     the global's, so the card shape is restated against them here. */
+  table.m-rows td {
+    position: static;
+    min-width: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+    white-space: normal;
+    max-width: none;
+  }
+  table.m-rows td.pinned,
+  table.m-rows td.gov-rowaction,
+  table.m-rows td.gov-empty,
+  table.m-rows td.gov-reason-cell,
+  table.m-rows td[data-label='Reach'],
+  table.m-rows td[data-label='Status'] {
+    grid-column: 1 / -1;
+  }
+  table.m-rows td.pinned {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+  }
+  table.m-rows .chip {
+    max-width: 100%;
+    height: auto;
+    min-height: 24px;
+    white-space: normal;
+    text-align: left;
+  }
+  table.m-rows td[data-label]::before {
+    margin-bottom: 2px;
+  }
+  table.m-rows .gov-check {
+    min-height: 44px;
+    width: 100%;
+  }
+  table.m-rows .gov-check input {
+    width: 22px;
+    height: 22px;
+  }
+  table.m-rows td.gov-rowaction {
+    text-align: left;
+  }
+  table.m-rows .gov-rowactions {
+    display: flex;
+    gap: 8px;
+  }
+  table.m-rows .gov-rowactions .btn {
+    flex: 1 1 0;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .gov-two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ctrl:not(textarea) {
+    min-height: 44px;
+  }
+  .gov-row .btn,
+  .gov-actions .btn,
+  .gov-members li .btn {
+    min-height: 44px;
+  }
+  .gov-actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .gov-chip-x {
+    min-width: 32px;
+    min-height: 32px;
+    justify-content: center;
+    margin: -8px -8px -8px 0;
+  }
+  .gov-openlink {
+    flex: 1 1 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .gov-action {
+    gap: 10px;
+    max-height: 86dvh;
+    overscroll-behavior: contain;
+    backdrop-filter: none;
+  }
 }

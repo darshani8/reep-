@@ -48,6 +48,12 @@
          row can be acted on from the register or from the review queue and the
          box must not scroll away with whichever list opened it. -->
     @if (actionKind(); as kind) {
+      <button
+        type="button"
+        class="gov-action-scrim"
+        aria-label="Cancel"
+        (click)="cancelAction()"
+      ></button>
       <section class="card gov-action" [attr.aria-label]="actionTitle()">
         <h2 class="gov-card-title">{{ actionTitle() }}</h2>
         <ul class="gov-action-list">
@@ -199,7 +205,23 @@
     <!-- =================================================== GRANTS ======= -->
     @if (tab() === 'grants') {
       <div role="tabpanel" id="gov-pane-grants" aria-labelledby="gov-tab-grants">
-      <div class="gov-filters">
+      <button
+        type="button"
+        class="btn secondary gov-filters-toggle"
+        [attr.aria-expanded]="filtersOpen()"
+        (click)="filtersOpen.set(true)"
+      >
+        <span class="icon" aria-hidden="true">tune</span> Filters
+      </button>
+      @if (filtersOpen()) {
+        <button
+          type="button"
+          class="gov-filters-scrim"
+          aria-label="Close filters"
+          (click)="filtersOpen.set(false)"
+        ></button>
+      }
+      <div class="gov-filters" [class.is-open]="filtersOpen()">
         <!-- B1.2/B1.4. A grant now carries its own reach, so these two narrow
              the register by the rung a grant touches — not by the rung it was
              hung on exactly. See `reachTouches`. -->
@@ -260,6 +282,9 @@
           Every grant here is live or waiting to be approved. Revoked and lapsed grants stay in
           the audit trail.
         </p>
+        <button type="button" class="btn primary m-filters-done" (click)="filtersOpen.set(false)">
+          Done
+        </button>
       </div>
 
       <!-- A grant's REACH and its function's SCOPE are two different questions
@@ -307,7 +332,7 @@
           </div>
 
           <div class="gov-grid-scroll">
-            <table class="dt-table gov-table" [class.gov-compact]="rowsAreCompact()">
+            <table class="dt-table gov-table m-rows" [class.gov-compact]="rowsAreCompact()">
               <thead>
                 <tr>
                   <th class="pinned gov-who-col">
@@ -348,20 +373,20 @@
                         </span>
                       </label>
                     </td>
-                    <td><span class="chip accent">{{ row.functionLabel }}</span></td>
-                    <td>
+                    <td data-label="Access"><span class="chip accent">{{ row.functionLabel }}</span></td>
+                    <td data-label="Scope">
                       <span class="chip dot" [class.risk]="row.functionScopeIsProgrammeWide" [class.neutral]="!row.functionScopeIsProgrammeWide">
                         {{ row.functionScopeLabel }}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Reach">
                       <span class="chip dot" [class.risk]="row.reachIsWholeCollege" [class.neutral]="!row.reachIsWholeCollege">
                         {{ row.reachLabel }}
                       </span>
                     </td>
-                    <td>{{ row.grantedByLabel }}</td>
-                    <td class="gov-nums">{{ row.expiresLabel }}</td>
-                    <td>
+                    <td data-label="Granted by">{{ row.grantedByLabel }}</td>
+                    <td class="gov-nums" data-label="Expires">{{ row.expiresLabel }}</td>
+                    <td data-label="Status">
                       <span
                         class="chip dot"
                         [class.good]="row.statusTone === 'good'"
@@ -692,7 +717,7 @@
         </p>
         <div class="dt-frame">
           <div class="gov-grid-scroll">
-            <table class="dt-table gov-table">
+            <table class="dt-table gov-table m-rows">
               <thead>
                 <tr>
                   <th class="pinned gov-who-col">Person / group</th>
@@ -713,19 +738,19 @@
                         <span class="gov-sub">{{ row.subjectKindLabel }}</span>
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Access">
                       <span class="chip accent">{{ row.functionLabel }}</span>
                       @if (row.carriesPersonalData) {
                         <span class="chip dot warn">Personal record</span>
                       }
                     </td>
-                    <td>
+                    <td data-label="Reach">
                       <span class="chip dot" [class.risk]="row.reachIsWholeCollege" [class.neutral]="!row.reachIsWholeCollege">
                         {{ row.reachLabel }}
                       </span>
                     </td>
-                    <td>{{ row.grantedByLabel }}</td>
-                    <td class="gov-reason-cell">{{ row.reason }}</td>
+                    <td data-label="Granted by">{{ row.grantedByLabel }}</td>
+                    <td class="gov-reason-cell" data-label="Reason">{{ row.reason }}</td>
                     <td class="gov-rowaction">
                       <span class="gov-rowactions">
                         <button type="button" class="btn secondary sm" (click)="startAction('approve', [row])">
@@ -760,7 +785,7 @@
         </p>
         <div class="dt-frame">
           <div class="gov-grid-scroll">
-            <table class="dt-table gov-table">
+            <table class="dt-table gov-table m-rows">
               <thead>
                 <tr>
                   <th class="pinned gov-who-col">Person / group</th>
@@ -782,15 +807,15 @@
                         <span class="gov-sub">{{ row.subjectKindLabel }}</span>
                       </span>
                     </td>
-                    <td><span class="chip accent">{{ row.functionLabel }}</span></td>
-                    <td>
+                    <td data-label="Access"><span class="chip accent">{{ row.functionLabel }}</span></td>
+                    <td data-label="Reach">
                       <span class="chip dot" [class.risk]="row.reachIsWholeCollege" [class.neutral]="!row.reachIsWholeCollege">
                         {{ row.reachLabel }}
                       </span>
                     </td>
-                    <td class="gov-nums">{{ row.expiresLabel }}</td>
-                    <td class="gov-nums">{{ row.reviewLabel }}</td>
-                    <td>
+                    <td class="gov-nums" data-label="Expires">{{ row.expiresLabel }}</td>
+                    <td class="gov-nums" data-label="Review">{{ row.reviewLabel }}</td>
+                    <td data-label="Status">
                       <span
                         class="chip dot"
                         [class.good]="row.statusTone === 'good'"
@@ -832,7 +857,7 @@
       <div role="tabpanel" id="gov-pane-catalogue" aria-labelledby="gov-tab-catalogue">
 
       <div class="dt-frame">
-        <table class="dt-table gov-table">
+        <table class="dt-table gov-table m-rows">
           <thead>
             <tr>
               <th class="pinned gov-fn-col">Access</th>
@@ -847,18 +872,18 @@
             @for (row of functionCatalogue(); track row.key) {
               <tr>
                 <td class="pinned gov-fn-col">{{ row.label }}</td>
-                <td><code class="gov-key">{{ row.key }}</code></td>
-                <td>
+                <td data-label="Key"><code class="gov-key">{{ row.key }}</code></td>
+                <td data-label="Scope">
                   <span class="chip dot" [class.risk]="row.reachIsProgrammeWide" [class.neutral]="!row.reachIsProgrammeWide">
                     {{ row.reachLabel }}
                   </span>
                 </td>
-                <td>
+                <td data-label="Personal data">
                   <span class="chip dot" [class.warn]="row.carriesPersonalData" [class.neutral]="!row.carriesPersonalData">
                     {{ row.personalDataLabel }}
                   </span>
                 </td>
-                <td>
+                <td data-label="Server-enforced">
                   <span
                     class="chip dot"
                     [class.good]="row.enforcementIsReported && row.enforcementIsServerChecked"
@@ -868,7 +893,7 @@
                     {{ row.enforcementLabel }}
                   </span>
                 </td>
-                <td class="gov-nums">{{ row.liveGrantCount }}</td>
+                <td class="gov-nums" data-label="Live grants">{{ row.liveGrantCount }}</td>
               </tr>
             } @empty {
               <tr>

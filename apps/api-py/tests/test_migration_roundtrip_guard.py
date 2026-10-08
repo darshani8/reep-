@@ -82,7 +82,7 @@ class _StubServer:
     ],
 )
 def test_a_local_client_connection_is_accepted(rest) -> None:
-    assert rt.refusal(DEV, _engine(rest)) is None, f"{rest} is local and must be accepted"
+    assert rt.refusal(DEV, _engine(rest), {}) is None, f"{rest} is local and must be accepted"
 
 
 @pytest.mark.parametrize(
@@ -96,13 +96,13 @@ def test_a_local_client_connection_is_accepted(rest) -> None:
     ],
 )
 def test_a_connection_that_could_reach_production_is_refused(rest, why) -> None:
-    assert rt.refusal(DEV, _engine(rest)) is not None, f"{rest} must be refused: {why}"
+    assert rt.refusal(DEV, _engine(rest), {}) is not None, f"{rest} must be refused: {why}"
 
 
 @pytest.mark.parametrize("env", ["prod", "production", "staging", "uat", ""])
 def test_only_a_development_env_is_accepted(env) -> None:
     settings = SimpleNamespace(env=env, env_is_dev=False)
-    assert rt.refusal(settings, _engine("localhost:5433/reep_py")) is not None, (
+    assert rt.refusal(settings, _engine("localhost:5433/reep_py"), {}) is not None, (
         f"ENV={env!r} is not a development name and must be refused"
     )
 
@@ -110,7 +110,7 @@ def test_only_a_development_env_is_accepted(env) -> None:
 def test_a_port_mapped_server_reporting_a_bridge_address_passes() -> None:
     """The CI service container and docker compose: client on localhost, server
     listening on a Docker bridge address, no managed-cloud settings."""
-    assert rt.refusal(DEV, _engine("localhost:5433/reep_py")) is None, "the client side is local"
+    assert rt.refusal(DEV, _engine("localhost:5433/reep_py"), {}) is None, "the client side is local"
     assert rt.managed_server(_StubServer(listening="172.18.0.2")) is None, (
         "a server on a Docker bridge address with no rds.* settings is a development server"
     )
@@ -119,7 +119,7 @@ def test_a_port_mapped_server_reporting_a_bridge_address_passes() -> None:
 @pytest.mark.parametrize("setting", ["rds.force_ssl", "rds.extensions", "aurora_compute_plan_id", "cloudsql.iam_authentication", "azure.extensions"])
 def test_a_managed_cloud_server_is_refused_even_through_a_local_tunnel(setting) -> None:
     """A tunnel makes the client host loopback; it cannot make RDS stop being RDS."""
-    assert rt.refusal(DEV, _engine("localhost:5433/reep_py")) is None, "the tunnel looks local"
+    assert rt.refusal(DEV, _engine("localhost:5433/reep_py"), {}) is None, "the tunnel looks local"
     reason = rt.managed_server(_StubServer(setting=setting))
     assert reason is not None and setting in reason, f"a server carrying {setting} must be refused"
 
@@ -127,3 +127,33 @@ def test_a_managed_cloud_server_is_refused_even_through_a_local_tunnel(setting) 
 def test_rds_superuser_variables_alone_is_refused() -> None:
     reason = rt.managed_server(_StubServer(rds_role="session_replication_role"))
     assert reason is not None and "RDS" in reason, "rds.superuser_variables is RDS's own setting"
+
+
+@pytest.mark.parametrize(
+    ("environ", "why"),
+    [
+        ({"PGHOSTADDR": "192.0.2.1"}, "libpq connects to PGHOSTADDR when the URL sets no hostaddr"),
+        ({"PGHOSTADDR": "127.0.0.1,192.0.2.1"}, "a multi-address PGHOSTADDR with a remote member"),
+        ({"PGSERVICE": "prod"}, "a named service hides its host in a file"),
+        ({"PGSERVICEFILE": "/etc/pg_service.conf"}, "a service file names connections this script cannot see"),
+    ],
+)
+def test_the_libpq_environment_is_read_not_just_the_url(environ, why) -> None:
+    """DEF-QG-U05: a localhost URL with PGHOSTADDR=192.0.2.1 connected to
+    192.0.2.1, and the alembic subprocesses inherit the same environment."""
+    assert rt.refusal(DEV, _engine("localhost:5433/reep_py"), environ) is not None, (
+        f"{environ} must be refused: {why}"
+    )
+
+
+def test_a_service_named_in_the_url_is_refused() -> None:
+    assert rt.refusal(DEV, _engine("localhost:5433/reep_py?service=prod"), {}) is not None, (
+        "service= in the query string must be refused like PGSERVICE"
+    )
+
+
+def test_a_loopback_pghostaddr_is_accepted() -> None:
+    assert rt.refusal(DEV, _engine("localhost:5433/reep_py"), {"PGHOSTADDR": "127.0.0.1"}) is None, (
+        "PGHOSTADDR pointing at this machine is not a reason to refuse"
+    )
+

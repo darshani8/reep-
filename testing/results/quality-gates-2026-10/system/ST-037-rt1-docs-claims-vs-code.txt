@@ -1,0 +1,26 @@
+# ST-037-rt1 2026-10-08 factual claims in docs/engineering + docs/adr at NEW HEAD 40201a1, checked against the code at 40201a1
+Docs edited a3688f0..40201a1: docs/engineering/quality-gates.md, docs/engineering/api-checklist.md, docs/adr/0002-quality-gates-in-existing-ci-jobs.md.
+
+## A. Round-1 claims re-checked at the new head
+C01 static-analysis step name and its three commands | ci.yml:113-123 same name and the same three commands, now each `|| rc=1` then `exit "$rc"` so all three run; quality-gates.md §1 still lists the three commands ("verbatim") - the commands are verbatim, the wrapper only changes when the step stops | TRUE
+C02 "Migrations roll back..." after "Apply migrations", before the seed | ci.yml:125 -> 148 -> 152 -> 156 | TRUE
+C03 ci.yml has exactly five jobs | api, pii-gate, api-imports, web, cdk with the same five display names | TRUE
+C04 Secrets (gitleaks) required on main/stage/dev, Branch policy on main/stage | rulesets unchanged in those lists (round-1 C04) | TRUE
+C07 300-operation floor | test_route_audit.py:82 MIN_HTTP_OPERATIONS = 300 (+ new MIN_WEBSOCKETS = 2) | TRUE
+C08 FOREIGN_HANDLER_PACKAGES only fastapi_mcp | test_route_audit.py:99 | TRUE
+C09 the 10 named gates | GATE_FUNCTIONS still 10 qualified names | TRUE
+C10/C11/C12 api-checklist counts 13 / 30 / 61 and the six lists | KNOWN_NO_RESPONSE_MODEL 13, BOUNDED 30, KNOWN_UNPAGINATED 61, KNOWN_STATUS 2, KNOWN_UNGATED 26, PUBLIC 29 | TRUE
+C14 async KNOWN has three handlers | check_async_blocking.py:150/169/175 preview_import, bulk_candidates, close_call | TRUE
+C15 preflight runs six checks | six check_*() functions | TRUE
+
+## B. New claims introduced by the fix rounds
+N1 quality-gates.md §2 / ADR 0002: CODEOWNERS names .gitleaks.toml and .gitleaksignore | .github/CODEOWNERS lists both (@darshani8) | TRUE
+N2 "every ruleset has require_code_owner_review: false" | dev.json, main.json, stage.json all false | TRUE
+N3 "the only code owner is the author of every pull request" | every CODEOWNERS line names @darshani8 only, the repository owner and PR author | TRUE
+N4 the local commands carry --ignore-gitleaks-allow, as CI does | secret-scan.yml:156-157 (git) and 176-177 (dir) both pass --ignore-gitleaks-allow; quality-gates.md §2 commands now do too | TRUE
+N5 "pointing gitleaks at an absolute path to the checkout reports four findings on a clean tree" | ST-035-rt1: absolute-path scan of the 40201a1 tree -> exactly 4 findings; from the root -> 0 | TRUE (measured)
+N6 "_may_see_raw_response in app/routers/interview_records.py calls require_admin to get a boolean" | interview_records.py:519-523 try: require_admin(session) / except HTTPException: return False / return True | TRUE
+N7 "tests/route_audit_shapes.py holds the shapes" incl. constant tests and swallowing excepts | file exists (4075 bytes); contains `if not True:` and `except HTTPException:` shapes | TRUE
+N8 api-checklist rows now read "human - no gate" where nothing enforces them | the N+1, /docs and Review rows say "human - no gate" | consistent with REQ-G5-02 wording | TRUE
+
+Summary: 18 claims checked (10 re-checked + 8 new), 18 true, 0 false. Pass.

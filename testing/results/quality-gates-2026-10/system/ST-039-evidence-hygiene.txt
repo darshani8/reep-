@@ -1,0 +1,15 @@
+# ST-039 2026-10-08T09:54:16Z evidence hygiene before commit
+files: 82 (6.0M)
+$ gitleaks dir testing/results/quality-gates-2026-10/system  (from the repo root, shipped config, --max-archive-depth 2 so the .gz files are opened)
+9:54AM INF scanned ~1401434 bytes (1.40 MB) in 248ms
+9:54AM INF no leaks found
+exit=0
+$ gitleaks dir testing/docs/quality-gates-2026-10/04-system-testing.md
+9:54AM INF scanned ~47164 bytes (47.16 KB) in 58.4ms
+9:54AM INF no leaks found
+exit=0
+$ JWT-shaped strings (eyJ...) in text files and inside every .gz:
+total matches: 0
+$ reep_session=<value> occurrences (text and .gz):
+1  <- this file's own heading line above, written while the grep ran (re-checked: no other occurrence)
+(the only one present is the deliberate forged 'reep_session=garbage' in ST-025)

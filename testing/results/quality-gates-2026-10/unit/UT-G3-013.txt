@@ -1,0 +1,16 @@
+# Evidence for UT-G3-013
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+# Method: synthetic handlers in app/routers/qg_probe.py (SCRATCH worktree /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt only), mounted in that worktree's app/main.py
+# with 'app.include_router(_qg_probe.router)'; then, from the scratch apps/api-py:
+#   .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_route_audit.py   (full output: UT-G3-run1-pytest-output.txt; p11: UT-G3-run2-gate-pytest-output.txt)
+
+--- probe source:
+@router.get("/r04-list-dict")
+def r04_list_dict(session: dict = Depends(get_current_session), limit: int = Query(10, le=50), offset: int = 0) -> list[dict]:
+    require_admin(session)
+    return []
+
+--- audit failure lines naming /api/qg/r04-list-dict: 2
+E           GET /api/qg/r04-list-dict  (app.routers.qg_probe.r04_list_dict: untyped response model (dict))
+E       assert not ['RESPONSE_MODEL: 6 new violation(s). Declare `response_model=` (or a return annotation) naming a Pydantic model — not...typing.Any))', '  GET /api/qg/r04-list-dict  (app.routers.qg_probe.r04_list_dict: untyped response model (dict))', ...]
+

@@ -1,0 +1,47 @@
+# ST-012..015-rt1 2026-10-08T10:25:29Z full e2e suite (256 tests, all 8 modules) on NEW HEAD 40201a1 with ONE API worker (per OBS-QG-S03), fresh migrated+seeded db reep_rt1_e2e, SPA :4200; tests/, playwright.config.ts, test-management/ and apps/web identical between a3688f0 and 40201a1. Runner and Chromium as round 1 (D2).
+Result: 246 passed, 5 failed, 5 timed out, 17 not automated (11.6 min)
+
+| Module | Base r1 (2 workers) | Head a3688f0 r1 (2 workers) | New head 40201a1 (1 worker) |
+| Authentication and access | 36 / 1 | 34 / 3 | 37 / 0 |
+| Registration and onboarding | 23 / 0 | 23 / 0 | 23 / 0 |
+| Student: home and progress | 26 / 1 | 26 / 1 | 27 / 0 |
+| Student: profile, jobs and tools | 25 / 0 | 25 / 0 | 25 / 0 |
+| Faculty and alumni | 30 / 0 | 30 / 0 | 30 / 0 |
+| Admin: people and access | 33 / 6 | 32 / 7 | 33 / 6 |
+| Admin: daily operations | 33 / 1 | 32 / 2 | 32 / 2 |
+| Admin: college setup and interviews | 39 / 2 | 39 / 2 | 39 / 2 |
+| **Total pass / fail** | 245 / 11 | 241 / 15 | 246 / 10 |
+
+failing on the new head:
+| TC-506 | Admin: people and access | base r1 Timed out | head r1 Timed out | new Timed out | Test timeout of 30000ms exceeded. |
+| TC-507 | Admin: people and access | base r1 Timed out | head r1 Timed out | new Timed out | Test timeout of 30000ms exceeded. |
+| TC-510 | Admin: people and access | base r1 Timed out | head r1 Timed out | new Timed out | Test timeout of 30000ms exceeded. |
+| TC-513 | Admin: people and access | base r1 Failed | head r1 Failed | new Failed | Error: TC-513 ER-1: the line under the name carries "Master of Business Administration - Finance · 2024-26 Section B" ex |
+| TC-532 | Admin: people and access | base r1 Failed | head r1 Failed | new Failed | Error: TC-532 ER-4: the rule is saved expect(locator).toBeVisible() failed Locator: getByRole('status').filter({ hasText |
+| TC-539 | Admin: people and access | base r1 Timed out | head r1 Timed out | new Timed out | Test timeout of 30000ms exceeded. |
+| TC-631 | Admin: daily operations | base r1 Passed | head r1 Timed out | new Timed out | Test timeout of 30000ms exceeded. |
+| TC-651 | Admin: daily operations | base r1 Failed | head r1 Failed | new Failed | Error: TC-651 ER-2: the wizard sums up the check expect(locator).toBeVisible() failed Locator: getByRole('status').filte |
+| TC-715 | Admin: college setup and interviews | base r1 Failed | head r1 Failed | new Failed | TypeError: Cannot read properties of undefined (reading 'student_id') |
+| TC-735 | Admin: college setup and interviews | base r1 Failed | head r1 Failed | new Failed | TypeError: Cannot read properties of undefined (reading 'student_id') |
+
+new-head failures that PASSED on base r1: ['TC-631']
+base-r1 failures now passing: ['TC-022', 'TC-252']
+
+## TC-631 decided on brand-new databases (1 worker, 3 repetitions each)
+== base (/tmp/base, fresh db reep_631_base, 1 worker): seeded student's batch = 2024-26 Section B
+  ✓  1 @TC-631 (2.8s)
+  ✓  2 @TC-631 (2.4s)
+  ✓  3 @TC-631 (2.5s)
+  3 passed (10.4s)
+== new-head (/tmp/new, fresh db reep_631_new, 1 worker): seeded student's batch = 2024-26 Section B
+  ✓  1 @TC-631 (2.6s)
+  ✓  2 @TC-631 (2.3s)
+  ✓  3 @TC-631 (2.4s)
+  3 passed (10.0s)
+Seeded student's batch at the END of each full run (all three moved by earlier admin cases that did not finish, e.g. the timed-out batch actions TC-506/507/510/539):
+  reep_e2e_base2   2026-28 E2E muzbkhke1
+  reep_e2e_head2   2026-28 E2E muzbz3u51
+  reep_rt1_e2e     2026-28 E2E muzdhn2t1
+TC-631's page snapshot in the full run: Batch '... 2024-26 Section B' selected, 'No offers recorded yet', Period select [disabled] with only 'Whole record' -> selectOption waits until timeout. State dependence, identical mechanism on base (OBS-QG-S04).
+
+Conclusion: 0 failures attributable to the change. With one worker the four S03 cases (TC-022, TC-025, TC-038, TC-524) and TC-252 pass; the 10 remaining failures are the pre-existing, order/state-dependent set of OBS-QG-S04.

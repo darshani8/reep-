@@ -1,0 +1,12 @@
+# ST-038-rt1 2026-10-08 PR darshani8/reep-#132 checks on NEW HEAD (GitHub MCP get_status + get_check_runs)
+get_status sha = 40201a140ba70f8be40d6b016f55ddb828fcaa91 (== the build re-tested); combined state success (CodeRabbit: review skipped, draft)
+| check run                                    | workflow run | conclusion | completed (UTC) |
+| API (FastAPI + Postgres)                     | 37757768800  | success    | 2026-10-08 09:42:14 |
+| Rule 1 (every model call declares its cargo) | 37757768800  | success    | 09:36:18 |
+| API (dependency completeness)                | 37757768800  | success    | 09:36:52 |
+| Web (Angular)                                | 37757768800  | success    | 09:37:20 |
+| Infra (CDK synth guards)                     | 37757768800  | success    | 09:37:20 |
+| Secrets (gitleaks)                           | 37757768745  | success    | 09:36:21 |
+| Branch policy (promotion path)               | 37757768726  | success    | 09:36:07 |
+| review                                       | 37757768713  | skipped (draft) | - |
+All 7 required checks success on 40201a1 (new workflow run ids, distinct from round 1's 377495xxxxx).

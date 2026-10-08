@@ -1,0 +1,41 @@
+# Evidence for UT-G2-023
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:50:06 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: RSA PEM armour around two body lines that are both the literal <FAKE-VALUE-MASKED> /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-023a-pem-all-masked; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-023a-pem-all-masked
+shape: RSA PEM armour around two body lines that are both the literal <FAKE-VALUE-MASKED>
+--- g2-023a-pem-all-masked/id_rsa
+<PEM armour line omitted>
+<FAKE-VALUE-MASKED>
+<FAKE-VALUE-MASKED>
+<PEM armour line omitted>
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T09:50:07 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: RSA PEM: <FAKE-VALUE-MASKED> one REAL 64-char base64 line, <FAKE-VALUE-MASKED> /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-023b-pem-one-real-line; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-023b-pem-one-real-line
+shape: RSA PEM: <FAKE-VALUE-MASKED> one REAL 64-char base64 line, <FAKE-VALUE-MASKED>
+--- g2-023b-pem-one-real-line/id_rsa
+<PEM armour line omitted>
+<FAKE-VALUE-MASKED>
+<FAKE-VALUE-MASKED>
+<FAKE-VALUE-MASKED>
+<PEM armour line omitted>
+findings: 1 [('private-key', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T09:50:08 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: RSA PEM: <FAKE-VALUE-MASKED> one REAL 64-char base64 line followed by <abc>'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-023c-pem-real-line-with-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-023c-pem-real-line-with-angle
+shape: RSA PEM: <FAKE-VALUE-MASKED> one REAL 64-char base64 line followed by <abc>
+--- g2-023c-pem-real-line-with-angle/id_rsa
+<PEM armour line omitted>
+<FAKE-VALUE-MASKED>
+<FAKE-VALUE-MASKED>
+<PEM armour line omitted>
+findings: 1 [('private-key', 1)]
+gitleaks exit=1
+[exit=0]
+
+(Evidence respelling, after execution: the input shapes are described in the shape: lines; the masked file printout keeps only a NAME= prefix before each mask, per the Test Manager masking rule.)

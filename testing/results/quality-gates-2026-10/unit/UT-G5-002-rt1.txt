@@ -1,0 +1,40 @@
+# Evidence for UT-G5-002-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T10:04:19 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb
+$ python3 - <<'EOF'
+import re, subprocess
+t = open('.github/pull_request_template.md').read()
+sec = t[t.index('## Engineering checklist'):t.index('## Checks')]
+items = [l for l in sec.splitlines() if l.startswith('- [ ]')]
+print(len(items), 'items')
+gate = re.compile(r'\*(route audit|Static analysis|Secrets \(gitleaks\)|migration round-trip|codebase guards)')
+for l in items:
+    tail = l.split(' — ', 1)[1] if ' — ' in l else '(NO GATE NAMED)'
+    kind = 'machine' if gate.search(tail) else ('human-no-gate' if '*human — no gate*' in tail else 'OTHER')
+    print(f'  [{kind:13}] {l[6:55]:50}| {tail[:75]}')
+EOF
+22 items
+  [human-no-gate] Request and response shapes agreed as Pydantic mo | *human — no gate*
+  [human-no-gate] Edge cases listed in "Why": empty, duplicate, hug | *human — no gate*
+  [machine      ] Separate input / output / DB models; the DB model | *route audit* (`test_no_operation_returns_a_database_model`)
+  [machine      ] Every JSON operation declares a typed response mo | *route audit*
+  [human-no-gate] Input validated with Pydantic: types, `ge=`/`le=` | *human — no gate* (FastAPI turns a schema failure into 422)
+  [machine      ] Auth and permission on every route: `Depends(get_ | *route audit* (`PUBLIC` / `KNOWN_UNGATED` carry the exceptions, with reason
+  [human-no-gate] Thin routes; shared logic in an `app/` module, no | *human — no gate* (REEP has no repository layer; see the checklist doc)
+  [machine      ] Correct status codes: 201 create, 204 no body, 40 | *route audit* for 204/DELETE and for a create on a collection path (`/{id}`
+  [human-no-gate] Errors use the one envelope, `{"detail": ...}` —  | *human — no gate* (not enforced yet)
+  [human-no-gate] One transaction per request, committed after ever | *human — no gate*
+  [machine      ] An index for every filter and sort column, declar | *codebase guards* for foreign keys; others *human — no gate*
+  [machine      ] Lists are paginated (`limit` with `le=`, plus `of | *route audit* for a response that is a list (`BOUNDED` / `KNOWN_UNPAGINATED
+  [machine      ] `async def` only around async libraries; blocking | *Static analysis* step
+  [human-no-gate] Retries are idempotent (a client key, `require_id | *human — no gate*
+  [machine      ] Config and secrets from the environment (`app/con | *Secrets (gitleaks)* check; the boot guard at runtime
+  [human-no-gate] Tests for the happy path, the failure path and th | *human — no gate* (see Tests below; the route audit proves a gate is called
+  [machine      ] ruff and mypy pass — *Static analysis* step       | *Static analysis* step
+  [machine      ] Migration written and checked for rollback, or li | *migration round-trip* step
+  [human-no-gate] Logs carry the request id and no passwords, token | *human — no gate* (only the access line carries `rid=` today)
+  [human-no-gate] Rate limit on any new login-like or public route  | *human — no gate*
+  [human-no-gate] `/docs` examples and descriptions are correct for | *human — no gate*
+  [human-no-gate] Review done, including "Design and approach" abov | *human — no gate*
+[exit=0]

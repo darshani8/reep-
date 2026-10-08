@@ -1,0 +1,13 @@
+# Evidence for UT-G2-018-rt2
+# build e55d1395379e9bc97cf5f3dfbc6a55bd16962475 (re-test round 2), tester session U
+
+[2026-10-08T10:36:09 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb
+$ git rev-parse --is-shallow-repository; echo commits reachable: $(git rev-list --count HEAD); gitleaks git . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore --ignore-gitleaks-allow --redact --no-banner --exit-code 1 --log-opts='e55d1395379e9bc97cf5f3dfbc6a55bd16962475' > /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/h7.log 2>&1; echo exit=$?; tail -2 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/h7.log | sed 's/\x1b\[[0-9;]*m//g'; d=$(mktemp -d); git archive HEAD | tar -x -C $d; (cd $d && gitleaks dir . --config /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaks.toml --gitleaks-ignore-path /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaksignore --ignore-gitleaks-allow --redact --no-banner --exit-code 1 > /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/t7.log 2>&1; echo tree_exit=$?); rm -rf $d
+false
+commits reachable: 756
+exit=0
+10:36AM INF scanned ~42217581 bytes (42.22 MB) in 11.8s
+10:36AM INF no leaks found
+tree_exit=0
+[exit=0]
+(600 commits scanned — from the full log)

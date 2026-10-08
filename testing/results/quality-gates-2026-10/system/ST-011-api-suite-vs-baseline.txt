@@ -1,0 +1,31 @@
+# ST-011 2026-10-08T08:44:04Z existing system-level API suite testing/api against the live HEAD API :3300 (db reep_sys)
+Setup: scratch venv from testing/requirements.txt; load accounts: (apps/api-py) DATABASE_URL=.../reep_sys ENV=dev python ../../testing/tools/create_load_users.py --count 100 --csv <scratch>/users.csv  -> '100 load-test students ...; 10 reserved'
+$ REEP_API=http://127.0.0.1:3300 python -m pytest testing/api -q -rA --junitxml=<scratch>/api-junit-head.xml
+SKIPPED [1] testing/api/test_02_swagger_contract_get.py:60: /api/mentor/offers/pending: capability not held by the seeded mentor (403 is the correct answer)
+SKIPPED [1] testing/api/test_02_swagger_contract_get.py:62: /api/student/english-baseline/report: 404 for a student with no batch/record yet (documented behaviour)
+281 passed, 2 skipped, 1 warning in 10.15s
+EXIT 0
+
+## comparison with the published baseline testing/results/api/junit.xml (cycle 2026-09-29)
+baseline 2026-09-29 283 {'passed': 281, 'skipped': 2}
+head     2026-10-08 283 {'passed': 281, 'skipped': 2}
+only in baseline: []
+only in head: []
+verdict changed: []
+skipped on both: ['test_02_swagger_contract_get::test_api_02_owner_role_gets_200_matching_the_documented_schema[/api/mentor/offers/pending]', 'test_02_swagger_contract_get::test_api_02_owner_role_gets_200_matching_the_documented_schema[/api/student/english-baseline/report]']
+
+## tool
+import sys, collections, xml.etree.ElementTree as ET
+def load(p):
+    o = {}
+    for tc in ET.parse(p).iter('testcase'):
+        k = tc.get('classname').split('api.', 1)[-1] + '::' + tc.get('name')
+        o[k] = 'failed' if tc.find('failure') is not None or tc.find('error') is not None else 'skipped' if tc.find('skipped') is not None else 'passed'
+    return o
+b, h = load(sys.argv[1]), load(sys.argv[2])
+print('baseline 2026-09-29', len(b), dict(collections.Counter(b.values())))
+print('head     2026-10-08', len(h), dict(collections.Counter(h.values())))
+print('only in baseline:', sorted(set(b) - set(h)))
+print('only in head:', sorted(set(h) - set(b)))
+print('verdict changed:', [(k, b[k], h[k]) for k in b if k in h and b[k] != h[k]])
+print('skipped on both:', [k for k in b if b[k] == 'skipped' and h.get(k) == 'skipped'])

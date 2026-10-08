@@ -1,0 +1,13 @@
+# Evidence for UT-G4-024
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:58:17 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ cd /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py; source /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/mkrev.sh; mkrev aaaa00000001 f4a2c9e7b1d3 $'def downgrade() -> None:\n    if not True:\n        op.execute("UPDATE resumes SET title = title")'; mkrev aaaa00000002 aaaa00000001 $'def downgrade() -> None:\n    while False:\n        op.execute("UPDATE resumes SET title = title")'; mkrev aaaa00000003 aaaa00000002 $'def downgrade() -> None:\n    return 0'; mkrev aaaa00000004 aaaa00000003 $'def downgrade() -> None:\n    for _ in ():\n        op.execute("UPDATE resumes SET title = title")'; mkrev aaaa00000005 aaaa00000004 $'def downgrade() -> None:\n    if 1 == 2:\n        op.execute("UPDATE resumes SET title = title")'; mkrev aaaa00000006 aaaa00000005 $'def downgrade() -> None:\n    return\n    op.execute("UPDATE resumes SET title = title")'; RT 14; rm -f migrations/versions/aaaa*; git status --short
+E       AssertionError: these migrations cannot be rolled back and do not say why:
+E           aaaa00000006 (aaaa00000006_qg_probe.py): downgrade is no-op
+E         Write the downgrade. If the reverse would have to guess, re-issue something a person revoked, or undo what Postgres cannot, add the revision to IRREVERSIBLE in migrations/reversibility.py with that reason in words.
+E       assert not ['aaaa00000006 (aaaa00000006_qg_probe.py): downgrade is no-op']
+tests/test_migration_reversibility.py:73: AssertionError
+1 failed, 22 passed in 0.78s
+?? .venv
+[exit=0]

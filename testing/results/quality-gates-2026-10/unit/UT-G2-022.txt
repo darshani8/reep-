@@ -1,0 +1,140 @@
+# Evidence for UT-G2-022
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:50:08 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: OPENAI_API_KEY=proxy-<30 random alnum> immediately followed by <abc>'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022b-openai-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022b-openai-angle
+shape: OPENAI_API_KEY=proxy-<30 random alnum> immediately followed by <abc>
+--- g2-022b-openai-angle/.env
+OPENAI_API_KEY=<FAKE-VALUE-MASKED>
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T09:50:09 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: the AUTH_SECRET variable set to a QUOTED 64-hex value with the literal text <abc> appended inside the quotes'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022c-auth-quoted-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022c-auth-quoted-angle
+shape: the AUTH_SECRET variable set to a QUOTED 64-hex value with the literal text <abc> appended inside the quotes
+--- g2-022c-auth-quoted-angle/.env
+AUTH_SECRET=<FAKE-VALUE-MASKED>
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T09:50:10 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: AUTH_SECRET=<64 random hex> immediately followed by <abc> (unquoted)'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022d-auth-unquoted-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022d-auth-unquoted-angle
+shape: AUTH_SECRET=<64 random hex> immediately followed by <abc> (unquoted)
+--- g2-022d-auth-unquoted-angle/.env
+AUTH_SECRET=<FAKE-VALUE-MASKED>
+findings: 1 [('reep-auth-secret', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T09:50:11 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: ghp_<36 random alnum> immediately followed by <abc>, in a TS string'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022e-ghp-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022e-ghp-angle
+shape: ghp_<36 random alnum> immediately followed by <abc>, in a TS string
+--- g2-022e-ghp-angle/x.ts
+const t = <FAKE-VALUE-MASKED>
+findings: 1 [('github-pat', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T09:50:11 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: LIVEKIT_API_SECRET=<30 random alnum> immediately followed by <abc>'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022f-livekit-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022f-livekit-angle
+shape: LIVEKIT_API_SECRET=<30 random alnum> immediately followed by <abc>
+--- g2-022f-livekit-angle/.env
+LIVEKIT_API_SECRET=<FAKE-VALUE-MASKED>
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T09:50:12 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: postgresql://admin:<12 random alnum><abc><8 random alnum>@db.example.com/reep_py (the placeholder INSIDE the password)'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022g-pgurl-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022g-pgurl-angle
+shape: postgresql://admin:<12 random alnum><abc><8 random alnum>@db.example.com/reep_py (the placeholder INSIDE the password)
+--- g2-022g-pgurl-angle/doc.md
+psql <FAKE-VALUE-MASKED>
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T09:50:13 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: VOICE_WORKER_SECRET=<20 random alnum> immediately followed by <abc>'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022h-voice-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022h-voice-angle
+shape: VOICE_WORKER_SECRET=<20 random alnum> immediately followed by <abc>
+--- g2-022h-voice-angle/.env
+VOICE_WORKER_SECRET=<FAKE-VALUE-MASKED>
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T09:50:13 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: GROQ_API_KEY=<30 random alnum> immediately followed by <abc>'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022i-groq-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022i-groq-angle
+shape: GROQ_API_KEY=<30 random alnum> immediately followed by <abc>
+--- g2-022i-groq-angle/.env
+GROQ_API_KEY=<FAKE-VALUE-MASKED>
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T09:50:14 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: OPENAI_API_KEY=proxy-<30 random alnum> immediately followed by <ab> (2 characters, below the 3-40 placeholder)'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022j-short-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022j-short-angle
+shape: OPENAI_API_KEY=proxy-<30 random alnum> immediately followed by <ab> (2 characters, below the 3-40 placeholder)
+--- g2-022j-short-angle/.env
+OPENAI_API_KEY=<FAKE-VALUE-MASKED>
+findings: 1 [('reep-openai-key', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T09:50:15 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: prose: sk-proj-<48 random alnum> immediately followed by the literal text <abc>'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022a-sk-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022a-sk-angle
+shape: prose: sk-proj-<48 random alnum> immediately followed by the literal text <abc>
+--- g2-022a-sk-angle/notes.md
+use <FAKE-VALUE-MASKED> for the gateway
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T09:50:15 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: same as 022a without <abc>'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022a-control; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022a-control
+shape: same as 022a without <abc>
+--- g2-022a-control/notes.md
+use <FAKE-VALUE-MASKED> for the gateway
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T09:50:16 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: prose: a legacy-shape OpenAI key sk-<20>T3BlbkFJ<20> (the shape gitleaks openai-api-key knows)'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022k-sk-legacy-control; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022k-sk-legacy-control
+shape: prose: a legacy-shape OpenAI key sk-<20>T3BlbkFJ<20> (the shape gitleaks openai-api-key knows)
+--- g2-022k-sk-legacy-control/notes.md
+the gateway key is <FAKE-VALUE-MASKED> today
+findings: 1 [('openai-api-key', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T09:50:17 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: same key immediately followed by <abc>'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022k-sk-legacy-angle; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022k-sk-legacy-angle
+shape: same key immediately followed by <abc>
+--- g2-022k-sk-legacy-angle/notes.md
+the gateway key is <FAKE-VALUE-MASKED> today
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T09:50:17 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: same key, then a space, then <abc>'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-022l-sk-angle-space; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-022l-sk-angle-space
+shape: same key, then a space, then <abc>
+--- g2-022l-sk-angle-space/notes.md
+the gateway key is <FAKE-VALUE-MASKED> <abc> today
+findings: 1 [('openai-api-key', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T09:50:21 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'the same seven quiet cases against a scratch copy of the config with ONLY the global <word> placeholder regex removed:'; for c in g2-022b-openai-angle g2-022c-auth-quoted-angle g2-022f-livekit-angle g2-022g-pgurl-angle g2-022h-voice-angle g2-022i-groq-angle g2-022k-sk-legacy-angle; do gitleaks dir $c --config /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/noangle.toml --ignore-gitleaks-allow --redact --no-banner --report-format json --report-path /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/na.json >/dev/null 2>&1; echo "$c -> $(python3 -c "import json;print(sorted({x['RuleID'] for x in json.load(open('/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/na.json'))}))")"; done
+the same seven quiet cases against a scratch copy of the config with ONLY the global <word> placeholder regex removed:
+g2-022b-openai-angle -> ['reep-openai-key']
+g2-022c-auth-quoted-angle -> ['reep-auth-secret']
+g2-022f-livekit-angle -> ['reep-livekit-credentials']
+g2-022g-pgurl-angle -> ['reep-database-url-password']
+g2-022h-voice-angle -> ['reep-voice-worker-secret']
+g2-022i-groq-angle -> ['reep-groq-key']
+g2-022k-sk-legacy-angle -> []
+[exit=0]

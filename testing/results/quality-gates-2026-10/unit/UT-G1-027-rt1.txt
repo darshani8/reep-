@@ -1,0 +1,100 @@
+# Evidence for UT-G1-027-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T10:05:43 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/ab.py UT-G1-027a
+--- synthetic source:
+    import time
+    async def h():
+        time.sleep(1)
+
+  finding line 3: h: calls time.sleep()
+expected FLAGGED; actual FLAGGED -> MATCH
+[exit=0]
+
+[2026-10-08T10:05:43 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/ab.py UT-G1-027b
+--- synthetic source:
+    from time import sleep as nap
+    async def h():
+        nap(1)
+
+  finding line 3: h: calls time.sleep()
+expected FLAGGED; actual FLAGGED -> MATCH
+[exit=0]
+
+[2026-10-08T10:05:43 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/ab.py UT-G1-027c
+--- synthetic source:
+    import requests
+    async def h(u):
+        return requests.get(u, timeout=3)
+
+  finding line 3: h: calls requests.get()
+expected FLAGGED; actual FLAGGED -> MATCH
+[exit=0]
+
+[2026-10-08T10:05:43 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/ab.py UT-G1-027d
+--- synthetic source:
+    async def h(p):
+        return open(p).read()
+
+  finding line 2: h: calls open()
+expected FLAGGED; actual FLAGGED -> MATCH
+[exit=0]
+
+[2026-10-08T10:05:43 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/ab.py UT-G1-027e
+--- synthetic source:
+    from pathlib import Path
+    async def h(p):
+        return Path(p).read_text()
+
+  finding line 3: h: calls .read_text()
+expected FLAGGED; actual FLAGGED -> MATCH
+[exit=0]
+
+[2026-10-08T10:05:43 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/ab.py UT-G1-027f
+--- synthetic source:
+    import subprocess
+    async def h():
+        subprocess.run(['ls'])
+
+  finding line 3: h: calls subprocess.run()
+expected FLAGGED; actual FLAGGED -> MATCH
+[exit=0]
+
+[2026-10-08T10:05:43 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/ab.py UT-G1-027g
+--- synthetic source:
+    async def h():
+        import boto3
+        return boto3.client('s3')
+
+  finding line 3: h: calls boto3.client()
+expected FLAGGED; actual FLAGGED -> MATCH
+[exit=0]
+
+[2026-10-08T10:05:43 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/ab.py UT-G1-027h
+--- synthetic source:
+    from .. import document_store
+    async def h(b):
+        document_store.save_bytes(b)
+
+expected FLAGGED; actual not flagged -> MISMATCH
+[exit=0]
+
+[2026-10-08T10:05:44 UTC] cwd=/home/user/reep-
+$ python3 -c "
+import sys; sys.path.insert(0,'/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci'); import check_async_blocking as ab
+funcs={m: ab.sync_functions_of((ab.APP/f'{m}.py').read_text()) for m in ab.BLOCKING_APP_MODULES}
+src='from .. import document_store\nfrom ..document_manifest import save_and_record\nasync def h(b, db):\n    document_store.save_bytes(b)\n    save_and_record(db, b)\n'
+for f in ab.scan_source(src,'routers/p.py',app_module_funcs=funcs): print(' finding', f.line, f.what)
+"
+ finding 5 calls document_manifest.save_and_record()
+ finding 4 calls document_store.save_bytes()
+[exit=0]
+(as in round 1, the 027h MISMATCH is scan_source() called without app_module_funcs - the tester's harness; the run with the real function lists is the last block)

@@ -1,0 +1,10 @@
+# ST-007-rt1 2026-10-08T09:58:03Z OpenAPI of NEW HEAD 40201a1 vs BASE 15a9e7d
+Generated in worktree /tmp/new (40201a1) with dump_openapi.py (as in round 1), db reep_rt1_sys
+70c88fd08614fe535ab49c895a6f8e17badcaf7fc075af830f58859e9bbc6b1f  openapi-base.json
+70c88fd08614fe535ab49c895a6f8e17badcaf7fc075af830f58859e9bbc6b1f  openapi-rt1.json
+  37764 openapi-base.json
+  37764 openapi-rt1.json
+  75528 total
+$ cmp openapi-base.json openapi-rt1.json
+IDENTICAL (byte for byte)
+Live /openapi.json of the new-head API on :3300 (cwd /tmp/new/apps/api-py) after sort_keys: identical to base as well.

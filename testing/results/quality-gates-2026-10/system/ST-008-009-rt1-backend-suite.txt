@@ -1,0 +1,31 @@
+# ST-008/009-rt1 2026-10-08T10:02:21Z backend suite on NEW HEAD 40201a1 (worktree /tmp/new), own fresh migrated+seeded db reep_rt1_pt
+$ pytest -o addopts="" -q -p no:cacheprovider -rs --junitxml=junit-rt1.xml
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_interview_nova.py:1274: AWS_REGION is set in this environment
+SKIPPED [1] tests/test_knowledge.py:126: no embedding provider configured (KB runs full-text only)
+SKIPPED [1] tests/test_knowledge.py:139: no embedding provider configured (KB runs full-text only)
+2156 passed, 3 skipped, 2 warnings in 296.00s (0:04:55)
+EXIT 0
+
+## vs BASE 15a9e7d (round-1 junit, ST-009)
+base 1984 {'passed': 1981, 'skipped': 3}
+head 2159 {'passed': 2156, 'skipped': 3}
+passed on base but not passed on head: 0
+new on head: 175
+     58 tests.test_route_audit
+     47 tests.test_async_blocking_guard
+     27 tests.test_migration_roundtrip_guard
+     23 tests.test_migration_reversibility
+     10 tests.test_codebase_guards
+      3 tests.test_interview_rehearsal.TestTheBackstopAtRuntime
+      3 tests.test_release_gate
+      3 tests.test_secret_scan_workflow
+      1 tests.test_interview_local.TestEngineSelection
+on base but absent on head: 0
+
+## vs round-1 HEAD a3688f0 (ST-008)
+base 2078 {'passed': 2075, 'skipped': 3}
+head 2159 {'passed': 2156, 'skipped': 3}
+passed on base but not passed on head: 0
+new on head: 81
+on base but absent on head: 0

@@ -1,0 +1,7 @@
+# Evidence for UT-G3-000
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:55:33 UTC] cwd=/home/user/reep-/apps/api-py
+$ git -C /home/user/reep- status --short apps/ tools/ .github/; ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_route_audit.py tests/test_migration_reversibility.py 2>&1 | tail -1
+27 passed in 4.58s
+[exit=0]

@@ -1,0 +1,13 @@
+# Evidence for UT-G2-002-rt2
+# build e55d1395379e9bc97cf5f3dfbc6a55bd16962475 (re-test round 2), tester session U
+
+[2026-10-08T10:34:57 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: see the masked file'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-002-auth-yaml-next; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-002-auth-yaml-next
+shape: see the masked file
+--- g2-002-auth-yaml-next/k8s.yaml
+<FAKE-VALUE-MASKED>
+  AUTH_SECRET:
+    <FAKE-VALUE-MASKED>
+findings: 1 [('reep-auth-secret', 2)]
+gitleaks exit=1
+[exit=0]

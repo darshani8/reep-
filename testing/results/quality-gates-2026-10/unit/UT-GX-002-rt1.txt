@@ -1,0 +1,18 @@
+# Evidence for UT-GX-002-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T10:04:07 UTC] cwd=/home/user/reep-
+$ sed -n '164,176p;801,820p' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/preflight.sh | grep -cE 'ANY_|exit'; run 0 PASS PASS PASS PASS PASS PASS; run 1 PASS FAIL PASS PASS PASS PASS; run 1 FAIL SKIP SKIP SKIP SKIP SKIP; run 1 PASS SKIP FAIL PASS PASS PASS; run 1 PASS PARTIAL FAIL PASS PASS PASS; run 2 PASS SKIP PASS PASS PASS PASS; run 2 PASS PASS PASS PASS PARTIAL PASS; run 2 SKIP SKIP SKIP SKIP SKIP SKIP; run 2 PASS PASS PASS PASS PASS NOTRUN; ( KEEP_GOING=0; ANY_FAILED=1; eval "$(sed -n '176p' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/preflight.sh)"; should_stop && echo 'after a FAIL: stop'; KEEP_GOING=1; should_stop || echo 'after a FAIL with --keep-going: continue' )
+9
+PASS PASS PASS PASS PASS PASS            -> exit 0 (expected 0) as-expected
+PASS FAIL PASS PASS PASS PASS            -> exit 1 (expected 1) as-expected
+FAIL SKIP SKIP SKIP SKIP SKIP            -> exit 1 (expected 1) as-expected
+PASS SKIP FAIL PASS PASS PASS            -> exit 1 (expected 1) as-expected
+PASS PARTIAL FAIL PASS PASS PASS         -> exit 1 (expected 1) as-expected
+PASS SKIP PASS PASS PASS PASS            -> exit 2 (expected 2) as-expected
+PASS PASS PASS PASS PARTIAL PASS         -> exit 2 (expected 2) as-expected
+SKIP SKIP SKIP SKIP SKIP SKIP            -> exit 2 (expected 2) as-expected
+PASS PASS PASS PASS PASS NOTRUN          -> exit 2 (expected 2) as-expected
+after a FAIL: stop
+after a FAIL with --keep-going: continue
+[exit=0]

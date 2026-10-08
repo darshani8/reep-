@@ -1,0 +1,13 @@
+# ST-023-rt1 browser walk as admin on NEW HEAD 40201a1 (:3300, 1 worker, db reep_rt1_sys); SPA :4200 (apps/web unchanged a3688f0..40201a1)
+step 1 login-page: url=/login h1="Welcome back" alerts=[] screenshot=ST-023-rt1-01-login-page.png
+step 2 form-filled: url=/login h1="Welcome back" alerts=[] screenshot=ST-023-rt1-02-form-filled.png
+step 3 signed-in: url=/admin h1="What do you want to do?" alerts=[] screenshot=ST-023-rt1-03-signed-in.png
+step 4 admin: url=/admin h1="What do you want to do?" alerts=[] screenshot=ST-023-rt1-04-admin.png
+step 5 admin_students: url=/admin/students h1="Students & batches" alerts=[] screenshot=ST-023-rt1-05-admin_students.png
+step 6 admin_governance: url=/admin/governance h1="Who can do what" alerts=[] screenshot=ST-023-rt1-06-admin_governance.png
+banner buttons: ["M(Main Admin (seed)Main Admin"]
+step 7 signed-out: url=/login h1="Welcome back" alerts=[] screenshot=ST-023-rt1-07-signed-out.png
+step 8 protected-after-signout: url=/login?next=%2Fadmin h1="Welcome back" alerts=[] screenshot=ST-023-rt1-08-protected-after-signout.png
+page errors: []
+API responses >= 400: ["401 GET /api/auth/me"]
+Home counts 1/0/0/0/0 match the API walk (ST-019-rt1). Script: as round 1 (ST-020-browser-walk-student.txt).

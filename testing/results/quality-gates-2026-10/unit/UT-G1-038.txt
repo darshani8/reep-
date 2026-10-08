@@ -1,0 +1,73 @@
+# Evidence for UT-G1-038
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:43:05 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; echo '--- ruff (CI config):'; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py; echo ruff_exit=$?; echo '--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):'; ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/x .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_codebase_guards.py -k test_every_suppression_in_shipped_code 2>&1 | grep -E '^E  |passed|failed' | head -6
+--- probe app/_qg_probe.py:
+     1	import subprocess
+     2	
+     3	
+     4	def f(cmd, x):
+     5	    # ruff: disable[S101, S602]
+     6	    assert x
+     7	    subprocess.run(cmd, shell=True)
+     8	    # ruff: enable[S101, S602]
+--- ruff (CI config):
+All checks passed!
+ruff_exit=0
+--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):
+1 passed, 68 deselected in 0.98s
+[exit=0]
+
+[2026-10-08T09:43:19 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; echo '--- ruff (CI config):'; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py; echo ruff_exit=$?; echo '--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):'; ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/x .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_codebase_guards.py -k test_every_suppression_in_shipped_code 2>&1 | grep -E '^E  |passed|failed' | head -6
+--- probe app/_qg_probe.py:
+     1	# ruff: disable[S, ASYNC, F]
+     2	import os
+     3	import subprocess
+     4	import time
+     5	
+     6	
+     7	async def f(cmd, x):
+     8	    assert x
+     9	    subprocess.run(cmd, shell=True)
+    10	    time.sleep(1)
+    11	    return undefined_name
+--- ruff (CI config):
+app/_qg_probe.py:2:8: F401 [*] `os` imported but unused
+app/_qg_probe.py:8:5: S101 Use of `assert` detected
+app/_qg_probe.py:9:5: ASYNC221 Async functions should not run processes with blocking methods
+app/_qg_probe.py:9:5: S602 `subprocess` call with `shell=True` identified, security issue
+app/_qg_probe.py:10:5: ASYNC251 Async functions should not call `time.sleep`
+app/_qg_probe.py:11:12: F821 Undefined name `undefined_name`
+Found 6 errors.
+[*] 1 fixable with the `--fix` option.
+ruff_exit=1
+--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):
+1 passed, 68 deselected in 0.99s
+[exit=0]
+
+[2026-10-08T09:43:26 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; echo '--- ruff (CI config):'; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py; echo ruff_exit=$?; echo '--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):'; ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/x .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_codebase_guards.py -k test_every_suppression_in_shipped_code 2>&1 | grep -E '^E  |passed|failed' | head -6
+--- probe app/_qg_probe.py:
+     1	# ruff: disable[S101, S602, ASYNC221, ASYNC251, F401, F821]
+     2	import os
+     3	import subprocess
+     4	import time
+     5	
+     6	
+     7	async def f(cmd, x):
+     8	    assert x
+     9	    subprocess.run(cmd, shell=True)
+    10	    time.sleep(1)
+    11	    return undefined_name
+    12	
+    13	
+    14	def g(cmd):
+    15	    subprocess.run(cmd, shell=True)
+--- ruff (CI config):
+All checks passed!
+ruff_exit=0
+--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):
+1 passed, 68 deselected in 1.07s
+[exit=0]

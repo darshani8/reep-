@@ -1,0 +1,16 @@
+# Evidence for UT-G1-001-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T10:04:35 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py
+--- probe app/_qg_probe.py:
+     1	import os
+     2	
+     3	
+     4	def f():
+     5	    return undefined_name
+app/_qg_probe.py:1:8: F401 [*] `os` imported but unused
+app/_qg_probe.py:5:12: F821 Undefined name `undefined_name`
+Found 2 errors.
+[*] 1 fixable with the `--fix` option.
+[exit=1]

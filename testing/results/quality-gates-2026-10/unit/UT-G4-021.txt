@@ -1,0 +1,18 @@
+# Evidence for UT-G4-021
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:52:08 UTC] cwd=/home/user/reep-/apps/api-py
+$ echo 'Fixed build a3688f0, database reached through a 127.0.0.1:55433 -> 192.0.2.2:5433 port mapping (server reports 192.0.2.2):'; ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:55433/reep_u_g4_portmap .venv/bin/python ../../tools/ci/check_migration_roundtrip.py > /tmp/pm.out 2>&1; rc=$?; grep -vE '^INFO|python -m alembic' /tmp/pm.out | tail -3; echo roundtrip_exit=$rc
+Fixed build a3688f0, database reached through a 127.0.0.1:55433 -> 192.0.2.2:5433 port mapping (server reports 192.0.2.2):
+
+
+OK: 90 of 92 downgrades run in 3 segment(s), catalogues identical at every bottom and top, the round-tripped head matches the straight one (2118 lines), alembic check clean (23 s).
+roundtrip_exit=0
+[exit=0]
+
+[2026-10-08T08:52:31 UTC] cwd=/home/user/reep-/apps/api-py
+$ echo 'Comparison: the script as it was before the fix (9bf54d8^), same database, same mapping:'; ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:55433/reep_u_g4_portmap .venv/bin/python /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/tools/ci/qg_old_roundtrip.py 2>&1 | grep -vE '^INFO|python -m alembic' | tail -2
+Comparison: the script as it was before the fix (9bf54d8^), same database, same mapping:
+
+FAILED: refusing to run: the server reports it is listening on 192.0.2.2, which is not loopback
+[exit=0]

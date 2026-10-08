@@ -1,0 +1,13 @@
+# ST-038 2026-10-08T08:5xZ PR darshani8/reep-#132 check runs (GitHub MCP pull_request_read get + get_check_runs)
+PR head.sha = a3688f0189c48287f376cf8c165d762a2f8ab8d8 (== the build under test); base dev = 15a9e7d1d89ad7971436235db9d606e976c46be4; mergeable_state = clean; draft
+total_count = 8
+| check run                                      | workflow run | conclusion | completed (UTC)     | required on dev? |
+| API (FastAPI + Postgres)                       | 37749543247  | success    | 2026-10-08 08:29:44 | yes |
+| Rule 1 (every model call declares its cargo)   | 37749543247  | success    | 08:23:55 | yes |
+| API (dependency completeness)                  | 37749543247  | success    | 08:24:36 | yes |
+| Web (Angular)                                  | 37749543247  | success    | 08:24:46 | yes |
+| Infra (CDK synth guards)                       | 37749543247  | success    | 08:24:57 | yes |
+| Secrets (gitleaks)                             | 37749543086  | success    | 08:24:07 | yes |
+| Branch policy (promotion path)                 | 37749543183  | success    | 08:23:53 | no (main/stage only), green anyway |
+| review (claude-review.yml)                     | 37749543125  | skipped    | (draft PR: the review workflow skips drafts) | no |
+All six checks the dev ruleset requires, plus Branch policy, concluded success on the tested sha. CI ran Python 3.14 / pg17, covering this test bed's 3.13 / pg16 deviation.

@@ -1,0 +1,24 @@
+# Evidence for UT-G3-019
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+# Method: synthetic handlers in app/routers/qg_probe.py (SCRATCH worktree /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt only), mounted in that worktree's app/main.py
+# with 'app.include_router(_qg_probe.router)'; then, from the scratch apps/api-py:
+#   .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_route_audit.py   (full output: UT-G3-run1-pytest-output.txt; p11: UT-G3-run2-gate-pytest-output.txt)
+
+--- probe source:
+@router.delete("/widgets/{wid}")
+def s04_delete_untyped(wid: int, session: dict = Depends(get_current_session)):
+    require_admin(session)
+    return None
+
+--- audit failure lines naming /api/qg/widgets/{wid}: 2
+E           DELETE /api/qg/widgets/{wid}  (app.routers.qg_probe.s04_delete_untyped: DELETE answers 200 with no body model)
+E           DELETE /api/qg/widgets/{wid}  (app.routers.qg_probe.s04_delete_untyped: JSON body with no response model)
+
+--- probe source:
+@router.delete("/gadgets/{gid}", status_code=204)
+def s05_delete_204(gid: int, session: dict = Depends(get_current_session)) -> None:
+    require_admin(session)
+
+--- audit failure lines naming /api/qg/gadgets/{gid}: 0
+(none: the audit did not report this operation under any rule)
+

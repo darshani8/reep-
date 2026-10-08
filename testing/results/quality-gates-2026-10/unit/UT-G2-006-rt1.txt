@@ -1,0 +1,38 @@
+# Evidence for UT-G2-006-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:49:59 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: see the masked file'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-006a-pgurl-psycopg; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-006a-pgurl-psycopg
+shape: see the masked file
+--- g2-006a-pgurl-psycopg/doc.md
+DATABASE_URL=<FAKE-VALUE-MASKED>
+findings: 1 [('reep-database-url-password', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T09:50:00 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: see the masked file'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-006b-pgurl-plain; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-006b-pgurl-plain
+shape: see the masked file
+--- g2-006b-pgurl-plain/doc.md
+psql <FAKE-VALUE-MASKED>
+findings: 1 [('reep-database-url-password', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T09:50:00 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: see the masked file'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-006c-pgurl-postgres; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-006c-pgurl-postgres
+shape: see the masked file
+--- g2-006c-pgurl-postgres/doc.md
+pg_dump <FAKE-VALUE-MASKED>
+findings: 1 [('reep-database-url-password', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T09:50:01 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt1
+$ echo 'shape: see the masked file'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-006d-pgurl-3char; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-006d-pgurl-3char
+shape: see the masked file
+--- g2-006d-pgurl-3char/doc.md
+postgresql://u:abc@localhost/x
+findings: 0 []
+gitleaks exit=0
+[exit=0]

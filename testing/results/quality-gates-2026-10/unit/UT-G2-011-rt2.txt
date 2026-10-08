@@ -1,0 +1,20 @@
+# Evidence for UT-G2-011-rt2
+# build e55d1395379e9bc97cf5f3dfbc6a55bd16962475 (re-test round 2), tester session U
+
+[2026-10-08T10:34:44 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: see the masked file'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-011a-barehex-token; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-011a-barehex-token
+shape: see the masked file
+--- g2-011a-barehex-token/runbook.md
+the session token is <FAKE-VALUE-MASKED>
+findings: 1 [('reep-bare-token-hex', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T10:34:45 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: see the masked file'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-011b-barehex-sha; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-011b-barehex-sha
+shape: see the masked file
+--- g2-011b-barehex-sha/runbook.md
+record the sha256 of the dump: <FAKE-VALUE-MASKED>
+findings: 0 []
+gitleaks exit=0
+[exit=0]

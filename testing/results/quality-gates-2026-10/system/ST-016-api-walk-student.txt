@@ -1,0 +1,25 @@
+# ST-016 2026-10-08T08:40:05Z API walk as student against head :3300 (cookie values never printed)
+POST /api/auth/login (student@bgscet.ac.in) -> 200; set-cookie names: ['reep_session']
+GET /api/auth/me -> 200 dict keys=['capabilities', 'email', 'features', 'google_linked', 'last_sign_ins', 'mentorId', 'name', 'notification_prefs', 'role', 'studentId', 'userId'] 
+   body: {"userId":"1d834d39463e421f93cc793850f73d1c","email":"student@bgscet.ac.in","name":"Test Student","role":"STUDENT","studentId":"865c140f987748178be9feeb9ef082b1","mentorId":null,"capabilities":[],"features":{"student.assistant":{"enabled":true,"message":null},
+GET /api/student/dashboard -> 200 dict keys=['attendance_percent', 'current_semester', 'current_stage', 'latest_cgpa', 'name', 'usn'] 
+   body: {"name":"Test Student","usn":"1BG24MBA001","current_stage":"EXCEL_ADVANCED","current_semester":2,"latest_cgpa":8.2,"attendance_percent":85.0}
+GET /api/student/programme -> 200 dict keys=['completed', 'percent', 'stages', 'total'] 
+   body: {"stages":[{"key":"reboot","label":"Reboot","completed":2,"total":3,"items":[{"key":"ree_101","label":"REE 101","route":null,"status":"COMPLETED","glyph":"check_circle","tone":"good","title":"Completed"},{"key":"ree_102","label":"REE 102","route":null,"status"
+GET /api/student/ledger -> 200 dict keys=['activities', 'can_submit', 'day', 'day_capacity_hours', 'edit_until', 'edit_window_days', 'editable', 'legend', 'lock_reason', 'locked', 'metrics', 'slots', 'status', 'submit_blocked_reason'] 
+   body: {"day":"2026-10-08","today":"2026-10-08","status":"DRAFT","submitted_at":null,"editable":true,"locked":false,"edit_until":"2026-10-10","edit_window_days":2,"lock_reason":null,"can_submit":false,"submit_blocked_reason":"0.5 h to reconcile before you can submit.
+GET /api/student/ledger/history?days=14 -> 200 dict keys=['days', 'days_logged', 'days_submitted', 'edit_window_days', 'today', 'window_days'] 
+   body: {"today":"2026-10-08","window_days":14,"edit_window_days":2,"days_submitted":1,"days_logged":2,"days":[{"day":"2026-10-08","status":"DRAFT","logged_hours":23.5,"editable":true,"locked":false,"submitted_at":null},{"day":"2026-10-07","status":"SUBMITTED","logged
+GET /api/student/timesheet -> 200 dict keys=['by_activity_minutes', 'entries', 'skilling_hours', 'weekly_hour_target', 'window_days'] 
+   body: {"window_days":7,"by_activity_minutes":{"SLEEPING":1260,"LEISURE":600,"LECTURES":720,"COURSEWORK":690,"SKILLING":570},"skilling_hours":9.5,"weekly_hour_target":12.0,"entries":[{"day":"2026-10-06","activity":"COURSEWORK","minutes":90},{"day":"2026-10-06","activ
+GET /api/student/jobs -> 200 list[3] 
+   body: [{"id":"957dd718cad64edd80f8c15a06384a1d","title":"Financial Analyst","company":"Acme Capital","degree_level":"PG","location":"Bengaluru","apply_url":"https://example.com/apply/1","required_skills":["excel","financial-modeling"],"match_percent":100.0,"eligible
+GET /api/student/mentor-meetings -> 200 dict keys=['last_meeting', 'meetings', 'meetings_logged', 'mentor_name', 'next_meeting', 'open_actions'] 
+   body: {"mentor_name":"Test Mentor","meetings_logged":1,"last_meeting":"2026-10-08T08:36:33.045946Z","open_actions":1,"next_meeting":{"title":"1:1 with mentor","location":"Cabin 3","starts_at":"2026-10-09T08:36:33.164133Z"},"meetings":[{"id":"2be55b504df348d586175c86
+GET /api/interview/status -> 200 dict keys=['active_sessions', 'available', 'max_sessions', 'reason', 'rehearsal'] 
+   body: {"available":true,"reason":null,"active_sessions":0,"max_sessions":100,"rehearsal":false}
+GET /api/student/swoc -> 200 dict keys=['challenges', 'opportunities', 'strengths', 'weaknesses'] 
+   body: {"strengths":[{"id":"0810f6307d5e417589d73ed608bc711d","source":"MENTOR","text":"Strong analytical and quantitative skills.","weight":5,"author":"Test Mentor","author_recorded":true,"recorded_at":"2026-10-08T08:36:33.089604Z","semester":2,"acknowledged_at":nul
+POST /api/auth/logout -> 200
+GET after logout /api/auth/me -> 401 dict keys=['detail'] 
+   body: {"detail":"Sign in required."}

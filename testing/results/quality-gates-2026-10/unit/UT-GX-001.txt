@@ -1,0 +1,37 @@
+# Evidence for UT-GX-001
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:53:24 UTC] cwd=/home/user/reep-
+$ echo 'the expression preflight.sh uses (line 211):'; sed -n 211,212p tools/ci/preflight.sh; echo '--- against the real workflow:'; sed -n 's/^[[:space:]]*GITLEAKS_VERSION:[[:space:]]*"([^"]*)".*/1/p' .github/workflows/secret-scan.yml | head -1; for f in a b c d e f g; do printf '%s: %-60s -> [%s]\n' $f "$(sed -n 2p /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/gx1/$f.yml | tr -d '\r')" "$(sed -n 's/^[[:space:]]*GITLEAKS_VERSION:[[:space:]]*"([^"]*)".*/1/p' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/gx1/$f.yml | head -1 | cat -A | sed 's/\$$//')"; done
+the expression preflight.sh uses (line 211):
+GITLEAKS_PINNED=$(sed -n 's/^[[:space:]]*GITLEAKS_VERSION:[[:space:]]*"\([^"]*\)".*/\1/p' \
+  "$REPO_ROOT/.github/workflows/secret-scan.yml" 2>/dev/null | head -1)
+--- against the real workflow:
+a:   GITLEAKS_VERSION: "8.30.0"                                 -> []
+b:       GITLEAKS_VERSION:   "9.1.2"   # bump with the sha      -> []
+c:   GITLEAKS_VERSION: '8.30.0'                                 -> []
+d:   GITLEAKS_VERSION: 8.30.0                                   -> []
+e:   GITLEAKS_VERSION: "8.30.0"                                 -> []
+f: env:                                                         -> []
+g:   OTHER: 1                                                   -> []
+[exit=0]
+(the block above is a TEST-SCRIPT error: extracting the sed expression lost its backslashes, so every row printed []. Re-run below by eval-ing preflight.sh lines 211-212 verbatim against fake REPO_ROOTs.)
+
+[2026-10-08T08:53:31 UTC] cwd=/home/user/reep-
+$ for f in real a b c d e f g missing; do REPO_ROOT=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/gx1/$f; eval "$(sed -n '211,212p' tools/ci/preflight.sh)"; printf '%-8s line=%-48s -> GITLEAKS_PINNED=[%s]\n' $f "$(grep -m1 -h 'GITLEAKS_VERSION\|OTHER' $REPO_ROOT/.github/workflows/secret-scan.yml 2>/dev/null | tr -d '\r')" "$(printf %s "$GITLEAKS_PINNED" | cat -v)"; done
+real     line=  GITLEAKS_VERSION: "8.30.0"                     -> GITLEAKS_PINNED=[8.30.0]
+a        line=  GITLEAKS_VERSION: "8.30.0"                     -> GITLEAKS_PINNED=[8.30.0]
+b        line=      GITLEAKS_VERSION:   "9.1.2"   # bump with the sha -> GITLEAKS_PINNED=[9.1.2]
+c        line=  GITLEAKS_VERSION: '8.30.0'                     -> GITLEAKS_PINNED=[]
+d        line=  GITLEAKS_VERSION: 8.30.0                       -> GITLEAKS_PINNED=[]
+e        line=  GITLEAKS_VERSION: "8.30.0"                     -> GITLEAKS_PINNED=[8.30.0]
+f        line=# GITLEAKS_VERSION: "1.0.0" in a comment         -> GITLEAKS_PINNED=[8.30.0]
+g        line=  OTHER: 1                                       -> GITLEAKS_PINNED=[]
+missing  line=                                                 -> GITLEAKS_PINNED=[]
+[exit=0]
+
+[2026-10-08T08:53:40 UTC] cwd=/home/user/reep-
+$ echo 'Downstream of an EMPTY pin (row c/d): check_secrets() from preflight.sh lines 449-458, evaluated verbatim with stubs:'; ( record(){ echo "record: $1 -> $2 ($4)"; }; should_stop(){ false; }; banner(){ :; }; now(){ echo 0; }; GITLEAKS=/usr/local/bin/gitleaks; GITLEAKS_FOUND_VERSION=8.30.0; GITLEAKS_PINNED=''; eval "$(sed -n '449,458p' tools/ci/preflight.sh); }"; check_secrets )
+Downstream of an EMPTY pin (row c/d): check_secrets() from preflight.sh lines 449-458, evaluated verbatim with stubs:
+record: Secrets (gitleaks) -> SKIP (gitleaks 8.30.0 is not v; another version is another ruleset)
+[exit=0]

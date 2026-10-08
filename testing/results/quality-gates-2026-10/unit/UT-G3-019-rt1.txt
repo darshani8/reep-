@@ -1,0 +1,24 @@
+# Evidence for UT-G3-019-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+# [2026-10-08T09:45:23 UTC] Method: synthetic handlers in app/routers/qg_probe.py, SCRATCH worktree /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt (at 40201a1) only, included in that worktree's app/main.py;
+#   then from its apps/api-py: .venv/bin/python -m pytest -q -p no:cacheprovider -o addopts= tests/test_route_audit.py (DATABASE_URL at 127.0.0.1:1)
+#   full output: UT-G3-rt1-pytest-output.txt. Behaviour: TestClient with get_current_session overridden to a STUDENT session.
+
+--- probe source:
+@router.delete("/widgets/{wid}")
+def s04_delete_untyped(wid: int, session: dict = Depends(get_current_session)):
+    require_admin(session)
+    return None
+
+--- audit failure lines naming /api/qg/widgets/{wid}: 2
+E           DELETE /api/qg/widgets/{wid}  (app.routers.qg_probe.s04_delete_untyped: DELETE answers 200 with no body model)
+E           DELETE /api/qg/widgets/{wid}  (app.routers.qg_probe.s04_delete_untyped: JSON body with no response model)
+
+--- probe source:
+@router.delete("/gadgets/{gid}", status_code=204)
+def s05_delete_204(gid: int, session: dict = Depends(get_current_session)) -> None:
+    require_admin(session)
+
+--- audit failure lines naming /api/qg/gadgets/{gid}: 0
+(none: the audit did not report this operation under any rule)
+

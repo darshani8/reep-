@@ -1,0 +1,111 @@
+# ST-040-rt1 2026-10-08T09:56:43Z git diff a3688f0 40201a1 -- apps/api-py/app apps/web contains only comment changes
+Method: for each changed file, Python tokenize stream with COMMENT and NL tokens removed must be equal, AND ast.dump() must be equal (a comment-only edit changes neither; any code or string change changes at least one).
+
+$ python3 comment_only.py a3688f0 40201a1 apps/api-py/app apps/web
+changed files under ['apps/api-py/app', 'apps/web']: 18
+COMMENT-ONLY  +1/-1  tokens_equal=True ast_equal=True  apps/api-py/app/account_deletion.py
+COMMENT-ONLY  +1/-1  tokens_equal=True ast_equal=True  apps/api-py/app/archive_documents.py
+COMMENT-ONLY  +1/-1  tokens_equal=True ast_equal=True  apps/api-py/app/deletion_walk.py
+COMMENT-ONLY  +2/-2  tokens_equal=True ast_equal=True  apps/api-py/app/interview_local.py
+COMMENT-ONLY  +7/-7  tokens_equal=True ast_equal=True  apps/api-py/app/interview_nova.py
+COMMENT-ONLY  +1/-1  tokens_equal=True ast_equal=True  apps/api-py/app/leave_paper.py
+COMMENT-ONLY  +54/-54  tokens_equal=True ast_equal=True  apps/api-py/app/models/__init__.py
+COMMENT-ONLY  +5/-5  tokens_equal=True ast_equal=True  apps/api-py/app/observability.py
+COMMENT-ONLY  +4/-4  tokens_equal=True ast_equal=True  apps/api-py/app/purge_people.py
+COMMENT-ONLY  +2/-2  tokens_equal=True ast_equal=True  apps/api-py/app/purge_students.py
+COMMENT-ONLY  +1/-1  tokens_equal=True ast_equal=True  apps/api-py/app/routers/signature.py
+COMMENT-ONLY  +1/-1  tokens_equal=True ast_equal=True  apps/api-py/app/telemetry_scrub.py
+COMMENT-ONLY  +1/-1  tokens_equal=True ast_equal=True  apps/api-py/app/tracing.py
+COMMENT-ONLY  +2/-2  tokens_equal=True ast_equal=True  apps/api-py/app/voice_platform/api/call_close.py
+COMMENT-ONLY  +4/-4  tokens_equal=True ast_equal=True  apps/api-py/app/voice_platform/monitoring/cloudwatch.py
+COMMENT-ONLY  +2/-2  tokens_equal=True ast_equal=True  apps/api-py/app/voice_platform/storage/dynamodb.py
+COMMENT-ONLY  +2/-2  tokens_equal=True ast_equal=True  apps/api-py/app/voice_platform/storage/s3.py
+COMMENT-ONLY  +2/-2  tokens_equal=True ast_equal=True  apps/api-py/app/voice_platform/streaming/tee.py
+RESULT: every change is comment-only
+exit=0
+
+git diff --stat a3688f0 40201a1 -- apps/web: '' (empty)
+Other runtime inputs: apps/api-py/requirements*.txt unchanged; apps/api-py/migrations/versions unchanged (only migrations/reversibility.py, which nothing under app/ or migrations/env.py imports); pyproject.toml holds only [tool.ruff]/[tool.mypy].
+
+## negative control: the same script over 15a9e7d..a3688f0 (round 1, which DID change code) must report CODE-CHANGED
+CODE-CHANGED  +8/-3  tokens_equal=False ast_equal=False  apps/api-py/app/account_links.py
+CODE-CHANGED  +10/-7  tokens_equal=False ast_equal=False  apps/api-py/app/ai/orchestrator.py
+CODE-CHANGED  +4/-5  tokens_equal=False ast_equal=False  apps/api-py/app/backup_database.py
+CODE-CHANGED  +2/-2  tokens_equal=False ast_equal=False  apps/api-py/app/badge_mail.py
+CODE-CHANGED  +13/-7  tokens_equal=False ast_equal=False  apps/api-py/app/config.py
+CODE-CHANGED  +10/-5  tokens_equal=False ast_equal=False  apps/api-py/app/deletion_walk.py
+CODE-CHANGED  +3/-2  tokens_equal=False ast_equal=False  apps/api-py/app/grant_access.py
+CODE-CHANGED  +2/-2  tokens_equal=False ast_equal=False  apps/api-py/app/interview_audio.py
+CODE-CHANGED  +1/-1  tokens_equal=False ast_equal=False  apps/api-py/app/interview_bank.py
+CODE-CHANGED  +0/-3  tokens_equal=False ast_equal=False  apps/api-py/app/interview_core.py
+CODE-CHANGED  +5/-2  tokens_equal=False ast_equal=False  apps/api-py/app/interview_local.py
+CODE-CHANGED  +0/-1  tokens_equal=False ast_equal=False  apps/api-py/app/interview_matrix.py
+CODE-CHANGED  +12/-3  tokens_equal=False ast_equal=False  apps/api-py/app/leave_mail.py
+CODE-CHANGED  +3/-2  tokens_equal=False ast_equal=False  apps/api-py/app/leave_paper.py
+CODE-CHANGED  +0/-1  tokens_equal=False ast_equal=False  apps/api-py/app/models/conversation.py
+CODE-CHANGED  +0/-1  tokens_equal=False ast_equal=False  apps/api-py/app/models/english_baseline.py
+CODE-CHANGED  +0/-1  tokens_equal=False ast_equal=False  apps/api-py/app/models/feedback.py
+CODE-CHANGED  +0/-1  tokens_equal=False ast_equal=False  apps/api-py/app/models/milestone.py
+CODE-CHANGED  +4/-2  tokens_equal=False ast_equal=False  apps/api-py/app/models/time_ledger.py
+CODE-CHANGED  +0/-1  tokens_equal=False ast_equal=False  apps/api-py/app/models/timesheet.py
+CODE-CHANGED  +10/-6  tokens_equal=False ast_equal=False  apps/api-py/app/observability.py
+CODE-CHANGED  +3/-1  tokens_equal=False ast_equal=False  apps/api-py/app/purge_people.py
+CODE-CHANGED  +3/-0  tokens_equal=False ast_equal=False  apps/api-py/app/purge_students.py
+CODE-CHANGED  +4/-3  tokens_equal=False ast_equal=False  apps/api-py/app/retention.py
+CODE-CHANGED  +14/-8  tokens_equal=False ast_equal=False  apps/api-py/app/routers/admin_catalogue.py
+CODE-CHANGED  +2/-1  tokens_equal=False ast_equal=False  apps/api-py/app/routers/admin_deletion.py
+CODE-CHANGED  +4/-3  tokens_equal=False ast_equal=False  apps/api-py/app/routers/admin_faculty.py
+CODE-CHANGED  +10/-3  tokens_equal=False ast_equal=False  apps/api-py/app/routers/admin_imports.py
+CODE-CHANGED  +9/-4  tokens_equal=False ast_equal=False  apps/api-py/app/routers/admin_mentoring.py
+CODE-CHANGED  +6/-7  tokens_equal=False ast_equal=False  apps/api-py/app/routers/admin_students.py
+CODE-CHANGED  +2/-1  tokens_equal=False ast_equal=False  apps/api-py/app/routers/agent.py
+CODE-CHANGED  +3/-1  tokens_equal=False ast_equal=False  apps/api-py/app/routers/alumni.py
+CODE-CHANGED  +4/-4  tokens_equal=False ast_equal=False  apps/api-py/app/routers/auth.py
+CODE-CHANGED  +9/-6  tokens_equal=False ast_equal=False  apps/api-py/app/routers/badge_verification.py
+CODE-CHANGED  +8/-6  tokens_equal=False ast_equal=False  apps/api-py/app/routers/badges.py
+CODE-CHANGED  +5/-5  tokens_equal=False ast_equal=False  apps/api-py/app/routers/console.py
+CODE-CHANGED  +1/-2  tokens_equal=False ast_equal=False  apps/api-py/app/routers/governance.py
+CODE-CHANGED  +0/-1  tokens_equal=False ast_equal=False  apps/api-py/app/routers/health.py
+CODE-CHANGED  +28/-20  tokens_equal=False ast_equal=False  apps/api-py/app/routers/interview.py
+CODE-CHANGED  +0/-1  tokens_equal=False ast_equal=False  apps/api-py/app/routers/interview_bank.py
+CODE-CHANGED  +4/-5  tokens_equal=False ast_equal=False  apps/api-py/app/routers/registration.py
+CODE-CHANGED  +2/-2  tokens_equal=False ast_equal=False  apps/api-py/app/routers/signature.py
+CODE-CHANGED  +0/-1  tokens_equal=False ast_equal=False  apps/api-py/app/routers/staff_upskilling.py
+CODE-CHANGED  +6/-2  tokens_equal=False ast_equal=False  apps/api-py/app/routers/student.py
+CODE-CHANGED  +4/-3  tokens_equal=False ast_equal=False  apps/api-py/app/routers/student_programme.py
+CODE-CHANGED  +3/-3  tokens_equal=False ast_equal=False  apps/api-py/app/routers/swoc.py
+CODE-CHANGED  +6/-3  tokens_equal=False ast_equal=False  apps/api-py/app/scope_views.py
+CODE-CHANGED  +2/-0  tokens_equal=False ast_equal=False  apps/api-py/app/seed.py
+CODE-CHANGED  +3/-0  tokens_equal=False ast_equal=False  apps/api-py/app/seed_catalogue.py
+CODE-CHANGED  +3/-1  tokens_equal=False ast_equal=False  apps/api-py/app/seed_roster.py
+CODE-CHANGED  +2/-0  tokens_equal=False ast_equal=False  apps/api-py/app/set_password.py
+CODE-CHANGED  +3/-4  tokens_equal=False ast_equal=False  apps/api-py/app/voice_platform/api/call_close.py
+CODE-CHANGED  +0/-1  tokens_equal=False ast_equal=False  apps/api-py/app/voice_platform/api/media_bridge.py
+CODE-CHANGED  +3/-1  tokens_equal=False ast_equal=False  apps/api-py/app/voice_platform/queue/worker.py
+CODE-CHANGED  +1/-2  tokens_equal=False ast_equal=False  apps/api-py/app/workers/embedding_worker.py
+CODE-CHANGED  +3/-2  tokens_equal=False ast_equal=False  apps/api-py/app/workers/leasing.py
+RESULT: NON-COMMENT CHANGE FOUND
+
+## tool
+"""Prove a diff between two commits touches only comments: for every changed file, compare the
+Python token streams with COMMENT/NL/NEWLINE-only tokens removed, and the AST dumps. Usage: comment_only.py OLD NEW PATH..."""
+import ast, io, subprocess, sys, tokenize
+old, new, paths = sys.argv[1], sys.argv[2], sys.argv[3:]
+files = subprocess.run(['git', 'diff', '--name-only', old, new, '--', *paths], capture_output=True, text=True, check=True).stdout.split()
+def show(rev, f):
+    r = subprocess.run(['git', 'show', f'{rev}:{f}'], capture_output=True, text=True); return r.stdout if r.returncode == 0 else None
+def toks(src):
+    return [(t.type, t.string) for t in tokenize.generate_tokens(io.StringIO(src).readline) if t.type not in (tokenize.COMMENT, tokenize.NL)]
+ok = True
+print(f'changed files under {paths}: {len(files)}')
+for f in files:
+    a, b = show(old, f), show(new, f)
+    if not f.endswith('.py') or a is None or b is None:
+        print(f'NOT-PY-OR-ADDED/REMOVED {f}'); ok = False; continue
+    ta, tb = toks(a), toks(b)
+    same_tok = ta == tb
+    same_ast = ast.dump(ast.parse(a)) == ast.dump(ast.parse(b))
+    nl = subprocess.run(['git', 'diff', '--numstat', old, new, '--', f], capture_output=True, text=True).stdout.split()[:2]
+    print(f"{'COMMENT-ONLY' if same_tok and same_ast else 'CODE-CHANGED'}  +{nl[0]}/-{nl[1]}  tokens_equal={same_tok} ast_equal={same_ast}  {f}")
+    ok &= same_tok and same_ast
+print('RESULT:', 'every change is comment-only' if ok else 'NON-COMMENT CHANGE FOUND'); sys.exit(0 if ok else 1)

@@ -1,0 +1,27 @@
+# ST-019 2026-10-08T08:40:06Z API walk as admin against head :3300 (cookie values never printed)
+POST /api/auth/login (admin@bgscet.ac.in) -> 200; set-cookie names: ['reep_session']
+GET /api/auth/me -> 200 dict keys=['capabilities', 'email', 'features', 'google_linked', 'last_sign_ins', 'mentorId', 'name', 'notification_prefs', 'role', 'studentId', 'userId'] 
+   body: {"userId":"d4766479c8674980ab7e487579c07c33","email":"admin@bgscet.ac.in","name":"Main Admin (seed)","role":"ADMIN","studentId":null,"mentorId":null,"capabilities":["admin.analytics","admin.catalogue","admin.exports","admin.governance","admin.imports","admin.i
+GET /api/register/pending -> 200 list[1] {'x-reep-scope': 'programme'}
+   body: [{"id":"b7e0da4f404046c0bcc949b2d1e22d1e","name":"Ravi Kumar","email":"ravi.kumar@bgscet.ac.in","usn":null,"degree_level":"PG","status":"PENDING_REVIEW","cohort_id":null,"matched_rule_id":"c7128c03855a4e5dad966b2b05dab0c1","decision_reason":"Routed by rule 'Co
+GET /api/leaves/pending -> 200 list[0] {'x-reep-scope': 'programme'}
+   body: []
+GET /api/admin/unassigned-students -> 200 list[0] {'x-reep-scope': 'programme', 'x-reep-total': '0'}
+   body: []
+GET /api/mentor/offers/pending -> 200 list[0] 
+   body: []
+GET /api/admin/governance/review -> 200 dict keys=['expiring', 'horizon_days', 'pending'] 
+   body: {"horizon_days":30,"pending":[],"expiring":[]}
+GET /api/admin/students -> 200 list[1] {'x-reep-scope': 'programme'}
+   body: [{"student_id":"865c140f987748178be9feeb9ef082b1","user_id":"1d834d39463e421f93cc793850f73d1c","name":"Test Student","email":"student@bgscet.ac.in","usn":"1BG24MBA001","cohort_id":"6d75f60e9aac45edbb2ca9da7f4cce29","batch":"Master of Business Administration - 
+GET /api/admin/governance/grants -> 200 list[0] 
+   body: []
+GET /api/admin/governance/catalogue -> 200 dict keys=['capabilities', 'features', 'min_reason_chars'] 
+   body: {"capabilities":[{"key":"mentor.mentees","label":"Mentee log","scope":"SCOPED","carries_pii":false},{"key":"mentor.notebook","label":"Mentor notebook","scope":"SCOPED","carries_pii":false},{"key":"mentor.verifications","label":"Verify skills & evidence","scope
+GET /api/admin/mentor-load -> 200 list[1] {'x-reep-scope': 'programme', 'x-reep-total': '1'}
+   body: [{"mentor_id":"4c18caaed5cb45f9b10789bb9be18e55","user_id":"c973f2c0af3e4c7cb1318339cc996965","name":"Test Mentor","department":null,"designation":null,"placement":{"filed":false,"department_id":null,"department_code":null,"department_name":null,"college_id":n
+GET /api/interview/status -> 200 dict keys=['active_sessions', 'available', 'max_sessions', 'reason', 'rehearsal'] 
+   body: {"available":true,"reason":null,"active_sessions":0,"max_sessions":100,"rehearsal":true}
+POST /api/auth/logout -> 200
+GET after logout /api/auth/me -> 401 dict keys=['detail'] 
+   body: {"detail":"Sign in required."}

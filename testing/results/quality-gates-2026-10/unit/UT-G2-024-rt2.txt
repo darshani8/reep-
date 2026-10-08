@@ -1,0 +1,22 @@
+# Evidence for UT-G2-024-rt2
+# build e55d1395379e9bc97cf5f3dfbc6a55bd16962475 (re-test round 2), tester session U
+
+[2026-10-08T10:34:55 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: three lines, each a NAME= the literal mask (AUTH_SECRET, OPENAI_API_KEY) and a postgresql URL whose password is the literal mask'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-024a-masked-placeholder; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-024a-masked-placeholder
+shape: three lines, each a NAME= the literal mask (AUTH_SECRET, OPENAI_API_KEY) and a postgresql URL whose password is the literal mask
+--- g2-024a-masked-placeholder/.env
+AUTH_SECRET=<FAKE-VALUE-MASKED>
+OPENAI_API_KEY=<FAKE-VALUE-MASKED>
+DATABASE_URL=postgresql://reep:<FAKE-VALUE-MASKED>@db.example.com/reep_py
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T10:34:56 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: the OPENAI_API_KEY variable set to the worded placeholder change-me-please-now-ok'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-024b-worded-placeholder; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-024b-worded-placeholder
+shape: the OPENAI_API_KEY variable set to the worded placeholder change-me-please-now-ok
+--- g2-024b-worded-placeholder/.env.example
+OPENAI_API_KEY=<the worded placeholder>
+findings: 1 [('reep-openai-key', 1)]
+gitleaks exit=1
+[exit=0]

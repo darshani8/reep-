@@ -1,0 +1,18 @@
+# Evidence for UT-G3-036-rt2
+# build e55d1395379e9bc97cf5f3dfbc6a55bd16962475 (re-test round 2), tester session U
+# [2026-10-08T10:37:15 UTC] Method: synthetic handlers in app/routers/qg_probe.py, SCRATCH worktree /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt (at e55d139) only, included in that worktree's app/main.py;
+#   pytest -q -p no:cacheprovider -o addopts= tests/test_route_audit.py (DATABASE_URL at 127.0.0.1:1); full output: UT-G3-rt2-pytest-output.txt.
+#   Behaviour: TestClient with get_current_session overridden to a STUDENT session. (S = Depends(get_current_session) in the probe module.)
+
+--- probe source:
+@router.get("/n08-uncalled-inner")
+def n08_uncalled_inner(session: dict = S) -> Out:
+    def check() -> None:
+        require_admin(session)
+    return Out()
+
+--- audit failure lines naming /api/qg/n08-uncalled-inner: 1
+E           GET /api/qg/n08-uncalled-inner  (app.routers.qg_probe.n08_uncalled_inner: no role or scope gate)
+--- behaviour:
+GET /api/qg/n08-uncalled-inner as a STUDENT session -> 200 {"ok":true}
+

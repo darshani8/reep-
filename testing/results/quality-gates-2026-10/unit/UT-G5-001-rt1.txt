@@ -1,0 +1,18 @@
+# Evidence for UT-G5-001-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T10:04:19 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb
+$ echo '--- base headings missing at 40201a1:'; comm -23 <(git show 15a9e7d:.github/pull_request_template.md | grep -E '^#{1,6} ' | sort) <(git show 40201a1:.github/pull_request_template.md | grep -E '^#{1,6} ' | sort); echo '(end)'; git show 40201a1:.github/pull_request_template.md | grep -E '^## '
+--- base headings missing at 40201a1:
+(end)
+## Why
+## Design and approach (human review)
+## Rule 1 — student data must not leave the machine unbidden
+## Rule 2 — staff scope is decided by role, not by a missing field
+## Tests
+## Schema
+## Config, auth and deploy guards
+## Engineering checklist
+## Checks
+## What a reviewer should look at twice
+[exit=0]

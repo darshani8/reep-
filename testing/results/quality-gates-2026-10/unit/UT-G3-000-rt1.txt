@@ -1,0 +1,9 @@
+# Evidence for UT-G3-000-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:41:50 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/apps/api-py
+$ ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/reep_py .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_route_audit.py tests/test_migration_reversibility.py tests/test_codebase_guards.py tests/test_migration_roundtrip_guard.py tests/test_async_blocking_guard.py tests/test_secret_scan_workflow.py 2>&1 | tail -3
+........................................................................ [ 95%]
+...........                                                              [100%]
+227 passed in 28.25s
+[exit=0]

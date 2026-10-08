@@ -1,0 +1,27 @@
+# Evidence for UT-G1-008-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T10:04:35 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py
+--- probe app/_qg_probe.py:
+     1	import time
+     2	from pathlib import Path
+     3	
+     4	import httpx
+     5	import requests
+     6	
+     7	
+     8	async def handler(url, p):
+     9	    time.sleep(1)
+    10	    requests.get(url, timeout=5)
+    11	    httpx.get(url, timeout=5)
+    12	    with open(p) as fh:
+    13	        fh.read()
+    14	    Path(p).open()
+app/_qg_probe.py:9:5: ASYNC251 Async functions should not call `time.sleep`
+app/_qg_probe.py:10:5: ASYNC210 Async functions should not call blocking HTTP methods
+app/_qg_probe.py:11:5: ASYNC210 Async functions should not call blocking HTTP methods
+app/_qg_probe.py:12:10: ASYNC230 Async functions should not open files with blocking methods like `open`
+app/_qg_probe.py:14:5: ASYNC230 Async functions should not open files with blocking methods like `open`
+Found 5 errors.
+[exit=1]

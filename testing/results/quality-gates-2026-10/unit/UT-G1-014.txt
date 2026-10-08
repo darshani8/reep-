@@ -1,0 +1,32 @@
+# Evidence for UT-G1-014
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:40:09 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ sed -n '/^\[tool.mypy\]/,/^check_untyped/p' pyproject.toml | grep -vE '^#'
+[tool.mypy]
+python_version = "3.14"
+files = ["app"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+check_untyped_defs = true
+[exit=0]
+
+[2026-10-08T08:40:09 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe app/_qg_probe.py:'; cat -n app/_qg_probe.py; .venv/bin/python -m mypy 2>&1 | tail -6
+--- probe app/_qg_probe.py:
+     1	def f(x: int) -> str:
+     2	    return x
+app/_qg_probe.py:2: error: Incompatible return value type (got "int", expected "str")  [return-value]
+Found 1 error in 1 file (checked 219 source files)
+[exit=0]
+(note: the [exit=0] above is tail's; the script was corrected to print mypy's own exit code and the case re-run below)
+
+[2026-10-08T08:40:17 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe app/_qg_probe.py:'; cat -n app/_qg_probe.py; .venv/bin/python -m mypy > /tmp/mp.out 2>&1; rc=$?; tail -6 /tmp/mp.out; echo mypy_exit=$rc
+--- probe app/_qg_probe.py:
+     1	def f(x: int) -> str:
+     2	    return x
+app/_qg_probe.py:2: error: Incompatible return value type (got "int", expected "str")  [return-value]
+Found 1 error in 1 file (checked 219 source files)
+mypy_exit=1
+[exit=0]

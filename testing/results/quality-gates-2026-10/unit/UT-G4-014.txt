@@ -1,0 +1,38 @@
+# Evidence for UT-G4-014
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:49:26 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ cd /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py && echo '--- probe revision:' && sed -n '/^def upgrade/,$p' migrations/versions/bbbb00000001_qg_probe.py && echo '--- migrate the case database to head:' && .venv/bin/python -m alembic upgrade head 2>&1 | tail -1 && echo '--- round trip:' && .venv/bin/python ../../tools/ci/check_migration_roundtrip.py > /tmp/g4.out 2>&1; rc=$?; grep -vE '^INFO|python -m alembic' /tmp/g4.out | tail -25; echo roundtrip_exit=$rc
+--- probe revision:
+def upgrade() -> None:
+    op.execute("SELECT 1")
+
+
+def downgrade() -> None:
+    op.execute("SELECT 2")
+--- migrate the case database to head:
+INFO  [alembic.runtime.migration] Running upgrade f4a2c9e7b1d3 -> bbbb00000001, QG unit probe revision (scratch worktree only).
+--- round trip:
+database   postgresql+psycopg://reep:***@localhost:5433/reep_u_g4_014  (read only: compared against)
+scratch    reep_u_g4_014_roundtrip  (created, walked, dropped)
+head       bbbb00000001
+floor      9b2d47f0ce15  (the furthest a real rollback can go)
+segment    base .. 31ca99852acd: 66 downgrade(s)
+segment    7c4e0b21d9aa .. 31f7a4c60b12: 2 downgrade(s)
+segment    9b2d47f0ce15 .. bbbb00000001: 23 downgrade(s)
+exercised  91 of 93 downgrades; the rest refuse on purpose
+
+straight path: 2118 catalogue lines at bbbb00000001
+
+== segment base .. 31ca99852acd
+   declared leftovers ignored at the bottom: [('extension', 'vector'), ('table', 'students_orphaned_cohort_ids')]
+   OK: 66 downgrade(s), identical at both ends
+
+== segment 7c4e0b21d9aa .. 31f7a4c60b12
+   OK: 2 downgrade(s), identical at both ends
+
+== segment 9b2d47f0ce15 .. bbbb00000001
+
+FAILED: KEPT_ON_DOWNGRADE declares [('table', 'qg_never_left_behind')] as left behind at 9b2d47f0ce15, but it is not (or was already there before the upgrade). A downgrade that now cleans up after itself must be struck off the list, or the comparison keeps ignoring a difference that no longer exists.
+roundtrip_exit=1
+[exit=0]

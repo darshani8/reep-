@@ -1,0 +1,12 @@
+# Evidence for UT-G2-020-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:57:41 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/gl
+$ grep -E 'GITLEAKS_(VERSION|SHA256):' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.github/workflows/secret-scan.yml; grep linux_x64 checksums.txt; echo "$(sed -n 's/.*GITLEAKS_SHA256: "\(.*\)"/\1/p' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.github/workflows/secret-scan.yml)  gitleaks_8.30.0_linux_x64.tar.gz" | sha256sum --check --strict; echo "$(sed -n 's/.*GITLEAKS_SHA256: "\(.*\)"/\1/p' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.github/workflows/secret-scan.yml)  bad.tar.gz" | sha256sum --check --strict
+  GITLEAKS_VERSION: "8.30.0"
+  GITLEAKS_SHA256: "79a3ab579b53f71efd634f3aaf7e04a0fa0cf206b7ed434638d1547a2470a66e"
+79a3ab579b53f71efd634f3aaf7e04a0fa0cf206b7ed434638d1547a2470a66e  gitleaks_8.30.0_linux_x64.tar.gz
+gitleaks_8.30.0_linux_x64.tar.gz: OK
+bad.tar.gz: FAILED
+sha256sum: WARNING: 1 computed checksum did NOT match
+[exit=1]

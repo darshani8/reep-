@@ -1,0 +1,34 @@
+# Evidence for UT-G2-021
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:54:30 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks2
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-021-control && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-021-control
+--- g2-021-control/.env
+AUTH_SECRET=<FAKE-VALUE-MASKED>
+findings: 1 [('reep-auth-secret', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T08:54:30 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks2
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-021-inline-allow && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-021-inline-allow
+--- g2-021-inline-allow/.env
+AUTH_SECRET=<FAKE-VALUE-MASKED>  # gitleaks:allow
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T08:54:31 UTC] cwd=/home/user/reep-
+$ echo 'is the inline marker used or forbidden anywhere in the repository?'; git grep -n 'gitleaks:allow' a3688f0 | head -5; echo '(none above = none)'
+is the inline marker used or forbidden anywhere in the repository?
+(none above = none)
+[exit=0]
+
+[2026-10-08T08:54:40 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks2
+$ echo 'INFORMATION ONLY (not the shipped workflow): the same file with gitleaks own --ignore-gitleaks-allow flag:'; gitleaks dir g2-021-inline-allow --config /home/user/reep-/.gitleaks.toml --redact --no-banner --exit-code 1 --ignore-gitleaks-allow 2>&1 | tail -1; echo gitleaks_exit=${PIPESTATUS[0]}; grep -c 'ignore-gitleaks-allow' /home/user/reep-/.github/workflows/secret-scan.yml /home/user/reep-/tools/ci/preflight.sh /home/user/reep-/.pre-commit-config.yaml
+INFORMATION ONLY (not the shipped workflow): the same file with gitleaks own --ignore-gitleaks-allow flag:
+8:54AM WRN leaks found: 1
+gitleaks_exit=1
+/home/user/reep-/.github/workflows/secret-scan.yml:0
+/home/user/reep-/tools/ci/preflight.sh:0
+/home/user/reep-/.pre-commit-config.yaml:0
+[exit=1]

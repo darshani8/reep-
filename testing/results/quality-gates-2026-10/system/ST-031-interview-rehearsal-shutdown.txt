@@ -1,0 +1,75 @@
+# ST-031 2026-10-08T08:52:54Z interview rehearsal socket: open as the Main Admin, then SIGTERM the API mid-session; head vs base
+Each tree on its own fresh migrated+seeded db (reep_ws_head / reep_ws_base) and its own port, 1 worker, so no live session of the e2e run is touched.
+Precondition probe (head :3303): admin socket -> connected, then closed 4002 'Interviewer service unavailable' after 6.6 s (Bedrock answers ValidationException 'model identifier is invalid' from this sandbox - environment; the same on base).
+
+################ head
+server exit after SIGTERM: 5.03 s
+--- client
+login 200
+status {'available': True, 'reason': None, 'active_sessions': 0, 'max_sessions': 100, 'rehearsal': True}
+ 0.01s connected
+ 1.77s closed code=1012 reason=''
+--- server log (from 'Shutting down')
+INFO:     Shutting down
+INFO:     Waiting for background tasks to complete. (CTRL+C to force quit)
+2026-10-08 08:53:03,920 INFO app.interview_nova: [conn=3906529878ba session=-] Interview ended 4002 Interviewer service unavailable: phase=opening answers=0 turns=0/0 frames=0 bytes=0 interruptions=0 gate_closes=0 report=- client=-
+2026-10-08 08:53:03,920 WARNING app.interview_core: Failed to close browser socket cleanly: 
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [8312]
+--- counts: Traceback=2 CancelledError=0 ERROR=1
+
+################ base
+server exit after SIGTERM: 5.03 s
+--- client
+login 200
+status {'available': True, 'reason': None, 'active_sessions': 0, 'max_sessions': 100, 'rehearsal': True}
+ 0.02s connected
+ 1.78s closed code=1012 reason=''
+--- server log (from 'Shutting down')
+INFO:     Shutting down
+INFO:     Waiting for background tasks to complete. (CTRL+C to force quit)
+2026-10-08 08:53:13,637 INFO app.interview_nova: [conn=1814657d9a1d session=-] Interview ended 4002 Interviewer service unavailable: phase=opening answers=0 turns=0/0 frames=0 bytes=0 interruptions=0 gate_closes=0 report=- client=-
+2026-10-08 08:53:13,637 WARNING app.interview_core: Failed to close browser socket cleanly: 
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [8368]
+--- counts: Traceback=2 CancelledError=0 ERROR=1
+
+## tools
+# usage: shutdown_case.sh TREE DB PORT LABEL
+S=/tmp/claude-0/-home-user-reep-/ed5fbbdd-a4c8-5b57-aec4-0561b6b3c6aa/scratchpad; source $S/env.sh; VENV=/home/user/reep-/apps/api-py/.venv/bin/python
+TREE=$1 DB=$2 PORT=$3 L=$4; LOG=$S/shutdown-$L.log
+cd $TREE/apps/api-py; DATABASE_URL=$(dburl $DB) $VENV -m uvicorn app.main:app --port $PORT > $LOG 2>&1 & PID=$!
+for i in $(seq 30); do curl -s -o /dev/null http://127.0.0.1:$PORT/health && break; sleep 0.5; done
+$VENV $S/tools/ws_probe.py http://127.0.0.1:$PORT admin 20 > $S/probe-$L.txt 2>&1 & PP=$!
+sleep 2; T0=$(date +%s.%N); kill -TERM $PID
+for i in $(seq 60); do kill -0 $PID 2>/dev/null || break; sleep 0.5; done
+T1=$(date +%s.%N); if kill -0 $PID 2>/dev/null; then echo "server STILL RUNNING 30 s after SIGTERM -> killing"; kill -9 $PID; fi
+wait $PP 2>/dev/null
+echo "server exit after SIGTERM: $(python3 -c "print(round($T1-$T0,2))") s"
+echo "--- client"; cat $S/probe-$L.txt
+echo "--- server log (from 'Shutting down')"; sed -n '/Shutting down/,$p' $LOG | cut -c1-240
+echo "--- counts: Traceback=$(grep -c Traceback $LOG) CancelledError=$(grep -c CancelledError $LOG) ERROR=$(grep -c ' ERROR ' $LOG)"
+"""Open the interview socket as ROLE and report what happens. Usage: ws_probe.py BASE ROLE SECONDS [specialization]"""
+import asyncio, sys, time, requests, websockets
+BASE, ROLE, SECS = sys.argv[1], sys.argv[2], float(sys.argv[3]); SPEC = sys.argv[4] if len(sys.argv) > 4 else 'hr'
+ACC = {'student': ('student@bgscet.ac.in', 'student123'), 'admin': ('admin@bgscet.ac.in', 'admin123'), 'mentor': ('mentor@bgscet.ac.in', 'mentor123')}
+s = requests.Session(); r = s.post(f'{BASE}/api/auth/login', json=dict(zip(('email', 'password'), ACC[ROLE]))); print('login', r.status_code)
+print('status', s.get(f'{BASE}/api/interview/status').json())
+cookie = '; '.join(f'{c.name}={c.value}' for c in s.cookies)
+async def main():
+    url = BASE.replace('http', 'ws') + f'/api/interview?specialization={SPEC}'
+    t0 = time.time()
+    try:
+        async with websockets.connect(url, additional_headers={'Cookie': cookie, 'Origin': 'http://localhost:4200'}, max_size=None) as ws:
+            print(f'{time.time()-t0:5.2f}s connected')
+            while time.time() - t0 < SECS:
+                try: m = await asyncio.wait_for(ws.recv(), timeout=SECS)
+                except asyncio.TimeoutError: print(f'{time.time()-t0:5.2f}s still open, nothing received'); break
+                print(f'{time.time()-t0:5.2f}s recv', (m[:200] if isinstance(m, str) else f'<{len(m)} bytes>'))
+    except websockets.ConnectionClosed as e:
+        print(f'{time.time()-t0:5.2f}s closed code={e.rcvd.code if e.rcvd else None} reason={e.rcvd.reason if e.rcvd else None!r}')
+    except Exception as e:
+        print(f'{time.time()-t0:5.2f}s error {type(e).__name__}: {e}')
+asyncio.run(main())

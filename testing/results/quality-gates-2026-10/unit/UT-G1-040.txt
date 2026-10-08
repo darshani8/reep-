@@ -1,0 +1,54 @@
+# Evidence for UT-G1-040
+# build e55d1395379e9bc97cf5f3dfbc6a55bd16962475 (re-test round 2), tester session U
+
+[2026-10-08T10:31:18 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; echo '--- ruff (CI config):'; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py; echo ruff_exit=$?; echo '--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):'; ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/x .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_codebase_guards.py -k test_every_suppression_in_shipped_code 2>&1 | grep -E '^E  |passed|failed' | head -6
+--- probe app/_qg_probe.py:
+     1	import subprocess
+     2	
+     3	
+     4	def f(cmd, x):
+     5	    # ruff: disable[S101, S602]  legacy helpers below, rewritten next quarter
+     6	    assert x
+     7	    subprocess.run(cmd, shell=True)
+     8	
+     9	
+    10	class Other:
+    11	    def g(self, cmd):
+    12	        subprocess.run(cmd, shell=True)
+    13	
+    14	
+    15	def h(cmd):
+    16	    subprocess.run(cmd, shell=True)
+    17	    # ruff: enable[S101, S602]
+--- ruff (CI config):
+app/_qg_probe.py:5:5: RUF104 Suppression comment without matching `#ruff:enable` comment
+app/_qg_probe.py:12:9: S602 `subprocess` call with `shell=True` identified, security issue
+app/_qg_probe.py:16:5: S602 `subprocess` call with `shell=True` identified, security issue
+app/_qg_probe.py:17:5: RUF103 Invalid suppression comment: no matching 'disable' comment
+Found 4 errors.
+No fixes available (1 hidden fix can be enabled with the `--unsafe-fixes` option).
+ruff_exit=1
+--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):
+1 passed, 81 deselected in 1.13s
+[exit=0]
+
+[2026-10-08T10:31:21 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; echo '--- ruff (CI config):'; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py; echo ruff_exit=$?; echo '--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):'; ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/x .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_codebase_guards.py -k test_every_suppression_in_shipped_code 2>&1 | grep -E '^E  |passed|failed' | head -6
+--- probe app/_qg_probe.py:
+     1	# ruff: disable[S101, S602, F401, F821]  this whole module is a vendored shim, reviewed 2026-10
+     2	import os
+     3	import subprocess
+     4	
+     5	
+     6	def f(cmd, x):
+     7	    assert x
+     8	    subprocess.run(cmd, shell=True)
+     9	    return undefined_name
+    10	# ruff: enable[S101, S602, F401, F821]
+--- ruff (CI config):
+All checks passed!
+ruff_exit=0
+--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):
+1 passed, 81 deselected in 1.07s
+[exit=0]

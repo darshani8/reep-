@@ -1,0 +1,24 @@
+# Evidence for UT-G4-015-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T10:02:14 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/apps/api-py
+$ .venv/bin/python /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/seg.py
+no refusing revision         refusing=[]
+   segments=[(None, 'r5', ('r1', 'r2', 'r3', 'r4', 'r5'))]
+   floor=None  -> as expected
+one in the middle (r3)       refusing=['r3']
+   segments=[(None, 'r2', ('r1', 'r2')), ('r3', 'r5', ('r4', 'r5'))]
+   floor=r3  -> as expected
+one at the head (r5)         refusing=['r5']
+   segments=[(None, 'r4', ('r1', 'r2', 'r3', 'r4')), ('r5', 'r5', ())]
+   floor=r5  -> as expected
+one at the base (r1)         refusing=['r1']
+   segments=[(None, None, ()), ('r1', 'r5', ('r2', 'r3', 'r4', 'r5'))]
+   floor=r1  -> as expected
+two adjacent (r2, r3)        refusing=['r2', 'r3']
+   segments=[(None, 'r1', ('r1',)), ('r2', 'r2', ()), ('r3', 'r5', ('r4', 'r5'))]
+   floor=r3  -> as expected
+a 'no-op' entry (r3)        segments= [(None, 'r5', ('r1', 'r2', 'r3', 'r4', 'r5'))] floor= None
+two heads -> expected exactly one head, found ['r3', 'x']
+merge revision -> m is a merge revision; the floor is undefined across a merge
+[exit=0]

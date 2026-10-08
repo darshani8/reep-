@@ -1,0 +1,12 @@
+# Evidence for UT-G4-007
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:46:57 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ cd /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py; mkrev aaaa00000001 f4a2c9e7b1d3 $'def downgrade() -> None:\n    return'; mkrev aaaa00000002 aaaa00000001 $'def downgrade() -> None:\n    """Nothing."""\n    ...'; mkrev aaaa00000003 aaaa00000002 $'def downgrade() -> None:\n    if False:\n        op.execute("SELECT 2")'; RT 12; rm -f migrations/versions/aaaa*
+E       AssertionError: these migrations cannot be rolled back and do not say why:
+E           aaaa00000002 (aaaa00000002_qg_probe.py): downgrade is no-op
+E         Write the downgrade. If the reverse would have to guess, re-issue something a person revoked, or undo what Postgres cannot, add the revision to IRREVERSIBLE in migrations/reversibility.py with that reason in words.
+E       assert not ['aaaa00000002 (aaaa00000002_qg_probe.py): downgrade is no-op']
+tests/test_migration_reversibility.py:73: AssertionError
+1 failed, 9 passed in 0.89s
+[exit=0]

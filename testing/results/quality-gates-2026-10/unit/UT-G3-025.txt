@@ -1,0 +1,35 @@
+# Evidence for UT-G3-025
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:44:18 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ cd /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py && git status --short && .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_route_audit.py 2>&1 | tail -1
+?? .venv
+.................                                                        [100%]
+[exit=0]
+
+[2026-10-08T08:44:25 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ cd /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py && git diff --stat && .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_route_audit.py 2>&1 | grep -E '^E .*(Strike|zz-qg)|^FAILED|passed|failed'
+ apps/api-py/tests/route_audit_exceptions.py | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
+E       AssertionError: AUTH (session): 1 exception(s) no longer apply — the route was fixed or removed. Strike it off the list in tests/route_audit_exceptions.py:
+E           GET /zz-qg-stale-0
+E       assert not ['AUTH (session): 1 exception(s) no longer apply — the route was fixed or removed. Strike it off the list in tests/route_audit_exceptions.py:', '  GET /zz-qg-stale-0']
+E       AssertionError: AUTH (gate): 1 exception(s) no longer apply — the route was fixed or removed. Strike it off the list in tests/route_audit_exceptions.py:
+E           GET /zz-qg-stale-1
+E       assert not ['AUTH (gate): 1 exception(s) no longer apply — the route was fixed or removed. Strike it off the list in tests/route_audit_exceptions.py:', '  GET /zz-qg-stale-1']
+E       AssertionError: RESPONSE_MODEL: 1 exception(s) no longer apply — the route was fixed or removed. Strike it off the list in tests/route_audit_exceptions.py:
+E           GET /zz-qg-stale-2
+E       assert not ['RESPONSE_MODEL: 1 exception(s) no longer apply — the route was fixed or removed. Strike it off the list in tests/route_audit_exceptions.py:', '  GET /zz-qg-stale-2']
+E       AssertionError: STATUS: 1 exception(s) no longer apply — the route was fixed or removed. Strike it off the list in tests/route_audit_exceptions.py:
+E           GET /zz-qg-stale-3
+E       assert not ['STATUS: 1 exception(s) no longer apply — the route was fixed or removed. Strike it off the list in tests/route_audit_exceptions.py:', '  GET /zz-qg-stale-3']
+E       AssertionError: PAGINATION: 2 exception(s) no longer apply — the route was fixed or removed. Strike it off the list in tests/route_audit_exceptions.py:
+E           GET /zz-qg-stale-4
+E           GET /zz-qg-stale-5
+E       assert not ['PAGINATION: 2 exception(s) no longer apply — the route was fixed or removed. Strike it off the list in tests/route_audit_exceptions.py:', '  GET /zz-qg-stale-4', '  GET /zz-qg-stale-5']
+FAILED tests/test_route_audit.py::test_every_operation_requires_a_session_or_is_declared_public
+FAILED tests/test_route_audit.py::test_every_authenticated_handler_reaches_a_role_or_scope_gate
+FAILED tests/test_route_audit.py::test_every_json_operation_declares_a_response_model
+FAILED tests/test_route_audit.py::test_status_codes_follow_the_house_rules - ...
+FAILED tests/test_route_audit.py::test_list_reads_are_paginated_or_recorded
+[exit=0]

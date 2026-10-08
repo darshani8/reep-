@@ -64,7 +64,7 @@ text(W / 2, 86, "Placement-readiness platform for BGSCET MBA · Angular + FastAP
 # ------------------------------------------------------------------- rows ---
 RA, RB, RC, RD, RE, RF = 175, 410, 645, 880, 1115, 1346
 
-node(LEFT, RA, ico.people, CLIENT, ["Students · Faculty", "Directors · Alumni"], 1)
+node(LEFT, RA, ico.people, CLIENT, ["Students · Faculty · Alumni", "Main Admin (placement office)"], 1)
 node(MID, RA, ico.browser, BRAND, ["REEP Dashboard", "in the browser"], 2)
 node(RIGHT, RA, ico.codebranch, GH, ["GitHub", "darshani8/reep-"])
 

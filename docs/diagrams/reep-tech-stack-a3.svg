@@ -34,8 +34,8 @@
 <path d="M49 286 H393 A9 9 0 0 1 402 295 V312 H40 V295 A9 9 0 0 1 49 286 Z" fill="#1d4ed8"/>
 <text x="51" y="304" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="start" letter-spacing="0.5">SCREEN MAP</text>
 <text x="51" y="328" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10" font-weight="400" fill="#111827" text-anchor="start">/student/* — 19 routes (badges, ledger, jobs, resume, …)</text>
-<text x="51" y="341" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10" font-weight="400" fill="#111827" text-anchor="start">/mentor/* — mentees · leave · badge-centre · upskilling</text>
-<text x="51" y="354" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10" font-weight="400" fill="#111827" text-anchor="start">/director/* — analytics · catalogue · exports</text>
+<text x="51" y="341" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10" font-weight="400" fill="#111827" text-anchor="start">/mentor/* — Faculty (MENTOR): mentees · leave · upskilling</text>
+<text x="51" y="354" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10" font-weight="400" fill="#111827" text-anchor="start">/admin/* — Main Admin (ADMIN): setup · people · exports</text>
 <text x="51" y="367" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10" font-weight="400" fill="#111827" text-anchor="start">/alumni · /alumni/jobs · /login · /register</text>
 <text x="51" y="380" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10" font-weight="700" fill="#1d4ed8" text-anchor="start">'' → homeRedirectGuard sends each role to its own home</text>
 <rect x="40" y="408" width="362" height="122" rx="9" fill="#ffffff" stroke="#1d4ed8" stroke-width="1.7"/>
@@ -105,7 +105,7 @@
 <rect x="578" y="582" width="424" height="78" rx="9" fill="#ffffff" stroke="#6d28d9" stroke-width="1.7"/>
 <path d="M587 582 H993 A9 9 0 0 1 1002 591 V606 H578 V591 A9 9 0 0 1 587 582 Z" fill="#6d28d9"/>
 <text x="589" y="598" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="start" letter-spacing="0.5">5. SCOPE GATES — THE TWO RULES, IN CODE</text>
-<text x="589" y="622" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.9" font-weight="400" fill="#111827" text-anchor="start">_require_student · require_mentor · require_director</text>
+<text x="589" y="622" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.9" font-weight="400" fill="#111827" text-anchor="start">_require_student · require_mentor · require_admin</text>
 <text x="589" y="634.6" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.9" font-weight="700" fill="#6d28d9" text-anchor="start">_assert_can_access_student — ONE implementation, imported</text>
 <text x="589" y="647.2" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.9" font-weight="400" fill="#111827" text-anchor="start">Out-of-scope ids flatten to 404, never 403 (no membership oracle)</text>
 <rect x="578" y="686" width="424" height="78" rx="9" fill="#ffffff" stroke="#6d28d9" stroke-width="1.7"/>

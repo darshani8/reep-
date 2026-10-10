@@ -20,6 +20,10 @@ Merging rules, in words:
     within 150 m of each other. The better-evidenced one wins; when two different lenses agree
     the confidence is raised to "high", because independent agreement is what "high" means.
   * Anything outside the Bengaluru box is DROPPED and reported, never nudged inside.
+  * After the merge, every file in data/corrections/ is applied in name order: a verification
+    pass may DROP a company or an office, SET fields on either, ADD an office, MERGE one company
+    into another or one park into another. Every correction carries a note, and the report lists
+    each one applied and each one that named nothing (a stale id after a re-merge).
 """
 from __future__ import annotations
 
@@ -35,6 +39,7 @@ from collections import Counter, defaultdict
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 RAW = os.path.join(ROOT, "data", "raw")
+CORRECTIONS = os.path.join(ROOT, "data", "corrections")
 OSM_PARKS = os.path.join(ROOT, "data", "osm", "osm-techparks.json")
 OUT = os.path.join(ROOT, "public", "data", "dataset.json")
 REPORT = os.path.join(ROOT, "data", "report.md")
@@ -503,6 +508,199 @@ def dedupe_offices(offices):
     return kept
 
 
+# ----------------------------------------------------------------------------- corrections
+
+COMPANY_FIELDS = ("name", "category", "origin", "hqCountry", "hqCity", "sector", "description", "website", "founded",
+                  "bengaluruEmployeesApprox", "isUnicorn")
+OFFICE_FIELDS = ("label", "building", "locality", "address", "lat", "lng", "isHq", "status", "confidence", "evidence")
+PARK_FIELDS = ("name", "locality", "developer", "lat", "lng", "bbox", "areaSqFtMillions", "description")
+
+
+def load_corrections():
+    out = []
+    if not os.path.isdir(CORRECTIONS):
+        return out
+    for fn in sorted(os.listdir(CORRECTIONS)):
+        if not fn.endswith(".json"):
+            continue
+        try:
+            with open(os.path.join(CORRECTIONS, fn), encoding="utf-8") as fh:
+                out.append((fn[:-5], json.load(fh)))
+        except json.JSONDecodeError as exc:
+            print(f"!! corrections {fn}: not valid JSON ({exc}); skipped", file=sys.stderr)
+    return out
+
+
+def _find_company(companies, ref):
+    """A correction names a company by id, by exact name, or by normalised name/alias."""
+    if not ref:
+        return None
+    for c in companies:
+        if c["id"] == ref or c["name"] == ref:
+            return c
+    k = company_key(ref)
+    for c in companies:
+        if company_key(c["name"]) == k or any(company_key(a) == k for a in c["aliases"]):
+            return c
+    return None
+
+
+def _find_park(parks, ref):
+    if not ref:
+        return None
+    for p in parks.values():
+        if p["id"] == ref or p["name"] == ref:
+            return p
+    k = park_key(ref)
+    for p in parks.values():
+        if park_key(p["name"]) == k or any(park_key(a) == k for a in p["aliases"]):
+            return p
+    return None
+
+
+def apply_corrections(companies, parks, uf, applied, problems):
+    """Mutates `companies` (list) and `parks` (dict) in place. Runs BEFORE ids are finalised, so an
+    office is addressed by its company plus its 1-based position or its label."""
+    for key, data in load_corrections():
+        for cx in data.get("corrections") or []:
+            ref = cx.get("company")
+            company = _find_company(companies, ref)
+            if company is None:
+                problems.append(f"correction {key}: company '{ref}' not found (stale after a re-merge?); ignored")
+                continue
+            verdict = cx.get("verdict", "keep")
+            note = (cx.get("note") or "").strip()
+            if verdict == "drop":
+                companies.remove(company)
+                applied.append(f"{key}: dropped '{company['name']}' - {note}")
+                continue
+            if verdict == "merge_into":
+                target = _find_company(companies, cx.get("into"))
+                if target is None or target is company:
+                    problems.append(f"correction {key}: merge target '{cx.get('into')}' for '{company['name']}' not found; ignored")
+                    continue
+                for a in [company["name"]] + company["aliases"]:
+                    if a != target["name"] and a not in target["aliases"]:
+                        target["aliases"].append(a)
+                target["offices"] = dedupe_offices(target["offices"] + company["offices"])
+                target["sources"] = sorted(set(target["sources"]) | set(company["sources"]))
+                companies.remove(company)
+                applied.append(f"{key}: merged '{company['name']}' into '{target['name']}' - {note}")
+                continue
+            for f, v in (cx.get("set") or {}).items():
+                if f in COMPANY_FIELDS:
+                    if f == "category" and v not in CATEGORIES:
+                        problems.append(f"correction {key}: bad category '{v}' for '{company['name']}'; ignored"); continue
+                    if f == "origin" and v not in ORIGINS:
+                        problems.append(f"correction {key}: bad origin '{v}' for '{company['name']}'; ignored"); continue
+                    company[f] = v
+                    applied.append(f"{key}: '{company['name']}'.{f} = {v!r} - {note}")
+            for ox in cx.get("offices") or []:
+                office = _find_office(company, ox.get("office"))
+                if office is None:
+                    problems.append(f"correction {key}: office '{ox.get('office')}' of '{company['name']}' not found; ignored")
+                    continue
+                onote = (ox.get("note") or note).strip()
+                if ox.get("verdict") == "drop":
+                    company["offices"].remove(office)
+                    applied.append(f"{key}: dropped office '{office['label']}' of '{company['name']}' - {onote}")
+                    continue
+                for f, v in (ox.get("set") or {}).items():
+                    if f == "techPark":
+                        root = resolve_park(parks, uf, v) if v else None
+                        if v and root is None:
+                            problems.append(f"correction {key}: park '{v}' for office of '{company['name']}' not found; ignored"); continue
+                        office["_parkRoot"] = root
+                        applied.append(f"{key}: office '{office['label']}' of '{company['name']}' moved to park {v!r} - {onote}")
+                    elif f in OFFICE_FIELDS:
+                        if f in ("lat", "lng"):
+                            nl = v if f == "lat" else office["lat"]; ng = v if f == "lng" else office["lng"]
+                            if not inside(nl, ng):
+                                problems.append(f"correction {key}: new coordinates for '{company['name']}' office are outside Bengaluru; ignored"); continue
+                        if f == "status" and v not in STATUSES:
+                            problems.append(f"correction {key}: bad status '{v}'; ignored"); continue
+                        if f == "confidence" and v not in CONFIDENCES:
+                            problems.append(f"correction {key}: bad confidence '{v}'; ignored"); continue
+                        office[f] = v
+                        applied.append(f"{key}: office '{office['label']}' of '{company['name']}'.{f} = {v!r} - {onote}")
+            for o in cx.get("addOffices") or []:
+                lat, lng = o.get("lat"), o.get("lng")
+                if not inside(lat, lng):
+                    problems.append(f"correction {key}: added office for '{company['name']}' is outside Bengaluru; ignored")
+                    continue
+                park_name = o.get("techPark")
+                root = resolve_park(parks, uf, park_name) if park_name else None
+                if park_name and root is None:
+                    problems.append(f"correction {key}: park '{park_name}' for added office of '{company['name']}' not found; office added without a park")
+                company["offices"].append({
+                    "label": (o.get("label") or "Bengaluru office").strip(), "_parkRoot": root, "building": o.get("building") or None,
+                    "locality": (o.get("locality") or "").strip(), "address": (o.get("address") or "").strip(),
+                    "lat": round(float(lat), 6), "lng": round(float(lng), 6), "isHq": bool(o.get("isHq")),
+                    "status": o.get("status") if o.get("status") in STATUSES else "active",
+                    "confidence": o.get("confidence") if o.get("confidence") in CONFIDENCES else "medium",
+                    "evidence": (o.get("evidence") or "").strip(), "_lens": key,
+                })
+                company["offices"] = dedupe_offices(company["offices"])
+                applied.append(f"{key}: added office '{o.get('label')}' to '{company['name']}' - {note}")
+            if company["offices"] == []:
+                companies.remove(company)
+                problems.append(f"correction {key}: '{company['name']}' lost its last office and was dropped")
+        for pm in data.get("parkMerges") or []:
+            src = _find_park(parks, pm.get("from")); dst = _find_park(parks, pm.get("into"))
+            if src is None or dst is None or src is dst:
+                problems.append(f"correction {key}: park merge {pm.get('from')!r} -> {pm.get('into')!r} names an unknown park; ignored")
+                continue
+            src_root = next(r for r, p in parks.items() if p is src)
+            dst_root = next(r for r, p in parks.items() if p is dst)
+            for a in [src["name"]] + src["aliases"]:
+                if a != dst["name"] and a not in dst["aliases"]:
+                    dst["aliases"].append(a)
+            dst["notableTenants"] = sorted(set(dst["notableTenants"]) | set(src["notableTenants"]), key=str.lower)
+            dst["sources"] = sorted(set(dst["sources"]) | set(src["sources"]))
+            if not dst["description"] and src["description"]:
+                dst["description"] = src["description"]
+            for c in companies:
+                for o in c["offices"]:
+                    if o.get("_parkRoot") == src_root:
+                        o["_parkRoot"] = dst_root
+            del parks[src_root]
+            applied.append(f"{key}: merged park '{src['name']}' into '{dst['name']}' - {pm.get('note', '')}")
+        for pf in data.get("parkFixes") or []:
+            park = _find_park(parks, pf.get("park"))
+            if park is None:
+                problems.append(f"correction {key}: park '{pf.get('park')}' not found; ignored")
+                continue
+            for f, v in (pf.get("set") or {}).items():
+                if f in PARK_FIELDS:
+                    if f in ("lat", "lng"):
+                        nl = v if f == "lat" else park["lat"]; ng = v if f == "lng" else park["lng"]
+                        if not inside(nl, ng):
+                            problems.append(f"correction {key}: new coordinates for park '{park['name']}' are outside Bengaluru; ignored"); continue
+                    park[f] = v
+                    if f == "description":
+                        park["verified"] = True
+                    applied.append(f"{key}: park '{park['name']}'.{f} = {str(v)[:60]!r} - {pf.get('note', '')}")
+
+
+def _find_office(company, ref):
+    """By 1-based position ("2"), by office id suffix ("~2"), or by label."""
+    if ref is None:
+        return None
+    ref = str(ref).strip()
+    m = re.search(r"~(\d+)$", ref) or re.fullmatch(r"(\d+)", ref)
+    if m:
+        i = int(m.group(1)) - 1
+        return company["offices"][i] if 0 <= i < len(company["offices"]) else None
+    for o in company["offices"]:
+        if o["label"] == ref:
+            return o
+    k = nk(ref)
+    for o in company["offices"]:
+        if nk(o["label"]) == k:
+            return o
+    return None
+
+
 # ----------------------------------------------------------------------------- assembly
 
 def attach_footprints(parks):
@@ -554,6 +752,8 @@ def build(check_only=False):
             "verified": False,
             "_keys": set(), "_lenses": [],
         }
+    applied = []
+    apply_corrections(companies, parks, uf, applied, problems)
     footprints = attach_footprints(parks)
 
     # unique ids
@@ -615,7 +815,9 @@ def build(check_only=False):
         f"- offices: {offices} (high {by_conf.get('high', 0)}, medium {by_conf.get('medium', 0)}, low {by_conf.get('low', 0)})",
         f"- tech parks: {len(park_list)} ({stub_count} stubs named only by an office, {footprints} with an OSM footprint)",
         "", "## Problems (dropped or suspicious)", "",
-    ] + [f"- {p}" for p in problems] + ([] if problems else ["- none"])
+    ] + [f"- {p}" for p in problems] + ([] if problems else ["- none"]) + [
+        "", f"## Corrections applied ({len(applied)})", "",
+    ] + [f"- {a}" for a in applied] + ([] if applied else ["- none"])
     report = "\n".join(summary) + "\n"
     print(report)
     if check_only:
@@ -637,6 +839,7 @@ if __name__ == "__main__":
     ap.add_argument("--out", help="dataset path to write (default public/data/dataset.json)")
     ap.add_argument("--report", help="report path to write (default data/report.md)")
     ap.add_argument("--osm-parks", help="OSM park polygons for footprints (default data/osm/osm-techparks.json)")
+    ap.add_argument("--corrections", help="directory of correction files (default data/corrections)")
     args = ap.parse_args()
     if args.raw:
         RAW = os.path.abspath(args.raw)
@@ -646,4 +849,6 @@ if __name__ == "__main__":
         REPORT = os.path.abspath(args.report)
     if args.osm_parks:
         OSM_PARKS = os.path.abspath(args.osm_parks)
+    if args.corrections:
+        CORRECTIONS = os.path.abspath(args.corrections)
     sys.exit(build(check_only=args.check))

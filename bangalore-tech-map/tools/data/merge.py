@@ -493,6 +493,11 @@ def merge_companies(slices, parks, uf, problems):
     return companies, stub_parks
 
 
+def coord_hash(o) -> str:
+    """Six hex digits from an office's rounded coordinates: the stable part of its id."""
+    return hashlib.sha1(f"{o['lat']:.4f},{o['lng']:.4f}".encode()).hexdigest()[:6]
+
+
 HQ_WORDS = re.compile(r"\b(hq|headquarters?|head office|corporate office|registered office|campus)\b", re.I)
 
 
@@ -524,6 +529,9 @@ def dedupe_offices(offices):
             )
             close = haversine_m(o["lat"], o["lng"], k["lat"], k["lng"]) <= SAME_OFFICE_METRES
             if same_place or close:
+                # remember every record folded in here, so a correction written against any of them
+                # (by its coordinate id) still finds this office after a better duplicate takes over
+                k.setdefault("_hashes", {coord_hash(k)}).update(o.get("_hashes") or {coord_hash(o)})
                 k["isHq"] = k["isHq"] or o["isHq"]
                 if o["_lens"] != k["_lens"] and CONF_RANK[o["confidence"]] >= 1 and CONF_RANK[k["confidence"]] >= 1:
                     k["confidence"] = "high"
@@ -726,10 +734,9 @@ def _find_office(company, ref):
     ref = str(ref).strip()
     m = re.search(r"~([0-9a-f]{6}(?:-\d+)?)$", ref) or re.fullmatch(r"([0-9a-f]{6}(?:-\d+)?)", ref)
     if m:
-        want = m.group(1)
+        want = m.group(1).split("-")[0]
         for o in company["offices"]:
-            digest = hashlib.sha1(f"{o['lat']:.4f},{o['lng']:.4f}".encode()).hexdigest()[:6]
-            if want == digest or want.startswith(digest + "-"):
+            if want == coord_hash(o) or want in (o.get("_hashes") or ()):
                 return o
         return None
     m = re.fullmatch(r"(\d+)", ref)
@@ -821,7 +828,7 @@ def build(check_only=False):
         taken = set()
         for o in c["offices"]:
             # stable across re-merges: derived from where the office is, not from its position in the list
-            digest = hashlib.sha1(f"{o['lat']:.4f},{o['lng']:.4f}".encode()).hexdigest()[:6]
+            digest = coord_hash(o)
             oid = f"{c['id']}~{digest}"
             n = 2
             while oid in taken:
@@ -831,7 +838,7 @@ def build(check_only=False):
             o["techParkId"] = root_to_id.get(o.pop("_parkRoot")) if o.get("_parkRoot") else None
             if o["techParkId"]:
                 tenants_by_park[o["techParkId"]].add(c["name"])
-            o.pop("_lens", None); o.pop("_corroborated_by", None)
+            o.pop("_lens", None); o.pop("_corroborated_by", None); o.pop("_hashes", None)
     for p in parks.values():
         names = set(p["notableTenants"]) | tenants_by_park.get(p["id"], set())
         p["notableTenants"] = sorted(names, key=lambda x: (x.lower(), x))

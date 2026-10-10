@@ -11,10 +11,10 @@ Angular 22 · MapLibre GL JS 6 · OpenFreeMap vector tiles · no API keys.
 
 | | |
 |---|---|
-| Companies | **862** — 488 MNC, 127 mid-size, 213 startup, 34 PSU |
-| Offices (branches) | **1538** — 800 well evidenced, 556 one source, 182 unconfirmed; 302 companies have more than one Bengaluru office |
+| Companies | **860** — 489 MNC, 125 mid-size, 212 startup, 34 PSU |
+| Offices (branches) | **1531** — 810 well evidenced, 553 one source, 168 unconfirmed; 303 companies have more than one Bengaluru office |
 | Tech parks and campuses | **216** (158 with an OpenStreetMap footprint) |
-| Busiest parks | RMZ Ecoworld (81), Manyata Tech Park (60), Bagmane Tech Park (42), Electronics City Phase 1 (40), Embassy TechVillage (39), Embassy GolfLinks Business Park (33) |
+| Busiest parks | RMZ Ecoworld (80), Manyata Tech Park (60), Bagmane Tech Park (42), Electronics City Phase 1 (39), Embassy TechVillage (39), Embassy GolfLinks Business Park (33) |
 
 Every number above is recomputed by `python3 tools/data/update_readme.py`; `data/report.md` has the full merge log.
 <!-- GLANCE:END -->

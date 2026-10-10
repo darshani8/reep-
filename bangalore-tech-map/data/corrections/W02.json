@@ -1,0 +1,170 @@
+{
+ "key": "W02",
+ "corrections": [
+  {
+   "company": "apotex",
+   "verdict": "keep",
+   "note": "Apotex Research Pvt Ltd is current at the Bommasandra-Jigani Link Road 4th Phase site: Malaysia's NPRA foreign bioequivalence-centre register lists it at Site No. 2, Bommasandra Industrial Area Phase IV, Jigani Link Road, Bangalore 560099 with validity to Nov 2026 (https://npra.gov.my/index.php/en/be-studies-centres/foreign-bioequivalence-centre.html), matching the OSM node; raised to medium.",
+   "offices": [
+    {
+     "office": "apotex~ba4af3",
+     "verdict": "fix",
+     "note": "Regulator listing plus a WHO-GMP directory entry independently confirm the site; plot numbering differs between sources (Site 1A in OSM, Plots 1 & 2 / Site 2 in the registers), so medium, not high.",
+     "set": {
+      "address": "Plots 1 & 2 (Apotex Research) and Site 1A (Apotex Pharmachem), 4th Phase, Bommasandra Industrial Area, Jigani Link Road, Bengaluru 560099",
+      "confidence": "medium",
+      "evidence": "Malaysia NPRA's foreign bioequivalence-centre register lists Apotex Research Private Limited's clinical/bioanalytical site at 'Site No. 2, Bommasandra Industrial Area, Phase IV, Jigani Link Road, Jigani Hobli, Bangalore-560099', certificate valid to 16 Nov 2026 (https://npra.gov.my/index.php/en/be-studies-centres/foreign-bioequivalence-centre.html); a WHO-GMP directory gives 'Plot No. 1 & 2, 4th Phase, Jigani Link Road, Bommasandra Ind. Area, Bangalore-99' (https://pharmacompass.com/who-gmp-certificate/apotex-inc); OSM maps 'Apotex Research Pvt. Ltd.' (https://www.openstreetmap.org/node/4487854637) beside the 'Apotex Pharmachem india pvt. ltd.' works polygon (https://www.openstreetmap.org/way/841048449), which is the pin."
+     }
+    }
+   ]
+  },
+  {
+   "company": "dedienne-aerospace",
+   "verdict": "keep",
+   "note": "Could not confirm the site from a primary source: IFCCI's Dedienne testimonial (https://www.ifcci.org.in/leadership-article/testimonials/dedienne-aerospace.html) confirms an Indian subsidiary set up with IFCCI's Bangalore office but names no plant; the only location evidence remains the OSM industrial polygon, so the office stays low.",
+   "offices": [
+    {
+     "office": "dedienne-aerospace~a0e80f",
+     "verdict": "keep",
+     "note": "Pin is the centroid of OSM way/991727365 'Dedienne Aerospace India Pvt. Ltd.'; no company page or press gives an address, so it stays low."
+    }
+   ]
+  },
+  {
+   "company": "forvia",
+   "verdict": "keep",
+   "note": "FORVIA Faurecia India does operate in Bengaluru: Machinist (8 Aug 2025) reports a new JIT plant in Bengaluru supplying Hyundai-Kia and says its India footprint includes production and R&D in Bengaluru (https://machinist.in/2025/08/forvia-faurecia-india-opens-new-jit-facility-in-bengaluru-to-supply-hyundai-kia/); no source names the Attibele plot, so the office stays low.",
+   "offices": [
+    {
+     "office": "forvia~876f7b",
+     "verdict": "fix",
+     "note": "Added the 2025 press confirmation of Bengaluru production to the evidence; the specific Attibele plot is still OSM-only, so confidence stays low.",
+     "set": {
+      "evidence": "OSM maps an industrial plot 'Faurecia Automotive Seating I P Ltd' in the Attibele KIADB estate (https://www.openstreetmap.org/way/1119938395); Machinist (8 Aug 2025) reports FORVIA Faurecia India opening a JIT facility in Bengaluru for Hyundai-Kia and says its India footprint includes production facilities in Bengaluru, without naming the locality (https://machinist.in/2025/08/forvia-faurecia-india-opens-new-jit-facility-in-bengaluru-to-supply-hyundai-kia/). Whether this OSM plot is that plant is unconfirmed."
+     }
+    }
+   ]
+  },
+  {
+   "company": "ltimindtree",
+   "verdict": "keep",
+   "note": "Resolved the EPIP proximity flags with OSM: 'L&T Mind Tree' (way/84086381) and 'Larsen & Toubro Infotech Ltd' (way/122668435) are adjoining parcels of one campus west of the separate Gopalan Global Axis polygon (way/123613252), so the generic Whitefield record duplicates the Plot 25-31 campus and is dropped, while Global Axis (Plot 152) is a distinct building on the company's own list and stays.",
+   "offices": [
+    {
+     "office": "ltimindtree~436513",
+     "verdict": "drop",
+     "note": "Duplicate of ltimindtree~aa9908: its evidence cites the same LTI polygon (way/122668435) plus the adjoining 'L&T Mind Tree' parcel, 195 m from the Plot 25-31 pin; only a directory backs it."
+    },
+    {
+     "office": "ltimindtree~aa9908",
+     "verdict": "fix",
+     "note": "Kept as the one EPIP Phase 2 campus; took the park and the two OSM polygons from the dropped duplicate. The cited global-presence PDF now redirects to ltm.com/investors, so it could not be re-read; confidence stays medium.",
+     "set": {
+      "label": "EPIP Phase 2 campus (Plot 25-31; former LTI and Mindtree Whitefield offices)",
+      "techPark": "EPIP Zone Whitefield",
+      "evidence": "LTIMindtree's annual-report global-presence list gives 'Plot No. 25-31, Phase 2, EPIP, KIADB Industrial Area, Whitefield, Bengaluru 560066' (https://ltimindtree.com/annual-report-html/pdf/global-presence.pdf, now redirecting to ltm.com); OSM maps the adjoining parcels 'Larsen & Toubro Infotech Ltd' (https://www.openstreetmap.org/way/122668435, the pin) and 'L&T Mind Tree' (https://www.openstreetmap.org/way/84086381)."
+     }
+    },
+    {
+     "office": "ltimindtree~5fc00b",
+     "verdict": "keep",
+     "note": "Distinct building: Gopalan Global Axis is Plot 152, a separate OSM polygon (way/123613252) east of the LTI parcels, and the company's list names it separately (4th-7th floors); pin is that polygon's centroid."
+    }
+   ]
+  },
+  {
+   "company": "novartis",
+   "verdict": "drop",
+   "note": "No findable Bengaluru office: Novartis's own India site-locations page lists only Mumbai (Inspire BKC) and Hyderabad (Sattva Knowledge City) (https://www.novartis.com/in-en/about/india-site-locations), its 2025 India job listings are Hyderabad office roles plus field-sales territories, and the only Bengaluru address is a stale third-party directory entry."
+  },
+  {
+   "company": "qualcomm",
+   "verdict": "keep",
+   "note": "The two EPIP records are one campus: OSM's six Qualcomm POIs there all sit within about 400 m (12.9725-12.9761 N, 77.7176-77.7188 E), so the OSM-only 'Plot 24' record is dropped into the Plot 125-127 one. The cited ISO 9001 certificate (DEKRA, issued 8 June 2026) now lists only San Diego and no Bangalore site, so that office drops from high to medium.",
+   "offices": [
+    {
+     "office": "qualcomm~329a2b",
+     "verdict": "drop",
+     "note": "Same EPIP campus as qualcomm~464fd9 (300 m apart, both inside one cluster of Qualcomm POIs); OSM-only. Its park and HQ flag move to the kept record."
+    },
+    {
+     "office": "qualcomm~464fd9",
+     "verdict": "fix",
+     "note": "Kept as the single EPIP campus with the park and isHq from the dropped duplicate. Downgraded to medium because the current ISO certificate (https://www.qualcomm.com/content/dam/qcomm-martech/dm-assets/documents/qualcomm-iso-9001-certificate.pdf) no longer carries a site list, and OSM tags the plot as 153-154 rather than 125-127.",
+     "set": {
+      "label": "EPIP Phase II campus, Whitefield",
+      "techPark": "EPIP Zone Whitefield",
+      "isHq": true,
+      "address": "EPIP Zone Phase II, Whitefield, Bengaluru 560066 (plot given as 125-127 in an earlier Qualcomm ISO 9001 certificate; OSM tags 153-154)",
+      "confidence": "medium",
+      "evidence": "OSM maps a cluster of Qualcomm office POIs on one EPIP Phase II campus: node/9851123909 (the pin), node/9851123907, node/9851123910 (housenumber '153,154'), node/11108008390 and node/3743283303 ('EPIP Zone, Brookefield, 24 - Blk 1, 560066') (https://www.openstreetmap.org/node/9851123909). The plot number 125-127 came from an earlier Qualcomm ISO 9001 certificate; the current one (DEKRA, issued 8 June 2026) lists only San Diego, so the plot is unconfirmed (https://www.qualcomm.com/content/dam/qcomm-martech/dm-assets/documents/qualcomm-iso-9001-certificate.pdf)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "siemens-healthineers",
+   "verdict": "keep",
+   "note": "The record is the Siemens group in all but its name: it has 1847 as founded, the 'Automotive & industrial' sector and aliases for every Siemens unit, and holds Siemens Technology and Services, Siemens Ltd and Siemens-brand sites. Renamed it 'Siemens' rather than drop those real offices. The Siemens PLM POI could not be confirmed from any Siemens source and is dropped. The Healthineers campus is still 'planned': its foundation stone was laid on 15 March 2023, and no opening report was found (https://biospectrumindia.com/news/98/22808/siemens-healthineers-lays-foundation-stone-for-new-campus-in-bengaluru.html).",
+   "set": {
+    "name": "Siemens",
+    "description": "German industrial-technology group. In Bengaluru it runs the Siemens Technology and Services campus at 84 Hosur Road, Electronic City Phase 1, and Siemens Healthineers (a separately listed, Siemens-controlled medtech) has its development centre in Electronic City Phase 2 (imaging and diagnostics software, ~3,300 staff). Healthineers is also building an INR 1,300 crore R&D, manufacturing and India-HQ campus in Bommasandra (foundation stone 15 March 2023). The employee figure covers the Healthineers centre only."
+   },
+   "offices": [
+    {
+     "office": "siemens-healthineers~24ce59",
+     "verdict": "drop",
+     "note": "'Siemens PLM Software' is Siemens Digital Industries Software, and the dataset has no record for that company. The only evidence is an undated OSM POI near Lavelle Road (node/1474007530); no Siemens or press source for a Siemens Industry Software office there was found, so its current existence is unconfirmed."
+    },
+    {
+     "office": "siemens-healthineers~b719d3",
+     "verdict": "keep",
+     "note": "Status 'planned' confirmed: foundation stone laid 15 March 2023 for the Rs 1,300 crore campus combining R&D, manufacturing and the India HQ (BioSpectrum); no opening report found as of Oct 2026."
+    }
+   ]
+  },
+  {
+   "company": "table-space",
+   "verdict": "keep",
+   "note": "Re-read Table Space's Bengaluru list (https://tablespace.com/locations/bengaluru): it lists 28 centres. 'DivyaSree Greens' and 'Embassy Golf Links' are separate entries, as are 'Prestige Obelisk' and 'UB City', so the flagged pairs are neighbouring buildings and not duplicates. The UB City record had wrongly taken the separately listed 'Table Space Towers Vittal Mallya Road' as its building.",
+   "offices": [
+    {
+     "office": "table-space~34f689",
+     "verdict": "keep",
+     "note": "A distinct centre ('Table Space DivyaSree Greens') in a separate OSM campus (way/217566878) beside EGL; not the EGL centre."
+    },
+    {
+     "office": "table-space~149d09",
+     "verdict": "keep",
+     "note": "A distinct centre ('Table Space Embassy Golf Links', slug /egl) inside the EGL park; 175 m from Divyasree Greens but a different campus."
+    },
+    {
+     "office": "table-space~058404",
+     "verdict": "keep",
+     "note": "A distinct centre ('Table Space Prestige Obelisk') on Kasturba Road; pin on the OSM outline of Prestige Obelisk, 390 m from UB City."
+    },
+    {
+     "office": "table-space~df1126",
+     "verdict": "fix",
+     "note": "The centre page (https://tablespace.com/locations/bengaluru/ub-city) gives 'UB City, Vittal Mallya Road, Ashok Nagar, Bengaluru-01' and names no tower; 'Table Space Towers next to Coffee Day Square' is the separate 'Table Space Towers Vittal Mallya Road' centre.",
+     "set": {
+      "building": "UB City"
+     }
+    }
+   ]
+  },
+  {
+   "company": "zoom",
+   "verdict": "keep",
+   "note": "Bengaluru presence confirmed from a primary source: Zoom's contact page lists 'Bangalore, India' and 'Mumbai, India' as its India offices (https://www.zoom.com/en/contact/). No street address was found in any company or press source, so the Embassy TechVillage Block L pin stays low.",
+   "offices": [
+    {
+     "office": "zoom~c5efbc",
+     "verdict": "keep",
+     "note": "City-level presence is primary-confirmed; the building (Block L, Embassy TechVillage) rests only on a Glassdoor listing and two targeted searches found nothing, so it stays low."
+    }
+   ]
+  }
+ ],
+ "notes": "Could not re-read LTIMindtree's global-presence PDFs: ltimindtree.com redirects to ltm.com, which 404s or sends you to /investors. The EPIP decision rests on the OSM polygons. Qualcomm's offices page is JS-rendered and its current ISO certificate has no site list, so the EPIP plot number (125-127 vs 153-154) is unresolved. No primary source places Dedienne Aerospace India's Budigere plot, FORVIA's Attibele plot or Zoom's building; they stay low and are kept because the companies' Bengaluru presence is otherwise attested. I renamed siemens-healthineers to 'Siemens' because its contents are the group's. bengaluruEmployeesApprox (3300) is still the Healthineers centre's figure and understates the group, but the schema cannot null it. Siemens' WTC (2011 lease) and Gold Hill offices were left at low, unchecked. Table Space's list has two centres the dataset lacks: 'Manyata Embassy Business Park (L6)' and 'Table Space Towers Vittal Mallya Road'. I did not add them because their centre pages could not be fetched for addresses (the guessed slug 404s), and an L6 pin would sit on the Manyata centroid already used by MFAR 2B."
+}

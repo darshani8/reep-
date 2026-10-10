@@ -1,0 +1,264 @@
+{
+ "key": "W04",
+ "corrections": [
+  {
+   "company": "cowrks",
+   "verdict": "keep",
+   "note": "CoWrks' own Bengaluru page (https://www.cowrks.com/locations/bengaluru) embeds every centre with its address and coordinates: 'centennial-3' (Campus D) and 'whitefield-nxt' are separate centres with their own coordinates inside RMZ Centennial and RMZ NXT respectively, so the flagged pair is not a duplicate; the page also lists a ninth centre (Centennial C-Block) and gives the contact address Unit 804, Campus 7, Ecoworld, both added.",
+   "set": {
+    "description": "Coworking and managed-office operator launched in 2016 by Bengaluru developer RMZ Corp and funded by its promoters rather than venture capital (hence MID_SIZE, not STARTUP); its first and flagship centre is in RMZ Ecoworld and most of its Bengaluru centres are in RMZ campuses. Its own site lists nine Bengaluru centres (two of them at RMZ Centennial) and gives Unit 804, Campus 7, Ecoworld as its contact address, recorded here as the corporate office."
+   },
+   "offices": [
+    {
+     "office": "cowrks~d39d06",
+     "verdict": "fix",
+     "note": "Distinct centre from Whitefield NXT (different slug, Salesforce id and coordinates); moved the pin from the park centroid to CoWrks' own coordinates (~85 m) and raised confidence.",
+     "set": {
+      "lat": 12.976542,
+      "lng": 77.712027,
+      "confidence": "high",
+      "evidence": "CoWrks' own Bengaluru page lists centre 'Whitefield, Centennial 3' (slug 'centennial-3') at 'Campus D Centennial, 7th Cross Rd, Whitefield, EPIP Zone, Brookfield, Bangalore 560066' with coordinates 12.976542, 77.712027, inside the OSM RMZ Centennial polygon (way/122668454): https://www.cowrks.com/locations/bengaluru"
+     }
+    },
+    {
+     "office": "cowrks~967fe1",
+     "verdict": "fix",
+     "note": "Distinct centre from Centennial Campus D; CoWrks' own coordinates fall inside the OSM RMZ NXT polygon (way/123613255, now tagged Arliga NXT), confirming the building inference. Pin moved to those coordinates (~75 m).",
+     "set": {
+      "lat": 12.978316,
+      "lng": 77.713263,
+      "building": "RMZ NXT (Arliga NXT)",
+      "confidence": "high",
+      "evidence": "CoWrks' own Bengaluru page lists centre 'whitefield-nxt' at 'EPIP Industrial Area, Whitefield Road, K.R. Puram Hobli, Near SAP Labs, Bangalore 560066' with coordinates 12.978316, 77.713263, which fall inside the OSM RMZ NXT / Arliga NXT polygon (way/123613255): https://www.cowrks.com/locations/bengaluru"
+     }
+    },
+    {
+     "office": "cowrks~308464",
+     "verdict": "fix",
+     "note": "CoWrks' own coordinates for 'cowrks-ecospace-3b' (12.925228, 77.681615) sit inside the RMZ Ecospace outline the dataset files under rmz-ecoworld; pin moved (~150 m) and confidence raised.",
+     "set": {
+      "lat": 12.925228,
+      "lng": 77.681615,
+      "confidence": "high",
+      "evidence": "CoWrks' own Bengaluru page lists centre 'Ecospace 3B' (slug 'cowrks-ecospace-3b') at '1st Floor, Campus 3B, Outer Ring Rd, Adarsh Palm Retreat, Bellandur, Bengaluru 560103' with coordinates 12.925228, 77.681615 (inside OSM RMZ Ecospace way/361528993): https://www.cowrks.com/locations/bengaluru"
+     }
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "Centre - RMZ Centennial, C-Block (5th floor)",
+     "building": "C-Block (5th floor)",
+     "techPark": "RMZ Centennial",
+     "locality": "Kundalahalli / EPIP Zone, Whitefield",
+     "address": "5th Floor, C-Block, Centennial, EPIP Zone, Whitefield, Bengaluru 560066",
+     "lat": 12.976416,
+     "lng": 77.711978,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "CoWrks' own Bengaluru page lists a centre 'centennial' (separate from 'centennial-3', different Salesforce id) at '5th floor C-Block, Centennial EPIP zone, Bangalore 560066' with coordinates 12.976416, 77.711978 (company-supplied, inside OSM RMZ Centennial way/122668454): https://www.cowrks.com/locations/bengaluru"
+    },
+    {
+     "label": "Corporate / contact office - RMZ Ecoworld Campus 7",
+     "building": "Campus 7 (Unit 804, 8th floor)",
+     "techPark": "RMZ Ecoworld",
+     "locality": "Devarabeesanahalli, Bellandur (Outer Ring Road)",
+     "address": "Unit No. 804, 8th Floor, Campus 7, Ecoworld, Sarjapur-Marathahalli Outer Ring Road, Bengaluru 560103",
+     "lat": 12.920942,
+     "lng": 77.683266,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "CoWrks' own site settings give its contact address (with +91 80658 78980 and solutions@cowrks.com) as 'Unit No. 804, 8th Floor, Campus 7, Ecoworld, Sarjapur, Marathahalli, Outer Ring Road, Bangalore 560103' (https://www.cowrks.com/locations/bengaluru); its role as corporate office is an inference. Point is the OSM 'Campus 7' office building (way/536911311)."
+    }
+   ]
+  },
+  {
+   "company": "elmeasure",
+   "verdict": "keep",
+   "note": "Elmeasure's own contact page gives its main and registered office as No. 47-P, KIADB Hardware Park, Huvinayakanahalli, Jala Hobli, Yelahanka Taluk, Bengaluru 562149, and its About page says it was founded in 2004 (https://www.elmeasure.com/contact-us); the OSM 'Elmeasure' polygon in the park matches.",
+   "set": {
+    "founded": 2004,
+    "description": "Bengaluru energy-metering and power-monitoring equipment maker founded in 2004; its main and registered office is at No. 47-P, KIADB Hardware Park, near the airport, with further units and sales offices elsewhere in India."
+   },
+   "offices": [
+    {
+     "office": "elmeasure~532d10",
+     "verdict": "fix",
+     "note": "Confirmed from the company's own contact page as its main/registered office; set isHq, full address and high confidence. Pin (OSM polygon centroid) kept.",
+     "set": {
+      "label": "Elmeasure HQ & plant - KIADB Hardware Park (No. 47-P)",
+      "building": "No. 47-P",
+      "locality": "Huvinayakanahalli, Jala Hobli (KIADB Hardware Park)",
+      "address": "Elmeasure India Pvt Ltd, No. 47-P, KIADB Hardware Park, Huvinayakanahalli, Jala Hobli, Yelahanka Taluk, Bengaluru 562149",
+      "isHq": true,
+      "confidence": "high",
+      "evidence": "Elmeasure's contact page lists 'Elmeasure India Pvt Ltd, No. 47-P, KIADB Hardware Park, Huvinayakanahalli, Jala Hobli, Yelahanka Taluk, Bengaluru 562149' as both its main address and its registered office (https://www.elmeasure.com/contact-us); OSM maps an 'Elmeasure' industrial polygon in the park (https://www.openstreetmap.org/way/1328149082)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "icici-bank",
+   "verdict": "keep",
+   "note": "ICICI's own branch page confirms the M G Road branch (IFSC ICIC0000002) at '1, Shobha Pearl, Commissariat Road, Off MG Road, Ground Floor, Bengaluru 560025', with map coordinates ~20 m from the pin (https://www.icici.bank.in/branch/karnataka/bengaluru/icic0000002); 'ICICI Bank Towers' appears only in IFSC aggregators and nothing supports calling it the regional office.",
+   "set": {
+    "description": "India's second-largest private bank (Mumbai HQ, listed, well over 10,000 staff); recorded here by its M G Road branch at 1 Commissariat Road (Sobha Pearl, listed in older directories as ICICI Bank Towers). No Bengaluru regional or technology office was confirmed."
+   },
+   "offices": [
+    {
+     "office": "icici-bank~721d60",
+     "verdict": "fix",
+     "note": "Confirmed from ICICI's own branch page; relabelled as the M G Road branch (not a regional office), building corrected to Sobha Pearl, evidence URL added. Pin is within ~20 m of the bank's own map link, so kept.",
+     "set": {
+      "label": "M G Road branch - 1 Commissariat Road (Sobha Pearl)",
+      "building": "Sobha Pearl (listed in IFSC directories as ICICI Bank Towers)",
+      "address": "1, Shobha Pearl, Commissariat Road, Off MG Road, Ground Floor, Bengaluru 560025",
+      "confidence": "high",
+      "evidence": "ICICI Bank's branch page for 'Bangalore - M G Road' (IFSC ICIC0000002) gives '1, Shobha Pearl, Commissariat Road, Off MG Road, Ground Floor, Bengaluru 560025' and a map link at 12.97287, 77.61101: https://www.icici.bank.in/branch/karnataka/bengaluru/icic0000002. IFSC aggregators (e.g. https://www.bankbazaar.com/ifsc-code/icici-bank/karnataka/bangalore-urban/bangalore-m-g-road-branch.html) list the same branch as 'Icici Bank Towers, 1, Commissariat Road'."
+     }
+    }
+   ]
+  },
+  {
+   "company": "mercedes-benz-research-and-development-india",
+   "verdict": "keep",
+   "note": "Not a duplicate: Mercedes-Benz's careers page gives Whitefield Palms (Plot 9 & 10) as MBRDI's visitor/postal address, and Dec 2014 coverage describes Embassy Crest as a new facility 'located close to Whitefield Palms - the head office of MBRDI'; OSM maps them as adjacent separate polygons. The HQ flag was on the wrong one and is swapped.",
+   "set": {
+    "description": "Mercedes-Benz Group's largest R&D centre outside Germany (founded 1996); its head office is Whitefield Palms (Plot 9 & 10, EPIP Zone Phase 1, inaugurated 2012), with the adjoining Embassy Crest facility opened in December 2014 and a further site at Brigade Tech Gardens."
+   },
+   "offices": [
+    {
+     "office": "mercedes-benz-research-and-development-india~8ded28",
+     "verdict": "fix",
+     "note": "This is MBRDI's head office per the company's careers page and press coverage; set isHq and building. Separate from Embassy Crest (distinct plot numbers and OSM polygons way/122668477 vs way/181699297).",
+     "set": {
+      "label": "Whitefield Palms - MBRDI head office (Plot 9 & 10)",
+      "building": "Whitefield Palms",
+      "isHq": true,
+      "evidence": "Mercedes-Benz's careers location page gives MBRDI's visitor and postal address as Whitefield Palms, Plot Nos. 9 & 10, Whitefield Main Road, EPIP Zone Phase 1, Bangalore 560066 (https://group.mercedes-benz.com/careers/about-us/locations/location-detail-page-18185.html; 403 to direct fetch this run, content read via search index); press coverage calls Whitefield Palms the head office, inaugurated 2012 (https://www.automotiveworld.com/news/mercedes-benz-research-development-india-20-years-mercedes-benz-rd-india/)."
+     }
+    },
+    {
+     "office": "mercedes-benz-research-and-development-india~b7af9d",
+     "verdict": "fix",
+     "note": "A real second facility next to the head office, not the HQ; isHq cleared, building set, press evidence added.",
+     "set": {
+      "label": "Embassy Crest facility - Whitefield (EPIP Zone Phase 1)",
+      "building": "Embassy Crest",
+      "isHq": false,
+      "evidence": "Press coverage of December 2014 reports MBRDI inaugurated a new facility 'located close to Whitefield Palms - the head office of MBRDI', called Embassy Crest, with capacity for 2,400+ staff (https://themachinist.in/news/1870/mercedes-benz-expands-facilities-bangalore-pune, https://autocarpro.in/news-national/mercedes-benz-india-expands-facilities-bangalore-pune-16817); OSM maps an MBRDI POI with website mbrdi.co.in at the Embassy Crest polygon (https://www.openstreetmap.org/node/6325151821, https://www.openstreetmap.org/way/181699297)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "prestige-group",
+   "verdict": "keep",
+   "note": "A BSE filing records the registered office shifting from The Falcon House, No. 1 Main Guard Cross Road, to Prestige Falcon Tower, No. 19 Brunton Road, w.e.f. 28 Oct 2019 (https://bseindia.com/xml-data/corpfiling/AttachHis/0e1d0179-b39c-4d70-8d77-37674a71e686.pdf); the FY2022-23 BRSR gives Falcon Tower as registered and corporate office and 12,145 total employees on a consolidated basis, which makes this listed Indian company MNC under the rules.",
+   "set": {
+    "category": "MNC",
+    "description": "Bengaluru's largest listed developer and the builder of many CBD towers; its registered and corporate office has been Prestige Falcon Tower, 19 Brunton Road, since 28 Oct 2019 (before that The Falcon House, Main Guard Cross Road). Listed, with 12,145 total employees in FY2022-23 per its BRSR."
+   },
+   "offices": [
+    {
+     "office": "prestige-group~0685e3",
+     "verdict": "fix",
+     "note": "Confirmed as the current registered and corporate office by the company's own exchange filings; set isHq and high confidence.",
+     "set": {
+      "label": "Registered & corporate office - Prestige Falcon Tower",
+      "isHq": true,
+      "confidence": "high",
+      "evidence": "Prestige Estates' BSE intimation records the registered office moving to 'Prestige Falcon Tower, No. 19, Brunton Road, Bengaluru 560025' w.e.f. 28 Oct 2019 (https://bseindia.com/xml-data/corpfiling/AttachHis/0e1d0179-b39c-4d70-8d77-37674a71e686.pdf), and its FY2022-23 BRSR gives the same address as registered and corporate office (https://bseindia.com/xml-data/corpfiling/AttachHis/5c93efc3-ead1-4247-aefe-725528e88e91.pdf). Point is the OSM tower outline (https://www.openstreetmap.org/way/781183660)."
+     }
+    },
+    {
+     "office": "prestige-group~460868",
+     "verdict": "drop",
+     "note": "Contradicted by a primary source: the company's BSE filing says the registered office left The Falcon House for Prestige Falcon Tower on 28 Oct 2019 (https://bseindia.com/xml-data/corpfiling/AttachHis/0e1d0179-b39c-4d70-8d77-37674a71e686.pdf); nothing shows a current Prestige office there, and the OSM node is a leftover."
+    }
+   ]
+  },
+  {
+   "company": "sap",
+   "verdict": "keep",
+   "note": "SAP's own office-locations pages (https://www.sap.com/about/company/office-locations/india.html, read via search index; 403 to direct fetch) list SAP Labs India at #138 EPIP Zone and separately at RMZ NXT 2A/2B Sonnenahalli, plus SAP India Pvt Ltd at 6th Floor, RMZ Ecoworld 8A Campus, so the flagged #138/RMZ NXT pair are two real adjoining sites.",
+   "set": {
+    "description": "German enterprise-software group; SAP Labs India (est. 1998) is headquartered on its own campus at #138 EPIP Zone, Whitefield, with an adjoining office in RMZ NXT and a 41-acre Innovation Park at Devanahalli opened in August 2025; SAP India Pvt Ltd has an office at RMZ Ecoworld Campus 8A on the Outer Ring Road."
+   },
+   "offices": [
+    {
+     "office": "sap~56e43f",
+     "verdict": "keep",
+     "note": "Not a duplicate of RMZ NXT: SAP lists both addresses separately. The pin is the OSM 'SAP Labs India Pvt. Ltd.' node tagged 138 EPIP Zone (node/4489121316), inside the SAP Labs polygon (way/123613246)."
+    },
+    {
+     "office": "sap~967fe1",
+     "verdict": "fix",
+     "note": "Confirmed on SAP's own office-locations listing as a separate SAP Labs India site; the pin is the RMZ NXT polygon centroid, about 170 m from the #138 campus.",
+     "set": {
+      "confidence": "high",
+      "evidence": "SAP's office-locations page for India and its SAP Labs India page list 'RMZ NXT, 2A/2B, Sonnenahalli Village, Mahadevapura, East Taluk, Bangalore 560066' as an SAP Labs India office separate from #138 EPIP Zone (https://www.sap.com/about/company/office-locations/india.html, https://www.sap.com/india/about/labs-india.html; both 403 to direct fetch this run, text read via search index)."
+     }
+    },
+    {
+     "office": "sap~6886f7",
+     "verdict": "fix",
+     "note": "SAP's own office-locations listing gives SAP India Pvt Ltd at the 6th floor of RMZ Ecoworld 8A Campus, matching the OSM pin on the Campus 8A building; relabelled from 'SAP Ariba' and confidence raised.",
+     "set": {
+      "label": "SAP India Pvt Ltd - RMZ Ecoworld Campus 8A (6th floor)",
+      "building": "Campus 8A (6th floor)",
+      "address": "6th Floor, RMZ Ecoworld, 8A Campus, Sarjapur-Marathahalli Outer Ring Road, Bengaluru 560103",
+      "confidence": "high",
+      "evidence": "SAP's office-locations page for India lists SAP India Pvt. Ltd. at '6th Floor, RMZ Ecoworld, 8A Campus, Sarjapur-Marathahalli Outer Ring Road' (https://www.sap.com/about/company/office-locations/india.html, read via search index); OSM has an 'SAP Ariba' office node on the Campus 8A building (https://www.openstreetmap.org/node/11553915382)."
+     }
+    },
+    {
+     "office": "sap~fc0ed8",
+     "verdict": "fix",
+     "note": "Evidence is two OSM nodes only, not a primary source, and this address was not among the Bengaluru sites seen on SAP's own listings; downgraded to medium.",
+     "set": {
+      "confidence": "medium"
+     }
+    }
+   ]
+  },
+  {
+   "company": "star-air",
+   "verdict": "keep",
+   "note": "Bengaluru base confirmed only from secondary sources (Wikipedia: main base Kempegowda International Airport, https://en.wikipedia.org/wiki/Star_Air_(India)); starair.in's contact page gives no address, and the operating company Ghodawat Enterprises Pvt Ltd (CIN U74999PN1995PTC201850) is registered at Chipri, Jaysingpur, Kolhapur district, Maharashtra (https://www.infyner.com/company/ghodawat/U74999PN1995PTC201850). Kept because its main base is in Bengaluru; the office stays low.",
+   "set": {
+    "description": "Regional airline of the Kolhapur-based Sanjay Ghodawat Group (operator Ghodawat Enterprises Pvt Ltd, registered in Kolhapur district, Maharashtra), with its main base at Kempegowda International Airport, Bengaluru; the only mapped Bengaluru office is an unconfirmed OSM node in the KIADB IT sector near the airport."
+   },
+   "offices": [
+    {
+     "office": "star-air~f28594",
+     "verdict": "fix",
+     "note": "Still unconfirmed by the airline (its contact page gives no address), and the operating company's registered office is in Maharashtra, so this OSM node should not carry the HQ flag; confidence stays low.",
+     "set": {
+      "isHq": false,
+      "evidence": "Only an OSM office node 'Star Air' places an office here (https://www.openstreetmap.org/node/12211501431). Wikipedia gives the airline's main base as Kempegowda International Airport (https://en.wikipedia.org/wiki/Star_Air_(India)); starair.in/contact-us lists phone numbers and emails but no address, and the operator Ghodawat Enterprises Pvt Ltd is registered in Kolhapur district, Maharashtra (https://www.infyner.com/company/ghodawat/U74999PN1995PTC201850)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "verizon",
+   "verdict": "keep",
+   "note": "Verizon's own Feb 2024 'Up to Speed' transcript confirms a Bengaluru facility among its five in India (https://www.verizon.com/about/sites/default/files/UpToSpeedLive-022924.pdf), so the company stays; neither building could be confirmed from a primary source and both offices stay low.",
+   "offices": [
+    {
+     "office": "verizon~1a0140",
+     "verdict": "keep",
+     "note": "Unconfirmed: the Fishbowl post returned 403 and the YouTube video is titled only 'Verizon Bangalore Office' (no location in the title, https://www.youtube.com/watch?v=9V5Nt3iOMyU); searches found no lease report or Verizon page naming Prestige Tech Park. Stays low."
+    },
+    {
+     "office": "verizon~041218",
+     "verdict": "keep",
+     "note": "Directory-only (D&B) listing of unknown age; searches found no other source tying Verizon to Torrey Pines / Embassy GolfLinks. Stays low and may be stale."
+    }
+   ]
+  }
+ ],
+ "notes": "sap.com returned 403 to direct fetch and curl, so SAP's office-locations page was read only through the search index (Ecoworld 8A and RMZ NXT addresses quoted from it); its full Bengaluru list could not be seen, so the Sattva Softzone and GR Tech Park entries were not confirmed or refuted (Softzone moved to medium, GR Tech Park left low). The Mercedes-Benz careers page also returned 403; its Whitefield Palms address and the 9,156 employee figure come from the search index, and bengaluruEmployeesApprox was not set because that figure covers Bengaluru and Pune. MBRDI's Brigade Tech Gardens office (low) was not re-checked. Verizon: no primary source names the Bengaluru building; Fishbowl blocked direct fetch (403). Star Air: no street address is published by the airline; its Bengaluru office stays an unconfirmed OSM node. Prestige's 12,145 employee figure is FY2022-23 total employees (8,393 permanent) on a consolidated basis; MNC rests on that total. The CoWrks corporate role of the Campus 7 contact address is an inference from the site's contact settings."
+}

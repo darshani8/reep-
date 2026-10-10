@@ -802,14 +802,6 @@
    "note": "Free-text sector 'Audience measurement & media analytics' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
   },
   {
-   "company": "novartis",
-   "verdict": "keep",
-   "set": {
-    "sector": "HealthTech & pharma"
-   },
-   "note": "Free-text sector 'Pharmaceuticals' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
-  },
-  {
    "company": "nxtgen-cloud-technologies",
    "verdict": "keep",
    "set": {

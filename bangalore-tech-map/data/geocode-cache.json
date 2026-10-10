@@ -444,6 +444,22 @@
 "query": "17th Main Road, Sector 2, HSR Layout, Bengaluru",
 "source": "nominatim"
 },
+"18th cross road, sector 3, hsr layout, bengaluru": {
+"bbox": [
+12.9119307,
+12.911974,
+77.6417182,
+77.6444101
+],
+"display_name": "18th Cross Road, Sector 3, HSR Layout, Bengaluru South City Corporation, Bengaluru, Bangalore South, Bengaluru Urban, Karnataka, 560102, India",
+"lat": 12.9119456,
+"lng": 77.643064,
+"ok": true,
+"osm_id": 1292583899,
+"osm_type": "way",
+"query": "18th Cross Road, Sector 3, HSR Layout, Bengaluru",
+"source": "nominatim"
+},
 "198, cmh road, indiranagar, bengaluru": {
 "bbox": [
 12.9784242,
@@ -1444,6 +1460,22 @@
 "osm_id": 166572717,
 "osm_type": "way",
 "query": "8th Main Road, Sadashivanagar, Bengaluru",
+"source": "nominatim"
+},
+"9 mahatma gandhi road bengaluru": {
+"bbox": [
+12.9725084,
+12.9728221,
+77.6175959,
+77.6190993
+],
+"display_name": "Mahatma Gandhi Road, Craig Park Layout, Victoria Layout, Ashokanagar, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560025, India",
+"lat": 12.9726546,
+"lng": 77.6183454,
+"ok": true,
+"osm_id": 1112419802,
+"osm_type": "way",
+"query": "9 Mahatma Gandhi Road Bengaluru",
 "source": "nominatim"
 },
 "91springboard, bannerghatta road, jp nagar, bengaluru": {
@@ -5115,6 +5147,22 @@
 "query": "Benniganahalli, Old Madras Road",
 "source": "photon"
 },
+"beratena agrahara, bengaluru": {
+"bbox": [
+12.858878,
+12.868878,
+77.6529036,
+77.6629036
+],
+"display_name": "Beratena Agrahara, Hosur Road, Chikkathoguru, Bengaluru South City Corporation, Bengaluru, Bangalore South, Bengaluru Urban, Karnataka, 560100, India",
+"lat": 12.863878,
+"lng": 77.6579036,
+"ok": true,
+"osm_id": 5760198153,
+"osm_type": "node",
+"query": "Beratena Agrahara, Bengaluru",
+"source": "nominatim"
+},
 "beta cae systems, dr rajkumar road": {
 "bbox": [
 13.0076141,
@@ -6796,6 +6844,22 @@
 "osm_id": 6584009929,
 "osm_type": "node",
 "query": "Brigade South Parade, MG Road",
+"source": "nominatim"
+},
+"brigade southfield, hoodi, bengaluru": {
+"bbox": [
+12.9872117,
+12.988372,
+77.7072967,
+77.7086309
+],
+"display_name": "Brigade Southfield, Hoodi, Kaveri Nagara, Bengaluru East City Corporation, Bengaluru, Bangalore East, Bengaluru Urban, Karnataka, India",
+"lat": 12.9875736,
+"lng": 77.7080677,
+"ok": true,
+"osm_id": 1097715842,
+"osm_type": "way",
+"query": "Brigade Southfield, Hoodi, Bengaluru",
 "source": "nominatim"
 },
 "brigade summit, brigade metropolis, mahadevapura, bengaluru": {
@@ -10777,6 +10841,38 @@
 "osm_type": "node",
 "query": "Ericsson Bagmane World Technology Center, Bengaluru",
 "source": "nominatim"
+},
+"esquire center bangalore": {
+"bbox": [
+12.9731915,
+12.9740357,
+77.6162915,
+77.6169801
+],
+"display_name": "Esquire Center, K Kamaraj Ward, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, India",
+"lat": 12.9736317,
+"lng": 77.6166967,
+"ok": true,
+"osm_id": 370301096,
+"osm_type": "way",
+"query": "Esquire Center Bangalore",
+"source": "nominatim"
+},
+"esquire centre, mg road, bengaluru": {
+"bbox": [
+12.9727867,
+12.974055,
+77.6201355,
+77.6205902
+],
+"display_name": "One M G Road, Bhaskaran Road, Halasuru, Bengaluru",
+"lat": 12.9735715,
+"lng": 77.6203605,
+"ok": true,
+"osm_id": 147558632,
+"osm_type": "W",
+"query": "Esquire Centre, MG Road, Bengaluru",
+"source": "photon"
 },
 "essae vaishnavi solitaire, 3rd block koramangala, bengaluru": {
 "bbox": null,
@@ -20938,6 +21034,22 @@
 "query": "Peenya Industrial Area 2nd Phase",
 "source": "photon"
 },
+"peenya industrial area 4th phase, bengaluru": {
+"bbox": [
+13.0073481,
+13.0452092,
+77.4967164,
+77.5334633
+],
+"display_name": "Peenya Industrial Area, Shivapura, Bengaluru West City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560058, India",
+"lat": 13.0160478,
+"lng": 77.5045057,
+"ok": true,
+"osm_id": 17570284,
+"osm_type": "relation",
+"query": "Peenya Industrial Area 4th Phase, Bengaluru",
+"source": "nominatim"
+},
 "peenya industrial area bengaluru": {
 "bbox": [
 13.0073481,
@@ -22751,6 +22863,22 @@
 "osm_id": 7299778032,
 "osm_type": "node",
 "query": "Rachenahalli",
+"source": "nominatim"
+},
+"rachenahalli, bengaluru": {
+"bbox": [
+13.0488586,
+13.0688586,
+77.6132576,
+77.6332576
+],
+"display_name": "Rachenahalli, Jakkur, Bengaluru North City Corporation, Bengaluru, Bangalore East, Bengaluru Urban, Karnataka, 560045, India",
+"lat": 13.0588586,
+"lng": 77.6232576,
+"ok": true,
+"osm_id": 7299778032,
+"osm_type": "node",
+"query": "Rachenahalli, Bengaluru",
 "source": "nominatim"
 },
 "raheja arcade, koramangala": {
@@ -27514,6 +27642,22 @@
 "query": "Thales Bengaluru",
 "source": "nominatim"
 },
+"thanisandra main road, bengaluru": {
+"bbox": [
+13.0600923,
+13.0626343,
+77.6329182,
+77.6335312
+],
+"display_name": "Thanisandra Main Road, Thanisandra, Bengaluru North City Corporation, Bengaluru, Bangalore East, Bengaluru Urban, Karnataka, 560077, India",
+"lat": 13.061352,
+"lng": 77.6332711,
+"ok": true,
+"osm_id": 1263469099,
+"osm_type": "way",
+"query": "Thanisandra Main Road, Bengaluru",
+"source": "nominatim"
+},
 "thanisandra main road, nagavara, bengaluru": {
 "bbox": [
 13.042613,
@@ -28271,6 +28415,22 @@
 "osm_id": 1246412856,
 "osm_type": "way",
 "query": "Trinity Circle",
+"source": "nominatim"
+},
+"trinity circle bengaluru": {
+"bbox": [
+12.9722304,
+12.9729909,
+77.6191366,
+77.6203289
+],
+"display_name": "Trinity Circle, Mahatma Gandhi Road, Hanumanthappa Layout, K Kamaraj Ward, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560042, India",
+"lat": 12.972629,
+"lng": 77.6197459,
+"ok": true,
+"osm_id": 1246412856,
+"osm_type": "way",
+"query": "Trinity Circle Bengaluru",
 "source": "nominatim"
 },
 "triveni turbine, 12a peenya industrial area, bengaluru": {

@@ -98,7 +98,7 @@ export const CATEGORY_LABEL: Record<Category, string> = {
 export const CATEGORY_DESCRIPTION: Record<Category, string> = {
   MNC: 'Multinationals — foreign-headquartered, or Indian and listed with more than 10,000 employees',
   MID_SIZE: 'Established companies of roughly 300 to 10,000 employees that are not startup-shaped',
-  STARTUP: 'Venture-funded companies founded since 2005, however large they have grown',
+  STARTUP: 'Founded since 2005 on the startup model, venture-funded or bootstrapped, however large they have grown',
   PSU: 'Government-owned undertakings and public research employers',
 };
 

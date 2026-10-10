@@ -1,7 +1,7 @@
 # Bengaluru Tech Map
 
 An interactive map of the companies in Bengaluru (Bangalore): **multinationals** (foreign and Indian),
-established **mid-size companies**, venture-funded **startups** and **public-sector** employers — each
+established **mid-size companies**, **startups** and **public-sector** employers — each
 with every Bengaluru **branch** that could be substantiated, and the **tech parks** they sit in.
 
 Angular 22 · MapLibre GL JS 6 · OpenFreeMap vector tiles · no API keys.
@@ -11,7 +11,7 @@ Angular 22 · MapLibre GL JS 6 · OpenFreeMap vector tiles · no API keys.
 
 | | |
 |---|---|
-| Companies | **674** — 388 MNC, 104 mid-size, 158 startup, 24 PSU |
+| Companies | **674** — 397 MNC, 95 mid-size, 158 startup, 24 PSU |
 | Offices (branches) | **1206** — 623 well evidenced, 432 one source, 151 unconfirmed; 236 companies have more than one Bengaluru office |
 | Tech parks and campuses | **203** (146 with an OpenStreetMap footprint) |
 | Busiest parks | RMZ Ecoworld (70), Manyata Tech Park (52), Electronics City Phase 1 (39), Bagmane Tech Park (37), Embassy TechVillage (36), Embassy GolfLinks Business Park (24) |
@@ -89,9 +89,15 @@ from slices in `data/raw/` that `tools/data/merge.py` merges, validates and writ
 3. **Merge.** Records are matched by normalised name and alias, offices by park+building or by being
    within 150 m; two independent lenses agreeing raises an office to "well evidenced". Anything outside
    Bengaluru is dropped and listed in `data/report.md`.
-4. **Verification.** A second pass of agents re-checked each company (does it really have an office
-   there, is the pin in the right park, is the category right, has it closed) and the corrections
-   were applied as further slices.
+4. **Completeness critics and gap-fill.** Four critic agents read the merged list from different angles
+   (largest employers, the GCC landscape, startups and unicorns, Indian companies and PSUs) and named
+   what was missing; a duplicate hunter looked for one organisation under two names. The missing
+   companies were researched like any other lens and landed as `data/raw/X*-gaps.json`.
+5. **Verification.** `tools/data/qa.py` flags records worth a second look (every office unconfirmed, a
+   pin outside its park's footprint, two records of one office, a category that breaks the rule).
+   Verifier agents checked each flagged company against company pages, filings and lease news and wrote
+   their findings as `data/corrections/*.json`: drop, merge, fix a pin, re-categorise, add a missing
+   campus. Every applied correction is listed with its source in `data/report.md`.
 
 What the data is **not**: a live feed. Offices move, startups fold, parks change hands. Every office
 carries the date-free evidence that placed it, and a confidence word — _well evidenced_, _one source_,

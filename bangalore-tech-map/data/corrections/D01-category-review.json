@@ -1,0 +1,94 @@
+{
+ "key": "D01-category-review",
+ "corrections": [
+  {
+   "company": "altisource",
+   "verdict": "keep",
+   "set": {
+    "category": "MNC"
+   },
+   "note": "Foreign-headquartered (Luxembourg, Nasdaq-listed) with a Bengaluru delivery centre; the rule makes a foreign-HQ'd multinational an MNC, as already applied to Marlabs. Raised by the duplicate/category review."
+  },
+  {
+   "company": "sitime",
+   "verdict": "keep",
+   "set": {
+    "category": "MNC"
+   },
+   "note": "Foreign-headquartered (Santa Clara, Nasdaq-listed) with a Bengaluru delivery centre; the rule makes a foreign-HQ'd multinational an MNC, as already applied to Marlabs. Raised by the duplicate/category review."
+  },
+  {
+   "company": "applogic-networks",
+   "verdict": "keep",
+   "set": {
+    "category": "MNC"
+   },
+   "note": "Foreign-headquartered (Waterloo, Canada (formerly Sandvine)) with a Bengaluru delivery centre; the rule makes a foreign-HQ'd multinational an MNC, as already applied to Marlabs. Raised by the duplicate/category review."
+  },
+  {
+   "company": "altimetrik",
+   "verdict": "keep",
+   "set": {
+    "category": "MNC"
+   },
+   "note": "Foreign-headquartered (Southfield, Michigan) with a Bengaluru delivery centre; the rule makes a foreign-HQ'd multinational an MNC, as already applied to Marlabs. Raised by the duplicate/category review."
+  },
+  {
+   "company": "brillio",
+   "verdict": "keep",
+   "set": {
+    "category": "MNC"
+   },
+   "note": "Foreign-headquartered (US (Bain Capital-owned)) with a Bengaluru delivery centre; the rule makes a foreign-HQ'd multinational an MNC, as already applied to Marlabs. Raised by the duplicate/category review."
+  },
+  {
+   "company": "impetus-technologies",
+   "verdict": "keep",
+   "set": {
+    "category": "MNC"
+   },
+   "note": "Foreign-headquartered (Los Gatos, California) with a Bengaluru delivery centre; the rule makes a foreign-HQ'd multinational an MNC, as already applied to Marlabs. Raised by the duplicate/category review."
+  },
+  {
+   "company": "mu-sigma",
+   "verdict": "keep",
+   "set": {
+    "category": "MNC"
+   },
+   "note": "Foreign-headquartered (Austin, Texas) with a Bengaluru delivery centre; the rule makes a foreign-HQ'd multinational an MNC, as already applied to Marlabs. Raised by the duplicate/category review."
+  },
+  {
+   "company": "tiger-analytics",
+   "verdict": "keep",
+   "set": {
+    "category": "MNC"
+   },
+   "note": "Foreign-headquartered (Santa Clara, California) with a Bengaluru delivery centre; the rule makes a foreign-HQ'd multinational an MNC, as already applied to Marlabs. Raised by the duplicate/category review."
+  },
+  {
+   "company": "torry-harris-business-solutions",
+   "verdict": "keep",
+   "set": {
+    "category": "MNC"
+   },
+   "note": "Foreign-headquartered (Edison, New Jersey) with a Bengaluru delivery centre; the rule makes a foreign-HQ'd multinational an MNC, as already applied to Marlabs. Raised by the duplicate/category review."
+  },
+  {
+   "company": "wns",
+   "verdict": "keep",
+   "set": {
+    "origin": "Foreign"
+   },
+   "note": "Capgemini (Paris) completed its acquisition of WNS in 2025, so the parent is foreign; the record's own description says so."
+  },
+  {
+   "company": "creditaccess-grameen",
+   "verdict": "keep",
+   "set": {
+    "origin": "Foreign"
+   },
+   "note": "About two-thirds of the shares are held by CreditAccess India B.V. (the CreditAccess group is headquartered in the Netherlands), so origin follows the foreign parent."
+  }
+ ],
+ "notes": "From the duplicate and category review run over the 646-company dataset. Rejected: Ujjivan SFB, Jana SFB, Page Industries and TeamLease to MNC (each is listed with over 10,000 staff but operates almost entirely in India, and the rule promotes an Indian company only when it is a multinational). Zerodha kept as STARTUP (bootstrapped; the Startup definition was widened to say venture-funded or bootstrapped)."
+}

@@ -1,0 +1,3263 @@
+{
+ "key": "E05-indian-it-majors-engineering-services",
+ "techParks": [
+  {
+   "name": "Electronics City Phase 1",
+   "aliases": [
+    "Electronic City Phase 1",
+    "E-City Phase 1",
+    "Keonics Electronics City"
+   ],
+   "locality": "Electronic City (Hosur Road)",
+   "developer": "KIADB/ELCIA",
+   "lat": 12.840173,
+   "lng": 77.65951,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Infosys",
+    "Wipro",
+    "Tejas Networks",
+    "Cyient",
+    "Sify Technologies",
+    "Happiest Minds Technologies",
+    "Zensar Technologies",
+    "TCS"
+   ],
+   "description": "KIADB/Keonics-developed electronics and IT estate on Hosur Road, ~18 km south of the city centre, established in 1978 and run by the ELCIA association; Phase 1 (west of Hosur Road) hosts Infosys's global HQ, Wipro's EC development centres, Tejas Networks, Cyient, Sify's data centre, SJR Equinox, Cyber Park and 360 Business Park. Point is the Nominatim result for the phase, which lands beside the Wipro EC cluster.",
+   "sources": [
+    "https://www.wipro.com/locations/",
+    "https://www.tejasnetworks.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Electronics City Phase 2",
+   "aliases": [
+    "Electronic City Phase 2",
+    "E-City Phase II"
+   ],
+   "locality": "Electronic City (Hosur Road, east side)",
+   "developer": "KIADB/ELCIA",
+   "lat": 12.8495,
+   "lng": 77.6787,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "TCS",
+    "Tech Mahindra",
+    "HCLTech"
+   ],
+   "description": "The eastern phase of Electronics City across Hosur Road, home to TCS's Think Campus, Tech Mahindra's KIADB Phase II campus (Plot 45-47) and smaller tech buildings such as PB Softtech. Point is the midpoint of the two verified campuses (no OSM polygon for the phase).",
+   "sources": [
+    "https://www.techmahindra.com/contact-us/",
+    "https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf"
+   ]
+  },
+  {
+   "name": "Infosys Electronics City Campus",
+   "aliases": [
+    "Infosys HQ",
+    "Infosys Bengaluru campus"
+   ],
+   "locality": "Electronic City Phase 1",
+   "developer": "Infosys",
+   "lat": 12.848969,
+   "lng": 77.666134,
+   "bbox": [
+    12.845565,
+    12.852219,
+    77.661637,
+    77.670196
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Infosys"
+   ],
+   "description": "Infosys's ~80-acre owned global headquarters campus on Hosur Road (No. 44, Infosys Avenue), the company's registered office and largest single site. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.infosys.com/investors/reports-filings/documents/global-presence2017.pdf"
+   ]
+  },
+  {
+   "name": "Wipro SEZ Sarjapur",
+   "aliases": [
+    "Wipro Doddakannelli campus",
+    "Wipro Corporate Office Sarjapur",
+    "SJP1/SJP2"
+   ],
+   "locality": "Doddakannelli, Sarjapur Road",
+   "developer": "Wipro",
+   "lat": 12.914154,
+   "lng": 77.685939,
+   "bbox": [
+    12.911136,
+    12.916366,
+    77.683748,
+    77.688229
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Wipro"
+   ],
+   "description": "Wipro's owned Doddakannelli campus on Sarjapur Road: the SJP1 corporate office and the adjoining SJP2 SEZ development centre. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.wipro.com/locations/"
+   ]
+  },
+  {
+   "name": "TCS Think Campus",
+   "aliases": [
+    "TCS Think Campus Electronic City"
+   ],
+   "locality": "Electronic City Phase 2",
+   "developer": "TCS",
+   "lat": 12.848504,
+   "lng": 77.679354,
+   "bbox": [
+    12.846941,
+    12.849589,
+    77.678047,
+    77.679981
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "TCS"
+   ],
+   "description": "TCS's owned Bengaluru campus (No. 42, Electronics City Phase II) and its principal delivery centre in the city. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf"
+   ]
+  },
+  {
+   "name": "HCL Technologies SEZ Jigani",
+   "aliases": [
+    "HCL Jigani campus",
+    "HCL SEZ Jigani"
+   ],
+   "locality": "Jigani (Bommasandra-Jigani Link Road)",
+   "developer": "HCLTech",
+   "lat": 12.788593,
+   "lng": 77.651755,
+   "bbox": [
+    12.785434,
+    12.790152,
+    77.649577,
+    77.653583
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "HCLTech"
+   ],
+   "description": "HCLTech's owned SEZ campus (No. 129) in the Jigani industrial area at the southern edge of the metro, its largest Bengaluru site. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.indiacustomercare.com/hcl-technology-customer-no"
+   ]
+  },
+  {
+   "name": "360 Business Park",
+   "aliases": [],
+   "locality": "Electronic City Phase 1",
+   "developer": null,
+   "lat": 12.8441,
+   "lng": 77.655013,
+   "bbox": [
+    12.839238,
+    12.847651,
+    77.653348,
+    77.658779
+   ],
+   "areaSqFtMillions": 1.4,
+   "notableTenants": [
+    "TCS"
+   ],
+   "description": "New Grade A office park in Electronic City Phase 1 where TCS leased ~1.4 msf (Towers 5A and 5B) for 15 years in August 2025, with phased occupation from April and August 2026. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.outlookbusiness.com/corporate/tcs-rents-over-2000-cr-office-space-in-bengaluru-joining-big-techs-lease-rush"
+   ]
+  },
+  {
+   "name": "International Tech Park Bangalore",
+   "aliases": [
+    "ITPL",
+    "ITPB",
+    "International Tech Park Bengaluru",
+    "Ascendas ITPL"
+   ],
+   "locality": "Whitefield (Pattandur Agrahara)",
+   "developer": "CapitaLand",
+   "lat": 12.9855,
+   "lng": 77.7375,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "TCS",
+    "HCLTech"
+   ],
+   "description": "The 1994 Singapore-Karnataka joint-venture tech park that seeded Whitefield's IT corridor, now run by CapitaLand (ex-Ascendas) with SEZ and non-SEZ towers (Discoverer, Explorer, Pioneer, Creator, Victor, Anchor, Aviator and others); TCS occupies six buildings and HCLTech the Aviator building. Centre point estimated from the mapped TCS and Aviator buildings.",
+   "sources": [
+    "https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf",
+    "https://www.indiacustomercare.com/hcl-technology-customer-no"
+   ]
+  },
+  {
+   "name": "Global Village Tech Park",
+   "aliases": [
+    "Sattva Global City",
+    "Global Village SEZ",
+    "Global Technology Village"
+   ],
+   "locality": "Mylasandra, Mysore Road (RVCE Post, Kengeri Hobli)",
+   "developer": "Salarpuria Sattva / Tanglin Developments",
+   "lat": 12.919521,
+   "lng": 77.501354,
+   "bbox": [
+    12.916013,
+    12.923039,
+    77.495271,
+    77.50546
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "LTIMindtree",
+    "Mphasis",
+    "Sonata Software"
+   ],
+   "description": "120-acre SEZ campus off the Bengaluru-Mysuru highway, renamed Sattva Global City; anchors are Mindtree's (now LTIMindtree) West Campus, Mphasis's Towers E/F and GTV unit, and Sonata Software's Sonata Towers corporate office. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.sonata-software.com/contact-us",
+    "https://www.indiacustomercare.com/mphasis-contact-no"
+   ]
+  },
+  {
+   "name": "Bagmane Tech Park",
+   "aliases": [
+    "Bagmane Technology Park"
+   ],
+   "locality": "C V Raman Nagar (Byrasandra)",
+   "developer": "Bagmane",
+   "lat": 12.978694,
+   "lng": 77.662447,
+   "bbox": [
+    12.977296,
+    12.98027,
+    77.65617,
+    77.66637
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Mphasis"
+   ],
+   "description": "Bagmane's original lakeside tech park in C V Raman Nagar (buildings include Laurel, Parin, Lakeview); Mphasis's corporate office is in Bagmane Laurel and it also occupies Bagmane Parin. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.indiacustomercare.com/mphasis-contact-no"
+   ]
+  },
+  {
+   "name": "Bagmane World Technology Center",
+   "aliases": [
+    "Bagmane WTC"
+   ],
+   "locality": "Mahadevapura (Doddanakundi, Marathahalli ORR)",
+   "developer": "Bagmane",
+   "lat": 12.985291,
+   "lng": 77.694672,
+   "bbox": [
+    12.979985,
+    12.988634,
+    77.692421,
+    77.697466
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Mphasis"
+   ],
+   "description": "Bagmane's SEZ campus on the Marathahalli Outer Ring Road; Mphasis's registered office with SEZ units in WTC 2 and 4. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.indiacustomercare.com/mphasis-contact-no"
+   ]
+  },
+  {
+   "name": "Bagmane Capital",
+   "aliases": [],
+   "locality": "Mahadevapura / C V Raman Nagar (ORR)",
+   "developer": "Bagmane",
+   "lat": 12.984991,
+   "lng": 77.702489,
+   "bbox": [
+    12.982441,
+    12.988185,
+    77.700496,
+    77.704824
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "HCLTech",
+    "EPAM Systems",
+    "Encora"
+   ],
+   "description": "Newer Bagmane office campus east of the WTC on the ORR; OSM records HCLTech, EPAM and Encora office POIs here (none confirmed by a company page). Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": []
+  },
+  {
+   "name": "Bagmane Constellation Business Park",
+   "aliases": [
+    "Bagmane Constellation"
+   ],
+   "locality": "Mahadevapura (Doddanakundi, ORR)",
+   "developer": "Bagmane",
+   "lat": 12.980938,
+   "lng": 77.697153,
+   "bbox": [
+    12.978625,
+    12.983996,
+    77.694879,
+    77.700592
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Publicis Sapient"
+   ],
+   "description": "Bagmane's large multi-building campus beside the WTC on the ORR; Publicis Sapient's Bengaluru office is mapped here. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.publicissapient.com/company/locations"
+   ]
+  },
+  {
+   "name": "L&T Tech Park",
+   "aliases": [
+    "L&T Campus Bellary Road",
+    "L&T Tech Park 1",
+    "L&T Realty SEZ Hebbal"
+   ],
+   "locality": "Byatarayanapura / Hebbal (Bellary Road)",
+   "developer": "L&T Realty",
+   "lat": 13.068558,
+   "lng": 77.592108,
+   "bbox": [
+    13.06738,
+    13.069704,
+    77.591252,
+    77.592662
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "L&T Technology Services",
+    "LTIMindtree"
+   ],
+   "description": "L&T Realty's SEZ campus on the 65-acre L&T land parcel on Bellary Road next to GKVK, housing LTTS (Tower S1) and LTIMindtree (Tower S2), with a second phase under construction. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.ltts.com/contact-us",
+    "https://www.lntrealty.com/offices/lt-tech-park-1/"
+   ]
+  },
+  {
+   "name": "RMZ Ecoworld",
+   "aliases": [
+    "RMZ Eco World",
+    "Ecoworld"
+   ],
+   "locality": "Devarabeesanahalli (Bellandur, Sarjapur-Marathahalli ORR)",
+   "developer": "RMZ",
+   "lat": 12.929807,
+   "lng": 77.684629,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Tech Mahindra",
+    "TCS",
+    "Virtusa",
+    "HCLTech"
+   ],
+   "description": "RMZ's ~7 msf SEZ and non-SEZ office campus on the Bellandur ORR; within this lens Tech Mahindra (Tower 4A/4B), TCS (Building 4B), Virtusa and HCLTech's Sankalp Semiconductor occupy space. Point is the Nominatim result for the campus.",
+   "sources": [
+    "https://www.techmahindra.com/contact-us/",
+    "https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf"
+   ]
+  },
+  {
+   "name": "Pritech Park SEZ",
+   "aliases": [
+    "Primal Pritech Park",
+    "Pritech Park",
+    "Piritech Park"
+   ],
+   "locality": "Bellandur (Outer Ring Road)",
+   "developer": "Primal Projects",
+   "lat": 12.92086,
+   "lng": 77.680769,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Subex",
+    "Persistent Systems",
+    "Mphasis",
+    "Hinduja Global Solutions"
+   ],
+   "description": "Primal Projects' SEZ park on the Bellandur stretch of the ORR (Survey Nos. 51-64/4); Subex's headquarters and Persistent's Bengaluru office are in Block 9, Mphasis in Block 5, and HGS in Building 14. Point from Nominatim (Building 14).",
+   "sources": [
+    "https://www.subex.com/contact-us/",
+    "https://www.persistent.com/company-overview/"
+   ]
+  },
+  {
+   "name": "Prestige Shantiniketan",
+   "aliases": [
+    "Prestige Shanthiniketan",
+    "PSN"
+   ],
+   "locality": "Whitefield (Thigalarapalya / Hoodi, Whitefield Main Road)",
+   "developer": "Prestige",
+   "lat": 12.988903,
+   "lng": 77.731042,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "TCS",
+    "Tata Elxsi",
+    "Hexaware Technologies",
+    "Persistent Systems",
+    "Coforge",
+    "Quest Global",
+    "Zensar Technologies"
+   ],
+   "description": "Prestige Group's 105-acre mixed-use township on Whitefield Main Road whose Crescent 1-4 and Tower A-C office blocks host a dense cluster of IT services tenants (TCS, Tata Elxsi, Hexaware, Persistent, Coforge, Quest Global, Zensar). Point from Nominatim.",
+   "sources": [
+    "https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf",
+    "https://www.tataelxsi.com/contact-us",
+    "https://www.questglobal.com/contact/"
+   ]
+  },
+  {
+   "name": "GR Tech Park",
+   "aliases": [
+    "Salarpuria GR Tech Park",
+    "GR Salarpuria Tech Park",
+    "GRTP"
+   ],
+   "locality": "Mahadevapura (Whitefield Road)",
+   "developer": "Salarpuria Sattva",
+   "lat": 12.985638,
+   "lng": 77.743407,
+   "bbox": [
+    12.983857,
+    12.986783,
+    77.742307,
+    77.744756
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "TCS",
+    "Publicis Sapient"
+   ],
+   "description": "Salarpuria Sattva's GR Tech Park on Whitefield Road near ITPL, where TCS occupies the Dhara and Jal buildings. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf"
+   ]
+  },
+  {
+   "name": "Gopalan Global Axis",
+   "aliases": [
+    "Global Axis",
+    "GEIPL SEZ"
+   ],
+   "locality": "Hoodi (EPIP Zone II Stage, Whitefield)",
+   "developer": "Gopalan Enterprises",
+   "lat": 12.982486,
+   "lng": 77.724345,
+   "bbox": [
+    12.981084,
+    12.984108,
+    77.723156,
+    77.725751
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "TCS",
+    "Infinite Computer Solutions"
+   ],
+   "description": "Gopalan Enterprises' SEZ park (Plot 152, Hoody Village) in the EPIP zone; TCS occupies the B, C, D and H blocks and Infinite Computer Solutions Block 2(A1). Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf",
+    "https://www.infinite.com/about-us/"
+   ]
+  },
+  {
+   "name": "EPIP Zone Whitefield",
+   "aliases": [
+    "EPIP Industrial Area",
+    "Export Promotion Industrial Park",
+    "KIADB EPIP"
+   ],
+   "locality": "Whitefield (Kundalahalli / Hoodi)",
+   "developer": "KIADB",
+   "lat": 12.978,
+   "lng": 77.723,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "TCS",
+    "LTIMindtree",
+    "Infinite Computer Solutions",
+    "Mphasis",
+    "Mastek",
+    "NTT DATA"
+   ],
+   "description": "KIADB's Export Promotion Industrial Park, the 1990s industrial-to-IT zone around ITPL and Kundalahalli; TCS's Abhilash and L-Centre, the former Mindtree and LTI Whitefield campuses, Infinite's head office, Mphasis's Mascot building, DivyaSree NR Enclave (Mastek) and NTT DATA GDS sit here. Point is the midpoint of the verified sites (no single OSM polygon).",
+   "sources": [
+    "https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf",
+    "https://www.infinite.com/about-us/"
+   ]
+  },
+  {
+   "name": "Kalyani Platina",
+   "aliases": [
+    "Kalyani Platina Tech Park"
+   ],
+   "locality": "Kundalahalli (Whitefield)",
+   "developer": "Kalyani Developers",
+   "lat": 12.969865,
+   "lng": 77.717322,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Birlasoft"
+   ],
+   "description": "Kalyani Developers' office park in Kundalahalli next to Kalyani Tech Park (Cedar, Maple and other blocks); Birlasoft occupies the Cedar Block. Point resolves to the adjoining Kalyani Tech Park polygon, so it is approximate.",
+   "sources": [
+    "https://www.birlasoft.com/contact-us"
+   ]
+  },
+  {
+   "name": "Bhartiya Centre of Information Technology",
+   "aliases": [
+    "BCIT",
+    "Bhartiya City"
+   ],
+   "locality": "Thanisandra (Bhartiya City, Thanisandra Main Road)",
+   "developer": "Bhartiya Urban",
+   "lat": 13.08424,
+   "lng": 77.64038,
+   "bbox": [
+    13.082677,
+    13.085601,
+    77.63933,
+    77.641912
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Coforge",
+    "Hexaware Technologies",
+    "NTT DATA"
+   ],
+   "description": "The SEZ office component of Bhartiya Urban's 125-acre Bhartiya City township in north Bengaluru; Coforge (Block 3 Tower B) and Hexaware (Block 1) list offices here and OSM records NTT DATA in Block 2. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.coforge.com/who-we-are/global-presence",
+    "https://hexaware.com/location/india/"
+   ]
+  },
+  {
+   "name": "Cessna Business Park",
+   "aliases": [
+    "Cessna Business Park SEZ"
+   ],
+   "locality": "Kadubeesanahalli (Sarjapur-Marathahalli ORR)",
+   "developer": "Prestige",
+   "lat": 12.934801,
+   "lng": 77.694818,
+   "bbox": [
+    12.931463,
+    12.937623,
+    77.691418,
+    77.697597
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Sapiens International",
+    "HCLTech"
+   ],
+   "description": "Prestige Group's SEZ business park on the ORR opposite Embassy TechVillage; Sapiens occupies Building 11 and HCLTech Building B-9. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://sapiens.com/contact-us/",
+    "https://www.indiacustomercare.com/hcl-technology-customer-no"
+   ]
+  },
+  {
+   "name": "Embassy TechVillage",
+   "aliases": [
+    "Vrindavan Tech Village",
+    "ETV",
+    "Embassy Tech Village"
+   ],
+   "locality": "Devarabeesanahalli (Bellandur ORR)",
+   "developer": "Embassy",
+   "lat": 12.93004,
+   "lng": 77.690611,
+   "bbox": [
+    12.926403,
+    12.934501,
+    77.687141,
+    77.694925
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Quest Global"
+   ],
+   "description": "Embassy REIT's 84-acre SEZ campus (formerly Vrindavan Tech Village) on the Bellandur ORR; Quest Global's headquarters is in the Primrose building. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.questglobal.com/contact/"
+   ]
+  },
+  {
+   "name": "Manyata Tech Park",
+   "aliases": [
+    "Embassy Manyata Business Park",
+    "Manyata Embassy Business Park"
+   ],
+   "locality": "Nagavara / Rachenahalli (Outer Ring Road, north)",
+   "developer": "Embassy",
+   "lat": 13.04809,
+   "lng": 77.61975,
+   "bbox": [
+    13.041258,
+    13.055452,
+    77.616136,
+    77.625275
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "HCLTech",
+    "Kyndryl",
+    "LTIMindtree",
+    "L&T Technology Services"
+   ],
+   "description": "Embassy Manyata Business Park, the ~300-acre SEZ campus in north Bengaluru and the city's largest; within this lens HCLTech and LTTS use Block C4 (ELM), Kyndryl Block M3 (Acacia) and LTIMindtree also lists an office. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.kyndryl.com/in/en/about-us/locations",
+    "https://www.indiacustomercare.com/hcl-technology-customer-no"
+   ]
+  },
+  {
+   "name": "AMR Tech Park",
+   "aliases": [
+    "AMR Tech Park II"
+   ],
+   "locality": "Hongasandra (Hosur Main Road, Bommanahalli)",
+   "developer": "AMR",
+   "lat": 12.899424,
+   "lng": 77.630782,
+   "bbox": [
+    12.897262,
+    12.901057,
+    77.62976,
+    77.632151
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Tally Solutions",
+    "Mindteck",
+    "Hinduja Global Solutions"
+   ],
+   "description": "Mid-size office park (AMR Tech Park I and II) on Hosur Main Road near Bommanahalli; Tally Solutions' head office is in AMR Tech Park II and OSM also records Mindteck and HGS offices. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://tallysolutions.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Brigade Tech Gardens",
+   "aliases": [
+    "BTG"
+   ],
+   "locality": "Brookefield / Kundalahalli",
+   "developer": "Brigade",
+   "lat": 12.964095,
+   "lng": 77.719774,
+   "bbox": [
+    12.962366,
+    12.965397,
+    77.717838,
+    77.722596
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Firstsource Solutions"
+   ],
+   "description": "Brigade Group's ~3 msf SEZ campus in Brookefield; Firstsource occupies Blocks C2 and C4. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.firstsource.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Brigade Tech Park",
+   "aliases": [
+    "BTP"
+   ],
+   "locality": "Whitefield (Pattandur Agrahara, Whitefield Road)",
+   "developer": "Brigade",
+   "lat": 12.986779,
+   "lng": 77.739731,
+   "bbox": [
+    12.98523,
+    12.987515,
+    77.738901,
+    77.740705
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Firstsource Solutions"
+   ],
+   "description": "Brigade Group's office park on Whitefield Road beside ITPL and Brigade Bhuwalka Icon; Firstsource occupies Tower B. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.firstsource.com/contact-us/"
+   ]
+  },
+  {
+   "name": "RGA Tech Park",
+   "aliases": [
+    "RGA Tech Park SEZ"
+   ],
+   "locality": "Chikkanahalli (Sarjapur Main Road)",
+   "developer": null,
+   "lat": 12.901265,
+   "lng": 77.704984,
+   "bbox": [
+    12.899683,
+    12.902988,
+    77.703266,
+    77.706211
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "L&T Technology Services"
+   ],
+   "description": "SEZ office park on Sarjapur Main Road beyond Wipro's Kodathi campus; LTTS runs its SEZ Unit VI in Block 3. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.ltts.com/contact-us"
+   ]
+  },
+  {
+   "name": "Prestige Tech Park",
+   "aliases": [
+    "Prestige Tech Park Kadubeesanahalli"
+   ],
+   "locality": "Kadubeesanahalli (Sarjapur-Marathahalli ORR)",
+   "developer": "Prestige",
+   "lat": 12.942865,
+   "lng": 77.692806,
+   "bbox": [
+    12.939183,
+    12.94534,
+    77.688172,
+    77.697502
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "HCLTech"
+   ],
+   "description": "Prestige Group's large non-SEZ office park on the ORR between Marathahalli and Bellandur; HCLTech occupies the Venus block (Block 2C). Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.indiacustomercare.com/hcl-technology-customer-no"
+   ]
+  },
+  {
+   "name": "Prestige Technostar",
+   "aliases": [
+    "PST"
+   ],
+   "locality": "Brookefield (Doddanakundi Industrial Area 2)",
+   "developer": "Prestige",
+   "lat": 12.973147,
+   "lng": 77.710782,
+   "bbox": [
+    12.972264,
+    12.974385,
+    77.709114,
+    77.711508
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Quest Global"
+   ],
+   "description": "Prestige office campus in Brookefield (Blocks A-B); Quest Global occupies Block B2. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.questglobal.com/contact/"
+   ]
+  },
+  {
+   "name": "Karle Town Centre SEZ",
+   "aliases": [
+    "Karle Town Centre",
+    "The Cube Karle Town Centre"
+   ],
+   "locality": "Nagavara (Kempe Gowda Main Road, next to Manyata)",
+   "developer": "Karle Infra",
+   "lat": 13.045466,
+   "lng": 77.614321,
+   "bbox": [
+    13.041964,
+    13.048236,
+    77.611847,
+    77.61838
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Persistent Systems",
+    "HCLTech"
+   ],
+   "description": "Karle Infra's mixed-use SEZ campus beside Nagavara lake opposite Manyata; Persistent's Bengaluru office is in The Cube and HCLTech lists an SEZ unit here. Coordinates and bbox from the OpenStreetMap landuse polygon in the research extract (osm-techparks.json).",
+   "sources": [
+    "https://www.persistent.com/company-overview/",
+    "https://www.indiacustomercare.com/hcl-technology-customer-no"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "Infosys",
+   "aliases": [
+    "Infosys Limited",
+    "Infosys Technologies"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1981,
+   "isUnicorn": false,
+   "website": "https://www.infosys.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "India's second-largest IT services company; global headquarters and registered office are its ~80-acre Electronics City campus on Hosur Road.",
+   "offices": [
+    {
+     "label": "Electronics City HQ campus",
+     "locality": "Electronic City Phase 1",
+     "address": "Plot 44 & 97A, Infosys Avenue, Electronics City Phase 1, Hosur Road, 560100",
+     "building": null,
+     "techPark": "Infosys Electronics City Campus",
+     "lat": 12.848969,
+     "lng": 77.666134,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Infosys's registered office is Electronics City, Hosur Road, Bengaluru 560100 (No. 44, Infosys Avenue) per the company's investor filings and directory listings (https://www.infosys.com/investors/reports-filings/documents/global-presence2017.pdf; https://www.voguestock.in/fundamental/locations/infosys-ltd); OSM maps the campus polygon 'Infosys Technologies Limited' (way/364872809).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Electronics City Phase 1 - second parcel",
+     "locality": "Electronic City Phase 1",
+     "address": "Electronics City Phase 1, Hosur Road, 560100",
+     "building": null,
+     "techPark": "Electronics City Phase 1",
+     "lat": 12.842457,
+     "lng": 77.660965,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM records a second commercial polygon named 'Infosys' south-west of the main campus (way/264103043); Infosys's 2017 global-presence filing lists several additional leased Electronics City sites (Center Point Plot 26A, Equinox Plot 47, Salarpuria Infozone, JP IT Park) which were not individually re-verified (https://www.infosys.com/investors/reports-filings/documents/global-presence2017.pdf).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.infosys.com/investors/reports-filings/documents/global-presence2017.pdf",
+    "https://www.voguestock.in/fundamental/locations/infosys-ltd",
+    "https://salestools.io/en/report/infosys-headquarters"
+   ]
+  },
+  {
+   "name": "Wipro",
+   "aliases": [
+    "Wipro Limited",
+    "Wipro Technologies"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1945,
+   "isUnicorn": false,
+   "website": "https://www.wipro.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Bengaluru-headquartered IT services major; corporate office at Doddakannelli on Sarjapur Road, with development centres at Sarjapur (SJP2), Electronic City (EC4, EC5) and the Kodathi SEZ.",
+   "offices": [
+    {
+     "label": "Corporate office SJP1 - Doddakannelli (HQ)",
+     "locality": "Doddakannelli, Sarjapur Road",
+     "address": "Doddakannelli, Sarjapur Road, 560035",
+     "building": "SJP1",
+     "techPark": "Wipro SEZ Sarjapur",
+     "lat": 12.914154,
+     "lng": 77.685939,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wipro's locations page lists 'Corporate Office (SJP1) Doddakannelli, Sarjapur Road, Bengaluru 560035' (https://www.wipro.com/locations/); OSM polygon 'Wipro Corporate Office' (way/370327479).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Sarjapur Development Center SJP2 (SEZ)",
+     "locality": "Doddakannelli, Sarjapur Road",
+     "address": "SEZ, Doddakannelli, Sarjapur Road, 560035",
+     "building": "SJP2",
+     "techPark": "Wipro SEZ Sarjapur",
+     "lat": 12.915479,
+     "lng": 77.683785,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wipro's locations page lists 'Sarjapur Development Center (SJP2) SEZ, Doddakannelli, Sarjapur Road, Bengaluru 560035' (https://www.wipro.com/locations/); OSM polygon 'Wipro SJP2' (way/230229162).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Electronic City Development Center EC4",
+     "locality": "Electronic City Phase 1",
+     "address": "Electronics City Phase 1, Hosur Road, 560100",
+     "building": "EC4",
+     "techPark": "Electronics City Phase 1",
+     "lat": 12.838244,
+     "lng": 77.655271,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wipro's locations page lists 'Electronic City Development Center (EC4), Electronics City Phase 1, 560100' (https://www.wipro.com/locations/); OSM polygon 'Wipro EC 4' (way/231332313).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Electronic City Development Center EC5 (SEZ, Doddathogur)",
+     "locality": "Electronic City Phase 1",
+     "address": "Wipro SEZ, Doddathogur Village, Electronics City Phase 1, 560100",
+     "building": "EC5",
+     "techPark": "Electronics City Phase 1",
+     "lat": 12.840173,
+     "lng": 77.65951,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wipro's locations page lists 'Electronic City Development Center (EC5) SEZ, Electronics City Phase 1, 560100' (https://www.wipro.com/locations/); the FY2016-17 office list names it 'Wipro SEZ, Doddathogur Village, Begur Hobli' (https://www.wipro.com/content/dam/nexus/en/investor/annual-reports/disclosure-related-to-annual-report-2016-2017/Wipro-Limited-Details-of-Office-Locations-FY-2016-17.pdf); building not separately mapped, so the Phase 1 geocode (next to the Wipro EC cluster) is used.",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Kodathi Development Center (Wipro Kodathi SEZ)",
+     "locality": "Kodathi, Sarjapur Road",
+     "address": "Survey No. 91/1, 98 & 99, Kodathi Village, Varthur Hobli, Sarjapur Road",
+     "building": null,
+     "techPark": null,
+     "lat": 12.896911,
+     "lng": 77.71272,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wipro's locations page lists 'Kodathi Development Center, Wipro Kodathi SEZ, Survey No.91/1, 98 & 99, Kodathi Village, Varthur Hobli, Sarjapur Road' (https://www.wipro.com/locations/); Business Today (2018) described the 50-acre, 2 msf Kodathi campus (https://www.businesstoday.in/industry/it/story/wipro-to-shift-all-bengaluru-employees-to-new-50-acre-campus-in-2-years-109610-2018-08-06); OSM polygon 'Wipro SEZ' (way/635317794).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Electronic City EC1-EC3 blocks (Keonics, 74/F)",
+     "locality": "Electronic City Phase 1",
+     "address": "74/F, Keonics Electronics City Phase 1, Hosur Road, 560100",
+     "building": "EC1 / EC2-3",
+     "techPark": "Electronics City Phase 1",
+     "lat": 12.838348,
+     "lng": 77.661671,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Wipro's FY2016-17 office list includes '74/F, Electronic City, Hosur Road' and 'Electronics City Phase 1, Keonics Electronics City' (https://www.wipro.com/content/dam/nexus/en/investor/annual-reports/disclosure-related-to-annual-report-2016-2017/Wipro-Limited-Details-of-Office-Locations-FY-2016-17.pdf) and OSM maps 'Wipro EC 1' and 'Wipro EC 2 / 3' polygons (way/231349458, way/231408285); the current locations page lists only EC4 and EC5, so continued occupation is unconfirmed.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.wipro.com/locations/",
+    "https://www.wipro.com/contact-us/",
+    "https://www.wiprofoundation.org/?p=11668",
+    "https://www.wipro.com/content/dam/nexus/en/investor/annual-reports/disclosure-related-to-annual-report-2016-2017/Wipro-Limited-Details-of-Office-Locations-FY-2016-17.pdf",
+    "https://www.businesstoday.in/industry/it/story/wipro-to-shift-all-bengaluru-employees-to-new-50-acre-campus-in-2-years-109610-2018-08-06"
+   ]
+  },
+  {
+   "name": "TCS",
+   "aliases": [
+    "Tata Consultancy Services",
+    "Tata Consultancy Services Limited"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 1968,
+   "isUnicorn": false,
+   "website": "https://www.tcs.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "India's largest IT services company; in Bengaluru it runs the Think Campus in Electronic City Phase 2, a cluster of ITPL/Whitefield buildings, and has leased 1.4 msf at 360 Business Park (Electronic City) from 2026.",
+   "offices": [
+    {
+     "label": "Think Campus",
+     "locality": "Electronic City Phase 2",
+     "address": "No. 42, Electronics City Phase II, Hosur Road, 560100",
+     "building": null,
+     "techPark": "TCS Think Campus",
+     "lat": 12.848504,
+     "lng": 77.679354,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "TCS's 2023 ISO certificate annexure lists 'Think Campus, No 42, Electronic City phase II, Bangalore 560100' (https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf); OSM polygon 'TCS Think Campus' (way/188314420).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "International Tech Park (Discoverer, Explorer, Pioneer, Creator, Victor, Anchor buildings)",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "International Tech Park, Whitefield Road, Pattandur Agrahara, 560066",
+     "building": "Discoverer / Explorer / Pioneer / Creator / Victor / Anchor",
+     "techPark": "International Tech Park Bangalore",
+     "lat": 12.987199,
+     "lng": 77.739649,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "The 2023 annexure lists TCS units in ITPB Discoverer, Explorer, Pioneer, Creator, the Victor Building (MTB-3) and the Anchor Building, ITPL SEZ, Whitefield Road 560066 (https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf); OSM office node 'Tata Consultancy Services' inside ITPL (node/5931871104).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Abhilash Software Development Centre",
+     "locality": "Whitefield (EPIP)",
+     "address": "Plot No. 96, EPIP Industrial Area, Whitefield, 560066",
+     "building": "Abhilash",
+     "techPark": "EPIP Zone Whitefield",
+     "lat": 12.975789,
+     "lng": 77.726274,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Listed as 'Abhilash Software Development Centre, Plot No. 96, EPIP Industrial Area, Whitefield 560066' (https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf); OSM building 'Tata Consultancy Services - TCS Abhilash' (way/122668471).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "L-Centre",
+     "locality": "Whitefield (EPIP)",
+     "address": "Plot No. 78, 79 & 83, EPIP Industrial Area, Whitefield, 560066",
+     "building": "L-Centre",
+     "techPark": "EPIP Zone Whitefield",
+     "lat": 12.977569,
+     "lng": 77.728158,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Listed as 'L-Centre, Plot No. 78, 79 & 83, EPIP Industrial Area, Whitefield 560066' (https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf); OSM building 'Tata Consultancy Services - L Center' (way/145672507).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "GR Tech Park - Dhara and Jal buildings",
+     "locality": "Mahadevapura (Whitefield Road)",
+     "address": "Salarpuria GR Tech Park, No. 69/3 & 69/4, Mahadevapura, Whitefield Road, 560066",
+     "building": "Dhara / Jal",
+     "techPark": "GR Tech Park",
+     "lat": 12.985944,
+     "lng": 77.744259,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Listed as 'GRTP Dhara, Dhara Building, Salarpuria GR Tech Park, No.69/3 & 69/4, Mahadevapura, Whitefield Road 560066' (https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf); OSM buildings 'TCS Dhara' and 'TCS Jal' (way/159766775, way/159766766).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Global Axis (Gopalan) SEZ - B, C, D and H blocks",
+     "locality": "Hoodi (EPIP)",
+     "address": "Plot No. 152, Hoody Village, EPIP Zone II Stage, Whitefield, 560066",
+     "building": "B, C, D and H blocks",
+     "techPark": "Gopalan Global Axis",
+     "lat": 12.982486,
+     "lng": 77.724345,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Listed as 'Global Axis (B,C&D Blocks), Gopalan Enterprises, SEZ Unit II, Plot No.152, Hoody Village' and 'Global Axis H Block' (https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf); OSM polygon 'Gopalan Global Axis' (way/123613252).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Prestige Shantiniketan - Crescent 3",
+     "locality": "Whitefield (Thigalarapalya)",
+     "address": "Crescent 3, Prestige Shantiniketan, Whitefield Main Road, 560066",
+     "building": "Crescent 3",
+     "techPark": "Prestige Shantiniketan",
+     "lat": 12.988903,
+     "lng": 77.731042,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Listed as 'Crescent 3, Prestige Shantiniketan, Whitefield Main Road 560066' (https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf); park located via Nominatim.",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "RMZ Ecoworld - Building 4B, 9th floor",
+     "locality": "Devarabeesanahalli (Bellandur ORR)",
+     "address": "Building 4B, 9th Floor, RMZ Ecoworld, Marathahalli ORR, Devarabeesanahalli, 560103",
+     "building": "Building 4B",
+     "techPark": "RMZ Ecoworld",
+     "lat": 12.929807,
+     "lng": 77.684629,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Listed as 'Building 4B, 9th Floor, Marathahalli Outer Ring Road, Devarabeesanahalli, Varthur Hobli 560103' (https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf), which is RMZ Ecoworld; park located via Nominatim.",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Brigade Bhuwalka Icon",
+     "locality": "Whitefield (Sadaramangala)",
+     "address": "Brigade Bhuwalka Icon, ITPL Main Road, Sadaramangala Village, 560066",
+     "building": "Brigade Bhuwalka Icon",
+     "techPark": null,
+     "lat": 12.987071,
+     "lng": 77.739538,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Listed as 'Brigade Bhuwalka Icon, Sy No.84/1 & 84/2, Sadaramangala Village, ITPL Main Road 560066' (https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf); building geocoded via Photon.",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "SJM Towers, Gandhinagar",
+     "locality": "Gandhinagar",
+     "address": "No. 18, Seshadri Road, 6th Cross, Gandhinagar, 560009",
+     "building": "SJM Towers",
+     "techPark": null,
+     "lat": 12.980643,
+     "lng": 77.576189,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Listed as 'SJM Towers, No. 18, Seshadri Road, 6th Cross, Gandhinagar, Bangalore 560009' (https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf); street-level geocode of Seshadri Road only.",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "360 Business Park - Towers 5A and 5B (15-year lease, phased occupation from 2026)",
+     "locality": "Electronic City Phase 1",
+     "address": "Towers 5A & 5B, 360 Business Park, Electronic City Phase 1, Hosur Road, 560100",
+     "building": "Towers 5A & 5B",
+     "techPark": "360 Business Park",
+     "lat": 12.843674,
+     "lng": 77.654944,
+     "isHq": false,
+     "status": "planned",
+     "confidence": "high",
+     "evidence": "Outlook Business (27 Aug 2025) reports TCS leased ~1.4 msf (Tower 5A 6.8 lakh sq ft, Tower 5B 7.2 lakh sq ft) at 360 Business Park, Electronic City, for 15 years, with occupation from 1 April 2026 (G+7) and 1 August 2026 (floors 8-13) (https://www.outlookbusiness.com/corporate/tcs-rents-over-2000-cr-office-space-in-bengaluru-joining-big-techs-lease-rush; also https://therealtytoday.com/news/tcs-secures-14-million-sq-ft-lease-at-360-business-park-in-bengaluru-for-2130-crore); OSM polygon '360 Business Park' (way/1070952274).",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf",
+    "https://www.outlookbusiness.com/corporate/tcs-rents-over-2000-cr-office-space-in-bengaluru-joining-big-techs-lease-rush",
+    "https://therealtytoday.com/news/tcs-secures-14-million-sq-ft-lease-at-360-business-park-in-bengaluru-for-2130-crore"
+   ]
+  },
+  {
+   "name": "HCLTech",
+   "aliases": [
+    "HCL Technologies",
+    "HCL Technologies Limited"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Noida",
+   "hqCountry": "India",
+   "founded": 1991,
+   "isUnicorn": false,
+   "website": "https://www.hcltech.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Noida-headquartered IT services major; its largest Bengaluru site is the HCL SEZ campus at Jigani, with leased units at Manyata, ITPL, Prestige Tech Park, Cessna, Karle Town Centre and Electronic City.",
+   "offices": [
+    {
+     "label": "Jigani SEZ campus",
+     "locality": "Jigani (Bommasandra-Jigani Link Road)",
+     "address": "No. 129, Bommasandra-Jigani Link Road, Jigani Industrial Area, 560105",
+     "building": null,
+     "techPark": "HCL Technologies SEZ Jigani",
+     "lat": 12.788593,
+     "lng": 77.651755,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Directory lists 'Special Economic Zone, 129, Jigani, Bommasandra Jigani Link Rd, Industrial Area, Bengaluru 560105' (https://www.indiacustomercare.com/hcl-technology-customer-no) and HCLTech job posts cite Jigani (https://in.indeed.com/browsejobs/Company/HCLTech); OSM polygon 'HCL Technologies SEZ' (way/170320607).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Manyata Embassy Business Park - Block C4 (ELM)",
+     "locality": "Nagavara",
+     "address": "Block C4 (ELM), 1st Floor, Manyata Embassy Business Park, Nagavara, 560045",
+     "building": "C4 ELM",
+     "techPark": "Manyata Tech Park",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Directory lists 'Manyata Embassy Business Park - SEZ, Block C4 (ELM), 1st Floor of Wing A & Wing B, Outer Ring Road, Nagavara & Rachenahalli Villages 560045' (https://www.indiacustomercare.com/hcl-technology-customer-no); park centroid from OSM.",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "ITPL - Aviator Building",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "5th Floor, Unit B, Aviator Building, ITPL SEZ, Whitefield Road, 560066",
+     "building": "Aviator",
+     "techPark": "International Tech Park Bangalore",
+     "lat": 12.982925,
+     "lng": 77.738388,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Directory lists '5th Floor Unit-B Aviator Building ITPL SEZ Whitefield Road 560066' (https://www.indiacustomercare.com/hcl-technology-customer-no); OSM maps the Aviator building (way/462494800) and an 'HCL' office node inside ITPL (node/10695073056).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Prestige Tech Park - Venus Block (Block 2C)",
+     "locality": "Kadubeesanahalli (ORR)",
+     "address": "2nd Floor, Venus Block (2C), Prestige Tech Park, Kadubeesanahalli, ORR, 560103",
+     "building": "Venus (Block 2C)",
+     "techPark": "Prestige Tech Park",
+     "lat": 12.942188,
+     "lng": 77.693145,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Directory lists 'Second floor in Venus Block (Block 2C), Sarjapur-Marathahalli ring road, Survey nos. 33/1, 35, 29... of Kadubeesanahalli 560103' (https://www.indiacustomercare.com/hcl-technology-customer-no); OSM maps the 'Venus' office building on Outer Ring Road inside Prestige Tech Park (way/466082617).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Cessna Business Park - Building B-9 (ORR facility)",
+     "locality": "Kadubeesanahalli (ORR)",
+     "address": "Building B-9, Cessna Business Park, Outer Ring Road, Kadubeesanahalli, 560087",
+     "building": "B-9",
+     "techPark": "Cessna Business Park",
+     "lat": 12.934801,
+     "lng": 77.694818,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Directory lists 'Building B-9 ORR Facility - CESSNA Business Park, Outer Ring Road 560087' (https://www.indiacustomercare.com/hcl-technology-customer-no); park centroid from OSM (way/232972967).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Karle Town Centre SEZ",
+     "locality": "Nagavara",
+     "address": "Karle Town Centre, Nagavara, 560045",
+     "building": null,
+     "techPark": "Karle Town Centre SEZ",
+     "lat": 13.045466,
+     "lng": 77.614321,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Directory lists 'Karle Town Centre Survey Nos. 72, 91/3 and 91/4, Nagavara Vill, Kasaba Hobli 560045' (https://www.indiacustomercare.com/hcl-technology-customer-no); park centroid from OSM (way/1423518850).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Electronic City Phase 2 - PB Softtech, Plot 25",
+     "locality": "Electronic City Phase 2",
+     "address": "2nd Floor, PB Softtech, Plot No. 25, Electronic City Phase 2, 560100",
+     "building": "PB Softtech",
+     "techPark": "Electronics City Phase 2",
+     "lat": 12.8495,
+     "lng": 77.6787,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Directory lists 'Second Floor, PB Softtech, Plot No. 25, Phase 2, Electronic City 560100' (https://www.indiacustomercare.com/hcl-technology-customer-no); the building itself was not geocodable, so the Phase 2 area centroid is used.",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "RMZ Ecoworld - Sankalp Semiconductor (HCLTech subsidiary), 401E B Wing",
+     "locality": "Devarabeesanahalli (Bellandur ORR)",
+     "address": "401E, B Wing (East), RMZ Ecoworld SEZ, Devarabeesanahalli, ORR, 560103",
+     "building": null,
+     "techPark": "RMZ Ecoworld",
+     "lat": 12.929807,
+     "lng": 77.684629,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Directory lists 'Sankalp Semiconductor Private Limited 401E, B Wing (East), RMZ Eco world SEZ, 20 & 21, Devarabeesana Halli, Sarjapura Outer Ring Road 560103' (https://www.indiacustomercare.com/hcl-technology-customer-no); park located via Nominatim.",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Bagmane Capital (OSM-recorded office)",
+     "locality": "C V Raman Nagar / Mahadevapura",
+     "address": "Bagmane Capital, Mahadevapura",
+     "building": null,
+     "techPark": "Bagmane Capital",
+     "lat": 12.983793,
+     "lng": 77.703668,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office node 'HCL Techonlogies' inside the Bagmane Capital polygon (node/13945642506); no company or press source found, so treat as unconfirmed.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.indiacustomercare.com/hcl-technology-customer-no",
+    "https://in.indeed.com/browsejobs/Company/HCLTech",
+    "https://builtinbengaluru.in/company/hcltech"
+   ]
+  },
+  {
+   "name": "Tech Mahindra",
+   "aliases": [
+    "Tech Mahindra Limited",
+    "Mahindra Satyam"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Pune",
+   "hqCountry": "India",
+   "founded": 1986,
+   "isUnicorn": false,
+   "website": "https://www.techmahindra.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Pune-headquartered IT services company; its Bengaluru campus is at KIADB Industrial Area, Electronic City Phase II, with a second office in RMZ Ecoworld on the ORR.",
+   "offices": [
+    {
+     "label": "Electronic City Phase II campus",
+     "locality": "Electronic City Phase 2",
+     "address": "Plot No. 45-47, KIADB Industrial Area, Electronic City Phase II, 560100",
+     "building": null,
+     "techPark": "Electronics City Phase 2",
+     "lat": 12.850515,
+     "lng": 77.678106,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Tech Mahindra's contact page lists 'Plot No.45-47, KIADB Industrial Area, Phase-II, Electronic City, Bengaluru 560100' (https://www.techmahindra.com/contact-us/); Nominatim resolves 'Tech Mahindra, Electronics City Phase 2 (East)'.",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "RMZ Ecoworld - Tower 4A & 4B, 4th floor",
+     "locality": "Devarabeesanahalli (Bellandur ORR)",
+     "address": "Tower 4A & 4B, 4th Floor, RMZ Ecoworld, Marathahalli ORR, 560103",
+     "building": "Tower 4A & 4B",
+     "techPark": "RMZ Ecoworld",
+     "lat": 12.929807,
+     "lng": 77.684629,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Tech Mahindra's contact page lists 'RMZ Ecoworld, Tower 4A&4B, Fourth Floor, Marathalli Outer Ring Road, Bengaluru 560103' (https://www.techmahindra.com/contact-us/).",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Dairy Circle / Hosur Road office (OSM-recorded)",
+     "locality": "Adugodi (Dairy Circle)",
+     "address": "Near Dairy Circle, Hosur Road",
+     "building": null,
+     "techPark": null,
+     "lat": 12.936906,
+     "lng": 77.606255,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM maps an office building named 'Tech Mahindra' beside Bren Optimus near Dairy Circle (way/313327096); it is not on the company's contact page, so it may be historical.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.techmahindra.com/contact-us/",
+    "https://techmahindrafoundation.org/wp-content/uploads/2023/07/Bengaluru-Location-Brochure-Single-PDF-31_07_2023.pdf"
+   ]
+  },
+  {
+   "name": "LTIMindtree",
+   "aliases": [
+    "Mindtree",
+    "L&T Infotech",
+    "LTI",
+    "Larsen & Toubro Infotech"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 1996,
+   "isUnicorn": false,
+   "website": "https://www.ltimindtree.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "L&T group IT services company formed by the 2022 merger of LTI and Bengaluru-born Mindtree; Bengaluru campuses at Global Village (Mysore Road), Whitefield EPIP, L&T Tech Park (Bellary Road) and Manyata.",
+   "offices": [
+    {
+     "label": "Global Village - Mindtree West Campus",
+     "locality": "Mylasandra, Mysore Road (RVCE Post)",
+     "address": "Global Village Tech Park, RVCE Post, Mysore Road, Kengeri Hobli, 560059",
+     "building": null,
+     "techPark": "Global Village Tech Park",
+     "lat": 12.918815,
+     "lng": 77.502519,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Mindtree's annual report lists its West Campus at Global Village, RVCE Post, Mysore Road (https://investorsarchive.ltimindtree.com/annual-report-2021-2022/pdf/Global%20Presence.pdf); OSM maps 'Mindtree Global Village, Phase 1-5' buildings (node/3485260898 etc.).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Whitefield EPIP campus (former Mindtree and LTI Whitefield offices)",
+     "locality": "Whitefield (EPIP)",
+     "address": "EPIP Zone, Whitefield, 560066",
+     "building": null,
+     "techPark": "EPIP Zone Whitefield",
+     "lat": 12.983609,
+     "lng": 77.722387,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps adjoining commercial polygons 'L&T Mind Tree' (way/84086381) and 'Larsen & Toubro Infotech Ltd' (way/122668435) in the EPIP zone; a directory places LTIMindtree in the Gopalan SEZ, EPIP 2nd Phase, Hoodi, Whitefield (https://www.indiacustomercare.com/ltimindtree-customer-care-no).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "L&T Tech Park - Tower S2, Bellary Road",
+     "locality": "Byatarayanapura (Hebbal, Bellary Road)",
+     "address": "Tower S2, L&T Tech Park, 274 Bellary Road, Byatarayanapura, 560092",
+     "building": "S2",
+     "techPark": "L&T Tech Park",
+     "lat": 13.068802,
+     "lng": 77.592011,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LTIMindtree's 2024-25 global presence list gives 'L&T Tech Park, S2 Tower, Bellary Road, Byatarayanapura' (https://www.ltimindtree.com/annual-report-html/pdf/LTIMindtree_IR_2024-25_Global%20Presence.pdf); OSM node 'LTIMindtree S2 Hebbal, 274 Bellary Road' (node/12047380769).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Embassy Manyata Business Park",
+     "locality": "Nagavara",
+     "address": "Embassy Manyata Business Park, Nagavara, 560045",
+     "building": null,
+     "techPark": "Manyata Tech Park",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "LTIMindtree's investor pages list an office in Embassy Manyata Business Park, Nagavara (https://investorsarchive.ltimindtree.com/about); park centroid from OSM.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.ltimindtree.com/annual-report-html/pdf/LTIMindtree_IR_2024-25_Global%20Presence.pdf",
+    "https://investorsarchive.ltimindtree.com/about",
+    "https://investorsarchive.ltimindtree.com/annual-report-2021-2022/pdf/Global%20Presence.pdf",
+    "https://www.indiacustomercare.com/ltimindtree-customer-care-no"
+   ]
+  },
+  {
+   "name": "L&T Technology Services",
+   "aliases": [
+    "LTTS"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Vadodara",
+   "hqCountry": "India",
+   "founded": 2012,
+   "isUnicorn": false,
+   "website": "https://www.ltts.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "L&T group engineering R&D services company (ER&D); its biggest delivery campus is Tower S1 of the L&T campus on Bellary Road, with SEZ units at RGA Tech Park (Sarjapur Road) and Vista Pixel (Jakkur).",
+   "offices": [
+    {
+     "label": "L&T Campus Bellary Road - Tower S1 (SEZ Units I-IV)",
+     "locality": "Byatarayanapura (Hebbal, Bellary Road)",
+     "address": "Tower S1, L&T Campus, Bellary Road, Byatarayanapura, 560092",
+     "building": "S1",
+     "techPark": "L&T Tech Park",
+     "lat": 13.068558,
+     "lng": 77.592108,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LTTS's contact page lists 'SEZ Unit I, II, III & IV, Tower S1, L&T Realty Developers Ltd. SEZ, L&T Campus, Bellary Road, Byatarayanapura, Bengaluru 560092' (https://www.ltts.com/contact-us); OSM polygon 'L&T Tech Park Phase 1' (way/963445870).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "RGA Tech Park SEZ - Unit VI, Block 3 A Wing",
+     "locality": "Chikkanahalli, Sarjapur Main Road",
+     "address": "Block 3 A Wing, RGA Tech Park SEZ, Chikkanahalli, Sarjapur Main Road, 560035",
+     "building": "Block 3, A Wing",
+     "techPark": "RGA Tech Park",
+     "lat": 12.901265,
+     "lng": 77.704984,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LTTS's contact page lists 'Unit VI, Block 3 A Wing, 1st-3rd Floor, RGA Tech Park SEZ, Survey No 31/1, Chikkannalli Village, Sarjapura Main Road, 560035' (https://www.ltts.com/contact-us); OSM polygon 'RGA Tech Park' (way/460960666).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Vista Pixel, Bellary Road (Jakkur)",
+     "locality": "Jakkur (Bellary Road)",
+     "address": "8/2B & 8/2C, Ground Floor, Vista Pixel, Bellary Road, Pillar P/66, Jakkur, 560092",
+     "building": "Vista Pixel",
+     "techPark": null,
+     "lat": 13.077675,
+     "lng": 77.597682,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "LTTS's contact page lists '8/2B and 8/2C, Ground Floor, Vista Pixel, Bellary Road, Pillar No P/66, Jakkuru, 560092' (https://www.ltts.com/contact-us); street-level geocode (Jakkur on Bellary Road), building not resolved.",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Manyata Embassy Business Park - C4 ELM (directory listing)",
+     "locality": "Nagavara",
+     "address": "1st Floor, C4 ELM, Manyata Embassy Business Park, 560045",
+     "building": "C4 ELM",
+     "techPark": "Manyata Tech Park",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "An IPC member directory gives LTTS's address as '1st Floor, C4 ELM Building, Manyata Embassy Business Park, Bangalore 560045' (https://www.ipc.org/group/657414); not on the company's current contact page.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.ltts.com/contact-us",
+    "https://www.ipc.org/group/657414",
+    "https://www.lntrealty.com/offices/lt-tech-park-1/"
+   ]
+  },
+  {
+   "name": "Mphasis",
+   "aliases": [
+    "Mphasis Limited",
+    "MphasiS BFL"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1998,
+   "isUnicorn": false,
+   "website": "https://www.mphasis.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Bengaluru-headquartered IT services company (Blackstone-owned); corporate office at Bagmane Laurel in Bagmane Tech Park and registered office at Bagmane World Technology Center, with delivery centres at Global Village, Whitefield and Pritech Park.",
+   "offices": [
+    {
+     "label": "Corporate office - Bagmane Laurel, Tower A",
+     "locality": "C V Raman Nagar",
+     "address": "Bagmane Laurel, Tower A, Bagmane Tech Park, Byrasandra, C V Raman Nagar, 560093",
+     "building": "Bagmane Laurel",
+     "techPark": "Bagmane Tech Park",
+     "lat": 12.978694,
+     "lng": 77.662447,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Directory and company profiles list the corporate office as 'Bagmane Laurel, 1st Floor, Tower A, Bagmane Technology Park, C V Raman Nagar, Bangalore 560093' (https://www.indiacustomercare.com/mphasis-contact-no; https://www.globaldata.com/company-profile/mphasis/locations/); park centroid from OSM (way/323047914).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Registered office - Bagmane World Technology Center (WTC 2 & 4, SEZ)",
+     "locality": "Mahadevapura (Doddanakundi, ORR)",
+     "address": "Bagmane World Technology Center, Marathahalli ORR, Doddanakundi, Mahadevapura, 560048",
+     "building": "WTC 2 & 4",
+     "techPark": "Bagmane World Technology Center",
+     "lat": 12.985291,
+     "lng": 77.694672,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Directory lists the registered office as 'Bagmane World Technology Center, Marathahalli Outer Ring Road, Doddanakundi Village, Mahadevapura 560048' and SEZ units in WTC 2 & 4 (https://www.indiacustomercare.com/mphasis-contact-no); OSM polygon 'Bagmane World Technology Center' (way/91237236).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Bagmane Parin, Block A",
+     "locality": "C V Raman Nagar",
+     "address": "Bagmane Parin, No. 65/2, Block A, Bagmane Tech Park, C V Raman Nagar, 560093",
+     "building": "Bagmane Parin",
+     "techPark": "Bagmane Tech Park",
+     "lat": 12.978694,
+     "lng": 77.662447,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Directory lists 'Bagmane Parin, No. 65/2, Block-A, Bagmane Technology Park, Byrasandra Village, C V Raman Nagar 560093' (https://www.indiacustomercare.com/mphasis-contact-no); park centroid from OSM.",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Mascot 90, EPIP Whitefield",
+     "locality": "Whitefield (EPIP)",
+     "address": "Mascot 90, No. 80, Block II, EPIP Industrial Area, Whitefield, 560066",
+     "building": "Mascot",
+     "techPark": "EPIP Zone Whitefield",
+     "lat": 12.978,
+     "lng": 77.723,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Directory lists 'Mphasis Limited Mascot 90, EPIP Industrial Area, No. 80, Block II, Whitefield 560066' (https://www.indiacustomercare.com/mphasis-contact-no); the building did not geocode, so the EPIP zone centroid is used.",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Global Village SEZ - Towers E and F (and GTV)",
+     "locality": "Mylasandra, Mysore Road (Kengeri Hobli)",
+     "address": "Tower E & F, Global Village SEZ, Mylasandra-Patanegere, Kengeri Hobli, Mysore Road, 560059",
+     "building": "Tower E / Tower F",
+     "techPark": "Global Village Tech Park",
+     "lat": 12.919521,
+     "lng": 77.501354,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Directory lists 'Tower E, 1 & 2nd Floor and Tower F, 3rd Floor, Global Village SEZ, Mylasandra-Patanegere Villages, Kengeri Hobli, 560059' and a GTV (Global Technology Village) SEZ unit (https://www.indiacustomercare.com/mphasis-contact-no); park centroid from OSM 'Sattva Global City' (way/614208152).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Pritech Park SEZ - Block 5, Wing A",
+     "locality": "Bellandur (ORR)",
+     "address": "2nd Floor, Wing A, Block 5, Pritech Park SEZ, Outer Ring Road, Bellandur, 560103",
+     "building": "Block 5",
+     "techPark": "Pritech Park SEZ",
+     "lat": 12.92086,
+     "lng": 77.680769,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Directory lists '2nd floor, Wing A, Block 5, Pritech Park SEZ, Outer Ring Road, Bellandur Village 560103' (https://www.indiacustomercare.com/mphasis-contact-no); park located via Nominatim.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.indiacustomercare.com/mphasis-contact-no",
+    "https://www.globaldata.com/company-profile/mphasis/locations/",
+    "https://sg.finance.yahoo.com/quote/MPHASIS.BO/profile"
+   ]
+  },
+  {
+   "name": "Tata Elxsi",
+   "aliases": [
+    "Tata Elxsi Limited"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1989,
+   "isUnicorn": false,
+   "website": "https://www.tataelxsi.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Tata group design and technology services company (automotive, media, healthcare); headquartered on ITPB Road, Whitefield, with two further Whitefield-area centres.",
+   "offices": [
+    {
+     "label": "Headquarters - ITPB Road, Whitefield",
+     "locality": "Whitefield (ITPB Road)",
+     "address": "ITPB Road, Whitefield, 560048",
+     "building": null,
+     "techPark": null,
+     "lat": 12.990701,
+     "lng": 77.724838,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Tata Elxsi's contact page lists 'HQ, ITPB Road, Whitefield, Bangalore 560048' (https://www.tataelxsi.com/contact-us); OSM polygon 'Tata Elxsi' (way/45096250).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Prestige Shantiniketan - Crescent 4, 9th floor",
+     "locality": "Whitefield (Thigalarapalya)",
+     "address": "Crescent 4, 9th Floor, Prestige Shantiniketan, Whitefield Road, 560048",
+     "building": "Crescent 4",
+     "techPark": "Prestige Shantiniketan",
+     "lat": 12.988903,
+     "lng": 77.731042,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Contact page lists 'Prestige Shantiniketan, Crescent 4, 9th Floor, Whitefield Road, Bangalore 560048' (https://www.tataelxsi.com/contact-us).",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Bhoruka Tech Park - Block I, Hoodi",
+     "locality": "Hoodi (Mahadevapura Industrial Area)",
+     "address": "Block I, Bhoruka Tech Park, Mahadevapura Industrial Area, Hoodi, 560048",
+     "building": "Block I",
+     "techPark": "Bhoruka Tech Park",
+     "lat": 12.993688,
+     "lng": 77.705461,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Contact page lists 'Bhoruka Tech Park, Block I, Mahadevpura Industrial Area Hoodi, Krishnarajapuram Hobli, Bangalore 560048' (https://www.tataelxsi.com/contact-us); Nominatim resolves Bhoruka Tech Park; OSM office node 'Tata Elxsi' nearby (node/11215663854).",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.tataelxsi.com/contact-us",
+    "https://www.clay.com/dossier/tata-elxsi-headquarters-office-locations"
+   ]
+  },
+  {
+   "name": "Cyient",
+   "aliases": [
+    "Infotech Enterprises",
+    "Cyient Limited",
+    "Cyient DLM"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Hyderabad",
+   "hqCountry": "India",
+   "founded": 1991,
+   "isUnicorn": false,
+   "website": "https://www.cyient.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Hyderabad-headquartered engineering and technology services company; Bengaluru delivery centre in Electronics City Phase 1 (the former Infotech Enterprises campus) and a Cyient DLM electronics manufacturing unit at Peenya.",
+   "offices": [
+    {
+     "label": "Electronics City Phase 1 delivery centre (Infotech IT Park, Plot 110A & 110B)",
+     "locality": "Electronic City Phase 1",
+     "address": "Infotech IT Park, Plot 110A & 110B, Electronics City Phase 1, Hosur Road, 560100",
+     "building": null,
+     "techPark": "Electronics City Phase 1",
+     "lat": 12.836903,
+     "lng": 77.662385,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Directory lists 'Infotech IT Park, Plot No. 110A & 110B, Phase 1 Electronics City, Hosur Road, Bengaluru 560100' (https://www.indiacustomercare.com/cyient-contact-no); Built In lists Cyient jobs in Electronics City (https://builtinbengaluru.in/company/cyient); OSM polygon still named 'Infotech Enterprises Ltd' (way/231410912).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Cyient DLM - Peenya manufacturing unit",
+     "locality": "Peenya (Shivapura 2nd Phase)",
+     "address": "Unit-3, No. 27C, Shivapura 2nd Phase, Peenya Industrial Area, 560058",
+     "building": null,
+     "techPark": null,
+     "lat": 13.009643,
+     "lng": 77.503193,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Cyient DLM's contact page lists 'Unit-3, No#27C, Shivapura 2nd phase Peenya, Bengaluru 560058' (https://www.cyientdlm.com/contact-us); street-level geocode of Peenya 2nd Stage.",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.indiacustomercare.com/cyient-contact-no",
+    "https://www.cyientdlm.com/contact-us",
+    "https://builtinbengaluru.in/company/cyient"
+   ]
+  },
+  {
+   "name": "Persistent Systems",
+   "aliases": [
+    "Persistent Systems Limited"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Pune",
+   "hqCountry": "India",
+   "founded": 1990,
+   "isUnicorn": false,
+   "website": "https://www.persistent.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Pune-headquartered digital engineering company with three Bengaluru offices: Pritech Park (Bellandur), Prestige Shantiniketan (Whitefield) and The Cube at Karle Town Centre (Nagavara).",
+   "offices": [
+    {
+     "label": "Pritech Park SEZ - Block 9, 5th floor",
+     "locality": "Bellandur (ORR)",
+     "address": "5th Floor, Block 9, Pritech Park SEZ, Bellandur, ORR, 560103",
+     "building": "Block 9",
+     "techPark": "Pritech Park SEZ",
+     "lat": 12.92086,
+     "lng": 77.680769,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Persistent's company page lists '5th Floor, Block 9, Primal Projects Pvt. Ltd. SEZ (PRITECH PARK), Belandur Village, Varthur Hobli, 560103' (https://www.persistent.com/company-overview/).",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Prestige Shantiniketan - Crescent 1, 12th floor",
+     "locality": "Whitefield (Thigalarapalya)",
+     "address": "12th Floor, Crescent 1, Prestige Shantiniketan, Whitefield Main Road, 560048",
+     "building": "Crescent 1",
+     "techPark": "Prestige Shantiniketan",
+     "lat": 12.988903,
+     "lng": 77.731042,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Company page lists '12th Floor, Prestige Shantiniketan - Crescent 1, Whitefield Main Rd, Thigalarapalya, 560048' (https://www.persistent.com/company-overview/).",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "The Cube, Karle Town Centre - 6th floor",
+     "locality": "Nagavara",
+     "address": "6th Floor, The Cube, Karle Town Centre, Nagavara, 560045",
+     "building": "The Cube",
+     "techPark": "Karle Town Centre SEZ",
+     "lat": 13.045466,
+     "lng": 77.614321,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Company page lists '6th Floor, The Cube-Karle Town Centre, 100 Ft. Nada Prabhu Kempe Gowda Main Road, next to Nagavara, 560045' (https://www.persistent.com/company-overview/); this is the 'Hebbal' lake-view office announced on LinkedIn (https://www.glassdoor.co.in/Updates/Persistent-Systems-Company-Updates-E150639_P23.htm).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.persistent.com/company-overview/",
+    "https://www.indiacustomercare.com/persistent-systems-contact-no"
+   ]
+  },
+  {
+   "name": "Coforge",
+   "aliases": [
+    "NIIT Technologies",
+    "Coforge Limited",
+    "Encora (acquired)"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Noida",
+   "hqCountry": "India",
+   "founded": 1992,
+   "isUnicorn": false,
+   "website": "https://www.coforge.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Greater Noida-headquartered IT services company (formerly NIIT Technologies); Bengaluru offices at Bhartiya Centre of Information Technology, Subramanya Arcade (Bannerghatta Road) and Prestige Shantiniketan; encora.com now redirects to coforge.com after the Encora acquisition.",
+   "offices": [
+    {
+     "label": "Bhartiya Centre of Information Technology - Block 3, Tower B",
+     "locality": "Thanisandra (Bhartiya City)",
+     "address": "15th & 16th Floor, Block 3, Tower B, BCIT, Thanisandra Main Road, 560064",
+     "building": "Block 3, Tower B",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "lat": 13.083833,
+     "lng": 77.640951,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Coforge's global presence page lists '15th & 16th Floor, Block 3, Tower B BCIT, Bhartiya City Thanisandra Main Road, Bengaluru 560064' (https://www.coforge.com/who-we-are/global-presence); OSM office node 'Coforge' at BCIT (node/13355835365).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Indiqube Arcade (Subramanya Arcade), Bannerghatta Road",
+     "locality": "BTM Layout (Bannerghatta Road)",
+     "address": "Subramanya Arcade, Bannerghatta Road, BTM Layout, 560029",
+     "building": "Subramanya Arcade",
+     "techPark": null,
+     "lat": 12.924695,
+     "lng": 77.601296,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Global presence page lists 'INDIQUBE ARCADE, SUBRAMANYA ARCADE, Bannerghatta Rd, Old Gurappanapalya, BTM Layout 560029' (https://www.coforge.com/who-we-are/global-presence); Nominatim resolves Subramanya Arcade.",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Prestige Shantiniketan - Tower B, 10th floor",
+     "locality": "Whitefield (Thigalarapalya)",
+     "address": "10th Floor, Tower B, Prestige Shantiniketan, ITPL Main Road, Whitefield, 560048",
+     "building": "Tower B",
+     "techPark": "Prestige Shantiniketan",
+     "lat": 12.988903,
+     "lng": 77.731042,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Global presence page lists 'Shantiniketan, 10th Floor, Tower B, Prestige, ITPL Main Rd, Whitefield 560048' (https://www.coforge.com/who-we-are/global-presence).",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.coforge.com/who-we-are/global-presence",
+    "https://www.coforge.com/"
+   ]
+  },
+  {
+   "name": "Encora",
+   "aliases": [
+    "Encora Digital",
+    "Encora Innovations"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "hqCity": "Scottsdale",
+   "hqCountry": "USA",
+   "founded": null,
+   "isUnicorn": false,
+   "website": "https://www.encora.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "US digital-engineering services firm now part of Coforge (encora.com redirects to coforge.com and Coforge's site refers to 'the Encora acquisition'); its Bengaluru offices are known only from OSM mapping.",
+   "offices": [
+    {
+     "label": "Bagmane Capital (OSM-recorded 'Encora Innovations')",
+     "locality": "C V Raman Nagar / Mahadevapura",
+     "address": "Bagmane Capital, Mahadevapura",
+     "building": null,
+     "techPark": "Bagmane Capital",
+     "lat": 12.984567,
+     "lng": 77.70377,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office node 'Encora Innovations' inside the Bagmane Capital polygon (node/13945629499); encora.com redirects to coforge.com (observed 2026-10) and Coforge's homepage quotes an analyst on 'the Encora acquisition' (https://www.coforge.com/). No company address page could be retrieved.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Dickenson Road area office (OSM-recorded 'Encora')",
+     "locality": "Dickenson Road (central Bengaluru)",
+     "address": "Dickenson Road",
+     "building": null,
+     "techPark": null,
+     "lat": 12.974135,
+     "lng": 77.617418,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office node 'Encora' on Dickenson Road near Manipal Centre (node/12459951922); unconfirmed by any company source.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.coforge.com/",
+    "https://www.encora.com/"
+   ]
+  },
+  {
+   "name": "Hexaware Technologies",
+   "aliases": [
+    "Hexaware"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Navi Mumbai",
+   "hqCountry": "India",
+   "founded": 1990,
+   "isUnicorn": false,
+   "website": "https://hexaware.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Navi Mumbai-headquartered IT services company (Carlyle-owned, listed 2025); Bengaluru offices at Prestige Shantiniketan, BCIT (Thanisandra) and North Square on Infantry Road.",
+   "offices": [
+    {
+     "label": "Prestige Shantiniketan - Crescent 2, 11th floor",
+     "locality": "Whitefield (Thigalarapalya)",
+     "address": "11th Floor, Crescent 2, Prestige Shantiniketan, Whitefield Main Road, 560048",
+     "building": "Crescent 2",
+     "techPark": "Prestige Shantiniketan",
+     "lat": 12.988903,
+     "lng": 77.731042,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Hexaware's India locations page lists '11th Floor, CR2, Prestige Shanthiniketan, Whitefield Road' (https://hexaware.com/location/india/); AmbitionBox lists the same building as its Bengaluru office (https://www.ambitionbox.com/overview/hexaware-technologies-overview/locations/bengaluru-offices).",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "BCIT SEZ - Block 1, ground floor, Thanisandra",
+     "locality": "Thanisandra (Bhartiya City)",
+     "address": "Ground Floor, Block 1, BCIT SEZ, Thanisandra Main Road, 560064",
+     "building": "Block 1",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "lat": 13.08424,
+     "lng": 77.64038,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "India locations page lists 'Ground Floor, Block 1 BCIT, Milestone Buildcon, SEZ, Thanisandra Main road, Bengaluru 560064' (https://hexaware.com/location/india/); park centroid from OSM (way/781780410).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "North Square, Infantry Road",
+     "locality": "Infantry Road (Shivajinagar)",
+     "address": "No. 135, North Square, Infantry Road, 560001",
+     "building": "North Square",
+     "techPark": null,
+     "lat": 12.982005,
+     "lng": 77.599255,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "India locations page lists 'No.135, North Square, Infantry Road, Bengaluru 560001' (https://hexaware.com/location/india/); street-level geocode of Infantry Road.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://hexaware.com/location/india/",
+    "https://www.ambitionbox.com/overview/hexaware-technologies-overview/locations/bengaluru-offices"
+   ]
+  },
+  {
+   "name": "Birlasoft",
+   "aliases": [
+    "Birlasoft Limited",
+    "KPIT Technologies (IT services arm, merged 2019)"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Pune",
+   "hqCountry": "India",
+   "founded": 1990,
+   "isUnicorn": false,
+   "website": "https://www.birlasoft.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "CK Birla group IT services company headquartered in Pune; its Bengaluru office is the Cedar Block of Kalyani Platina in Kundalahalli, Whitefield.",
+   "offices": [
+    {
+     "label": "Kalyani Platina - Cedar Block, 4th & 5th floors",
+     "locality": "Kundalahalli (Whitefield)",
+     "address": "Cedar Block, 4th & 5th Floor, Kalyani Platina, Kundalahalli, Whitefield, 560066",
+     "building": "Cedar Block",
+     "techPark": "Kalyani Platina",
+     "lat": 12.969865,
+     "lng": 77.717322,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Birlasoft's contact page lists 'Cedar Block, 4th and 5th Floor, Kalyani Platina, Kundalahalli Village, KR Puram Hobli, Whitefield, Bengaluru 560066' (https://www.birlasoft.com/contact-us); Nominatim resolves the adjoining Kalyani Tech Park, so the point is park-level.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.birlasoft.com/contact-us",
+    "https://www.birlasoft.com/company"
+   ]
+  },
+  {
+   "name": "Zensar Technologies",
+   "aliases": [
+    "Zensar"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Pune",
+   "hqCountry": "India",
+   "founded": 1991,
+   "isUnicorn": false,
+   "website": "https://www.zensar.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "RPG group IT services company headquartered in Pune (about 10,000 staff); Bengaluru offices at Shilpa Ananya Tech Park in Electronic City Phase 1 and an Indiqube centre in JP Nagar.",
+   "offices": [
+    {
+     "label": "Shilpa Ananya Tech Park - 7th floor, Electronic City Phase 1",
+     "locality": "Electronic City Phase 1 (Konappana Agrahara)",
+     "address": "7th Floor, Shilpa Ananya Tech Park, Konappana Agrahara, Electronic City Phase 1, 560100",
+     "building": "Shilpa Ananya Tech Park",
+     "techPark": "Electronics City Phase 1",
+     "lat": 12.852862,
+     "lng": 77.668169,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Zensar's contact page lists '7th Floor, Shilpa Ananya Tech Park, Electronic City Phase-1, Konnappa Agrahara Village, Begur Hobli, Bengaluru 560100' (https://zensar.com/contact); locality-level geocode of Konappana Agrahara, building not resolved.",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Indiqube Miniforest, JP Nagar 3rd Phase",
+     "locality": "JP Nagar 3rd Phase (Sarakki Industrial Layout)",
+     "address": "2nd Floor, Indiqube Miniforest, 1st Main Road, Sarakki Industrial Layout, JP Nagar 3rd Phase, 560078",
+     "building": "Indiqube Miniforest",
+     "techPark": null,
+     "lat": 12.912021,
+     "lng": 77.585897,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Contact page lists '2nd floor, Indiqube Miniforest, 1st Main Rd, Sarakki Industrial Layout, Dollar Layout, 3rd Phase, J. P. Nagar 560078' (https://zensar.com/contact); OSM office node 'Indiqube' in JP Nagar (node/11303761209).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Prestige Shantiniketan - Tower B, 3rd floor (job-listing address)",
+     "locality": "Whitefield (Thigalarapalya)",
+     "address": "3rd Floor, Tower B, Prestige Shantiniketan, ITPL Main Road, 560048",
+     "building": "Tower B",
+     "techPark": "Prestige Shantiniketan",
+     "lat": 12.988903,
+     "lng": 77.731042,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "A Zensar recruitment listing gives '3rd Floor, Tower B, Prestige Shantiniketan, ITPL Main Road, Whitefield 560048' (https://www.karnatakacareers.org/zensar-recruitment/); not on the company's contact page.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://zensar.com/contact",
+    "https://www.karnatakacareers.org/zensar-recruitment/"
+   ]
+  },
+  {
+   "name": "Mastek",
+   "aliases": [
+    "Mastek Limited"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 1982,
+   "isUnicorn": false,
+   "website": "https://www.mastek.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Mumbai-based IT services company (registered office Ahmedabad); its Bengaluru office is in the iSprout managed workspace at DivyaSree NR Enclave, EPIP Whitefield.",
+   "offices": [
+    {
+     "label": "iSprout, DivyaSree NR Enclave, EPIP Whitefield",
+     "locality": "Whitefield (EPIP)",
+     "address": "A02, iSprout, DivyaSree NR Enclave, 1st Main Road, EPIP, Whitefield, 560066",
+     "building": "DivyaSree NR Enclave",
+     "techPark": "EPIP Zone Whitefield",
+     "lat": 12.986567,
+     "lng": 77.730703,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Mastek's 2025 SEBI disclosure lists '1st Floor, A02, iSprout, 1st Main Road, Divya Shree N R Enclave, KIADB Export Promotion Industrial Area, Whitefield 560066' (https://www.mastek.com/wp-content/uploads/2025/09/disclosure-of-contact-details-of-key-managerial-personnel-for-the-purpose-of-determining-materiality-of-an-event.pdf); OSM polygon 'DivyaSree NR Enclave' (way/116070091).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.mastek.com/wp-content/uploads/2025/09/disclosure-of-contact-details-of-key-managerial-personnel-for-the-purpose-of-determining-materiality-of-an-event.pdf",
+    "https://www.indiacustomercare.com/mastek-contact-no-022-6722-4200"
+   ]
+  },
+  {
+   "name": "Sonata Software",
+   "aliases": [
+    "Sonata Software Limited",
+    "Sonata Software Solutions"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1986,
+   "isUnicorn": false,
+   "website": "https://www.sonata-software.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Bengaluru-headquartered IT services company (registered office Mumbai); corporate office in Sonata Towers, Tower A, Global Village Tech Park on Mysore Road, plus Tower F there and its older R V Road building in Basavanagudi.",
+   "offices": [
+    {
+     "label": "Corporate office - Sonata Towers, Tower A, Global Village",
+     "locality": "Mylasandra, Mysore Road (RVCE Post)",
+     "address": "Tower A, Sonata Towers, Global Village Tech Park, RVCE Post, Mysore Road, 560059",
+     "building": "Sonata Towers, Tower A",
+     "techPark": "Global Village Tech Park",
+     "lat": 12.919521,
+     "lng": 77.501354,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Sonata's contact page lists its corporate office at Tower-A, Sonata Towers, Global Village (Sattva Global City), RVCE Post, Kengeri Hobli, Mysore Road 560059 (https://www.sonata-software.com/contact-us); park centroid from OSM 'Sattva Global City' (way/614208152).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Tower F, Global Village (Sonata Software Solutions)",
+     "locality": "Mylasandra, Mysore Road (RVCE Post)",
+     "address": "Tower F, Global Village Tech Park, RVCE Post, Mysore Road, 560059",
+     "building": "Tower F",
+     "techPark": "Global Village Tech Park",
+     "lat": 12.919521,
+     "lng": 77.501354,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Contact page lists a Sonata Software Solutions office at Tower F, Global Village (Sattva Global City), Mysore Road 560059 (https://www.sonata-software.com/contact-us); Sonata opened a 58,000 sq ft, 600-seat development centre on this campus in Nov 2022 (https://www.sonata-software.com/newsroom/press-release/sonata-software-inaugurates-its-new-world-class-software-development-center).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "R V Road, Basavanagudi (legacy office)",
+     "locality": "Basavanagudi",
+     "address": "193, R V Road, Basavanagudi, 560004",
+     "building": null,
+     "techPark": null,
+     "lat": 12.93968,
+     "lng": 77.580407,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "A stock-exchange directory lists '193, R V Road, Basavanagudi, Bengaluru 560004' (https://voguestock.in/fundamental/locations/sonata-software-ltd); OSM maps a 'Sonata Software' IT office building there (way/338246704).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.sonata-software.com/contact-us",
+    "https://www.sonata-software.com/newsroom/press-release/sonata-software-inaugurates-its-new-world-class-software-development-center",
+    "https://voguestock.in/fundamental/locations/sonata-software-ltd"
+   ]
+  },
+  {
+   "name": "Happiest Minds Technologies",
+   "aliases": [
+    "Happiest Minds"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2011,
+   "isUnicorn": false,
+   "website": "https://www.happiestminds.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Bengaluru-headquartered digital transformation company founded by Ashok Soota; headquarters on Hosur Main Road, Madivala, and a 240,000 sq ft owned facility (SMILES 1, SJR Equinox) in Electronics City Phase 1.",
+   "offices": [
+    {
+     "label": "Headquarters - Hosur Main Road, Madivala",
+     "locality": "Madivala (Hosur Main Road)",
+     "address": "#53/1-4, Hosur Main Road, Madivala, 560068",
+     "building": null,
+     "techPark": null,
+     "lat": 12.921454,
+     "lng": 77.621121,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Happiest Minds' contact page lists its headquarters as '#53/1-4, Hosur Main Road Madivala, Bengaluru 560068' (https://www.happiestminds.com/contact-us/), also the registered office in its BSE filings; coordinates are locality-level (Madivala, via Photon), not the building.",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "SMILES 1 - SJR Equinox, Electronics City Phase 1",
+     "locality": "Electronic City Phase 1 (Doddathogur)",
+     "address": "SMILES 1, SJR Equinox, Sy. No. 47/8, Doddathogur Village, Electronics City Phase 1, Hosur Road, 560100",
+     "building": "SJR Equinox",
+     "techPark": "Electronics City Phase 1",
+     "lat": 12.848988,
+     "lng": 77.657122,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Happiest Minds bought a 240,000 sq ft, 1,600-seat Grade A property in Electronics City for Rs 101 crore in July 2022 (https://www.happiestminds.com/press-releases/happiest-minds-purchases-2-4-lakh-sq-ft-office-space-in-bengaluru/); a listing gives the address 'SMILES 1, SJR Equinox, Sy.No.47/8, Doddathogur Village, Begur Hobli, Electronics City Phase 1, Hosur Road 560100' (https://clone.secpod.com/?p=42456); Nominatim resolves SJR Equinox.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.happiestminds.com/contact-us/",
+    "https://www.happiestminds.com/press-releases/happiest-minds-purchases-2-4-lakh-sq-ft-office-space-in-bengaluru/",
+    "https://bseindia.com/xml-data/corpfiling/AttachHis/2972392b-1d06-460c-8fea-e8a9ff9c05a1.pdf"
+   ]
+  },
+  {
+   "name": "Brillio",
+   "aliases": [
+    "Brillio Technologies"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "hqCity": "Edison",
+   "hqCountry": "USA",
+   "founded": 2014,
+   "isUnicorn": false,
+   "website": "https://www.brillio.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "US-headquartered digital services firm spun out of Collabera; Bengaluru is its largest delivery hub, with offices at Bren Optimus (Adugodi/Dairy Circle) and 'The Hub' on Sarjapur Main Road.",
+   "offices": [
+    {
+     "label": "Bren Optimus - 4th floor, Dr M H Marigowda Road",
+     "locality": "Adugodi (Dairy Circle)",
+     "address": "4th Floor, Bren Optimus, No. 8/2, Dr M H Marigowda Road, Adugodi, 560029",
+     "building": "Bren Optimus",
+     "techPark": null,
+     "lat": 12.937103,
+     "lng": 77.606806,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Brillio's contact page lists 'Bengaluru-Adugodi: 4th Floor of Bren Optimus No 8/2, Dr.M.H Marigowda Road, Bangalore 560029' (https://www.brillio.com/contact-us/); CRN reported the 650-seat Bren Optimus office opening (https://www.crn.in/?p=47796); OSM polygon 'Bren Optimus' (way/1242193207).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "The Hub - 4th & 5th floors, Ambalipura, Sarjapur Main Road",
+     "locality": "Ambalipura (Sarjapur Road)",
+     "address": "The Hub, 4th & 5th Floor, Sy. No. 8/2, Ambalipura Village, Sarjapur Main Road, 560102",
+     "building": "The Hub",
+     "techPark": null,
+     "lat": 12.91733,
+     "lng": 77.667161,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Contact page lists 'Bengaluru-Sarjapura Rd: The Hub, 4th & 5th Floor, Sy.No.8/2, Ambalipura Village, Sarjapura Main Road, Bangalore 560102' (https://www.brillio.com/contact-us/); locality-level geocode of Ambalipura, building not resolved.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.brillio.com/contact-us/",
+    "https://www.crn.in/?p=47796"
+   ]
+  },
+  {
+   "name": "Quest Global",
+   "aliases": [
+    "QuEST Global",
+    "QuEST Global Engineering"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "hqCity": "Singapore",
+   "hqCountry": "Singapore",
+   "founded": 1997,
+   "isUnicorn": false,
+   "website": "https://www.questglobal.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Engineering services company founded in Thiruvananthapuram and registered in Singapore; its contact page labels the Primrose building in Embassy TechVillage as Headquarters, with further Bengaluru offices on Sankey Road, at Prestige Shantiniketan and Prestige Technostar.",
+   "offices": [
+    {
+     "label": "Headquarters - Primrose 7B, Embassy TechVillage",
+     "locality": "Devarabeesanahalli (Bellandur ORR)",
+     "address": "2nd Floor, Primrose 7B, Embassy TechVillage, ORR, Devarabeesanahalli, 560103",
+     "building": "Primrose 7B",
+     "techPark": "Embassy TechVillage",
+     "lat": 12.930625,
+     "lng": 77.692408,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Quest Global's contact page lists 'Headquarters: 2nd Floor, Primrose 7B, Embassy Tech Village, Sarjapura Marathahalli Outer Ring Road, Devarabeesanahalli, Bangalore 560103' (https://www.questglobal.com/contact/); OSM office node 'Quest Global' in Embassy TechVillage (node/4445086472).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "VK Kalyani Commercial Complex, Sankey Road - 9th floor",
+     "locality": "Sankey Road (Malleswaram)",
+     "address": "9th Floor, No. 22, VK Kalyani Commercial Complex, Sankey Road, 560020",
+     "building": "VK Kalyani Commercial Complex",
+     "techPark": null,
+     "lat": 12.996908,
+     "lng": 77.584884,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Contact page lists '9th Floor, No. 22, VK Kalyani Commercial Complex, Sankey Road, Opp. B.D.A Office, Bengaluru 560020' (https://www.questglobal.com/contact/); OSM polygon 'VK Kalyani' (way/1125999708).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Prestige Shantiniketan - Tower C, 8th floor",
+     "locality": "Whitefield (Thigalarapalya)",
+     "address": "8th Floor, Tower C, Prestige Shantiniketan, Whitefield Main Road, 560066",
+     "building": "Tower C",
+     "techPark": "Prestige Shantiniketan",
+     "lat": 12.988903,
+     "lng": 77.731042,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Contact page lists 'Bangalore - PSN: 8th Floor, Tower C Commercial Complex, Prestige Shantineketan, Whitefield Main Road 560066' (https://www.questglobal.com/contact/).",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Prestige Technostar - Block B2, 8th floor",
+     "locality": "Brookefield (Doddanakundi Industrial Area)",
+     "address": "Block B2, 8th Floor, Prestige Technostar, Doddanakundi Industrial Area 2, Brookefield, 560048",
+     "building": "Block B2",
+     "techPark": "Prestige Technostar",
+     "lat": 12.973147,
+     "lng": 77.710782,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Contact page lists 'Bangalore - PST: Block B2, 8th Floor, Prestige Technostar, Doddanakundi Industrial Area 2, Phase 1, Brookfield 560048' (https://www.questglobal.com/contact/); OSM polygon 'Prestige Technostar' (way/414837848).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.questglobal.com/contact/"
+   ]
+  },
+  {
+   "name": "Infinite Computer Solutions",
+   "aliases": [
+    "Infinite",
+    "Infinite Computer Solutions (India) Ltd"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1999,
+   "isUnicorn": false,
+   "website": "https://www.infinite.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "IT services and product engineering company (delisted from Indian exchanges in 2018, also operating from Rockville, Maryland); its 'Head Office' per its own site is in the EPIP Zone, Whitefield, with an SEZ unit at Gopalan Global Axis.",
+   "offices": [
+    {
+     "label": "Head Office - 157 EPIP Zone Phase 2, Kundalahalli",
+     "locality": "Whitefield (EPIP)",
+     "address": "157, EPIP Zone Phase 2, Kundalahalli, Whitefield, 560066",
+     "building": null,
+     "techPark": "EPIP Zone Whitefield",
+     "lat": 12.973799,
+     "lng": 77.715908,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Infinite's about-us page lists 'Bengaluru - Head Office: 157, EPIP Zone, Phase 2, Kundalahalli, Whitefield, KA 560066' (https://www.infinite.com/about-us/); OSM office building 'Infinite Computer Solutions', house number 157 (way/181695501).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Gopalan Global Axis SEZ - Block 2 (A1)",
+     "locality": "Hoodi (EPIP)",
+     "address": "Block 2 (A1), Gopalan Global Axis SEZ, EPIP, Whitefield, 560066",
+     "building": "Block 2 (A1)",
+     "techPark": "Gopalan Global Axis",
+     "lat": 12.982486,
+     "lng": 77.724345,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "About-us page lists 'GEIPL-SEZ, Global Axis, Block 2(A1), EPIP, Whitefield, KA 560066' (https://www.infinite.com/about-us/); park polygon from OSM (way/123613252).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.infinite.com/about-us/"
+   ]
+  },
+  {
+   "name": "Sasken Technologies",
+   "aliases": [
+    "Sasken",
+    "Sasken Communication Technologies"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1989,
+   "isUnicorn": false,
+   "website": "https://www.sasken.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Bengaluru-headquartered product engineering and semiconductor services company; corporate headquarters at 139/25 Ring Road, Domlur.",
+   "offices": [
+    {
+     "label": "Corporate headquarters - 139/25 Ring Road, Domlur",
+     "locality": "Domlur (Intermediate Ring Road)",
+     "address": "139/25, Ring Road, Domlur, 560071",
+     "building": null,
+     "techPark": null,
+     "lat": 12.95419,
+     "lng": 77.638715,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Sasken's contact page lists its Corporate Headquarters at '139/25, Ring Road, Domlur, Bengaluru 560071' (https://www.sasken.com/contact-us); OSM polygon 'Sasken' (way/105322106).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.sasken.com/contact-us"
+   ]
+  },
+  {
+   "name": "Subex",
+   "aliases": [
+    "Subex Limited"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Software & internet",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1992,
+   "isUnicorn": false,
+   "website": "https://www.subex.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Bengaluru-headquartered telecom analytics and revenue-assurance software company; its single Indian office is Block 9 of Pritech Park SEZ on the Bellandur ORR.",
+   "offices": [
+    {
+     "label": "Headquarters - Pritech Park SEZ, Block 09, 4th floor B Wing",
+     "locality": "Bellandur (ORR)",
+     "address": "Block 09, 4th Floor, B Wing, Pritech Park SEZ, Outer Ring Road, Bellandur, 560103",
+     "building": "Block 9",
+     "techPark": "Pritech Park SEZ",
+     "lat": 12.92086,
+     "lng": 77.680769,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Subex's contact page lists 'Pritech Park, SEZ Block-09, 4th Floor B Wing, Survey No. 51 to 64/4 Outer Ring Road, Bellandur Village, Varthur Hobli, Bengaluru 560103' (https://www.subex.com/contact-us/); park located via Nominatim (an older OSM node still shows the previous RMZ Ecoworld address).",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.subex.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Tejas Networks",
+   "aliases": [
+    "Tejas Networks Limited"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Telecom & networking",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2000,
+   "isUnicorn": false,
+   "website": "https://www.tejasnetworks.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Tata group optical and wireless networking equipment maker headquartered in Electronics City Phase 1 (JP Software Park).",
+   "offices": [
+    {
+     "label": "Headquarters - Electronic City Phase 1",
+     "locality": "Electronic City Phase 1",
+     "address": "Plot 25, JP Software Park, Electronics City Phase 1, Hosur Road, 560100",
+     "building": null,
+     "techPark": "Electronics City Phase 1",
+     "lat": 12.844305,
+     "lng": 77.665938,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Tejas Networks' contact page lists its headquarters as 'Tejas Networks Ltd, Electronic City Phase 1, Bangalore 560100' (https://www.tejasnetworks.com/contact-us/); OSM building 'Tejas Networks Ltd' (way/230171945), which Nominatim also returns for 'JP Software Park, Electronic City'.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.tejasnetworks.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Tally Solutions",
+   "aliases": [
+    "Tally",
+    "Tally Solutions Pvt Ltd"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Software & internet",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1986,
+   "isUnicorn": false,
+   "website": "https://tallysolutions.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Bengaluru-headquartered maker of the Tally accounting software; head office at AMR Tech Park II on Hosur Main Road (Hongasandra) and registered office/branch at Raheja Arcade, Koramangala.",
+   "offices": [
+    {
+     "label": "Head office - AMR Tech Park II, Hongasandra",
+     "locality": "Hongasandra (Hosur Main Road)",
+     "address": "AMR Tech Park II, No. 23 & 24, Hongasandra, Hosur Main Road, 560068",
+     "building": "AMR Tech Park II",
+     "techPark": "AMR Tech Park",
+     "lat": 12.899109,
+     "lng": 77.631071,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Tally's contact page lists 'Head Office: AMR Tech Park II, No. 23 & 24, Hongasandra, Hosur Main Road, Bengaluru 560068' (https://tallysolutions.com/contact-us/); OSM office node 'Tally Solutions Private Limited' (node/9253551418).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Registered office / branch - Raheja Arcade, Koramangala",
+     "locality": "Koramangala",
+     "address": "331-336, Raheja Arcade, Koramangala, 560095",
+     "building": "Raheja Arcade",
+     "techPark": null,
+     "lat": 12.934399,
+     "lng": 77.613347,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Contact page lists 'Branch Office: 331-336, Raheja Arcade, Koramangala, Bangalore 560095' and the same address as Registered Office (https://tallysolutions.com/contact-us/); OSM polygon 'Raheja Arcade' (way/28126293).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://tallysolutions.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Mindteck",
+   "aliases": [
+    "Mindteck (India) Limited"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1991,
+   "isUnicorn": false,
+   "website": "https://www.mindteck.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Small listed Bengaluru-headquartered IT and embedded engineering services firm; OSM places its office in AMR Tech Park on Hosur Main Road (company site was unreachable for verification).",
+   "offices": [
+    {
+     "label": "AMR Tech Park, Hongasandra (OSM-recorded)",
+     "locality": "Hongasandra (Hosur Main Road)",
+     "address": "AMR Tech Park II, Hongasandra, Hosur Main Road, 560068",
+     "building": null,
+     "techPark": "AMR Tech Park",
+     "lat": 12.899811,
+     "lng": 77.6312,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office node 'Mindteck' inside AMR Tech Park (node/9253530907); the company's contact page returned HTTP 503 during this research, so the address is unverified.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.mindteck.com/"
+   ]
+  },
+  {
+   "name": "Sify Technologies",
+   "aliases": [
+    "Sify",
+    "Sify Infinit Spaces"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Telecom & networking",
+   "hqCity": "Chennai",
+   "hqCountry": "India",
+   "founded": 1995,
+   "isUnicorn": false,
+   "website": "https://www.sifytechnologies.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Chennai-headquartered ICT and data-centre operator; its Bengaluru data centre (4.8 MW IT load) is in Cyber Park, Electronic City Phase 1.",
+   "offices": [
+    {
+     "label": "Bengaluru data centre - Cyber Park, Electronic City Phase 1",
+     "locality": "Electronic City Phase 1",
+     "address": "Unit A/303, 3rd Floor, Cyber Park, Plot 76-77, Electronic City Phase 1, 560100",
+     "building": "Cyber Park",
+     "techPark": "Electronics City Phase 1",
+     "lat": 12.837708,
+     "lng": 77.663539,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Sify's data-centre page lists 'Unit No A/303, 3rd Floor, Cyber Park, Plot no 76, 77, Electronic City Phase 1, Bengaluru 560100', a Rated-3 colocation facility with 4.82 MW IT power (https://www.sifytechnologies.com/data-center/bangalore-data-center/); OSM polygon 'Cyber Park' (way/841058216).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.sifytechnologies.com/data-center/bangalore-data-center/"
+   ]
+  },
+  {
+   "name": "Quess Corp",
+   "aliases": [
+    "Quess Corp Limited",
+    "IKYA Human Capital"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Consulting & professional services",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2007,
+   "isUnicorn": false,
+   "website": "https://www.quesscorp.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Bengaluru-headquartered staffing and business-services group (listed, operations in several countries); headquarters at Quess Tower, Skywalk Avenue on Hosur Road near Silk Board, with a second branch in Indiqube Ramakrishna Towers.",
+   "offices": [
+    {
+     "label": "Headquarters - Quess Tower, Skywalk Avenue, Hosur Road",
+     "locality": "Roopena Agrahara, Bommanahalli (Hosur Road)",
+     "address": "Quess Tower, Skywalk Avenue, 32/4, Hosur Road, Roopena Agrahara, Bommanahalli, 560068",
+     "building": "Quess Tower (Skywalk Avenue)",
+     "techPark": null,
+     "lat": 12.91064,
+     "lng": 77.623826,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Quess's contact page lists the headquarters as 'Quess Tower, Sky Walk Avenue, 32/4, Hosur Road, Roopena Agrahara, Bommanahalli, Bangalore 560068' (https://www.quesscorp.com/contact-us/); locality-level geocode of Roopena Agrahara, building not resolved.",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Indiqube Ramakrishna Towers, Silk Board",
+     "locality": "Roopena Agrahara (Silk Board junction)",
+     "address": "Indiqube Ramakrishna Towers, Silk Board junction, Hosur Road, 560068",
+     "building": "Ramakrishna Towers",
+     "techPark": null,
+     "lat": 12.91897,
+     "lng": 77.621711,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Contact page lists a branch at 'Indiqube Spaces Ltd, Ramakrishna Towers, Roopena Agrahara, Silk Board junction, Hosur Road, Bengaluru 560068' (https://www.quesscorp.com/contact-us/); street-level geocode at Silk Board.",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.quesscorp.com/contact-us/"
+   ]
+  },
+  {
+   "name": "TeamLease Services",
+   "aliases": [
+    "TeamLease"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Consulting & professional services",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2002,
+   "isUnicorn": false,
+   "website": "https://group.teamlease.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Bengaluru-headquartered staffing and HR services company; corporate and registered office at Infinix Square, HAL Industrial Estate, Vibhutipura.",
+   "offices": [
+    {
+     "label": "Corporate & registered office - Infinix Square, HAL Industrial Estate",
+     "locality": "Vibhutipura (HAL Industrial Estate)",
+     "address": "Infinix Square, B-4, B-5 & B-6, HAL Industrial Estate, Vibhutipura, 560037",
+     "building": "Infinix Square",
+     "techPark": null,
+     "lat": 12.956011,
+     "lng": 77.679992,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "TeamLease's contact page lists 'Corporate Office: Infinix Square, B-4, B-5 & B-6, HAL Industrial Estate, HAL GB Quarters, Vibhutipura, Bangalore 560037' and the same address as Registered Office (https://group.teamlease.com/contact-us/); street-level geocode of HAL Ancillary Industrial Estate Road.",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://group.teamlease.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Kyndryl",
+   "aliases": [
+    "Kyndryl Solutions Private Limited",
+    "IBM Global Technology Services (spun off 2021)"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "hqCity": "New York",
+   "hqCountry": "USA",
+   "founded": 2021,
+   "isUnicorn": false,
+   "website": "https://www.kyndryl.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "IT infrastructure services company spun off from IBM in 2021; Bengaluru offices at RMZ Titanium on Old Airport Road and Block M3 (Acacia) of Embassy Manyata Business Park.",
+   "offices": [
+    {
+     "label": "RMZ Titanium - 1st floor, HAL Old Airport Road",
+     "locality": "Kodihalli (Old Airport Road)",
+     "address": "RMZ Titanium, 135, 1st Floor, HAL Old Airport Road, Kodihalli, 560017",
+     "building": "RMZ Titanium",
+     "techPark": null,
+     "lat": 12.958872,
+     "lng": 77.648111,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Kyndryl's India locations page lists 'RMZ Titanium, 135, 1st Floor, HAL Old Airport Road, Kodihalli, Vimanapura, Bangalore 560017' (https://www.kyndryl.com/in/en/about-us/locations); OSM polygon 'RMZ Titanium' (way/93887340).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Embassy Manyata Business Park - Block M3 (Acacia), 13th-16th floors",
+     "locality": "Rachenahalli / Nagavara",
+     "address": "Block M3 (Acacia), 13th-16th Floor, SEZ Parcel 2, Embassy Manyata Business Park, Rachenahalli, 560045",
+     "building": "M3 Acacia",
+     "techPark": "Manyata Tech Park",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Locations page lists 'Embassy Manyata Business Park, SEZ Parcel 2 (Acacia), Block M3, 13th to 16th Floor, Rachenahalli Village, K.R. Puram Hobli, Bengaluru 560045' (https://www.kyndryl.com/in/en/about-us/locations); park centroid from OSM.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.kyndryl.com/in/en/about-us/locations"
+   ]
+  },
+  {
+   "name": "NTT DATA",
+   "aliases": [
+    "NTT DATA Global Delivery Services",
+    "NTT DATA Inc",
+    "Keane",
+    "Intelligroup"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "hqCity": "Tokyo",
+   "hqCountry": "Japan",
+   "founded": 1988,
+   "isUnicorn": false,
+   "website": "https://www.nttdata.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Japanese IT services major with large Indian delivery operations; Bengaluru offices are recorded by OSM in the EPIP zone (Whitefield) and at Bhartiya Centre of Information Technology, but no company address page could be retrieved.",
+   "offices": [
+    {
+     "label": "EPIP Whitefield delivery centre (OSM-recorded 'NTT DATA Global Delivery Services')",
+     "locality": "Whitefield (EPIP)",
+     "address": "2nd Road, EPIP Zone, Whitefield",
+     "building": null,
+     "techPark": "EPIP Zone Whitefield",
+     "lat": 12.97468,
+     "lng": 77.720179,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office node 'NTT DATA Global Delivery Services Pvt. Ltd.' on 2nd Road, EPIP (node/10276021137); not verified against a company source (nttdata.com India pages redirected or were rate-limited).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Bhartiya Centre of Information Technology - Block 2 South Wing (OSM-recorded)",
+     "locality": "Thanisandra (Bhartiya City)",
+     "address": "Block 2, South Wing, BCIT, Thanisandra Main Road, 560064",
+     "building": "Block 2, South Wing",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "lat": 13.083816,
+     "lng": 77.640897,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office node 'NTT Data Inc, Block 2, South Wing, Bhartiya City Road' (node/13355835370); not verified against a company source.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.nttdata.com/global/en/contact-us"
+   ]
+  },
+  {
+   "name": "DXC Technology",
+   "aliases": [
+    "CSC",
+    "Computer Sciences Corporation",
+    "HPE Enterprise Services"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "hqCity": "Ashburn",
+   "hqCountry": "USA",
+   "founded": 2017,
+   "isUnicorn": false,
+   "website": "https://dxc.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "US IT services company formed from CSC and HPE Enterprise Services; a large Bengaluru employer, but only an OSM-recorded office on the Bellandur ORR could be located (its locations pages returned 404 / were rate-limited).",
+   "offices": [
+    {
+     "label": "Bellandur / Outer Ring Road office (OSM-recorded)",
+     "locality": "Bellandur (ORR)",
+     "address": "Outer Ring Road, Bellandur",
+     "building": null,
+     "techPark": null,
+     "lat": 12.935617,
+     "lng": 77.678243,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office node 'DXC' near the Bellandur stretch of the Outer Ring Road (node/13242482266); no company or press source retrieved, so building and park are unconfirmed.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://dxc.com/in/en/contact-us"
+   ]
+  },
+  {
+   "name": "Virtusa",
+   "aliases": [
+    "Virtusa Consulting Services",
+    "Polaris Consulting"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "hqCity": "Southborough",
+   "hqCountry": "USA",
+   "founded": 1996,
+   "isUnicorn": false,
+   "website": "https://www.virtusa.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "US-headquartered IT services company (Baring PE-owned) with Indian delivery centres; its Bengaluru office is in RMZ Ecoworld on the Bellandur ORR per OSM mapping.",
+   "offices": [
+    {
+     "label": "RMZ Ecoworld - 3rd floor (OSM-recorded)",
+     "locality": "Devarabeesanahalli (Bellandur ORR)",
+     "address": "3rd Floor, RMZ Ecoworld, Sarjapur-Marathahalli ORR, Devarabeesanahalli, 560103",
+     "building": null,
+     "techPark": "RMZ Ecoworld",
+     "lat": 12.925806,
+     "lng": 77.68705,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office node 'Virtusa Consulting Services Pvt. Ltd., 21, RMZ Eco World, 3rd Floor, Sarjapur-Marathahalli Outer Ring Road, Deverabeesanahalli 560103' carrying the company website tag (node/4445354862); the company's locations pages returned 404 so this is not independently confirmed.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.virtusa.com/contact-us"
+   ]
+  },
+  {
+   "name": "Hinduja Global Solutions",
+   "aliases": [
+    "HGS",
+    "HGS Limited"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2000,
+   "isUnicorn": false,
+   "website": "https://hgs.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Hinduja group business-process and digital services company headquartered in Bengaluru; OSM records offices at AMR Tech Park (Hosur Main Road) and Pritech Park (Bellandur), but hgs.com pages returned empty so neither is confirmed as the registered office.",
+   "offices": [
+    {
+     "label": "AMR Tech Park, Hongasandra (OSM-recorded)",
+     "locality": "Hongasandra (Hosur Main Road)",
+     "address": "AMR Tech Park, Hongasandra, Hosur Main Road, 560068",
+     "building": null,
+     "techPark": "AMR Tech Park",
+     "lat": 12.8999,
+     "lng": 77.631192,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office node 'Hinduja Global Solutions Ltd.' inside AMR Tech Park (node/9253530906); HGS's contact and locations pages returned empty content during this research.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Pritech Park SEZ - Building 14 (OSM-recorded)",
+     "locality": "Bellandur (ORR)",
+     "address": "Building 14, Pritech Park SEZ, Outer Ring Road, Bellandur, 560103",
+     "building": "Building 14",
+     "techPark": "Pritech Park SEZ",
+     "lat": 12.921066,
+     "lng": 77.680741,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office node 'Hinduja Global Solutions, (HGS), Building 14, Pritech Park, Outer Ring Road 560103' (node/6801839057); unverified against a company source.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://hgs.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Firstsource Solutions",
+   "aliases": [
+    "Firstsource"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 2001,
+   "isUnicorn": false,
+   "website": "https://www.firstsource.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "RP-Sanjiv Goenka group business-process services company headquartered in Mumbai; Bengaluru delivery centres at Brigade Tech Gardens SEZ (Brookefield) and Brigade Tech Park (Whitefield Road).",
+   "offices": [
+    {
+     "label": "Brigade Tech Gardens SEZ - Blocks C2 and C4",
+     "locality": "Brookefield / Kundalahalli",
+     "address": "Block C2 & C4, Brigade Tech Gardens SEZ, Brookefield, Kundalahalli, 560037",
+     "building": "Block C2 / Block C4",
+     "techPark": "Brigade Tech Gardens",
+     "lat": 12.964095,
+     "lng": 77.719774,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Firstsource's contact page lists 'Brigade Tech Gardens SEZ, Block C2, 2nd, 3rd & 6th Floor, Block C4, 2nd Floor, Brookefields, Kundalahalli Village, Marathahalli Post, Bengaluru 560037' (https://www.firstsource.com/contact-us/); OSM polygon 'Brigade Tech Gardens' (way/117313586).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Brigade Tech Park - Tower B, 2nd floor",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "2nd Floor, Tower B, Brigade Tech Park, Pattandur Agrahara, Whitefield Road, 560066",
+     "building": "Tower B",
+     "techPark": "Brigade Tech Park",
+     "lat": 12.986779,
+     "lng": 77.739731,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Contact page lists '2nd Floor, Tower B, Brigade Tech park, Pattandur Agrahara Village, Whitefield road, Bangalore 560066' (https://www.firstsource.com/contact-us/); OSM polygon 'Brigade Tech Park' (way/1302227114).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.firstsource.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Ramco Systems",
+   "aliases": [
+    "Ramco"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "SaaS",
+   "hqCity": "Chennai",
+   "hqCountry": "India",
+   "founded": 1997,
+   "isUnicorn": false,
+   "website": "https://www.ramco.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Chennai-headquartered enterprise software (ERP, HR/payroll, aviation MRO) company; Bengaluru office on the 5th floor of HM Towers, Brigade Road.",
+   "offices": [
+    {
+     "label": "HM Towers, Brigade Road - 5th floor",
+     "locality": "Brigade Road (Ashok Nagar)",
+     "address": "H M Towers, No. 58, 5th Floor, Brigade Road, 560025",
+     "building": "HM Towers",
+     "techPark": null,
+     "lat": 12.971188,
+     "lng": 77.607368,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Ramco's contact page lists 'BENGALURU: H.M Towers, No. 58, 5th floor, Brigade Road 560025' (https://www.ramco.com/contact-us); Photon resolves 'H M Towers, Magrath Road, Ashokanagar'.",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.ramco.com/contact-us"
+   ]
+  },
+  {
+   "name": "Sapiens International",
+   "aliases": [
+    "Sapiens",
+    "Sapiens Technologies (1982) India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "hqCity": "Holon",
+   "hqCountry": "Israel",
+   "founded": 1982,
+   "isUnicorn": false,
+   "website": "https://sapiens.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Israeli insurance-software company; its Bengaluru development centre is in Building 11 of the Cessna Business Park SEZ on the Outer Ring Road.",
+   "offices": [
+    {
+     "label": "Cessna Business Park SEZ - Building 11, 7th floor",
+     "locality": "Kadubeesanahalli (ORR)",
+     "address": "7th Floor, Building 11, Gate 2, Cessna Business Park SEZ, Kadubeesanahalli, ORR, 560087",
+     "building": "Building 11",
+     "techPark": "Cessna Business Park",
+     "lat": 12.934801,
+     "lng": 77.694818,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Sapiens' contact page lists 'Sapiens Technologies (1982) India Private Limited, 7th Floor, Building 11, Gate Number 2, SEZ-CESSNA Park, Kadubeesanahalli, Varthur Hobli, Outer Ring Rd, Bangalore East 560087' (https://sapiens.com/contact-us/); park centroid from OSM (way/232972967).",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://sapiens.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Thoughtworks",
+   "aliases": [
+    "ThoughtWorks Technologies (India)"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "hqCity": "Chicago",
+   "hqCountry": "USA",
+   "founded": 1993,
+   "isUnicorn": false,
+   "website": "https://www.thoughtworks.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "US software consultancy with a long-standing Indian presence; Bengaluru offices at ACR Mansion in Koramangala 3rd Block and Brigade Nalapad Centre in Mahadevapura.",
+   "offices": [
+    {
+     "label": "ACR Mansion, 8th Main, Koramangala 3rd Block",
+     "locality": "Koramangala 3rd Block",
+     "address": "ACR Mansion, 147/F, 8th Main, 3rd Block, Koramangala, 560034",
+     "building": "ACR Mansion",
+     "techPark": null,
+     "lat": 12.92876,
+     "lng": 77.628712,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Thoughtworks' office-locations page lists 'ACR Mansion G+3 floors, 147/F, 8th Main, 3rd Block Koramangala, Bengaluru 560034' (https://www.thoughtworks.com/en-in/contact-us/office-locations); OSM office node with the same address (node/1605300900).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Brigade Nalapad Centre - 6th floor, Mahadevapura",
+     "locality": "Mahadevapura",
+     "address": "601/602, 6th Floor, Brigade Nalapad Centre, Mahadevapura, 560048",
+     "building": "Brigade Nalapad Centre",
+     "techPark": null,
+     "lat": 12.992917,
+     "lng": 77.702212,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Office-locations page lists '601/602, 6th Floor, Brigade Nalapad, Bengaluru 560048' (https://www.thoughtworks.com/en-in/contact-us/office-locations); OSM office building 'Brigade Nalapad Centre' (way/627710068).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.thoughtworks.com/en-in/contact-us/office-locations"
+   ]
+  },
+  {
+   "name": "Publicis Sapient",
+   "aliases": [
+    "Sapient",
+    "SapientNitro",
+    "Sapient Razorfish"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "hqCity": "Boston",
+   "hqCountry": "USA",
+   "founded": 1990,
+   "isUnicorn": false,
+   "website": "https://www.publicissapient.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Digital transformation arm of Publicis Groupe; its locations page confirms a Bengaluru office (city only), which OSM places in Bagmane Constellation Business Park, with an older 'Sapient' POI at GR Tech Park, Whitefield.",
+   "offices": [
+    {
+     "label": "Bagmane Constellation Business Park",
+     "locality": "Mahadevapura (Doddanakundi, ORR)",
+     "address": "Bagmane Constellation Business Park, Doddanakundi, ORR, Mahadevapura, 560048",
+     "building": null,
+     "techPark": "Bagmane Constellation Business Park",
+     "lat": 12.98246,
+     "lng": 77.696973,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Publicis Sapient's locations page lists 'Bengaluru, India' without a street address (https://www.publicissapient.com/company/locations); OSM office node 'Publicis Sapient' inside the Bagmane Constellation Business Park polygon (node/4668341913).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "GR Tech Park, Whitefield (OSM-recorded 'Sapient')",
+     "locality": "Mahadevapura (Whitefield Road)",
+     "address": "Salarpuria GR Tech Park, Whitefield Road, 560066",
+     "building": null,
+     "techPark": "GR Tech Park",
+     "lat": 12.985313,
+     "lng": 77.742851,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office node 'Sapient' inside the GR Salarpuria Tech Park polygon (node/1564814241); may be historical, unconfirmed by the company.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.publicissapient.com/company/locations",
+    "https://www.publicissapient.com/company/locations/india"
+   ]
+  },
+  {
+   "name": "Globant",
+   "aliases": [
+    "Globant India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "hqCity": "Luxembourg",
+   "hqCountry": "Luxembourg",
+   "founded": 2003,
+   "isUnicorn": false,
+   "website": "https://www.globant.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Argentina-born, Luxembourg-domiciled digital engineering company; its Bengaluru office is known only from an OSM building labelled 'Globant Office Bangalore' in the HSR Layout area (globant.com blocked automated access).",
+   "offices": [
+    {
+     "label": "HSR Layout office (OSM-recorded 'Globant Office Bangalore')",
+     "locality": "HSR Layout / Harlur",
+     "address": "No. 651, HSR Layout area",
+     "building": null,
+     "techPark": null,
+     "lat": 12.916043,
+     "lng": 77.652432,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM commercial building 'Globant Office Bangalore', house number 651 (way/348213990); the company's locations pages returned HTTP 403, so this is unverified.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.globant.com/contact"
+   ]
+  },
+  {
+   "name": "EPAM Systems",
+   "aliases": [
+    "EPAM"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "hqCity": "Newtown",
+   "hqCountry": "USA",
+   "founded": 1993,
+   "isUnicorn": false,
+   "website": "https://www.epam.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "US product-engineering services company with a growing Indian footprint; its Bengaluru office is recorded by OSM in Bagmane Capital (epam.com blocked automated access).",
+   "offices": [
+    {
+     "label": "Bagmane Capital (OSM-recorded 'Epam System')",
+     "locality": "C V Raman Nagar / Mahadevapura",
+     "address": "Bagmane Capital, Mahadevapura",
+     "building": null,
+     "techPark": "Bagmane Capital",
+     "lat": 12.983764,
+     "lng": 77.703861,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office node 'Epam System' inside the Bagmane Capital polygon (node/13945642505); the company's locations pages returned HTTP 403, so this is unverified.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.epam.com/about/locations"
+   ]
+  }
+ ],
+ "coverageNotes": "Method: WebSearch budget for the run was exhausted after the first 24 queries, so most verification came from company contact/locations pages fetched directly, two PDFs (TCS's 2023 ISO annexure and Wipro's FY2016-17 office list) read locally, the OSM office/park extracts, and Nominatim/Photon geocoding. Confirmed from the company's own page: Wipro (5 current sites), Tech Mahindra, LTTS, Tata Elxsi, Coforge, Hexaware, Birlasoft, Zensar, Mastek (SEBI filing), Sonata, Happiest Minds, Brillio, Quest Global, Infinite, Sasken, Subex, Tejas, Tally, Quess, TeamLease, Kyndryl, Firstsource, Ramco, Sapiens, Thoughtworks, Persistent, Sify, Cyient DLM. Infosys, HCLTech, Mphasis, LTIMindtree, Cyient and Mphasis rest on directories/filings plus OSM (their locations pages returned 403/404/503). LEFT OUT for lack of any verifiable Bengaluru address: UST, Kellton, Nucleus Software (its own site lists no Bengaluru office), 3i Infotech, Aptean, Nagarro, GlobalLogic, Endava. NOT CONFIRMED and therefore omitted: TCS at Deccan Park or Bagmane; Tech Mahindra at Bagmane/Whitefield; LTIMindtree at Bagmane; HCLTech at GR Tech Park and its Quest Informatics subsidiary office in Rajajinagar; Mphasis at AMR Tech Park/Electronic City; a Tata Elxsi Hosur Road HQ (its own page gives ITPB Road, Whitefield); Wipro's older MG Road, Bannerghatta Road (Solitaire), Divyasree Technopark and Pritech Park units (2016-17 list only); Infosys BPM, Manipal Centre and the other leased Electronics City sites in Infosys's 2017 filing; Quess House on Sarjapur Road and Quest Global's Ecospace unit (older OSM POIs, likely vacated); Firstsource's Pritech Park Campus 5B (old OSM POI). Low-confidence entries are OSM-only (DXC, NTT DATA, Globant, EPAM, Encora, HGS, Mindteck, one HCLTech and one Tech Mahindra office) and are labelled as such. Several coordinates are park- or locality-level rather than the building (geocodeSource park-centroid / Nominatim locality) and carry medium or low confidence: Happiest Minds HQ (Madivala), Quess Tower, TeamLease (Infinix Square), Brillio's The Hub, Zensar's Shilpa Ananya, LTTS Vista Pixel, Mphasis Mascot, Wipro EC5, HCLTech PB Softtech. Category rule applied mechanically: listed Indian companies above ~10,000 staff (Cyient, Persistent, Coforge, Hexaware, Birlasoft, Firstsource, HGS, Quess) are MNC; Zensar (~10,000) was kept MID_SIZE. Brillio is Foreign (Edison, NJ HQ) and Quest Global Foreign (Singapore-registered) despite Indian origins; Infinite is Indian because its own site calls Whitefield its Head Office. Encora is recorded as a separate company with a note that encora.com now redirects to coforge.com; merge with Coforge if the integration is complete. TCS's 360 Business Park lease is marked planned because phased occupation (April/August 2026) could not be confirmed as of October 2026."
+}

@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
 import math
 import os
@@ -204,8 +205,18 @@ def nk(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", t)
 
 
+COWORK_RE = re.compile(r"^\s*(?:wework|we work|coworking|co-working)\s*/?\s*(?:coworking|co-working)?\s*\((.+)\)\s*$", re.I)
+
+
+def plain_park_name(name: str) -> str:
+    """'Wework / coworking (Embassy Quest)' -> 'Embassy Quest' (a building is a building, whoever operates
+    the floors); any other name is returned as given."""
+    m = COWORK_RE.match(name or "")
+    return m.group(1).strip() if m else (name or "").strip()
+
+
 def park_key(name: str) -> str:
-    k = nk(name)
+    k = nk(plain_park_name(name))
     return PARK_CANON.get(k, k)
 
 
@@ -276,9 +287,10 @@ def merge_parks(slices, problems):
     records = []  # (key_root_candidate, record, lens)
     for lens, data in slices:
         for p in data.get("techParks") or []:
-            name = (p.get("name") or "").strip()
+            name = plain_park_name(p.get("name") or "")
             if not name:
                 continue
+            p["name"] = name
             keys = [park_key(name)] + [park_key(a) for a in (p.get("aliases") or []) if a]
             keys = [k for k in keys if k]
             if not keys:
@@ -294,6 +306,8 @@ def merge_parks(slices, problems):
     for root, items in groups.items():
         # the record with the most sources names the park; others become aliases
         items.sort(key=lambda it: (-len(it[0].get("sources") or []), -len(it[0].get("description") or "")))
+        # prefer a record whose name is not the coworking spelling, then the best-sourced one
+        items.sort(key=lambda it: (1 if COWORK_RE.match(it[0].get("name") or "") else 0, -len(it[0].get("sources") or []), -len(it[0].get("description") or "")))
         best, lens0 = items[0]
         name = best["name"].strip()
         aliases = []
@@ -428,11 +442,11 @@ def merge_companies(slices, parks, uf, problems):
             if not inside(lat, lng):
                 problems.append(f"office of '{name}' ({lens}) '{o.get('label')}': outside Bengaluru or missing coordinates ({lat},{lng}); dropped")
                 continue
-            park_name = o.get("techPark")
+            park_name = plain_park_name(o.get("techPark") or "") or None
             park_root = resolve_park(parks, uf, park_name) if park_name else None
             if park_name and not park_root:
                 k = park_key(park_name)
-                stub = stub_parks.setdefault(k, {"name": park_name.strip(), "offices": [], "localities": []})
+                stub = stub_parks.setdefault(k, {"name": park_name, "offices": [], "localities": []})
                 stub["offices"].append((float(lat), float(lng)))
                 if o.get("locality"):
                     stub["localities"].append(o["locality"])
@@ -451,7 +465,7 @@ def merge_companies(slices, parks, uf, problems):
                 "evidence": (o.get("evidence") or "").strip(),
                 "_lens": lens,
             })
-        offices = dedupe_offices(offices)
+        offices = settle_hq(dedupe_offices(offices))
         if not offices:
             problems.append(f"company '{name}': no office inside Bengaluru survived; dropped")
             continue
@@ -475,6 +489,23 @@ def merge_companies(slices, parks, uf, problems):
             "_lenses": sorted(set(lenses)),
         })
     return companies, stub_parks
+
+
+HQ_WORDS = re.compile(r"\b(hq|headquarters?|head office|corporate office|registered office|campus)\b", re.I)
+
+
+def settle_hq(offices):
+    """At most one office carries isHq. Several lenses each flag their own candidate; keep the one with
+    the best evidence, preferring a label that says so, and demote the rest. A company with no flagged
+    office keeps none: the map must not invent a headquarters."""
+    flagged = [o for o in offices if o["isHq"]]
+    if len(flagged) <= 1:
+        return offices
+    flagged.sort(key=lambda o: (-CONF_RANK[o["confidence"]], 0 if HQ_WORDS.search(o["label"]) else 1, -len(o["evidence"])))
+    keep = flagged[0]
+    for o in flagged[1:]:
+        o["isHq"] = False
+    return offices
 
 
 def dedupe_offices(offices):
@@ -582,7 +613,7 @@ def apply_corrections(companies, parks, uf, applied, problems):
                 for a in [company["name"]] + company["aliases"]:
                     if a != target["name"] and a not in target["aliases"]:
                         target["aliases"].append(a)
-                target["offices"] = dedupe_offices(target["offices"] + company["offices"])
+                target["offices"] = settle_hq(dedupe_offices(target["offices"] + company["offices"]))
                 target["sources"] = sorted(set(target["sources"]) | set(company["sources"]))
                 companies.remove(company)
                 applied.append(f"{key}: merged '{company['name']}' into '{target['name']}' - {note}")
@@ -640,7 +671,7 @@ def apply_corrections(companies, parks, uf, applied, problems):
                     "confidence": o.get("confidence") if o.get("confidence") in CONFIDENCES else "medium",
                     "evidence": (o.get("evidence") or "").strip(), "_lens": key,
                 })
-                company["offices"] = dedupe_offices(company["offices"])
+                company["offices"] = settle_hq(dedupe_offices(company["offices"]))
                 applied.append(f"{key}: added office '{o.get('label')}' to '{company['name']}' - {note}")
             if company["offices"] == []:
                 companies.remove(company)
@@ -683,11 +714,20 @@ def apply_corrections(companies, parks, uf, applied, problems):
 
 
 def _find_office(company, ref):
-    """By 1-based position ("2"), by office id suffix ("~2"), or by label."""
+    """By stable id ("ibm~3f9a1c" or just "3f9a1c": the hash of the office's coordinates), by 1-based
+    position ("2"), or by label."""
     if ref is None:
         return None
     ref = str(ref).strip()
-    m = re.search(r"~(\d+)$", ref) or re.fullmatch(r"(\d+)", ref)
+    m = re.search(r"~([0-9a-f]{6}(?:-\d+)?)$", ref) or re.fullmatch(r"([0-9a-f]{6}(?:-\d+)?)", ref)
+    if m:
+        want = m.group(1)
+        for o in company["offices"]:
+            digest = hashlib.sha1(f"{o['lat']:.4f},{o['lng']:.4f}".encode()).hexdigest()[:6]
+            if want == digest or want.startswith(digest + "-"):
+                return o
+        return None
+    m = re.fullmatch(r"(\d+)", ref)
     if m:
         i = int(m.group(1)) - 1
         return company["offices"][i] if 0 <= i < len(company["offices"]) else None
@@ -773,8 +813,16 @@ def build(check_only=False):
     root_to_id = {root: p["id"] for root, p in parks.items()}
     tenants_by_park = defaultdict(set)
     for c in companies:
-        for i, o in enumerate(c["offices"], start=1):
-            o["id"] = f"{c['id']}~{i}"
+        taken = set()
+        for o in c["offices"]:
+            # stable across re-merges: derived from where the office is, not from its position in the list
+            digest = hashlib.sha1(f"{o['lat']:.4f},{o['lng']:.4f}".encode()).hexdigest()[:6]
+            oid = f"{c['id']}~{digest}"
+            n = 2
+            while oid in taken:
+                oid = f"{c['id']}~{digest}-{n}"; n += 1
+            taken.add(oid)
+            o["id"] = oid
             o["techParkId"] = root_to_id.get(o.pop("_parkRoot")) if o.get("_parkRoot") else None
             if o["techParkId"]:
                 tenants_by_park[o["techParkId"]].add(c["name"])
@@ -824,7 +872,7 @@ def build(check_only=False):
         return 1 if problems else 0
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as fh:
-        json.dump(dataset, fh, ensure_ascii=False, indent=1)
+        json.dump(dataset, fh, ensure_ascii=False, separators=(",", ":"))
         fh.write("\n")
     with open(REPORT, "w", encoding="utf-8") as fh:
         fh.write(report)

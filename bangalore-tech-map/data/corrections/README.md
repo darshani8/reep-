@@ -9,7 +9,7 @@ in file-name order. Shape:
   "corrections": [
     { "company": "<id, name or alias>", "verdict": "keep" | "drop" | "merge_into", "into": "<company>", "note": "why",
       "set": { "category": "MNC", "origin": "Foreign", "sector": "...", "isUnicorn": true, "description": "..." },
-      "offices": [ { "office": "<1-based position, ~n id suffix, or label>", "verdict": "keep" | "drop" | "fix",
+      "offices": [ { "office": "<the office id from the dataset (ibm~3f9a1c), a 1-based position, or the label>", "verdict": "keep" | "drop" | "fix",
                      "set": { "lat": 12.9, "lng": 77.6, "techPark": "<park name>", "building": "...", "status": "closed", "confidence": "high", "evidence": "..." },
                      "note": "why" } ],
       "addOffices": [ { "label", "techPark", "building", "locality", "address", "lat", "lng", "isHq", "status", "confidence", "evidence" } ] }

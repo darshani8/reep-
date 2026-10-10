@@ -1,0 +1,3413 @@
+{
+ "key": "G01-manyata",
+ "techParks": [
+  {
+   "name": "Manyata Tech Park",
+   "aliases": [
+    "Embassy Manyata Business Park",
+    "Manyata Embassy Business Park",
+    "Embassy Manyata",
+    "Manyata Embassy Business Park SEZ",
+    "MFAR Manyata Tech Park",
+    "Greenheart Tech Park",
+    "Manyata NXT"
+   ],
+   "locality": "Nagavara (Nagawara), Hebbal Outer Ring Road, north Bengaluru",
+   "developer": "Embassy Group / Embassy Office Parks REIT (with MFAR and Karle as co-developers of parcels)",
+   "lat": 13.04809,
+   "lng": 77.61975,
+   "bbox": [
+    13.041258,
+    13.055452,
+    77.616136,
+    77.625275
+   ],
+   "areaSqFtMillions": 12.8,
+   "notableTenants": [
+    "IBM",
+    "Cognizant",
+    "Target",
+    "Philips",
+    "Nokia",
+    "Nvidia",
+    "Oracle Health",
+    "Fidelity Investments",
+    "ANZ",
+    "Commonwealth Bank of Australia",
+    "Lowe's",
+    "Rolls-Royce",
+    "NXP Semiconductors",
+    "GlobalFoundries",
+    "Carelon Global Solutions",
+    "Voya India",
+    "Availity",
+    "Qualitest",
+    "ANSR",
+    "Bath & Body Works (Mast Global)",
+    "WeWork India",
+    "Regus"
+   ],
+   "description": "Bengaluru's largest office park and the anchor of the city's northern corridor: about 300 acres at Nagavara on the Hebbal stretch of the Outer Ring Road, operational since 2001, with 12.8 msf completed and 3.1 msf under construction per Embassy Group (press coverage in 2026 puts leasable area near 17 msf across 25+ buildings) and 100,000+ workers from 60+ MNCs. Blocks carry both a letter code and a tree name: L1 Banyan, L2 Willow, L3 Hazel, H2 Mountain Ash, F2 Mahogany, E1 Beech, M2 Madhuvana, M3 (ANZ's built-to-suit), plus Redwood, Silver Oak, Silver Fir, Pine, Cedar, Balsa, Eucalyptus, Mulberry, Ebony, Teak, Poplar, Palm, Aspen, Cypress, Elm, Acacia and Green Heart, and the newer Manyata NXT towers beside the dual-branded Hilton hotels at the south gate. Greenheart Tech Park (~1.5 msf) is a strata-owned parcel inside the campus; MFAR developed another parcel. Anchor occupiers are IBM, Cognizant, Target and Oracle Health (Cerner), with Nokia (511k sq ft), ANZ (618k sq ft, Building M3), Target (831k sq ft from Sep 2025) and Commonwealth Bank of Australia (0.8-1.4 msf built-to-suit due late 2026) the largest recent leases.",
+   "sources": [
+    "https://www.embassygroup.com/commercial-properties/bangalore/embassy-manyata-business-park",
+    "https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park",
+    "https://en.bharatpedia.org/wiki/Manyata_Embassy_Business_Park",
+    "https://addressadvisors.com/blog/manyata-tech-park-vs-embassy-techvillage-bangalore",
+    "https://www.aurumproptech.in/pulse/media/target-leases-8-31-lakh-sq-ft-in-bengaluru-in-1250-crore-deal",
+    "https://www.embassyofficeparks.com/newsroom/press/embassy-reit-leases-14-million-square-feet-including-expansion-options-to-commonwealth-bank-of-australia-at-embassy-manyata-in-bengaluru/",
+    "https://www.embassyofficeparks.com/newsroom/press/embassy-reit-closes-530-crore-divestment-at-embassy-manyata-in-bengaluru-to-eaaa-alternatives-real-assets-business/",
+    "https://www.epcworld.in/?p=8826",
+    "https://www.openstreetmap.org/way/34121900"
+   ]
+  },
+  {
+   "name": "Karle Town Centre SEZ",
+   "aliases": [
+    "Karle Town Centre",
+    "Karle SEZ",
+    "KTC"
+   ],
+   "locality": "Nagavara (Kempapura / Hebbal Outer Ring Road)",
+   "developer": "Karle Infra",
+   "lat": 13.045466,
+   "lng": 77.614321,
+   "bbox": [
+    13.041964,
+    13.048236,
+    77.611847,
+    77.61838
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Epsilon",
+    "Vervent",
+    "Smartworks"
+   ],
+   "description": "Mixed-use SEZ immediately west of Manyata on the Nagavara side of the Hebbal ORR, developed by Karle Infra with office 'Hubs' (OSM maps Hub 1, 2, 4 and 5, further hubs under construction) alongside the Manpho Convention Centre, Zenith residences and retail. The developer's site was unreachable, so the tenant list rests on OSM POIs.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1423518850",
+    "https://www.openstreetmap.org/way/775230098"
+   ]
+  },
+  {
+   "name": "Kirloskar Business Park",
+   "aliases": [
+    "KBP Hebbal"
+   ],
+   "locality": "Hebbal (Bellary Road)",
+   "developer": "Kirloskar group",
+   "lat": 13.051598,
+   "lng": 77.595088,
+   "bbox": [
+    13.050937,
+    13.052355,
+    77.593583,
+    77.596237
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Mahindra Comviva"
+   ],
+   "description": "Older low-rise office campus on Bellary Road at Hebbal flyover, redeveloped from the Kirloskar Electric works. OSM records Mahindra Comviva here; the park's own website could not be reached.",
+   "sources": [
+    "https://www.openstreetmap.org/way/265565391"
+   ]
+  },
+  {
+   "name": "Brigade Magnum",
+   "aliases": [],
+   "locality": "Hebbal (Kodigehalli Gate, Bellary Road)",
+   "developer": "Brigade Group",
+   "lat": 13.057298,
+   "lng": 77.59444,
+   "bbox": [
+    13.056709,
+    13.057887,
+    77.593704,
+    77.595571
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "PwC",
+    "ABB",
+    "Gallagher",
+    "Citi",
+    "Axis Bank"
+   ],
+   "description": "Brigade Group office building on Bellary Road at Kodigehalli Gate, Hebbal, next to RMZ Latitude. Tenants are from OSM POIs; Brigade's site returned no project page.",
+   "sources": [
+    "https://www.openstreetmap.org/way/631823255"
+   ]
+  },
+  {
+   "name": "RMZ Latitude",
+   "aliases": [
+    "RMZ Latitude Commercial",
+    "Azure (Brookfield Properties)"
+   ],
+   "locality": "Hebbal (Bellary Road)",
+   "developer": "RMZ Corp (portfolio acquired by Brookfield Properties, 2020)",
+   "lat": 13.056398,
+   "lng": 77.594162,
+   "bbox": [
+    13.055997,
+    13.057023,
+    77.593694,
+    77.594915
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Boeing",
+    "Alcon",
+    "Dayforce (Ceridian)",
+    "Mott MacDonald",
+    "Enercon",
+    "WeWork India"
+   ],
+   "description": "Mid-size commercial block on Bellary Road at Hebbal, part of the RMZ portfolio Brookfield acquired in 2020 (OSM tags the adjoining 'Azure' building with operator Brookfield Properties). Tenants from OSM POIs.",
+   "sources": [
+    "https://www.openstreetmap.org/way/732232656",
+    "https://www.openstreetmap.org/way/732232655"
+   ]
+  },
+  {
+   "name": "L&T Tech Park",
+   "aliases": [
+    "L&T Realty SEZ Bellary Road",
+    "L&T Campus Byatarayanapura",
+    "L&T Technology Services Campus"
+   ],
+   "locality": "Byatarayanapura (Bellary Road, Hebbal-Yelahanka corridor)",
+   "developer": "L&T Realty",
+   "lat": 13.068558,
+   "lng": 77.592108,
+   "bbox": [
+    13.06738,
+    13.069704,
+    77.591252,
+    77.592662
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "L&T Technology Services",
+    "LTIMindtree"
+   ],
+   "description": "L&T Realty's SEZ campus on Bellary Road near Byatarayanapura: Phase 1 holds Towers S1 (L&T Technology Services, SEZ Units I-IV) and S2 (LTIMindtree); Phase 2 is under construction to the north per OSM.",
+   "sources": [
+    "https://www.ltts.com/contact-us",
+    "https://www.openstreetmap.org/way/963445870",
+    "https://www.openstreetmap.org/way/1366161300"
+   ]
+  },
+  {
+   "name": "Bhartiya Centre of Information Technology",
+   "aliases": [
+    "BCIT",
+    "Bhartiya City IT park"
+   ],
+   "locality": "Thanisandra (Thanisandra Main Road)",
+   "developer": "Bhartiya Urban",
+   "lat": 13.08424,
+   "lng": 77.64038,
+   "bbox": [
+    13.082677,
+    13.085601,
+    77.63933,
+    77.641912
+   ],
+   "areaSqFtMillions": 4.1,
+   "notableTenants": [
+    "IBM",
+    "Takeda",
+    "Signify",
+    "NTT DATA",
+    "MUFG",
+    "Mr. Cooper",
+    "Merkle",
+    "Maersk",
+    "Ecolab",
+    "DigiKey",
+    "Coforge",
+    "Synechron",
+    "TresVista",
+    "CorroHealth",
+    "7-Eleven",
+    "W. L. Gore & Associates",
+    "ANSR"
+   ],
+   "description": "The office component of the 125-acre Bhartiya City township on Thanisandra Main Road, north-east of Manyata: BCIT 1, 2, 3A and 3B are occupied and operational with about 4.1 msf of workspace per the developer, beside The Leela Bhartiya City hotel and Nikoo Homes. The developer's page carries the occupier logos used here.",
+   "sources": [
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.openstreetmap.org/way/781780410"
+   ]
+  },
+  {
+   "name": "North Gate Business Park",
+   "aliases": [
+    "Northgate Business Park",
+    "North Gate Kogilu"
+   ],
+   "locality": "Yelahanka (Kogilu Cross, Bellary Road)",
+   "developer": null,
+   "lat": 13.116369,
+   "lng": 77.606515,
+   "bbox": [
+    13.114597,
+    13.117673,
+    77.604662,
+    77.607786
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Collins Aerospace",
+    "Pratt & Whitney",
+    "Infosys",
+    "WeWork India"
+   ],
+   "description": "Three-phase business park at Kogilu Cross on Bellary Road, Yelahanka, on the Hebbal-airport corridor (Phase 1 and 2 operational, Phase 3 under construction per OSM, each with Wings A and B). OSM records RTX's Collins Aerospace and Pratt & Whitney engineering centres, an Infosys office and a WeWork; the developer could not be confirmed.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1079506852",
+    "https://www.openstreetmap.org/way/1110808769",
+    "https://www.openstreetmap.org/way/760685450"
+   ]
+  },
+  {
+   "name": "Embassy Business Hub",
+   "aliases": [
+    "Embassy Business Hub Yelahanka"
+   ],
+   "locality": "Yelahanka (Bellary Road, near Kogilu)",
+   "developer": "Embassy Group / Embassy Office Parks REIT",
+   "lat": 13.110033,
+   "lng": 77.602271,
+   "bbox": [
+    13.107952,
+    13.111654,
+    77.600944,
+    77.603715
+   ],
+   "areaSqFtMillions": 1.4,
+   "notableTenants": [
+    "Philips"
+   ],
+   "description": "59-acre campus-style park in north Bengaluru acquired by Embassy REIT in 2023 (Rs 3,348 million) with 1.4 msf of leasable area planned: the first 0.4 msf building was 93% pre-committed to Philips as its new Philips Innovation Campus, with a further 1 msf in early development and a right of first offer over 46 more acres.",
+   "sources": [
+    "https://www.embassyofficeparks.com/newsroom/press/embassy-reit-announces-3348-million-acquisition-of-embassy-business-hub-in-bangalore/",
+    "https://www.openstreetmap.org/way/1245778214",
+    "https://www.openstreetmap.org/way/1222386355"
+   ]
+  },
+  {
+   "name": "Embassy One",
+   "aliases": [
+    "Embassy One Pinnacle Tower"
+   ],
+   "locality": "Ganganagar (Bellary Road, near Mekhri Circle)",
+   "developer": "Embassy Group",
+   "lat": 13.019511,
+   "lng": 77.584805,
+   "bbox": [
+    13.018913,
+    13.019751,
+    77.584041,
+    77.585333
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Illumina",
+    "Embassy Office Parks REIT"
+   ],
+   "description": "Mixed-use tower complex on Bellary Road at the start of the airport road, with the Four Seasons hotel, residences and the Pinnacle office tower that houses Embassy REIT's own principal office and Illumina India.",
+   "sources": [
+    "https://www.illumina.com/company/contact-us/locations.html",
+    "https://www.openstreetmap.org/way/775184936"
+   ]
+  },
+  {
+   "name": "Brigade Senate",
+   "aliases": [
+    "Brigade Senate Hebbal"
+   ],
+   "locality": "Hebbal",
+   "developer": "Brigade Group",
+   "lat": 13.047608,
+   "lng": 77.580923,
+   "bbox": [
+    13.046638,
+    13.04847,
+    77.579987,
+    77.581756
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Digantara"
+   ],
+   "description": "Two-building Brigade office complex (Senate 1 and 2) west of Hebbal; OSM records the space startup Digantara here.",
+   "sources": [
+    "https://www.openstreetmap.org/way/773825332",
+    "https://www.openstreetmap.org/way/1081553333"
+   ]
+  },
+  {
+   "name": "Godrej Downtown (OSM name)",
+   "aliases": [
+    "Tower 1, Kodigehalli Main Road"
+   ],
+   "locality": "Hebbal (Kodigehalli Main Road / Bellary Road)",
+   "developer": null,
+   "lat": 13.060756,
+   "lng": 77.591769,
+   "bbox": [
+    13.060016,
+    13.062047,
+    77.589774,
+    77.593201
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Hitachi Energy",
+    "Epson India",
+    "Accenture",
+    "TerraPay",
+    "Berkadia",
+    "ReSource Pro",
+    "Netsmart",
+    "Westermo",
+    "Awfis",
+    "Gallagher"
+   ],
+   "description": "Commercial building ('Tower 1') on Kodigehalli Main Road at Bellary Road, 400 m north of Brigade Opus, that OSM names 'Godrej Downtown'; the name and developer could not be corroborated with the search budget exhausted, so treat the park name as provisional. OSM records ten office tenants here, including Hitachi Energy India's headquarters.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1040899007",
+    "https://www.openstreetmap.org/way/1186901139"
+   ]
+  },
+  {
+   "name": "Ebisu Tech Park",
+   "aliases": [],
+   "locality": "Nagavara (Hebbal Outer Ring Road, beside Manyata south gate)",
+   "developer": null,
+   "lat": 13.042372,
+   "lng": 77.618528,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "Under construction per OSM, between the Manpho Convention Centre and the Manyata NXT towers on the Nagavara side of the ORR; no tenants yet.",
+   "sources": [
+    "https://www.openstreetmap.org/way/782064420"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "IBM",
+   "aliases": [
+    "IBM India",
+    "International Business Machines"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Technology and consulting major; one of Manyata's founding anchor tenants with several blocks, plus a newer centre at Bhartiya City (Thanisandra).",
+   "hqCity": "Armonk",
+   "hqCountry": "United States",
+   "founded": 1911,
+   "isUnicorn": false,
+   "website": "https://www.ibm.com/in-en",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Manyata campus - Redwood block",
+     "techPark": "Manyata Tech Park",
+     "building": "Redwood (IBM); also Mulberry block and the 'IBM' building by the Hilton",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.048761,
+     "lng": 77.620121,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Embassy Group names IBM India as a marquee Manyata tenant (https://www.embassygroup.com/commercial-properties/bangalore/embassy-manyata-business-park); OSM maps the building 'Redwood (IBM)' (https://www.openstreetmap.org/way/208960417) and IBM POIs at Mulberry (https://www.openstreetmap.org/node/5383668675) and the south 'IBM' building (https://www.openstreetmap.org/way/491335678)."
+    },
+    {
+     "label": "Bhartiya Centre of Information Technology",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": null,
+     "locality": "Thanisandra",
+     "address": "Bhartiya City, Thanisandra Main Road, Bengaluru 560064",
+     "lat": 13.084113,
+     "lng": 77.640193,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "BCIT's developer page lists IBM as an occupier (https://www.bhartiyacity.com/bcit/) and OSM records two IBM office POIs inside the BCIT polygon (https://www.openstreetmap.org/node/11572254991, https://www.openstreetmap.org/node/9782061736)."
+    }
+   ],
+   "sources": [
+    "https://www.embassygroup.com/commercial-properties/bangalore/embassy-manyata-business-park",
+    "https://www.openstreetmap.org/way/208960417",
+    "https://www.openstreetmap.org/node/5383668675",
+    "https://www.openstreetmap.org/way/491335678",
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.openstreetmap.org/node/11572254991",
+    "https://www.openstreetmap.org/node/9782061736",
+    "https://www.ibm.com/in-en"
+   ]
+  },
+  {
+   "name": "Cognizant",
+   "aliases": [
+    "Cognizant Technology Solutions",
+    "CTS"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "US-headquartered IT services firm; one of the two largest Manyata occupiers by area (with IBM) per rating commentary, block not identified.",
+   "hqCity": "Teaneck",
+   "hqCountry": "United States",
+   "founded": 1994,
+   "isUnicorn": false,
+   "website": "https://www.cognizant.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Manyata campus",
+     "techPark": "Manyata Tech Park",
+     "building": null,
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "geocodeSource": "park-centroid",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Embassy Group's Manyata page names Cognizant Technology Solutions India as a marquee tenant (https://www.embassygroup.com/commercial-properties/bangalore/embassy-manyata-business-park); addressadvisors also lists it (https://addressadvisors.com/blog/manyata-tech-park-vs-embassy-techvillage-bangalore). No block named by any source, so the park centroid is used."
+    }
+   ],
+   "sources": [
+    "https://www.embassygroup.com/commercial-properties/bangalore/embassy-manyata-business-park",
+    "https://addressadvisors.com/blog/manyata-tech-park-vs-embassy-techvillage-bangalore",
+    "https://www.cognizant.com"
+   ]
+  },
+  {
+   "name": "Target",
+   "aliases": [
+    "Target in India",
+    "Target Corporation India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "US retailer's only office outside the US; Target in India (Bengaluru) does technology, data, supply chain and merchandising for the chain.",
+   "hqCity": "Minneapolis",
+   "hqCountry": "United States",
+   "founded": 1902,
+   "isUnicorn": false,
+   "website": "https://india.target.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Target in India HQ - Cedar block",
+     "techPark": "Manyata Tech Park",
+     "building": "Cedar",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.045561,
+     "lng": 77.620356,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Embassy Group names Target Corporation India as a marquee tenant (https://www.embassygroup.com/commercial-properties/bangalore/embassy-manyata-business-park); OSM POI 'Target India' sits at the Cedar building (https://www.openstreetmap.org/node/5383668674, https://www.openstreetmap.org/way/109125573)."
+    },
+    {
+     "label": "New G+10 building leased Sep 2025 (near Manyata NXT)",
+     "techPark": "Manyata Tech Park",
+     "building": "unnamed; OSM POI at Manyata NXT Tower 2",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.041942,
+     "lng": 77.619438,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Target leased 8.31 lakh sq ft - ground + ten floors of an entire Manyata building - from 1 Sep 2025 for ten years at Rs 105/sq ft (https://www.aurumproptech.in/pulse/media/target-leases-8-31-lakh-sq-ft-in-bengaluru-in-1250-crore-deal); the building is unnamed in the article, and OSM has a second 'Target' POI beside Manyata NXT Tower 2 (https://www.openstreetmap.org/node/10574709771)."
+    }
+   ],
+   "sources": [
+    "https://www.embassygroup.com/commercial-properties/bangalore/embassy-manyata-business-park",
+    "https://www.openstreetmap.org/node/5383668674",
+    "https://www.openstreetmap.org/way/109125573",
+    "https://www.aurumproptech.in/pulse/media/target-leases-8-31-lakh-sq-ft-in-bengaluru-in-1250-crore-deal",
+    "https://www.openstreetmap.org/node/10574709771",
+    "https://india.target.com"
+   ]
+  },
+  {
+   "name": "Philips",
+   "aliases": [
+    "Philips Innovation Campus",
+    "PIC Bangalore",
+    "Koninklijke Philips"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Dutch health-technology group; Philips Innovation Campus (PIC) Bengaluru is its largest R&D site outside the Netherlands, long housed at Manyata and now also in a built-to-suit campus at Embassy Business Hub, Yelahanka.",
+   "hqCity": "Amsterdam",
+   "hqCountry": "Netherlands",
+   "founded": 1891,
+   "isUnicorn": false,
+   "website": "https://www.philips.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Philips Innovation Campus - Manyata",
+     "techPark": "Manyata Tech Park",
+     "building": "Philips Innovation Campus building",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.043891,
+     "lng": 77.62141,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps a building named 'Philips Innovation Campus' inside Manyata (https://www.openstreetmap.org/way/491335687); Philips is on the Wikipedia/Bharatpedia tenant lists (https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park) and named as a major occupier in 2025 lease coverage (https://realtynmore.com/urbanvault-signs-lease-with-embassy-group-for-80000-sq-ft-premium-workspace-in-bengaluru). Whether the Manyata site was fully consolidated into Yelahanka could not be confirmed."
+    },
+    {
+     "label": "Philips Innovation Campus - Embassy Business Hub",
+     "techPark": "Embassy Business Hub",
+     "building": "Embassy Business Hub - Philips building (Building 1)",
+     "locality": "Yelahanka (Bellary Road)",
+     "address": "Embassy Business Hub, Bellary Road, Yelahanka, Bengaluru",
+     "lat": 13.110195,
+     "lng": 77.603107,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Embassy REIT's March 2023 release says 93% of the 0.4 msf nearing completion at Embassy Business Hub was pre-committed to Philips (https://www.embassyofficeparks.com/newsroom/press/embassy-reit-announces-3348-million-acquisition-of-embassy-business-hub-in-bangalore/); OSM maps the parcel 'Embassy Business Hub - Philips' and a PIC POI (https://www.openstreetmap.org/way/1222386355, https://www.openstreetmap.org/node/11337001459)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/491335687",
+    "https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park",
+    "https://realtynmore.com/urbanvault-signs-lease-with-embassy-group-for-80000-sq-ft-premium-workspace-in-bengaluru",
+    "https://www.embassyofficeparks.com/newsroom/press/embassy-reit-announces-3348-million-acquisition-of-embassy-business-hub-in-bangalore/",
+    "https://www.openstreetmap.org/way/1222386355",
+    "https://www.openstreetmap.org/node/11337001459",
+    "https://www.philips.co.in"
+   ]
+  },
+  {
+   "name": "Nokia",
+   "aliases": [
+    "Nokia Solutions and Networks",
+    "Nokia Networks",
+    "Alcatel-Lucent",
+    "Alcatel-Lucent India",
+    "NSN"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Telecom & networking",
+   "description": "Finnish network-equipment maker; Nokia Solutions and Networks India has been at Manyata for over a decade and renewed 511,000 sq ft there in 2021. Alcatel-Lucent (merged 2016) also sat in the park.",
+   "hqCity": "Espoo",
+   "hqCountry": "Finland",
+   "founded": 1865,
+   "isUnicorn": false,
+   "website": "https://www.nokia.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Nokia Networks campus - Silver Fir / Pine blocks",
+     "techPark": "Manyata Tech Park",
+     "building": "Silver Fir / Pine (OSM); block letter not published",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.047231,
+     "lng": 77.618919,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Embassy REIT press release of 21 Oct 2021 records Nokia's 511k sq ft renewal at Embassy Manyata (https://www.embassyofficeparks.com/newsroom/press/embassy-reit-and-nokia-strengthen-partnership-in-bengaluru-with-lease-renewal-for-511k-sf-at-embassy-manyata/); OSM POIs 'Nokia Networks' and 'Nokia Solutions and Networks' sit between the Silver Fir and Pine buildings (https://www.openstreetmap.org/node/928264991, https://www.openstreetmap.org/node/928264977)."
+    },
+    {
+     "label": "Silver Oak block (ex Alcatel-Lucent)",
+     "techPark": "Manyata Tech Park",
+     "building": "Silver Oak (OSM; 'E2' on the Nokia POI)",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.051238,
+     "lng": 77.620202,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM records 'Nokia' (addr E2) and 'Alcatel Lucent India' POIs at the Silver Oak building (https://www.openstreetmap.org/node/6118565489, https://www.openstreetmap.org/node/4834590319); Alcatel-Lucent is on the Wikipedia tenant list (https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park). Single-source, may be historical."
+    }
+   ],
+   "sources": [
+    "https://www.embassyofficeparks.com/newsroom/press/embassy-reit-and-nokia-strengthen-partnership-in-bengaluru-with-lease-renewal-for-511k-sf-at-embassy-manyata/",
+    "https://www.openstreetmap.org/node/928264991",
+    "https://www.openstreetmap.org/node/928264977",
+    "https://www.openstreetmap.org/node/6118565489",
+    "https://www.openstreetmap.org/node/4834590319",
+    "https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park",
+    "https://www.nokia.com"
+   ]
+  },
+  {
+   "name": "Nvidia",
+   "aliases": [
+    "NVIDIA Graphics Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "GPU and AI-computing company; its Bengaluru engineering site is at Manyata (Nvidia also has a Pune centre).",
+   "hqCity": "Santa Clara",
+   "hqCountry": "United States",
+   "founded": 1993,
+   "isUnicorn": false,
+   "website": "https://www.nvidia.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Nvidia Bengaluru - Silver Oak block",
+     "techPark": "Manyata Tech Park",
+     "building": "Silver Oak",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.051191,
+     "lng": 77.620528,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "OSM office POI 'Nvidia' at the Silver Oak building (https://www.openstreetmap.org/node/4834590323, https://www.openstreetmap.org/way/491335679); Nvidia is named as a Manyata tenant by addressadvisors (https://addressadvisors.com/blog/manyata-tech-park-vs-embassy-techvillage-bangalore) and the Wikipedia list (https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4834590323",
+    "https://www.openstreetmap.org/way/491335679",
+    "https://addressadvisors.com/blog/manyata-tech-park-vs-embassy-techvillage-bangalore",
+    "https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park",
+    "https://www.nvidia.com"
+   ]
+  },
+  {
+   "name": "Oracle Health",
+   "aliases": [
+    "Cerner",
+    "Cerner Healthcare Solutions",
+    "Cerner Corporation"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Formerly Cerner Healthcare Solutions (acquired by Oracle in 2022); its large Bengaluru development centre is in the Mountain Ash (H2) block at Manyata.",
+   "hqCity": "Austin",
+   "hqCountry": "United States",
+   "founded": 1979,
+   "isUnicorn": false,
+   "website": "https://www.oracle.com/health/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Oracle Health (Cerner) - Mountain Ash H2",
+     "techPark": "Manyata Tech Park",
+     "building": "Mountain Ash (Block H2)",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.046377,
+     "lng": 77.622396,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Embassy Group names Cerner Healthcare Solutions as a marquee Manyata tenant (https://www.embassygroup.com/commercial-properties/bangalore/embassy-manyata-business-park); OSM POI 'Cerner, Mountain Ash H2 Block' (https://www.openstreetmap.org/node/5756379552). Renamed Oracle Health after the 2022 acquisition."
+    }
+   ],
+   "sources": [
+    "https://www.embassygroup.com/commercial-properties/bangalore/embassy-manyata-business-park",
+    "https://www.openstreetmap.org/node/5756379552",
+    "https://www.oracle.com/health/"
+   ]
+  },
+  {
+   "name": "Fidelity Investments",
+   "aliases": [
+    "FMR India",
+    "Fidelity Investments India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "Boston asset manager; Fidelity Investments India (FMR India) runs technology and operations from Manyata.",
+   "hqCity": "Boston",
+   "hqCountry": "United States",
+   "founded": 1946,
+   "isUnicorn": false,
+   "website": "https://www.fidelity.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Fidelity Investments India",
+     "techPark": "Manyata Tech Park",
+     "building": null,
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.042831,
+     "lng": 77.619669,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Fidelity Investments' at the south end of Manyata beside the NXT towers (https://www.openstreetmap.org/node/13781586355); Fidelity Investments is on the Wikipedia/Bharatpedia tenant lists (https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park). Block not published."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13781586355",
+    "https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park",
+    "https://www.fidelity.com"
+   ]
+  },
+  {
+   "name": "ANZ",
+   "aliases": [
+    "ANZ Support Services India",
+    "ANZ Bengaluru Service Centre",
+    "Australia and New Zealand Banking Group"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "Australian bank; ANZ Bengaluru (ANZ Support Services India) is its largest technology and operations hub, at Manyata since 2005, now in an 18-floor built-to-suit Building M3.",
+   "hqCity": "Melbourne",
+   "hqCountry": "Australia",
+   "founded": 1835,
+   "isUnicorn": false,
+   "website": "https://www.anz.com",
+   "bengaluruEmployeesApprox": 6000,
+   "offices": [
+    {
+     "label": "ANZ Bengaluru hub - Building M3 (built-to-suit)",
+     "techPark": "Manyata Tech Park",
+     "building": "Building M3",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.050492,
+     "lng": 77.618797,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "ANZ renewed 6.18 lakh sq ft across 18 floors at Embassy Manyata at Rs 5.94 crore/month, a built-to-suit chosen in June 2022 (https://therealtytoday.com/news/anz-renews-6-lakh-sq-ft-embassy-manyata-office-lease-in-bengaluru-for-6-crore-monthly); EPC World names the facility as Building M3 (https://www.epcworld.in/?p=8826); OSM POI 'ANZ Support Services India' (https://www.openstreetmap.org/node/12630615227)."
+    },
+    {
+     "label": "Eucalyptus block (earlier ANZ building)",
+     "techPark": "Manyata Tech Park",
+     "building": "Eucalyptus",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.046436,
+     "lng": 77.62155,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps a Manyata building named 'Eucalyptus (ANZ)' (https://www.openstreetmap.org/way/109125560); ANZ has occupied the park since 2005 (https://therealtytoday.com/news/anz-renews-6-lakh-sq-ft-embassy-manyata-office-lease-in-bengaluru-for-6-crore-monthly)."
+    }
+   ],
+   "sources": [
+    "https://therealtytoday.com/news/anz-renews-6-lakh-sq-ft-embassy-manyata-office-lease-in-bengaluru-for-6-crore-monthly",
+    "https://www.epcworld.in/?p=8826",
+    "https://www.openstreetmap.org/node/12630615227",
+    "https://www.openstreetmap.org/way/109125560",
+    "https://www.anz.com"
+   ]
+  },
+  {
+   "name": "Commonwealth Bank of Australia",
+   "aliases": [
+    "CBA",
+    "CommBank"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "Australia's largest bank; its Bengaluru technology centre is taking a 0.8 msf (+0.6 msf option) built-to-suit campus at Manyata for delivery in late 2026.",
+   "hqCity": "Sydney",
+   "hqCountry": "Australia",
+   "founded": 1911,
+   "isUnicorn": false,
+   "website": "https://www.commbank.com.au",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Built-to-suit campus (delivery Q4 CY2026)",
+     "techPark": "Manyata Tech Park",
+     "building": null,
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "geocodeSource": "park-centroid",
+     "isHq": false,
+     "status": "planned",
+     "confidence": "high",
+     "evidence": "Embassy REIT, 21 Aug 2024: agreement to lease ~0.8 msf at Embassy Manyata with a 0.6 msf expansion option, delivery with fit-outs in Q4 CY2026 (https://www.embassyofficeparks.com/newsroom/press/embassy-reit-leases-14-million-square-feet-including-expansion-options-to-commonwealth-bank-of-australia-at-embassy-manyata-in-bengaluru/). Building not yet named; park centroid used."
+    },
+    {
+     "label": "Current office (Manyata NXT area)",
+     "techPark": "Manyata Tech Park",
+     "building": "near Manyata NXT Tower 1 (OSM)",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.042468,
+     "lng": 77.619511,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Commonwealth Bank of Australia' beside Manyata NXT Tower 1 (https://www.openstreetmap.org/node/9811266166); Embassy says it has housed CBA for four years (https://realtynmore.com/embassy-reit-leases-1-4-msf-to-commonwealth-bank-of-australia-at-embassy-manyata-in-bengaluru/)."
+    }
+   ],
+   "sources": [
+    "https://www.embassyofficeparks.com/newsroom/press/embassy-reit-leases-14-million-square-feet-including-expansion-options-to-commonwealth-bank-of-australia-at-embassy-manyata-in-bengaluru/",
+    "https://www.openstreetmap.org/node/9811266166",
+    "https://realtynmore.com/embassy-reit-leases-1-4-msf-to-commonwealth-bank-of-australia-at-embassy-manyata-in-bengaluru/",
+    "https://www.commbank.com.au"
+   ]
+  },
+  {
+   "name": "Lowe's",
+   "aliases": [
+    "Lowe's India",
+    "Lowe's Services India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "US home-improvement retailer; Lowe's India (5,000+ staff) runs engineering, data, supply-chain and finance from Manyata's Willow (L2) building.",
+   "hqCity": "Mooresville",
+   "hqCountry": "United States",
+   "founded": 1946,
+   "isUnicorn": false,
+   "website": "https://www.lowes.co.in",
+   "bengaluruEmployeesApprox": 5000,
+   "offices": [
+    {
+     "label": "Lowe's India HQ - Willow L2",
+     "techPark": "Manyata Tech Park",
+     "building": "Willow (Block L2)",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.044338,
+     "lng": 77.618522,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Lowe's India's own site gives its address as Building Willow-L2, Manyata Embassy Business Park (SEZ), Outer Ring Rd, Nagavara 560045 (https://www.lowes.co.in/); OSM POI 'Lowes' at the Willow building (https://www.openstreetmap.org/node/10095905202)."
+    }
+   ],
+   "sources": [
+    "https://www.lowes.co.in/",
+    "https://www.openstreetmap.org/node/10095905202",
+    "https://www.lowes.co.in"
+   ]
+  },
+  {
+   "name": "Rolls-Royce",
+   "aliases": [
+    "Rolls-Royce India",
+    "Rolls-Royce Holdings"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "British aero-engine maker; its Bengaluru Aerospace Engineering Centre occupies the 9th and 10th floors of Hazel (L3) at Manyata.",
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "founded": 1906,
+   "isUnicorn": false,
+   "website": "https://www.rolls-royce.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Aerospace Engineering Centre - Hazel L3, 9th-10th floor",
+     "techPark": "Manyata Tech Park",
+     "building": "Hazel (Block L3)",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.045039,
+     "lng": 77.618622,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Rolls-Royce India's contacts page: 9th and 10th Floor, Block L3 (Hazel), Manyata Embassy Business Park, Hebbal Outer Ring Road, Nagawara, Bengaluru 560045 (https://www.rolls-royce.com/country-sites/india/contacts.aspx)."
+    }
+   ],
+   "sources": [
+    "https://www.rolls-royce.com/country-sites/india/contacts.aspx",
+    "https://www.rolls-royce.com"
+   ]
+  },
+  {
+   "name": "NXP Semiconductors",
+   "aliases": [
+    "NXP Semiconductors India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "Dutch chipmaker spun out of Philips; its Bengaluru design centre sits in Manyata.",
+   "hqCity": "Eindhoven",
+   "hqCountry": "Netherlands",
+   "founded": 2006,
+   "isUnicorn": false,
+   "website": "https://www.nxp.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "NXP Semiconductors India",
+     "techPark": "Manyata Tech Park",
+     "building": null,
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.044879,
+     "lng": 77.621668,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'NXP Semiconductors India' inside Manyata near the Green Heart building (https://www.openstreetmap.org/node/338178217); NXP is on the Wikipedia/Bharatpedia tenant lists (https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park). Block not published."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/338178217",
+    "https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park",
+    "https://www.nxp.com"
+   ]
+  },
+  {
+   "name": "GlobalFoundries",
+   "aliases": [
+    "GF"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "US foundry; its Bengaluru design centre is in Manyata's Balsa block.",
+   "hqCity": "Malta, New York",
+   "hqCountry": "United States",
+   "founded": 2009,
+   "isUnicorn": false,
+   "website": "https://gf.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "GlobalFoundries Bengaluru - Balsa block",
+     "techPark": "Manyata Tech Park",
+     "building": "Balsa",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.052919,
+     "lng": 77.619028,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'GlobalFoundries' at the Balsa building (https://www.openstreetmap.org/node/12630615229, https://www.openstreetmap.org/way/491335672); GLOBALFOUNDRIES is on the Wikipedia tenant list (https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12630615229",
+    "https://www.openstreetmap.org/way/491335672",
+    "https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park",
+    "https://gf.com"
+   ]
+  },
+  {
+   "name": "Microsoft",
+   "aliases": [
+    "Microsoft India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Microsoft's main Bengaluru offices are elsewhere (Bellandur/Domlur); two weak sources place a Microsoft office in Manyata's Silver Oak block - unconfirmed.",
+   "hqCity": "Redmond",
+   "hqCountry": "United States",
+   "founded": 1975,
+   "isUnicorn": false,
+   "website": "https://www.microsoft.com/en-in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Silver Oak block (unconfirmed)",
+     "techPark": "Manyata Tech Park",
+     "building": "Silver Oak (OSM)",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.051082,
+     "lng": 77.620144,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Microsoft' at Silver Oak (https://www.openstreetmap.org/node/4834590322) and a ufuture.com feature listing Microsoft among Manyata residents (https://ufuture.com/en/?p=14652); no company source found and Microsoft's known Bengaluru sites are elsewhere."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4834590322",
+    "https://ufuture.com/en/?p=14652",
+    "https://www.microsoft.com/en-in"
+   ]
+  },
+  {
+   "name": "Bath & Body Works (Mast Global Business Services)",
+   "aliases": [
+    "L Brands",
+    "Mast Global",
+    "Victoria's Secret",
+    "MGBS India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "Mast Global Business Services India is the Bengaluru technology/sourcing captive of the former L Brands (Victoria's Secret / Bath & Body Works), at Manyata beside Mountain Ash.",
+   "hqCity": "Columbus, Ohio",
+   "hqCountry": "United States",
+   "founded": 1963,
+   "isUnicorn": false,
+   "website": "https://www.bbwinc.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Mast Global Business Services India",
+     "techPark": "Manyata Tech Park",
+     "building": "beside Mountain Ash (OSM)",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.046409,
+     "lng": 77.622701,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Mast Global Business Services India' beside Mountain Ash (https://www.openstreetmap.org/node/5756379551); L Brands and Victoria's Secret are on the Wikipedia/Bharatpedia tenant lists (https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/5756379551",
+    "https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park",
+    "https://www.bbwinc.com"
+   ]
+  },
+  {
+   "name": "Carelon Global Solutions",
+   "aliases": [
+    "Legato Health Technologies",
+    "Elevance Health India",
+    "Anthem India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Elevance Health's India operations and technology arm (formerly Legato Health Technologies, 2017); Bengaluru is its headquarters city, at Manyata's Banyan (L1) building per OSM.",
+   "hqCity": "Indianapolis",
+   "hqCountry": "United States",
+   "founded": 2017,
+   "isUnicorn": false,
+   "website": "https://www.carelonglobal.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Carelon Global Solutions India - Banyan L1",
+     "techPark": "Manyata Tech Park",
+     "building": "Banyan (Block L1) per OSM",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.043879,
+     "lng": 77.618422,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Legato Health Technologies' at the Banyan (L1) building (https://www.openstreetmap.org/node/10095905201); Legato was renamed Carelon Global Solutions in 2023. Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/10095905201",
+    "https://www.carelonglobal.in"
+   ]
+  },
+  {
+   "name": "UnitedHealth Group / Optum",
+   "aliases": [
+    "UHG",
+    "Optum",
+    "Optum Global Solutions"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "US health-services group; OSM records a UHG office beside Manyata NXT Tower 1 (Optum's other Bengaluru sites are outside this lens).",
+   "hqCity": "Minnetonka",
+   "hqCountry": "United States",
+   "founded": 1977,
+   "isUnicorn": false,
+   "website": "https://www.optum.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "UHG / Optum - Manyata NXT area",
+     "techPark": "Manyata Tech Park",
+     "building": "near Manyata NXT Tower 1 (OSM)",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.042841,
+     "lng": 77.619557,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'UHG' beside Manyata NXT Tower 1 (https://www.openstreetmap.org/node/12055268758). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12055268758",
+    "https://www.optum.in"
+   ]
+  },
+  {
+   "name": "Voya Financial (Voya India)",
+   "aliases": [
+    "Voya India",
+    "VFI SLK",
+    "Voya Global Services"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "US retirement and investment firm; Voya India (formerly VFI SLK) is its captive, on the 7th floor of Block L3 at Manyata.",
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "founded": 1991,
+   "isUnicorn": false,
+   "website": "https://www.voyaindia.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Voya India - L3 Block, 7th floor",
+     "techPark": "Manyata Tech Park",
+     "building": "Block L3 (Hazel), 7th floor",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.044441,
+     "lng": 77.619948,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Voya India's own site: Voya Global Services Pvt Ltd, 7th Floor, L3 Block, Manyata Embassy Business Park, Bengaluru 560045 (https://www.voyaindia.com/); OSM POI 'Voya India' nearby (https://www.openstreetmap.org/node/13166901397)."
+    }
+   ],
+   "sources": [
+    "https://www.voyaindia.com/",
+    "https://www.openstreetmap.org/node/13166901397",
+    "https://www.voyaindia.com"
+   ]
+  },
+  {
+   "name": "Availity",
+   "aliases": [
+    "Availity India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "US healthcare-payments network; Availity India (incorporated 2008) is on the 12th floor of M2 Madhuvana at Manyata.",
+   "hqCity": "Jacksonville",
+   "hqCountry": "United States",
+   "founded": 2001,
+   "isUnicorn": false,
+   "website": "https://www.availity.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Availity India - M2 Madhuvana, 12th floor",
+     "techPark": "Manyata Tech Park",
+     "building": "Block M2 (Madhuvana), A Wing, 12th floor",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.04964,
+     "lng": 77.618757,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Availity's locations page: M2, Madhuvana North Avenue, 12th Floor, A Wing, Outer Ring Road, Nagavara 560045 (https://www.availity.com/locations/); OSM POI 'Availity India' at Block M2 (https://www.openstreetmap.org/node/12630615228)."
+    }
+   ],
+   "sources": [
+    "https://www.availity.com/locations/",
+    "https://www.openstreetmap.org/node/12630615228",
+    "https://www.availity.com"
+   ]
+  },
+  {
+   "name": "Qualitest (QualityAI)",
+   "aliases": [
+    "Qualitest Group",
+    "QualityAI"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Software quality-engineering services firm, rebranded QualityAI; two Bengaluru offices in Manyata (Mountain Ash H2 and Madhuvana M2).",
+   "hqCity": "Bridgewater, New Jersey",
+   "hqCountry": "United States",
+   "founded": 1997,
+   "isUnicorn": false,
+   "website": "https://www.quality-ai.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Mountain Ash H2, A Wing, 1st-2nd floor",
+     "techPark": "Manyata Tech Park",
+     "building": "Mountain Ash (Block H2), A Wing",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.046224,
+     "lng": 77.622441,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "QualityAI contact page: H2 Block, Mountain Ash, A Wing, 1st and 2nd floor, Manyata Embassy Business Park, Nagavara 560045 (https://www.quality-ai.com/contact)."
+    },
+    {
+     "label": "Madhuvan M2, B Wing, 12th floor",
+     "techPark": "Manyata Tech Park",
+     "building": "Block M2 (Madhuvan), B Wing",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.049573,
+     "lng": 77.618807,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "QualityAI contact page: M2 Block, Madhuvan, B Wing, 12th floor, Manyata Embassy Business Park (https://www.quality-ai.com/contact)."
+    }
+   ],
+   "sources": [
+    "https://www.quality-ai.com/contact",
+    "https://www.quality-ai.com"
+   ]
+  },
+  {
+   "name": "ANSR",
+   "aliases": [
+    "ANSR Global Corporation"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Consulting & professional services",
+   "description": "Bengaluru-founded (2004) builder and operator of global capability centres; headquartered at Manyata's Banyan (L1) with a US office in Dallas.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2004,
+   "isUnicorn": false,
+   "website": "https://www.ansr.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "ANSR HQ - L1 Banyan block",
+     "techPark": "Manyata Tech Park",
+     "building": "Banyan (Block L1)",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.043648,
+     "lng": 77.618597,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "ANSR's contact page: ANSR Global Corporation Pvt Ltd, L1, Banyan Block, Manyata Embassy Business Park SEZ, Nagawara Outer Ring Road, Bengaluru 560045 (https://www.ansr.com/contact); OSM POI 'ansr' at Banyan (https://www.openstreetmap.org/node/10095905203)."
+    },
+    {
+     "label": "Second site - Manyata NXT area",
+     "techPark": "Manyata Tech Park",
+     "building": "near Manyata NXT Tower 2 (OSM)",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.041694,
+     "lng": 77.619425,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'ansr' beside Manyata NXT Tower 2 (https://www.openstreetmap.org/node/10574709770); likely a GCC-client floor operated by ANSR. Single source."
+    },
+    {
+     "label": "Bhartiya Centre of Information Technology",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": null,
+     "locality": "Thanisandra",
+     "address": "Bhartiya City, Thanisandra Main Road, Bengaluru 560064",
+     "lat": 13.08424,
+     "lng": 77.64038,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bhartiya City's own BCIT page lists ANSR among its occupier logos (developer tenant page, single source); placed at the park centroid. https://www.bhartiyacity.com/bcit/"
+    }
+   ],
+   "sources": [
+    "https://www.ansr.com/contact",
+    "https://www.openstreetmap.org/node/10095905203",
+    "https://www.openstreetmap.org/node/10574709770",
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.ansr.com"
+   ]
+  },
+  {
+   "name": "WeWork India",
+   "aliases": [
+    "WeWork"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Embassy-promoted flexible-workspace operator (listed 2025) with several north-Bengaluru centres: two inside Manyata plus Hebbal and Yelahanka.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2017,
+   "isUnicorn": false,
+   "website": "https://wework.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "WeWork Manyata (NXT / Block D3)",
+     "techPark": "Manyata Tech Park",
+     "building": "Block D3 / Manyata NXT",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.042664,
+     "lng": 77.619543,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "WeWork India's Manyata page (https://wework.co.in/bangalore/hebbal/manyata-tech-park) lists the centre at Embassy Manyata Business Park, Block D3; OSM POI 'WeWork Manyata' beside NXT Tower 1 (https://www.openstreetmap.org/node/9811266167)."
+    },
+    {
+     "label": "WeWork Manyata Mahogany (F2)",
+     "techPark": "Manyata Tech Park",
+     "building": "Mahogany (Block F2)",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.050346,
+     "lng": 77.623322,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM POI 'WeWork Manyata Mahogany' at the Mahogany building (https://www.openstreetmap.org/node/12892359309); an Office Hub listing places WeWork in F2 Block Mahogany (https://www.office-hub.com/in/buildings/manyata-embassy-business-park-a363m000002W3PeAAK)."
+    },
+    {
+     "label": "WeWork RMZ Latitude",
+     "techPark": "RMZ Latitude",
+     "building": null,
+     "locality": "Hebbal (Bellary Road)",
+     "address": "RMZ Latitude Commercial, Bellary Road, Hebbal, Bengaluru 560024",
+     "lat": 13.0566,
+     "lng": 77.594541,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM coworking POI 'WeWork' on Bellary Road inside the RMZ Latitude polygon (https://www.openstreetmap.org/node/6569023749)."
+    },
+    {
+     "label": "WeWork North Gate",
+     "techPark": "North Gate Business Park",
+     "building": null,
+     "locality": "Yelahanka (Kogilu Cross, Bellary Road)",
+     "address": "North Gate Business Park, Kogilu Cross, Bellary Road, Yelahanka, Bengaluru",
+     "lat": 13.115096,
+     "lng": 77.605748,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM coworking POI 'WeWork' inside North Gate Business Park Phase 1 (https://www.openstreetmap.org/node/9977355608)."
+    }
+   ],
+   "sources": [
+    "https://wework.co.in/bangalore/hebbal/manyata-tech-park",
+    "https://www.openstreetmap.org/node/9811266167",
+    "https://www.openstreetmap.org/node/12892359309",
+    "https://www.office-hub.com/in/buildings/manyata-embassy-business-park-a363m000002W3PeAAK",
+    "https://www.openstreetmap.org/node/6569023749",
+    "https://www.openstreetmap.org/node/9977355608",
+    "https://wework.co.in"
+   ]
+  },
+  {
+   "name": "UrbanVault",
+   "aliases": [],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Bengaluru managed-office operator; opened an 80,000 sq ft centre at Manyata under a Sept 2025 lease with Embassy Group.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2019,
+   "isUnicorn": false,
+   "website": "https://www.urbanvault.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "UrbanVault Manyata (80,000 sq ft)",
+     "techPark": "Manyata Tech Park",
+     "building": null,
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "geocodeSource": "park-centroid",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "UrbanVault signed an 80,000 sq ft Grade A facility at Manyata Tech Park with Embassy Group, announced 1 Sep 2025 (https://realtynmore.com/urbanvault-signs-lease-with-embassy-group-for-80000-sq-ft-premium-workspace-in-bengaluru); building not named, park centroid used."
+    }
+   ],
+   "sources": [
+    "https://realtynmore.com/urbanvault-signs-lease-with-embassy-group-for-80000-sq-ft-premium-workspace-in-bengaluru",
+    "https://www.urbanvault.in"
+   ]
+  },
+  {
+   "name": "Regus (IWG)",
+   "aliases": [
+    "Regus",
+    "IWG",
+    "International Workplace Group"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Real estate & infrastructure",
+   "description": "IWG's Regus brand operates a serviced-office centre in Manyata's Beech (E-1) building.",
+   "hqCity": "Zug",
+   "hqCountry": "Switzerland",
+   "founded": 1989,
+   "isUnicorn": false,
+   "website": "https://www.regus.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Regus - Beech E-1",
+     "techPark": "Manyata Tech Park",
+     "building": "Beech (Block E-1)",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "geocodeSource": "park-centroid",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Office Hub's building page lists the Regus (India) centre at Beech, E-1, Outer Ring Road, Nagawara 560045 (https://www.office-hub.com/in/buildings/manyata-embassy-business-park-a363m000002W3PeAAK); Beech is not drawn in OSM, so the park centroid is used."
+    }
+   ],
+   "sources": [
+    "https://www.office-hub.com/in/buildings/manyata-embassy-business-park-a363m000002W3PeAAK",
+    "https://www.regus.com"
+   ]
+  },
+  {
+   "name": "The Executive Centre",
+   "aliases": [
+    "TEC"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Real estate & infrastructure",
+   "description": "Hong Kong premium serviced-office operator with a Manyata centre.",
+   "hqCity": "Hong Kong",
+   "hqCountry": "Hong Kong",
+   "founded": 1994,
+   "isUnicorn": false,
+   "website": "https://www.executivecentre.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "The Executive Centre - Manyata",
+     "techPark": "Manyata Tech Park",
+     "building": null,
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.045635,
+     "lng": 77.621195,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM coworking POI 'The Executive Centre' on Outer Ring Road inside Manyata (https://www.openstreetmap.org/node/10291118230). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/10291118230",
+    "https://www.executivecentre.com"
+   ]
+  },
+  {
+   "name": "Harman International",
+   "aliases": [
+    "Harman",
+    "Harman Connected Services",
+    "Symphony Teleca"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Samsung-owned audio and connected-car company; listed as a Manyata tenant (Harman Connected Services) but no block or company source found.",
+   "hqCity": "Stamford, Connecticut",
+   "hqCountry": "United States",
+   "founded": 1980,
+   "isUnicorn": false,
+   "website": "https://www.harman.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Harman International - Manyata (block unknown)",
+     "techPark": "Manyata Tech Park",
+     "building": null,
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "geocodeSource": "park-centroid",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Named as a Manyata tenant by the Wikipedia/Bharatpedia tenant roster (https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park); no company page or OSM POI found, park centroid used."
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park",
+    "https://www.harman.com"
+   ]
+  },
+  {
+   "name": "Northern Trust",
+   "aliases": [
+    "Northern Trust Corporation"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "Chicago custody bank; listed as a Manyata tenant in the Wikipedia roster, unconfirmed by a company source.",
+   "hqCity": "Chicago",
+   "hqCountry": "United States",
+   "founded": 1889,
+   "isUnicorn": false,
+   "website": "https://www.northerntrust.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Northern Trust - Manyata (block unknown)",
+     "techPark": "Manyata Tech Park",
+     "building": null,
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "geocodeSource": "park-centroid",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Named as a Manyata tenant by the Wikipedia/Bharatpedia tenant roster (https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park); no company page or OSM POI found, park centroid used."
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park",
+    "https://www.northerntrust.com"
+   ]
+  },
+  {
+   "name": "AXA",
+   "aliases": [
+    "AXA Business Services",
+    "AXA GBS",
+    "AXA XL"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "French insurer; AXA's Bengaluru shared-services arm is named as a Manyata tenant by addressadvisors and the Wikipedia roster, block unknown.",
+   "hqCity": "Paris",
+   "hqCountry": "France",
+   "founded": 1816,
+   "isUnicorn": false,
+   "website": "https://www.axa.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "AXA - Manyata (block unknown)",
+     "techPark": "Manyata Tech Park",
+     "building": null,
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "geocodeSource": "park-centroid",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Named as a Manyata tenant by addressadvisors (https://addressadvisors.com/blog/manyata-tech-park-vs-embassy-techvillage-bangalore) and the Wikipedia/Bharatpedia tenant roster (https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park); no company page or OSM POI found, park centroid used."
+    }
+   ],
+   "sources": [
+    "https://addressadvisors.com/blog/manyata-tech-park-vs-embassy-techvillage-bangalore",
+    "https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park",
+    "https://www.axa.com"
+   ]
+  },
+  {
+   "name": "WSP",
+   "aliases": [
+    "WSP Global",
+    "WSP India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Canadian engineering consultancy; listed as a Manyata tenant in the Wikipedia roster only.",
+   "hqCity": "Montreal",
+   "hqCountry": "Canada",
+   "founded": 1959,
+   "isUnicorn": false,
+   "website": "https://www.wsp.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "WSP - Manyata (block unknown)",
+     "techPark": "Manyata Tech Park",
+     "building": null,
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "geocodeSource": "park-centroid",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Named as a Manyata tenant by the Wikipedia/Bharatpedia tenant roster (https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park); no company page or OSM POI found, park centroid used."
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park",
+    "https://www.wsp.com"
+   ]
+  },
+  {
+   "name": "Epsilon",
+   "aliases": [
+    "Epsilon Data Management",
+    "Publicis Epsilon"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Publicis Groupe's data-driven marketing technology arm; Epsilon India's Bengaluru centre is in Karle Town Centre Hub 2 per OSM.",
+   "hqCity": "Chicago",
+   "hqCountry": "United States",
+   "founded": 1969,
+   "isUnicorn": false,
+   "website": "https://www.epsilon.com/in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Epsilon India - Karle Town Centre Hub 2",
+     "techPark": "Karle Town Centre SEZ",
+     "building": "Hub 2",
+     "locality": "Nagavara (Hebbal ORR)",
+     "address": "Karle Town Centre, Kempapura Main Road, Nagavara (Hebbal ORR), Bengaluru 560045",
+     "lat": 13.044213,
+     "lng": 77.616651,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Epsilon' at Karle Town Centre Hub 2 (https://www.openstreetmap.org/node/12059800807, https://www.openstreetmap.org/way/554239828). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12059800807",
+    "https://www.openstreetmap.org/way/554239828",
+    "https://www.epsilon.com/in"
+   ]
+  },
+  {
+   "name": "Vervent",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Fintech",
+   "description": "US loan-servicing and fintech outsourcer; Vervent India sits in Karle Town Centre Hub 1 per OSM.",
+   "hqCity": "San Diego",
+   "hqCountry": "United States",
+   "founded": 1986,
+   "isUnicorn": false,
+   "website": "https://www.vervent.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Vervent India - Karle Town Centre Hub 1",
+     "techPark": "Karle Town Centre SEZ",
+     "building": "Hub 1",
+     "locality": "Nagavara (Hebbal ORR)",
+     "address": "Karle Town Centre, Kempapura Main Road, Nagavara (Hebbal ORR), Bengaluru 560045",
+     "lat": 13.043675,
+     "lng": 77.616592,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Vervent India' at Karle Town Centre Hub 1 (https://www.openstreetmap.org/node/12171197082). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12171197082",
+    "https://www.vervent.com"
+   ]
+  },
+  {
+   "name": "Smartworks",
+   "aliases": [],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Gurugram-based managed-campus operator (listed 2025) with a Karle Town Centre centre.",
+   "hqCity": "Gurugram",
+   "hqCountry": "India",
+   "founded": 2016,
+   "isUnicorn": false,
+   "website": "https://www.sworks.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Smartworks - Karle Town Centre",
+     "techPark": "Karle Town Centre SEZ",
+     "building": null,
+     "locality": "Nagavara (Hebbal ORR)",
+     "address": "Karle Town Centre, Kempapura Main Road, Nagavara (Hebbal ORR), Bengaluru 560045",
+     "lat": 13.043932,
+     "lng": 77.613454,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM coworking POI 'smartworks - Karle Town Centre' (https://www.openstreetmap.org/node/9828082732). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/9828082732",
+    "https://www.sworks.co.in"
+   ]
+  },
+  {
+   "name": "Boeing",
+   "aliases": [
+    "Boeing India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "Boeing India's Hebbal office at RMZ Latitude (its main Bengaluru engineering campus, BIETC at Devanahalli, is outside this lens).",
+   "hqCity": "Arlington, Virginia",
+   "hqCountry": "United States",
+   "founded": 1916,
+   "isUnicorn": false,
+   "website": "https://www.boeing.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Boeing India - RMZ Latitude",
+     "techPark": "RMZ Latitude",
+     "building": null,
+     "locality": "Hebbal (Bellary Road)",
+     "address": "RMZ Latitude Commercial, Bellary Road, Hebbal, Bengaluru 560024",
+     "lat": 13.055493,
+     "lng": 77.594381,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Boeing' inside the RMZ Latitude / Azure (Brookfield Properties) polygon on Bellary Road (https://www.openstreetmap.org/node/11205796366). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11205796366",
+    "https://www.boeing.co.in"
+   ]
+  },
+  {
+   "name": "Alcon",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Swiss eye-care company; Bengaluru office at RMZ Latitude, Hebbal.",
+   "hqCity": "Geneva",
+   "hqCountry": "Switzerland",
+   "founded": 1945,
+   "isUnicorn": false,
+   "website": "https://www.alcon.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Alcon - RMZ Latitude",
+     "techPark": "RMZ Latitude",
+     "building": null,
+     "locality": "Hebbal (Bellary Road)",
+     "address": "RMZ Latitude Commercial, Bellary Road, Hebbal, Bengaluru 560024",
+     "lat": 13.055485,
+     "lng": 77.594215,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Alcon' inside the RMZ Latitude / Azure (Brookfield Properties) polygon on Bellary Road (https://www.openstreetmap.org/node/11205796365). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11205796365",
+    "https://www.alcon.com"
+   ]
+  },
+  {
+   "name": "Dayforce (Ceridian)",
+   "aliases": [
+    "Ceridian"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "HCM software company (renamed from Ceridian in 2024); Bengaluru office at RMZ Latitude.",
+   "hqCity": "Minneapolis",
+   "hqCountry": "United States",
+   "founded": 1992,
+   "isUnicorn": false,
+   "website": "https://www.dayforce.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Dayforce - RMZ Latitude",
+     "techPark": "RMZ Latitude",
+     "building": null,
+     "locality": "Hebbal (Bellary Road)",
+     "address": "RMZ Latitude Commercial, Bellary Road, Hebbal, Bengaluru 560024",
+     "lat": 13.055383,
+     "lng": 77.594623,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Ceridian' inside the RMZ Latitude / Azure (Brookfield Properties) polygon on Bellary Road (https://www.openstreetmap.org/node/11205796367). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11205796367",
+    "https://www.dayforce.com"
+   ]
+  },
+  {
+   "name": "Mott MacDonald",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "UK engineering consultancy; Bengaluru office at RMZ Latitude.",
+   "hqCity": "Croydon",
+   "hqCountry": "United Kingdom",
+   "founded": 1989,
+   "isUnicorn": false,
+   "website": "https://www.mottmac.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Mott MacDonald - RMZ Latitude",
+     "techPark": "RMZ Latitude",
+     "building": null,
+     "locality": "Hebbal (Bellary Road)",
+     "address": "RMZ Latitude Commercial, Bellary Road, Hebbal, Bengaluru 560024",
+     "lat": 13.055316,
+     "lng": 77.594516,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Mott MacDonald' inside the RMZ Latitude / Azure (Brookfield Properties) polygon on Bellary Road (https://www.openstreetmap.org/node/11205796369). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11205796369",
+    "https://www.mottmac.com"
+   ]
+  },
+  {
+   "name": "Enercon",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "German wind-turbine maker; Bengaluru office at RMZ Latitude.",
+   "hqCity": "Aurich",
+   "hqCountry": "Germany",
+   "founded": 1984,
+   "isUnicorn": false,
+   "website": "https://www.enercon.de",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Enercon - RMZ Latitude",
+     "techPark": "RMZ Latitude",
+     "building": null,
+     "locality": "Hebbal (Bellary Road)",
+     "address": "RMZ Latitude Commercial, Bellary Road, Hebbal, Bengaluru 560024",
+     "lat": 13.055474,
+     "lng": 77.594552,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Enercon' inside the RMZ Latitude / Azure (Brookfield Properties) polygon on Bellary Road (https://www.openstreetmap.org/node/11205796370). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11205796370",
+    "https://www.enercon.de"
+   ]
+  },
+  {
+   "name": "PwC",
+   "aliases": [
+    "PricewaterhouseCoopers"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Big Four firm; a Hebbal office at Brigade Magnum per OSM (its larger Bengaluru offices are elsewhere).",
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "founded": 1998,
+   "isUnicorn": false,
+   "website": "https://www.pwc.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "PwC - Brigade Magnum",
+     "techPark": "Brigade Magnum",
+     "building": null,
+     "locality": "Hebbal (Kodigehalli Gate, Bellary Road)",
+     "address": "Brigade Magnum, Kodigehalli Gate, Bellary Road, Hebbal, Bengaluru 560092",
+     "lat": 13.057324,
+     "lng": 77.594575,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'PWC' inside the Brigade Magnum polygon (https://www.openstreetmap.org/node/11477159658). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11477159658",
+    "https://www.pwc.in"
+   ]
+  },
+  {
+   "name": "ABB",
+   "aliases": [
+    "ABB India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Swiss-Swedish electrification and automation group; Hebbal office at Brigade Magnum per OSM (its Peenya works are outside this lens).",
+   "hqCity": "Zurich",
+   "hqCountry": "Switzerland",
+   "founded": 1988,
+   "isUnicorn": false,
+   "website": "https://new.abb.com/in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "ABB - Brigade Magnum",
+     "techPark": "Brigade Magnum",
+     "building": null,
+     "locality": "Hebbal (Kodigehalli Gate, Bellary Road)",
+     "address": "Brigade Magnum, Kodigehalli Gate, Bellary Road, Hebbal, Bengaluru 560092",
+     "lat": 13.057396,
+     "lng": 77.594451,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'ABB' inside the Brigade Magnum polygon (https://www.openstreetmap.org/node/11477159657). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11477159657",
+    "https://new.abb.com/in"
+   ]
+  },
+  {
+   "name": "Gallagher",
+   "aliases": [
+    "Arthur J. Gallagher",
+    "Gallagher Service Center"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "US insurance broker (Arthur J. Gallagher); Gallagher Service Center India has offices in Hebbal per OSM, at Brigade Magnum and a second building on Kodigehalli Main Road.",
+   "hqCity": "Rolling Meadows, Illinois",
+   "hqCountry": "United States",
+   "founded": 1927,
+   "isUnicorn": false,
+   "website": "https://www.ajg.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Gallagher - Brigade Magnum",
+     "techPark": "Brigade Magnum",
+     "building": null,
+     "locality": "Hebbal (Kodigehalli Gate, Bellary Road)",
+     "address": "Brigade Magnum, Kodigehalli Gate, Bellary Road, Hebbal, Bengaluru 560092",
+     "lat": 13.057374,
+     "lng": 77.594271,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Gallagher' inside the Brigade Magnum polygon (https://www.openstreetmap.org/node/11280734329). Single source."
+    },
+    {
+     "label": "Gallagher - Kodigehalli (OSM 'Godrej Downtown')",
+     "techPark": null,
+     "building": null,
+     "locality": "Hebbal (Kodigehalli Main Road)",
+     "address": "Kodigehalli Main Road, Bellary Road, Bengaluru 560092",
+     "lat": 13.060649,
+     "lng": 77.592167,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Gallagher' inside the polygon OSM names 'Godrej Downtown' on Kodigehalli Main Road (https://www.openstreetmap.org/node/13428525782). Single source; may be the same tenancy as Brigade Magnum after a move."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11280734329",
+    "https://www.openstreetmap.org/node/13428525782",
+    "https://www.ajg.com"
+   ]
+  },
+  {
+   "name": "Citi",
+   "aliases": [
+    "Citibank",
+    "Citigroup"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "US bank; OSM records a Citi office at Brigade Magnum, Hebbal - could be a branch rather than a back office.",
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "founded": 1812,
+   "isUnicorn": false,
+   "website": "https://www.citigroup.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Citi - Brigade Magnum",
+     "techPark": "Brigade Magnum",
+     "building": null,
+     "locality": "Hebbal (Kodigehalli Gate, Bellary Road)",
+     "address": "Brigade Magnum, Kodigehalli Gate, Bellary Road, Hebbal, Bengaluru 560092",
+     "lat": 13.057112,
+     "lng": 77.594942,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Citi' inside the Brigade Magnum polygon (https://www.openstreetmap.org/node/11280734328). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11280734328",
+    "https://www.citigroup.com"
+   ]
+  },
+  {
+   "name": "Axis Bank",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "BFSI",
+   "description": "Indian private bank; OSM records an Axis Bank office at Brigade Magnum, Hebbal - possibly a branch.",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 1993,
+   "isUnicorn": false,
+   "website": "https://www.axisbank.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Axis Bank - Brigade Magnum",
+     "techPark": "Brigade Magnum",
+     "building": null,
+     "locality": "Hebbal (Kodigehalli Gate, Bellary Road)",
+     "address": "Brigade Magnum, Kodigehalli Gate, Bellary Road, Hebbal, Bengaluru 560092",
+     "lat": 13.057479,
+     "lng": 77.594291,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Axis Bank' inside the Brigade Magnum polygon (https://www.openstreetmap.org/node/11477159656). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11477159656",
+    "https://www.axisbank.com"
+   ]
+  },
+  {
+   "name": "Hitachi Energy",
+   "aliases": [
+    "Hitachi Energy India",
+    "ABB Power Grids"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "Power-grid technology company spun out of ABB; Hitachi Energy India is headquartered in Bengaluru, with its Kodigehalli/Hebbal office recorded by OSM.",
+   "hqCity": "Zurich",
+   "hqCountry": "Switzerland",
+   "founded": 2020,
+   "isUnicorn": false,
+   "website": "https://www.hitachienergy.com/in/en",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Hitachi Energy India - Kodigehalli",
+     "techPark": null,
+     "building": null,
+     "locality": "Hebbal (Kodigehalli Main Road)",
+     "address": "Kodigehalli Main Road / Bellary Road, Hebbal, Bengaluru 560092",
+     "lat": 13.060435,
+     "lng": 77.591964,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Hitachi Energy' inside the commercial polygon OSM names 'Godrej Downtown' (Tower 1) on Kodigehalli Main Road (https://www.openstreetmap.org/node/13428525779); the building name could not be corroborated (Brigade Opus is 400 m south). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13428525779",
+    "https://www.hitachienergy.com/in/en"
+   ]
+  },
+  {
+   "name": "Epson India",
+   "aliases": [
+    "Seiko Epson"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "Seiko Epson's India subsidiary, headquartered in Bengaluru; OSM records it on Kodigehalli Main Road, Hebbal.",
+   "hqCity": "Suwa",
+   "hqCountry": "Japan",
+   "founded": 1942,
+   "isUnicorn": false,
+   "website": "https://www.epson.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Epson India HQ - Kodigehalli",
+     "techPark": null,
+     "building": null,
+     "locality": "Hebbal (Kodigehalli Main Road)",
+     "address": "Kodigehalli Main Road / Bellary Road, Hebbal, Bengaluru 560092",
+     "lat": 13.060449,
+     "lng": 77.591812,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Epson India Pvt Ltd' inside the commercial polygon OSM names 'Godrej Downtown' (Tower 1) on Kodigehalli Main Road (https://www.openstreetmap.org/node/13428525776); the building name could not be corroborated (Brigade Opus is 400 m south). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13428525776",
+    "https://www.epson.co.in"
+   ]
+  },
+  {
+   "name": "Accenture",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Global IT services major; a Hebbal office on Kodigehalli Main Road per OSM (its large Bengaluru campuses are elsewhere).",
+   "hqCity": "Dublin",
+   "hqCountry": "Ireland",
+   "founded": 1989,
+   "isUnicorn": false,
+   "website": "https://www.accenture.com/in-en",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Accenture - Kodigehalli",
+     "techPark": null,
+     "building": null,
+     "locality": "Hebbal (Kodigehalli Main Road)",
+     "address": "Kodigehalli Main Road / Bellary Road, Hebbal, Bengaluru 560092",
+     "lat": 13.060554,
+     "lng": 77.59198,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Accenture' inside the commercial polygon OSM names 'Godrej Downtown' (Tower 1) on Kodigehalli Main Road (https://www.openstreetmap.org/node/13428525778); the building name could not be corroborated (Brigade Opus is 400 m south). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13428525778",
+    "https://www.accenture.com/in-en"
+   ]
+  },
+  {
+   "name": "TerraPay",
+   "aliases": [],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "Fintech",
+   "description": "Cross-border payments network founded 2014 with its largest engineering hub in Bengaluru.",
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "founded": 2014,
+   "isUnicorn": false,
+   "website": "https://www.terrapay.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "TerraPay Bengaluru - Kodigehalli",
+     "techPark": null,
+     "building": null,
+     "locality": "Hebbal (Kodigehalli Main Road)",
+     "address": "Kodigehalli Main Road / Bellary Road, Hebbal, Bengaluru 560092",
+     "lat": 13.060531,
+     "lng": 77.592149,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Terrapay' inside the commercial polygon OSM names 'Godrej Downtown' (Tower 1) on Kodigehalli Main Road (https://www.openstreetmap.org/node/12032606668); the building name could not be corroborated (Brigade Opus is 400 m south). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12032606668",
+    "https://www.terrapay.com"
+   ]
+  },
+  {
+   "name": "Berkadia",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "US commercial-mortgage firm (Berkshire Hathaway / Jefferies JV) with Indian back offices; Bengaluru office per OSM.",
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "founded": 2009,
+   "isUnicorn": false,
+   "website": "https://www.berkadia.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Berkadia - Kodigehalli",
+     "techPark": null,
+     "building": null,
+     "locality": "Hebbal (Kodigehalli Main Road)",
+     "address": "Kodigehalli Main Road / Bellary Road, Hebbal, Bengaluru 560092",
+     "lat": 13.060404,
+     "lng": 77.592134,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Berkadia' inside the commercial polygon OSM names 'Godrej Downtown' (Tower 1) on Kodigehalli Main Road (https://www.openstreetmap.org/node/13428525780); the building name could not be corroborated (Brigade Opus is 400 m south). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13428525780",
+    "https://www.berkadia.com"
+   ]
+  },
+  {
+   "name": "ReSource Pro",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "US insurance-operations outsourcer; Bengaluru office per OSM.",
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "founded": 2003,
+   "isUnicorn": false,
+   "website": "https://www.resourcepro.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "ReSource Pro - Kodigehalli",
+     "techPark": null,
+     "building": null,
+     "locality": "Hebbal (Kodigehalli Main Road)",
+     "address": "Kodigehalli Main Road / Bellary Road, Hebbal, Bengaluru 560092",
+     "lat": 13.060675,
+     "lng": 77.591994,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'ReSource Pro' inside the commercial polygon OSM names 'Godrej Downtown' (Tower 1) on Kodigehalli Main Road (https://www.openstreetmap.org/node/13428525777); the building name could not be corroborated (Brigade Opus is 400 m south). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13428525777",
+    "https://www.resourcepro.com"
+   ]
+  },
+  {
+   "name": "Netsmart",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "US healthcare-software company; Bengaluru office per OSM.",
+   "hqCity": "Overland Park, Kansas",
+   "hqCountry": "United States",
+   "founded": 1968,
+   "isUnicorn": false,
+   "website": "https://www.ntst.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Netsmart - Kodigehalli",
+     "techPark": null,
+     "building": null,
+     "locality": "Hebbal (Kodigehalli Main Road)",
+     "address": "Kodigehalli Main Road / Bellary Road, Hebbal, Bengaluru 560092",
+     "lat": 13.060498,
+     "lng": 77.592391,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Netsmart' inside the commercial polygon OSM names 'Godrej Downtown' (Tower 1) on Kodigehalli Main Road (https://www.openstreetmap.org/node/13204637950); the building name could not be corroborated (Brigade Opus is 400 m south). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13204637950",
+    "https://www.ntst.com"
+   ]
+  },
+  {
+   "name": "Westermo",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Telecom & networking",
+   "description": "Swedish industrial-networking maker; Bengaluru office per OSM.",
+   "hqCity": "Stora Sundby",
+   "hqCountry": "Sweden",
+   "founded": 1975,
+   "isUnicorn": false,
+   "website": "https://www.westermo.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Westermo - Kodigehalli",
+     "techPark": null,
+     "building": null,
+     "locality": "Hebbal (Kodigehalli Main Road)",
+     "address": "Kodigehalli Main Road / Bellary Road, Hebbal, Bengaluru 560092",
+     "lat": 13.060614,
+     "lng": 77.592399,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Westermo' inside the commercial polygon OSM names 'Godrej Downtown' (Tower 1) on Kodigehalli Main Road (https://www.openstreetmap.org/node/13428525783); the building name could not be corroborated (Brigade Opus is 400 m south). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13428525783",
+    "https://www.westermo.com"
+   ]
+  },
+  {
+   "name": "Awfis",
+   "aliases": [],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Indian flexible-workspace chain (listed 2024); Hebbal centre on Kodigehalli Main Road per OSM.",
+   "hqCity": "New Delhi",
+   "hqCountry": "India",
+   "founded": 2015,
+   "isUnicorn": false,
+   "website": "https://www.awfis.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Awfis Hebbal - Kodigehalli",
+     "techPark": null,
+     "building": null,
+     "locality": "Hebbal (Kodigehalli Main Road)",
+     "address": "Kodigehalli Main Road / Bellary Road, Hebbal, Bengaluru 560092",
+     "lat": 13.060361,
+     "lng": 77.592372,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Awfis' inside the commercial polygon OSM names 'Godrej Downtown' (Tower 1) on Kodigehalli Main Road (https://www.openstreetmap.org/node/13428525781); the building name could not be corroborated (Brigade Opus is 400 m south). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13428525781",
+    "https://www.awfis.com"
+   ]
+  },
+  {
+   "name": "Mahindra Comviva",
+   "aliases": [
+    "Comviva"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Telecom & networking",
+   "description": "Tech Mahindra's mobility-solutions subsidiary (Gurugram HQ); Bengaluru office at Kirloskar Business Park, Hebbal.",
+   "hqCity": "Gurugram",
+   "hqCountry": "India",
+   "founded": 1999,
+   "isUnicorn": false,
+   "website": "https://www.comviva.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Comviva - Kirloskar Business Park",
+     "techPark": "Kirloskar Business Park",
+     "building": null,
+     "locality": "Hebbal (Bellary Road)",
+     "address": "Kirloskar Business Park, Bellary Road, Hebbal, Bengaluru 560024",
+     "lat": 13.051619,
+     "lng": 77.595409,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM telecom office POI 'Mahindra Comviva Technologies Ltd.' inside the Kirloskar Business Park polygon (https://www.openstreetmap.org/node/2712115346, https://www.openstreetmap.org/way/265565391). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/2712115346",
+    "https://www.openstreetmap.org/way/265565391",
+    "https://www.comviva.com"
+   ]
+  },
+  {
+   "name": "Digantara",
+   "aliases": [],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Space",
+   "description": "Bengaluru space-situational-awareness startup (2018) building orbital-surveillance satellites; headquartered at Brigade Senate, Hebbal.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2018,
+   "isUnicorn": false,
+   "website": "https://www.digantara.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Digantara HQ - Brigade Senate",
+     "techPark": "Brigade Senate",
+     "building": null,
+     "locality": "Hebbal",
+     "address": "Brigade Senate, Hebbal, Bengaluru 560024",
+     "lat": 13.047098,
+     "lng": 77.581053,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Digantara' inside the Brigade Senate polygon (https://www.openstreetmap.org/node/12511761782, https://www.openstreetmap.org/way/773825332). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12511761782",
+    "https://www.openstreetmap.org/way/773825332",
+    "https://www.digantara.co.in"
+   ]
+  },
+  {
+   "name": "L&T Technology Services",
+   "aliases": [
+    "LTTS"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Larsen & Toubro's engineering-services arm (listed, 20,000+ staff); its Bengaluru hub is Tower S1 of the L&T campus on Bellary Road, with a Jakkur office and a Sarjapur SEZ unit.",
+   "hqCity": "Vadodara",
+   "hqCountry": "India",
+   "founded": 2012,
+   "isUnicorn": false,
+   "website": "https://www.ltts.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "L&T Campus - Tower S1 (SEZ Units I-IV)",
+     "techPark": "L&T Tech Park",
+     "building": "Tower S1",
+     "locality": "Byatarayanapura (Bellary Road)",
+     "address": "L&T Realty SEZ, Bellary Road, Byatarayanapura, Bengaluru 560092",
+     "lat": 13.068127,
+     "lng": 77.591819,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LTTS contact page: SEZ Unit I-IV, Tower S1, L&T Realty Developers Ltd SEZ (L&T Campus), Bellary Road, Byatarayanapura, Bengaluru 560092 (https://www.ltts.com/contact-us); OSM building 'Tower S1' (https://www.openstreetmap.org/way/1188310714)."
+    },
+    {
+     "label": "Vista Pixel, Jakkur",
+     "techPark": null,
+     "building": "Vista Pixel",
+     "locality": "Jakkur (Bellary Road)",
+     "address": "8/2B-8/2C, Bellary Road, Jakkur, Bengaluru 560092",
+     "lat": 13.071178,
+     "lng": 77.59356,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LTTS contact page: Vista Pixel, 8/2B and 8/2C, Ground Floor, Bellary Road, Pillar No. P/66, Jakkuru, Bengaluru 560092 (https://www.ltts.com/contact-us); OSM polygon 'Vista Pixel' (https://www.openstreetmap.org/way/1110808779)."
+    },
+    {
+     "label": "RGA Tech Park SEZ - Block 3 A Wing",
+     "techPark": "RGA Tech Park",
+     "building": "Block 3, A Wing",
+     "locality": "Sarjapur Road (Chikkanahalli)",
+     "address": "RGA Tech Park SEZ, Sarjapur Main Road, Bengaluru 560035",
+     "lat": 12.9067,
+     "lng": 77.6966,
+     "geocodeSource": "manual-known",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "LTTS contact page: Unit VI, Block 3 'A' Wing, Floors 1-3, RGA Tech Park SEZ, Survey No. 31/1, Chikkannalli Village, Sarjapura Main Road, Bengaluru 560035 (https://www.ltts.com/contact-us); coordinates are the RGA Tech Park area, not the block."
+    }
+   ],
+   "sources": [
+    "https://www.ltts.com/contact-us",
+    "https://www.openstreetmap.org/way/1188310714",
+    "https://www.openstreetmap.org/way/1110808779",
+    "https://www.ltts.com"
+   ]
+  },
+  {
+   "name": "LTIMindtree",
+   "aliases": [
+    "Mindtree",
+    "L&T Infotech",
+    "LTI"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "L&T group IT-services major (merger of L&T Infotech and Mindtree, 2022); a Hebbal delivery centre in Tower S2 of the L&T campus per OSM (its Whitefield and Global Village campuses are outside this lens).",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 1996,
+   "isUnicorn": false,
+   "website": "https://www.ltimindtree.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "L&T Campus - Tower S2, Hebbal",
+     "techPark": "L&T Tech Park",
+     "building": "Tower S2",
+     "locality": "Byatarayanapura (Bellary Road)",
+     "address": "L&T Realty SEZ, Bellary Road, Byatarayanapura, Bengaluru 560092",
+     "lat": 13.068802,
+     "lng": 77.592011,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'LTIMindtree S2 Hebbal' at 274 Bellary Road inside L&T Tech Park Phase 1, beside the building 'Tower S2' (https://www.openstreetmap.org/node/12047380769, https://www.openstreetmap.org/way/1188310715). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12047380769",
+    "https://www.openstreetmap.org/way/1188310715",
+    "https://www.ltimindtree.com"
+   ]
+  },
+  {
+   "name": "Illumina",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "US genomics-sequencing company; Illumina India's office is on the 7th floor of Pinnacle Tower, Embassy One, Bellary Road.",
+   "hqCity": "San Diego",
+   "hqCountry": "United States",
+   "founded": 1998,
+   "isUnicorn": false,
+   "website": "https://www.illumina.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Illumina India - Embassy One, Pinnacle Tower 7th floor",
+     "techPark": "Embassy One",
+     "building": "Pinnacle Tower, 7th floor",
+     "locality": "Ganganagar (Bellary Road, near Mekhri Circle)",
+     "address": "Embassy One, 8 Bellary Road, Ganganagar, Bengaluru 560032",
+     "lat": 13.019511,
+     "lng": 77.584805,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Illumina's locations page: 7th floor, Pinnacle Tower, Embassy One, Bellary Road, Ganganagar, Bengaluru 560032 (https://www.illumina.com/company/contact-us/locations.html); OSM polygon 'Embassy One' (https://www.openstreetmap.org/way/775184936)."
+    }
+   ],
+   "sources": [
+    "https://www.illumina.com/company/contact-us/locations.html",
+    "https://www.openstreetmap.org/way/775184936",
+    "https://www.illumina.com"
+   ]
+  },
+  {
+   "name": "Collins Aerospace",
+   "aliases": [
+    "Collins Aerospace EDTC",
+    "RTX",
+    "Raytheon Technologies",
+    "UTC Aerospace Systems"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "RTX's aerostructures and avionics unit; OSM records Collins Aerospace and its Engineering Development & Test Centre at North Gate Business Park, Yelahanka.",
+   "hqCity": "Charlotte",
+   "hqCountry": "United States",
+   "founded": 2018,
+   "isUnicorn": false,
+   "website": "https://www.collinsaerospace.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Collins Aerospace - North Gate Phase 2 (Wing B)",
+     "techPark": "North Gate Business Park",
+     "building": "Phase 2 Wing B / Phase 3 (OSM)",
+     "locality": "Yelahanka (Kogilu Cross, Bellary Road)",
+     "address": "North Gate Business Park, Kogilu Cross, Bellary Road, Yelahanka, Bengaluru 560064",
+     "lat": 13.116037,
+     "lng": 77.60684,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POIs 'Collins Aerospace' and 'Collins Aerospace EDTC' inside North Gate Business Park Phases 2-3 (https://www.openstreetmap.org/node/11572254990, https://www.openstreetmap.org/node/12640113071); RTX's India page confirms Bengaluru operations without an address (https://www.rtx.com/who-we-are/global-presence/india)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11572254990",
+    "https://www.openstreetmap.org/node/12640113071",
+    "https://www.rtx.com/who-we-are/global-presence/india",
+    "https://www.collinsaerospace.com"
+   ]
+  },
+  {
+   "name": "Pratt & Whitney",
+   "aliases": [
+    "Pratt & Whitney India Engineering Center",
+    "RTX"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "RTX's aero-engine unit; Pratt & Whitney India's engineering centre at North Gate Business Park per OSM.",
+   "hqCity": "East Hartford",
+   "hqCountry": "United States",
+   "founded": 1925,
+   "isUnicorn": false,
+   "website": "https://www.prattwhitney.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Pratt & Whitney India - North Gate Phase 2",
+     "techPark": "North Gate Business Park",
+     "building": "Phase 2 (OSM)",
+     "locality": "Yelahanka (Kogilu Cross, Bellary Road)",
+     "address": "North Gate Business Park, Kogilu Cross, Bellary Road, Yelahanka, Bengaluru 560064",
+     "lat": 13.116141,
+     "lng": 77.606505,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Pratt & Whitney India' inside North Gate Business Park Phase 2 (https://www.openstreetmap.org/node/11566442300). Single source."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11566442300",
+    "https://www.prattwhitney.com"
+   ]
+  },
+  {
+   "name": "Infosys",
+   "aliases": [
+    "Infosys BPM"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "India's second-largest IT services firm (Electronics City HQ, outside this lens); OSM records an Infosys office at North Gate Business Park, Yelahanka - unverified.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1981,
+   "isUnicorn": false,
+   "website": "https://www.infosys.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Infosys - North Gate Business Park (unverified)",
+     "techPark": "North Gate Business Park",
+     "building": "Phase 2 Wing A (OSM)",
+     "locality": "Yelahanka (Kogilu Cross, Bellary Road)",
+     "address": "North Gate Business Park, Kogilu Cross, Bellary Road, Yelahanka, Bengaluru 560064",
+     "lat": 13.116448,
+     "lng": 77.605499,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Infosys' inside North Gate Business Park Phase 2, Wing A (https://www.openstreetmap.org/node/11566442293). Single source; possibly an Infosys BPM centre."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11566442293",
+    "https://www.infosys.com"
+   ]
+  },
+  {
+   "name": "Takeda",
+   "aliases": [
+    "Takeda Pharmaceutical"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Japanese pharma major; its India innovation/capability centre is at Bhartiya City (BCIT), Thanisandra.",
+   "hqCity": "Tokyo",
+   "hqCountry": "Japan",
+   "founded": 1781,
+   "isUnicorn": false,
+   "website": "https://www.takeda.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bhartiya Centre of Information Technology",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": null,
+     "locality": "Thanisandra",
+     "address": "Bhartiya City, Thanisandra Main Road, Bengaluru 560064",
+     "lat": 13.08424,
+     "lng": 77.64038,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bhartiya City's own BCIT page lists Takeda among its occupier logos (developer tenant page, single source); placed at the park centroid. https://www.bhartiyacity.com/bcit/"
+    }
+   ],
+   "sources": [
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.takeda.com"
+   ]
+  },
+  {
+   "name": "Signify",
+   "aliases": [
+    "Philips Lighting"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "Lighting company spun out of Philips (Philips Lighting); Bengaluru office at BCIT.",
+   "hqCity": "Eindhoven",
+   "hqCountry": "Netherlands",
+   "founded": 2016,
+   "isUnicorn": false,
+   "website": "https://www.signify.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bhartiya Centre of Information Technology",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": null,
+     "locality": "Thanisandra",
+     "address": "Bhartiya City, Thanisandra Main Road, Bengaluru 560064",
+     "lat": 13.08424,
+     "lng": 77.64038,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bhartiya City's own BCIT page lists Signify among its occupier logos (developer tenant page, single source); placed at the park centroid. https://www.bhartiyacity.com/bcit/"
+    }
+   ],
+   "sources": [
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.signify.com"
+   ]
+  },
+  {
+   "name": "NTT DATA",
+   "aliases": [
+    "NTT Data Services"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Japanese IT-services major; a Bengaluru delivery centre at BCIT.",
+   "hqCity": "Tokyo",
+   "hqCountry": "Japan",
+   "founded": 1988,
+   "isUnicorn": false,
+   "website": "https://www.nttdata.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bhartiya Centre of Information Technology",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": null,
+     "locality": "Thanisandra",
+     "address": "Bhartiya City, Thanisandra Main Road, Bengaluru 560064",
+     "lat": 13.08424,
+     "lng": 77.64038,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bhartiya City's own BCIT page lists NTT DATA among its occupier logos (developer tenant page, single source); placed at the park centroid. https://www.bhartiyacity.com/bcit/"
+    }
+   ],
+   "sources": [
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.nttdata.com"
+   ]
+  },
+  {
+   "name": "MUFG",
+   "aliases": [
+    "Mitsubishi UFJ Financial Group",
+    "MUFG Global Service"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "Mitsubishi UFJ Financial Group; its Bengaluru global service centre is at BCIT.",
+   "hqCity": "Tokyo",
+   "hqCountry": "Japan",
+   "founded": 2005,
+   "isUnicorn": false,
+   "website": "https://www.mufg.jp",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bhartiya Centre of Information Technology",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": null,
+     "locality": "Thanisandra",
+     "address": "Bhartiya City, Thanisandra Main Road, Bengaluru 560064",
+     "lat": 13.08424,
+     "lng": 77.64038,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bhartiya City's own BCIT page lists MUFG among its occupier logos (developer tenant page, single source); placed at the park centroid. https://www.bhartiyacity.com/bcit/"
+    }
+   ],
+   "sources": [
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.mufg.jp"
+   ]
+  },
+  {
+   "name": "Mr. Cooper",
+   "aliases": [
+    "Mr. Cooper Group",
+    "Nationstar"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "US mortgage servicer; its India technology centre is at BCIT.",
+   "hqCity": "Dallas",
+   "hqCountry": "United States",
+   "founded": 1994,
+   "isUnicorn": false,
+   "website": "https://www.mrcooper.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bhartiya Centre of Information Technology",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": null,
+     "locality": "Thanisandra",
+     "address": "Bhartiya City, Thanisandra Main Road, Bengaluru 560064",
+     "lat": 13.08424,
+     "lng": 77.64038,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bhartiya City's own BCIT page lists Mr. Cooper among its occupier logos (developer tenant page, single source); placed at the park centroid. https://www.bhartiyacity.com/bcit/"
+    }
+   ],
+   "sources": [
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.mrcooper.com"
+   ]
+  },
+  {
+   "name": "Merkle",
+   "aliases": [
+    "Merkle India",
+    "dentsu"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "dentsu's customer-experience and data agency; Bengaluru office at BCIT.",
+   "hqCity": "Columbia, Maryland",
+   "hqCountry": "United States",
+   "founded": 1971,
+   "isUnicorn": false,
+   "website": "https://www.merkle.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bhartiya Centre of Information Technology",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": null,
+     "locality": "Thanisandra",
+     "address": "Bhartiya City, Thanisandra Main Road, Bengaluru 560064",
+     "lat": 13.08424,
+     "lng": 77.64038,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bhartiya City's own BCIT page lists Merkle among its occupier logos (developer tenant page, single source); placed at the park centroid. https://www.bhartiyacity.com/bcit/"
+    }
+   ],
+   "sources": [
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.merkle.com"
+   ]
+  },
+  {
+   "name": "Maersk",
+   "aliases": [
+    "A.P. Moller - Maersk"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Logistics",
+   "description": "Danish shipping and logistics group; a Bengaluru technology/GCC office at BCIT.",
+   "hqCity": "Copenhagen",
+   "hqCountry": "Denmark",
+   "founded": 1904,
+   "isUnicorn": false,
+   "website": "https://www.maersk.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bhartiya Centre of Information Technology",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": null,
+     "locality": "Thanisandra",
+     "address": "Bhartiya City, Thanisandra Main Road, Bengaluru 560064",
+     "lat": 13.08424,
+     "lng": 77.64038,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bhartiya City's own BCIT page lists Maersk among its occupier logos (developer tenant page, single source); placed at the park centroid. https://www.bhartiyacity.com/bcit/"
+    }
+   ],
+   "sources": [
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.maersk.com"
+   ]
+  },
+  {
+   "name": "Ecolab",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "US water, hygiene and infection-prevention company; its Bengaluru digital/global centre is at BCIT.",
+   "hqCity": "St. Paul, Minnesota",
+   "hqCountry": "United States",
+   "founded": 1923,
+   "isUnicorn": false,
+   "website": "https://www.ecolab.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bhartiya Centre of Information Technology",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": null,
+     "locality": "Thanisandra",
+     "address": "Bhartiya City, Thanisandra Main Road, Bengaluru 560064",
+     "lat": 13.08424,
+     "lng": 77.64038,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bhartiya City's own BCIT page lists Ecolab among its occupier logos (developer tenant page, single source); placed at the park centroid. https://www.bhartiyacity.com/bcit/"
+    }
+   ],
+   "sources": [
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.ecolab.com"
+   ]
+  },
+  {
+   "name": "DigiKey",
+   "aliases": [
+    "Digi-Key Electronics"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "US electronic-components distributor; Bengaluru office at BCIT.",
+   "hqCity": "Thief River Falls, Minnesota",
+   "hqCountry": "United States",
+   "founded": 1972,
+   "isUnicorn": false,
+   "website": "https://www.digikey.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bhartiya Centre of Information Technology",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": null,
+     "locality": "Thanisandra",
+     "address": "Bhartiya City, Thanisandra Main Road, Bengaluru 560064",
+     "lat": 13.08424,
+     "lng": 77.64038,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bhartiya City's own BCIT page lists DigiKey among its occupier logos (developer tenant page, single source); placed at the park centroid. https://www.bhartiyacity.com/bcit/"
+    }
+   ],
+   "sources": [
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.digikey.in"
+   ]
+  },
+  {
+   "name": "Coforge",
+   "aliases": [
+    "NIIT Technologies"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Noida-based listed IT services firm (formerly NIIT Technologies, 25,000+ staff); Bengaluru centre at BCIT.",
+   "hqCity": "Noida",
+   "hqCountry": "India",
+   "founded": 1992,
+   "isUnicorn": false,
+   "website": "https://www.coforge.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bhartiya Centre of Information Technology",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": null,
+     "locality": "Thanisandra",
+     "address": "Bhartiya City, Thanisandra Main Road, Bengaluru 560064",
+     "lat": 13.08424,
+     "lng": 77.64038,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bhartiya City's own BCIT page lists Coforge among its occupier logos (developer tenant page, single source); placed at the park centroid. https://www.bhartiyacity.com/bcit/"
+    }
+   ],
+   "sources": [
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.coforge.com"
+   ]
+  },
+  {
+   "name": "Synechron",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "US-headquartered financial-services technology consultancy (14,000+ staff); Bengaluru office at BCIT.",
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "founded": 2001,
+   "isUnicorn": false,
+   "website": "https://www.synechron.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bhartiya Centre of Information Technology",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": null,
+     "locality": "Thanisandra",
+     "address": "Bhartiya City, Thanisandra Main Road, Bengaluru 560064",
+     "lat": 13.08424,
+     "lng": 77.64038,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bhartiya City's own BCIT page lists Synechron among its occupier logos (developer tenant page, single source); placed at the park centroid. https://www.bhartiyacity.com/bcit/"
+    }
+   ],
+   "sources": [
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.synechron.com"
+   ]
+  },
+  {
+   "name": "TresVista",
+   "aliases": [],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "BFSI",
+   "description": "Mumbai-founded financial-services outsourcing firm; Bengaluru office at BCIT.",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 2006,
+   "isUnicorn": false,
+   "website": "https://www.tresvista.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bhartiya Centre of Information Technology",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": null,
+     "locality": "Thanisandra",
+     "address": "Bhartiya City, Thanisandra Main Road, Bengaluru 560064",
+     "lat": 13.08424,
+     "lng": 77.64038,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bhartiya City's own BCIT page lists TresVista among its occupier logos (developer tenant page, single source); placed at the park centroid. https://www.bhartiyacity.com/bcit/"
+    }
+   ],
+   "sources": [
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.tresvista.com"
+   ]
+  },
+  {
+   "name": "CorroHealth",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "US revenue-cycle-management company; Bengaluru delivery centre at BCIT.",
+   "hqCity": "Plano, Texas",
+   "hqCountry": "United States",
+   "founded": 2019,
+   "isUnicorn": false,
+   "website": "https://www.corrohealth.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bhartiya Centre of Information Technology",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": null,
+     "locality": "Thanisandra",
+     "address": "Bhartiya City, Thanisandra Main Road, Bengaluru 560064",
+     "lat": 13.08424,
+     "lng": 77.64038,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bhartiya City's own BCIT page lists CorroHealth among its occupier logos (developer tenant page, single source); placed at the park centroid. https://www.bhartiyacity.com/bcit/"
+    }
+   ],
+   "sources": [
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.corrohealth.com"
+   ]
+  },
+  {
+   "name": "7-Eleven",
+   "aliases": [
+    "7-Eleven Global Solution Center"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "US convenience-store chain; its India global capability centre (7-Eleven Global Solution Center) is at BCIT.",
+   "hqCity": "Irving, Texas",
+   "hqCountry": "United States",
+   "founded": 1927,
+   "isUnicorn": false,
+   "website": "https://www.7-eleven.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bhartiya Centre of Information Technology",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": null,
+     "locality": "Thanisandra",
+     "address": "Bhartiya City, Thanisandra Main Road, Bengaluru 560064",
+     "lat": 13.08424,
+     "lng": 77.64038,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bhartiya City's own BCIT page lists 7-Eleven among its occupier logos (developer tenant page, single source); placed at the park centroid. https://www.bhartiyacity.com/bcit/"
+    }
+   ],
+   "sources": [
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.7-eleven.com"
+   ]
+  },
+  {
+   "name": "W. L. Gore & Associates",
+   "aliases": [
+    "Gore"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "US materials-science company (Gore-Tex); Bengaluru office at BCIT.",
+   "hqCity": "Newark, Delaware",
+   "hqCountry": "United States",
+   "founded": 1958,
+   "isUnicorn": false,
+   "website": "https://www.gore.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bhartiya Centre of Information Technology",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": null,
+     "locality": "Thanisandra",
+     "address": "Bhartiya City, Thanisandra Main Road, Bengaluru 560064",
+     "lat": 13.08424,
+     "lng": 77.64038,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bhartiya City's own BCIT page lists W. L. Gore & Associates among its occupier logos (developer tenant page, single source); placed at the park centroid. https://www.bhartiyacity.com/bcit/"
+    }
+   ],
+   "sources": [
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.gore.com"
+   ]
+  },
+  {
+   "name": "Pinnacle Infotech",
+   "aliases": [],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Consulting & professional services",
+   "description": "Durgapur-based BIM/engineering-services firm; Bengaluru office at BCIT.",
+   "hqCity": "Durgapur",
+   "hqCountry": "India",
+   "founded": 1991,
+   "isUnicorn": false,
+   "website": "https://www.pinnacleinfotech.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bhartiya Centre of Information Technology",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": null,
+     "locality": "Thanisandra",
+     "address": "Bhartiya City, Thanisandra Main Road, Bengaluru 560064",
+     "lat": 13.08424,
+     "lng": 77.64038,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bhartiya City's own BCIT page lists Pinnacle Infotech among its occupier logos (developer tenant page, single source); placed at the park centroid. https://www.bhartiyacity.com/bcit/"
+    }
+   ],
+   "sources": [
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.pinnacleinfotech.com"
+   ]
+  }
+ ],
+ "coverageNotes": "Search budget: the shared WebSearch quota was exhausted after six queries, so verification relied on direct fetches of company location pages, Embassy REIT press releases, developer pages and the OSM building/POI layer (which at Manyata is unusually rich: every block is drawn with its tree name). HIGH-confidence Manyata offices rest on company pages (Rolls-Royce L3 Hazel, Lowe's L2 Willow, ANSR L1 Banyan, Voya L3, Availity and Qualitest M2 Madhuvana / H2 Mountain Ash) or on Embassy REIT releases plus OSM (Nokia, ANZ, CBA, Target, IBM, Cerner/Oracle Health, Nvidia, Philips). MEDIUM entries are single-source OSM POIs or developer tenant pages; LOW entries (Microsoft, Harman, Northern Trust, WSP, Citi, Axis Bank, Infosys at North Gate, the second Nokia/Alcatel block, ANSR's NXT floor, Gallagher's second site) are plausible but unconfirmed and are labelled as such. NOT CONFIRMED and therefore LEFT OUT despite being on the lens brief: Colt Technology Services, Microchip Technology, Genpact, Concentrix, Wells Fargo, Mphasis and HCLTech - their location pages were unreachable (403/404/JS-rendered) and no OSM POI, lease report or developer page places them in Manyata or the Hebbal corridor; also 'GE' (named only in a 2025 UrbanVault release, entity unclear), IKEA (one feature article), Justdial, Qualitest's sibling 'iTS', and the defunct Voonik. Hudson's Bay Company and L Brands/Victoria's Secret appear on tenant lists but their India exits/renames predate 2023 or could not be dated, so HBC is omitted and L Brands is folded into the Mast Global Business Services entry. Larsen & Toubro's Manyata listing is treated as historical: LTTS's own site places it at the L&T campus on Bellary Road. Blocks: letter-to-tree mappings are given only where a company page states them (L1 Banyan, L2 Willow, L3 Hazel, H2 Mountain Ash, M2 Madhuvana, F2 Mahogany, E1 Beech, D3 WeWork); other buildings carry the OSM tree name only. Cognizant, UrbanVault, Regus, CBA's planned campus and the Wikipedia-only names sit at the park centroid (geocodeSource park-centroid). Hebbal: the cluster OSM names 'Godrej Downtown' on Kodigehalli Main Road could not be corroborated (Brigade Opus is 400 m away and is the address usually given for Hitachi Energy India), so that park name is flagged provisional. Target's 2025 8.31 lakh sq ft building and CBA's built-to-suit are unnamed in every source. Headcounts are given only where a source states them (ANZ 6,000+, Lowe's 5,000+ India-wide). Yelahanka/airport-corridor parks beyond North Gate and Embassy Business Hub (Hinduja Ecopolis, Sattva Horizon, AstraZeneca's Yelahanka site) were left to the airport-corridor lens."
+}

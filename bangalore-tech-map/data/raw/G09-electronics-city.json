@@ -1,0 +1,2816 @@
+{
+  "key": "G09-electronics-city",
+  "techParks": [
+    {
+      "name": "Electronics City Phase 1",
+      "aliases": [
+        "Electronic City Phase I",
+        "E-City Phase 1",
+        "Keonics Electronics City"
+      ],
+      "locality": "Electronic City (west of Hosur Road), Bengaluru 560100",
+      "developer": "KEONICS (maintained by ELCITA)",
+      "lat": 12.8445,
+      "lng": 77.6615,
+      "bbox": [
+        12.834,
+        12.856,
+        77.651,
+        77.672
+      ],
+      "areaSqFtMillions": null,
+      "notableTenants": [
+        "Infosys",
+        "Wipro",
+        "Siemens",
+        "Hewlett Packard Enterprise",
+        "HP Inc",
+        "BHEL",
+        "3M India",
+        "Timken",
+        "Yokogawa",
+        "FANUC",
+        "Tejas Networks",
+        "OnMobile Global",
+        "Genpact",
+        "CGI",
+        "C-DOT",
+        "C-DAC",
+        "STPI",
+        "Velankani Group",
+        "HCLTech",
+        "Aliaxis",
+        "Tata Advanced Systems",
+        "Schneider Electric"
+      ],
+      "description": "The original KEONICS township (founded 1978 by R. K. Baliga; about 800 acres across all phases, roughly 200 IT/ITES campuses, maintained since 1997 by the Electronics City Industrial Township Authority, ELCITA). Phase 1 is the older, mostly west-of-Hosur-Road core holding the Infosys and Wipro headquarters campuses, the Siemens/3M/BHEL/HP strip along Hosur Road, the E-City towers at Veerasandra and the C-DOT, C-DAC and STPI government campuses. Coordinates and bbox are derived from the cluster of Phase 1 features in OpenStreetMap, not from an official boundary.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Electronic_City",
+        "https://elcita.in/",
+        "https://keonics.in/"
+      ]
+    },
+    {
+      "name": "Electronics City Phase 2",
+      "aliases": [
+        "Electronic City Phase II",
+        "KIADB Industrial Area Phase II Electronic City",
+        "E-City Phase 2"
+      ],
+      "locality": "Electronic City (east of Hosur Road) / Doddathogur / Veerasandra, Bengaluru 560100",
+      "developer": "KIADB",
+      "lat": 12.847,
+      "lng": 77.678,
+      "bbox": [
+        12.838,
+        12.856,
+        77.672,
+        77.69
+      ],
+      "areaSqFtMillions": null,
+      "notableTenants": [
+        "Tata Consultancy Services",
+        "Tech Mahindra",
+        "Continental",
+        "Titan Company",
+        "Aurigene Oncology",
+        "Hical Technologies",
+        "Tessolve",
+        "Moog",
+        "Siemens",
+        "Tata Power Solar",
+        "Sagility",
+        "Velankani Group"
+      ],
+      "description": "The KIADB-developed eastern extension of Electronics City (the 'KIADB Industrial Area, Phase II, Electronic City' of company addresses), reached from Hosur Road via Shantipura Main Road and Infosys Avenue. It holds the TCS Think Campus, Tech Mahindra's plots 45-47, Continental's Technical Center India, Aurigene (plots 39-40), Hical (plots 46-47), the Gold Hill parks and the Veerasandra Industrial Estate with Titan's 'Integrity' office and Tessolve. Coordinates and bbox are derived from the cluster of Phase 2 features in OpenStreetMap.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Electronic_City",
+        "https://www.techmahindra.com/en-in/contact-us/",
+        "https://www.aurigene.com/contact-us/"
+      ]
+    },
+    {
+      "name": "Infosys Electronics City Campus",
+      "aliases": [
+        "Infosys HQ",
+        "Infosys Bangalore campus"
+      ],
+      "locality": "Electronics City Phase 1, Hosur Road",
+      "developer": "Infosys",
+      "lat": 12.848969,
+      "lng": 77.666134,
+      "bbox": [
+        12.845565,
+        12.852219,
+        77.661637,
+        77.670196
+      ],
+      "areaSqFtMillions": null,
+      "notableTenants": [
+        "Infosys"
+      ],
+      "description": "Infosys's global headquarters campus on Hosur Road in Electronics City Phase 1 (business address in SEC filings: 'Electronics City, Hosur Rd, Bangalore'), mapped in OpenStreetMap as way/364872809 with a smaller second Infosys polygon to the south.",
+      "sources": [
+        "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001067491",
+        "https://www.openstreetmap.org/way/364872809"
+      ]
+    },
+    {
+      "name": "Wipro Electronic City Campus",
+      "aliases": [
+        "Wipro EC",
+        "Wipro Electronics City"
+      ],
+      "locality": "Electronics City Phase 1 (Wipro Avenue)",
+      "developer": "Wipro",
+      "lat": 12.837812,
+      "lng": 77.659146,
+      "bbox": [
+        12.83572,
+        12.840105,
+        77.652832,
+        77.662793
+      ],
+      "areaSqFtMillions": null,
+      "notableTenants": [
+        "Wipro"
+      ],
+      "description": "Wipro's multi-tower Electronics City delivery campus (EC1, EC2/3 with its Learning Centre and Executive Briefing Centre, and EC4 across the road), mapped in OpenStreetMap as Towers 1-23 along Wipro Avenue; Wikipedia's Electronic City article names it among the township's main campuses.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Electronic_City",
+        "https://www.openstreetmap.org/way/231408285"
+      ]
+    },
+    {
+      "name": "TCS Think Campus",
+      "aliases": [
+        "Think Campus"
+      ],
+      "locality": "Electronics City Phase 2, Shantipura Main Road",
+      "developer": "TCS",
+      "lat": 12.848504,
+      "lng": 77.679354,
+      "bbox": [
+        12.846941,
+        12.849589,
+        77.678047,
+        77.679981
+      ],
+      "areaSqFtMillions": null,
+      "notableTenants": [
+        "Tata Consultancy Services"
+      ],
+      "description": "Tata Consultancy Services' Bengaluru flagship campus in Electronics City Phase 2, mapped in OpenStreetMap as way/188314420 with its entrance on Shantipura Main Road; Wikipedia's Electronic City article names TCS's main campus among the township's anchors.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Electronic_City",
+        "https://www.openstreetmap.org/way/188314420"
+      ]
+    },
+    {
+      "name": "Velankani Tech Park",
+      "aliases": [],
+      "locality": "43, Electronics City Phase 1, Hosur Main Road",
+      "developer": "Velankani Group",
+      "lat": 12.849543,
+      "lng": 77.658871,
+      "bbox": [
+        12.848244,
+        12.851019,
+        77.65765,
+        77.660803
+      ],
+      "areaSqFtMillions": null,
+      "notableTenants": [
+        "Velankani Group",
+        "The Oterra (hotel)"
+      ],
+      "description": "Velankani Group's own IT park at #43 Electronic City Phase 1, Hosur Main Road, housing the group's IT and hospitality businesses including The Oterra hotel (OSM places 'The Oterra Bengaluru Electronics City' inside the polygon).",
+      "sources": [
+        "https://www.velankanigroup.com/",
+        "https://www.openstreetmap.org/way/231526591"
+      ]
+    },
+    {
+      "name": "Biocon Park",
+      "aliases": [
+        "Biocon SEZ",
+        "Biocon Park Bommasandra"
+      ],
+      "locality": "Bommasandra-Jigani Link Road, Bommasandra 560099",
+      "developer": "Biocon",
+      "lat": 12.803405,
+      "lng": 77.659343,
+      "bbox": [
+        12.799095,
+        12.809277,
+        77.657561,
+        77.663633
+      ],
+      "areaSqFtMillions": null,
+      "notableTenants": [
+        "Biocon",
+        "Syngene International"
+      ],
+      "description": "Biocon's integrated research and biologics manufacturing campus and SEZ at Bommasandra, south of Electronics City; Wikipedia pictures the Biocon Research Centre inside it and Syngene is headquartered there. Mapped in OpenStreetMap as way/545039647.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Biocon",
+        "https://www.openstreetmap.org/way/545039647"
+      ]
+    },
+    {
+      "name": "HCL Technologies SEZ Jigani",
+      "aliases": [
+        "HCL Jigani campus",
+        "HCL SEZ Jigani"
+      ],
+      "locality": "Bommasandra-Jigani Link Road, Jigani 560105",
+      "developer": "HCL Technologies",
+      "lat": 12.788593,
+      "lng": 77.651755,
+      "bbox": [
+        12.785434,
+        12.790152,
+        77.649577,
+        77.653583
+      ],
+      "areaSqFtMillions": null,
+      "notableTenants": [
+        "HCLTech"
+      ],
+      "description": "HCLTech's SEZ delivery campus off the Bommasandra-Jigani Link Road, mapped in OpenStreetMap as way/170320607; Wikipedia's Jigani article names HCL among the companies that brought workers to the area.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Jigani",
+        "https://www.openstreetmap.org/way/170320607"
+      ]
+    },
+    {
+      "name": "AMR Tech Park",
+      "aliases": [
+        "AMR Tech Park II",
+        "AMR Tech Park-4"
+      ],
+      "locality": "Hongasandra / Bommanahalli, Hosur Main Road 560068",
+      "developer": "AMR Group",
+      "lat": 12.899424,
+      "lng": 77.630782,
+      "bbox": [
+        12.897262,
+        12.901057,
+        77.62976,
+        77.632151
+      ],
+      "areaSqFtMillions": null,
+      "notableTenants": [
+        "Tally Solutions",
+        "Sagility",
+        "Quinnox",
+        "Hinduja Global Solutions",
+        "Mindteck",
+        "MetricStream",
+        "Avaya"
+      ],
+      "description": "Multi-building office park (AMR Tech Park I, II, 3A/3B, 4/4A per OSM) at No. 23 & 24 Hongasandra on Hosur Main Road, Bommanahalli, about 7 km north of Electronics City. Tally Solutions' head office, Sagility's Buildings 1 and 2A and Quinnox's AMR Tech Park-4 office are confirmed from company pages; HGS, Mindteck, MetricStream and Avaya are recorded there by OpenStreetMap only.",
+      "sources": [
+        "https://tallysolutions.com/contact-us/",
+        "https://sagility.com/about/locations/",
+        "https://www.quinnox.com/contact-us/",
+        "https://www.openstreetmap.org/way/349654005"
+      ]
+    },
+    {
+      "name": "AKR Tech Park",
+      "aliases": [],
+      "locality": "Kudlu Gate / Krishna Reddy Industrial Area, 7th Mile Hosur Road 560068",
+      "developer": null,
+      "lat": 12.892385,
+      "lng": 77.642356,
+      "bbox": [
+        12.891578,
+        12.892864,
+        77.64188,
+        77.642672
+      ],
+      "areaSqFtMillions": 0.3,
+      "notableTenants": [
+        "BHIVE Workspace"
+      ],
+      "description": "Office park at No. 112, 7th Mile Hosur Road by Kudlu Gate metro station; BHIVE Workspace runs a 3 lakh sq ft, 5,000+ seat coworking campus here (Myntra's former headquarters before its 2017 move to Embassy TechVillage, per older OSM data).",
+      "sources": [
+        "https://bhiveworkspace.com/locations-coworking/akr-tech-park/",
+        "https://www.openstreetmap.org/way/1071061035"
+      ]
+    },
+    {
+      "name": "Ozone Manay Tech Park",
+      "aliases": [
+        "Ozone Manay Technology Park"
+      ],
+      "locality": "Garvebhavipalya, Hosur Road 560068",
+      "developer": "Ozone Group",
+      "lat": 12.891607,
+      "lng": 77.637317,
+      "bbox": [
+        12.890944,
+        12.891997,
+        77.63672,
+        77.638372
+      ],
+      "areaSqFtMillions": null,
+      "notableTenants": [],
+      "description": "Mid-rise IT park on the service road of Hosur Road at Garvebhavipalya, mapped in OpenStreetMap as way/1257330725; no tenant could be confirmed from a company page during this run, so the tenant list is left empty.",
+      "sources": [
+        "https://www.openstreetmap.org/way/1257330725"
+      ]
+    },
+    {
+      "name": "Gold Hill Excelsior Park",
+      "aliases": [
+        "Gold Hill Supreme Software Park"
+      ],
+      "locality": "Electronics City Phase 2 (Infosys Avenue)",
+      "developer": "Gold Hill Properties",
+      "lat": 12.849988,
+      "lng": 77.676418,
+      "bbox": [
+        12.848344,
+        12.851092,
+        77.675229,
+        77.677591
+      ],
+      "areaSqFtMillions": null,
+      "notableTenants": [
+        "Siemens"
+      ],
+      "description": "Gold Hill's software park in Electronics City Phase 2 beside TCS Think Campus and Tech Mahindra (North Wing / South Wing buildings in OSM); a Siemens node sits inside it in OpenStreetMap. Gold Hill Supreme Park lies just south on Infosys Avenue.",
+      "sources": [
+        "https://www.openstreetmap.org/way/188314971"
+      ]
+    },
+    {
+      "name": "Veerasandra Industrial Estate",
+      "aliases": [],
+      "locality": "Veerasandra, Electronics City Phase 2",
+      "developer": "KIADB",
+      "lat": 12.842262,
+      "lng": 77.681315,
+      "bbox": [
+        12.837856,
+        12.845511,
+        77.677201,
+        77.686023
+      ],
+      "areaSqFtMillions": null,
+      "notableTenants": [
+        "Titan Company",
+        "Tessolve",
+        "Aurigene Oncology",
+        "Continental",
+        "Velankani Group"
+      ],
+      "description": "KIADB industrial estate on the east side of Hosur Road forming the southern part of Electronics City Phase 2; company addresses here read 'Veerasandra Village, Attibele Hobli, Anekal Taluk'. Holds Titan's 'Integrity' corporate office, Tessolve and Aurigene on Jogger's Lane, Continental and Velankani Electronics Unit-2.",
+      "sources": [
+        "https://www.openstreetmap.org/way/38754602",
+        "https://www.titancompany.in/contact-us"
+      ]
+    },
+    {
+      "name": "Bommasandra Industrial Area",
+      "aliases": [
+        "Bommasandra Industrial Estate",
+        "KIADB Bommasandra"
+      ],
+      "locality": "Bommasandra / Hebbagodi, Hosur Road 560099",
+      "developer": "KIADB",
+      "lat": 12.81729,
+      "lng": 77.695091,
+      "bbox": [
+        12.805196,
+        12.822558,
+        77.687614,
+        77.703259
+      ],
+      "areaSqFtMillions": null,
+      "notableTenants": [
+        "SKF",
+        "TaeguTec",
+        "Delta Electronics",
+        "Syngene International",
+        "Mahindra & Mahindra"
+      ],
+      "description": "KIADB's large manufacturing estate south of Electronics City on Hosur Road (OSM operator KIADB, way/103293015), home to bearing, tooling, pharma and EV plants; Narayana Health's hospital campus is also here but is excluded as a hospital. Biocon Park adjoins it on the Jigani link road.",
+      "sources": [
+        "https://www.openstreetmap.org/way/103293015",
+        "https://en.wikipedia.org/wiki/Bommasandra"
+      ]
+    },
+    {
+      "name": "Jigani Industrial Area",
+      "aliases": [
+        "Jigani Industrial Estate",
+        "KIADB Jigani"
+      ],
+      "locality": "Jigani, Anekal Taluk 560105",
+      "developer": "KIADB",
+      "lat": 12.779041,
+      "lng": 77.632773,
+      "bbox": [
+        12.761856,
+        12.791421,
+        77.624476,
+        77.64907
+      ],
+      "areaSqFtMillions": null,
+      "notableTenants": [
+        "Otis",
+        "LAPP",
+        "HCLTech",
+        "Velankani Group",
+        "Tata Advanced Systems"
+      ],
+      "description": "KIADB industrial estate at Jigani, south-west of Bommasandra (OSM operator KIADB, way/103293010), mixing granite exporters and small engineering units with Otis's No. 92 elevator factory, LAPP India's cable plant, Velankani Electronics Unit-3 and Tata Advanced Systems' 2025 composite-structures facility; HCLTech's SEZ sits on its north-east edge.",
+      "sources": [
+        "https://www.openstreetmap.org/way/103293010",
+        "https://en.wikipedia.org/wiki/Jigani",
+        "https://www.otis.com/en/in/contact-us"
+      ]
+    }
+  ],
+  "companies": [
+    {
+      "name": "Infosys",
+      "aliases": [
+        "Infosys Technologies",
+        "Infosys BPM"
+      ],
+      "category": "MNC",
+      "origin": "Indian",
+      "sector": "IT services",
+      "description": "India's second-largest IT services company; its global headquarters is the Electronics City Phase 1 campus on Hosur Road, Bengaluru.",
+      "hqCity": "Bengaluru",
+      "hqCountry": "India",
+      "founded": 1981,
+      "isUnicorn": false,
+      "website": "https://www.infosys.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Global HQ - Electronics City campus",
+          "techPark": "Infosys Electronics City Campus",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "Plot 44, Electronics City, Hosur Road, Bengaluru 560100",
+          "lat": 12.848969,
+          "lng": 77.666134,
+          "isHq": true,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "Infosys's SEC filings give its business address as 'Electronics City, Hosur Rd, Bangalore' (https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001067491); OSM maps the campus as way/364872809 'Infosys Technologies Limited'.",
+          "geocodeSource": "osm-park"
+        },
+        {
+          "label": "Electronics City - south campus (beside Siemens / 3M)",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "Electronics City Phase 1, Hosur Road, Bengaluru 560100",
+          "lat": 12.842457,
+          "lng": 77.660965,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM maps a second Infosys polygon (way/264103043) on Hosur Road south of the main campus; Infosys BPM also gives Electronics City, Hosur Road as its registered office, but which Infosys unit occupies this block was not confirmed from a primary page.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001067491",
+        "https://en.wikipedia.org/wiki/Infosys",
+        "https://en.wikipedia.org/wiki/Electronic_City"
+      ]
+    },
+    {
+      "name": "Wipro",
+      "aliases": [],
+      "category": "MNC",
+      "origin": "Indian",
+      "sector": "IT services",
+      "description": "Indian IT services major headquartered at Doddakannelli, Sarjapur Road; its oldest large Bengaluru delivery campus is the multi-tower Electronic City Phase 1 campus (EC1-EC4).",
+      "hqCity": "Bengaluru",
+      "hqCountry": "India",
+      "founded": 1945,
+      "isUnicorn": false,
+      "website": "https://www.wipro.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Electronic City campus EC1-EC3 (Wipro Avenue)",
+          "techPark": "Wipro Electronic City Campus",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "Wipro Avenue, Electronics City Phase 1, Hosur Road, Bengaluru 560100",
+          "lat": 12.837812,
+          "lng": 77.659146,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM maps 'Wipro EC 1' (way/231349458), 'Wipro EC 2 / 3' (way/231408285) and Towers 1-23 along Wipro Avenue; Wikipedia's Electronic City article names Wipro's main campus among the township's anchors (https://en.wikipedia.org/wiki/Electronic_City).",
+          "geocodeSource": "osm-park"
+        },
+        {
+          "label": "Electronic City campus EC4",
+          "techPark": "Wipro Electronic City Campus",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "Electronics City Phase 1, Bengaluru 560100",
+          "lat": 12.838244,
+          "lng": 77.655271,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM maps 'Wipro EC 4' as a separate polygon west of the main EC campus (way/231332313).",
+          "geocodeSource": "osm-park"
+        },
+        {
+          "label": "Corporate HQ - Doddakannelli, Sarjapur Road",
+          "techPark": null,
+          "building": null,
+          "locality": "Doddakannelli",
+          "address": "Doddakannelli, Sarjapur Road, Bengaluru 560035",
+          "lat": 12.914154,
+          "lng": 77.685939,
+          "isHq": true,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "Wipro's contact page gives the corporate office as 'Doddakannelli, Sarjapur Road, Bengaluru 560035' (https://www.wipro.com/contact-us/); OSM way/370327479 'Wipro Corporate Office'.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.wipro.com/contact-us/",
+        "https://en.wikipedia.org/wiki/Electronic_City"
+      ]
+    },
+    {
+      "name": "Tata Consultancy Services",
+      "aliases": [
+        "TCS"
+      ],
+      "category": "MNC",
+      "origin": "Indian",
+      "sector": "IT services",
+      "description": "India's largest IT services company; its Bengaluru flagship is the TCS Think Campus in Electronics City Phase 2 off Shantipura Main Road.",
+      "hqCity": "Mumbai",
+      "hqCountry": "India",
+      "founded": 1968,
+      "isUnicorn": false,
+      "website": "https://www.tcs.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "TCS Think Campus",
+          "techPark": "TCS Think Campus",
+          "building": null,
+          "locality": "Electronics City Phase 2",
+          "address": "Shantipura Main Road, Electronics City Phase 2, Bengaluru 560100",
+          "lat": 12.848504,
+          "lng": 77.679354,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM maps 'TCS Think Campus' (way/188314420) with a 'Tata Consultancy Services' entrance node on Shantipura Main Road; Wikipedia's Electronic City article lists TCS's main campus among the township's anchors (https://en.wikipedia.org/wiki/Electronic_City).",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Tata_Consultancy_Services",
+        "https://en.wikipedia.org/wiki/Electronic_City"
+      ]
+    },
+    {
+      "name": "Tech Mahindra",
+      "aliases": [],
+      "category": "MNC",
+      "origin": "Indian",
+      "sector": "IT services",
+      "description": "Mahindra group IT services company; its Bengaluru delivery campus is on KIADB plots 45-47 in Electronics City Phase 2, with a second office at RMZ Ecoworld.",
+      "hqCity": "Pune",
+      "hqCountry": "India",
+      "founded": 1986,
+      "isUnicorn": false,
+      "website": "https://www.techmahindra.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Electronic City Phase II campus (KIADB plots 45-47)",
+          "techPark": "Electronics City Phase 2",
+          "building": null,
+          "locality": "Electronics City Phase 2",
+          "address": "Plot 45-47, KIADB Industrial Area, Electronics City Phase 2, Bengaluru 560100",
+          "lat": 12.851307,
+          "lng": 77.678087,
+          "isHq": false,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "Tech Mahindra's contact page lists 'Plot No.45 - 47, KIADB Industrial Area, Phase - II, Electronic City, Bengaluru 560100' (https://www.techmahindra.com/en-in/contact-us/); OSM way/38756435.",
+          "geocodeSource": "osm-park"
+        },
+        {
+          "label": "RMZ Ecoworld - Tower 4A & 4B",
+          "techPark": "RMZ Ecoworld",
+          "building": "Tower 4A & 4B",
+          "locality": "Bellandur / Marathahalli ORR",
+          "address": "Marathahalli Outer Ring Road, Bengaluru 560103",
+          "lat": 12.9298067,
+          "lng": 77.6846292,
+          "isHq": false,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "Tech Mahindra's contact page lists 'RMZ Ecoworld, Tower 4A&4B, Fourth Floor, Marathalli Outer Ring Road, Bengaluru 560103' (https://www.techmahindra.com/en-in/contact-us/).",
+          "geocodeSource": "nominatim"
+        }
+      ],
+      "sources": [
+        "https://www.techmahindra.com/en-in/contact-us/"
+      ]
+    },
+    {
+      "name": "HCLTech",
+      "aliases": [
+        "HCL Technologies"
+      ],
+      "category": "MNC",
+      "origin": "Indian",
+      "sector": "IT services",
+      "description": "Indian IT services major with an Electronics City office on Hosur Road and a large SEZ campus at Jigani, south of Electronics City.",
+      "hqCity": "Noida",
+      "hqCountry": "India",
+      "founded": 1991,
+      "isUnicorn": false,
+      "website": "https://www.hcltech.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "HCL Technologies SEZ - Jigani",
+          "techPark": "HCL Technologies SEZ Jigani",
+          "building": null,
+          "locality": "Jigani",
+          "address": "Bommasandra-Jigani Link Road, Jigani, Bengaluru 560105",
+          "lat": 12.788593,
+          "lng": 77.651755,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM maps 'HCL Technologies SEZ' (way/170320607) off the Bommasandra-Jigani Link Road; Wikipedia's Jigani article names HCL among the companies that brought workers to Jigani (https://en.wikipedia.org/wiki/Jigani).",
+          "geocodeSource": "osm-park"
+        },
+        {
+          "label": "Electronics City office (Hosur Road)",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "Hosur Road, Electronics City Phase 1, Bengaluru 560100",
+          "lat": 12.843956,
+          "lng": 77.6722,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM maps 'HCL Technologies' (way/236516032) on Hosur Road in Electronics City; Wikipedia's Electronic City infobox lists HCL Technologies among the major companies (https://en.wikipedia.org/wiki/Electronic_City).",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Jigani",
+        "https://en.wikipedia.org/wiki/Electronic_City"
+      ]
+    },
+    {
+      "name": "Cyient",
+      "aliases": [
+        "Infotech Enterprises"
+      ],
+      "category": "MNC",
+      "origin": "Indian",
+      "sector": "IT services",
+      "description": "Hyderabad-headquartered engineering and IT services company (formerly Infotech Enterprises); OSM records an office block in Electronics City Phase 1 under its former name.",
+      "hqCity": "Hyderabad",
+      "hqCountry": "India",
+      "founded": 1991,
+      "isUnicorn": false,
+      "website": "https://www.cyient.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Electronics City Phase 1 office (former Infotech Enterprises block)",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "Electronics City Phase 1, Bengaluru 560100",
+          "lat": 12.836903,
+          "lng": 77.662385,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM way/231410912 is still named 'Infotech Enterprises Ltd' (Cyient's name until 2014); no current Cyient page confirming this office was reachable, so treat as a lead.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.cyient.com/contact-us"
+      ]
+    },
+    {
+      "name": "HP Inc",
+      "aliases": [
+        "HP India Sales",
+        "Hewlett-Packard"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Semiconductors & hardware",
+      "description": "PC and printer maker; HP India Sales' Electronics City office is in Tower 1, E-City (Veerasandra) in Phase 1, alongside four other Bengaluru offices listed on its office-locations page.",
+      "hqCity": "Palo Alto",
+      "hqCountry": "United States",
+      "founded": 1939,
+      "isUnicorn": false,
+      "website": "https://www.hp.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "E-City Tower 1, Veerasandra (ECP)",
+          "techPark": "Electronics City Phase 1",
+          "building": "Tower 1, E-City",
+          "locality": "Electronics City Phase 1",
+          "address": "Sy. No. 94/1C & 94/2, Veerasandra Village, Electronics City Phase 1, Bengaluru 560100",
+          "lat": 12.841064,
+          "lng": 77.665963,
+          "isHq": false,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "HP's office-locations page lists 'Tower 1 E city, Sy Nos 94 1c and 94 2, Veerasandra village, Electronic City Phase-1, Bengaluru 560100' (https://www.hp.com/in-en/contact-hp/office-locations.html); OSM way/259362417 'Tower 1'.",
+          "geocodeSource": "osm-poi"
+        },
+        {
+          "label": "Pritech Park SEZ - Building 14 (PSR)",
+          "techPark": "Pritech Park SEZ",
+          "building": "6th Block Wing A / Building 14",
+          "locality": "Bellandur",
+          "address": "Pritech Park SEZ, Outer Ring Road, Bellandur, Bengaluru 560103",
+          "lat": 12.9208604,
+          "lng": 77.6807689,
+          "isHq": false,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "HP's office-locations page lists 'SY No. 51-64 4, 6th Block Wing A, Pritech Park-SEZ, Bellandur Village, Bengaluru 560103' (https://www.hp.com/in-en/contact-hp/office-locations.html); OSM node 6789763189 'Hewlett Packard Inc, Building 14, Pritech park SEZ'.",
+          "geocodeSource": "osm-poi"
+        },
+        {
+          "label": "Salarpuria (Kothari) Arena, Adugodi (SAU)",
+          "techPark": null,
+          "building": "Salarpuria Arena, 2nd Floor",
+          "locality": "Adugodi",
+          "address": "24, Hosur Main Road, Adugodi, Bengaluru 560030",
+          "lat": 12.936942,
+          "lng": 77.609993,
+          "isHq": false,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "HP's office-locations page lists '24, Kothari arena, 2nd Floor, Hosur Main Road, Adugodi, Bengaluru 560030' (https://www.hp.com/in-en/contact-hp/office-locations.html); OSM way/172947356 'Salarpuria Arena'.",
+          "geocodeSource": "osm-park"
+        },
+        {
+          "label": "Embassy Prime, Bagmane Tech Park (BEP)",
+          "techPark": "Bagmane Tech Park",
+          "building": "Embassy Prime",
+          "locality": "CV Raman Nagar",
+          "address": "66/2, Bagmane Tech Park, CV Raman Nagar, Bengaluru 560093",
+          "lat": 12.978694,
+          "lng": 77.662447,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "HP's office-locations page lists 'No 66/2, Embassy Prime, Bagmane Tech Park, CV Raman Nagar 560093' (https://www.hp.com/in-en/contact-hp/office-locations.html); coordinates are the Bagmane Tech Park centroid.",
+          "geocodeSource": "park-centroid"
+        },
+        {
+          "label": "Kalyani Platina - KTP Ebony (ECN)",
+          "techPark": "Kalyani Platina",
+          "building": "KTP Ebony",
+          "locality": "Kundalahalli, Whitefield",
+          "address": "Kundalahalli Village, Whitefield, Bengaluru 560066",
+          "lat": 12.9688416,
+          "lng": 77.7168626,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "HP's office-locations page lists 'Kalyani Platina, Survey No 1,6 24 of Kundalahalli Village, KTP Ebony Building, Whitefield 560066' (https://www.hp.com/in-en/contact-hp/office-locations.html); coordinates from a geocode of Kalyani Tech Park.",
+          "geocodeSource": "nominatim"
+        }
+      ],
+      "sources": [
+        "https://www.hp.com/in-en/contact-hp/office-locations.html"
+      ]
+    },
+    {
+      "name": "Hewlett Packard Enterprise",
+      "aliases": [
+        "HPE",
+        "Hewlett-Packard GlobalSoft",
+        "HP India Software Operations"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Software & internet",
+      "description": "HPE's Indian software and services operations descend from Hewlett-Packard GlobalSoft, whose campus sits at the north end of Electronics City Phase 1 on Hosur Road; a second HP-labelled campus lies between Infosys and C-DOT.",
+      "hqCity": "Spring (Houston), Texas",
+      "hqCountry": "United States",
+      "founded": 2015,
+      "isUnicorn": false,
+      "website": "https://www.hpe.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "HPE India Software Operations campus (former HP GlobalSoft)",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "Hosur Road, Electronics City Phase 1, Bengaluru 560100",
+          "lat": 12.853128,
+          "lng": 77.661181,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM maps the campus as 'Hewlett Packard GlobalSoft Pvt. Ltd.' (way/362976257) at the Hosur Road end of Phase 1; Wikipedia's Electronic City infobox lists Hewlett-Packard among the township's major companies (https://en.wikipedia.org/wiki/Electronic_City).",
+          "geocodeSource": "osm-park"
+        },
+        {
+          "label": "Electronics City Phase 1 campus (between Infosys and C-DOT)",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "Electronics City Phase 1, Hosur Road, Bengaluru 560100",
+          "lat": 12.846148,
+          "lng": 77.66403,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM maps a second 'Hewlett Packard' polygon (way/232401434) between the Infosys campus and C-DOT; which HP entity occupies it today was not confirmed from a primary page.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Electronic_City",
+        "https://en.wikipedia.org/wiki/Hewlett_Packard_Enterprise"
+      ]
+    },
+    {
+      "name": "DXC Technology",
+      "aliases": [
+        "HPE Enterprise Services",
+        "CSC"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "IT services",
+      "description": "US IT services company formed from HPE Enterprise Services and CSC; OSM records its Bengaluru campus beside the former HP GlobalSoft campus at the north end of Electronics City Phase 1.",
+      "hqCity": "Ashburn, Virginia",
+      "hqCountry": "United States",
+      "founded": 2017,
+      "isUnicorn": false,
+      "website": "https://dxc.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Electronics City Phase 1 campus (ex-HPE Enterprise Services)",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "Hosur Road, Electronics City Phase 1, Bengaluru 560100",
+          "lat": 12.852903,
+          "lng": 77.661475,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM maps 'DXC' (way/391787115) adjoining the HP GlobalSoft campus on Hosur Road; DXC's own location pages were not reachable, so this is an OSM lead only.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://dxc.com/in/en/contact-us"
+      ]
+    },
+    {
+      "name": "Genpact",
+      "aliases": [],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Consulting & professional services",
+      "description": "Business-process and professional-services firm (ex-GE Capital International Services); its Electronics City delivery centre is Surya Park in Phase 1, with three more Bengaluru offices.",
+      "hqCity": "New York",
+      "hqCountry": "United States",
+      "founded": 1997,
+      "isUnicorn": false,
+      "website": "https://www.genpact.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Surya Park, Electronic City Phase I",
+          "techPark": "Electronics City Phase 1",
+          "building": "Surya Park",
+          "locality": "Electronics City Phase 1",
+          "address": "99, 3rd Cross Road, Electronics City Phase 1, Bengaluru 560100",
+          "lat": 12.839441,
+          "lng": 77.664539,
+          "isHq": false,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "Genpact's locations page lists 'Surya park, 99, 3rd Cross Rd, Electronic City Phase I, Hebbagodi 560100' (https://www.genpact.com/about-us/locations); OSM way/160372715 'Genpact'.",
+          "geocodeSource": "osm-park"
+        },
+        {
+          "label": "Prestige Technology Park IV - Building 2",
+          "techPark": "Prestige Tech Park",
+          "building": "Building 2 (Prestige Technology Park IV)",
+          "locality": "Bellandur (Amane Bellandur Khane)",
+          "address": "Amane Bellandur Khane Village, Varthur Hobli, Bengaluru 560037",
+          "lat": 12.942865,
+          "lng": 77.692806,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "Genpact's locations page lists 'Prestige Technology Park IV, Building 2, Amane Bellandur Khane Village, Varthur Hobli 560037' (https://www.genpact.com/about-us/locations); coordinates are the Prestige Tech Park centroid.",
+          "geocodeSource": "park-centroid"
+        },
+        {
+          "label": "Pritech Park SEZ - Block 9",
+          "techPark": "Pritech Park SEZ",
+          "building": "Block 9, Wing A & B",
+          "locality": "Bellandur",
+          "address": "Pritech Park SEZ, Bellandur Village, Bengaluru 560103",
+          "lat": 12.9208604,
+          "lng": 77.6807689,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "Genpact's locations page lists '2nd & 3rd Floor (Wing A&B) Block 9, Pritech Park SEZ, Sy No. 51 to 64/4, Bellandur Village 560103' (https://www.genpact.com/about-us/locations); coordinates are the Pritech Park geocode.",
+          "geocodeSource": "nominatim"
+        },
+        {
+          "label": "IndiQube Grape Garden, Koramangala 6th Block",
+          "techPark": "IndiQube Grape Garden (coworking)",
+          "building": "IndiQube Grape Garden, 3rd Floor",
+          "locality": "Koramangala 6th Block",
+          "address": "18th Main Road, 1st A Cross, Koramangala 6th Block, Bengaluru 560095",
+          "lat": 12.9352,
+          "lng": 77.6245,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "Genpact's locations page lists '3rd Floor IndiQube - Grape Garden, Survey No.130, 18th Main Road, 1st A Cross, 6th Block, Koramangala 560095' (https://www.genpact.com/about-us/locations); the geocoder returned nothing for the building, so the point is the Koramangala 6th Block locality centre.",
+          "geocodeSource": "manual-known"
+        }
+      ],
+      "sources": [
+        "https://www.genpact.com/about-us/locations",
+        "https://en.wikipedia.org/wiki/Electronic_City"
+      ]
+    },
+    {
+      "name": "CGI",
+      "aliases": [],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "IT services",
+      "description": "Canadian IT and business consulting firm; its Electronics City office is in Tower 2 of the E-City towers at Veerasandra in Phase 1.",
+      "hqCity": "Montreal",
+      "hqCountry": "Canada",
+      "founded": 1976,
+      "isUnicorn": false,
+      "website": "https://www.cgi.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "E-City Tower 2, Veerasandra",
+          "techPark": "Electronics City Phase 1",
+          "building": "Tower 2, E-City",
+          "locality": "Electronics City Phase 1",
+          "address": "Veerasandra Village, Electronics City Phase 1, Bengaluru 560100",
+          "lat": 12.841347,
+          "lng": 77.667015,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM node 2647643916 'CGI' sits in 'Tower 2' (way/259362418) of the E-City towers; Wikipedia's Electronic City infobox lists CGI among the major companies (https://en.wikipedia.org/wiki/Electronic_City). CGI's India office page was not reachable.",
+          "geocodeSource": "osm-poi"
+        }
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Electronic_City"
+      ]
+    },
+    {
+      "name": "Kyndryl",
+      "aliases": [],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "IT services",
+      "description": "IBM's spun-off infrastructure services company; its two listed Bengaluru offices are RMZ Titanium (Old Airport Road) and Embassy Manyata, not Electronics City.",
+      "hqCity": "New York",
+      "hqCountry": "United States",
+      "founded": 2021,
+      "isUnicorn": false,
+      "website": "https://www.kyndryl.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "RMZ Titanium, Old Airport Road",
+          "techPark": "RMZ Titanium",
+          "building": null,
+          "locality": "Kodihalli",
+          "address": "135, HAL Old Airport Road, Kodihalli, Bengaluru 560017",
+          "lat": 12.958872,
+          "lng": 77.648111,
+          "isHq": false,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "Kyndryl's locations page lists 'RMZ Titanium, 135, 1st Floor, HAL Old Airport Road, Kodihalli, Bangalore 560017' (https://www.kyndryl.com/in/en/about-us/locations); OSM way/93887340.",
+          "geocodeSource": "osm-park"
+        },
+        {
+          "label": "Embassy Manyata - Block M3 (Acacia)",
+          "techPark": "Manyata Tech Park",
+          "building": "M3 (Acacia), 13th-16th floor",
+          "locality": "Nagavara / Rachenahalli",
+          "address": "Rachenahalli Village, Nagavara, Bengaluru 560045",
+          "lat": 13.04809,
+          "lng": 77.61975,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "Kyndryl's locations page lists 'Embassy Manyata Business Park, SEZ Parcel 2 (Acacia), Block M3, 13th to 16th Floor, Rachenahalli Village 560045' (https://www.kyndryl.com/in/en/about-us/locations); coordinates are the Manyata park centroid.",
+          "geocodeSource": "park-centroid"
+        }
+      ],
+      "sources": [
+        "https://www.kyndryl.com/in/en/about-us/locations"
+      ]
+    },
+    {
+      "name": "Toshiba",
+      "aliases": [
+        "Toshiba Software (India) Pvt Ltd",
+        "TSIP"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Software & internet",
+      "description": "Toshiba Software (India), the Japanese group's embedded-software arm, is in Koramangala 3rd Block rather than Electronics City.",
+      "hqCity": "Tokyo",
+      "hqCountry": "Japan",
+      "founded": 1875,
+      "isUnicorn": false,
+      "website": "https://www.toshiba-tsip.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Toshiba Software India - Essae Vaishnavi Solitaire, Koramangala",
+          "techPark": null,
+          "building": "Essae Vaishnavi Solitaire",
+          "locality": "Koramangala 3rd Block",
+          "address": "3A, 3rd Block, Koramangala, Bengaluru 560034",
+          "lat": 12.9250087,
+          "lng": 77.6315006,
+          "isHq": false,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "Toshiba Software India's site gives '#3A Essae Vaishnavi Solitaire, 3rd Block, Koramangala, Near Krupanidhi College, Bangalore 560034' (https://www.toshiba-tsip.com/); OSM node 9795169374 'Toshiba Software India Pvt Ltd'.",
+          "geocodeSource": "osm-poi"
+        }
+      ],
+      "sources": [
+        "https://www.toshiba-tsip.com/"
+      ]
+    },
+    {
+      "name": "Siemens",
+      "aliases": [
+        "Siemens Technology and Services Pvt Ltd",
+        "Siemens Healthineers"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Automotive & industrial",
+      "description": "Siemens Technology and Services, the German group's engineering and software arm in India, is headquartered at 84 Keonics Electronics City on Hosur Road; Siemens Healthineers also has a development site in Phase 2.",
+      "hqCity": "Munich",
+      "hqCountry": "Germany",
+      "founded": 1847,
+      "isUnicorn": false,
+      "website": "https://www.siemens.com/in",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Siemens Technology and Services - Electronics City Phase 1",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "84 Keonics, Electronics City Phase 1, Hosur Road, Bengaluru 560100",
+          "lat": 12.845092,
+          "lng": 77.66132,
+          "isHq": true,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM maps 'Siemens' (way/364872810) on Hosur Road beside the Infosys and 3M campuses; Wikipedia's Electronic City infobox lists Siemens among the major companies (https://en.wikipedia.org/wiki/Electronic_City). Siemens India's own locations page was not reachable.",
+          "geocodeSource": "osm-park"
+        },
+        {
+          "label": "Siemens Healthineers - Electronics City Phase 2",
+          "techPark": "Electronics City Phase 2",
+          "building": null,
+          "locality": "Electronics City Phase 2",
+          "address": "Electronics City Phase 2, Bengaluru 560100",
+          "lat": 12.845966,
+          "lng": 77.678487,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM maps a 'Siemens Healthineers' building (way/557926285) off Shantipura Main Road in Phase 2; not confirmed from a company page.",
+          "geocodeSource": "osm-park"
+        },
+        {
+          "label": "Siemens - Gold Hill Excelsior Park, Phase 2",
+          "techPark": "Gold Hill Excelsior Park",
+          "building": null,
+          "locality": "Electronics City Phase 2",
+          "address": "Electronics City Phase 2, Bengaluru 560100",
+          "lat": 12.848969,
+          "lng": 77.676744,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM node 12109492116 'Siemens' sits in the North/South Wing buildings of Gold Hill Excelsior Park (way/188314971); not confirmed from a company page.",
+          "geocodeSource": "osm-poi"
+        }
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Electronic_City"
+      ]
+    },
+    {
+      "name": "Bosch",
+      "aliases": [
+        "Bosch Automotive Electronics India",
+        "Bosch Ltd",
+        "Robert Bosch Engineering and Business Solutions",
+        "Bosch Global Software Technologies"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Automotive & industrial",
+      "description": "German automotive and industrial group; its Naganathapura plant on the Hosur Road corridor houses Bosch Automotive Electronics India (electronic control units), with Bosch Ltd's HQ at Adugodi further north.",
+      "hqCity": "Gerlingen (Stuttgart)",
+      "hqCountry": "Germany",
+      "founded": 1886,
+      "isUnicorn": false,
+      "website": "https://www.bosch.in",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Bosch Automotive Electronics India - Naganathapura plant",
+          "techPark": null,
+          "building": null,
+          "locality": "Naganathapura",
+          "address": "Naganathapura, Hosur Road, Bengaluru 560100",
+          "lat": 12.870505,
+          "lng": 77.663552,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM maps the plant as 'Bosch NhP' (way/24580022) and 'Bosch RBAI' (way/71559709) at Naganathapura; Bosch India lists Bosch Automotive Electronics India among its Indian companies but gives no address (https://www.bosch.in/our-company/bosch-in-india/).",
+          "geocodeSource": "osm-park"
+        },
+        {
+          "label": "Bosch Ltd HQ and Adugodi campus",
+          "techPark": "Bosch Adugodi Campus",
+          "building": null,
+          "locality": "Adugodi",
+          "address": "Hosur Road, Adugodi, Bengaluru 560030",
+          "lat": 12.936006,
+          "lng": 77.612364,
+          "isHq": true,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM maps 'Bosch RBEI' (way/28110531) at the Adugodi campus on Hosur Road; Bosch India's corporate-information page names Bosch Limited (CIN L85110KA1951PLC000761) as the Indian parent (https://www.bosch.in/corporate-information/).",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.bosch.in/our-company/bosch-in-india/",
+        "https://www.bosch.in/corporate-information/"
+      ]
+    },
+    {
+      "name": "SEG Automotive",
+      "aliases": [
+        "SEG Automotive India",
+        "Bosch Starter Motors Generators"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Automotive & industrial",
+      "description": "Starter-motor and generator maker spun out of Bosch in 2018; its Indian plant shares the Naganathapura site with Bosch.",
+      "hqCity": "Stuttgart",
+      "hqCountry": "Germany",
+      "founded": 2018,
+      "isUnicorn": false,
+      "website": "https://www.seg-automotive.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Naganathapura plant",
+          "techPark": null,
+          "building": null,
+          "locality": "Naganathapura",
+          "address": "Naganathapura, Hosur Road, Bengaluru 560100",
+          "lat": 12.871117,
+          "lng": 77.662638,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM maps 'SEG Automotive' (way/691215095) inside the Naganathapura Bosch complex; SEG's own locations page was not reachable.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.seg-automotive.com/en/"
+      ]
+    },
+    {
+      "name": "Timken",
+      "aliases": [
+        "Timken India Ltd",
+        "Timken Engineering and Research India"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Automotive & industrial",
+      "description": "US bearings and power-transmission group; Timken India Ltd and the Timken Engineering & Research India centre sit on a campus in Electronics City beside Salarpuria Infozone.",
+      "hqCity": "North Canton, Ohio",
+      "hqCountry": "United States",
+      "founded": 1899,
+      "isUnicorn": false,
+      "website": "https://www.timken.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Timken Electronics City campus",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "Electronics City, Hosur Road, Bengaluru 560100",
+          "lat": 12.851831,
+          "lng": 77.65958,
+          "isHq": true,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM maps 'Timken' (way/160379982) in Electronics City and the geocoder resolves 'Timken India, Electronic City' to it; Timken India's filings give the registered office as Electronic City Phase II, Hosur Road, which this fetch could not confirm (timkenindia.com unreachable).",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.timken.com/en-in/"
+      ]
+    },
+    {
+      "name": "Yokogawa",
+      "aliases": [
+        "Yokogawa India Ltd"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Automotive & industrial",
+      "description": "Japanese industrial-automation group; Yokogawa India Ltd's head office and engineering centre is Plot 96 in the Electronics City complex on Hosur Road.",
+      "hqCity": "Musashino, Tokyo",
+      "hqCountry": "Japan",
+      "founded": 1915,
+      "isUnicorn": false,
+      "website": "https://www.yokogawa.com/in/",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Yokogawa India head office - Plot 96",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "Plot 96, Electronics City Complex, Hosur Road, Bengaluru 560100",
+          "lat": 12.8445,
+          "lng": 77.6615,
+          "isHq": true,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "Yokogawa's India contact page lists 'Plot No.96, Electronic City Complex, Hosur Road, Bangalore 560 100' (https://www.yokogawa.com/in/contact/); no OSM POI exists, so the point is the Electronics City Phase 1 centroid.",
+          "geocodeSource": "park-centroid"
+        }
+      ],
+      "sources": [
+        "https://www.yokogawa.com/in/contact/"
+      ]
+    },
+    {
+      "name": "FANUC",
+      "aliases": [
+        "FANUC India"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Automotive & industrial",
+      "description": "Japanese CNC and robotics maker; FANUC India's headquarters and technical centre is 41-A Electronics City on Hosur Road.",
+      "hqCity": "Oshino, Yamanashi",
+      "hqCountry": "Japan",
+      "founded": 1972,
+      "isUnicorn": false,
+      "website": "https://www.fanucindia.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "FANUC India HQ - 41-A Electronics City",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "41-A, Electronics City, Hosur Road, Bengaluru 560100",
+          "lat": 12.846078,
+          "lng": 77.667067,
+          "isHq": true,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "FANUC India's contact page lists '#41-A, Electronics City, Hosur Road, Bengaluru 560 100' (https://www.fanucindia.com/contact-us); OSM way/232401432 'Fanuc'.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.fanucindia.com/contact-us"
+      ]
+    },
+    {
+      "name": "Moog",
+      "aliases": [
+        "Moog Controls India",
+        "Moog Motion Controls"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Aerospace & defence",
+      "description": "US motion-control and aerospace actuation company; Moog Controls India's engineering and manufacturing site is on Shantipura Main Road in Electronics City Phase 2.",
+      "hqCity": "Elma (East Aurora), New York",
+      "hqCountry": "United States",
+      "founded": 1951,
+      "isUnicorn": false,
+      "website": "https://www.moog.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Moog Controls India - Shantipura Main Road",
+          "techPark": "Electronics City Phase 2",
+          "building": null,
+          "locality": "Electronics City Phase 2",
+          "address": "Shantipura Main Road, Electronics City Phase 2, Bengaluru 560100",
+          "lat": 12.846329,
+          "lng": 77.679328,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM node 4672149492 'Moog Controls India Private Limited' on Shantipura Main road carries the company website moog.com; Moog's own locations page was not reachable.",
+          "geocodeSource": "osm-poi"
+        }
+      ],
+      "sources": [
+        "https://www.moog.com/about-us/locations.html"
+      ]
+    },
+    {
+      "name": "Continental",
+      "aliases": [
+        "Continental Automotive Components (India)"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Automotive & industrial",
+      "description": "German automotive supplier; Continental Automotive Components (India)'s Technical Center India and Bengaluru plant are in Electronics City Phase 2 near Veerasandra.",
+      "hqCity": "Hanover",
+      "hqCountry": "Germany",
+      "founded": 1871,
+      "isUnicorn": false,
+      "website": "https://www.continental.com/en-in/",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Technical Center India / Bengaluru plant - Phase 2 (Veerasandra)",
+          "techPark": "Electronics City Phase 2",
+          "building": null,
+          "locality": "Electronics City Phase 2",
+          "address": "Veerasandra, Electronics City Phase 2, Hosur Road, Bengaluru 560100",
+          "lat": 12.840716,
+          "lng": 77.677365,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM node 12519614249 'Continental Automotive Components (India) Private Limited' at Veerasandra, Electronic City Phase 2; Wikipedia's Electronic City infobox lists Continental among the major companies (https://en.wikipedia.org/wiki/Electronic_City).",
+          "geocodeSource": "osm-poi"
+        },
+        {
+          "label": "Continental Automotive - second Phase 2 site",
+          "techPark": "Electronics City Phase 2",
+          "building": null,
+          "locality": "Electronics City Phase 2",
+          "address": "Electronics City Phase 2, Bengaluru 560100",
+          "lat": 12.845617,
+          "lng": 77.67757,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "A second OSM node 12519677931 'Continental Automotives' lies north of the first inside Phase 2; not confirmed from a company page.",
+          "geocodeSource": "osm-poi"
+        }
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Electronic_City"
+      ]
+    },
+    {
+      "name": "3M India",
+      "aliases": [],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Automotive & industrial",
+      "description": "Listed Indian arm of 3M; its corporate office is at Concorde Block, UB City, and its Bengaluru manufacturing plant is in Electronics City Phase 1 on Hosur Road.",
+      "hqCity": "Bengaluru",
+      "hqCountry": "India",
+      "founded": 1987,
+      "isUnicorn": false,
+      "website": "https://www.3mindia.in",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Electronics City plant",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "Electronics City Phase 1, Hosur Road, Bengaluru 560100",
+          "lat": 12.844599,
+          "lng": 77.659502,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM maps '3M' (way/364872808) on Hosur Road between Siemens and BHEL in Phase 1; 3M India's own locations page was not reachable, so the plot numbers are not given.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.3mindia.in/"
+      ]
+    },
+    {
+      "name": "Aliaxis",
+      "aliases": [],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Automotive & industrial",
+      "description": "Belgian plastic piping group; its Aliaxis Research and Technology Centre Asia sits in HP Suhas Park on 3rd Cross Road, Electronics City Phase 1.",
+      "hqCity": "Brussels",
+      "hqCountry": "Belgium",
+      "founded": 2003,
+      "isUnicorn": false,
+      "website": "https://www.aliaxis.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Aliaxis R&T Centre Asia - HP Suhas Park",
+          "techPark": "Electronics City Phase 1",
+          "building": "HP Suhas Park",
+          "locality": "Electronics City Phase 1",
+          "address": "3rd Cross Road, Electronics City Phase 1, Bengaluru 560100",
+          "lat": 12.837852,
+          "lng": 77.664885,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM way/391787112 'Aliaxis Research and Technology Centre Asia' carries the address 'HP Suhas Park, 3rd Cross Rd, Electronics City Phase 1'; not confirmed from a company page.",
+          "geocodeSource": "osm-poi"
+        }
+      ],
+      "sources": [
+        "https://www.openstreetmap.org/way/391787112"
+      ]
+    },
+    {
+      "name": "Schneider Electric",
+      "aliases": [
+        "APC",
+        "American Power Conversion"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Energy",
+      "description": "French energy-management group; the former American Power Conversion (APC) site in Electronics City Phase 1 houses Schneider's secure-power engineering and manufacturing.",
+      "hqCity": "Rueil-Malmaison",
+      "hqCountry": "France",
+      "founded": 1836,
+      "isUnicorn": false,
+      "website": "https://www.se.com/in/en/",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "APC by Schneider Electric - Electronics City Phase 1",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "Electronics City Phase 1, Bengaluru 560100",
+          "lat": 12.839461,
+          "lng": 77.658668,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM maps 'American Power Corporation' (way/231335582) beside the Wipro EC campus; Wikipedia's Jigani article separately names APC among local employers (https://en.wikipedia.org/wiki/Jigani). Not confirmed from a Schneider page.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Jigani"
+      ]
+    },
+    {
+      "name": "Flex",
+      "aliases": [
+        "Flextronics"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Semiconductors & hardware",
+      "description": "Singapore/US electronics manufacturing-services group; OSM records a Flextronics site in Electronics City Phase 1 near C-DAC and Prathik Tech Park.",
+      "hqCity": "Singapore / Austin",
+      "hqCountry": "Singapore",
+      "founded": 1969,
+      "isUnicorn": false,
+      "website": "https://flex.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Electronics City Phase 1 site",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "Electronics City Phase 1, Bengaluru 560100",
+          "lat": 12.840958,
+          "lng": 77.66365,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM node 459489322 and way/146499016 'Flextronics' in Phase 1; Flex's own locations page was not reachable, so this is an OSM lead only.",
+          "geocodeSource": "osm-poi"
+        }
+      ],
+      "sources": [
+        "https://www.openstreetmap.org/node/459489322"
+      ]
+    },
+    {
+      "name": "Otis",
+      "aliases": [
+        "Otis Elevator Company (India)"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Automotive & industrial",
+      "description": "US elevator maker; its Indian manufacturing plant is No. 92 in KIADB Phase II of the Jigani Industrial Area.",
+      "hqCity": "Farmington, Connecticut",
+      "hqCountry": "United States",
+      "founded": 1853,
+      "isUnicorn": false,
+      "website": "https://www.otis.com/en/in/",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Jigani factory - No. 92, KIADB Phase II",
+          "techPark": "Jigani Industrial Area",
+          "building": null,
+          "locality": "Jigani",
+          "address": "No. 92, KIADB Industrial Estate Phase II, Jigani, Bengaluru 560105",
+          "lat": 12.779264,
+          "lng": 77.631116,
+          "isHq": false,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "Otis India's contact page lists the manufacturing site as 'No.92, KIADB Indl. Estate, Phase II Jingani Indl. Area, Anekal Taluk Bengaluru 560105' (https://www.otis.com/en/in/contact-us); OSM way/722828169 'Otis Elevator Company (India) Ltd'.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.otis.com/en/in/contact-us"
+      ]
+    },
+    {
+      "name": "LAPP",
+      "aliases": [
+        "Lapp Kabel India",
+        "LAPP India"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Automotive & industrial",
+      "description": "German cable and connectivity maker; LAPP India's headquarters and factory are in the Jigani Industrial Area.",
+      "hqCity": "Stuttgart",
+      "hqCountry": "Germany",
+      "founded": 1959,
+      "isUnicorn": false,
+      "website": "https://www.lappindia.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "LAPP India HQ and plant - Jigani",
+          "techPark": "Jigani Industrial Area",
+          "building": null,
+          "locality": "Jigani",
+          "address": "KIADB Jigani Industrial Area, Bengaluru 560105",
+          "lat": 12.774079,
+          "lng": 77.631807,
+          "isHq": true,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM maps 'Lapp Kabel India Pvt Ltd' (way/841048410) in the Jigani Industrial Estate; LAPP India's contact page was not reachable.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.openstreetmap.org/way/841048410"
+      ]
+    },
+    {
+      "name": "SKF",
+      "aliases": [
+        "SKF India"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Automotive & industrial",
+      "description": "Swedish bearings group; SKF India operates a plant in the Bommasandra Industrial Area off Hosur Road.",
+      "hqCity": "Gothenburg",
+      "hqCountry": "Sweden",
+      "founded": 1907,
+      "isUnicorn": false,
+      "website": "https://www.skf.com/in",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Bommasandra plant",
+          "techPark": "Bommasandra Industrial Area",
+          "building": null,
+          "locality": "Bommasandra",
+          "address": "Bommasandra Industrial Area, Hosur Road, Bengaluru 560099",
+          "lat": 12.821931,
+          "lng": 77.683753,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM maps 'SKF' (way/170320606) in the Bommasandra Industrial Estate; SKF India's site returned no address text, so this is an OSM lead only.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.openstreetmap.org/way/170320606"
+      ]
+    },
+    {
+      "name": "TaeguTec",
+      "aliases": [
+        "TaeguTec India"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Automotive & industrial",
+      "description": "Korean cutting-tool maker (IMC Group / Berkshire Hathaway); TaeguTec India's head office and plant are in Bommasandra.",
+      "hqCity": "Daegu",
+      "hqCountry": "South Korea",
+      "founded": 1916,
+      "isUnicorn": false,
+      "website": "https://www.taegutec-india.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "TaeguTec India HQ and plant - Bommasandra",
+          "techPark": "Bommasandra Industrial Area",
+          "building": null,
+          "locality": "Bommasandra",
+          "address": "Bommasandra Industrial Area, Bengaluru 560099",
+          "lat": 12.810831,
+          "lng": 77.664246,
+          "isHq": true,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM maps 'Taegutec' (way/170315987) south of Bommasandra on the Jigani link; taegutec-india.com was unreachable during this run.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.openstreetmap.org/way/170315987"
+      ]
+    },
+    {
+      "name": "Delta Electronics",
+      "aliases": [
+        "Delta Electronics India"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Energy",
+      "description": "Taiwanese power-electronics group; OSM records a Delta Electronics facility at Hebbagodi on the Bommasandra side of Hosur Road.",
+      "hqCity": "Taipei",
+      "hqCountry": "Taiwan",
+      "founded": 1971,
+      "isUnicorn": false,
+      "website": "https://www.deltaelectronicsindia.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Hebbagodi / Bommasandra facility",
+          "techPark": "Bommasandra Industrial Area",
+          "building": null,
+          "locality": "Hebbagodi",
+          "address": "Hebbagodi, Hosur Road, Bengaluru 560099",
+          "lat": 12.823324,
+          "lng": 77.683506,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM maps 'Delta Electronics' (way/1419688898) at Hebbagodi near SKF; Delta Electronics India's contact page was unreachable, so this is an OSM lead only.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.openstreetmap.org/way/1419688898"
+      ]
+    },
+    {
+      "name": "Titan Company",
+      "aliases": [
+        "Titan Industries"
+      ],
+      "category": "MID_SIZE",
+      "origin": "Indian",
+      "sector": "Retail & consumer goods",
+      "description": "Tata group watch, jewellery and eyewear maker; its corporate office 'Integrity' is at Veerasandra, Electronic City PO, off Hosur Main Road (registered office is in Hosur, Tamil Nadu).",
+      "hqCity": "Bengaluru",
+      "hqCountry": "India",
+      "founded": 1984,
+      "isUnicorn": false,
+      "website": "https://www.titancompany.in",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Corporate office 'Integrity', Veerasandra",
+          "techPark": null,
+          "building": "Integrity",
+          "locality": "Electronics City Phase 2",
+          "address": "193, Veerasandra, Electronic City PO, Off Hosur Main Road, Bengaluru 560100",
+          "lat": 12.84119,
+          "lng": 77.673394,
+          "isHq": true,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "Titan's contact page gives the corporate office as \"'INTEGRITY' #193, Veerasandra, Electronic City PO, Off Hosur Main Road, Bengaluru 560100\" (https://www.titancompany.in/contact-us); OSM way/1116586854 'Titan'.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.titancompany.in/contact-us"
+      ]
+    },
+    {
+      "name": "Biocon",
+      "aliases": [
+        "Biocon Biologics"
+      ],
+      "category": "MNC",
+      "origin": "Indian",
+      "sector": "HealthTech & pharma",
+      "description": "Listed biopharmaceutical company (16,545 employees, March 2023) headquartered at the 20th km of Hosur Road in Electronic City, with its research and manufacturing campus Biocon Park at Bommasandra.",
+      "hqCity": "Bengaluru",
+      "hqCountry": "India",
+      "founded": 1978,
+      "isUnicorn": false,
+      "website": "https://www.biocon.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Corporate HQ - 20th KM Hosur Road, Electronic City",
+          "techPark": null,
+          "building": null,
+          "locality": "Hebbagodi / Electronic City",
+          "address": "20th KM Hosur Road, Electronic City, Bengaluru 560100",
+          "lat": 12.83097,
+          "lng": 77.678427,
+          "isHq": true,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "Wikipedia's Biocon article captions its headquarters as 'Headquarters at Electronic City, Bangalore' (https://en.wikipedia.org/wiki/Biocon); OSM way/1082360491 'Biocon' on Hosur Road at Hebbagodi.",
+          "geocodeSource": "osm-park"
+        },
+        {
+          "label": "Biocon Park (SEZ) - Bommasandra",
+          "techPark": "Biocon Park",
+          "building": null,
+          "locality": "Bommasandra-Jigani Link Road",
+          "address": "Biocon SEZ, Bommasandra-Jigani Link Road, Bengaluru 560099",
+          "lat": 12.803405,
+          "lng": 77.659343,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "Wikipedia's Biocon article pictures 'Biocon Research Centre in Biocon Park, Bommasandra, Bangalore' (https://en.wikipedia.org/wiki/Biocon); OSM way/545039647 'Biocon Park'.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Biocon"
+      ]
+    },
+    {
+      "name": "Syngene International",
+      "aliases": [],
+      "category": "MID_SIZE",
+      "origin": "Indian",
+      "sector": "HealthTech & pharma",
+      "description": "Biocon's listed contract research and manufacturing subsidiary, headquartered inside Biocon Park at Bommasandra with an older unit in the Bommasandra Industrial Estate.",
+      "hqCity": "Bengaluru",
+      "hqCountry": "India",
+      "founded": 1993,
+      "isUnicorn": false,
+      "website": "https://www.syngeneintl.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "HQ - Biocon Park, Bommasandra",
+          "techPark": "Biocon Park",
+          "building": null,
+          "locality": "Bommasandra-Jigani Link Road",
+          "address": "Biocon SEZ, Bommasandra-Jigani Link Road, Bengaluru 560099",
+          "lat": 12.803405,
+          "lng": 77.659343,
+          "isHq": true,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "Wikipedia lists Syngene as a Biocon subsidiary and places Biocon Park at Bommasandra (https://en.wikipedia.org/wiki/Biocon); Syngene's own pages returned 403/503, so the point is the Biocon Park centroid.",
+          "geocodeSource": "park-centroid"
+        },
+        {
+          "label": "Bommasandra Industrial Estate unit",
+          "techPark": "Bommasandra Industrial Area",
+          "building": null,
+          "locality": "Bommasandra",
+          "address": "Bommasandra Industrial Area, Bengaluru 560099",
+          "lat": 12.822387,
+          "lng": 77.681924,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM maps a 'Syngene' industrial polygon (way/1419688896) in the Bommasandra Industrial Estate near SKF; not confirmed from a company page.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Biocon",
+        "https://www.openstreetmap.org/way/1419688896"
+      ]
+    },
+    {
+      "name": "Aurigene Oncology",
+      "aliases": [
+        "Aurigene Discovery Technologies"
+      ],
+      "category": "MID_SIZE",
+      "origin": "Indian",
+      "sector": "HealthTech & pharma",
+      "description": "Dr. Reddy's drug-discovery subsidiary; its Bengaluru research campus is on KIADB plots 39-40(P) in Electronics City Phase II.",
+      "hqCity": "Bengaluru",
+      "hqCountry": "India",
+      "founded": 2002,
+      "isUnicorn": false,
+      "website": "https://www.aurigene.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Research campus - 39-40(P) KIADB, Phase II",
+          "techPark": "Electronics City Phase 2",
+          "building": null,
+          "locality": "Electronics City Phase 2",
+          "address": "39-40(P), KIADB Industrial Area, Electronics City Phase 2, Hosur Road, Bengaluru 560100",
+          "lat": 12.844231,
+          "lng": 77.676975,
+          "isHq": true,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "Aurigene's contact page lists '39-40(P), KIADB Industrial Area, Phase II Electronics City Hosur Road Bangalore 560100' (https://www.aurigene.com/contact-us/); OSM way/264294644 'Aurigene Oncology Limited'.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.aurigene.com/contact-us/"
+      ]
+    },
+    {
+      "name": "Tata Power Solar",
+      "aliases": [
+        "Tata BP Solar"
+      ],
+      "category": "MID_SIZE",
+      "origin": "Indian",
+      "sector": "Energy",
+      "description": "Tata Power's solar cell and module manufacturer (ex-Tata BP Solar); its Bengaluru factory is in Electronics City on Hosur Road.",
+      "hqCity": "Noida",
+      "hqCountry": "India",
+      "founded": 1989,
+      "isUnicorn": false,
+      "website": "https://www.tatapowersolar.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Electronics City manufacturing plant",
+          "techPark": "Electronics City Phase 2",
+          "building": null,
+          "locality": "Electronics City Phase 2",
+          "address": "Electronics City, Hosur Road, Bengaluru 560100",
+          "lat": 12.849312,
+          "lng": 77.674924,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM maps the plant as 'TATA BP Solar' (way/188314972) east of Hosur Road; Wikipedia records a 'manufacturing unit in Bangalore' of 400 MW modules / 300 MW cells (https://en.wikipedia.org/wiki/Tata_Power_Solar).",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Tata_Power_Solar"
+      ]
+    },
+    {
+      "name": "Tata Advanced Systems",
+      "aliases": [
+        "TASL",
+        "Tata Power SED"
+      ],
+      "category": "MID_SIZE",
+      "origin": "Indian",
+      "sector": "Aerospace & defence",
+      "description": "Tata Sons' aerospace and defence company; it inherited Tata Power's Strategic Engineering Division plant in Electronics City Phase 1 and opened a composite-structures facility at Jigani in November 2025.",
+      "hqCity": "Hyderabad",
+      "hqCountry": "India",
+      "founded": 2007,
+      "isUnicorn": false,
+      "website": "https://www.tataadvancedsystems.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Electronics City Phase 1 plant (former Tata Power SED)",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "Electronics City Phase 1, Hosur Road, Bengaluru 560100",
+          "lat": 12.846205,
+          "lng": 77.665497,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM maps the site as 'Tata Power' (way/232401433) between HP and Fanuc on Hosur Road; the SED-to-TASL transfer and this plant were not confirmed from a TASL page, so treat as a lead.",
+          "geocodeSource": "osm-park"
+        },
+        {
+          "label": "Jigani composite structures facility",
+          "techPark": "Jigani Industrial Area",
+          "building": null,
+          "locality": "Jigani",
+          "address": "Jigani Industrial Area, Bengaluru 560105",
+          "lat": 12.779041,
+          "lng": 77.632773,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "TASL's site says its composite structures facility for Airbus programmes was 'inaugurated... today in Jigani, Bengaluru' on 27 Nov 2025 (https://www.tataadvancedsystems.com/); no address given, so the point is the Jigani Industrial Estate centroid.",
+          "geocodeSource": "park-centroid"
+        }
+      ],
+      "sources": [
+        "https://www.tataadvancedsystems.com/"
+      ]
+    },
+    {
+      "name": "Hical Technologies",
+      "aliases": [
+        "Hical Magnetics"
+      ],
+      "category": "MID_SIZE",
+      "origin": "Indian",
+      "sector": "Aerospace & defence",
+      "description": "Bengaluru aerospace and industrial electro-mechanical manufacturer (motors, actuators, harnesses, precision machining) headquartered on plots 46 & 47, Electronics City Phase 2.",
+      "hqCity": "Bengaluru",
+      "hqCountry": "India",
+      "founded": 1988,
+      "isUnicorn": false,
+      "website": "https://www.hical.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "HQ and plant - 46 & 47, Phase 2",
+          "techPark": "Electronics City Phase 2",
+          "building": null,
+          "locality": "Electronics City Phase 2",
+          "address": "46 & 47, Electronics City Phase 2, Bengaluru 560100",
+          "lat": 12.853322,
+          "lng": 77.676404,
+          "isHq": true,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "Hical's contact page lists 'HICAL TECHNOLOGIES PRIVATE LIMITED, 46 & 47, PHASE 2, ELECTRONICS CITY, BANGALORE 560100' (https://www.hical.com/contact-us/); OSM way/38756437 'Hical Magnetics Pvt Ltd'.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.hical.com/contact-us/"
+      ]
+    },
+    {
+      "name": "Tessolve",
+      "aliases": [
+        "Tessolve Semiconductor"
+      ],
+      "category": "MID_SIZE",
+      "origin": "Indian",
+      "sector": "Semiconductors & hardware",
+      "description": "Hero Electronix-owned semiconductor test and engineering services company headquartered on Jogger's Lane in the Veerasandra Industrial Estate, Electronics City Phase 2.",
+      "hqCity": "Bengaluru",
+      "hqCountry": "India",
+      "founded": 2004,
+      "isUnicorn": false,
+      "website": "https://www.tessolve.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "HQ - Plot 31, Jogger's Lane, Phase 2",
+          "techPark": "Electronics City Phase 2",
+          "building": null,
+          "locality": "Electronics City Phase 2",
+          "address": "Plot 31, Jogger's Lane, Veerasandra Industrial Estate, Electronics City Phase 2, Bengaluru 560100",
+          "lat": 12.845436,
+          "lng": 77.675892,
+          "isHq": true,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "Nominatim resolves 'Tessolve' to OSM way/244577747 at '31, Joggers Lane, Veerasandra Industrial Estate, Electronics City Phase 2'; tessolve.com returned 403, so the company page was not read.",
+          "geocodeSource": "osm-poi"
+        }
+      ],
+      "sources": [
+        "https://www.openstreetmap.org/way/244577747"
+      ]
+    },
+    {
+      "name": "Tejas Networks",
+      "aliases": [],
+      "category": "MID_SIZE",
+      "origin": "Indian",
+      "sector": "Telecom & networking",
+      "description": "Tata-controlled optical and wireless networking equipment maker (1,900+ employees) headquartered in Electronics City Phase 1.",
+      "hqCity": "Bengaluru",
+      "hqCountry": "India",
+      "founded": 2000,
+      "isUnicorn": false,
+      "website": "https://www.tejasnetworks.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "HQ - Electronics City Phase 1",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "Plot 25, J P Software Park, Electronics City Phase 1, Hosur Road, Bengaluru 560100",
+          "lat": 12.844305,
+          "lng": 77.665938,
+          "isHq": true,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "Tejas's contact page gives the headquarters as 'Tejas Networks Ltd, Electronic City Phase 1, Bangalore 560100' (https://www.tejasnetworks.com/contact-us/); OSM way/230171945 'Tejas Networks Ltd'.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.tejasnetworks.com/contact-us/",
+        "https://en.wikipedia.org/wiki/Tejas_Networks"
+      ]
+    },
+    {
+      "name": "OnMobile Global",
+      "aliases": [],
+      "category": "MID_SIZE",
+      "origin": "Indian",
+      "sector": "Media & gaming",
+      "description": "Listed mobile entertainment and gaming company headquartered in Tower 1 of the E-City towers at Veerasandra, Electronics City Phase 1 (the same tower as HP's ECP office).",
+      "hqCity": "Bengaluru",
+      "hqCountry": "India",
+      "founded": 2000,
+      "isUnicorn": false,
+      "website": "https://www.onmobile.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "HQ - E-City Tower 1, Veerasandra",
+          "techPark": "Electronics City Phase 1",
+          "building": "Tower 1, E-City",
+          "locality": "Electronics City Phase 1",
+          "address": "94/1C & 94/2, Veerasandra Village, Electronics City Phase 1, Bengaluru 560100",
+          "lat": 12.84116,
+          "lng": 77.665821,
+          "isHq": true,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "OnMobile's contact page gives the registered office as 'E City, Tower-1, No.94/1C & 94/2, Veerasandra Village, Attibele Hobli, Anekal Taluk, Electronic city Phase-1, Bangalore 560100' (https://www.onmobile.com/home/contact); OSM node 2647643992 'onMobile'.",
+          "geocodeSource": "osm-poi"
+        }
+      ],
+      "sources": [
+        "https://www.onmobile.com/home/contact"
+      ]
+    },
+    {
+      "name": "Velankani Group",
+      "aliases": [
+        "Velankani Information Systems",
+        "Velankani Electronics & Automotive"
+      ],
+      "category": "MID_SIZE",
+      "origin": "Indian",
+      "sector": "Real estate & infrastructure",
+      "description": "Bengaluru group spanning IT services, electronics manufacturing and hospitality; it owns and is headquartered at Velankani Tech Park (#43, Electronics City Phase 1), with electronics units at Veerasandra and Jigani.",
+      "hqCity": "Bengaluru",
+      "hqCountry": "India",
+      "founded": null,
+      "isUnicorn": false,
+      "website": "https://www.velankanigroup.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Velankani Tech Park HQ - #43 Electronic City Phase 1",
+          "techPark": "Velankani Tech Park",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "43, Electronics City Phase 1, Hosur Main Road, Bengaluru 560100",
+          "lat": 12.849543,
+          "lng": 77.658871,
+          "isHq": true,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "Velankani's site gives '#43, Velankani Tech Park, Electronic City Phase-1, Hosur Main Road, Bengaluru 560100' (https://www.velankanigroup.com/); OSM way/231526591 'Velankani'.",
+          "geocodeSource": "osm-park"
+        },
+        {
+          "label": "Velankani Electronics Unit-2 - Veerasandra Industrial Area",
+          "techPark": "Veerasandra Industrial Estate",
+          "building": null,
+          "locality": "Electronics City Phase 2",
+          "address": "Veerasandra Industrial Area, Electronics City Phase 2, Bengaluru 560100",
+          "lat": 12.842262,
+          "lng": 77.681315,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "Velankani's site lists Velankani Electronics & Automotive Unit-2 at Veerasandra Industrial Area, Electronic City Phase-II (https://www.velankanigroup.com/); point is the Veerasandra Industrial Estate centroid.",
+          "geocodeSource": "park-centroid"
+        },
+        {
+          "label": "Velankani Electronics Unit-3 - Jigani",
+          "techPark": "Jigani Industrial Area",
+          "building": null,
+          "locality": "Jigani",
+          "address": "Jigani Industrial Area, Bengaluru 560105",
+          "lat": 12.779041,
+          "lng": 77.632773,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "Velankani's site lists Velankani Electronics & Automotive Unit-3 at Jigani (https://www.velankanigroup.com/); point is the Jigani Industrial Estate centroid.",
+          "geocodeSource": "park-centroid"
+        }
+      ],
+      "sources": [
+        "https://www.velankanigroup.com/"
+      ]
+    },
+    {
+      "name": "Happiest Minds Technologies",
+      "aliases": [],
+      "category": "MID_SIZE",
+      "origin": "Indian",
+      "sector": "IT services",
+      "description": "Listed digital-transformation IT services company headquartered at SMILES on Hosur Main Road, Madivala, at the north end of the Hosur Road corridor.",
+      "hqCity": "Bengaluru",
+      "hqCountry": "India",
+      "founded": 2011,
+      "isUnicorn": false,
+      "website": "https://www.happiestminds.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "HQ - SMILES, Hosur Main Road, Madivala",
+          "techPark": null,
+          "building": "SMILES",
+          "locality": "Madivala",
+          "address": "53/1-4, Hosur Main Road, Madivala, Bengaluru 560068",
+          "lat": 12.9245614,
+          "lng": 77.6180813,
+          "isHq": true,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "Happiest Minds' contact page gives the headquarters as '#53/1-4, Hosur Main Road Madivala, Bengaluru 560068' (https://www.happiestminds.com/contact-us/); the geocoder only resolved the Madivala locality, so the point is approximate.",
+          "geocodeSource": "photon"
+        }
+      ],
+      "sources": [
+        "https://www.happiestminds.com/contact-us/"
+      ]
+    },
+    {
+      "name": "Mahindra & Mahindra",
+      "aliases": [
+        "Mahindra Electric",
+        "Mahindra Last Mile Mobility",
+        "Reva Electric Car Company"
+      ],
+      "category": "MNC",
+      "origin": "Indian",
+      "sector": "Mobility & EV",
+      "description": "Mahindra's electric three-wheeler arm Mahindra Last Mile Mobility (ex-Mahindra Electric / Reva) builds vehicles at Bommasandra Industrial Area on the Hosur Road corridor.",
+      "hqCity": "Mumbai",
+      "hqCountry": "India",
+      "founded": 1945,
+      "isUnicorn": false,
+      "website": "https://mahindralastmilemobility.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Mahindra Last Mile Mobility plant - Bommasandra",
+          "techPark": "Bommasandra Industrial Area",
+          "building": null,
+          "locality": "Bommasandra",
+          "address": "Bommasandra Industrial Area, Hosur Road, Bengaluru 560099",
+          "lat": 12.81729,
+          "lng": 77.695091,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "Wikipedia records Mahindra Electric (now Mahindra Last Mile Mobility) as Bengaluru-based and merged into M&M in 2023 (https://en.wikipedia.org/wiki/Mahindra_Electric); the Bommasandra plant address was not reachable on the company site, so the point is the Bommasandra Industrial Estate centroid.",
+          "geocodeSource": "park-centroid"
+        }
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Mahindra_Electric",
+        "https://mahindralastmilemobility.com/"
+      ]
+    },
+    {
+      "name": "Tally Solutions",
+      "aliases": [],
+      "category": "MID_SIZE",
+      "origin": "Indian",
+      "sector": "SaaS",
+      "description": "Maker of the Tally accounting software; its head office is in AMR Tech Park II at Hongasandra on Hosur Main Road.",
+      "hqCity": "Bengaluru",
+      "hqCountry": "India",
+      "founded": 1986,
+      "isUnicorn": false,
+      "website": "https://tallysolutions.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Head office - AMR Tech Park II",
+          "techPark": "AMR Tech Park",
+          "building": "AMR Tech Park II",
+          "locality": "Hongasandra / Bommanahalli",
+          "address": "23 & 24, Hongasandra, Hosur Main Road, Bengaluru 560068",
+          "lat": 12.899109,
+          "lng": 77.631071,
+          "isHq": true,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "Tally's contact page gives the head office as 'AMR Tech Park II, No. 23 & 24, Hongasandra, Hosur Main Road, Bengaluru 560 068' (https://tallysolutions.com/contact-us/); OSM node 9253551418 'Tally Solutions Private Limited'.",
+          "geocodeSource": "osm-poi"
+        }
+      ],
+      "sources": [
+        "https://tallysolutions.com/contact-us/",
+        "https://en.wikipedia.org/wiki/Tally_Solutions"
+      ]
+    },
+    {
+      "name": "Sagility",
+      "aliases": [
+        "HGS Healthcare",
+        "Sagility India Ltd"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Consulting & professional services",
+      "description": "Healthcare BPM company (ex-HGS Healthcare, owned by EQT, listed in India in 2024) with three Bengaluru sites: AMR Tech Park on Hosur Road, Surya Wave in Electronics City Phase II and Global Village.",
+      "hqCity": "Atlanta",
+      "hqCountry": "United States",
+      "founded": 2022,
+      "isUnicorn": false,
+      "website": "https://sagility.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "AMR Tech Park - Buildings 1 & 2A",
+          "techPark": "AMR Tech Park",
+          "building": "Buildings 1 and 2A",
+          "locality": "Hongasandra / Bommanahalli",
+          "address": "23 & 24, AMR Tech Park, Hongasandra, Off Hosur Road, Bengaluru 560068",
+          "lat": 12.899458,
+          "lng": 77.630871,
+          "isHq": true,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "Sagility's locations page lists '23 & 24, Bldg 2A (1st & 3rd Floor) and Bldg 1 (2nd Floor), AMR Tech Park, Hongasandra Village, Off Hosur Road, Bommanahalli, Bengaluru 560068' (https://sagility.com/about/locations/); OSM node 12969032576 'Sagility Health'.",
+          "geocodeSource": "osm-poi"
+        },
+        {
+          "label": "Surya Wave - Doddathogur, Electronic City Phase II",
+          "techPark": "Electronics City Phase 2",
+          "building": "Surya Wave",
+          "locality": "Electronics City Phase 2",
+          "address": "Sy. No. 61(P), Doddathogur Village, Electronics City Phase 2, Bengaluru 560100",
+          "lat": 12.847,
+          "lng": 77.678,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "Sagility's locations page lists 'Surya Wave, GF, 1F, 3F & 4F Sy. No. 61 (P), Doddathogur Village, Begur Hobli, Electronic City Phase II Industrial Area, Bangalore 560100' (https://sagility.com/about/locations/); the building did not geocode, so the point is the Phase 2 centroid.",
+          "geocodeSource": "park-centroid"
+        },
+        {
+          "label": "Global Village - SEZ Tower F",
+          "techPark": "Global Village Tech Park",
+          "building": "SEZ Tower F, 9th floor",
+          "locality": "Mylasandra / RVCE Post",
+          "address": "Pattanagere / Mylasandra, RVCE Post, Bengaluru 560059",
+          "lat": 12.9194902,
+          "lng": 77.5002228,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "Sagility's locations page lists 'SEZ Tower #F, 9th Floor, Global Village, IT Sector SEZ, Pattanagere/Mylasandra, RVCE Post, Bangalore 560059' (https://sagility.com/about/locations/); coordinates from a geocode of the park.",
+          "geocodeSource": "nominatim"
+        }
+      ],
+      "sources": [
+        "https://sagility.com/about/locations/"
+      ]
+    },
+    {
+      "name": "Hinduja Global Solutions",
+      "aliases": [
+        "HGS"
+      ],
+      "category": "MNC",
+      "origin": "Indian",
+      "sector": "Consulting & professional services",
+      "description": "Hinduja group BPM company (registered office Mumbai); HGS House on Hosur Road at Bommanahalli is its Bengaluru corporate office, with delivery seats in AMR Tech Park.",
+      "hqCity": "Mumbai",
+      "hqCountry": "India",
+      "founded": 1993,
+      "isUnicorn": false,
+      "website": "https://hgs.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "HGS House - Vajpayee Nagar, Bommanahalli",
+          "techPark": null,
+          "building": "HGS House",
+          "locality": "Bommanahalli",
+          "address": "614, Vajpayee Nagar, Bommanahalli, Hosur Road, Bengaluru 560068",
+          "lat": 12.899046,
+          "lng": 77.63331,
+          "isHq": true,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM way/201989328 'HGS House' carries the address 'Vajpayee Nagar, Bommanahalli, Hosur Road' and Photon resolves 'HGS House' to it; hgs.com pages rendered empty, so no company-page confirmation.",
+          "geocodeSource": "osm-poi"
+        },
+        {
+          "label": "AMR Tech Park delivery centre",
+          "techPark": "AMR Tech Park",
+          "building": null,
+          "locality": "Hongasandra / Bommanahalli",
+          "address": "AMR Tech Park, Hongasandra, Hosur Road, Bengaluru 560068",
+          "lat": 12.8999,
+          "lng": 77.631192,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM node 9253530906 'Hinduja Global Solutions Ltd.' inside AMR Tech Park; not confirmed from a company page.",
+          "geocodeSource": "osm-poi"
+        }
+      ],
+      "sources": [
+        "https://www.openstreetmap.org/way/201989328",
+        "https://en.wikipedia.org/wiki/Hinduja_Global_Solutions"
+      ]
+    },
+    {
+      "name": "Quinnox",
+      "aliases": [
+        "Everforth Quinnox"
+      ],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "IT services",
+      "description": "Chicago-headquartered IT services firm (part of Everforth); its Bengaluru office is on the third floor of AMR Tech Park-4 on Hosur Road.",
+      "hqCity": "Chicago",
+      "hqCountry": "United States",
+      "founded": null,
+      "isUnicorn": false,
+      "website": "https://www.quinnox.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "AMR Tech Park-4, 3rd floor",
+          "techPark": "AMR Tech Park",
+          "building": "AMR Tech Park-4",
+          "locality": "Hongasandra / Bommanahalli",
+          "address": "23-24, Hosur Road, Bengaluru 560068",
+          "lat": 12.897681,
+          "lng": 77.630888,
+          "isHq": false,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "Quinnox's contact page lists 'No. 23, 24, Third Floor AMR Tech Park-4, Hosur Road Bangalore 560 068' (https://www.quinnox.com/contact-us/); OSM node 9253530916 'Quinnox Inc'.",
+          "geocodeSource": "osm-poi"
+        }
+      ],
+      "sources": [
+        "https://www.quinnox.com/contact-us/"
+      ]
+    },
+    {
+      "name": "Mindteck",
+      "aliases": [],
+      "category": "MID_SIZE",
+      "origin": "Indian",
+      "sector": "IT services",
+      "description": "Listed Bengaluru IT services and product-engineering company; OSM places its office in AMR Tech Park on Hosur Road.",
+      "hqCity": "Bengaluru",
+      "hqCountry": "India",
+      "founded": 1991,
+      "isUnicorn": false,
+      "website": "https://www.mindteck.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "AMR Tech Park office",
+          "techPark": "AMR Tech Park",
+          "building": null,
+          "locality": "Hongasandra / Bommanahalli",
+          "address": "AMR Tech Park, Hongasandra, Hosur Road, Bengaluru 560068",
+          "lat": 12.899811,
+          "lng": 77.6312,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM node 9253530907 'Mindteck' inside AMR Tech Park; mindteck.com returned 503 during this run, so not confirmed from the company page.",
+          "geocodeSource": "osm-poi"
+        }
+      ],
+      "sources": [
+        "https://www.openstreetmap.org/node/9253530907"
+      ]
+    },
+    {
+      "name": "MetricStream",
+      "aliases": [],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "SaaS",
+      "description": "US governance-risk-compliance software company with a large Bengaluru engineering centre; OSM places it in AMR Tech Park.",
+      "hqCity": "San Jose",
+      "hqCountry": "United States",
+      "founded": 1999,
+      "isUnicorn": false,
+      "website": "https://www.metricstream.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "AMR Tech Park office",
+          "techPark": "AMR Tech Park",
+          "building": null,
+          "locality": "Hongasandra / Bommanahalli",
+          "address": "AMR Tech Park, Hongasandra, Hosur Road, Bengaluru 560068",
+          "lat": 12.898108,
+          "lng": 77.630836,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM node 5566955521 'MetricStream Inc.' inside AMR Tech Park; metricstream.com returned 404 for its contact page, so OSM lead only.",
+          "geocodeSource": "osm-poi"
+        }
+      ],
+      "sources": [
+        "https://www.openstreetmap.org/node/5566955521"
+      ]
+    },
+    {
+      "name": "Avaya",
+      "aliases": [],
+      "category": "MNC",
+      "origin": "Foreign",
+      "sector": "Telecom & networking",
+      "description": "US communications-software company; OSM places its Bengaluru R&D office in AMR Tech Park.",
+      "hqCity": "Morristown, New Jersey",
+      "hqCountry": "United States",
+      "founded": 2000,
+      "isUnicorn": false,
+      "website": "https://www.avaya.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "AMR Tech Park office",
+          "techPark": "AMR Tech Park",
+          "building": null,
+          "locality": "Hongasandra / Bommanahalli",
+          "address": "AMR Tech Park, Hongasandra, Hosur Road, Bengaluru 560068",
+          "lat": 12.899169,
+          "lng": 77.631068,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM node 9253551417 'Avaya' inside AMR Tech Park; Avaya's locations page was not reachable, so OSM lead only.",
+          "geocodeSource": "osm-poi"
+        }
+      ],
+      "sources": [
+        "https://www.openstreetmap.org/node/9253551417"
+      ]
+    },
+    {
+      "name": "Reltio",
+      "aliases": [],
+      "category": "STARTUP",
+      "origin": "Foreign",
+      "sector": "SaaS",
+      "description": "Venture-backed US data-unification SaaS company (founded 2011); Reltio India's office is Building 31, RMZ Ecoworld, Bellandur (an older OSM node at AMR Tech Park is stale).",
+      "hqCity": "Redwood City, California",
+      "hqCountry": "United States",
+      "founded": 2011,
+      "isUnicorn": true,
+      "website": "https://www.reltio.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "RMZ Ecoworld - Building 31, 4th floor",
+          "techPark": "RMZ Ecoworld",
+          "building": "Building 31",
+          "locality": "Bellandur",
+          "address": "RMZ Ecoworld, Sarjapur-Marathahalli ORR, Bellandur, Bengaluru 560103",
+          "lat": 12.9298067,
+          "lng": 77.6846292,
+          "isHq": false,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "Reltio's contact page lists Reltio India Pvt Ltd at the 4th Floor, Building 31, RMZ Ecoworld Tech Park, Bellandur, Outer Ring Road 560103 (https://www.reltio.com/contact/); coordinates from a geocode of RMZ Ecoworld.",
+          "geocodeSource": "nominatim"
+        }
+      ],
+      "sources": [
+        "https://www.reltio.com/contact/"
+      ]
+    },
+    {
+      "name": "BHIVE Workspace",
+      "aliases": [],
+      "category": "STARTUP",
+      "origin": "Indian",
+      "sector": "Real estate & infrastructure",
+      "description": "Bengaluru coworking operator (founded 2014); its 3 lakh sq ft, 5,000-seat campus occupies AKR Tech Park at Kudlu Gate on Hosur Road.",
+      "hqCity": "Bengaluru",
+      "hqCountry": "India",
+      "founded": 2014,
+      "isUnicorn": false,
+      "website": "https://bhiveworkspace.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "BHIVE AKR Tech Park campus, Kudlu Gate",
+          "techPark": "AKR Tech Park",
+          "building": null,
+          "locality": "Kudlu Gate / Bandepalya",
+          "address": "112, AKR Tech Park, 7th Mile Hosur Road, Kudlu Gate, Bengaluru 560068",
+          "lat": 12.892469,
+          "lng": 77.642315,
+          "isHq": false,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "BHIVE's location page gives 'No.112, AKR Tech Park, 7th Mile Hosur Rd, Krishna Reddy Industrial Area, Bengaluru 560068' with a '5000+ Seater Space (3 Lakh sq. ft.)' (https://bhiveworkspace.com/locations-coworking/akr-tech-park/); OSM node 9828625308 'BHIVE'.",
+          "geocodeSource": "osm-poi"
+        }
+      ],
+      "sources": [
+        "https://bhiveworkspace.com/locations-coworking/akr-tech-park/"
+      ]
+    },
+    {
+      "name": "Ultraviolette Automotive",
+      "aliases": [],
+      "category": "STARTUP",
+      "origin": "Indian",
+      "sector": "Mobility & EV",
+      "description": "Electric-motorcycle startup (founded 2016; backed by TVS Motor and Zoho). Its listed 'UV Headquarters' R&D centre is at Domlur; the Electronics City factory named in the lens could not be confirmed from the company's pages.",
+      "hqCity": "Bengaluru",
+      "hqCountry": "India",
+      "founded": 2016,
+      "isUnicorn": false,
+      "website": "https://www.ultraviolette.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "UV Headquarters / R&D Center - Intermediate Ring Road, Domlur",
+          "techPark": null,
+          "building": null,
+          "locality": "Domlur",
+          "address": "529-530, Intermediate Ring Road, Domlur, Bengaluru 560071",
+          "lat": 12.9593296,
+          "lng": 77.6413771,
+          "isHq": true,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "Ultraviolette's contact page lists 'UV HEADQUARTERS: No. 529, 530, Intermediate Ring Rd, Krishna Reddy Layout, Amarjyoti Layout, Domlur, Bengaluru 560071' (https://ultraviolette.com/contact); the geocoder resolved the road, not the plot.",
+          "geocodeSource": "photon"
+        }
+      ],
+      "sources": [
+        "https://ultraviolette.com/contact",
+        "https://en.wikipedia.org/wiki/Ultraviolette_Automotive"
+      ]
+    },
+    {
+      "name": "C-DOT",
+      "aliases": [
+        "Centre for Development of Telematics"
+      ],
+      "category": "PSU",
+      "origin": "Indian",
+      "sector": "Telecom & networking",
+      "description": "Centre for Development of Telematics, the Government of India's telecom R&D centre (est. 1984); its Bengaluru campus is in Electronics City Phase 1 on Hosur Road.",
+      "hqCity": "New Delhi",
+      "hqCountry": "India",
+      "founded": 1984,
+      "isUnicorn": false,
+      "website": "https://www.cdot.in",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "C-DOT Campus, Electronic City Phase 1",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "C-DOT Campus, Electronics City Phase 1, Hosur Road, Bengaluru 560100",
+          "lat": 12.845213,
+          "lng": 77.669457,
+          "isHq": false,
+          "status": "active",
+          "confidence": "high",
+          "evidence": "C-DOT's contact page lists the Bangalore office as 'C-DOT Campus, Electronic City Phase 1, Bengaluru-560100' (https://www.cdot.in/cdotweb/web/contactus.php); OSM way/160373384 'Center for Development of Telematics'.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.cdot.in/cdotweb/web/contactus.php",
+        "https://en.wikipedia.org/wiki/C-DOT"
+      ]
+    },
+    {
+      "name": "C-DAC",
+      "aliases": [
+        "Centre for Development of Advanced Computing"
+      ],
+      "category": "PSU",
+      "origin": "Indian",
+      "sector": "AI & deep tech",
+      "description": "Centre for Development of Advanced Computing, MeitY's R&D organisation (HQ Pune); its Bengaluru centre is in Electronics City Phase 1.",
+      "hqCity": "Pune",
+      "hqCountry": "India",
+      "founded": 1988,
+      "isUnicorn": false,
+      "website": "https://www.cdac.in",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "C-DAC Bengaluru - Electronics City",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "68, Electronics City Phase 1, Hosur Road, Bengaluru 560100",
+          "lat": 12.841921,
+          "lng": 77.663283,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "OSM maps 'C-DAC' (way/146344420) in Phase 1; Wikipedia lists C-DAC Bangalore among its centres without an address (https://en.wikipedia.org/wiki/Centre_for_Development_of_Advanced_Computing).",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Centre_for_Development_of_Advanced_Computing"
+      ]
+    },
+    {
+      "name": "STPI",
+      "aliases": [
+        "Software Technology Parks of India"
+      ],
+      "category": "PSU",
+      "origin": "Indian",
+      "sector": "IT services",
+      "description": "Software Technology Parks of India, MeitY's export-promotion body; STPI Bengaluru operates from Electronics City Phase 1.",
+      "hqCity": "New Delhi",
+      "hqCountry": "India",
+      "founded": 1991,
+      "isUnicorn": false,
+      "website": "https://www.stpi.in",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "STPI Bengaluru - Electronics City",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "Electronics City Phase 1, Hosur Road, Bengaluru 560100",
+          "lat": 12.838834,
+          "lng": 77.663643,
+          "isHq": false,
+          "status": "active",
+          "confidence": "low",
+          "evidence": "OSM maps 'Software Technology Parks of India' (way/231354813) in Phase 1 beside the KSSIDC complex; STPI's own centre pages returned 404/503.",
+          "geocodeSource": "osm-park"
+        }
+      ],
+      "sources": [
+        "https://www.openstreetmap.org/way/231354813"
+      ]
+    },
+    {
+      "name": "BHEL",
+      "aliases": [
+        "Bharat Heavy Electricals Limited",
+        "BHEL EDN",
+        "BHEL ESD"
+      ],
+      "category": "PSU",
+      "origin": "Indian",
+      "sector": "Energy",
+      "description": "Bharat Heavy Electricals Ltd; its Bengaluru manufacturing units are the Electronics Division (EDN) on Mysore Road and the Electronics Systems Division (ESD) in Electronics City Phase 1.",
+      "hqCity": "New Delhi",
+      "hqCountry": "India",
+      "founded": 1964,
+      "isUnicorn": false,
+      "website": "https://www.bhel.com",
+      "bengaluruEmployeesApprox": null,
+      "offices": [
+        {
+          "label": "Electronics Systems Division (ESD) - Electronics City",
+          "techPark": "Electronics City Phase 1",
+          "building": null,
+          "locality": "Electronics City Phase 1",
+          "address": "Electronics City Phase 1, Hosur Road, Bengaluru 560100",
+          "lat": 12.84588,
+          "lng": 77.659891,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "BHEL's units page lists the Electronics Systems Division (ESD), Bengaluru, as a manufacturing unit (https://www.bhel.com/unitsanddivisions); OSM way/231559725 'BHEL' on Hosur Road in Phase 1.",
+          "geocodeSource": "osm-park"
+        },
+        {
+          "label": "Electronics Division (EDN) - Mysore Road",
+          "techPark": null,
+          "building": null,
+          "locality": "Deepanjali Nagar / Mysore Road",
+          "address": "Mysore Road, Bengaluru 560026",
+          "lat": 12.9497209,
+          "lng": 77.5367068,
+          "isHq": false,
+          "status": "active",
+          "confidence": "medium",
+          "evidence": "BHEL's units page lists the Electronics Division (EDN), Bengaluru (https://www.bhel.com/unitsanddivisions); Photon resolves 'BHEL Electronics Division, Mysore Road' to 'BHEL Gate, Mysore Road, Deepanjali Nagara'.",
+          "geocodeSource": "photon"
+        }
+      ],
+      "sources": [
+        "https://www.bhel.com/unitsanddivisions",
+        "https://en.wikipedia.org/wiki/Bharat_Heavy_Electricals_Limited"
+      ]
+    }
+  ],
+  "coverageNotes": "SEARCH LIMIT: the shared WebSearch budget was exhausted before this lens ran, so verification used direct WebFetch of company contact/location pages, Wikipedia and SEC EDGAR plus the OSM extracts; many corporate sites (Infosys, Wipro, TCS, HCLTech, Siemens, HPE, Bosch, Continental, 3M, Biocon, Syngene, Timken, Mindteck, TaeguTec, Lapp, Delta, STPI, Tata Power Solar, Cyient, Flex, DXC) answered 403/503 or had no address text, which is why several large campuses carry 'medium' (OSM polygon + Wikipedia Electronic City tenant list) rather than 'high'. CONFIRMED FROM PRIMARY PAGES: Infosys (EDGAR), Tech Mahindra (plots 45-47), HP Inc (5 offices incl. Tower 1 E-City), Genpact (Surya Park + 3), Titan ('Integrity'), Yokogawa (Plot 96), FANUC (41-A), Tejas, OnMobile, Aurigene (39-40(P)), Hical (46 & 47), Velankani (3 sites), Tally, Sagility (3 sites), Quinnox, BHIVE/AKR, Otis (No. 92 Jigani), C-DOT, Kyndryl, Toshiba Software, Happiest Minds, Reltio, Ultraviolette (Domlur HQ). OSM-ONLY LEADS INCLUDED AT LOW CONFIDENCE: DXC, SEG Automotive, Schneider/APC, Flex, SKF, TaeguTec, Delta, Mindteck, MetricStream, Avaya, Cyient, HGS at AMR, Siemens Healthineers, TASL's Phase 1 plant, Mahindra Bommasandra (park centroid). LEFT OUT: GE (one unlabelled 'GE' OSM node in Phase 1, entity unknown); Merck, Bosch and TCS nodes in the '360 Business Park' cluster on Neeladri Road (unverified and possibly stale); Trelleborg, D-Link, Medi Assist, Amphenol, Atotech, Opto Circuits, ITI Spacenet (OSM-only, not notable enough to carry at low confidence); Mphasis and LTIMindtree (no Electronics City office could be found on their pages); Honeywell and Indegene (their Bengaluru sites are Bannerghatta Road and Manyata, other lenses); ISRO ISTRAC (Peenya, other lens; Byalalu is outside the metro box); Narayana Health (hospital, excluded as instructed); Infosys BPM as a separate office (its Electronics City plot could not be confirmed, folded into Infosys); Ultraviolette's Electronics City factory (not on its pages; only the Domlur HQ is recorded); Hosur IT Park and the Titan Hosur plant (Tamil Nadu, outside the box); Page Industries and Shahi Exports' Bommasandra/Bommanahalli garment plants (unverified). GEOMETRY: Electronics City Phase 1 and Phase 2 centroids and bboxes are derived from the OSM feature clusters, not an official boundary (Nominatim returned a hotel and a flyover for the phase names); offices without an OSM POI use the park centroid and say so in geocodeSource. Headcounts per site were not stated by any source read, so bengaluruEmployeesApprox is null throughout. Timken's registered office is given in filings as Electronic City Phase II while OSM places its campus west of Hosur Road; the OSM point is used and the discrepancy noted in the evidence."
+}

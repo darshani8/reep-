@@ -18,7 +18,7 @@ export type OfficeStatus = 'active' | 'closing' | 'closed' | 'planned';
 export type Confidence = 'high' | 'medium' | 'low';
 
 export interface Office {
-  /** `${companyId}~${n}` — stable across re-merges as long as the office keeps its place. */
+  /** `${companyId}~${hash}` where the hash is of the rounded coordinates, so it survives a re-merge. */
   id: string;
   /** "Bengaluru HQ", "Manyata campus", "Embassy TechVillage – Tower 3B"... */
   label: string;

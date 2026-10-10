@@ -1,0 +1,2349 @@
+{
+ "key": "E02-enterprise-software-saas-mncs",
+ "techParks": [
+  {
+   "name": "Prestige Tech Park",
+   "aliases": [
+    "Prestige Technology Park",
+    "Prestige Tech Park Kadubeesanahalli"
+   ],
+   "locality": "Kadubeesanahalli (Outer Ring Road)",
+   "developer": "Prestige",
+   "lat": 12.94286,
+   "lng": 77.69281,
+   "bbox": [
+    12.9392,
+    12.9453,
+    77.6882,
+    77.6975
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Nutanix",
+    "Confluent",
+    "Adobe",
+    "Amadeus",
+    "Cisco"
+   ],
+   "description": "Prestige Group's campus on the Sarjapur-Marathahalli Outer Ring Road at Kadubeesanahalli, built as named blocks (Mercury, Etamin, Exora, Falcon, Lotus); it houses Nutanix's 200,000 sq ft India HQ in the Mercury Block and Confluent's engineering hub in Etamin, with Adobe and Amadeus among other mapped tenants.",
+   "sources": [
+    "https://www.nutanix.com/company/global-offices",
+    "https://builtinbengaluru.in/company/confluent/offices"
+   ]
+  },
+  {
+   "name": "Embassy TechVillage",
+   "aliases": [
+    "Vrindavan Tech Village",
+    "ETV",
+    "Embassy Tech Village SEZ"
+   ],
+   "locality": "Devarabeesanahalli / Bellandur (Outer Ring Road)",
+   "developer": "Embassy",
+   "lat": 12.93004,
+   "lng": 77.69061,
+   "bbox": [
+    12.9264,
+    12.9345,
+    77.6871,
+    77.6949
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Rubrik",
+    "Progress",
+    "MathWorks",
+    "Cisco",
+    "Intuit",
+    "Software AG",
+    "JP Morgan",
+    "Flipkart"
+   ],
+   "description": "Embassy Office Parks REIT's flagship SEZ-and-non-SEZ campus on the Outer Ring Road at Devarabeesanahalli (the former Vrindavan Tech Village), with lettered blocks (Aster 2A, Trillium 5I/5J, Block 8); Rubrik signed a 2.07 lakh sq ft lease here in January 2025, Progress and MathWorks name their blocks, and Cisco runs an SEZ unit.",
+   "sources": [
+    "https://therealtytoday.com/news/embassy-reit-secures-207-lakh-sq-ft-lease-agreement-with-rubrik-in-bengaluru",
+    "https://www.progress.com/company/offices",
+    "https://www.mathworks.com/company/aboutus/contact_us.html"
+   ]
+  },
+  {
+   "name": "Embassy GolfLinks Business Park",
+   "aliases": [
+    "Embassy Golf Links",
+    "EGL",
+    "Embassy Golflinks"
+   ],
+   "locality": "Domlur / Challaghatta (Intermediate Ring Road)",
+   "developer": "Embassy",
+   "lat": 12.95025,
+   "lng": 77.64407,
+   "bbox": [
+    12.9456,
+    12.954,
+    77.6398,
+    77.6473
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "ServiceNow",
+    "New Relic",
+    "Datadog",
+    "Autodesk",
+    "Trellix",
+    "OpenText",
+    "Elastic",
+    "Microsoft",
+    "Target",
+    "IBM"
+   ],
+   "description": "Embassy's business park off the Intermediate Ring Road beside the KGA golf course, made up of named buildings (Pine Valley, St. Andrews, Princeville, Sunriver, Cherry Hills, Cyber Park); it is the densest cluster of SaaS and observability vendors in the city, with New Relic, Datadog, ServiceNow, Autodesk, Trellix and an OpenText WeWork all naming buildings here.",
+   "sources": [
+    "https://newrelic.com/about/contact-us",
+    "https://www.datadoghq.com/about/contact/",
+    "https://builtin.com/company/servicenow/offices",
+    "https://www.opentext.com/about/office-locations"
+   ]
+  },
+  {
+   "name": "Bagmane Tech Park",
+   "aliases": [
+    "Bagmane Tech Park CV Raman Nagar",
+    "BTP"
+   ],
+   "locality": "C V Raman Nagar / Byrasandra",
+   "developer": "Bagmane",
+   "lat": 12.97869,
+   "lng": 77.66245,
+   "bbox": [
+    12.9773,
+    12.9803,
+    77.6562,
+    77.6664
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Palo Alto Networks",
+    "Commvault",
+    "Informatica",
+    "Splunk (AppDynamics)",
+    "OpenText",
+    "Cisco"
+   ],
+   "description": "Bagmane Developers' park in C V Raman Nagar with named buildings (Quay, Commerz 1/02, Laurel, Olympia, Tridib, Parin); it hosts a security and data-management cluster - Palo Alto Networks and Commvault in Quay, Informatica in Commerz 02, Splunk's AppDynamics unit in Commerz, OpenText in Laurel and Olympia, and a Cisco office in Commerz 1.",
+   "sources": [
+    "https://www.paloaltonetworks.com/company/locations",
+    "https://www.commvault.com/contact-us",
+    "https://www.informatica.com/about-us/company-information/contact-locations.html",
+    "https://www.opentext.com/about/office-locations"
+   ]
+  },
+  {
+   "name": "Bagmane Constellation Business Park",
+   "aliases": [
+    "Bagmane Constellation",
+    "BCBP"
+   ],
+   "locality": "Doddanekundi (Outer Ring Road)",
+   "developer": "Bagmane",
+   "lat": 12.98094,
+   "lng": 77.69715,
+   "bbox": [
+    12.9786,
+    12.984,
+    77.6949,
+    77.7006
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Red Hat",
+    "Zscaler",
+    "Qualcomm",
+    "Amazon"
+   ],
+   "description": "Bagmane's business park at Doddanekundi Circle on the Outer Ring Road, with star-named buildings (Carina, Orion, Virgo, Luxor, Falcon); Red Hat's Bangalore Engineering Office is on the 10th floor of Carina and Zscaler occupies the 11th floor of Orion.",
+   "sources": [
+    "https://www.redhat.com/en/about/office-locations",
+    "https://www.zscaler.com/company/contact"
+   ]
+  },
+  {
+   "name": "Bagmane Capital",
+   "aliases": [
+    "Bagmane Capital Business Park",
+    "Bagmane Capital Park"
+   ],
+   "locality": "Mahadevapura / Doddanekundi",
+   "developer": "Bagmane",
+   "lat": 12.98499,
+   "lng": 77.70249,
+   "bbox": [
+    12.9824,
+    12.9882,
+    77.7005,
+    77.7048
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Databricks",
+    "Google"
+   ],
+   "description": "Bagmane's newest Outer Ring Road campus next to Constellation; Databricks opened a 105,000 sq ft Bengaluru R&D office here in 2025, and Google renewed a large lease in the park.",
+   "sources": [
+    "https://www.databricks.com/company/newsroom/press-releases/databricks-invest-over-us250-million-india-over-next-three-years"
+   ]
+  },
+  {
+   "name": "RMZ Ecospace",
+   "aliases": [
+    "Pritech Park SEZ",
+    "PriTech Park",
+    "Ecospace Business Park"
+   ],
+   "locality": "Bellandur (Outer Ring Road)",
+   "developer": "RMZ",
+   "lat": 12.92387,
+   "lng": 77.68133,
+   "bbox": [
+    12.9201,
+    12.9282,
+    77.6782,
+    77.6828
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Intuit",
+    "Broadcom (VMware)",
+    "Cisco",
+    "HP"
+   ],
+   "description": "RMZ's Bellandur campus on the Outer Ring Road, numbered Campus 1A-1C through 4A/4B with an SEZ portion marketed as Pritech Park SEZ; Intuit India's development centre sits in Campus 4A/8 and the former VMware campus (Campus 1A/1C) is now mapped as Broadcom.",
+   "sources": [
+    "https://builtinbengaluru.in/company/intuit/offices",
+    "https://www.openstreetmap.org/way/85691873"
+   ]
+  },
+  {
+   "name": "RMZ Ecoworld",
+   "aliases": [
+    "Ecoworld",
+    "RMZ Ecoworld SEZ"
+   ],
+   "locality": "Devarabeesanahalli / Bellandur (Outer Ring Road)",
+   "developer": "RMZ",
+   "lat": 12.92981,
+   "lng": 77.68463,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Cadence Design Systems",
+    "SAP Ariba",
+    "Microsoft"
+   ],
+   "description": "RMZ's large campus east of Ecospace on the Outer Ring Road at Devarabeesanahalli, built as numbered buildings (Ecoworld 1 to 8) with an SEZ; Cadence's Bengaluru design centre is mapped at Campus 4A/4B on RMZ Ecoworld Road, and OSM records SAP Ariba and Microsoft offices nearby. Centroid is a Nominatim hit on 'RMZ Ecoworld Internal Road', not a polygon.",
+   "sources": [
+    "https://www.openstreetmap.org/node/4445385041"
+   ]
+  },
+  {
+   "name": "Prestige Technostar",
+   "aliases": [
+    "Technostar"
+   ],
+   "locality": "Doddanekundi Industrial Area",
+   "developer": "Prestige",
+   "lat": 12.97315,
+   "lng": 77.71078,
+   "bbox": [
+    12.9723,
+    12.9744,
+    77.7091,
+    77.7115
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "o9 Solutions"
+   ],
+   "description": "Prestige Group's two-building office campus off ITPL Main Road in Doddanekundi Industrial Area (also home to an Executive Centre flexible-office site); o9 Solutions' Bengaluru office is Level 9 of Building 2.",
+   "sources": [
+    "https://builtinbengaluru.in/company/o9-solutions/offices"
+   ]
+  },
+  {
+   "name": "Brigade Tech Gardens",
+   "aliases": [
+    "Brigade Tech Gardens Brookefield"
+   ],
+   "locality": "Brookefield / Kundalahalli",
+   "developer": "Brigade",
+   "lat": 12.9641,
+   "lng": 77.71977,
+   "bbox": [
+    12.9624,
+    12.9654,
+    77.7178,
+    77.7226
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Manhattan Associates"
+   ],
+   "description": "Brigade Enterprises' office campus in Brookefield off ITPL Main Road, laid out as lettered blocks (B1, B2 ...); Manhattan Associates India's development centre occupies the 5th and 6th floors of B1 Block.",
+   "sources": [
+    "https://www.manh.com/en-in/contact-us"
+   ]
+  },
+  {
+   "name": "RMZ Infinity",
+   "aliases": [
+    "RMZ Infinity Old Madras Road"
+   ],
+   "locality": "Benniganahalli / Old Madras Road",
+   "developer": "RMZ",
+   "lat": 12.99444,
+   "lng": 77.66092,
+   "bbox": [
+    12.9929,
+    12.9955,
+    77.6592,
+    77.6622
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Freshworks",
+    "Synopsys"
+   ],
+   "description": "RMZ's multi-tower office park on Old Madras Road at Benniganahalli (towers A-E); Freshworks' Bengaluru office is on the 7th floor of Tower D and Synopsys has an India office here.",
+   "sources": [
+    "https://builtinbengaluru.in/company/freshworks/offices"
+   ]
+  },
+  {
+   "name": "RMZ Millenia",
+   "aliases": [
+    "The Millennia",
+    "The Millenia",
+    "RMZ Millenia Business Park Ulsoor"
+   ],
+   "locality": "Ulsoor / Murphy Road",
+   "developer": "RMZ",
+   "lat": 12.98263,
+   "lng": 77.62476,
+   "bbox": [
+    12.982,
+    12.9836,
+    77.6241,
+    77.6256
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Fortinet"
+   ],
+   "description": "RMZ's business park at 1 & 2 Murphy Road, Ulsoor (towers A-D); Fortinet Technologies India's Bengaluru office and 2016 Innovation Centre occupy units in Tower C.",
+   "sources": [
+    "https://www.fortinet.com/corporate/about-us/global-offices"
+   ]
+  },
+  {
+   "name": "Mantri Commercio",
+   "aliases": [
+    "Mantri Commercio Bellandur"
+   ],
+   "locality": "Bellandur (Outer Ring Road)",
+   "developer": "Mantri",
+   "lat": 12.93245,
+   "lng": 77.68381,
+   "bbox": [
+    12.9317,
+    12.9337,
+    77.6832,
+    77.6842
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Blue Yonder"
+   ],
+   "description": "Mantri Developers' twin-tower office building on the Outer Ring Road near Sakra World Hospital; Blue Yonder (formerly JDA) keeps its Bengaluru office in Tower A.",
+   "sources": [
+    "https://builtinbengaluru.in/company/blue-yonder/offices"
+   ]
+  },
+  {
+   "name": "Divyasree Technopolis",
+   "aliases": [
+    "DivyaSree Technopolis"
+   ],
+   "locality": "Yemalur / Old Airport Road",
+   "developer": "DivyaSree",
+   "lat": 12.94725,
+   "lng": 77.69439,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Sprinklr"
+   ],
+   "description": "DivyaSree Developers' office campus on Old Airport Road at Yemalur (near its 77 East and 77 Town Centre projects); Sprinklr's Bengaluru office is the 3rd-floor East Wing. The point is a geocode of the adjacent DivyaSree 77 East, so treat it as approximate.",
+   "sources": [
+    "https://builtinbengaluru.in/company/sprinklr/offices"
+   ]
+  },
+  {
+   "name": "SJR Primeco Union City",
+   "aliases": [
+    "Primeco Union City"
+   ],
+   "locality": "Kadugodi / Pattandur Agrahara (ITPL Main Road)",
+   "developer": "SJR Primeco",
+   "lat": 12.98906,
+   "lng": 77.73263,
+   "bbox": [
+    12.988,
+    12.9901,
+    77.7315,
+    77.7336
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Epicor"
+   ],
+   "description": "SJR Primeco's office development on ITPL Main Road at Kadugodi Gate, Whitefield; Epicor's India development centre is on the 12th floor of Block B.",
+   "sources": [
+    "https://builtinbengaluru.in/company/epicor/offices"
+   ]
+  },
+  {
+   "name": "Prestige Trade Tower",
+   "aliases": [
+    "Prestige Trade Towers"
+   ],
+   "locality": "Palace Road / High Grounds",
+   "developer": "Prestige",
+   "lat": 12.98581,
+   "lng": 77.58782,
+   "bbox": [
+    12.9854,
+    12.9862,
+    77.5872,
+    77.5885
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Automation Anywhere"
+   ],
+   "description": "Prestige's high-rise office tower at 45/1 Palace Road in the CBD; Automation Anywhere's India headquarters is on the 12th floor.",
+   "sources": [
+    "https://www.automationanywhere.com/company/global-presence"
+   ]
+  },
+  {
+   "name": "UB City",
+   "aliases": [
+    "UB City Concorde Towers",
+    "Concorde Towers"
+   ],
+   "locality": "Vittal Mallya Road",
+   "developer": "Prestige / UB Group",
+   "lat": 12.97256,
+   "lng": 77.59577,
+   "bbox": [
+    12.9712,
+    12.9734,
+    77.5949,
+    77.5969
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "SAS",
+    "Regus"
+   ],
+   "description": "Luxury mixed-use complex on Vittal Mallya Road with the Concorde, Canberra and Comet office towers; SAS India's Bengaluru office is a Regus suite on Levels 14-15 of Concorde Towers.",
+   "sources": [
+    "https://www.sas.com/en_in/contact.html"
+   ]
+  },
+  {
+   "name": "Cessna Business Park",
+   "aliases": [
+    "Cessna Business Park Kadubeesanahalli"
+   ],
+   "locality": "Kadubeesanahalli (Outer Ring Road)",
+   "developer": "Prestige",
+   "lat": 12.9348,
+   "lng": 77.69482,
+   "bbox": [
+    12.9315,
+    12.9376,
+    77.6914,
+    77.6976
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Cisco",
+    "Salesforce",
+    "Walmart Global Tech"
+   ],
+   "description": "Prestige-developed campus on the Sarjapur-Marathahalli Outer Ring Road best known as Cisco's Bengaluru campus (Cisco lists two office codes here); OSM also records Salesforce and Walmart offices in the park.",
+   "sources": [
+    "https://www.cisco.com/site/us/en/about/contact-cisco/global-office-locations.html"
+   ]
+  },
+  {
+   "name": "NetApp Bangalore Campus",
+   "aliases": [
+    "NetApp India campus Hoodi"
+   ],
+   "locality": "Hoodi / ITPL Main Road",
+   "developer": null,
+   "lat": 12.99434,
+   "lng": 77.70842,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "NetApp"
+   ],
+   "description": "NetApp's own corporate campus on ITPL Main Road at Hoodi, its largest engineering site outside the United States.",
+   "sources": [
+    "https://builtinbengaluru.in/company/netapp/offices"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "ServiceNow",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "Workflow-automation SaaS (Now Platform); Bengaluru hosts product, engineering and customer-support teams in two buildings beside Embassy GolfLinks.",
+   "founded": 2004,
+   "hqCity": "Santa Clara",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.servicenow.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - The Fairway, Domlur",
+     "techPark": null,
+     "building": "The Fairway",
+     "locality": "Domlur / Challaghatta",
+     "address": "The Fairway, 6th Floor, Challaghatta, next to Embassy Golf Links, Domlur, Bengaluru 560071",
+     "lat": 12.9547,
+     "lng": 77.64177,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Built In's ServiceNow offices page lists 'The Fairway, 6th Floor, Survey No 10/1, 11/2 and 12/2B, Challaghatta, Next to Embassy Golf Links, Domlur 560071' (https://builtin.com/company/servicenow/offices); coordinates are a street-level geocode of Embassy Golf Links Road, not the building footprint.",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Bengaluru - Pine Valley, Embassy GolfLinks",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Pine Valley",
+     "locality": "Domlur",
+     "address": "Pine Valley, Level 1, Embassy Golf Links Business Park, Off Intermediate Ring Road, Domlur, Bengaluru 560071",
+     "lat": 12.94997,
+     "lng": 77.64324,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Built In lists a second Bengaluru office at 'Pine Valley, Level 1, Embassy Golf Links Business Park, Off Intermediate Ring Rd, Domlur 560071' (https://builtin.com/company/servicenow/offices); park centroid used.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://builtin.com/company/servicenow/offices",
+    "https://builtinbengaluru.in/company/servicenow",
+    "https://www.servicenow.com/company/locations.html"
+   ]
+  },
+  {
+   "name": "Databricks",
+   "aliases": [],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "AI & deep tech",
+   "description": "Data + AI lakehouse platform; Bengaluru R&D centre opened May 2023 and moved in 2025 into a 105,000 sq ft office at Bagmane Capital with 100+ engineers.",
+   "founded": 2013,
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "isUnicorn": true,
+   "website": "https://www.databricks.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru R&D centre - Bagmane Capital",
+     "techPark": "Bagmane Capital",
+     "building": null,
+     "locality": "Mahadevapura / Doddanekundi",
+     "address": "Bagmane Capital, Outer Ring Road, Mahadevapura, Bengaluru",
+     "lat": 12.98499,
+     "lng": 77.70249,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Databricks press release (24 Apr 2025) describes 'a 105,000-square-foot state-of-the-art workspace at Bagmane Capital Park' for its Bengaluru R&D centre (https://www.databricks.com/company/newsroom/press-releases/databricks-invest-over-us250-million-india-over-next-three-years); park centroid used.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.databricks.com/company/newsroom/press-releases/databricks-invest-over-us250-million-india-over-next-three-years",
+    "https://www.databricks.com/blog/introducing-databricks-bengaluru-development-center"
+   ]
+  },
+  {
+   "name": "Snowflake",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "AI Data Cloud company; opened a Bengaluru hub on Vittal Mallya Road in August 2025 for engineering, product and customer operations, alongside its Pune and Mumbai offices.",
+   "founded": 2012,
+   "hqCity": "Bozeman",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.snowflake.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru hub - Coffee Day Square, Vittal Mallya Road",
+     "techPark": null,
+     "building": "Coffee Day Square (Table Space)",
+     "locality": "Vittal Mallya Road / Ashok Nagar",
+     "address": "1st Floor, Table Space, 23/2 Coffee Day Square, Vittal Mallya Road, Bengaluru 560001",
+     "lat": 12.97178,
+     "lng": 77.59582,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Built In lists '1st floor, Table Space, 23/2 Coffee Day Square, Vittal Mallya Road, Bengaluru 560001' (https://builtinbengaluru.in/company/snowflake/offices) and YourStory reported the 25 Aug 2025 opening at 'The Square on Vittal Mallya Road' (https://yourstory.com/ai-story/snowflake-bengaluru-office-india-expansion); coordinates are a street-level geocode on Vittal Mallya Road.",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/snowflake/offices",
+    "https://yourstory.com/ai-story/snowflake-bengaluru-office-india-expansion"
+   ]
+  },
+  {
+   "name": "Rubrik",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Cyber-resilience / data-security company (NYSE: RBRK); signed a 2.07 lakh sq ft agreement to lease at Embassy TechVillage in January 2025 for its Bengaluru engineering hub.",
+   "founded": 2014,
+   "hqCity": "Palo Alto",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.rubrik.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Embassy TechVillage",
+     "techPark": "Embassy TechVillage",
+     "building": null,
+     "locality": "Devarabeesanahalli / Bellandur (ORR)",
+     "address": "Embassy TechVillage, Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.92932,
+     "lng": 77.69071,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Embassy REIT's 9 Jan 2025 filing disclosed a 2.07 lakh sq ft agreement to lease with Rubrik at Embassy TechVillage (https://therealtytoday.com/news/embassy-reit-secures-207-lakh-sq-ft-lease-agreement-with-rubrik-in-bengaluru, https://realtynmore.com/embassy-reit-leases-207000-sq-ft-to-rubrik-at-embassy-techvillage-bengaluru/); OSM office POI 'Rubrik' sits inside the park.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://therealtytoday.com/news/embassy-reit-secures-207-lakh-sq-ft-lease-agreement-with-rubrik-in-bengaluru",
+    "https://realtynmore.com/embassy-reit-leases-207000-sq-ft-to-rubrik-at-embassy-techvillage-bengaluru/"
+   ]
+  },
+  {
+   "name": "Nutanix",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Hybrid multicloud infrastructure software; its India HQ and largest R&D centre (about 200,000 sq ft, commissioned 2020) is in the Mercury Block of Prestige Tech Park.",
+   "founded": 2009,
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.nutanix.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India HQ - Mercury Block, Prestige Tech Park",
+     "techPark": "Prestige Tech Park",
+     "building": "Mercury Block",
+     "locality": "Kadubeesanahalli (ORR)",
+     "address": "9th Floor, Mercury Block, Prestige Technology Park, Marathahalli-Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.94395,
+     "lng": 77.69397,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Nutanix's global offices page lists 'Nutanix Technologies India Private Limited, 9th Floor Mercury Block, Prestige Technology Park, Marathahalli Kadabeesanahalli, Bengaluru 560103' (https://www.nutanix.com/company/global-offices); People Matters reported the ~200,000 sq ft India HQ in Feb 2020.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.nutanix.com/company/global-offices",
+    "https://www.peoplematters.in/news/ai-and-emerging-tech/enterprise-cloud-firm-nutanix-commissions-new-india-hq-24682"
+   ]
+  },
+  {
+   "name": "Pure Storage",
+   "aliases": [
+    "Everpure",
+    "Pure Storage India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "All-flash data-storage platform (rebranding as Everpure); its Asia Pacific Research and Development Centre opened in central Bengaluru in June 2022.",
+   "founded": 2009,
+   "hqCity": "Santa Clara",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.purestorage.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Asia Pacific R&D centre - Church Street",
+     "techPark": null,
+     "building": null,
+     "locality": "Church Street / Ashok Nagar",
+     "address": "Church Street, Ashok Nagar, Bengaluru 560001",
+     "lat": 12.97535,
+     "lng": 77.60191,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The company's careers-locations page says the 'Asia Pacific Research and Development Center is located in the heart of Bangalore' (https://www.everpuredata.com/company/careers/locations.html); OSM office POI 'Pure Storage India' on Church Street, Ashok Nagar 560001 supplies the location; the building name is unconfirmed.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.everpuredata.com/company/careers/locations.html",
+    "https://analyticsindiamag.com/ai-news-updates/pure-storage-launches-rd-centre-in-bengaluru"
+   ]
+  },
+  {
+   "name": "Confluent",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Data-streaming platform built on Apache Kafka; opened its Bengaluru engineering hub in July 2022 in the Etamin Block of Prestige Tech Park.",
+   "founded": 2014,
+   "hqCity": "Mountain View",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.confluent.io",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru engineering hub - Etamin Block, Prestige Tech Park",
+     "techPark": "Prestige Tech Park",
+     "building": "Etamin Block",
+     "locality": "Kadubeesanahalli (ORR)",
+     "address": "9th Floor, Etamin Block, Wing B, Prestige Tech Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.94371,
+     "lng": 77.69107,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Built In lists '9th Floor, Etamin Block, Wing B, Prestige Tech Park, ORR, Kadubeesanahalli 560103' (https://builtinbengaluru.in/company/confluent/offices); Confluent's 12 Jul 2022 release announced the Bangalore office and engineering hub (https://www.confluent.io/press-release/confluent-expands-local-presence-india/); OSM office POI 'Confluent' sits inside the park.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/confluent/offices",
+    "https://www.confluent.io/press-release/confluent-expands-local-presence-india/"
+   ]
+  },
+  {
+   "name": "MongoDB",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Developer data platform (document database); Bengaluru hosts hybrid engineering and technical-services teams at Vaswani Centropolis, with its larger India hub in Gurugram.",
+   "founded": 2007,
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.mongodb.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Vaswani Centropolis, Langford Road",
+     "techPark": null,
+     "building": "Vaswani Centropolis",
+     "locality": "Langford Town / Shanthinagar",
+     "address": "Unit 201, 2nd Floor, Vaswani Centropolis, 21 Langford Road, Akkithimanahalli, Bengaluru 560027",
+     "lat": 12.96124,
+     "lng": 77.59808,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "MongoDB's office-locations page lists 'Unit No. 201, 2nd Floor, Vaswani Centropolis, 21, Langford Road, Akkithimana Halli, Bengaluru 560 027' (https://www.mongodb.com/company/office-locations).",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.mongodb.com/company/office-locations"
+   ]
+  },
+  {
+   "name": "Elastic",
+   "aliases": [
+    "Elasticsearch"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Search, observability and security software (Elasticsearch); Bengaluru is described as its largest India office, reported at Sunriver in Embassy GolfLinks.",
+   "founded": 2012,
+   "hqCity": "Amsterdam",
+   "hqCountry": "Netherlands",
+   "isUnicorn": false,
+   "website": "https://www.elastic.co",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Embassy GolfLinks (Sunriver)",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Sunriver",
+     "locality": "Domlur",
+     "address": "Sunriver, Embassy Golf Links Business Park, Domlur, Bengaluru 560071",
+     "lat": 12.94997,
+     "lng": 77.64324,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only a careers aggregator places Elastic's Bengaluru office at 'Embassy Golf Links / Sunriver' (https://www.ownyourcareer.in/companies/elastic); Built In confirms a Bengaluru hybrid office but gives no address; park centroid used.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.ownyourcareer.in/companies/elastic",
+    "https://builtinbengaluru.in/company/elastic/offices"
+   ]
+  },
+  {
+   "name": "Palo Alto Networks",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Cybersecurity platform company; its Bengaluru engineering and customer-support office is in the Quay Building of Bagmane Tech Park and added 500+ seats across two floors in February 2026.",
+   "founded": 2005,
+   "hqCity": "Santa Clara",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.paloaltonetworks.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Quay Building, Bagmane Tech Park",
+     "techPark": "Bagmane Tech Park",
+     "building": "Quay Building",
+     "locality": "C V Raman Nagar",
+     "address": "2nd Floor, Quay Building, Bagmane Tech Park, C V Raman Nagar, Bengaluru 560093",
+     "lat": 12.98001,
+     "lng": 77.66496,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Palo Alto Networks' locations page lists '2nd Floor, Quay Building, Bagmane Tech Park, C V Raman Nagar, Bengaluru 560093' (https://www.paloaltonetworks.com/company/locations); OSM office POI 'Palo Alto Networks' is in the park; the Feb 2026 expansion added 500+ seats on two floors (https://www.cxotoday.com/press-release/palo-alto-networks-expands-bengaluru-office-to-enhance-regional-customer-support-and-innovation/).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.paloaltonetworks.com/company/locations",
+    "https://www.cxotoday.com/press-release/palo-alto-networks-expands-bengaluru-office-to-enhance-regional-customer-support-and-innovation/"
+   ]
+  },
+  {
+   "name": "Fortinet",
+   "aliases": [
+    "Fortinet Technologies India Pvt Ltd",
+    "Fortinet Innovation Centre India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Network-security vendor; Fortinet Technologies India's Bengaluru office and 2016 Innovation Centre (Wi-Fi and network-security R&D, ~120-150 engineers) sit in Tower C of The Millennia (RMZ Millenia), Ulsoor.",
+   "founded": 2000,
+   "hqCity": "Sunnyvale",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.fortinet.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Tower C, The Millennia (RMZ Millenia)",
+     "techPark": "RMZ Millenia",
+     "building": "Tower C",
+     "locality": "Ulsoor / Murphy Road",
+     "address": "2nd & 3rd Floor, Tower C, The Millennia, No 1 & 2 Murphy Road, Ulsoor, Bengaluru 560008",
+     "lat": 12.98198,
+     "lng": 77.62404,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Fortinet's global-offices page lists 'Fortinet Technologies India Pvt Ltd, C1 & C2-201, C1 & C2-301, 2nd & 3rd floor, Tower-C, The Millennia, No 1 & 2, Murphy Road, Ulsoor, Bangalore 560 008' plus a ground-floor unit in the same tower (https://www.fortinet.com/corporate/about-us/global-offices); the 2016 Innovation Centre launch is in Business World (https://businessworld.in/article/fortinet-strengthens-india-operations-with-new-innovation-centre--105168).",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.fortinet.com/corporate/about-us/global-offices",
+    "https://businessworld.in/article/fortinet-strengthens-india-operations-with-new-innovation-centre--105168"
+   ]
+  },
+  {
+   "name": "Zscaler",
+   "aliases": [
+    "Zscaler India Technology Center"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Cloud-security (zero trust) company; its Bengaluru India Technology Center (est. 2016, ~2,400 staff per GCC trackers) runs from Bren Optimus in Adugodi and the Orion building of Bagmane Constellation.",
+   "founded": 2007,
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.zscaler.com",
+   "bengaluruEmployeesApprox": 2400,
+   "offices": [
+    {
+     "label": "Bengaluru - Bren Optimus, Adugodi",
+     "techPark": null,
+     "building": "Bren Optimus",
+     "locality": "Adugodi / Dairy Colony",
+     "address": "Bren Optimus, 3rd Floor, 8/2 Dr M H Marigowda Road, Dairy Colony, Adugodi, Bengaluru 560029",
+     "lat": 12.93734,
+     "lng": 77.60695,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Zscaler's contact page lists 'Bren Optimus, 3rd floor, 8/2 Dr. M.H. Marigowda Road, Dairy Colony, Adugodi, Bengaluru 560029' (https://www.zscaler.com/company/contact); OSM office POI 'Zscaler' is at Bren Optimus.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Bengaluru - Orion, Bagmane Constellation",
+     "techPark": "Bagmane Constellation Business Park",
+     "building": "Orion",
+     "locality": "Doddanekundi",
+     "address": "11th Floor, Orion Building, Bagmane Constellation Business Park, Ferns City Road, Doddanekundi, Bengaluru 560048",
+     "lat": 12.98094,
+     "lng": 77.69715,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Zscaler's contact page lists '11th Floor, Bagmane Constellation Business Park, Orion Building, Ferns City Road, Doddanekkundi, Bengaluru 560048' (https://www.zscaler.com/company/contact); park centroid used.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.zscaler.com/company/contact",
+    "https://www.businessofgcc.com/gcc-data/companies/zscaler-india-bangalore"
+   ]
+  },
+  {
+   "name": "Okta",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Identity-management company; opened its Indian headquarters and first Asia-Pacific innovation centre in Bengaluru in August 2023, described only as being in S.R. Nagar.",
+   "founded": 2009,
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.okta.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India HQ / Innovation Center - S.R. Nagar",
+     "techPark": null,
+     "building": null,
+     "locality": "Sampangi Rama Nagar (S.R. Nagar)",
+     "address": "S.R. Nagar (Sampangi Rama Nagar), Bengaluru",
+     "lat": 12.96661,
+     "lng": 77.59251,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Okta's 10 Aug 2023 India launch release says the Indian headquarters 'will be located in S.R. Nagar, Bengaluru' (https://cxotoday.com/press-release/okta-enters-the-indian-market-with-new-offices-and-innovation-center-expanding-asia-pacific-investment/); no building is named, so the locality centroid is used.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://cxotoday.com/press-release/okta-enters-the-indian-market-with-new-offices-and-innovation-center-expanding-asia-pacific-investment/",
+    "https://www.okta.com/company/bengaluru-office/"
+   ]
+  },
+  {
+   "name": "Splunk",
+   "aliases": [
+    "AppDynamics",
+    "Cisco Splunk"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Observability and security analytics (a Cisco company since 2024); its Bengaluru office is the AppDynamics Technologies India site in the Commerz Building of Bagmane Tech Park, with a larger Hyderabad site.",
+   "founded": 2003,
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.splunk.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Commerz Building, Bagmane Tech Park (AppDynamics)",
+     "techPark": "Bagmane Tech Park",
+     "building": "Commerz",
+     "locality": "C V Raman Nagar",
+     "address": "Commerz Building, Bagmane Tech Park, Krishnappa Garden Road, C V Raman Nagar, Bengaluru 560093",
+     "lat": 12.97914,
+     "lng": 77.65803,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Splunk's contact page lists its Bengaluru office as 'AppDynamics Technologies India Private Limited, Commerz Building, Bagmane Tech Park, Krishnappa Garden Rd, C V Raman Nagar, Bengaluru 560093' (https://www.splunk.com/en_us/about-us/contact.html).",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.splunk.com/en_us/about-us/contact.html"
+   ]
+  },
+  {
+   "name": "Cisco",
+   "aliases": [
+    "Cisco Systems India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Telecom & networking",
+   "description": "Networking, security and collaboration giant; its Bengaluru campuses at Cessna Business Park and Embassy TechVillage form one of Cisco's largest R&D sites outside the US, with further offices in Bagmane Tech Park and on MG Road.",
+   "founded": 1984,
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.cisco.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Cisco Bengaluru campus - Cessna Business Park",
+     "techPark": "Cessna Business Park",
+     "building": null,
+     "locality": "Kadubeesanahalli (ORR)",
+     "address": "Cessna Business Park, Kadubeesanahalli, Sarjapur-Marathahalli Outer Ring Road, Bengaluru 560103",
+     "lat": 12.93449,
+     "lng": 77.69604,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Cisco's global office list gives 'BANGALORE 11' and 'BANGALORE 15' at 'Cessna Business Park, Kadubeesanahalli, Varthur Hobli, Sarjapur Marathalli ORR, Bangalore 560103' (https://www.cisco.com/site/us/en/about/contact-cisco/global-office-locations.html); OSM maps a Cisco building there.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Cisco SEZ - Embassy TechVillage",
+     "techPark": "Embassy TechVillage",
+     "building": null,
+     "locality": "Devarabeesanahalli / Panathur",
+     "address": "SEZ, Embassy TechVillage, Panathur, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.93144,
+     "lng": 77.69131,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Cisco's global office list gives 'BANGALORE 26 | SEZ, Embassy Tech Village, Panathur, Devarabeesanahalli, Bangalore 560103' (https://www.cisco.com/site/us/en/about/contact-cisco/global-office-locations.html); OSM has a Cisco office POI inside the park.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Cisco - Bagmane Commerz 1",
+     "techPark": "Bagmane Tech Park",
+     "building": "Commerz 1",
+     "locality": "C V Raman Nagar",
+     "address": "Bagmane Commerz 1, Bagmane Tech Park, C V Raman Nagar, Bengaluru 560093",
+     "lat": 12.97914,
+     "lng": 77.65803,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Cisco's global office list gives 'BANGALORE 50 | Bagmane Commerz 1, CV Raman Nagar, Bangalore 560093' (https://www.cisco.com/site/us/en/about/contact-cisco/global-office-locations.html).",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Cisco - Brigade South Parade, MG Road",
+     "techPark": null,
+     "building": "Brigade South Parade",
+     "locality": "MG Road",
+     "address": "Brigade South Parade, 10 Mahatma Gandhi Road, Bengaluru 560001",
+     "lat": 12.97387,
+     "lng": 77.61734,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Cisco's global office list gives 'BANGALORE 06 | Brigade South Parade, No. 10, Mahatma Gandhi Road, Bangalore 560001' (https://www.cisco.com/site/us/en/about/contact-cisco/global-office-locations.html); OSM maps Brigade South Parade.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.cisco.com/site/us/en/about/contact-cisco/global-office-locations.html"
+   ]
+  },
+  {
+   "name": "New Relic",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "Observability platform; its Bengaluru office is in the St. Andrews (Signature) building of Embassy GolfLinks, with a second India site in Hyderabad.",
+   "founded": 2008,
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://newrelic.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - St. Andrews, Embassy GolfLinks",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "St. Andrews",
+     "locality": "Domlur / Challaghatta",
+     "address": "2nd Floor, St. Andrews Building, Embassy GolfLinks Business Park, 15 Challaghatta Village, Bengaluru 560071",
+     "lat": 12.95104,
+     "lng": 77.64408,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "New Relic's contact page lists 'Second Floor, St. Andrews Building (Signature Building), Embassy Golflinks Business Park, No 15 Challaghatta Village, Bengaluru 560071' (https://newrelic.com/about/contact-us).",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://newrelic.com/about/contact-us"
+   ]
+  },
+  {
+   "name": "Datadog",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "Cloud monitoring and security SaaS; its Bengaluru engineering office is on the ground floor of Princeville in Embassy GolfLinks.",
+   "founded": 2010,
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.datadoghq.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Princeville, Embassy GolfLinks",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Princeville",
+     "locality": "Domlur",
+     "address": "Princeville, Ground Floor, Embassy Golf Links Business Park, off Intermediate Ring Road, Domlur, Bengaluru 560071",
+     "lat": 12.94946,
+     "lng": 77.64323,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Datadog's contact page lists 'Princeville, Ground floor, off Intermediate Ring Road, Embassy Golf Links Business Park, Domlur, Bengaluru 560071' (https://www.datadoghq.com/about/contact/).",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.datadoghq.com/about/contact/"
+   ]
+  },
+  {
+   "name": "Freshworks",
+   "aliases": [
+    "Freshdesk"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "Customer- and employee-experience SaaS founded in Chennai and headquartered in San Mateo (Nasdaq: FRSH); Bengaluru office in Tower D of RMZ Infinity on Old Madras Road, beside its Chennai HQ and Hyderabad site.",
+   "founded": 2010,
+   "hqCity": "San Mateo",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.freshworks.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - RMZ Infinity Tower D",
+     "techPark": "RMZ Infinity",
+     "building": "Tower D",
+     "locality": "Benniganahalli / Old Madras Road",
+     "address": "Units 701-702, 7th Floor, Tower D, RMZ Infinity, 3 Old Madras Road, Benniganahalli, Bengaluru 560016",
+     "lat": 12.99381,
+     "lng": 77.66005,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Built In lists 'Unit No. 701 and 702, RMZ Infinity Tower D, 7th Floor, No. 3 Old Madras Road, Benniganahalli, Bengaluru 560016' (https://builtinbengaluru.in/company/freshworks/offices); Tower D geocoded on Old Madras Road.",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/freshworks/offices"
+   ]
+  },
+  {
+   "name": "Zoho",
+   "aliases": [
+    "Zoho Corporation",
+    "AdventNet"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "SaaS",
+   "description": "Bootstrapped Indian SaaS major (Zoho One, CRM) headquartered in Chennai with 15,000+ staff; its Bengaluru office is a unit in Signature Towers at Brigade Golden Triangle on Old Madras Road.",
+   "founded": 1996,
+   "hqCity": "Chennai",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.zoho.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Signature Towers, Brigade Golden Triangle",
+     "techPark": null,
+     "building": "Signature Towers, Brigade Golden Triangle",
+     "locality": "Huskur / Old Madras Road",
+     "address": "A-908, Signature Towers, Brigade Golden Triangle, Old Madras Road, Huskur Village, Bengaluru 560049",
+     "lat": 13.05543,
+     "lng": 77.762,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Zoho's contact page lists 'A-908, Signature Towers - Brigade Golden Triangle, Old Madras Rd, Sy No 50, Huskur Village, Bengaluru 560049' (https://www.zoho.com/contact.html); Brigade Golden Triangle geocoded via Nominatim.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.zoho.com/contact.html"
+   ]
+  },
+  {
+   "name": "Automation Anywhere",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Robotic-process-automation (agentic automation) vendor; its India headquarters is on the 12th floor of Prestige Trade Tower on Palace Road, with development centres in Vadodara.",
+   "founded": 2003,
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "isUnicorn": true,
+   "website": "https://www.automationanywhere.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India HQ - Prestige Trade Tower, Palace Road",
+     "techPark": "Prestige Trade Tower",
+     "building": null,
+     "locality": "Palace Road / Sampangi Rama Nagar",
+     "address": "12th Floor, Prestige Trade Tower, 45/1 Palace Road, High Grounds, Bengaluru 560001",
+     "lat": 12.98581,
+     "lng": 77.58782,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Automation Anywhere's global-presence page lists 'Automation Anywhere Software Private Limited, 12th Floor, Prestige Trade Towers, 45/1, Palace Road, High Grounds, Sampangi Rama Nagar, Bengaluru 560001' (https://www.automationanywhere.com/company/global-presence); OSM maps Prestige Trade Tower.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.automationanywhere.com/company/global-presence"
+   ]
+  },
+  {
+   "name": "UiPath",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "RPA / agentic-automation platform (NYSE: PATH); its Bengaluru office is in the VRR Royal commercial complex in HSR Layout.",
+   "founded": 2005,
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.uipath.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - VRR Royal, HSR Layout",
+     "techPark": null,
+     "building": "VRR Royal",
+     "locality": "HSR Layout Sector 1",
+     "address": "3rd Floor, VRR Royal Commercial Complex, 21st A Main, 17th Cross Road, Sector 1, HSR Layout, Bengaluru 560102",
+     "lat": 12.91,
+     "lng": 77.6459,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Built In lists '3rd Floor, VRR Royal, Commercial Complex, 21st A Main, 17th Cross Road, 1st Sector, HSR Layout, Bengaluru 560102' (https://builtinbengaluru.in/company/uipath/offices); street-level geocode of 21st A Main Road.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/uipath/offices"
+   ]
+  },
+  {
+   "name": "Informatica",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Enterprise cloud data-management vendor; its Bengaluru R&D centre occupies Bagmane Commerz 02 in Bagmane Tech Park, alongside a large Hyderabad campus.",
+   "founded": 1993,
+   "hqCity": "Redwood City",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.informatica.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru R&D - Bagmane Commerz 02",
+     "techPark": "Bagmane Tech Park",
+     "building": "Commerz 02",
+     "locality": "C V Raman Nagar",
+     "address": "66/1, Bagmane Commerz 02, Bagmane Tech Park, C V Raman Nagar, Bengaluru 560093",
+     "lat": 12.97914,
+     "lng": 77.65803,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Informatica's locations page lists 'No. 66/1, Bagmane Commerz 02, Bagmane Tech Park, C V Raman Nagar, Bengaluru 560093' (https://www.informatica.com/about-us/company-information/contact-locations.html).",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.informatica.com/about-us/company-information/contact-locations.html"
+   ]
+  },
+  {
+   "name": "SAS",
+   "aliases": [
+    "SAS Institute"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Analytics and AI software company; India R&D is in Pune, while its Bengaluru sales/consulting office is a Regus suite in Concorde Towers at UB City.",
+   "founded": 1976,
+   "hqCity": "Cary",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.sas.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Regus, Concorde Towers, UB City",
+     "techPark": "UB City",
+     "building": "Concorde Towers",
+     "locality": "Vittal Mallya Road",
+     "address": "Offices 1506-1507, Regus, Level 14 & 15, Concorde Towers, UB City, 1 Vittal Mallya Road, Bengaluru 560001",
+     "lat": 12.97256,
+     "lng": 77.59577,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "SAS India's contact page lists 'Office Number 1506 & 1507, Regus - Bangalore UB City, Level 14 & 15, Concorde Towers, UB City, 1 Vittal Mallya Road, Bangalore 560 001' (https://www.sas.com/en_in/contact.html); OSM maps UB City.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.sas.com/en_in/contact.html"
+   ]
+  },
+  {
+   "name": "Cloud Software Group",
+   "aliases": [
+    "Citrix",
+    "Citrix Systems",
+    "TIBCO"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Parent of Citrix and TIBCO; its Bengaluru office is Level 1 of Nitesh Broadway on MG Road (Citrix's legacy Bangalore R&D was in Bellandur).",
+   "founded": 2022,
+   "hqCity": "Fort Lauderdale",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.cloud.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Nitesh Broadway",
+     "techPark": null,
+     "building": "Nitesh Broadway",
+     "locality": "MG Road / Ulsoor",
+     "address": "Level 1, Nitesh Broadway, MG Road, Bengaluru 560001",
+     "lat": 12.97343,
+     "lng": 77.61701,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Built In lists Cloud Software Group's Bengaluru office at 'Level 1, Nitesh Broadway, Bengaluru 560001' (https://builtinbengaluru.in/company/cloud-software-group/offices); an OSM office POI 'Citrix Systems' sits at the same building.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/cloud-software-group/offices"
+   ]
+  },
+  {
+   "name": "Red Hat",
+   "aliases": [
+    "Red Hat India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Open-source enterprise software (IBM subsidiary); its Bangalore Engineering Office is in the Carina building of Bagmane Constellation Business Park.",
+   "founded": 1993,
+   "hqCity": "Raleigh",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.redhat.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bangalore Engineering Office - Carina, Bagmane Constellation",
+     "techPark": "Bagmane Constellation Business Park",
+     "building": "Carina (East Tower)",
+     "locality": "Doddanekundi",
+     "address": "10th Floor, East Tower, Carina Building, Bagmane Constellation Business Park, Doddanekundi Circle, Outer Ring Road, Bengaluru 560037",
+     "lat": 12.98225,
+     "lng": 77.69905,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Red Hat's office-locations page lists the Bangalore Engineering Office at the 10th floor, East Tower, Carina building, Bagmane Constellation Business Park, Doddanekundi Circle, Outer Ring Road, Bengaluru 560037 (https://www.redhat.com/en/about/office-locations); the OSM POI 'Red Hat India Pvt. Ltd.' carries the same address.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.redhat.com/en/about/office-locations"
+   ]
+  },
+  {
+   "name": "SUSE",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Enterprise Linux and Kubernetes vendor; its only listed India office is a WeWork at 36 Infantry Road in central Bengaluru.",
+   "founded": 1992,
+   "hqCity": "Nuremberg",
+   "hqCountry": "Germany",
+   "isUnicorn": false,
+   "website": "https://www.suse.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - 36 Infantry Road (WeWork)",
+     "techPark": null,
+     "building": "WeWork, 36 Infantry Road",
+     "locality": "Tasker Town / Shivajinagar",
+     "address": "Ground Floor, 36 Infantry Road, Tasker Town, Shivajinagar, Bengaluru 560001",
+     "lat": 12.98086,
+     "lng": 77.60326,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "SUSE's contact page lists 'Ground Floor, 36, Infantry Rd, Tasker Town, Shivaji Nagar, Bengaluru 560001' (https://www.suse.com/contact/); Nominatim resolves the address to the WeWork at 36 Infantry Road.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.suse.com/contact/"
+   ]
+  },
+  {
+   "name": "Progress",
+   "aliases": [
+    "Progress Software",
+    "Chef Software"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Infrastructure software vendor (OpenEdge, Chef, Sitefinity); Progress Software Development Pvt Ltd's Bengaluru office is in the Aster East Tower of Embassy TechVillage, with a larger Hyderabad site.",
+   "founded": 1981,
+   "hqCity": "Burlington",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.progress.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Aster East Tower, Embassy TechVillage",
+     "techPark": "Embassy TechVillage",
+     "building": "Block 2A Aster (East Tower)",
+     "locality": "Devarabeesanahalli (ORR)",
+     "address": "1st Floor, 2A Aster East Tower, Embassy TechVillage, Devarabeesanahalli, Outer Ring Road, Bengaluru 560103",
+     "lat": 12.93153,
+     "lng": 77.69135,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Progress's offices page lists 'Embassy Tech Village, 2A Aster East Tower, 1st Floor, Devarabeesanahalli, Outer Ring Road, Bengaluru' (https://www.progress.com/company/offices); Nominatim resolves Block 2A in the park.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.progress.com/company/offices"
+   ]
+  },
+  {
+   "name": "Unisys",
+   "aliases": [
+    "Unisys India",
+    "Unisys Global Services India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "IT services and enterprise-software company; its Bengaluru SEZ delivery and engineering centre (Unisys India) is on Sarjapur Road at Chikkakannalli, with further centres in Hyderabad and Gurugram.",
+   "founded": 1986,
+   "hqCity": "Blue Bell",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.unisys.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru SEZ campus - Sarjapur Road, Chikkakannalli",
+     "techPark": "RGA Tech Park",
+     "building": "Block 3, Wing B",
+     "locality": "Chikkakannalli / Sarjapur Road",
+     "address": "SEZ Units I & II, Block 3 Wing B, Sy No 31/1, Chikkakannalli, Sarjapur Road, Bengaluru 560035",
+     "lat": 12.9007,
+     "lng": 77.70386,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Built In lists 'SEZ (Unit I & II), 3rd to 11th floors, Block 3, Wing B, Survey No. 31/1, Chikkakannalli Village, Varthur Hobli, Sarjapur Road, Bengaluru 560035' (https://builtinbengaluru.in/company/unisys/offices); the OSM POI 'Unisys' at the same spot carries a Sarjapur Road address but names SJR iPark, while the surrounding park polygon is RGA Tech Park - the park attribution is therefore medium confidence.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/unisys/offices"
+   ]
+  },
+  {
+   "name": "NetApp",
+   "aliases": [
+    "NetApp India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "Intelligent data-infrastructure (storage) company; its NetApp Bangalore Campus in Hoodi on ITPL Main Road is the company's largest R&D site outside the US.",
+   "founded": 1992,
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.netapp.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "NetApp Bangalore Campus - Hoodi",
+     "techPark": "NetApp Bangalore Campus",
+     "building": null,
+     "locality": "Hoodi / ITPL Main Road",
+     "address": "NetApp Bangalore Campus, ITPL Main Road, Hoodi, Bengaluru 560048",
+     "lat": 12.99434,
+     "lng": 77.70842,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Built In lists 'NetApp Bangalore Campus, ITPL Main Road, Hoodi, Bengaluru 560048' (https://builtinbengaluru.in/company/netapp/offices) and Nominatim resolves a 'NetApp, Hoodi' feature at these coordinates.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/netapp/offices"
+   ]
+  },
+  {
+   "name": "Cadence Design Systems",
+   "aliases": [
+    "Cadence"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "EDA and computational software vendor; its Bengaluru design centre is at Campus 4A/4B on RMZ Ecoworld Road, Bellandur (Noida is the India HQ).",
+   "founded": 1988,
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.cadence.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - RMZ Ecoworld Campus 4A & 4B",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 4A & 4B",
+     "locality": "Bellandur / Devarabeesanahalli (ORR)",
+     "address": "Levels 1-3, Campus 4A & 4B, RMZ Ecoworld Road, Sarjapur Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.92438,
+     "lng": 77.68845,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Cadence Design Systems (India) Private Limited' carries the address 'Level 1, 2 & 3, Campus 4A & 4B, RMZ Ecoworld Rd, Sarjapur Outer Ring Rd, Bengaluru 560103' with website cadence.com (OSM node 4445385041); the company's own locations page could not be fetched (HTTP 403).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4445385041",
+    "https://www.cadence.com/en_US/home/company/locations.html"
+   ]
+  },
+  {
+   "name": "Autodesk",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Design and engineering software (AutoCAD, Fusion, Revit); its Bengaluru office is in the Sunriver building of Embassy GolfLinks.",
+   "founded": 1982,
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.autodesk.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Sunriver, Embassy GolfLinks",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Sunriver",
+     "locality": "Domlur",
+     "address": "4th Floor, Block A & B, Sunriver, Embassy Golf Links Business Park, Domlur, Bengaluru 560071",
+     "lat": 12.94997,
+     "lng": 77.64324,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Built In lists '4th Floor, Block A & B, Sunriver, Embassy Golf Links Business Park, Domlur, Bengaluru 560071' (https://builtinbengaluru.in/company/autodesk/offices); park centroid used.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/autodesk/offices"
+   ]
+  },
+  {
+   "name": "Siemens Digital Industries Software",
+   "aliases": [
+    "Siemens PLM Software",
+    "Siemens Industry Software India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Siemens' PLM/EDA software arm (NX, Teamcenter, Mendix); India HQ is Pune, and OSM records a 'Siemens PLM Software' office in central Bengaluru near Lavelle Road.",
+   "founded": 2007,
+   "hqCity": "Plano",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.sw.siemens.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office (Siemens PLM Software)",
+     "techPark": null,
+     "building": null,
+     "locality": "Lavelle Road / Ashok Nagar",
+     "address": "near Lavelle Road, Bengaluru 560001",
+     "lat": 12.96624,
+     "lng": 77.59582,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "The only location evidence is the OSM office POI 'Siemens PLM Software' (node 1474007530) near Lavelle Road; the Siemens DISW locations page could not be fetched, so building and current status are unconfirmed.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/1474007530"
+   ]
+  },
+  {
+   "name": "Dassault Systemes",
+   "aliases": [
+    "3DS",
+    "Dassault Systèmes"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "3D design and PLM software (CATIA, SOLIDWORKS, 3DEXPERIENCE); Built In confirms Bengaluru and Pune offices, and OSM places a Dassault Systemes office in Jayanagar.",
+   "founded": 1981,
+   "hqCity": "Velizy-Villacoublay",
+   "hqCountry": "France",
+   "isUnicorn": false,
+   "website": "https://www.3ds.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - Jayanagar",
+     "techPark": null,
+     "building": null,
+     "locality": "Jayanagar",
+     "address": "45, 5th Main Road, Jayanagar, Bengaluru 560011",
+     "lat": 12.93292,
+     "lng": 77.58107,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Built In lists Bengaluru as one of two Dassault Systemes India offices without an address (https://builtinbengaluru.in/company/dassault-systemes/offices); the OSM office POI (node 6433396485, website 3ds.com) at 45, 5th Main Road, 560011 supplies the location; unconfirmed by the company.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/dassault-systemes/offices",
+    "https://www.openstreetmap.org/node/6433396485"
+   ]
+  },
+  {
+   "name": "Infor",
+   "aliases": [
+    "Infor (Bangalore) Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Industry-cloud ERP vendor (Koch Industries); India development is centred in Hyderabad, with a Bengaluru office in the North Tower of ITC Green Centre on Banaswadi Main Road.",
+   "founded": 2002,
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.infor.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - ITC Green Centre",
+     "techPark": null,
+     "building": "ITC Green Centre",
+     "locality": "Banaswadi / Maruthi Sevanagar",
+     "address": "2nd Floor, North Tower, ITC Green Centre, 18 Banaswadi Main Road, Bengaluru 560005",
+     "lat": 12.99863,
+     "lng": 77.62663,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Built In lists 'No. 18 Banaswadi Main Rd, 2nd Flr Nth Tower, ITC Green Centre, Bangalore 560005' (https://builtinbengaluru.in/company/infor/offices); Nominatim resolves ITC Green Centre.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/infor/offices"
+   ]
+  },
+  {
+   "name": "Epicor",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "ERP software for manufacturing and distribution; its India development centre is in Block B of SJR Primeco Union City on ITPL Main Road, Whitefield.",
+   "founded": 1972,
+   "hqCity": "Austin",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.epicor.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India development centre - Primeco Union City, Whitefield",
+     "techPark": "SJR Primeco Union City",
+     "building": "Block B",
+     "locality": "Kadugodi / Pattandur Agrahara",
+     "address": "12th Floor, Block B, SJR Primeco Union City, ITPL Main Road, Kadugodi Gate, Pattandur Agrahara, Bengaluru 560066",
+     "lat": 12.98906,
+     "lng": 77.73263,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Built In lists 'Primeco Union City, Plot no 18, 19 & 19B, Block B, Part A, 12th Floor, Sadaramangala Industrial Area, ITPL Main Road, Kadugodi Gate, Pattandur Agrahara, Bengaluru' (https://builtinbengaluru.in/company/epicor/offices); OSM maps SJR Primeco Union City.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/epicor/offices"
+   ]
+  },
+  {
+   "name": "Manhattan Associates",
+   "aliases": [
+    "Manhattan Associates India Development Center"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Supply-chain and warehouse-management software; Manhattan Associates India's development centre occupies two floors of B1 Block, Brigade Tech Gardens in Brookefield (earlier at EPIP Zone, Whitefield).",
+   "founded": 1990,
+   "hqCity": "Atlanta",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.manh.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India development centre - Brigade Tech Gardens",
+     "techPark": "Brigade Tech Gardens",
+     "building": "B1 Block",
+     "locality": "Brookefield / Kundalahalli",
+     "address": "5th & 6th Floor, B1 Block, Brigade Tech Gardens, Brookefield, Bengaluru 560037",
+     "lat": 12.96381,
+     "lng": 77.72244,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Manhattan's India contact page lists 'Manhattan Associates India, Brigade Tech Gardens, 5th & 6th floor, B1 Block, Bangalore 560037' (https://www.manh.com/en-in/contact-us).",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.manh.com/en-in/contact-us"
+   ]
+  },
+  {
+   "name": "Blue Yonder",
+   "aliases": [
+    "JDA Software"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Supply-chain planning software (Panasonic subsidiary, formerly JDA); India HQ is Hyderabad, and its Bengaluru office is Tower A of Mantri Commercio on the Outer Ring Road.",
+   "founded": 1985,
+   "hqCity": "Scottsdale",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://blueyonder.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Tower A, Mantri Commercio",
+     "techPark": "Mantri Commercio",
+     "building": "Tower A",
+     "locality": "Bellandur (ORR)",
+     "address": "Tower A, Mantri Commercio, near Sakra World Hospital, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.93245,
+     "lng": 77.68381,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Built In lists 'Tower A, Mantri Commercio, Nr Sakra World Hospital, Outer Ring Road, Bengaluru 560103' (https://builtinbengaluru.in/company/blue-yonder/offices); the OSM office POI 'jda software pvt.limited' (website jda.com) sits in the same building.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/blue-yonder/offices"
+   ]
+  },
+  {
+   "name": "o9 Solutions",
+   "aliases": [],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "AI & deep tech",
+   "description": "AI-powered planning platform (unicorn, founded 2009); its large Bengaluru office is on Level 9 of Building 2, Prestige Technostar, Doddanekundi.",
+   "founded": 2009,
+   "hqCity": "Dallas",
+   "hqCountry": "United States",
+   "isUnicorn": true,
+   "website": "https://o9solutions.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Prestige Technostar",
+     "techPark": "Prestige Technostar",
+     "building": "Building 2",
+     "locality": "Doddanekundi",
+     "address": "Level 9, Building 2, Prestige Technostar, Doddanekundi Industrial Area, Bengaluru 560048",
+     "lat": 12.97337,
+     "lng": 77.71011,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Built In lists 'Building-2, Office Level-9, Prestige Technostar, Doddanekundi Industrial Area, Bengaluru 560048' (https://builtinbengaluru.in/company/o9-solutions/offices); OSM office POI 'o9 Solutions' (website o9solutions.com) sits inside Prestige Technostar.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/o9-solutions/offices"
+   ]
+  },
+  {
+   "name": "Sprinklr",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "Unified customer-experience management SaaS (NYSE: CXM); India HQ is Gurugram, with a Bengaluru office in the East Wing of Divyasree Technopolis on Old Airport Road.",
+   "founded": 2009,
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.sprinklr.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Divyasree Technopolis, Yemalur",
+     "techPark": "Divyasree Technopolis",
+     "building": "East Wing",
+     "locality": "Yemalur / Old Airport Road",
+     "address": "3rd Floor, East Wing, Divyasree Technopolis, Old Airport Road, Yemalur, Bengaluru 560037",
+     "lat": 12.94725,
+     "lng": 77.69439,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Built In lists '3rd Floor East Wing, Divyasree Technopolis, Old Airport Road, Yemalur, 560037' (https://builtinbengaluru.in/company/sprinklr/offices); the geocoder returned the adjacent DivyaSree 77 East on Yemalur Main Road, so the point is approximate.",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/sprinklr/offices"
+   ]
+  },
+  {
+   "name": "Zendesk",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "Customer-service SaaS; its only listed India office is at Laskar on Hosur Road, Adugodi, Bengaluru.",
+   "founded": 2007,
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.zendesk.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Laskar, Hosur Road, Adugodi",
+     "techPark": null,
+     "building": "SJR Cyber (Laskar Hosur Road)",
+     "locality": "Adugodi",
+     "address": "Site No 26, Laskar, Hosur Road, Chikku Lakshmaiah Layout, Adugodi, Bengaluru 560029",
+     "lat": 12.93893,
+     "lng": 77.60948,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Built In lists 'Site No. 26, Laskar, Hosur Rd, Chikku Lakshmaiah Layout, Adugodi, Bengaluru 560029' (https://builtinbengaluru.in/company/zendesk/offices); OSM maps the building as 'SJR Cyber Laskar' at Laskar-Hosur Road.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/zendesk/offices"
+   ]
+  },
+  {
+   "name": "Commvault",
+   "aliases": [
+    "Commvault Systems (India) Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Cyber-resilience and data-protection software; Commvault Systems (India) runs two Bengaluru sites in Bagmane Tech Park (Quay and Tridib buildings) plus offices in Pune, Mumbai, Hyderabad and Coimbatore.",
+   "founded": 1996,
+   "hqCity": "Tinton Falls",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.commvault.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Quay Building, Bagmane Tech Park",
+     "techPark": "Bagmane Tech Park",
+     "building": "Quay Building",
+     "locality": "C V Raman Nagar",
+     "address": "9th Floor, Quay Building, Bagmane Tech Park, C V Raman Nagar, Bengaluru 560093",
+     "lat": 12.97958,
+     "lng": 77.6646,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Commvault's contact page lists 'Commvault Systems (India) Pvt Ltd, 9th Floor Quay Building, Bagmane Tech Park, C V Raman Nagar, Bangalore 560 093' (https://www.commvault.com/contact-us); OSM office POI 'Commvault Systems' is in the park.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Bengaluru - Tridib Building, Bagmane Tech Park",
+     "techPark": "Bagmane Tech Park",
+     "building": "Tridib Building",
+     "locality": "C V Raman Nagar",
+     "address": "1st Floor, A Block, Tridib Building, Bagmane Tech Park, C V Raman Nagar, Bengaluru 560093",
+     "lat": 12.97856,
+     "lng": 77.66332,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Commvault's contact page lists '1st Floor, Bagmane Tech Park, Tridib Building, A Block, Cauveri Colony, GM Palya, C V Raman Nagar, Bengaluru 560093' (https://www.commvault.com/contact-us); Nominatim resolves Bagmane Tridib.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.commvault.com/contact-us"
+   ]
+  },
+  {
+   "name": "MathWorks",
+   "aliases": [
+    "MathWorks India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Maker of MATLAB and Simulink; MathWorks India's Bengaluru office is the Trillium building (Blocks I & J) in Embassy TechVillage, with a second site in Hyderabad.",
+   "founded": 1984,
+   "hqCity": "Natick",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.mathworks.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Trillium, Embassy TechVillage",
+     "techPark": "Embassy TechVillage",
+     "building": "Trillium (Blocks 5I & 5J)",
+     "locality": "Devarabeesanahalli (ORR)",
+     "address": "Trillium Building, Blocks I & J, Embassy TechVillage, Outer Ring Road, Bengaluru 560103",
+     "lat": 12.92861,
+     "lng": 77.69288,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "MathWorks' contact page lists 'Trillium Building, Blocks I & J, Embassy Tech Village, Outer Ring Road, Bangalore 560103' (https://www.mathworks.com/company/aboutus/contact_us.html); OSM office POI 'MathWorks' is inside the park.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.mathworks.com/company/aboutus/contact_us.html"
+   ]
+  },
+  {
+   "name": "Trellix",
+   "aliases": [
+    "McAfee Enterprise",
+    "FireEye",
+    "McAfee Software India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "XDR cybersecurity company formed from McAfee Enterprise and FireEye; its Bengaluru engineering office is in Pine Valley, Embassy GolfLinks (McAfee's long-standing site).",
+   "founded": 2022,
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.trellix.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Pine Valley, Embassy GolfLinks",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Pine Valley",
+     "locality": "Domlur",
+     "address": "1st Floor, Pine Valley, Embassy GolfLinks Business Park, Off Intermediate Ring Road, Domlur, Bengaluru 560071",
+     "lat": 12.94674,
+     "lng": 77.6465,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Built In lists Trellix at '1F Pine Valley, Embassy Golflinks Business Park' (https://builtinbengaluru.in/company/trellix/offices); the OSM office POI 'McAfee Software India Pvt. Ltd' at Pine Valley, EGL carries the predecessor's name.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/trellix/offices"
+   ]
+  },
+  {
+   "name": "Atlassian",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "Team-collaboration SaaS (Jira, Confluence); its Bengaluru R&D centre, opened 2018, occupies two floors of Divyasree Greens beside Embassy GolfLinks.",
+   "founded": 2002,
+   "hqCity": "Sydney",
+   "hqCountry": "Australia",
+   "isUnicorn": false,
+   "website": "https://www.atlassian.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru R&D - Divyasree Greens",
+     "techPark": null,
+     "building": "Divyasree Greens",
+     "locality": "Challaghatta / Domlur",
+     "address": "4th & 5th Floor, Divyasree Greens, Challaghatta Village, Bengaluru 560071",
+     "lat": 12.95274,
+     "lng": 77.64143,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Atlassian's contact page lists '4th Floor, 5th Floor, Divyasree Greens, Sy No 12/1, 12/2A, 13/1A, Chalaghatta Village, Bengaluru 560071' (https://www.atlassian.com/company/contact); OSM has two 'Atlassian' office POIs at the building.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.atlassian.com/company/contact"
+   ]
+  },
+  {
+   "name": "OpenText",
+   "aliases": [
+    "Micro Focus"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Information-management software company (absorbed Micro Focus in 2023); it lists four Bengaluru offices - Infinity near Domlur, two buildings in Bagmane Tech Park and a WeWork in Embassy GolfLinks.",
+   "founded": 1991,
+   "hqCity": "Waterloo",
+   "hqCountry": "Canada",
+   "isUnicorn": false,
+   "website": "https://www.opentext.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Infinity, Intermediate Ring Road",
+     "techPark": null,
+     "building": "Infinity",
+     "locality": "Challaghatta / Domlur",
+     "address": "3rd & 4th Floor, Infinity, #436, Off Intermediate Ring Road, Challaghatta, Domlur, Bengaluru 560071",
+     "lat": 12.9593,
+     "lng": 77.6414,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OpenText's office-locations page lists 'Infinity, #436, 3rd & 4th floors, off Koramangala-Indiranagar Intermediate Ring Road, Challaghatta, Domlur 560071' (https://www.opentext.com/about/office-locations); the point is a street-level geocode of Intermediate Ring Road, not the building.",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Bengaluru - Laurel, Bagmane Tech Park",
+     "techPark": "Bagmane Tech Park",
+     "building": "Laurel",
+     "locality": "C V Raman Nagar",
+     "address": "3rd & 5th Floor, A Block, Laurel Building, 65/2 Bagmane Tech Park, C V Raman Nagar, Bengaluru 560093",
+     "lat": 12.97845,
+     "lng": 77.66451,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "OpenText's office-locations page lists 'Laurel Building, A Block, No. 65/2, 3rd and 5th floors, Bagmane Tech Park, C.V. Raman Nagar 560093' (https://www.opentext.com/about/office-locations); Nominatim resolves Bagmane Laurel.",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Bengaluru - Olympia, Bagmane Tech Park",
+     "techPark": "Bagmane Tech Park",
+     "building": "Olympia",
+     "locality": "C V Raman Nagar",
+     "address": "6th Floor, Olympia Building, 66/1 Bagmane Tech Park, Byrasandra, C V Raman Nagar, Bengaluru 560093",
+     "lat": 12.97877,
+     "lng": 77.65886,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OpenText's office-locations page lists 'Olympia Building, No. 66/1, 6th floor, Bagmane Tech Park, Byrasandra, C.V. Raman Nagar 560093' (https://www.opentext.com/about/office-locations); park-level geocode.",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Bengaluru - WeWork Cherry Hills, Embassy GolfLinks",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Cherry Hills (WeWork)",
+     "locality": "Domlur",
+     "address": "1st Floor, WeWork Cherry Hills, Embassy Golf Links Business Park, Domlur, Bengaluru 560071",
+     "lat": 12.9533,
+     "lng": 77.64237,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OpenText's office-locations page lists 'WeWork, Cherry Hills, 1st floor, Embassy Golf Links Business Park 560071' (https://www.opentext.com/about/office-locations); OSM maps an 'OpenText' office building inside the park at this point.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.opentext.com/about/office-locations"
+   ]
+  },
+  {
+   "name": "Couchbase",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "NoSQL cloud database company; its Bengaluru engineering office is Level 2 of Pride Elite on Museum Road.",
+   "founded": 2011,
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.couchbase.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Pride Elite, Museum Road",
+     "techPark": null,
+     "building": "Pride Elite",
+     "locality": "Museum Road / Ashok Nagar",
+     "address": "Level 2, Pride Elite, 10 Museum Road, Bengaluru 560001",
+     "lat": 12.97363,
+     "lng": 77.60347,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Built In lists 'Pride Elite, Level 2, 10 Museum Road, Bengaluru 560001' (https://builtinbengaluru.in/company/couchbase/offices); Nominatim resolves Pride Elite.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/couchbase/offices"
+   ]
+  },
+  {
+   "name": "Cloudflare",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Connectivity-cloud and web-security company; its Bengaluru office is in Richmond Towers on Richmond Road.",
+   "founded": 2009,
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.cloudflare.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Richmond Towers",
+     "techPark": null,
+     "building": "Richmond Towers",
+     "locality": "Richmond Town",
+     "address": "215, Richmond Towers, 12 Richmond Road, Richmond Town, Bengaluru 560025",
+     "lat": 12.96606,
+     "lng": 77.60276,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Built In lists 'No. 215, Richmond Towers No.12, Richmond Road, Richmond Town, Bengaluru 560025' (https://builtinbengaluru.in/company/cloudflare/offices); OSM maps Richmond Towers.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/cloudflare/offices"
+   ]
+  },
+  {
+   "name": "Intuit",
+   "aliases": [
+    "Intuit India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Fintech",
+   "description": "Financial software maker (QuickBooks, TurboTax, Mailchimp); Intuit India's development centre has been in Pritech Park SEZ (RMZ Ecospace), Bellandur, since 2005, with OSM also recording a newer presence in Embassy TechVillage.",
+   "founded": 1983,
+   "hqCity": "Mountain View",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.intuit.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Intuit India development centre - Pritech Park SEZ (Ecospace)",
+     "techPark": "Pritech Park SEZ",
+     "building": "Campus 4A & Campus 8",
+     "locality": "Bellandur (ORR)",
+     "address": "Campus 4A / Campus 8, Pritech Park SEZ (RMZ Ecospace), Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.9249,
+     "lng": 77.68033,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Built In lists 'Campus 8, PriTech park SEZ (Eco space), Outer Ring Road, Bellandur Village, Bengaluru 560103' and a 7th/8th-floor unit in Bellandur (https://builtinbengaluru.in/company/intuit/offices); OSM POIs place Intuit at Campus 4A, PriTech Park (Ecospace), 7th & 8th floors.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Intuit - Embassy TechVillage",
+     "techPark": "Embassy TechVillage",
+     "building": null,
+     "locality": "Devarabeesanahalli (ORR)",
+     "address": "Embassy TechVillage, Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.92993,
+     "lng": 77.68848,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI 'Intuit' (node 13850262197) places a second Intuit site inside Embassy TechVillage; no company or press source confirms it.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/intuit/offices"
+   ]
+  },
+  {
+   "name": "Broadcom",
+   "aliases": [
+    "VMware",
+    "VMware Software India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "Semiconductor and infrastructure-software group that absorbed VMware in November 2023; the former VMware campus at RMZ Ecospace Campus 1A/1C in Bellandur is now mapped as Broadcom.",
+   "founded": 1991,
+   "hqCity": "Palo Alto",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.broadcom.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - RMZ Ecospace Campus 1A & 1C (ex-VMware)",
+     "techPark": "RMZ Ecospace",
+     "building": "Campus 1A & 1C",
+     "locality": "Bellandur (ORR)",
+     "address": "Campus 1A & 1C, RMZ Ecospace, Sarjapur Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.92693,
+     "lng": 77.68042,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office building 'Broadcom' (way 85691873, website broadcom.com) carries the address 'Ecospace, Campus 1A and 1C, Sarjapur Outer Ring Road, Bellandur 560103' - the long-standing VMware Software India campus; no company page could be fetched to confirm post-acquisition occupancy.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/85691873"
+   ]
+  }
+ ],
+ "coverageNotes": "VERIFIED WITH OFFICIAL PAGES (high): Nutanix, Palo Alto Networks, Fortinet, Zscaler (2 offices), Red Hat, SUSE, Progress, MongoDB, Zoho, Automation Anywhere, Informatica, SAS, Splunk/AppDynamics, Cisco (4 offices), New Relic, Datadog, Manhattan Associates, Commvault (2), MathWorks, Atlassian, OpenText (4), Databricks (press release). VERIFIED WITH ONE SECONDARY SOURCE (medium; mostly Built In office pages, cross-checked against OSM POIs where possible): ServiceNow, Snowflake, Confluent, UiPath, Freshworks, Infor, Epicor, Blue Yonder, o9, Sprinklr, Zendesk, Couchbase, Cloudflare, Autodesk, Unisys, NetApp, Cloud Software Group, Trellix, Intuit, Rubrik (Embassy REIT lease filing via two outlets), Pure Storage (own page says only 'heart of Bangalore'; OSM Church Street POI), Cadence and Broadcom/VMware (OSM POIs with full addresses; company pages returned HTTP 403). LOW CONFIDENCE, INCLUDED WITH THE CAVEAT WRITTEN ON THE OFFICE: Okta (press release names only 'S.R. Nagar'; locality centroid), Elastic (aggregator says EGL/Sunriver; park centroid), Siemens Digital Industries Software and Dassault Systemes (OSM POIs only), Intuit's Embassy TechVillage site (OSM only). DELIBERATELY LEFT OUT - NO BENGALURU OFFICE: Workday (People Matters, 2 Dec 2025: teams in Pune, Chennai, Mumbai; Bengaluru and Delhi offices planned for FY2027 - https://www.peoplematters.in/news/business/workday-strengthens-its-commitment-to-india-as-a-strategic-growth-and-innovation-hub-with-new-investments-47503); GitLab (all-remote, Bengaluru roles are remote/hybrid, no office); Teradata (Built In lists Gurugram, Hyderabad, Mumbai only); Kinaxis (own contact page lists Chennai and Hyderabad only); Anaplan (own contact page lists Gurugram and Mumbai only); PTC (Built In lists Chennai and Pune only; Bengaluru appears only as job locations). LEFT OUT - BENGALURU PRESENCE CONFIRMED BUT NO ADDRESS OR LOCALITY COULD BE SUBSTANTIATED, SO NO COORDINATES: HashiCorp (own blog describes a Bengaluru co-working space but names neither it nor the area; now part of IBM), CrowdStrike (Built In lists 'Bengaluru, India' only), Dynatrace (Built In lists Bengaluru only; dynatrace.com office pages 404/redirect-loop), Akamai, Twilio, HubSpot (Built In pages with no address). LEFT OUT - COULD NOT CHECK AT ALL (official pages 403/404/503 and the shared WebSearch budget was exhausted after the first 20 queries): Trimble, Hexagon, Bentley, Ansys, Qualtrics, Intercom, Slack (Salesforce). Software AG's ETV office (Built In: 5th & 6th floor, Embassy Tech Village SEZ) is omitted because the company's webMethods business and staff moved to IBM in 2024 and the remaining entity was renamed, so current occupancy is uncertain. OTHER CAVEATS: Zoho is classed MNC despite being unlisted because a 15,000-plus-employee Indian multinational labelled MID_SIZE would mislead; Freshworks' origin is 'Foreign' because its parent is headquartered in San Mateo although it was founded in Chennai; Databricks and o9 are STARTUP (venture-funded, founded after 2005, still private) and Automation Anywhere is MNC because it was founded in 2003. Unisys's techPark is RGA Tech Park on the strength of the surrounding OSM polygon while the OSM POI tag says SJR iPark. Older/legacy sites were not recorded as separate offices: Manhattan Associates' earlier EPIP Zone building, Red Hat's IBC Knowledge Park office, Unisys at Purva Premier (Residency Road), Infor near Church Street, Freshworks' earlier Bellandur POI, Cisco Video Technology (ex-NDS) at Pritech Park, VMware's Kalyani Magnum campus - each appears only as an OSM POI with no current source. Headcounts are null except Zscaler (about 2,400 per a GCC tracker that also prints 2,904; treat as approximate). Coordinates flagged park-centroid or photon are building-level only where the evidence says so; several (Snowflake, ServiceNow Fairway, OpenText Infinity, Sprinklr) are street- or neighbour-level geocodes and are marked medium for that reason."
+}

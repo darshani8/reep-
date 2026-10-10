@@ -47,6 +47,22 @@
 "query": "100 Whitefield, EPIP, Bengaluru",
 "source": "nominatim"
 },
+"1021 16th main road btm 1st stage, bengaluru": {
+"bbox": [
+12.9171569,
+12.9198584,
+77.6101314,
+77.6103101
+],
+"display_name": "16th Main Road, Tavarekere, BTM Layout 1st Stage, New Tavarekere, Bengaluru South City Corporation, Bengaluru, Bangalore South, Bengaluru Urban, Karnataka, 560029, India",
+"lat": 12.91851,
+"lng": 77.6102265,
+"ok": true,
+"osm_id": 443045595,
+"osm_type": "way",
+"query": "1021 16th Main Road BTM 1st Stage, Bengaluru",
+"source": "nominatim"
+},
 "1074, 11th main road, indiranagar, bengaluru": {
 "bbox": [
 12.9702803,
@@ -278,6 +294,38 @@
 "query": "17th Cross Road, Sector 7, HSR Layout",
 "source": "nominatim"
 },
+"17th h main road, koramangala 6th block, bengaluru": {
+"bbox": [
+12.937673,
+12.9389087,
+77.6236786,
+77.6249521
+],
+"display_name": "Koramangala Club, 17th D Main Road, Sri Lakshmi Devi Ward, Bengaluru",
+"lat": 12.9382966,
+"lng": 77.6243156,
+"ok": true,
+"osm_id": 28186787,
+"osm_type": "W",
+"query": "17th H Main Road, Koramangala 6th Block, Bengaluru",
+"source": "photon"
+},
+"17th h main road, koramangala, bengaluru": {
+"bbox": [
+12.9369132,
+12.9389476,
+77.6211654,
+77.6222253
+],
+"display_name": "17th H Main Road, A Adugodi, Bengaluru",
+"lat": 12.937922,
+"lng": 77.6217111,
+"ok": true,
+"osm_id": 28186797,
+"osm_type": "W",
+"query": "17th H Main Road, Koramangala, Bengaluru",
+"source": "photon"
+},
 "17th main road, sector 2, hsr layout, bengaluru": {
 "bbox": [
 12.9054993,
@@ -430,6 +478,17 @@
 "query": "21st A Main Road, HSR Layout",
 "source": "nominatim"
 },
+"22nd cross 23rd main hsr layout sector 2, bengaluru": {
+"bbox": null,
+"display_name": "Nextgen Fitness, Bhaskar Reddy Building, Somasundrapalya Junction, HSR Layout 2nd, HSR Layout, 2nd Sector,, Garden Layout, Sector 2, HSR Layout, Bengaluru, Agara, Bengaluru",
+"lat": 12.9082273,
+"lng": 77.6477342,
+"ok": true,
+"osm_id": 4489723448,
+"osm_type": "N",
+"query": "22nd Cross 23rd Main HSR Layout Sector 2, Bengaluru",
+"source": "photon"
+},
 "22nd cross road, sector 3, hsr layout": {
 "bbox": null,
 "display_name": "22nd Cross Road, HSR Layout, Bengaluru",
@@ -487,6 +546,17 @@
 "osm_id": 27936013,
 "osm_type": "W",
 "query": "23rd Cross Road, Sector 7, HSR Layout",
+"source": "photon"
+},
+"24th main road, hsr layout sector 1, bengaluru": {
+"bbox": null,
+"display_name": "Hsr layout, 24th Main Road, Agara, Bengaluru",
+"lat": 12.9220052,
+"lng": 77.6486831,
+"ok": true,
+"osm_id": 4537369390,
+"osm_type": "N",
+"query": "24th Main Road, HSR Layout Sector 1, Bengaluru",
 "source": "photon"
 },
 "257 16th cross, sector 6, hsr layout, bengaluru": {
@@ -1006,6 +1076,22 @@
 "query": "77 Town Centre, Yemalur",
 "source": "photon"
 },
+"77 town centre, yemalur, bengaluru": {
+"bbox": [
+12.9461685,
+12.9520304,
+77.6884087,
+77.6926126
+],
+"display_name": "Divyasree 77 Town Centre, Yamalur, Bengaluru",
+"lat": 12.9490287,
+"lng": 77.6907303,
+"ok": true,
+"osm_id": 790387445,
+"osm_type": "W",
+"query": "77 Town Centre, Yemalur, Bengaluru",
+"source": "photon"
+},
 "796 mig 2nd phase, yelahanka new town, bengaluru": {
 "bbox": null,
 "display_name": "5th Phase Yelahanka New Town, 2nd Main Road, Doddabettahalli, Bengaluru",
@@ -1076,6 +1162,17 @@
 "query": "80 Feet Road, 4th Block, Koramangala, Bengaluru",
 "source": "nominatim"
 },
+"80 feet road, koramangala 3rd block, bengaluru": {
+"bbox": null,
+"display_name": "Koramangala Social, 80 Feet Road, Kormangala West, Bengaluru",
+"lat": 12.9355957,
+"lng": 77.6141769,
+"ok": true,
+"osm_id": 5915195087,
+"osm_type": "N",
+"query": "80 Feet Road, Koramangala 3rd Block, Bengaluru",
+"source": "photon"
+},
 "8th main road, sadashivanagar, bengaluru": {
 "bbox": [
 13.0092335,
@@ -1090,6 +1187,22 @@
 "osm_id": 166572717,
 "osm_type": "way",
 "query": "8th Main Road, Sadashivanagar, Bengaluru",
+"source": "nominatim"
+},
+"9th a main road, indiranagar 1st stage, bengaluru": {
+"bbox": [
+12.9775576,
+12.9776961,
+77.6365306,
+77.6408562
+],
+"display_name": "9th A Main Road, Indiranagar 1st Stage, Hoysala Nagara Central, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560038, India",
+"lat": 12.9776269,
+"lng": 77.6386934,
+"ok": true,
+"osm_id": 59358782,
+"osm_type": "way",
+"query": "9th A Main Road, Indiranagar 1st Stage, Bengaluru",
 "source": "nominatim"
 },
 "abacus center, jp nagar, bengaluru 560078": {
@@ -1384,6 +1497,22 @@
 "osm_type": null,
 "query": "Adobe, Prestige Tech Platina, Bengaluru",
 "source": null
+},
+"advinus, bengaluru": {
+"bbox": [
+12.9402413,
+12.9411111,
+77.5979005,
+77.5985111
+],
+"display_name": "NIMHANS Administrative Block, Lakksandra Bus Stop, Hosur Road, Lakkasandra, Bangalore",
+"lat": 12.9406798,
+"lng": 77.5982038,
+"ok": true,
+"osm_id": 239738406,
+"osm_type": "W",
+"query": "Advinus, Bengaluru",
+"source": "photon"
 },
 "aequs bengaluru": {
 "bbox": null,
@@ -1857,6 +1986,17 @@
 "query": "Alliance University, Anekal",
 "source": "photon"
 },
+"alpha design technologies, bengaluru": {
+"bbox": null,
+"display_name": "Design Alphabets, Halasahalli Road, Gunjur, Bengaluru",
+"lat": 12.9345892,
+"lng": 77.754915,
+"ok": true,
+"osm_id": 13045791851,
+"osm_type": "N",
+"query": "Alpha Design Technologies, Bengaluru",
+"source": "photon"
+},
 "alpha tocol engineering": {
 "bbox": null,
 "display_name": "Alpha College of Engineering, Hennur Main Road, Doddagubbi, Dodda Gubbi",
@@ -1937,6 +2077,22 @@
 "osm_type": "W",
 "query": "Amada India, Bengaluru Aerospace Park",
 "source": "photon"
+},
+"amarjyothi layout, domlur, bengaluru": {
+"bbox": [
+12.9466279,
+12.9666279,
+77.6327434,
+77.6527434
+],
+"display_name": "Amarjyothi Layout, Domlur, Domluru, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560017, India",
+"lat": 12.9566279,
+"lng": 77.6427434,
+"ok": true,
+"osm_id": 3497378217,
+"osm_type": "node",
+"query": "Amarjyothi Layout, Domlur, Bengaluru",
+"source": "nominatim"
 },
 "amarjyoti layout, domlur": {
 "bbox": null,
@@ -2077,6 +2233,38 @@
 "osm_id": 349654005,
 "osm_type": "W",
 "query": "AMR Tech Park, Hosur Main Road, Hongasandra, Bengaluru",
+"source": "photon"
+},
+"amr tech park, hosur road, bommanahalli, bengaluru": {
+"bbox": [
+12.8972615,
+12.9010572,
+77.6297602,
+77.6321507
+],
+"display_name": "AMR Tech Park, Hosur Road, Bommanahalli, Bangalore",
+"lat": 12.8992968,
+"lng": 77.6306008,
+"ok": true,
+"osm_id": 349654005,
+"osm_type": "W",
+"query": "AMR Tech Park, Hosur Road, Bommanahalli, Bengaluru",
+"source": "photon"
+},
+"amrut distilleries, bengaluru": {
+"bbox": [
+12.9804582,
+12.9819047,
+77.5707746,
+77.5715225
+],
+"display_name": "Khodays Distilleries, Nehru Nagar, Bengaluru",
+"lat": 12.9811839,
+"lng": 77.5711422,
+"ok": true,
+"osm_id": 38539863,
+"osm_type": "W",
+"query": "Amrut Distilleries, Bengaluru",
 "source": "photon"
 },
 "analog devices rmz infinity bengaluru": {
@@ -2380,6 +2568,42 @@
 "query": "Aragen, Jigani",
 "source": "nominatim"
 },
+"ardente office one, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim error: HTTP Error 429: Too many requests; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Ardente Office One, Bengaluru",
+"source": null
+},
+"ardente office one, hoodi circle, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Ardente Office One, Hoodi Circle, Bengaluru",
+"source": null
+},
+"ardente office one, hoodi, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Ardente Office One, Hoodi, Bengaluru",
+"source": null
+},
 "arebinnamangala": {
 "bbox": [
 13.1468539,
@@ -2426,6 +2650,22 @@
 "osm_id": 1554401694,
 "osm_type": "way",
 "query": "Arekere MICO Layout Main Road, Bengaluru",
+"source": "nominatim"
+},
+"arekere, bannerghatta road, bengaluru": {
+"bbox": [
+12.8867374,
+12.8868374,
+77.5967037,
+77.5968037
+],
+"display_name": "Arekere BPL, Bannerghatta Road, Mico Arekere Layout 1st Stage, Arekere, Doresanipalya, Bengaluru South City Corporation, Bengaluru, Bangalore South, Bengaluru Urban, Karnataka, 560076, India",
+"lat": 12.8867874,
+"lng": 77.5967537,
+"ok": true,
+"osm_id": 2259653343,
+"osm_type": "node",
+"query": "Arekere, Bannerghatta Road, Bengaluru",
 "source": "nominatim"
 },
 "arista networks bengaluru": {
@@ -2671,6 +2911,38 @@
 "query": "Attibele Industrial Area",
 "source": "nominatim"
 },
+"attibele, bengaluru": {
+"bbox": [
+12.7651927,
+12.7850272,
+77.7567282,
+77.7852901
+],
+"display_name": "Attibele, Anekal, Bengaluru Urban, Karnataka, India",
+"lat": 12.7751249,
+"lng": 77.7709216,
+"ok": true,
+"osm_id": 17455788,
+"osm_type": "relation",
+"query": "Attibele, Bengaluru",
+"source": "nominatim"
+},
+"aurbis business park, bengaluru": {
+"bbox": [
+12.92951,
+12.9305806,
+77.6864469,
+77.6871148
+],
+"display_name": "Aurbis Business Park, Devarabeesanahalli, Shivanasamudra Ward, Bengaluru East City Corporation, Bengaluru, Bangalore East, Bengaluru Urban, Karnataka, India",
+"lat": 12.9298065,
+"lng": 77.6867515,
+"ok": true,
+"osm_id": 1557898769,
+"osm_type": "way",
+"query": "Aurbis Business Park, Bengaluru",
+"source": "nominatim"
+},
 "aurbis business park, devarabeesanahalli, bengaluru": {
 "bbox": [
 12.92951,
@@ -2730,6 +3002,33 @@
 "osm_type": null,
 "query": "Aveda Meta Building, Old Madras Road, Indiranagar, Bengaluru",
 "source": null
+},
+"aveda meta, bengaluru": {
+"bbox": null,
+"display_name": "Meta Food Corner, 2nd Cross Road, Basaveshwara Nagara, Bengaluru",
+"lat": 12.9965148,
+"lng": 77.5426506,
+"ok": true,
+"osm_id": 13390033697,
+"osm_type": "N",
+"query": "Aveda Meta, Bengaluru",
+"source": "photon"
+},
+"aveda meta, old madras road, bengaluru": {
+"bbox": [
+13.0094908,
+13.0242905,
+77.6969507,
+77.7170775
+],
+"display_name": "Old Madras Road, Medahalli, Kittaganuru",
+"lat": 13.0179099,
+"lng": 77.7060427,
+"ok": true,
+"osm_id": 172886639,
+"osm_type": "W",
+"query": "Aveda Meta, Old Madras Road, Bengaluru",
+"source": "photon"
 },
 "aviator building, itpl, whitefield": {
 "bbox": null,
@@ -3683,6 +3982,22 @@
 "query": "Bal Pharma, Bommasandra",
 "source": "photon"
 },
+"banashankari 2nd stage, bengaluru": {
+"bbox": [
+12.9168667,
+12.9368667,
+77.5537191,
+77.5737191
+],
+"display_name": "Banashankari 2nd Stage, Ganesh Mandira Ward, Bengaluru West City Corporation, Bengaluru, Bangalore South, Bengaluru Urban, Karnataka, 560070, India",
+"lat": 12.9268667,
+"lng": 77.5637191,
+"ok": true,
+"osm_id": 429853336,
+"osm_type": "node",
+"query": "Banashankari 2nd Stage, Bengaluru",
+"source": "nominatim"
+},
 "banaswadi main road, maruthi sevanagar, bengaluru": {
 "bbox": null,
 "display_name": "Maruthi Sevanagar, Banaswadi Road, Jeevanahalli, Bengaluru",
@@ -3709,6 +4024,22 @@
 "osm_type": "W",
 "query": "Bangalore Bioinnovation Centre, Electronic City Phase 1, Bengaluru",
 "source": "photon"
+},
+"bangalore turf club, bengaluru": {
+"bbox": [
+12.9805802,
+12.9841786,
+77.5767188,
+77.5851696
+],
+"display_name": "Bangalore Race Course, Sheshadri Road, Madhav Nagar, High Grounds, Sampangirama Nagar, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560001, India",
+"lat": 12.9823258,
+"lng": 77.5807803,
+"ok": true,
+"osm_id": 37869985,
+"osm_type": "way",
+"query": "Bangalore Turf Club, Bengaluru",
+"source": "nominatim"
 },
 "bank of baroda, 41/2 mg road, bengaluru": {
 "bbox": null,
@@ -3775,6 +4106,17 @@
 "osm_type": "way",
 "query": "Barton Centre, MG Road, Bengaluru",
 "source": "nominatim"
+},
+"basavanagudi k r road, bengaluru": {
+"bbox": null,
+"display_name": "Basavanagudi Police Station, Krishna Rajendra Road, N.R Colony, Bengaluru",
+"lat": 12.9411299,
+"lng": 77.5736696,
+"ok": true,
+"osm_id": 1522519253,
+"osm_type": "N",
+"query": "Basavanagudi K R Road, Bengaluru",
+"source": "photon"
 },
 "bcm prime, bannerghatta road": {
 "bbox": null,
@@ -3952,6 +4294,22 @@
 "query": "Belathur, Kadugodi",
 "source": "photon"
 },
+"bellandur gate, bengaluru": {
+"bbox": [
+12.9238228,
+12.9239252,
+77.6723413,
+77.6725992
+],
+"display_name": "Bellandur Gate Road & Service Road, Green Glen Layout, Bellanduru, Bellandur, Bengaluru East City Corporation, Bengaluru, Bangalore East, Bengaluru Urban, Karnataka, 560103, India",
+"lat": 12.9238725,
+"lng": 77.6724708,
+"ok": true,
+"osm_id": 1150358672,
+"osm_type": "way",
+"query": "Bellandur Gate, Bengaluru",
+"source": "nominatim"
+},
 "beml bangalore complex, new thippasandra": {
 "bbox": [
 12.9763667,
@@ -4108,6 +4466,38 @@
 "osm_type": "way",
 "query": "Bengaluru Lifesciences Research District",
 "source": "nominatim"
+},
+"bengaluru marriott hotel whitefield": {
+"bbox": [
+13.1531198,
+13.1540626,
+77.6924265,
+77.6932034
+],
+"display_name": "Marriott Hotel (u/c), Hoovinayakanahalli, Huvinayakanahalli",
+"lat": 13.1535891,
+"lng": 77.6928181,
+"ok": true,
+"osm_id": 1279894904,
+"osm_type": "W",
+"query": "Bengaluru Marriott Hotel Whitefield",
+"source": "photon"
+},
+"bengaluru marriott hotel whitefield, epip zone": {
+"bbox": [
+12.9792272,
+12.9798491,
+77.7279066,
+77.7283626
+],
+"display_name": "The Marriot Hotel, 8th Road, Bharath Aikya Ward, Bengaluru",
+"lat": 12.9795584,
+"lng": 77.7281774,
+"ok": true,
+"osm_id": 458951613,
+"osm_type": "W",
+"query": "Bengaluru Marriott Hotel Whitefield, EPIP Zone",
+"source": "photon"
 },
 "bengaluru signature business park": {
 "bbox": [
@@ -4450,6 +4840,17 @@
 "query": "Bharat IT Park, Ambalipura, Sarjapur Road",
 "source": "photon"
 },
+"bharathinagar, fraser town, bengaluru": {
+"bbox": null,
+"display_name": "Fraser Town Sub Office, MM Road, Pulakeshi Nagar, Bengaluru",
+"lat": 13.0007216,
+"lng": 77.6165254,
+"ok": true,
+"osm_id": 11853313539,
+"osm_type": "N",
+"query": "Bharathinagar, Fraser Town, Bengaluru",
+"source": "photon"
+},
 "bhartiya centre of information technology, thanisandra": {
 "bbox": [
 13.0826767,
@@ -4775,6 +5176,38 @@
 "query": "Bidadi Industrial Area, Ramanagara",
 "source": "photon"
 },
+"big banyan winery, bengaluru": {
+"bbox": [
+12.9048314,
+12.9057462,
+77.7048365,
+77.705981
+],
+"display_name": "Big Banyan Roots Apartments, Gunjur, Bengaluru",
+"lat": 12.9053334,
+"lng": 77.7054033,
+"ok": true,
+"osm_id": 189046488,
+"osm_type": "W",
+"query": "Big Banyan Winery, Bengaluru",
+"source": "photon"
+},
+"bilekahalli, bannerghatta road": {
+"bbox": [
+12.9007441,
+12.9008441,
+77.6011327,
+77.6012327
+],
+"display_name": "Bilekahalli, Bannerghatta Road, Bilekahalli, Bengaluru South City Corporation, Bengaluru, Bangalore South, Bengaluru Urban, Karnataka, 560076, India",
+"lat": 12.9007941,
+"lng": 77.6011827,
+"ok": true,
+"osm_id": 2639216659,
+"osm_type": "node",
+"query": "Bilekahalli, Bannerghatta Road",
+"source": "nominatim"
+},
 "bilekahalli, bannerghatta road, bengaluru": {
 "bbox": [
 12.9002393,
@@ -4969,6 +5402,22 @@
 "osm_id": 13805636820,
 "osm_type": "N",
 "query": "Blue Dart Express, Kempegowda International Airport",
+"source": "photon"
+},
+"bmtc complex shanthinagar, bengaluru": {
+"bbox": [
+12.9548596,
+12.9564265,
+77.5950248,
+77.5966277
+],
+"display_name": "BMTC Depot 3 (Shanthinagara), Shanthinagar, Bengaluru",
+"lat": 12.9556472,
+"lng": 77.5958389,
+"ok": true,
+"osm_id": 1238794972,
+"osm_type": "W",
+"query": "BMTC Complex Shanthinagar, Bengaluru",
 "source": "photon"
 },
 "bmtc complex, btm layout, bengaluru": {
@@ -5385,6 +5834,34 @@
 "osm_type": "R",
 "query": "Bostik, Bommasandra",
 "source": "photon"
+},
+"bren artimus, bengaluru": {
+"bbox": [
+12.9366329,
+12.9376489,
+77.6056191,
+77.6060873
+],
+"display_name": "Bren Artimus, S.G Palya, Bengaluru South City Corporation, Bengaluru, Bangalore South, Bengaluru Urban, Karnataka, India",
+"lat": 12.9371541,
+"lng": 77.6058591,
+"ok": true,
+"osm_id": 1242193201,
+"osm_type": "way",
+"query": "Bren Artimus, Bengaluru",
+"source": "nominatim"
+},
+"bren artimus, hosur road, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Bren Artimus, Hosur Road, Bengaluru",
+"source": null
 },
 "bren mercury, kaikondrahalli, sarjapur road, bengaluru": {
 "bbox": [
@@ -5916,6 +6393,22 @@
 "query": "Brookefield, Bengaluru",
 "source": "photon"
 },
+"brunton road, bengaluru": {
+"bbox": [
+12.9704685,
+12.9733874,
+77.6147527,
+77.6151106
+],
+"display_name": "Brunton Road, Craig Park Layout, Victoria Layout, Ashokanagar, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560025, India",
+"lat": 12.9719382,
+"lng": 77.6148314,
+"ok": true,
+"osm_id": 180375723,
+"osm_type": "way",
+"query": "Brunton Road, Bengaluru",
+"source": "nominatim"
+},
 "bsnl cgm office, halasuru, bengaluru 560008": {
 "bbox": [
 12.9727867,
@@ -5947,6 +6440,33 @@
 "osm_type": "W",
 "query": "BSNL Karnataka Circle Office Halasuru",
 "source": "photon"
+},
+"btm 1st stage, bengaluru": {
+"bbox": null,
+"display_name": "BTM Layout 1st Stage, New Tavarekere, Bengaluru",
+"lat": 12.9190004,
+"lng": 77.6112906,
+"ok": true,
+"osm_id": 2941483809,
+"osm_type": "N",
+"query": "BTM 1st Stage, Bengaluru",
+"source": "photon"
+},
+"btm 1st stage, outer ring road, bengaluru": {
+"bbox": [
+12.9168154,
+12.9169154,
+77.6002544,
+77.6003544
+],
+"display_name": "F: BTM Layout 1st stage, Outer Ring Road, Maruthi Layout, J.P Nagar, Bengaluru South City Corporation, Bengaluru, Bangalore South, Bengaluru Urban, Karnataka, 560029, India",
+"lat": 12.9168654,
+"lng": 77.6003044,
+"ok": true,
+"osm_id": 13371007419,
+"osm_type": "node",
+"query": "BTM 1st Stage, Outer Ring Road, Bengaluru",
+"source": "nominatim"
 },
 "budigere": {
 "bbox": [
@@ -6469,6 +6989,34 @@
 "osm_type": "W",
 "query": "Carl Zeiss Bengaluru Haraluru",
 "source": "photon"
+},
+"carl zeiss india, bommasandra": {
+"bbox": [
+13.2266869,
+13.2302357,
+77.775827,
+77.7810648
+],
+"display_name": "Carl Zeiss, Chimachanahalli",
+"lat": 13.2284248,
+"lng": 77.7782855,
+"ok": true,
+"osm_id": 1278497910,
+"osm_type": "W",
+"query": "Carl Zeiss India, Bommasandra",
+"source": "photon"
+},
+"carl zeiss, jigani link road, bommasandra industrial area, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Carl Zeiss, Jigani Link Road, Bommasandra Industrial Area, Bengaluru",
+"source": null
 },
 "carlton towers, old airport road, bengaluru": {
 "bbox": [
@@ -7043,6 +7591,38 @@
 "query": "Christ Academy, Begur Koppa Road, Bengaluru",
 "source": "nominatim"
 },
+"christ university, hosur road, bengaluru": {
+"bbox": [
+12.9349578,
+12.9362516,
+77.6055699,
+77.6061939
+],
+"display_name": "Christ University Audi Block, Hosur Road, Lakkasandra, Bengaluru South City Corporation, Bengaluru, Bangalore South, Bengaluru Urban, Karnataka, 560029, India",
+"lat": 12.9356334,
+"lng": 77.6059101,
+"ok": true,
+"osm_id": 313393159,
+"osm_type": "way",
+"query": "Christ University, Hosur Road, Bengaluru",
+"source": "nominatim"
+},
+"chunchunkuppe, bengaluru": {
+"bbox": [
+12.8882313,
+12.9156368,
+77.3679703,
+77.3956717
+],
+"display_name": "Chunchanakuppe, Bengaluru",
+"lat": 12.9024628,
+"lng": 77.3835364,
+"ok": true,
+"osm_id": 17416607,
+"osm_type": "R",
+"query": "Chunchunkuppe, Bengaluru",
+"source": "photon"
+},
 "church street, bengaluru": {
 "bbox": [
 12.9743274,
@@ -7059,6 +7639,22 @@
 "query": "Church Street, Bengaluru",
 "source": "nominatim"
 },
+"cignus whitefield, bengaluru": {
+"bbox": [
+12.9683593,
+12.9693239,
+77.7167015,
+77.7170236
+],
+"display_name": "DoubleTree by Hilton Bengaluru Whitefield, ITPL Main Rd, Kundalahalli, Bangalore",
+"lat": 12.9688416,
+"lng": 77.7168626,
+"ok": true,
+"osm_id": 1220006394,
+"osm_type": "W",
+"query": "Cignus Whitefield, Bengaluru",
+"source": "photon"
+},
 "cipla, bommasandra": {
 "bbox": [
 12.8052582,
@@ -7074,6 +7670,22 @@
 "osm_type": "R",
 "query": "Cipla, Bommasandra",
 "source": "photon"
+},
+"cipla, virgonagar, bengaluru": {
+"bbox": [
+13.031997,
+13.032097,
+77.7314067,
+77.7315067
+],
+"display_name": "Cipla, Main Road, Virgonagar, Avalahalli, Bangalore East, Bengaluru Urban, Karnataka, 560049, India",
+"lat": 13.032047,
+"lng": 77.7314567,
+"ok": true,
+"osm_id": 567315165,
+"osm_type": "node",
+"query": "Cipla, Virgonagar, Bengaluru",
+"source": "nominatim"
 },
 "cisco cessna business park, kadubeesanahalli, bengaluru": {
 "bbox": [
@@ -7162,6 +7774,18 @@
 "query": "Clayworks, Koramangala 3rd Block",
 "source": "photon"
 },
+"clayworks, santhosapuram, koramangala": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Clayworks, Santhosapuram, Koramangala",
+"source": null
+},
 "cloudphysician, bellary road": {
 "bbox": [
 13.0208641,
@@ -7176,6 +7800,22 @@
 "osm_id": 7257189846,
 "osm_type": "node",
 "query": "Cloudphysician, Bellary Road",
+"source": "nominatim"
+},
+"cmh road, indiranagar, bengaluru": {
+"bbox": [
+12.9784242,
+12.9786208,
+77.640913,
+77.6465855
+],
+"display_name": "Chinmaya Mission Hospital Road, Subedar Garden, Thippasandra, Indiranagar, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560038, India",
+"lat": 12.9785334,
+"lng": 77.6437489,
+"ok": true,
+"osm_id": 492431226,
+"osm_type": "way",
+"query": "CMH Road, Indiranagar, Bengaluru",
 "source": "nominatim"
 },
 "cmti, tumkur road": {
@@ -7443,6 +8083,17 @@
 "query": "Cosmos, Prestige Tech Park IV, Kadubeesanahalli, Bengaluru",
 "source": "photon"
 },
+"cowrks whitefield, bengaluru": {
+"bbox": null,
+"display_name": "Cowrks Residency Road, Field Marshal Cariappa Cycle Path, Ashokanagar, Bengaluru",
+"lat": 12.9661125,
+"lng": 77.5990655,
+"ok": true,
+"osm_id": 12678060786,
+"osm_type": "N",
+"query": "COWRKS Whitefield, Bengaluru",
+"source": "photon"
+},
 "creditaccess grameen, 46th cross, 8th block, jayanagar, bengaluru": {
 "bbox": null,
 "display_name": null,
@@ -7684,6 +8335,34 @@
 "query": "Deloitte, Embassy Tech Square, Bengaluru",
 "source": "photon"
 },
+"delphina building, cmh road, indiranagar, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Delphina Building, CMH Road, Indiranagar, Bengaluru",
+"source": null
+},
+"delphina, indiranagar, bengaluru": {
+"bbox": [
+12.9684181,
+12.9938145,
+77.6308356,
+77.6567723
+],
+"display_name": "Indiranagar, Bengaluru",
+"lat": 12.9810684,
+"lng": 77.6443636,
+"ok": true,
+"osm_id": 19883335,
+"osm_type": "R",
+"query": "Delphina, Indiranagar, Bengaluru",
+"source": "photon"
+},
 "delta block, embassy tech square": {
 "bbox": null,
 "display_name": null,
@@ -7756,6 +8435,22 @@
 "query": "Devanahalli Business Park",
 "source": "nominatim"
 },
+"diamond district, hal airport road, bengaluru": {
+"bbox": [
+12.9597456,
+12.9602777,
+77.6428503,
+77.6441505
+],
+"display_name": "Diamond District, HAL Old Airport Road, Corporation Colony, Kodihalli, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560017, India",
+"lat": 12.9600395,
+"lng": 77.6433637,
+"ok": true,
+"osm_id": 135262279,
+"osm_type": "way",
+"query": "Diamond District, HAL Airport Road, Bengaluru",
+"source": "nominatim"
+},
 "diamond district, old airport road": {
 "bbox": [
 12.9597456,
@@ -7803,6 +8498,22 @@
 "osm_type": "W",
 "query": "Diamond District, Old Airport Road, Domlur",
 "source": "photon"
+},
+"dickenson road, bengaluru": {
+"bbox": [
+12.9763144,
+12.9796167,
+77.6137997,
+77.6154699
+],
+"display_name": "Dickenson Road, Hanumanthappa Layout, K Kamaraj Ward, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560001, India",
+"lat": 12.9784948,
+"lng": 77.6153067,
+"ok": true,
+"osm_id": 484510041,
+"osm_type": "way",
+"query": "Dickenson Road, Bengaluru",
+"source": "nominatim"
 },
 "divyasree 77 town centre, yemalur": {
 "bbox": [
@@ -7907,6 +8618,22 @@
 "osm_type": null,
 "query": "DivyaSree NR Enclave, EPIP, Whitefield",
 "source": null
+},
+"divyasree nr enclave, whitefield, bengaluru": {
+"bbox": [
+12.9861338,
+12.9872151,
+77.7297487,
+77.7315442
+],
+"display_name": "DivyaSree NR Enclave, Kaveri Nagara, Bengaluru",
+"lat": 12.9866354,
+"lng": 77.7306743,
+"ok": true,
+"osm_id": 116070091,
+"osm_type": "W",
+"query": "Divyasree NR Enclave, Whitefield, Bengaluru",
+"source": "photon"
 },
 "divyasree technopark, kundalahalli": {
 "bbox": [
@@ -8107,6 +8834,62 @@
 "query": "Doddajala",
 "source": "nominatim"
 },
+"doddakallasandra, kanakapura road, bengaluru": {
+"bbox": [
+12.8846362,
+12.8847362,
+77.552701,
+77.552801
+],
+"display_name": "Doddakallasandra, Kanakapura Road, Anjanapura, Bengaluru South City Corporation, Bengaluru, Bangalore South, Bengaluru Urban, Karnataka, 560062, India",
+"lat": 12.8846862,
+"lng": 77.552751,
+"ok": true,
+"osm_id": 7235254982,
+"osm_type": "node",
+"query": "Doddakallasandra, Kanakapura Road, Bengaluru",
+"source": "nominatim"
+},
+"doddanekkundi industrial area 2nd phase, mahadevapura, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim error: HTTP Error 429: Too many requests; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Doddanekkundi Industrial Area 2nd Phase, Mahadevapura, Bengaluru",
+"source": null
+},
+"doddanekkundi industrial area, mahadevapura, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Doddanekkundi Industrial Area, Mahadevapura, Bengaluru",
+"source": null
+},
+"doddanekkundi, bengaluru": {
+"bbox": [
+12.9729514,
+12.9755267,
+77.6934442,
+77.6940114
+],
+"display_name": "Doddanekkundi Main Road, Dodda Nekkundi, Bengaluru",
+"lat": 12.9742421,
+"lng": 77.6937128,
+"ok": true,
+"osm_id": 80396932,
+"osm_type": "W",
+"query": "Doddanekkundi, Bengaluru",
+"source": "photon"
+},
 "doddanekundi bengaluru": {
 "bbox": [
 12.9613194,
@@ -8122,6 +8905,22 @@
 "osm_type": "node",
 "query": "Doddanekundi Bengaluru",
 "source": "nominatim"
+},
+"doddanekundi industrial area, bengaluru": {
+"bbox": [
+13.0073481,
+13.0452092,
+77.4967164,
+77.5334633
+],
+"display_name": "Peenya Industrial Area, Shivapura, Bengaluru",
+"lat": 13.0160478,
+"lng": 77.5045057,
+"ok": true,
+"osm_id": 17570284,
+"osm_type": "R",
+"query": "Doddanekundi Industrial Area, Bengaluru",
+"source": "photon"
 },
 "doddanna industrial estate": {
 "bbox": [
@@ -8197,6 +8996,22 @@
 "osm_type": "N",
 "query": "Dommanuru, Devanahalli",
 "source": "photon"
+},
+"doopanahalli, indiranagar, bengaluru": {
+"bbox": [
+12.9683454,
+12.9689198,
+77.6361092,
+77.6374892
+],
+"display_name": "Doopanahalli Park, Indiranagar, Jogpalya, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, India",
+"lat": 12.968548,
+"lng": 77.6368672,
+"ok": true,
+"osm_id": 128510778,
+"osm_type": "way",
+"query": "Doopanahalli, Indiranagar, Bengaluru",
+"source": "nominatim"
 },
 "dooravani nagar bengaluru": {
 "bbox": [
@@ -8365,6 +9180,17 @@
 "osm_type": "node",
 "query": "Eiffel Tower",
 "source": "nominatim"
+},
+"ejipura, bengaluru": {
+"bbox": null,
+"display_name": "Ejipura, Ejipura, Bengaluru",
+"lat": 12.945245,
+"lng": 77.6274776,
+"ok": true,
+"osm_id": 429921855,
+"osm_type": "N",
+"query": "Ejipura, Bengaluru",
+"source": "photon"
 },
 "electronic city phase 1": {
 "bbox": [
@@ -8931,6 +9757,18 @@
 "osm_id": null,
 "osm_type": null,
 "query": "Embassy Prime, CV Raman Nagar",
+"source": null
+},
+"embassy prime, cv raman nagar, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Embassy Prime, CV Raman Nagar, Bengaluru",
 "source": null
 },
 "embassy signet, kadubeesanahalli, bengaluru": {
@@ -10168,6 +11006,22 @@
 "query": "Gopalan Signature Towers, Old Madras Road, Benniganahalli",
 "source": "photon"
 },
+"goraguntepalya, bengaluru": {
+"bbox": [
+13.0148751,
+13.0392901,
+77.5273981,
+77.5558611
+],
+"display_name": "Goraguntepalya, Bengaluru West City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560022, India",
+"lat": 13.0269315,
+"lng": 77.54409,
+"ok": true,
+"osm_id": 19884534,
+"osm_type": "relation",
+"query": "Goraguntepalya, Bengaluru",
+"source": "nominatim"
+},
 "goraguntepalya, tumkur road, bengaluru": {
 "bbox": [
 13.0281971,
@@ -10268,6 +11122,22 @@
 "osm_id": 28186872,
 "osm_type": "W",
 "query": "Grape Garden, 18th Main, 6th Block, Koramangala, Bengaluru",
+"source": "photon"
+},
+"grape garden, koramangala, bengaluru": {
+"bbox": [
+12.9491942,
+12.9510768,
+77.621536,
+77.6231399
+],
+"display_name": "Grape Garden, Ejipura, Bangalore",
+"lat": 12.9499747,
+"lng": 77.6221472,
+"ok": true,
+"osm_id": 1218030766,
+"osm_type": "W",
+"query": "Grape Garden, Koramangala, Bengaluru",
 "source": "photon"
 },
 "graphite india road, whitefield": {
@@ -11503,6 +12373,17 @@
 "query": "HMT Bhavan, Bellary Road",
 "source": "photon"
 },
+"hmt colony, rt nagar, bengaluru": {
+"bbox": null,
+"display_name": "HMT Layout RT Nagar, 9th Cross Road, Ganganagar, Bengaluru",
+"lat": 13.0247743,
+"lng": 77.5946774,
+"ok": true,
+"osm_id": 7132495610,
+"osm_type": "N",
+"query": "HMT Colony, RT Nagar, Bengaluru",
+"source": "photon"
+},
 "hmt machine tools bengaluru": {
 "bbox": [
 13.0491585,
@@ -11741,6 +12622,39 @@
 "query": "Hoodi Circle, Bengaluru",
 "source": null
 },
+"hoodi circle, whitefield main road, bengaluru": {
+"bbox": null,
+"display_name": "Healing Hands Clinic - Whitefield, Bengaluru, ITPL Main Road, Hoodi, Bangalore",
+"lat": 12.9880628,
+"lng": 77.7298427,
+"ok": true,
+"osm_id": 13821104862,
+"osm_type": "N",
+"query": "Hoodi Circle, Whitefield Main Road, Bengaluru",
+"source": "photon"
+},
+"hoodi junction, whitefield main road, bengaluru": {
+"bbox": null,
+"display_name": "Healing Hands Clinic - Whitefield, Bengaluru, ITPL Main Road, Hoodi, Bangalore",
+"lat": 12.9880628,
+"lng": 77.7298427,
+"ok": true,
+"osm_id": 13821104862,
+"osm_type": "N",
+"query": "Hoodi Junction, Whitefield Main Road, Bengaluru",
+"source": "photon"
+},
+"hoodi metro station, bengaluru": {
+"bbox": null,
+"display_name": "Nadaprabhu Kempegowda Station, Majestic, Metro - Bus Foot Overbridge, Nehru Nagar, Bengaluru",
+"lat": 12.9757079,
+"lng": 77.5728757,
+"ok": true,
+"osm_id": 6400857558,
+"osm_type": "N",
+"query": "Hoodi Metro Station, Bengaluru",
+"source": "photon"
+},
 "hoodi, bengaluru": {
 "bbox": [
 12.9900743,
@@ -11756,6 +12670,22 @@
 "osm_type": "W",
 "query": "Hoodi, Bengaluru",
 "source": "photon"
+},
+"hoodi, mahadevapura, bengaluru": {
+"bbox": [
+12.9917506,
+12.9918506,
+77.716443,
+77.716543
+],
+"display_name": "Hoodi Mosque, Hoodi Main Road, Hoodi, Kaveri Nagara, Bengaluru East City Corporation, Bengaluru, Bangalore East, Bengaluru Urban, Karnataka, 560048, India",
+"lat": 12.9918006,
+"lng": 77.716493,
+"ok": true,
+"osm_id": 515659862,
+"osm_type": "node",
+"query": "Hoodi, Mahadevapura, Bengaluru",
+"source": "nominatim"
 },
 "hoodi, whitefield, bengaluru": {
 "bbox": [
@@ -11799,6 +12729,22 @@
 "osm_type": "N",
 "query": "Hope Farm, Whitefield",
 "source": "photon"
+},
+"horamavu main road, bengaluru": {
+"bbox": [
+13.0283301,
+13.0337199,
+77.6631125,
+77.6749511
+],
+"display_name": "Horamavu Main Road, Kalkere, Bengaluru East City Corporation, Bengaluru, Bangalore East, Bengaluru Urban, Karnataka, 560016, India",
+"lat": 13.0310943,
+"lng": 77.6689906,
+"ok": true,
+"osm_id": 792805171,
+"osm_type": "way",
+"query": "Horamavu Main Road, Bengaluru",
+"source": "nominatim"
 },
 "hoskote, karnataka": {
 "bbox": [
@@ -11848,6 +12794,22 @@
 "query": "Hosur Road IT Park",
 "source": "photon"
 },
+"hotel royal orchid, bengaluru": {
+"bbox": [
+12.9567801,
+12.9580744,
+77.6433713,
+77.6448464
+],
+"display_name": "Hotel Royal Orchid, 1, 3rd Main Road, Amarjyothi Layout, Domlur, Domluru, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560008, India",
+"lat": 12.9574354,
+"lng": 77.6440056,
+"ok": true,
+"osm_id": 217566885,
+"osm_type": "way",
+"query": "Hotel Royal Orchid, Bengaluru",
+"source": "nominatim"
+},
 "hp, electronic city phase 1, veerasandra": {
 "bbox": null,
 "display_name": "Electronics City Phase 2 (West), Veerasandra, Bengaluru",
@@ -11886,6 +12848,17 @@
 "osm_type": "node",
 "query": "HSR Layout Sector 3",
 "source": "nominatim"
+},
+"hsr layout sector 7, 17th cross, bengaluru": {
+"bbox": null,
+"display_name": "Vasan Eye Care Hospital HSR Layout, 17th Cross Road, HSR Layout, Bengaluru",
+"lat": 12.9121673,
+"lng": 77.6347685,
+"ok": true,
+"osm_id": 6944578918,
+"osm_type": "N",
+"query": "HSR Layout Sector 7, 17th Cross, Bengaluru",
+"source": "photon"
 },
 "huawei technologies india kundalahalli": {
 "bbox": [
@@ -12226,6 +13199,17 @@
 "query": "IndiQube Grape Garden, 6th Block Koramangala, Bengaluru",
 "source": null
 },
+"indiqube lakeside, bellandur, bengaluru": {
+"bbox": null,
+"display_name": "Indiqube, Outer Ring Road, Bellandur, Bengaluru",
+"lat": 12.9222883,
+"lng": 77.6694312,
+"ok": true,
+"osm_id": 11903117746,
+"osm_type": "N",
+"query": "IndiQube Lakeside, Bellandur, Bengaluru",
+"source": "photon"
+},
 "indiqube logos, bengaluru": {
 "bbox": [
 12.9723299,
@@ -12368,6 +13352,18 @@
 "osm_type": "node",
 "query": "Indiranagar, Bengaluru",
 "source": "nominatim"
+},
+"indlavadi": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Indlavadi",
+"source": null
 },
 "indlavadi, anekal": {
 "bbox": [
@@ -12595,6 +13591,22 @@
 "osm_id": 4444516315,
 "osm_type": "N",
 "query": "Infotech IT Park, Electronics City Phase 1",
+"source": "photon"
+},
+"ing vysya house, mg road, bengaluru": {
+"bbox": [
+12.8364906,
+12.836717,
+77.648003,
+77.6482157
+],
+"display_name": "MG House, 6th Cross Road, Maragondanahalli, Bengaluru",
+"lat": 12.8366307,
+"lng": 77.6480921,
+"ok": true,
+"osm_id": 1346134960,
+"osm_type": "W",
+"query": "ING Vysya House, MG Road, Bengaluru",
 "source": "photon"
 },
 "innova pearl, 5th block koramangala": {
@@ -12958,6 +13970,17 @@
 "query": "ITC Green Centre, Banaswadi Main Road",
 "source": "photon"
 },
+"itc green centre, banaswadi main road, bengaluru": {
+"bbox": null,
+"display_name": "Pranav Diabetes Centre, Banaswadi Main Road, Banaswadi, Bengaluru",
+"lat": 13.0148814,
+"lng": 77.6555197,
+"ok": true,
+"osm_id": 7577248194,
+"osm_type": "N",
+"query": "ITC Green Centre, Banaswadi Main Road, Bengaluru",
+"source": "photon"
+},
 "itc green centre, bengaluru": {
 "bbox": [
 12.9973989,
@@ -13248,6 +14271,18 @@
 "query": "Jana Small Finance Bank, The Fairway, Domlur, Bengaluru",
 "source": null
 },
+"janapriya hanuma reddy complex, hoodi, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Janapriya Hanuma Reddy Complex, Hoodi, Bengaluru",
+"source": null
+},
 "jayachamarajendra road, bengaluru": {
 "bbox": [
 12.9552818,
@@ -13307,6 +14342,17 @@
 "query": "Jeevan Bhima Nagar HAL",
 "source": "photon"
 },
+"jeevan bima nagar, bengaluru": {
+"bbox": null,
+"display_name": "Jeevan Bhima Nagar, Jeevan Bhimanagar, Bengaluru",
+"lat": 12.9678074,
+"lng": 77.6568367,
+"ok": true,
+"osm_id": 513600981,
+"osm_type": "N",
+"query": "Jeevan Bima Nagar, Bengaluru",
+"source": "photon"
+},
 "jigani": {
 "bbox": [
 12.7640326,
@@ -13354,6 +14400,22 @@
 "osm_type": "way",
 "query": "Jigani Industrial Area, Anekal, Bengaluru",
 "source": "nominatim"
+},
+"jigani link road, bommasandra industrial area, bengaluru": {
+"bbox": [
+12.7914193,
+12.8108744,
+77.6576532,
+77.6653107
+],
+"display_name": "Jigani Industrial Estate Road, Kyalsanahalli, Bandenallasandra",
+"lat": 12.8010236,
+"lng": 77.6617985,
+"ok": true,
+"osm_id": 655695952,
+"osm_type": "W",
+"query": "Jigani Link Road, Bommasandra Industrial Area, Bengaluru",
+"source": "photon"
 },
 "jindal aluminium": {
 "bbox": [
@@ -13419,6 +14481,22 @@
 "osm_id": 1473221118,
 "osm_type": "N",
 "query": "Jogupalya, Cambridge Layout",
+"source": "photon"
+},
+"john distilleries, bengaluru": {
+"bbox": [
+12.9804582,
+12.9819047,
+77.5707746,
+77.5715225
+],
+"display_name": "Khodays Distilleries, Nehru Nagar, Bengaluru",
+"lat": 12.9811839,
+"lng": 77.5711422,
+"ok": true,
+"osm_id": 38539863,
+"osm_type": "W",
+"query": "John Distilleries, Bengaluru",
 "source": "photon"
 },
 "john f welch technology centre, epip, whitefield, bengaluru": {
@@ -13501,6 +14579,22 @@
 "query": "JP Software Park, Electronic City",
 "source": "nominatim"
 },
+"jubilant biosys, bengaluru": {
+"bbox": [
+12.9582975,
+12.9593234,
+77.7267429,
+77.7274105
+],
+"display_name": "Jubilant Motors, Siddapura Lake Road, Kundalahalli, Bengaluru",
+"lat": 12.9589257,
+"lng": 77.7271385,
+"ok": true,
+"osm_id": 1547386739,
+"osm_type": "W",
+"query": "Jubilant Biosys, Bengaluru",
+"source": "photon"
+},
 "jubilant, bommasandra": {
 "bbox": [
 12.8052582,
@@ -13572,6 +14666,22 @@
 "osm_type": null,
 "query": "Kadugodi, Bengaluru",
 "source": null
+},
+"kaggalipura, bengaluru": {
+"bbox": [
+12.8501451,
+12.8611531,
+77.718275,
+77.7315962
+],
+"display_name": "Kaggalipura, Kommasandra, Anekal, Bengaluru Urban, Karnataka, India",
+"lat": 12.855621,
+"lng": 77.7246606,
+"ok": true,
+"osm_id": 17455828,
+"osm_type": "relation",
+"query": "Kaggalipura, Bengaluru",
+"source": "nominatim"
 },
 "kaikondrahalli, sarjapur road": {
 "bbox": [
@@ -13943,6 +15053,22 @@
 "osm_type": null,
 "query": "Kalyani Vista, JP Nagar 4th Phase, Bengaluru",
 "source": null
+},
+"kambipura, bengaluru": {
+"bbox": [
+12.8659715,
+12.8987197,
+77.4506853,
+77.4732168
+],
+"display_name": "Kambipura, Bangalore South, Bengaluru Urban, Karnataka, India",
+"lat": 12.8822711,
+"lng": 77.4606466,
+"ok": true,
+"osm_id": 17416123,
+"osm_type": "relation",
+"query": "Kambipura, Bengaluru",
+"source": "nominatim"
 },
 "kardex remstar, peenya": {
 "bbox": null,
@@ -14540,6 +15666,22 @@
 "query": "Kodihalli Bengaluru",
 "source": "nominatim"
 },
+"kodihalli, hal airport road, bengaluru": {
+"bbox": [
+12.9604548,
+12.9604944,
+77.6422497,
+77.642685
+],
+"display_name": "HAL Old Airport Road, Kodihalli, Bengaluru",
+"lat": 12.960474,
+"lng": 77.6424673,
+"ok": true,
+"osm_id": 28709469,
+"osm_type": "W",
+"query": "Kodihalli, HAL Airport Road, Bengaluru",
+"source": "photon"
+},
 "kokarya business synergy center, gottigere": {
 "bbox": null,
 "display_name": null,
@@ -14562,6 +15704,34 @@
 "osm_id": null,
 "osm_type": null,
 "query": "Kolab, 16th Main Road, 38th Cross, 4th T Block East, Jayanagar, Bengaluru",
+"source": null
+},
+"komarla solitaire, bengaluru": {
+"bbox": [
+12.9711482,
+12.9718911,
+77.6147899,
+77.6154551
+],
+"display_name": "Prestige Solitaire, Ashokanagar, Bengaluru",
+"lat": 12.9715595,
+"lng": 77.6151095,
+"ok": true,
+"osm_id": 1009123721,
+"osm_type": "W",
+"query": "Komarla Solitaire, Bengaluru",
+"source": "photon"
+},
+"komarla solitaire, old madras road, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Komarla Solitaire, Old Madras Road, Bengaluru",
 "source": null
 },
 "konappana agrahara": {
@@ -14611,6 +15781,54 @@
 "osm_type": "R",
 "query": "Koppa, Jigani",
 "source": "photon"
+},
+"koramangala 1a block, bengaluru": {
+"bbox": [
+12.9417737,
+12.9441842,
+77.6088517,
+77.6161969
+],
+"display_name": "Koramangala Road, Koramangala 8th Block, Adugodi, A Adugodi, Bengaluru South City Corporation, Bengaluru, Bangalore South, Bengaluru Urban, Karnataka, 560030, India",
+"lat": 12.9432363,
+"lng": 77.6126109,
+"ok": true,
+"osm_id": 239441452,
+"osm_type": "way",
+"query": "Koramangala 1A Block, Bengaluru",
+"source": "nominatim"
+},
+"koramangala 1st block, bengaluru": {
+"bbox": [
+12.9243674,
+12.9299353,
+77.6284304,
+77.6377174
+],
+"display_name": "Koramangala 1st Block, Kormangala East, Bengaluru South City Corporation, Bengaluru, Bangalore South, Bengaluru Urban, Karnataka, 560034, India",
+"lat": 12.9277245,
+"lng": 77.6327822,
+"ok": true,
+"osm_id": 1126717606,
+"osm_type": "way",
+"query": "Koramangala 1st Block, Bengaluru",
+"source": "nominatim"
+},
+"koramangala 3rd block, bengaluru": {
+"bbox": [
+12.9246853,
+12.9312245,
+77.621133,
+77.6291814
+],
+"display_name": "Koramangala 3rd Block, Kormangala East, Bengaluru South City Corporation, Bengaluru, Bangalore South, Bengaluru Urban, Karnataka, India",
+"lat": 12.9282918,
+"lng": 77.6254034,
+"ok": true,
+"osm_id": 27775033,
+"osm_type": "way",
+"query": "Koramangala 3rd Block, Bengaluru",
+"source": "nominatim"
 },
 "koramangala 6th block, bengaluru": {
 "bbox": [
@@ -14682,6 +15900,28 @@
 "osm_id": 1346134960,
 "osm_type": "W",
 "query": "Kotak House, MG Road, Bengaluru",
+"source": "photon"
+},
+"kotak mahindra bank, mg road, bengaluru": {
+"bbox": null,
+"display_name": "Kotak Mahindra Bank, Mahatma Gandhi Road, Ashokanagar, Bengaluru",
+"lat": 12.9748439,
+"lng": 77.6083535,
+"ok": true,
+"osm_id": 4121454427,
+"osm_type": "N",
+"query": "Kotak Mahindra Bank, MG Road, Bengaluru",
+"source": "photon"
+},
+"kote mr plaza, doddanekundi, outer ring road, bengaluru": {
+"bbox": null,
+"display_name": "ArmaDQ, Outer Ring Road, Dodda Nekkundi, Doddanekundi, Marathahalli",
+"lat": 12.9773708,
+"lng": 77.6954828,
+"ok": true,
+"osm_id": 1024506179,
+"osm_type": "N",
+"query": "Kote MR Plaza, Doddanekundi, Outer Ring Road, Bengaluru",
 "source": "photon"
 },
 "kothari arena, hosur main road, adugodi, bengaluru": {
@@ -14785,6 +16025,33 @@
 "osm_type": null,
 "query": "Krishna Reddy Industrial Area, Kudlu Gate",
 "source": null
+},
+"krishnappa garden, cv raman nagar, bengaluru": {
+"bbox": null,
+"display_name": "CV Raman Statue, Doctor APJ Abdul Kalam Road, New Thippasandra, Bengaluru",
+"lat": 12.979247,
+"lng": 77.6531648,
+"ok": true,
+"osm_id": 3298494102,
+"osm_type": "N",
+"query": "Krishnappa Garden, CV Raman Nagar, Bengaluru",
+"source": "photon"
+},
+"krishnappa layout, bengaluru": {
+"bbox": [
+12.9058691,
+12.9077628,
+77.6924271,
+77.6932727
+],
+"display_name": "Krishnappa Layout, Doddakannalli, Kasavanahalli, Bengaluru South City Corporation, Bengaluru, Bangalore East, Bengaluru Urban, Karnataka, India",
+"lat": 12.9070818,
+"lng": 77.6929357,
+"ok": true,
+"osm_id": 1428814732,
+"osm_type": "way",
+"query": "Krishnappa Layout, Bengaluru",
+"source": "nominatim"
 },
 "kssidc it park, rajajinagar": {
 "bbox": [
@@ -14983,6 +16250,38 @@
 "query": "Laboratory for Electro-Optics Systems, Peenya Industrial Estate, Bengaluru 560058",
 "source": null
 },
+"lalbagh main road, bengaluru": {
+"bbox": [
+12.9536655,
+12.9537655,
+77.5857942,
+77.5858942
+],
+"display_name": "Lalbagh Main Gate, Lalbagh Fort Road, Mavalli, Ashoka Pillar, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560004, India",
+"lat": 12.9537155,
+"lng": 77.5858442,
+"ok": true,
+"osm_id": 2396890413,
+"osm_type": "node",
+"query": "Lalbagh Main Road, Bengaluru",
+"source": "nominatim"
+},
+"lalbagh road, shanthinagar, bengaluru": {
+"bbox": [
+12.9590977,
+12.9592003,
+77.586828,
+77.5868954
+],
+"display_name": "Lalbagh Road, SilverJubilee Park Ward, Bengaluru",
+"lat": 12.959149,
+"lng": 77.5868617,
+"ok": true,
+"osm_id": 462585120,
+"osm_type": "W",
+"query": "Lalbagh Road, Shanthinagar, Bengaluru",
+"source": "photon"
+},
 "lam research bagmane tech park, bengaluru": {
 "bbox": [
 12.9800013,
@@ -15076,6 +16375,18 @@
 "osm_id": null,
 "osm_type": null,
 "query": "Lava Kusha Arcade, Munnekolal",
+"source": null
+},
+"lava kusha arcade, munnekolala, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Lava Kusha Arcade, Munnekolala, Bengaluru",
 "source": null
 },
 "lava kusha arcade, munnekolala, marathahalli": {
@@ -15307,6 +16618,17 @@
 "query": "Madivala, Hosur Main Road, Bengaluru 560068",
 "source": "photon"
 },
+"madras bank road, bengaluru": {
+"bbox": null,
+"display_name": "MVJ Medical College and Research Hospital Blood Bank, Old Madras Road, Hosakote",
+"lat": 13.0772732,
+"lng": 77.8114977,
+"ok": true,
+"osm_id": 6886594792,
+"osm_type": "N",
+"query": "Madras Bank Road, Bengaluru",
+"source": "photon"
+},
 "magellan aerospace bengaluru": {
 "bbox": [
 13.1796242,
@@ -15428,6 +16750,22 @@
 "osm_id": 5760197764,
 "osm_type": "node",
 "query": "Mahadevapura, Bengaluru",
+"source": "nominatim"
+},
+"mahalakshmi layout, bengaluru": {
+"bbox": [
+12.9913153,
+13.0313153,
+77.5246972,
+77.5646972
+],
+"display_name": "Mahalakshmi Layout, Mahalakshmipuram, Bengaluru West City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560086, India",
+"lat": 13.0113153,
+"lng": 77.5446972,
+"ok": true,
+"osm_id": 7257126381,
+"osm_type": "node",
+"query": "Mahalakshmi Layout, Bengaluru",
 "source": "nominatim"
 },
 "mahatma gandhi road, bengaluru 560001": {
@@ -15790,6 +17128,22 @@
 "query": "Marathahalli Bengaluru",
 "source": "nominatim"
 },
+"marathahalli bridge, bengaluru": {
+"bbox": [
+12.9565639,
+12.9568475,
+77.7042825,
+77.7050022
+],
+"display_name": "Marathahalli Bridge, Marathalli Bridge Service Road, Chinnappanahalli, AECS Layout, Priyadarshini Ward, Bengaluru East City Corporation, Bengaluru, Bangalore East, Bengaluru Urban, Karnataka, 560037, India",
+"lat": 12.9567046,
+"lng": 77.7046424,
+"ok": true,
+"osm_id": 1225572735,
+"osm_type": "way",
+"query": "Marathahalli Bridge, Bengaluru",
+"source": "nominatim"
+},
 "marathahalli colony bengaluru": {
 "bbox": [
 12.9558389,
@@ -15820,6 +17174,22 @@
 "osm_id": 796463149,
 "osm_type": "W",
 "query": "Marksquare, St Marks Road, Bengaluru",
+"source": "photon"
+},
+"marriott whitefield, bengaluru": {
+"bbox": [
+12.9683593,
+12.9693239,
+77.7167015,
+77.7170236
+],
+"display_name": "DoubleTree by Hilton Bengaluru Whitefield, ITPL Main Rd, Kundalahalli, Bangalore",
+"lat": 12.9688416,
+"lng": 77.7168626,
+"ok": true,
+"osm_id": 1220006394,
+"osm_type": "W",
+"query": "Marriott Whitefield, Bengaluru",
 "source": "photon"
 },
 "maruthi infotech center, domlur": {
@@ -15939,6 +17309,22 @@
 "osm_id": 12284791767,
 "osm_type": "N",
 "query": "Mascot, EPIP, Whitefield",
+"source": "photon"
+},
+"mayur greens, koramangala, bengaluru": {
+"bbox": [
+12.9356643,
+12.9360065,
+77.6340183,
+77.6342623
+],
+"display_name": "Balaji Greens, 7th Main Road, Kormangala East, Bengaluru",
+"lat": 12.9358354,
+"lng": 77.6341403,
+"ok": true,
+"osm_id": 348844016,
+"osm_type": "W",
+"query": "Mayur Greens, Koramangala, Bengaluru",
 "source": "photon"
 },
 "mazumdar shaw medical center, bengaluru": {
@@ -16266,6 +17652,18 @@
 "query": "Mission Road, Bengaluru",
 "source": "nominatim"
 },
+"mittal tower, mg road, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Mittal Tower, MG Road, Bengaluru",
+"source": null
+},
 "mittal towers, bengaluru": {
 "bbox": [
 12.9734389,
@@ -16342,6 +17740,38 @@
 "query": "Mphasis, Whitefield",
 "source": "photon"
 },
+"ms ramaiah north city, bengaluru": {
+"bbox": [
+13.0401831,
+13.0402831,
+77.55709,
+77.55719
+],
+"display_name": "MS Ramaiah Post Office, MS Ramaiah Road, Sundar Nagar, Gokula, HMT Ward, Bengaluru North City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560013, India",
+"lat": 13.0402331,
+"lng": 77.55714,
+"ok": true,
+"osm_id": 11496155848,
+"osm_type": "node",
+"query": "MS Ramaiah North City, Bengaluru",
+"source": "nominatim"
+},
+"ms ramaiah tech park, nagavara, bengaluru": {
+"bbox": [
+13.0413441,
+13.0428766,
+77.6227427,
+77.6242975
+],
+"display_name": "MS Ramaiah Tech Park, Kempapura, Bengaluru",
+"lat": 13.0421166,
+"lng": 77.62361,
+"ok": true,
+"osm_id": 777618526,
+"osm_type": "W",
+"query": "MS Ramaiah Tech Park, Nagavara, Bengaluru",
+"source": "photon"
+},
 "msil house, cunningham road, bengaluru": {
 "bbox": [
 12.9877223,
@@ -16356,6 +17786,81 @@
 "osm_id": 257600768,
 "osm_type": "W",
 "query": "MSIL House, Cunningham Road, Bengaluru",
+"source": "photon"
+},
+"msr north tower, bengaluru": {
+"bbox": [
+12.9611698,
+12.9614776,
+77.5835716,
+77.5839916
+],
+"display_name": "MSR Towers, SilverJubilee Park Ward, Bengaluru",
+"lat": 12.9613769,
+"lng": 77.5837802,
+"ok": true,
+"osm_id": 1311064533,
+"osm_type": "W",
+"query": "MSR North Tower, Bengaluru",
+"source": "photon"
+},
+"msr north tower, nagavara, bengaluru": {
+"bbox": [
+13.0408266,
+13.0414238,
+77.6396366,
+77.6404412
+],
+"display_name": "Tower 2, Hennuru - Bagaluru Road, Hennur, Bengaluru",
+"lat": 13.0411251,
+"lng": 77.6400389,
+"ok": true,
+"osm_id": 1148876101,
+"osm_type": "W",
+"query": "MSR North Tower, Nagavara, Bengaluru",
+"source": "photon"
+},
+"msr north tower, outer ring road, bengaluru": {
+"bbox": [
+12.9243078,
+12.9245254,
+77.6525658,
+77.6528775
+],
+"display_name": "Tower 1, Outer Ring Road, Agaram, Bengaluru",
+"lat": 12.9244027,
+"lng": 77.6527217,
+"ok": true,
+"osm_id": 347115894,
+"osm_type": "W",
+"query": "MSR North Tower, Outer Ring Road, Bengaluru",
+"source": "photon"
+},
+"msr north towers, nagavara, bengaluru": {
+"bbox": [
+12.9611698,
+12.9614776,
+77.5835716,
+77.5839916
+],
+"display_name": "MSR Towers, SilverJubilee Park Ward, Bengaluru",
+"lat": 12.9613769,
+"lng": 77.5837802,
+"ok": true,
+"osm_id": 1311064533,
+"osm_type": "W",
+"query": "MSR North Towers, Nagavara, Bengaluru",
+"source": "photon"
+},
+"mtr foods, bengaluru": {
+"bbox": null,
+"display_name": "Mavalli Tiffin Rooms, Lalbagh Road, Hombegowda Nagara, Bengaluru",
+"lat": 12.9551683,
+"lng": 77.5855225,
+"ok": true,
+"osm_id": 429833271,
+"osm_type": "N",
+"query": "MTR Foods, Bengaluru",
 "source": "photon"
 },
 "mtrdc bengaluru": {
@@ -16383,6 +17888,28 @@
 "osm_id": 9820589393,
 "osm_type": "N",
 "query": "Munnekolala, Marathahalli Outer Ring Road",
+"source": "photon"
+},
+"munnekolala, marathahalli, bengaluru": {
+"bbox": null,
+"display_name": "Munekolala, Munnenkolalu, Bengaluru",
+"lat": 12.9480839,
+"lng": 77.7090175,
+"ok": true,
+"osm_id": 4674414991,
+"osm_type": "N",
+"query": "Munnekolala, Marathahalli, Bengaluru",
+"source": "photon"
+},
+"munnekollal, bengaluru": {
+"bbox": null,
+"display_name": "Munekolala, Munnenkolalu, Bengaluru",
+"lat": 12.9480839,
+"lng": 77.7090175,
+"ok": true,
+"osm_id": 4674414991,
+"osm_type": "N",
+"query": "Munnekollal, Bengaluru",
 "source": "photon"
 },
 "munnekollal, marathahalli": {
@@ -16415,6 +17942,22 @@
 "osm_id": 303494087,
 "osm_type": "way",
 "query": "Murugeshpalya, Bengaluru",
+"source": "nominatim"
+},
+"museum road, bengaluru": {
+"bbox": [
+12.9684343,
+12.9709016,
+77.6048071,
+77.6060119
+],
+"display_name": "Museum Road, Arab Lines, Ashok Nagar, Ashokanagar, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560025, India",
+"lat": 12.9696688,
+"lng": 77.6054112,
+"ok": true,
+"osm_id": 763290548,
+"osm_type": "way",
+"query": "Museum Road, Bengaluru",
 "source": "nominatim"
 },
 "mylan, bommasandra": {
@@ -16569,6 +18112,17 @@
 "query": "Nagavara Outer Ring Road Bharat Electronics",
 "source": "photon"
 },
+"nagavarapalya, c v raman nagar, bengaluru": {
+"bbox": null,
+"display_name": "C V Raman Nagar, Nagavarapalya, Bengaluru",
+"lat": 12.9856478,
+"lng": 77.6649767,
+"ok": true,
+"osm_id": 628634429,
+"osm_type": "N",
+"query": "Nagavarapalya, C V Raman Nagar, Bengaluru",
+"source": "photon"
+},
 "nal belur campus bengaluru": {
 "bbox": [
 13.0344534,
@@ -16711,6 +18265,29 @@
 "query": "National Aerospace Laboratories, Kodihalli, Bengaluru",
 "source": "photon"
 },
+"natural remedies veerasandra, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Natural Remedies Veerasandra, Bengaluru",
+"source": null
+},
+"natural remedies, bengaluru": {
+"bbox": null,
+"display_name": "Pure and Natural, 4th Cross Road, Vasanth Nagar, Bengaluru",
+"lat": 12.9927174,
+"lng": 77.5907506,
+"ok": true,
+"osm_id": 9779286686,
+"osm_type": "N",
+"query": "Natural Remedies, Bengaluru",
+"source": "photon"
+},
 "natural remedies, veerasandra industrial area, bengaluru": {
 "bbox": null,
 "display_name": null,
@@ -16810,6 +18387,22 @@
 "osm_type": "way",
 "query": "Nelamangala Industrial Area, Bengaluru",
 "source": "nominatim"
+},
+"ness towers, koramangala, bengaluru": {
+"bbox": [
+12.9348008,
+12.9351157,
+77.6088852,
+77.609256
+],
+"display_name": "SV Towers, Hosur Main Road, Krishna Nagar, Koramangala Industrial Layout, S.G. Palya, S.G Palya, Bengaluru",
+"lat": 12.9349583,
+"lng": 77.6090706,
+"ok": true,
+"osm_id": 313393378,
+"osm_type": "W",
+"query": "Ness Towers, Koramangala, Bengaluru",
+"source": "photon"
 },
 "netapp bangalore campus, itpl main road, hoodi": {
 "bbox": [
@@ -17197,6 +18790,18 @@
 "query": "NXT-2, Embassy Manyata Business Park, Nagavara",
 "source": "photon"
 },
+"nxtgen, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "NxtGen, Bengaluru",
+"source": null
+},
 "o'shaughnessy road, langford town, bengaluru": {
 "bbox": [
 12.9619323,
@@ -17344,6 +18949,22 @@
 "query": "Orion, Bagmane Constellation Business Park",
 "source": "photon"
 },
+"orkla india, bengaluru": {
+"bbox": [
+12.8334905,
+13.1426196,
+77.4598797,
+77.7840639
+],
+"display_name": "Bengaluru, Bengaluru",
+"lat": 12.9767936,
+"lng": 77.590082,
+"ok": true,
+"osm_id": 7902476,
+"osm_type": "R",
+"query": "Orkla India, Bengaluru",
+"source": "photon"
+},
 "otis, jigani": {
 "bbox": [
 12.7776135,
@@ -17358,6 +18979,38 @@
 "osm_id": 722828169,
 "osm_type": "way",
 "query": "Otis, Jigani",
+"source": "nominatim"
+},
+"outer ring road, munnekollal, bengaluru": {
+"bbox": [
+12.924073,
+12.9245437,
+77.6484131,
+77.6530883
+],
+"display_name": "Outer Ring Road, Agaram, Bengaluru",
+"lat": 12.9245117,
+"lng": 77.6507681,
+"ok": true,
+"osm_id": 377106135,
+"osm_type": "W",
+"query": "Outer Ring Road, Munnekollal, Bengaluru",
+"source": "photon"
+},
+"outer ring road, nagavara, bengaluru": {
+"bbox": [
+13.0411335,
+13.0421634,
+77.6136292,
+77.6162491
+],
+"display_name": "Outer Ring Road, Virannapalya, Nagavara, Bengaluru North City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560045, India",
+"lat": 13.0415652,
+"lng": 77.6149029,
+"ok": true,
+"osm_id": 376649536,
+"osm_type": "way",
+"query": "Outer Ring Road, Nagavara, Bengaluru",
 "source": "nominatim"
 },
 "ozone manay tech park, garvebhavipalya, hosur road, bengaluru": {
@@ -17432,6 +19085,22 @@
 "query": "Page Industries, Bommasandra Industrial Area, Bengaluru",
 "source": null
 },
+"palace cross road, bengaluru": {
+"bbox": [
+12.9955008,
+12.9977921,
+77.5847476,
+77.5896469
+],
+"display_name": "Palace Cross Road, Guttahalli, Rajamahal, Bengaluru West City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560006, India",
+"lat": 12.9970143,
+"lng": 77.5873463,
+"ok": true,
+"osm_id": 257625424,
+"osm_type": "way",
+"query": "Palace Cross Road, Bengaluru",
+"source": "nominatim"
+},
 "panduranga nagar, bengaluru": {
 "bbox": [
 12.8830758,
@@ -17446,6 +19115,22 @@
 "osm_id": 6566428930,
 "osm_type": "node",
 "query": "Panduranga Nagar, Bengaluru",
+"source": "nominatim"
+},
+"pantharapalya, mysore road, bengaluru": {
+"bbox": [
+12.9366715,
+12.9466715,
+77.5201166,
+77.5301166
+],
+"display_name": "Pantharapalya - Nayandahalli, Mysore Road, Pantarapalya, Bangarappa Nagara, Bengaluru West City Corporation, Bengaluru, Bangalore South, Bengaluru Urban, Karnataka, 560039, India",
+"lat": 12.9416715,
+"lng": 77.5251166,
+"ok": true,
+"osm_id": 9050797592,
+"osm_type": "node",
+"query": "Pantharapalya, Mysore Road, Bengaluru",
 "source": "nominatim"
 },
 "parangi palya, hsr layout, bengaluru": {
@@ -17585,6 +19270,54 @@
 "query": "Peenya 1st Stage, Bengaluru",
 "source": "nominatim"
 },
+"peenya 2nd phase, bengaluru": {
+"bbox": [
+13.0237365,
+13.0238365,
+77.5217229,
+77.5218229
+],
+"display_name": "Rajagopalanagara Police Station, Peenya Inner Ring Road, Peenya, Bengaluru West City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560058, India",
+"lat": 13.0237865,
+"lng": 77.5217729,
+"ok": true,
+"osm_id": 1794666952,
+"osm_type": "node",
+"query": "Peenya 2nd Phase, Bengaluru",
+"source": "nominatim"
+},
+"peenya 2nd stage, bengaluru": {
+"bbox": [
+13.0183168,
+13.0383168,
+77.5029632,
+77.5229632
+],
+"display_name": "Peenya 2nd Stage, Nelagadaranahalli, Bengaluru West City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560058, India",
+"lat": 13.0283168,
+"lng": 77.5129632,
+"ok": true,
+"osm_id": 599212727,
+"osm_type": "node",
+"query": "Peenya 2nd Stage, Bengaluru",
+"source": "nominatim"
+},
+"peenya 4th phase, bengaluru": {
+"bbox": [
+13.0210027,
+13.0459013,
+77.5178356,
+77.5407489
+],
+"display_name": "Peenya, Bengaluru West City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, India",
+"lat": 13.0329419,
+"lng": 77.5273253,
+"ok": true,
+"osm_id": 19884579,
+"osm_type": "relation",
+"query": "Peenya 4th Phase, Bengaluru",
+"source": "nominatim"
+},
 "peenya industrial area": {
 "bbox": [
 13.0073481,
@@ -17626,6 +19359,22 @@
 "osm_id": 17570284,
 "osm_type": "relation",
 "query": "Peenya Industrial Area Bengaluru",
+"source": "nominatim"
+},
+"peenya industrial area phase 2, bengaluru": {
+"bbox": [
+13.0073481,
+13.0452092,
+77.4967164,
+77.5334633
+],
+"display_name": "Peenya Industrial Area, Shivapura, Bengaluru West City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560058, India",
+"lat": 13.0160478,
+"lng": 77.5045057,
+"ok": true,
+"osm_id": 17570284,
+"osm_type": "relation",
+"query": "Peenya Industrial Area Phase 2, Bengaluru",
 "source": "nominatim"
 },
 "peenya industrial area, bengaluru": {
@@ -17713,6 +19462,38 @@
 "osm_type": "node",
 "query": "Philips Innovation Campus, Yelahanka, Bengaluru",
 "source": "nominatim"
+},
+"phoenix asia towers, bengaluru": {
+"bbox": [
+12.9718932,
+12.9721455,
+77.6044522,
+77.6047843
+],
+"display_name": "Reliaable Phoenix Towers, Rest House Road, Ashokanagar, Bengaluru",
+"lat": 12.9720194,
+"lng": 77.6046183,
+"ok": true,
+"osm_id": 327589109,
+"osm_type": "W",
+"query": "Phoenix Asia Towers, Bengaluru",
+"source": "photon"
+},
+"phoenix asia towers, byatarayanapura, bengaluru": {
+"bbox": [
+13.0698493,
+13.0719234,
+77.5883281,
+77.5925934
+],
+"display_name": "Phoenix Mall of Asia, GKVK Road, Byatarayanapura, Bengaluru",
+"lat": 13.0709388,
+"lng": 77.5903031,
+"ok": true,
+"osm_id": 635509936,
+"osm_type": "W",
+"query": "Phoenix Asia Towers, Byatarayanapura, Bengaluru",
+"source": "photon"
 },
 "phoenix mall of asia, hebbal": {
 "bbox": [
@@ -18972,6 +20753,22 @@
 "query": "Pride Hulkul, Lalbagh Road",
 "source": null
 },
+"prime co towers, arekere, bengaluru": {
+"bbox": [
+12.8909262,
+12.8921165,
+77.5956565,
+77.5970345
+],
+"display_name": "SJR Primeco Towers, Doresanipalya, Bengaluru",
+"lat": 12.8916815,
+"lng": 77.5963728,
+"ok": true,
+"osm_id": 1149959379,
+"osm_type": "W",
+"query": "Prime Co Towers, Arekere, Bengaluru",
+"source": "photon"
+},
 "primeco towers, arekere, bannerghatta road, bengaluru": {
 "bbox": null,
 "display_name": null,
@@ -18982,6 +20779,18 @@
 "osm_id": null,
 "osm_type": null,
 "query": "Primeco Towers, Arekere, Bannerghatta Road, Bengaluru",
+"source": null
+},
+"primeco towers, bannerghatta road, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Primeco Towers, Bannerghatta Road, Bengaluru",
 "source": null
 },
 "primeco towers, bengaluru": {
@@ -19111,6 +20920,17 @@
 "query": "Pritech Park, Bellandur, Bengaluru",
 "source": "nominatim"
 },
+"puneeth rajkumar road, nagavara, bengaluru": {
+"bbox": null,
+"display_name": "Dr. Puneeth Rajkumar, Link Road, Seshadripuram, Bengaluru",
+"lat": 12.992784,
+"lng": 77.5742564,
+"ok": true,
+"osm_id": 10183518520,
+"osm_type": "N",
+"query": "Puneeth Rajkumar Road, Nagavara, Bengaluru",
+"source": "photon"
+},
 "puravankara, 130/1 ulsoor road, bengaluru": {
 "bbox": null,
 "display_name": null,
@@ -19182,6 +21002,22 @@
 "query": "Quay Building, Bagmane Tech Park",
 "source": "photon"
 },
+"queens road, bengaluru": {
+"bbox": [
+13.0286049,
+13.0287049,
+77.5718567,
+77.5719567
+],
+"display_name": "Queens, 1st Cross Road, RMV 2nd Stage 2nd Block, Geddalahalli, Bengaluru North City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560094, India",
+"lat": 13.0286549,
+"lng": 77.5719067,
+"ok": true,
+"osm_id": 9197342030,
+"osm_type": "node",
+"query": "Queens Road, Bengaluru",
+"source": "nominatim"
+},
 "quess house, bellandur gate, sarjapur main road, bengaluru": {
 "bbox": null,
 "display_name": null,
@@ -19238,6 +21074,22 @@
 "query": "Quess Tower, Skywalk Avenue, Roopena Agrahara, Hosur Road",
 "source": null
 },
+"race course road, bengaluru": {
+"bbox": [
+12.9819629,
+12.9833698,
+77.5754918,
+77.5769922
+],
+"display_name": "Race Course Road, Nehru Nagar, Gandhinagar, Nehru Nagar, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560009, India",
+"lat": 12.9826943,
+"lng": 77.5762159,
+"ok": true,
+"osm_id": 654633930,
+"osm_type": "way",
+"query": "Race Course Road, Bengaluru",
+"source": "nominatim"
+},
 "rachenahalli": {
 "bbox": [
 13.0488586,
@@ -19269,6 +21121,30 @@
 "osm_type": "way",
 "query": "Raheja Arcade, Koramangala",
 "source": "nominatim"
+},
+"raheja chambers, museum road": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Raheja Chambers, Museum Road",
+"source": null
+},
+"raheja chambers, museum road, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Raheja Chambers, Museum Road, Bengaluru",
+"source": null
 },
 "raheja towers, 26-27 mahatma gandhi road, bengaluru 560001": {
 "bbox": null,
@@ -19375,6 +21251,54 @@
 "osm_type": "way",
 "query": "Rajajinagar Industrial Estate",
 "source": "nominatim"
+},
+"rajapura, jigani": {
+"bbox": [
+12.7679823,
+12.7984057,
+77.6563261,
+77.6776762
+],
+"display_name": "Rajapura, Bengaluru",
+"lat": 12.7831791,
+"lng": 77.6631594,
+"ok": true,
+"osm_id": 17455849,
+"osm_type": "R",
+"query": "Rajapura, Jigani",
+"source": "photon"
+},
+"ramaiah north city, manyata, bengaluru": {
+"bbox": [
+13.0276846,
+13.0326892,
+77.5636069,
+77.5714107
+],
+"display_name": "MS Ramaiah University, MSR College Road, Aramane Nagara, Bengaluru",
+"lat": 13.0302085,
+"lng": 77.5665013,
+"ok": true,
+"osm_id": 37107184,
+"osm_type": "W",
+"query": "Ramaiah North City, Manyata, Bengaluru",
+"source": "photon"
+},
+"ramaiah north city, nagavara, bengaluru": {
+"bbox": [
+13.0276846,
+13.0326892,
+77.5636069,
+77.5714107
+],
+"display_name": "MS Ramaiah University, MSR College Road, Aramane Nagara, Bengaluru",
+"lat": 13.0302085,
+"lng": 77.5665013,
+"ok": true,
+"osm_id": 37107184,
+"osm_type": "W",
+"query": "Ramaiah North City, Nagavara, Bengaluru",
+"source": "photon"
 },
 "ramakrishna towers, silk board, hosur road": {
 "bbox": [
@@ -19483,6 +21407,22 @@
 "osm_id": 27934861,
 "osm_type": "W",
 "query": "Rapido, 1st Main Road, Sector 6, HSR Layout, Bengaluru",
+"source": "photon"
+},
+"regent gateway, whitefield, bengaluru": {
+"bbox": [
+12.978319,
+12.9790714,
+77.7102099,
+77.7109644
+],
+"display_name": "Regent Gateway, Bharath Aikya Ward, Bengaluru",
+"lat": 12.978764,
+"lng": 77.7105983,
+"ok": true,
+"osm_id": 100584019,
+"osm_type": "W",
+"query": "Regent Gateway, Whitefield, Bengaluru",
 "source": "photon"
 },
 "regent insignia, 100 feet road, koramangala 4th block": {
@@ -19841,6 +21781,34 @@
 "query": "RMZ Galleria, Yelahanka, Bengaluru",
 "source": "nominatim"
 },
+"rmz icon, bengaluru": {
+"bbox": [
+12.9901038,
+12.9906104,
+77.5878766,
+77.5884823
+],
+"display_name": "RMZ Icon, Vasanth Nagar, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, India",
+"lat": 12.9903809,
+"lng": 77.5881978,
+"ok": true,
+"osm_id": 1039668753,
+"osm_type": "way",
+"query": "RMZ Icon, Bengaluru",
+"source": "nominatim"
+},
+"rmz icon, palace cross road, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "RMZ Icon, Palace Cross Road, Bengaluru",
+"source": null
+},
 "rmz infinity tower d, old madras road": {
 "bbox": [
 12.993665,
@@ -20141,6 +22109,22 @@
 "query": "Royal Oaks, Embassy GolfLinks, Bengaluru",
 "source": "nominatim"
 },
+"royal orchid central, bengaluru": {
+"bbox": [
+12.9747568,
+12.9752213,
+77.6152082,
+77.6155328
+],
+"display_name": "Royal Orchid Central, Dickenson Road, K Kamaraj Ward, Bengaluru",
+"lat": 12.9749732,
+"lng": 77.6153651,
+"ok": true,
+"osm_id": 375202470,
+"osm_type": "W",
+"query": "Royal Orchid Central, Bengaluru",
+"source": "photon"
+},
 "s bingipura, begur koppa road, bengaluru": {
 "bbox": [
 12.8551451,
@@ -20155,6 +22139,22 @@
 "osm_id": 53803705,
 "osm_type": "W",
 "query": "S Bingipura, Begur Koppa Road, Bengaluru",
+"source": "photon"
+},
+"sabinsa, bengaluru": {
+"bbox": [
+12.8752536,
+12.8755974,
+77.5702046,
+77.5705404
+],
+"display_name": "Sri Lakshmi Narasimha Sabangana (Girija Kalyana Mantapa), 4th Cross Road, Harinagar, Bengaluru",
+"lat": 12.8754305,
+"lng": 77.5703737,
+"ok": true,
+"osm_id": 1432600217,
+"osm_type": "W",
+"query": "Sabinsa, Bengaluru",
 "source": "photon"
 },
 "sabre, bengaluru": {
@@ -20657,6 +22657,22 @@
 "query": "Salarpuria Softzone, Bellandur, Bengaluru",
 "source": "photon"
 },
+"salarpuria supreme, marathahalli, bengaluru": {
+"bbox": [
+12.9523983,
+12.9529714,
+77.6983037,
+77.6996243
+],
+"display_name": "Salarpuria Supreme, 9th Cross Road, Panathur, Bengaluru East City Corporation, Bengaluru, Bangalore East, Bengaluru Urban, Karnataka, 560037, India",
+"lat": 12.9528274,
+"lng": 77.6986647,
+"ok": true,
+"osm_id": 124538660,
+"osm_type": "way",
+"query": "Salarpuria Supreme, Marathahalli, Bengaluru",
+"source": "nominatim"
+},
 "salarpuria symbiosis, arekere, bengaluru": {
 "bbox": null,
 "display_name": null,
@@ -20763,6 +22779,17 @@
 "query": "Salarpuria Windsor, Ulsoor Road, Bengaluru",
 "source": null
 },
+"sami labs, bengaluru": {
+"bbox": null,
+"display_name": "Micro Labs Limited, Race Course Road, Sampangirama Nagar, Bengaluru",
+"lat": 12.9843016,
+"lng": 77.5789851,
+"ok": true,
+"osm_id": 7276500339,
+"osm_type": "N",
+"query": "Sami Labs, Bengaluru",
+"source": "photon"
+},
 "sampangi rama nagar": {
 "bbox": [
 12.9665563,
@@ -20788,6 +22815,22 @@
 "osm_id": 2872076318,
 "osm_type": "N",
 "query": "Sampangi Rama Nagar 4th Main Road, Bengaluru",
+"source": "photon"
+},
+"sampangi rama nagara, bengaluru": {
+"bbox": [
+12.9622913,
+12.9680888,
+77.5889959,
+77.5952884
+],
+"display_name": "Sampangi Rama Nagara, Sampangirama Nagar, Bengaluru",
+"lat": 12.9651927,
+"lng": 77.5919645,
+"ok": true,
+"osm_id": 257906450,
+"osm_type": "W",
+"query": "Sampangi Rama Nagara, Bengaluru",
 "source": "photon"
 },
 "sampangiram nagar bengaluru": {
@@ -20905,6 +22948,22 @@
 "osm_type": null,
 "query": "SAP Labs India, Whitefield, Bengaluru",
 "source": null
+},
+"sap labs, epip zone, bengaluru": {
+"bbox": [
+12.9777266,
+12.9819896,
+77.7142896,
+77.7176074
+],
+"display_name": "SAP Labs, EPIP Zone, Bharath Aikya Ward, Bengaluru East City Corporation, Bengaluru, Bangalore East, Bengaluru Urban, Karnataka, India",
+"lat": 12.9793161,
+"lng": 77.7154616,
+"ok": true,
+"osm_id": 123613246,
+"osm_type": "way",
+"query": "SAP Labs, EPIP Zone, Bengaluru",
+"source": "nominatim"
 },
 "sasken technologies, 139/25 ring road, domlur, bengaluru": {
 "bbox": null,
@@ -21071,6 +23130,17 @@
 "query": "SBI Colony, Koramangala 3rd Block, Bengaluru",
 "source": "photon"
 },
+"sbi colony, koramangala, bengaluru": {
+"bbox": null,
+"display_name": "Koramangala CPWD Quarters, Sarjapura Road, Kormangala East, Bengaluru",
+"lat": 12.9261729,
+"lng": 77.6246174,
+"ok": true,
+"osm_id": 5983491272,
+"osm_type": "N",
+"query": "SBI Colony, Koramangala, Bengaluru",
+"source": "photon"
+},
 "sbi local head office, 65 st marks road, bengaluru": {
 "bbox": null,
 "display_name": null,
@@ -21206,6 +23276,22 @@
 "osm_type": "way",
 "query": "Seshadri Road, Gandhinagar",
 "source": "nominatim"
+},
+"shahi exports, bengaluru": {
+"bbox": [
+12.9015275,
+12.9022576,
+77.6222992,
+77.6236578
+],
+"display_name": "Shahi Exports, Bommanahalli, Bengaluru",
+"lat": 12.901892,
+"lng": 77.6229515,
+"ok": true,
+"osm_id": 236700838,
+"osm_type": "W",
+"query": "Shahi Exports, Bengaluru",
+"source": "photon"
 },
 "shahi exports, bommanahalli": {
 "bbox": [
@@ -21737,6 +23823,22 @@
 "query": "Sigma Tech Park, Varthur Kodi, Whitefield",
 "source": "photon"
 },
+"sigma-aldrich, bommasandra jigani link road": {
+"bbox": [
+12.7914193,
+12.8108744,
+77.6576532,
+77.6653107
+],
+"display_name": "Jigani Industrial Estate Road, Kyalsanahalli, Bandenallasandra",
+"lat": 12.8010236,
+"lng": 77.6617985,
+"ok": true,
+"osm_id": 655695952,
+"osm_type": "W",
+"query": "Sigma-Aldrich, Bommasandra Jigani Link Road",
+"source": "photon"
+},
 "signature towers, brigade golden triangle, old madras road": {
 "bbox": null,
 "display_name": null,
@@ -21830,6 +23932,22 @@
 "osm_type": null,
 "query": "SJM Towers, Seshadri Road, Gandhinagar",
 "source": null
+},
+"sjr cyber, adugodi, bengaluru": {
+"bbox": [
+12.9385264,
+12.9392124,
+77.6091873,
+77.6097632
+],
+"display_name": "SJR Cyber Laskar, Lakkasandra, Bengaluru",
+"lat": 12.9389657,
+"lng": 77.60948,
+"ok": true,
+"osm_id": 781192779,
+"osm_type": "W",
+"query": "SJR Cyber, Adugodi, Bengaluru",
+"source": "photon"
 },
 "sjr cyber, hosur road, adugodi, bengaluru": {
 "bbox": null,
@@ -21977,6 +24095,22 @@
 "osm_type": null,
 "query": "SJR The Hub, Sarjapur Road, Bengaluru",
 "source": null
+},
+"skav 909, lavelle road, bengaluru": {
+"bbox": [
+12.9655413,
+12.9656413,
+77.5962032,
+77.5963032
+],
+"display_name": "Awfis, Lavelle Road, D'Souza Layout, Shanthala Nagar, Ashokanagar, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560025, India",
+"lat": 12.9655913,
+"lng": 77.5962532,
+"ok": true,
+"osm_id": 10236025508,
+"osm_type": "node",
+"query": "SKAV 909, Lavelle Road, Bengaluru",
+"source": "nominatim"
 },
 "skf india, bommasandra, bengaluru": {
 "bbox": [
@@ -22233,6 +24367,18 @@
 "query": "Srinivagilu Main Road, Ejipura",
 "source": "nominatim"
 },
+"ss plaza, btm layout, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim error: HTTP Error 429: Too many requests; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "SS Plaza, BTM Layout, Bengaluru",
+"source": null
+},
 "st andrews, embassy golf links business park": {
 "bbox": [
 12.9506986,
@@ -22248,6 +24394,33 @@
 "osm_type": "way",
 "query": "St Andrews, Embassy Golf Links Business Park",
 "source": "nominatim"
+},
+"st johns church road, fraser town, bengaluru": {
+"bbox": [
+12.9916038,
+12.9919171,
+77.6127934,
+77.6131959
+],
+"display_name": "St. John's Church, Saint John's Church Road, Pulakeshi Nagar, Bengaluru",
+"lat": 12.9917569,
+"lng": 77.6130125,
+"ok": true,
+"osm_id": 346209154,
+"osm_type": "W",
+"query": "St Johns Church Road, Fraser Town, Bengaluru",
+"source": "photon"
+},
+"st. john's hospital road, santhosapuram, koramangala 3rd block": {
+"bbox": null,
+"display_name": "Gunasheela Hospitals, Sulochana Building, 1st Cross Rd, 3rd Block, Sarjapura Main Road, Koramangala, Kormangala East, bangalore",
+"lat": 12.9250105,
+"lng": 77.6278708,
+"ok": true,
+"osm_id": 4442516055,
+"osm_type": "N",
+"query": "St. John's Hospital Road, Santhosapuram, Koramangala 3rd Block",
+"source": "photon"
 },
 "st. johns hospital road, koramangala 3rd block, bengaluru": {
 "bbox": null,
@@ -22326,6 +24499,17 @@
 "osm_type": null,
 "query": "Standard Chartered Bank, Raheja Towers, MG Road, Bengaluru",
 "source": null
+},
+"star 1, bilekahalli": {
+"bbox": null,
+"display_name": "Starbucks, Bannerghatta Road, Bilekahalli, Bengaluru",
+"lat": 12.9075889,
+"lng": 77.6012716,
+"ok": true,
+"osm_id": 13062869345,
+"osm_type": "N",
+"query": "Star 1, Bilekahalli",
+"source": "photon"
 },
 "star air bengaluru office": {
 "bbox": null,
@@ -22460,6 +24644,17 @@
 "osm_id": 17455855,
 "osm_type": "R",
 "query": "Strides, Jigani",
+"source": "photon"
+},
+"stumpp schuele, bengaluru": {
+"bbox": null,
+"display_name": "Administrative Office, E Stamping, Margosa Road, Malleshwaram, Bengaluru",
+"lat": 13.0079329,
+"lng": 77.5693468,
+"ok": true,
+"osm_id": 11897850511,
+"osm_type": "N",
+"query": "Stumpp Schuele, Bengaluru",
 "source": "photon"
 },
 "subham complex, 1st a main, jp nagar 3rd phase, bengaluru": {
@@ -22630,6 +24825,17 @@
 "query": "Sunriver, Embassy Golf Links Business Park, Bengaluru",
 "source": "photon"
 },
+"sunriver, embassy golf links, bengaluru": {
+"bbox": null,
+"display_name": "Embassy Golf Links, Inner Ring Road, Agaram, Bengaluru",
+"lat": 12.9508858,
+"lng": 77.6395482,
+"ok": true,
+"osm_id": 9930197128,
+"osm_type": "N",
+"query": "Sunriver, Embassy Golf Links, Bengaluru",
+"source": "photon"
+},
 "suprajit engineering, bommasandra industrial area, bengaluru": {
 "bbox": null,
 "display_name": null,
@@ -22640,6 +24846,18 @@
 "osm_id": null,
 "osm_type": null,
 "query": "Suprajit Engineering, Bommasandra Industrial Area, Bengaluru",
+"source": null
+},
+"suragajakkanahalli": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Suragajakkanahalli",
 "source": null
 },
 "suraj ganga soft park, jp nagar, bengaluru": {
@@ -22794,6 +25012,17 @@
 "osm_id": 7577248274,
 "osm_type": "N",
 "query": "Swami Narayani Clinic Road, HBR Layout",
+"source": "photon"
+},
+"swami vivekananda road metro station, bengaluru": {
+"bbox": null,
+"display_name": "Swami Vivekananda Road, Swamy Vivekananda Road, Old Baiyappanahalli, Bengaluru",
+"lat": 12.9859128,
+"lng": 77.6449072,
+"ok": true,
+"osm_id": 850782866,
+"osm_type": "N",
+"query": "Swami Vivekananda Road metro station, Bengaluru",
 "source": "photon"
 },
 "swiggy embassy tech village": {
@@ -23187,6 +25416,22 @@
 "osm_id": 11542415992,
 "osm_type": "node",
 "query": "Thales Bengaluru",
+"source": "nominatim"
+},
+"thanisandra main road, nagavara, bengaluru": {
+"bbox": [
+13.042613,
+13.0454434,
+77.6253032,
+77.6274518
+],
+"display_name": "Thanisandra Main Road, Telecom Layout 10th Block, Nagavara, Hennur, Bengaluru North City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560045, India",
+"lat": 13.0441254,
+"lng": 77.626247,
+"ok": true,
+"osm_id": 359509895,
+"osm_type": "way",
+"query": "Thanisandra Main Road, Nagavara, Bengaluru",
 "source": "nominatim"
 },
 "the address building, outer ring road, kadubeesanahalli": {
@@ -23742,6 +25987,22 @@
 "query": "Toyota, Jigani",
 "source": "nominatim"
 },
+"trade centre, race course road, bengaluru": {
+"bbox": [
+12.9843066,
+12.9843612,
+77.5879174,
+77.5880801
+],
+"display_name": "Race Course Road, Sampangirama Nagar, Bengaluru",
+"lat": 12.9843339,
+"lng": 77.5879988,
+"ok": true,
+"osm_id": 1148406433,
+"osm_type": "W",
+"query": "Trade Centre, Race Course Road, Bengaluru",
+"source": "photon"
+},
 "trane technologies, bengaluru": {
 "bbox": null,
 "display_name": "Foradian Technologies, 27th Main Rd, 1st Sector, HSR Layout, Agara, Bengaluru",
@@ -23811,6 +26072,18 @@
 "osm_id": null,
 "osm_type": null,
 "query": "Trifecta Adatto, ITPL Main Road, Mahadevapura",
+"source": null
+},
+"trifecta adatto, itpl main road, mahadevapura, bengaluru": {
+"bbox": null,
+"display_name": null,
+"error": "nominatim: no result inside Bengaluru; photon: no result inside Bengaluru",
+"lat": null,
+"lng": null,
+"ok": false,
+"osm_id": null,
+"osm_type": null,
+"query": "Trifecta Adatto, ITPL Main Road, Mahadevapura, Bengaluru",
 "source": null
 },
 "trifecta adatto, mahadevapura": {
@@ -24149,6 +26422,22 @@
 "osm_type": null,
 "query": "Umiya Emporium, Hosur Road, Koramangala",
 "source": null
+},
+"umiya landmark, lavelle road, bengaluru": {
+"bbox": [
+12.9758579,
+12.9762256,
+77.5991204,
+77.5994795
+],
+"display_name": "Umiya Landmark, Lavelle Road, D'Souza Layout, Shanthala Nagar, Ashokanagar, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560001, India",
+"lat": 12.9760251,
+"lng": 77.5993272,
+"ok": true,
+"osm_id": 325773319,
+"osm_type": "way",
+"query": "Umiya Landmark, Lavelle Road, Bengaluru",
+"source": "nominatim"
 },
 "umiya suntech, sadaramangala road": {
 "bbox": [
@@ -24631,6 +26920,22 @@
 "query": "Vaswani Presidio, Panathur Main Road, Kadubeesanahalli, Bengaluru",
 "source": "photon"
 },
+"veerasandra, bengaluru": {
+"bbox": [
+12.8335172,
+12.845667,
+77.6638105,
+77.6858969
+],
+"display_name": "Veerasandra, Bengaluru",
+"lat": 12.8395869,
+"lng": 77.672764,
+"ok": true,
+"osm_id": 17455832,
+"osm_type": "R",
+"query": "Veerasandra, Bengaluru",
+"source": "photon"
+},
 "veerasandra, electronic city, bengaluru": {
 "bbox": [
 12.8396842,
@@ -24840,6 +27145,22 @@
 "osm_type": "N",
 "query": "Vinayaka Nagar, Nagasandra, Tumkur Road",
 "source": "photon"
+},
+"virgonagar, bengaluru": {
+"bbox": [
+13.0357779,
+13.0367634,
+77.7378738,
+77.742606
+],
+"display_name": "Bengaluru Business Corridor, Old Madras Road Flyover, Virgonagar, Avalahalli, Bangalore East, Bengaluru Urban, Karnataka, 560049, India",
+"lat": 13.0359332,
+"lng": 77.7401989,
+"ok": true,
+"osm_id": 1443949060,
+"osm_type": "way",
+"query": "Virgonagar, Bengaluru",
+"source": "nominatim"
 },
 "vishwanathapura, devanahalli": {
 "bbox": [
@@ -25214,6 +27535,22 @@
 "query": "WeWork Galaxy, Residency Road",
 "source": "nominatim"
 },
+"wework residency road, bengaluru": {
+"bbox": [
+12.9735212,
+12.9736212,
+77.6087144,
+77.6088144
+],
+"display_name": "WeWork Galaxy, 43, Residency Road, Ashok Nagar, Ashokanagar, Bengaluru Central City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, 560025, India",
+"lat": 12.9735712,
+"lng": 77.6087644,
+"ok": true,
+"osm_id": 6569023747,
+"osm_type": "node",
+"query": "WeWork Residency Road, Bengaluru",
+"source": "nominatim"
+},
 "whitefield main road, bengaluru": {
 "bbox": [
 13.0247199,
@@ -25503,6 +27840,22 @@
 "query": "World Trade Center Bengaluru, Brigade Gateway, Rajajinagar",
 "source": "photon"
 },
+"world trade center, brigade gateway, bengaluru": {
+"bbox": [
+13.0118925,
+13.0126182,
+77.5557535,
+77.5565971
+],
+"display_name": "World Trade Center Bangalore, Dr. Rajkumar Road, Subramanyanagara, Bengaluru",
+"lat": 13.0122469,
+"lng": 77.5561735,
+"ok": true,
+"osm_id": 149418884,
+"osm_type": "W",
+"query": "World Trade Center, Brigade Gateway, Bengaluru",
+"source": "photon"
+},
 "world trade center, brigade gateway, rajajinagar": {
 "bbox": [
 13.0118925,
@@ -25723,6 +28076,17 @@
 "query": "Yeshwanthpur Industrial Area, Bengaluru",
 "source": "nominatim"
 },
+"yeshwanthpur industrial suburb, bengaluru": {
+"bbox": null,
+"display_name": "Rajajinagar, Rajajinagara, Bengaluru",
+"lat": 12.9882338,
+"lng": 77.554883,
+"ok": true,
+"osm_id": 429857523,
+"osm_type": "N",
+"query": "Yeshwanthpur Industrial Suburb, Bengaluru",
+"source": "photon"
+},
 "yokogawa india electronic city hosur road": {
 "bbox": [
 12.8455199,
@@ -25802,6 +28166,17 @@
 "osm_type": "way",
 "query": "Yokogawa, Electronic City, Bengaluru",
 "source": "nominatim"
+},
+"zeiss, bommasandra industrial area": {
+"bbox": null,
+"display_name": "A: Bommasandra Industrial Area, Hosur Road, Bommasandra, Kittaganahalli",
+"lat": 12.819263,
+"lng": 77.6881719,
+"ok": true,
+"osm_id": 13070299122,
+"osm_type": "N",
+"query": "Zeiss, Bommasandra Industrial Area",
+"source": "photon"
 },
 "zf, bommasandra": {
 "bbox": [

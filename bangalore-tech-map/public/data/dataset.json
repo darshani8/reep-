@@ -1,0 +1,8 @@
+{
+ "version": 0,
+ "generatedAt": "2026-10-10T00:00:00+00:00",
+ "bounds": {"south": 12.75, "north": 13.25, "west": 77.35, "east": 77.9},
+ "companies": [],
+ "techParks": [],
+ "provenance": {"lenses": 0, "rawSlices": [], "note": "placeholder until tools/data/merge.py runs"}
+}

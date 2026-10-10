@@ -626,6 +626,9 @@ def apply_corrections(companies, parks, uf, applied, problems):
                         problems.append(f"correction {key}: bad category '{v}' for '{company['name']}'; ignored"); continue
                     if f == "origin" and v not in ORIGINS:
                         problems.append(f"correction {key}: bad origin '{v}' for '{company['name']}'; ignored"); continue
+                    if f == "name" and v != company["name"] and company["name"] not in company["aliases"]:
+                        # a renamed company stays findable by the name people still search for
+                        company["aliases"].append(company["name"])
                     company[f] = v
                     applied.append(f"{key}: '{company['name']}'.{f} = {v!r} - {note}")
             for ox in cx.get("offices") or []:

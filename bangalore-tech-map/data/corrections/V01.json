@@ -1,0 +1,329 @@
+{
+ "key": "V01",
+ "corrections": [
+  {
+   "company": "adobe",
+   "verdict": "keep",
+   "note": "Adobe's own office list (https://www.adobe.com/about-adobe/contact/offices.html) gives two separate Bangalore addresses, Prestige Platina Technology Park Bldg 1 Block A and Prestige Tech Park IV Block-1, so the flagged 400 m pair is two real offices in adjacent parks, not a duplicate; OSM way/131610643 'Adobe India' in IBC Knowledge Park is not on Adobe's list and was not added.",
+   "offices": [
+    {
+     "office": "adobe~5134b5",
+     "verdict": "keep",
+     "note": "Confirmed on Adobe's office list as a distinct address from Tech Park IV; the filing under Prestige Tech Platina is correct."
+    },
+    {
+     "office": "adobe~0d03ed",
+     "verdict": "keep",
+     "note": "Confirmed on Adobe's office list as a distinct address (Prestige Tech Park IV, Block-1); the filing under Prestige Tech Park is correct."
+    }
+   ]
+  },
+  {
+   "company": "aequs",
+   "verdict": "keep",
+   "note": "The registered office (Aequs Tower, No. 55, Whitefield Main Road, Mahadevapura 560048) is confirmed by aequs.com's contact page and by the Aequs Limited registry record (CIN L80302KA2000PLC026760, https://www.credhive.in/ind/corporate/L80302KA2000PLC026760/AEQUS%20LIMITED/overview); the building still does not geocode, so the pin stays at locality level.",
+   "offices": [
+    {
+     "office": "aequs~bce20c",
+     "verdict": "fix",
+     "note": "Address confirmed from two sources; confidence raised to medium; the pin is still the Mahadevapura locality point, not the building.",
+     "set": {
+      "confidence": "medium",
+      "evidence": "Registered office 'Aequs Tower, No. 55, Whitefield Main Road, Mahadevapura Post, Bengaluru 560048' per aequs.com (https://aequs.com/contact-us/) and the Aequs Limited registry record (https://www.credhive.in/ind/corporate/L80302KA2000PLC026760/AEQUS%20LIMITED/overview). Neither Nominatim nor Photon resolves the building, so the pin is the Mahadevapura locality point and may be several hundred metres off."
+     }
+    }
+   ]
+  },
+  {
+   "company": "agratas",
+   "verdict": "keep",
+   "note": "Agratas confirms a Bengaluru R&D centre (company post of 13 Jan 2026, https://agratas.com/news/agratas-research-and-development-centre-in-bengaluru-nears-completion; Business Today, Jun 2026, reports R&D facilities in Oxford and Bengaluru). No source names the building, so Prestige Tech Cloud still rests on one OSM POI.",
+   "set": {
+    "description": "Tata Group's battery-cell company (founded 2023), building a gigafactory at Sanand. It confirms a Bengaluru R&D centre (reported nearing completion in Jan 2026 and operating by mid-2026) focused on cell scale-up and process development. Only OSM places a 'TATA Agratas' office at Prestige Tech Cloud."
+   },
+   "offices": [
+    {
+     "office": "agratas~7db23f",
+     "verdict": "fix",
+     "note": "The Bengaluru presence is now company-confirmed, so confidence goes to medium; the location is still OSM-only.",
+     "set": {
+      "confidence": "medium",
+      "evidence": "Agratas confirms a Bengaluru R&D centre (https://agratas.com/news/agratas-research-and-development-centre-in-bengaluru-nears-completion, 13 Jan 2026; https://www.businesstoday.in/auto/story/jlr-to-buy-battery-cells-worth-rs5000-crore-from-agratas-538513-2026-06-22). No source gives the address; OSM node/11786282541 'TATA Agratas' inside Prestige Tech Cloud is the only location evidence."
+     }
+    }
+   ]
+  },
+  {
+   "company": "alimco",
+   "verdict": "keep",
+   "note": "ALIMCO's January 2026 recruitment notice (https://alimco.in/WriteReadData/Recruitment_Document/AD3F01-January-20261/Notice-1.pdf) lists the Bengaluru auxiliary production centre. A contact directory gives 'Plot No. 8, Peenya Plant Station, Near Jalasaudha, Jalahalli PO, Bangalore 560013', and the OSM 'ALIMCO' polygon lies about 200 m south of the OSM 'Jala Soudha (Central Water Commission)' node, which fits that address.",
+   "offices": [
+    {
+     "office": "alimco~452c66",
+     "verdict": "fix",
+     "note": "Address corrected to the published APC address; the pin (OSM polygon) fits it; confidence raised to medium.",
+     "set": {
+      "label": "Auxiliary Production Centre, Jalahalli",
+      "locality": "Jalahalli (Tumkur Road)",
+      "address": "Plot No. 8, Peenya Plant Station, near Jala Soudha, Jalahalli PO, Bengaluru 560013",
+      "confidence": "medium",
+      "evidence": "ALIMCO's Jan 2026 notice lists the Bengaluru APC (https://alimco.in/WriteReadData/Recruitment_Document/AD3F01-January-20261/Notice-1.pdf). The address 'Plot No. 8, Peenya Plant Station, Near Jalasaudha, Po-Jalahalli, Bangalore 560013' comes from https://www.indiacustomercare.com/artificial-limbs-manufacturing-corporation-india-contact-no. The pin is the OSM polygon 'ALIMCO' (way/1353147603), about 200 m from OSM node/429302097 'Jala Soudha (CWC)'."
+     }
+    }
+   ]
+  },
+  {
+   "company": "allegion",
+   "verdict": "keep",
+   "note": "Allegion's own India contact page (https://india.allegion.com/en/contact-us.html) and the registry record put Allegion India at Kalyani Magnum, Wing B, Doresanipalya, JP Nagar 4th Phase, 560076, not at IBC Knowledge Park; the OSM IBC node is stale, so the office is moved to the Kalyani Magnum polygon.",
+   "set": {
+    "description": "Irish-domiciled security-products group (Schlage, Von Duprin, Interflex). Allegion India's registered office and Bengaluru engineering centre are at Kalyani Magnum, Wing B, on Bannerghatta Road, JP Nagar (about 90,000 sq ft, 600+ staff per the company).",
+    "bengaluruEmployeesApprox": 600
+   },
+   "offices": [
+    {
+     "office": "allegion~d3fc7b",
+     "verdict": "fix",
+     "note": "Wrong building: the company page gives Kalyani Magnum Wing B, about 3.6 km south of IBC Knowledge Park. The pin moves to the OSM Kalyani Magnum polygon centroid (way/699268545), because Wing B is not mapped.",
+     "set": {
+      "label": "Allegion India - Kalyani Magnum, Wing B",
+      "building": "Wing B (Ground & 5th floor)",
+      "locality": "JP Nagar 4th Phase (Doresanipalya, Bannerghatta Road)",
+      "address": "Kalyani Magnum, Wing B, Ground & 5th Floor, Sy. No. 165/2, Doresanipalya, Bannerghatta Road, JP Nagar 4th Phase, Bengaluru 560076",
+      "lat": 12.900462,
+      "lng": 77.596169,
+      "techPark": "Kalyani Magnum",
+      "isHq": true,
+      "confidence": "high",
+      "evidence": "Allegion India contact page: 'Kalyani Magnum, Wing B, Ground and 5th Floor, Survey No. 165/2, Doresanipalya, Bannerghatta Rd, JP Nagar 4th Phase, Bengaluru 560076' (https://india.allegion.com/en/contact-us.html; same on https://asia.allegion.com/en/contact-us/india-en.html and the registry record for CIN U74120KA2013FTC076952). The pin is the centroid of OSM way/699268545 'Kalyani Magnum'."
+     }
+    }
+   ]
+  },
+  {
+   "company": "alorica",
+   "verdict": "keep",
+   "note": "Alorica's Oct 2025 press release (https://www.alorica.com/news/detail/alorica-business-triples-in-india) announces a new 350-seat Bhartiya City site and 450 more seats at its existing Pritech Park campus in Bangalore. The BCIT office is confirmed, and the Pritech Park campus is added.",
+   "set": {
+    "description": "US customer-experience BPO. In Bengaluru it runs a Pritech Park (Bellandur ORR) campus and, since Oct 2025, a 350-seat site in Bhartiya City (BCIT Block 2), part of an India expansion out of Bengaluru and Mohali."
+   },
+   "offices": [
+    {
+     "office": "alorica~df5dda",
+     "verdict": "fix",
+     "note": "Company press release confirms the Bhartiya City site; the OSM POI gives Block 2 South Wing. Confidence raised to high.",
+     "set": {
+      "confidence": "high",
+      "building": "BCIT Block 2, South Wing",
+      "evidence": "Alorica's press release (Oct 2025) announces 'a new location in Bhartiya City' with 350 seats (https://www.alorica.com/news/detail/alorica-business-triples-in-india). OSM node/13355835369 'Alorica' at 'Block 2, South Wing, Bhartiya City Road, 560064' gives the building."
+     }
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "Pritech Park SEZ campus",
+     "building": null,
+     "locality": "Bellandur (Outer Ring Road)",
+     "address": "Pritech Park SEZ (RMZ Ecospace), Sarjapur-Marathahalli Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.923868,
+     "lng": 77.681327,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": "RMZ Ecoworld",
+     "evidence": "Alorica's Oct 2025 press release says it expanded 'its sites in Bangalore (Pritech Park campus)', adding 450 seats (https://www.alorica.com/news/detail/alorica-business-triples-in-india). No building is given, so the pin is the dataset's park centroid (OSM way/361528993, which contains the Pritech Park SEZ buildings)."
+    }
+   ]
+  },
+  {
+   "company": "amelia",
+   "verdict": "keep",
+   "note": "Amelia is a SoundHound AI subsidiary (acquired Aug 2024) and Bengaluru roles are hired into Amelia Global Services. SoundHound announced a new Bengaluru innovation hub on 26 Feb 2026 without an address (https://finviz.com/news/322767/soundhound-ai-establishes-new-innovation-hub-in-bengaluru-to-accelerate-global-agentic-ai-expansion). The IPsoft-era ITPB Voyager office could not be re-confirmed and stays low. The category is corrected to MNC because it is a foreign-HQ'd multinational.",
+   "set": {
+    "category": "MNC",
+    "description": "Conversational-AI and IT-automation vendor (IPsoft until 2020), acquired by SoundHound AI in Aug 2024; Bengaluru staff are hired into Amelia Global Services. SoundHound announced a new Bengaluru innovation hub in Feb 2026 (address not published). The ITPB Voyager office is an IPsoft-era listing that could not be re-confirmed."
+   },
+   "offices": [
+    {
+     "office": "amelia~e4d73b",
+     "verdict": "keep",
+     "note": "Unconfirmed for 2025-26. The 2026 SoundHound hub may or may not be this building; it stays low."
+    }
+   ]
+  },
+  {
+   "company": "aptean",
+   "verdict": "keep",
+   "note": "Aptean's careers page and the registry record (CIN U72200KA1998PTC023715) give 'Golden Heights', Level 5 (8th floor), 59th C Cross Road, 4th M Block, Rajajinagar 560010. The existing OSM pin is within about 50 m of the 59th C Cross POI that Photon returns for that address.",
+   "offices": [
+    {
+     "office": "aptean~728b5a",
+     "verdict": "fix",
+     "note": "Building and address corrected from primary sources; the pin stays (within about 50 m); confidence raised to high; it is the registered office.",
+     "set": {
+      "label": "Golden Heights, Rajajinagar 4th M Block",
+      "building": "Golden Heights, Level 5 (8th floor)",
+      "address": "Golden Heights, 8th Floor (Level 5), No. 1/2, 59th C Cross Road, 4th M Block, Rajajinagar, Bengaluru 560010",
+      "isHq": true,
+      "confidence": "high",
+      "evidence": "Aptean careers listings give '59th C Cross Road, 4th M Block Rajajinagar, Level-5 (8th Floor) Golden Heights, Bengaluru' (https://aptean.com/en-US/careers/jobs), matching the registered office of Aptean India Pvt Ltd (https://www.instafinancials.com/company/aptean-india-private-limited/U72200KA1998PTC023715). The pin is OSM node/5904737645 'Aptean India', about 50 m from Photon's 59th C Cross / 4th M Block POI."
+     }
+    }
+   ]
+  },
+  {
+   "company": "archwell-operations-india",
+   "verdict": "drop",
+   "note": "Nothing beyond one OSM POI (node/9781831166) could be found. Searches for 'Archwell Operations India' return no registry, press or careers record. The record's website archwell.com redirects to a Taiwanese rubber-flooring maker, and nothing links any Archwell to Lennar, so both the parent and the office are unsupported."
+  },
+  {
+   "company": "athenahealth",
+   "verdict": "keep",
+   "note": "athenahealth's contact page lists its Bangalore office as Innovator Building, International Tech Park (ITPB), Level 6, Whitefield Road 560066, and Bengaluru job postings say 'White Field'. SKAV 909 on Lavelle Road is an Awfis coworking building that the company does not list, so the office is moved to ITPB Innovator.",
+   "set": {
+    "description": "US healthcare-software company with India engineering centres in Bengaluru, Pune and Chennai. Its Bengaluru office is Level 6 of the Innovator building in International Tech Park (ITPB), Whitefield."
+   },
+   "offices": [
+    {
+     "office": "athenahealth~c769c2",
+     "verdict": "fix",
+     "note": "Wrong building: the company contact page gives ITPB Innovator, Level 6. The pin moves to the OSM building way/255778134 'Innovator'.",
+     "set": {
+      "label": "ITPB - Innovator, Level 6",
+      "building": "Innovator, Level 6",
+      "locality": "Whitefield (Pattandur Agrahara)",
+      "address": "Innovator Building, Level 6, International Tech Park, Whitefield Road, Bengaluru 560066",
+      "lat": 12.985908,
+      "lng": 77.735902,
+      "techPark": "International Tech Park Bangalore",
+      "confidence": "high",
+      "evidence": "athenahealth contact page: 'Innovator Building, International Tech Park, Level 6, Whitefield Road, Bangalore 560066' (https://www.athenahealth.com/about/contact-us). Bengaluru postings say 'White Field' (https://builtinbengaluru.in/company/athenahealth). The pin is OSM way/255778134 'Innovator'. The earlier OSM POI at SKAV 909 (an Awfis coworking building) is not a listed office."
+     }
+    }
+   ]
+  },
+  {
+   "company": "avaya",
+   "verdict": "keep",
+   "note": "Avaya's India contacts page (https://avaya.com/en/contacts/country/india) lists two Bangalore offices: 2, AMR Tech Park Internal Road, Hongasandra 560068, and Nitesh Broadway, Level 3, 9/3 MG Road 560001. Both match OSM 'Avaya' POIs. The AMR office is confirmed and the MG Road office is added.",
+   "set": {
+    "description": "US enterprise-communications vendor. Its India contacts page lists two Bengaluru offices: AMR Tech Park on Hosur Road (Hongasandra) and Nitesh Broadway on MG Road."
+   },
+   "offices": [
+    {
+     "office": "avaya~b96f37",
+     "verdict": "fix",
+     "note": "Confirmed on Avaya's own India contacts page; confidence raised to high.",
+     "set": {
+      "address": "2, AMR Tech Park Internal Road, Hongasandra, Hosur Main Road, Bengaluru 560068",
+      "confidence": "high",
+      "evidence": "Avaya India contacts page: '2, AMR Tech Park Internal Road Hongasandra, Bangalore 560068', +91 80 67165100 (https://avaya.com/en/contacts/country/india). The pin is OSM node/9253551417 'Avaya' inside AMR Tech Park."
+     }
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "Nitesh Broadway, MG Road",
+     "building": "Nitesh Broadway, Level 3",
+     "locality": "MG Road",
+     "address": "Nitesh Broadway, Level 3, No. 9/3, MG Road, Bengaluru 560001",
+     "lat": 12.973593,
+     "lng": 77.617087,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "evidence": "Listed on Avaya's India contacts page (https://avaya.com/en/contacts/country/india), which is undated. The pin is OSM node/3785899857 'Avaya', inside the OSM polygon way/370301098 'Nitesh Broadway'."
+    }
+   ]
+  },
+  {
+   "company": "axis-bank",
+   "verdict": "keep",
+   "note": "The category is right by the rule (Indian, listed, about 100k staff). Only the OSM office POI (node/11477159656) places Axis Bank in Brigade Magnum, and a search found no Axis Bank listing there. The bank's known Bengaluru unit, the 10,000 sq ft 'Thought Factory' innovation lab (2016 press release), has no published address. The office stays low.",
+   "offices": [
+    {
+     "office": "axis-bank~7387b9",
+     "verdict": "keep",
+     "note": "Not corroborated; it may be a branch or a small office. It stays low."
+    }
+   ]
+  },
+  {
+   "company": "bazaarvoice",
+   "verdict": "keep",
+   "note": "Bazaarvoice's contact page lists Bazaarvoice Technology India Pvt Ltd and Bazaarvoice Services India Pvt Ltd at Floor 4, Pacific-3, Prestige Tech Pacific, 135 Kaverappa Layout, Kadubeesanahalli 560103 (https://www.bazaarvoice.com/contact/). That matches the OSM POI ('Pacific 3').",
+   "offices": [
+    {
+     "office": "bazaarvoice~00bde0",
+     "verdict": "fix",
+     "note": "Confirmed by the company contact page; the building is refined to Pacific-3 Floor 4; confidence raised to high.",
+     "set": {
+      "label": "Prestige Tech Pacific Park - Pacific-3",
+      "building": "Pacific-3, Floor 4",
+      "address": "Floor 4, Pacific-3, Prestige Tech Pacific, 135 Kaverappa Layout, Kadubeesanahalli, Bengaluru 560103",
+      "confidence": "high",
+      "evidence": "Bazaarvoice contact page: 'Floor 4, Pacific-3, Prestige Tech Pacific, 135 Kaverappa Layout, Kadubeesanahalli, Bengaluru 560103' (https://www.bazaarvoice.com/contact/). The pin is OSM node/13649203601 'Bazaarvoice Technology India' (housenumber 'Pacific 3')."
+     }
+    }
+   ]
+  },
+  {
+   "company": "berkadia",
+   "verdict": "keep",
+   "note": "A Sept 2024 wire report (https://www.theweek.in/wire-updates/business/2024/09/19/dcm54-berkadia.html) says Berkadia inaugurated a 26,933 sq ft Bengaluru office in a Godrej building in Hebbal on 16 Sept 2024. That matches the OSM POI inside the polygon OSM names 'Godrej Downtown'.",
+   "set": {
+    "description": "US commercial-mortgage firm (Berkshire Hathaway / Jefferies JV) with Indian operations in Hyderabad, Gurgaon and Bengaluru. Its 26,933 sq ft Bengaluru office opened in Sept 2024 in a Godrej building in Hebbal."
+   },
+   "offices": [
+    {
+     "office": "berkadia~507e7b",
+     "verdict": "fix",
+     "note": "The press report and the OSM POI agree on a Godrej building in Hebbal. It is filed under the dataset park 'Godrej Downtown (OSM name)' (centroid about 55 m away); confidence raised to high.",
+     "set": {
+      "label": "Berkadia - Godrej building, Hebbal",
+      "building": "Godrej building (OSM: 'Godrej Downtown', Tower 1)",
+      "techPark": "Godrej Downtown (OSM name)",
+      "confidence": "high",
+      "evidence": "The Week / PTI wire (19 Sept 2024): Berkadia's new 26,933 sq ft Bengaluru office 'at Godrej Hebbal', inaugurated 16 Sept 2024 (https://www.theweek.in/wire-updates/business/2024/09/19/dcm54-berkadia.html). OSM node/13428525780 'Berkadia' sits inside the OSM polygon way/1040899007 'Godrej Downtown' on Kodigehalli Main Road."
+     }
+    }
+   ]
+  },
+  {
+   "company": "broadcom",
+   "verdict": "keep",
+   "note": "The flagged 'Global Technology Park (VMware unit)' rests only on a marketing directory, and no Broadcom or VMware source places an office there; it is dropped as a weak near-duplicate of the well-evidenced RMZ Ecospace Campus 1A/1C office. The 'Kalyani Magnum' VMware office is really Kalyani Vista: OSM node/4378806596 falls inside the Nominatim relation 17205663 'Kalyani Vista' (just north of Kalyani Magnum), and a listing gives VMware's address as Kalyani Vista, 192A 3rd Main Rd, Doresanipalya.",
+   "set": {
+    "description": "US semiconductor and infrastructure-software group. In Bengaluru it holds the RMZ Ecospace (Bellandur ORR) campus that is its registered office, VMware's Kalyani Vista office in JP Nagar (Doresanipalya), and an Electronics City Phase 1 site."
+   },
+   "offices": [
+    {
+     "office": "broadcom~5aefa7",
+     "verdict": "keep",
+     "note": "OSM building tagged Broadcom with this address plus the registry aggregator's registered office: two independent sources, so high stands."
+    },
+    {
+     "office": "broadcom~d1fa61",
+     "verdict": "drop",
+     "note": "Only a brandland.in marketing directory lists VMware at GTP, and Broadcom and VMware sources name no GTP office. It is under 400 m from the well-evidenced RMZ Ecospace Campus 1A/1C office, so it is treated as a weak duplicate."
+    },
+    {
+     "office": "broadcom~0bb64b",
+     "verdict": "fix",
+     "note": "The building is Kalyani Vista, not Kalyani Magnum, and the pin already falls inside Kalyani Vista. Confidence goes from high to medium because no Broadcom or VMware page confirms the current lease (VMware's 2013 release names only a 420,000 sq ft South Bangalore building).",
+     "set": {
+      "label": "VMware (Broadcom) - Kalyani Vista",
+      "building": "Kalyani Vista",
+      "locality": "JP Nagar (Doresanipalya)",
+      "address": "Kalyani Vista, 192A, 3rd Main Road, Doresanipalya, JP Nagar 4th Phase, Bengaluru 560076",
+      "techPark": null,
+      "confidence": "medium",
+      "evidence": "OSM node/4378806596 'VMware India' lies inside Nominatim relation 17205663 'Kalyani Vista' (bbox 12.9015-12.9026, 77.5931-77.5961); OSM node/2375720266 'VMware Software India' is 500 m north. A listing gives VMware's address as 'Kalyani Vista, 192A, 3rd Main Rd, Doresanipalya, J.P. Nagar Phase 4, 560076' (https://www.placementpreparation.io/blog/top-product-based-companies-in-bangalore/). VMware's 2013 release describes a 420,000 sq ft South Bangalore campus (https://news.vmware.com/releases/vmw-new-investment-032213). No current Broadcom confirmation."
+     }
+    }
+   ]
+  }
+ ],
+ "notes": "Unresolved: (1) Axis Bank's Brigade Magnum office could not be corroborated, and the Thought Factory lab's address was not found, so that office stays low. (2) Amelia's ITPB Voyager office is IPsoft-era, and SoundHound's Feb 2026 Bengaluru hub has no published address. (3) Broadcom's Electronics City Phase 1 pin is still the phase centroid because no plot was identified; the RMZ Ecospace record was not re-fetched. (4) The Aequs Tower building did not geocode, so its pin is the Mahadevapura locality point. (5) Agratas' Bengaluru R&D centre is company-confirmed, but only OSM places it at Prestige Tech Cloud. (6) The Adobe POIs: which of the two OSM nodes is Platina and which is Tech Park IV was not checked against a building footprint. (7) Archwell was dropped because no source beyond one OSM node exists and the Lennar parentage and website were wrong. A reviewer with MCA21 access could reinstate it if a real CIN turns up. Broadcom's offices-page URL returned 404."
+}

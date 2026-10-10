@@ -1,0 +1,347 @@
+{
+ "key": "V06",
+ "corrections": [
+  {
+   "company": "netsmart",
+   "verdict": "keep",
+   "note": "Netsmart's own India careers page says it opened 'the south wing at the Godrej Centre in Hebbal', doubling the innovation hub to 60,000 sq ft (https://ntst.com/company/careers-and-culture/india-office); that matches the OSM POI inside the Godrej polygon at Kodigehalli (560092).",
+   "set": {
+    "description": "US behavioural-health IT vendor whose India engineering and AI hub is in the Godrej Centre at Hebbal, expanded to 60,000 sq ft (a new south wing) on the office's first anniversary in 2026."
+   },
+   "offices": [
+    {
+     "office": "netsmart~a06c9d",
+     "verdict": "fix",
+     "note": "Confirmed by a primary source; building named and park linked, pin unchanged (OSM POI).",
+     "set": {
+      "label": "Netsmart India hub - Godrej Centre, Hebbal",
+      "building": "Godrej Centre (south wing); OSM names the polygon 'Godrej Downtown'",
+      "techPark": "Godrej Downtown (OSM name)",
+      "confidence": "high",
+      "evidence": "Netsmart's India careers page: opened 'the south wing at the Godrej Centre in Hebbal', doubling the hub to 60,000 sq ft (https://ntst.com/company/careers-and-culture/india-office); OSM office POI 'Netsmart' sits in the same Godrej polygon on Kodigehalli Main Road (https://www.openstreetmap.org/node/13204637950)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "ni-national-instruments",
+   "verdict": "keep",
+   "note": "NI has a Bengaluru presence: job postings for NI Systems (India) Pvt Ltd are located in Bangalore (https://elitmus.com/jobs/31865). ni.com's office-locations page returns 404 and no source places it in Salarpuria Softzone, so the OSM-only office stays at low."
+  },
+  {
+   "company": "okta",
+   "verdict": "keep",
+   "note": "Okta's own contact page lists the Bangalore office at RMZ Ecoworld, Units 901 and 904, Floor 9, Building Campus 31, 560103 (https://www.okta.com/contact/). The 2023 launch release's 'S.R. Nagar' names no building and is superseded, so the pin moves about 10 km to OSM's Campus 31 building.",
+   "set": {
+    "description": "Identity-management company that launched its India headquarters and an innovation centre in Bengaluru in August 2023; its contact page lists the office on the 9th floor of Campus 31, RMZ Ecoworld, on the Bellandur Outer Ring Road."
+   },
+   "offices": [
+    {
+     "office": "okta~d648c2",
+     "verdict": "fix",
+     "note": "Moved from a locality-centroid guess in S.R. Nagar to the address on Okta's contact page; coordinates are the OSM building way/1243247618 'Campus 31'.",
+     "set": {
+      "label": "Bengaluru office - RMZ Ecoworld Campus 31",
+      "building": "Campus 31, Floor 9 (Units 901 and 904)",
+      "locality": "Bellandur / Devarabeesanahalli (Outer Ring Road)",
+      "address": "Units 901 and 904, Floor 9, Building Campus 31, RMZ Ecoworld, Sarjapur-Marathahalli Outer Ring Road, Bhoganahalli Village, Varthur Hobli, Bengaluru 560103",
+      "lat": 12.920626,
+      "lng": 77.68647,
+      "techPark": "RMZ Ecoworld",
+      "confidence": "high",
+      "evidence": "Okta's contact page: 'RMZ Ecoworld, Sarjapur, Marathalli Outer Ring Road, Bhoganahalli Village, Varthur Hobli, Unit 901 and 904 Floor 9, Building Campus 31, Bengaluru East, Karnataka, 560103' (https://www.okta.com/contact/); pin from OSM building 'Campus 31' (https://www.openstreetmap.org/way/1243247618)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "osb-group",
+   "verdict": "keep",
+   "note": "OSB India's own LinkedIn company page gives its primary location as 'Salarpuria Magnificia, No.78, 10th Floor, Dooravaninagar, Old Madras Road, tin factory, Bangalore 560016' (https://linkedin.com/company/osbi), independently matching the OSM POI.",
+   "offices": [
+    {
+     "office": "osb-group~072a86",
+     "verdict": "fix",
+     "note": "Confirmed by the company's own page; floor added, pin unchanged.",
+     "set": {
+      "building": "Salarpuria Magnificia, 10th floor",
+      "address": "10th Floor, Salarpuria Magnificia, No. 78, Old Madras Road, Dooravaninagar (Tin Factory), Bengaluru 560016",
+      "confidence": "high",
+      "evidence": "OSB India's LinkedIn company page: 'Salarpuria Magnificia, No.78, 10th Floor, Dooravaninagar, Old Madras Road, tin factory, Bangalore 560016' (https://linkedin.com/company/osbi); OSM office POI 'OSB India' at the same block (https://www.openstreetmap.org/node/13734016160)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "palo-alto-networks",
+   "verdict": "keep",
+   "note": "Palo Alto's locations page gives '2nd Floor, Quay Building, Bagmane Tech Park, C V Raman Nagar, Bengaluru 560093' (https://www.paloaltonetworks.com/company/locations). Bagmane's Cosmos page separately lists Palo Alto under the Vesta block (https://www.bagmanegroup.com/portfolio/bagmane-cosmos), so Quay and Vesta are two real buildings about 180-330 m apart in adjoining parks. The third office repeats the Quay address at the park centroid.",
+   "set": {
+    "description": "Cybersecurity platform company; its listed Bengaluru office is on the 2nd floor of the Quay Building, Bagmane Tech Park, and Bagmane also lists it in the Vesta block of the adjoining Bagmane Cosmos. A new Bengaluru workspace with 500+ seats across two floors opened in February 2026."
+   },
+   "offices": [
+    {
+     "office": "palo-alto-networks~eb5721",
+     "verdict": "fix",
+     "note": "Address confirmed on the company page and the pin is 30 m from OSM's 'Bagmane Quay' building. The evidence text is corrected because the Feb 2026 release does not name the building.",
+     "set": {
+      "evidence": "Palo Alto Networks' locations page lists '2nd Floor, Quay Building, Bagmane Tech Park, C V Raman Nagar, Bengaluru - 560093' (https://www.paloaltonetworks.com/company/locations); OSM office POI 'Palo Alto Networks' (node/9783612897) sits on OSM's 'Bagmane Quay' building (way/1065296607). A Feb 2026 release on a new 500+ seat, two-floor workspace does not name the building (https://www.cxotoday.com/press-release/palo-alto-networks-expands-bengaluru-office-to-enhance-regional-customer-support-and-innovation/)."
+     }
+    },
+    {
+     "office": "palo-alto-networks~71b8aa",
+     "verdict": "keep",
+     "note": "This is not a duplicate of Quay. Bagmane's own Cosmos page lists 'Palo Alto' under the Vesta block, and a separate OSM POI (node/13018340594) is inside Bagmane Cosmos, about 180 m east of the Quay POI. OSM's Vesta building centroid is 155 m further east, which is within tolerance."
+    },
+    {
+     "office": "palo-alto-networks~783ee2",
+     "verdict": "drop",
+     "note": "This repeats ~eb5721's Quay address with the park centroid as its pin, so it is the same office recorded twice. ~eb5721 keeps the better pin and evidence."
+    }
+   ]
+  },
+  {
+   "company": "pandorum",
+   "verdict": "keep",
+   "note": "pandorumtechnologies.com still answers 503. C-CAMP's own document says the team incubated at C-CAMP and the Bangalore BioInnovation Centre (https://www.ccamp.res.in/sites/default/files/default_images/Pandorum_CII.pdf), and directories give the HQ as EGF-5, BBC, Helix Biotech Park, Electronic City Phase 1 (https://pharmchoices.com/list-of-biotech-companies-in-bengaluru-karnataka/5/). PitchBook shows a Feb 2026 Series B, so the company is active.",
+   "set": {
+    "description": "Tissue-engineering / regenerative-medicine startup (bio-engineered cornea, liver tissue) incubated at C-CAMP and the Bangalore Bioinnovation Centre; directories give its HQ as the BBC building in Helix Biotech Park, Electronic City."
+   },
+   "offices": [
+    {
+     "office": "pandorum~76f0a2",
+     "verdict": "fix",
+     "note": "The C-CAMP site is real but is the incubation lab, not the HQ the directories name, so isHq is cleared. It stays low.",
+     "set": {
+      "isHq": false,
+      "confidence": "low",
+      "evidence": "C-CAMP's own document says Pandorum's team incubated at C-CAMP (https://www.ccamp.res.in/sites/default/files/default_images/Pandorum_CII.pdf); one directory still lists a C-CAMP, NCBS GKVK address alongside the BBC HQ. Whether the lab is still used in 2025-26 is unverified."
+     }
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "HQ - Bangalore Bioinnovation Centre, Helix Biotech Park",
+     "building": "Bangalore Bioinnovation Centre (EGF-5)",
+     "locality": "Electronic City Phase 1",
+     "address": "EGF-5, Bangalore Bioinnovation Centre, Bangalore Helix Biotech Park, Electronic City Phase 1, Bengaluru 560100",
+     "lat": 12.8438148,
+     "lng": 77.6564817,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "evidence": "Two business directories give 'EGF-5, Bangalore Bioinnovation Centre, Bangalore Helix Biotech Park, Electronics City Phase 1, Bangalore 560100' (https://pharmchoices.com/list-of-biotech-companies-in-bengaluru-karnataka/5/), and C-CAMP's document confirms incubation at BBC (https://www.ccamp.res.in/sites/default/files/default_images/Pandorum_CII.pdf). The company site was down (503). Pin is the photon geocode of OSM way/1366158771 'Bangalore Bioinnovation Centre'."
+    }
+   ]
+  },
+  {
+   "company": "rakuten-india",
+   "verdict": "keep",
+   "note": "Rakuten Group says Rakuten India's new 20-storey office opened 'in the heart of Bengaluru' in 2022 (https://global.rakuten.com/corp/innovation/rnn/2022/2208_005/), and CRN places that 'Crimson House Bengaluru' at Cubbon Park in the CBD (https://www.crn.in/?p=53384). That is consistent with the OSM POI at Bagmane Pallavi Towers. No source names the building, so it goes from low to medium. Website fixed: rakuten.com is Rakuten's US rewards site.",
+   "set": {
+    "website": "https://global.rakuten.com",
+    "description": "Japanese internet group's largest development centre outside Japan, in 'Crimson House Bengaluru', a 20-storey office near Cubbon Park opened in 2022; OSM places it at Bagmane Pallavi Towers in S.R. Nagar."
+   },
+   "offices": [
+    {
+     "office": "rakuten-india~e24573",
+     "verdict": "fix",
+     "note": "The company source supports a 20-storey central-Bengaluru office, so confidence rises to medium. The building identification rests on OSM; pin unchanged.",
+     "set": {
+      "building": "Bagmane Pallavi Towers (per OSM) - Rakuten's 20-storey 'Crimson House Bengaluru'",
+      "confidence": "medium",
+      "evidence": "Rakuten Group: 'Rakuten India's new 20-story office has opened in the heart of Bengaluru' (2022, https://global.rakuten.com/corp/innovation/rnn/2022/2208_005/); CRN: the 20-storey Crimson House is at Cubbon Park in the CBD (https://www.crn.in/?p=53384); OSM office POI 'Rakuten India' is 38 m from the Bagamane Pallavi Towers polygon (way/781182593). No source names the building."
+     }
+    }
+   ]
+  },
+  {
+   "company": "reckitt",
+   "verdict": "drop",
+   "note": "The only evidence is a circa-2015 OSM POI 'Reckitt Benckiser' near Trinity Circle (node/3785998690). Reckitt's Indian entity is headquartered at DLF Cyber Park, Gurugram (LEI record, https://www.leikart.com/leicert/335800NEB42HX6QMHQ17), and two searches found no Bengaluru office, hub or R&D centre, only Bangalore-based sales roles."
+  },
+  {
+   "company": "resource-pro",
+   "verdict": "keep",
+   "note": "ReSource Pro's own site describes its Bangalore operations centre (https://www.resourcepro.com/?p=10612), but gives no address. The OSM POI sits in the same Godrej Centre polygon at Hebbal that Netsmart's page confirms, so the office goes to medium.",
+   "offices": [
+    {
+     "office": "resource-pro~8ba180",
+     "verdict": "fix",
+     "note": "Bangalore presence confirmed by the company; building and park updated now that Netsmart's page establishes the polygon as Godrej Centre. Pin unchanged.",
+     "set": {
+      "building": "Godrej Centre (OSM names the polygon 'Godrej Downtown')",
+      "techPark": "Godrej Downtown (OSM name)",
+      "confidence": "medium",
+      "evidence": "ReSource Pro's site describes its Bangalore operation (https://www.resourcepro.com/?p=10612); OSM office POI 'ReSource Pro' is inside the Godrej Centre polygon on Kodigehalli Main Road (https://www.openstreetmap.org/node/13428525777). No source gives the street address."
+     }
+    }
+   ]
+  },
+  {
+   "company": "rinac-india",
+   "verdict": "keep",
+   "note": "Rinac's contact page (https://rinac.com/contact-us/) gives the Corporate HQ as No. 148/2, Vidyanagar Cross, opp. Sri Venkateshwara Engineering College, Chikkajala, 562157 (the Bellary Road OSM POI, 115 m from SVCE) and lists 128/1 Magadi Main Road, Byadarahalli as its Training Centre (RCET). The HQ flag was on the wrong office.",
+   "set": {
+    "description": "Bengaluru-based cold-chain, refrigeration and cleanroom engineering company with its corporate HQ at Vidyanagar Cross, Chikkajala on Bellary Road, a training centre (RCET) on Magadi Main Road and a factory further out on Magadi Road."
+   },
+   "offices": [
+    {
+     "office": "rinac-india~713081",
+     "verdict": "fix",
+     "note": "Per the company's contact page this is the Training Centre (RCET), not the HQ. Pin unchanged (OSM POI carrying the company website and house number 128).",
+     "set": {
+      "label": "Training Centre (RCET), Magadi Main Road",
+      "isHq": false,
+      "locality": "Byadarahalli (Magadi Road)",
+      "address": "#128/1, Vishwaneedam P.O., Magadi Main Road, Byadarahalli, Bengaluru 560091",
+      "confidence": "high",
+      "evidence": "Rinac contact page: 'Training Centre (RCET): Rinac India Limited, #128/1, Vishwaneedam P.O., Magadi Main Rd., Byadarahalli, Bangalore - 91' (https://rinac.com/contact-us/); OSM POI 'Rinac India Limited' at 128 Magadi Main Road (https://www.openstreetmap.org/node/3939410584)."
+     }
+    },
+    {
+     "office": "rinac-india~5b852a",
+     "verdict": "fix",
+     "note": "This is the company's Corporate HQ. The OSM pin is 115 m from the SVCE campus the address says it faces (photon geocode of SVCE, OSM way/365034401), so the pin is kept.",
+     "set": {
+      "label": "Corporate HQ, Vidyanagar Cross (Bellary Road)",
+      "isHq": true,
+      "locality": "Chikkajala / Vidyanagar Cross (Bellary Road, NH 44)",
+      "address": "No. 148/2, Vidyanagar Cross, opp. Sri Venkateshwara College of Engineering, Chikkajala Hobli, Bengaluru 562157",
+      "confidence": "high",
+      "evidence": "Rinac contact page: 'Corporate Headquarters: Rinac India Limited, NO.-148/2, Vidyanagar Cross, Opp. Sri Venkateshwara Engineering College, Chikkajala Hobli, Chikkajala, Bengaluru-562157' (https://rinac.com/contact-us/); OSM POI 'Rinac India limited' on Bellary Road (https://www.openstreetmap.org/node/5210419223)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "rockwell-automation",
+   "verdict": "keep",
+   "note": "Rockwell has a real Bengaluru design centre: about 600 staff in 2018, per Business Standard (https://www.business-standard.com/article/news-ians/rockwell-automation-to-double-hiring-at-its-bengaluru-design-centre-118111500245_1.html), and it posts Bengaluru jobs in 2026. No source gives its address, so the Prestige Obelisk office stays OSM-only at low."
+  },
+  {
+   "company": "sandvik",
+   "verdict": "keep",
+   "note": "Sandvik advertises Bengaluru roles on Indeed India (https://in.indeed.com/cmp/Sandvik/jobs), but no address was found; Sandvik Asia's India base is Pune. The recent OSM POI at Hanumanthappa Layout stays the only placement, at low."
+  },
+  {
+   "company": "sap-concur",
+   "verdict": "keep",
+   "note": "SAP's India office-locations page lists 'Bengaluru Concur - Concur Technologies India Pvt Ltd, Level 3, A Block, Lakeview Building, Bagmane Tech Park, C V Raman Nagar, Bengaluru 560093' (https://www.sap.com/about/company/office-locations/india.html, read via search; a direct fetch returned 403). That matches the OSM POI, which is 28 m from OSM's 'Bagmane Lakeview' building.",
+   "offices": [
+    {
+     "office": "sap-concur~2cc165",
+     "verdict": "fix",
+     "note": "Confirmed by SAP's own office list; building and level filled in, pin unchanged.",
+     "set": {
+      "building": "Lakeview Building, A Block, Level 3",
+      "address": "Level 3, A Block, Lakeview Building, Bagmane Tech Park, C V Raman Nagar, Bengaluru 560093",
+      "confidence": "high",
+      "evidence": "SAP's India office-locations page lists Concur Technologies India Pvt Ltd at 'Level 3, A Block, Lakeview Building, Bagmane Tech Park, C V Raman Nagar, Bengaluru 560093' (https://www.sap.com/about/company/office-locations/india.html); OSM POI 'Concur Technologies' sits on the Lakeview block (https://www.openstreetmap.org/node/9783665925)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "sap-fioneer",
+   "verdict": "keep",
+   "note": "SAP Fioneer's offices page lists Bangalore at 'Xenon North Tower, Bagmane Solarium City, Doddanekundi Village, K.R. Puram Hobli' (https://www.sapfioneer.com/about-us/offices/). The pin is 22 m from OSM's 'Xenon North' building.",
+   "offices": [
+    {
+     "office": "sap-fioneer~2b5cfe",
+     "verdict": "fix",
+     "note": "Confirmed by the company's own offices page; pin unchanged.",
+     "set": {
+      "building": "Xenon North Tower",
+      "address": "Xenon North Tower, Bagmane Solarium City, Doddanekundi Village, K.R. Puram Hobli, Bengaluru 560037",
+      "confidence": "high",
+      "evidence": "SAP Fioneer offices page: 'Xenon North Tower, Bagmane Solarium City, Doddanekundi Village, K.R. Puram Hobli, Bangalore' (https://www.sapfioneer.com/about-us/offices/); OSM POI 'SAP Fioneer' (node/10093104868) is 22 m from OSM building 'Xenon North' (way/1077649648)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "saviynt",
+   "verdict": "keep",
+   "note": "Saviynt opened its largest global innovation hub in Bengaluru on 6 Oct 2025: 62,000 sq ft and 650+ employees, building not named (https://saviynt.com/press-release/saviynt-inaugurates-its-largest-global-innovation-hub-in-bengaluru-to-power-the-future-of-ai-driven-identity-security). Saviynt India Pvt Ltd's LEI record and a job listing both give Smartworks, 1st Floor, North Tower, Vaishnavi Tech Park (https://lei.bloomberg.com/leis/view/894500VT33TUS71B3N11). That contradicts the single brochure that placed it in Global Technology Park.",
+   "set": {
+    "bengaluruEmployeesApprox": 650,
+    "description": "Venture-backed identity-governance SaaS vendor whose largest global innovation hub (62,000 sq ft, 650+ staff, opened October 2025) is in Bengaluru; its Indian entity is registered at Vaishnavi Tech Park on Sarjapur Road."
+   },
+   "offices": [
+    {
+     "office": "saviynt~d1fa61",
+     "verdict": "fix",
+     "note": "Moved from Global Technology Park (one marketing brochure) to Vaishnavi Tech Park (LEI registry plus a job listing), about 1.3 km. The pin is OSM way/1084971895's centroid. Medium, because the release does not say whether the Oct 2025 hub is this building.",
+     "set": {
+      "label": "Vaishnavi Tech Park - North Tower",
+      "building": "North Tower, 1st floor (Smartworks)",
+      "locality": "Bellandur / Ambalipura (Sarjapur Main Road)",
+      "address": "Smartworks, 1st Floor, North Tower, Vaishnavi Tech Park, Sarjapur Main Road, Bellandur Gate, Ambalipura, Bengaluru 560102",
+      "lat": 12.920256,
+      "lng": 77.671708,
+      "techPark": "Vaishnavi Tech Park",
+      "isHq": true,
+      "confidence": "medium",
+      "evidence": "The LEI record for Saviynt India Private Limited gives 'Smartworks, Vaishnavi tech Park, 1st Floor, North Tower', Bellandur Gate, Ambalipura, 560102 (https://lei.bloomberg.com/leis/view/894500VT33TUS71B3N11), and a builtinbengaluru job listing gives the same North Tower address (https://builtinbengaluru.in/job/associate-principle-engineer/9036972). Saviynt's 6 Oct 2025 release confirms a 62,000 sq ft, 650+ staff Bengaluru hub without naming the building. Pin is OSM way/1084971895."
+     }
+    }
+   ]
+  }
+ ],
+ "parkFixes": [
+  {
+   "park": "godrej-downtown-osm-name",
+   "set": {
+    "name": "Godrej Centre",
+    "aliases": [
+     "Godrej Downtown (OSM name)",
+     "Godrej Downtown",
+     "Godrej Centre Hebbal",
+     "Tower 1, Kodigehalli Main Road"
+    ]
+   },
+   "note": "Netsmart's careers page names the building 'the Godrej Centre in Hebbal' (https://ntst.com/company/careers-and-culture/india-office), and Simpliwork's listing gives Godrej Centre Hebbal at 560092, matching this Kodigehalli polygon. Photon also resolves 'Godrej Centre, Hebbal' to this OSM way/1040899007. The provisional OSM name is kept as an alias so existing references still resolve."
+  },
+  {
+   "park": "global-technology-park",
+   "set": {
+    "notableTenants": [
+     "Arista Networks",
+     "Broadcom",
+     "EPAM",
+     "EPAM Systems",
+     "Huron",
+     "Kwalee",
+     "LinkedIn",
+     "Marvell",
+     "Marvell Technology",
+     "Vodafone (_VOIS)"
+    ]
+   },
+   "note": "Saviynt is removed: its only support here was a marketing brochure, and its LEI record and a job listing place it at Vaishnavi Tech Park (https://lei.bloomberg.com/leis/view/894500VT33TUS71B3N11)."
+  },
+  {
+   "park": "vaishnavi-tech-park",
+   "set": {
+    "notableTenants": [
+     "Cuemath",
+     "Cuemath (unconfirmed)",
+     "Groww",
+     "IndiQube",
+     "Microsoft",
+     "Onsurity",
+     "Safran Engineering Services",
+     "Saviynt",
+     "ShareChat",
+     "Smartworks",
+     "Uber"
+    ]
+   },
+   "note": "Saviynt is added: its LEI record gives Smartworks, 1st Floor, North Tower, Vaishnavi Tech Park (https://lei.bloomberg.com/leis/view/894500VT33TUS71B3N11)."
+  }
+ ],
+ "parkMerges": [],
+ "notes": "Not checked or not resolved: (1) NI, Rockwell Automation and Sandvik each have a confirmed Bengaluru presence (jobs, or a design centre for Rockwell), but no source gives an address; their OSM-only offices stay at low. (2) The Rakuten building (Bagmane Pallavi Towers) rests on OSM plus a consistent company description, never a named source. (3) The Saviynt pin assumes the LEI/Smartworks address is current; the Oct 2025 62k sq ft hub may be elsewhere. Saviynt's Dec 2025 KKR round, which could make it a unicorn, was not checked, so isUnicorn is unchanged. (4) Reckitt was dropped on the absence of any source beyond a ~2015 OSM POI; a regional sales branch may exist. (5) Pandorum's own site returned 503 throughout; the BBC HQ rests on directories plus a C-CAMP document. (6) sap.com's India page and the Netsmart BusinessWire release returned 403 to a direct fetch; their content was read through search snippets. (7) Rinac's Magadi Road factory (Marenahalli, Tavarekere Hobli) and its Ulsoor registered office were not added: the factory is likely outside the city box and the registered office is not operational."
+}

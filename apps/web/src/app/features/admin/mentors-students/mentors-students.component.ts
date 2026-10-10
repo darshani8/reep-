@@ -48,7 +48,7 @@
  * the redesign. This screen is the seating chart and nothing else.
  */
 
-import { Component, computed, signal } from '@angular/core';
+import { Component, ElementRef, computed, signal, viewChild } from '@angular/core';
 import { AgGridAngular } from 'ag-grid-angular';
 import type {
   ColDef,
@@ -125,6 +125,58 @@ interface StaffPlacement {
   college_code: string | null;
   college_name: string | null;
 }
+
+/**
+ * One line of the office's mentor list, as `POST /admin/mentor-mapping/preview`
+ * judged it. The cells AS TYPED sit beside what the server took them to mean,
+ * so the reader can see "Prof. Shakti" resolved to the account it did; the
+ * `candidates` are drawn only on an ambiguous line, with the USN and batch
+ * that tell two same-name students apart.
+ */
+interface MappingRow {
+  line_no: number;
+  student: string | null;
+  usn: string | null;
+  faculty: string | null;
+  specialization: string | null;
+  verdict: string;
+  detail: string;
+  student_name: string | null;
+  student_usn: string | null;
+  batch: string | null;
+  current_faculty: string | null;
+  faculty_name: string | null;
+  candidates: { id: string; name: string; detail: string | null }[];
+  applied: boolean;
+}
+
+interface MappingPreview {
+  filename: string;
+  rows: MappingRow[];
+  counts: Record<string, number>;
+  to_assign: number;
+  /** Present on the answer to `/apply` only. */
+  applied?: number;
+}
+
+/** Verdicts that need nothing from the office; every other one is a line to fix. */
+const SHEET_SETTLED = new Set(['assign', 'unchanged', 'duplicate']);
+
+/** The chip text per verdict — a task or a fact, never a code. */
+const SHEET_VERDICT_LABEL: Record<string, string> = {
+  assign: 'Will assign',
+  unchanged: 'Already assigned',
+  duplicate: 'Repeated line',
+  listed_twice: 'Two faculty members',
+  blank: 'Incomplete line',
+  student_not_found: 'Student not found',
+  student_ambiguous: 'Which student?',
+  faculty_not_found: 'Faculty not found',
+  faculty_ambiguous: 'Which faculty member?',
+  faculty_disabled: 'Account disabled',
+  different_college: 'Different college',
+  out_of_reach: 'Outside your reach',
+};
 
 interface MentorLoad {
   /** Null until the first student is assigned: the assignment creates the group. */
@@ -340,6 +392,50 @@ export class AdminMentorsStudentsComponent {
   readonly batchCohortId = signal(EVERYTHING);
   readonly batchReason = signal('');
   readonly batchBusy = signal(false);
+
+  // ---------------------------------------------- assign from a spreadsheet --
+  /**
+   * THE OFFICE'S MENTOR LIST, AS A FILE (2026-10-10). The list arrives as a
+   * spreadsheet — a student per line, a faculty member beside them — and until
+   * now it was retyped onto this screen one assignment at a time.
+   * `POST /admin/mentor-mapping/preview` judges every line against the roster
+   * and writes nothing; `/apply` seats the lines that read "Will assign"
+   * through the same helpers the Assign button uses, with ONE reason for the
+   * whole file, stamped on every student's own history.
+   *
+   * THE SERVER DOES THE MATCHING. This screen never reads the spreadsheet
+   * itself, so what it draws under Check is what the server decided against
+   * this deployment's roster — the Imports screen's rule, for the same reason:
+   * a browser that read the file would draw verdicts no validator ever saw.
+   * A line the server could not settle says what would settle it (a USN, an
+   * email address), and the office fixes the file and checks it again.
+   */
+  readonly sheetOpen = signal(false);
+  readonly sheetFileName = signal('');
+  readonly sheetReason = signal('Mentor and Guide Allocation');
+  readonly sheetBusy = signal(false);
+  readonly sheetError = signal<string | null>(null);
+  readonly sheetPreview = signal<MappingPreview | null>(null);
+  readonly sheetFlash = signal<string | null>(null);
+  readonly mappingTemplateUrl = `${environment.apiBase}/admin/mentor-mapping/template.xlsx`;
+  private sheetFile: File | null = null;
+  private readonly sheetPicker = viewChild<ElementRef<HTMLInputElement>>('sheetPicker');
+
+  readonly sheetCanCheck = computed(() => this.sheetFileName() !== '' && !this.sheetBusy());
+  readonly sheetCanAssign = computed(() => {
+    const judged = this.sheetPreview();
+    return (
+      judged !== null &&
+      judged.to_assign > 0 &&
+      this.sheetReason().trim().length > 0 &&
+      !this.sheetBusy()
+    );
+  });
+  /** Lines the office has to do something about before they can land. */
+  readonly sheetAttention = computed(() => {
+    const judged = this.sheetPreview();
+    return judged === null ? 0 : judged.rows.filter((row) => !SHEET_SETTLED.has(row.verdict)).length;
+  });
 
   private grid: GridApi<Mentee> | null = null;
 
@@ -720,6 +816,119 @@ export class AdminMentorsStudentsComponent {
   toggleBatchBar(): void {
     this.batchOpen.update((open) => !open);
     this.flash.set(null);
+  }
+
+  // ---------------------------------------------- assign from a spreadsheet --
+
+  toggleSheetBar(): void {
+    this.sheetOpen.update((open) => !open);
+    this.flash.set(null);
+  }
+
+  chooseSheetFile(event: Event): void {
+    const files = (event.target as HTMLInputElement).files;
+    if (files === null || files.length === 0) {
+      this.forgetSheetFile();
+      return;
+    }
+    this.sheetFile = files[0];
+    this.sheetFileName.set(files[0].name);
+    // Verdicts about a different file are worse than none.
+    this.sheetPreview.set(null);
+    this.sheetError.set(null);
+    this.sheetFlash.set(null);
+  }
+
+  /** Clears the file and the input's own value with it — otherwise choosing
+   *  the SAME file again fires no change event and nothing happens. */
+  forgetSheetFile(): void {
+    const picker = this.sheetPicker();
+    if (picker) picker.nativeElement.value = '';
+    this.sheetFile = null;
+    this.sheetFileName.set('');
+    this.sheetPreview.set(null);
+    this.sheetError.set(null);
+    this.sheetFlash.set(null);
+  }
+
+  /** Sends the file to be READ. Nothing is saved by this press. */
+  async checkSheet(): Promise<void> {
+    const judged = await this.postSheet('preview');
+    if (judged === null) return;
+    this.sheetPreview.set(judged);
+    const attention = judged.rows.length - judged.to_assign - this.settledOtherwise(judged);
+    this.sheetFlash.set(
+      `${plural(judged.rows.length, 'line')} read · ${judged.to_assign} will be assigned` +
+        (attention > 0 ? ` · ${attention} need attention` : '') +
+        '. Nothing has been saved yet.',
+    );
+  }
+
+  /** Seats every line that reads "Will assign", then reloads both lists. */
+  async applySheet(): Promise<void> {
+    const judged = await this.postSheet('apply');
+    if (judged === null) return;
+    this.sheetPreview.set(judged);
+    const applied = judged.applied ?? 0;
+    const skipped = judged.rows.length - applied;
+    this.sheetFlash.set(
+      `${plural(applied, 'student')} assigned` +
+        (skipped > 0 ? ` · ${plural(skipped, 'line')} left as ${skipped === 1 ? 'it was' : 'they were'}` : '') +
+        '.',
+    );
+    // Both lists are re-fetched rather than patched, as every write here is.
+    await this.refresh();
+  }
+
+  verdictLabel(verdict: string): string {
+    return SHEET_VERDICT_LABEL[verdict] ?? verdict;
+  }
+
+  /** Text + colour together, never colour alone: the chip's words carry the
+   *  verdict and the tone only ranks it. */
+  verdictTone(verdict: string): string {
+    if (verdict === 'assign') return 'good';
+    if (SHEET_SETTLED.has(verdict)) return 'neutral';
+    if (verdict === 'listed_twice' || verdict === 'different_college' || verdict === 'out_of_reach') {
+      return 'risk';
+    }
+    return 'warn';
+  }
+
+  private settledOtherwise(judged: MappingPreview): number {
+    return judged.rows.filter((row) => SHEET_SETTLED.has(row.verdict) && row.verdict !== 'assign').length;
+  }
+
+  private async postSheet(step: 'preview' | 'apply'): Promise<MappingPreview | null> {
+    const file = this.sheetFile;
+    if (file === null) return null;
+    this.sheetBusy.set(true);
+    this.sheetError.set(null);
+    this.sheetFlash.set(null);
+    this.flash.set(null);
+    const form = new FormData();
+    form.append('file', file);
+    if (step === 'apply') form.append('reason', this.sheetReason().trim());
+    try {
+      // NO Content-Type header: the browser sets it, with the multipart
+      // boundary. Setting it by hand produces a body the server cannot parse.
+      const response = await fetch(`${environment.apiBase}/admin/mentor-mapping/${step}`, {
+        method: 'POST',
+        credentials: 'include',
+        body: form,
+      });
+      if (!response.ok) {
+        this.sheetError.set(response.status === 403 ? FORBIDDEN_WRITE : await this.detailOf(response));
+        if (step === 'apply') await this.refresh();
+        return null;
+      }
+      return (await response.json()) as MappingPreview;
+    } catch {
+      this.sheetError.set('Could not reach the server.');
+      return null;
+    } finally {
+      this.sheetBusy.set(false);
+    }
   }
 
   /**

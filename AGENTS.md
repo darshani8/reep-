@@ -1961,6 +1961,48 @@ have the feature": an empty list with a faculty member on the card is a pairing
 that predates the table, and a student who was never assigned is a student
 waiting to be seated. The panel says which in words.
 
+**THE MENTOR LIST ARRIVES AS A SPREADSHEET, AND THE SCREEN TAKES ONE
+(2026-10-10).** The office's "Mentor and Guide Allocation" is a sheet — a
+student per line, a faculty member beside them, no USN anywhere — and until
+now the only way it reached the roster was retyped: one assignment per student
+on Assign faculty, or the batch bar once per faculty member per batch, which
+is how eighty students sat with no mentor while seventy-four claim
+notifications were skipped for want of one. `POST /api/admin/mentor-mapping/
+preview` reads the file (through `imports_sheet.parse_sheet`, the same reader
+and the same size and suffix rules as the Imports screen) and judges every
+line against the caller's reach; `.../apply` takes the same file plus ONE
+`reason` and seats the lines that read `assign`; `GET .../template.xlsx` is
+the blank file, built from `MAPPING_COLUMNS` so what is handed out and what is
+read back cannot drift. **The write is the same write**: `ensure_mentor_group`,
+`_assert_same_college`, `require_capability` with both people as targets,
+`record_mentor_change` for the spell and `record_change` per student with the
+previous mentor in `before` — exactly `set_student_mentor`'s sequence, so a
+file of eighty assignments is eighty assignments and not a sixth writer of
+rule 2's scope key with rules of its own. `admin.mentors`, and a MENTOR by
+role holds nothing here. What the file adds is MATCHING, and matching is the
+whole of `app/mentor_mapping.py`, pure and pinned without a database: a name
+is EXACT (same words once titles and punctuation are gone), LOOSE (one name is
+the other with words added, never on an initial alone), AMBIGUOUS, or nobody
+— **never a guess**. An ambiguous line is a verdict with the candidates' USN
+and batch on it, and the office settles it by putting the USN on the line; a
+faculty name that fits two accounts is settled by the email address. The
+sheet's own Specialization column breaks a tie only when it is decisive, and
+a file that lists the two "Harshitha N"s under two faculty members has told us
+they are two people, so `resolve_claims` withdraws a candidate another line
+plainly matched. One student on two lines with two faculty members is refused
+on both lines (`listed_twice`); the same faculty member twice is a `duplicate`
+and harmless. **Preview writes nothing — not a run row, not a group — and
+apply judges the file again**: the answer to apply names every line and what
+was done with it, and the per-student audit row plus the spell on each
+student's history card are the receipt, which is why, unlike B8.1's imports,
+no `import_runs` row is kept for a file this small and a judge this
+deterministic. The two fences are asked PER LINE in the preview so the preview
+and the apply cannot disagree about a pair, and a refusal goes on the line
+rather than raising, so one cross-college pair does not hide the other
+seventy-nine verdicts. `tests/test_mentor_mapping_sheet.py` pins the matcher
+and the three endpoints; the screen's card ("Assign from a spreadsheet",
+beside the batch bar) never reads the file itself, the Imports screen's rule.
+
 **SWOC grew ownership, a viewpoint that means something, history and a semester
 (B7, 2026-09-13).** `_source_for` stamps MENTOR only when the author actually
 mentors THAT student — it read `session["role"]` alone, so one granted lecturer

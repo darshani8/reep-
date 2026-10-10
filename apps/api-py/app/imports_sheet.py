@@ -125,6 +125,13 @@ _FIELD_ALIASES: dict[str, tuple[str, ...]] = {
     "live_backlogs": ("live_backlogs", "live backlogs", "backlogs", "arrears", "live arrears"),
     "sessions_held": ("sessions_held", "sessions held", "classes_held", "classes held", "held", "total_sessions", "total sessions"),
     "sessions_attended": ("sessions_attended", "sessions attended", "classes_attended", "classes attended", "attended", "present"),
+    # The mentor mapping sheet (routers/admin_mentoring.py, 2026-10-10): a
+    # student, the faculty member beside them, and the office's own column
+    # names for both. A bare "email" is deliberately NOT an alias for the
+    # faculty column — a sheet with one email column could mean either side.
+    "student_name": ("student", "student name", "student_name", "name", "full name", "full_name", "student full name"),
+    "faculty": ("faculty", "faculty member", "faculty_member", "faculty name", "faculty_name", "mentor", "mentor name", "mentor_name", "guide", "mentor and guide", "faculty email", "faculty_email", "mentor email"),
+    "specialization": ("specialization", "specialisation", "stream", "spec"),
 }
 
 #: What each dataset's template and error report call things, in order. The
@@ -174,6 +181,18 @@ def _pick(values: Mapping[str, Any], field: str) -> Any:
             if cell is not None and str(cell).strip() != "":
                 return cell
     return None
+
+
+def read_text(values: Mapping[str, Any], field: str) -> str | None:
+    """The cell for a canonical field as a stripped, space-collapsed string, or
+    None when the column is absent or the cell is blank. For sheets whose cells
+    are names rather than numbers (the mentor mapping), where `_number`'s
+    questions do not arise and a blank must read as "not given"."""
+    raw = _pick(values, field)
+    if raw is None:
+        return None
+    text = " ".join(str(raw).split())
+    return text or None
 
 
 def _parse_csv(payload: bytes) -> list[SheetRow]:

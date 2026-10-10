@@ -50,6 +50,14 @@ REPORT = os.path.join(ROOT, "data", "report.md")
 BOUNDS = {"south": 12.75, "north": 13.25, "west": 77.35, "east": 77.90}
 CATEGORIES = ("MNC", "MID_SIZE", "STARTUP", "PSU")
 ORIGINS = ("Indian", "Foreign")
+# The fixed sector list the filter panel offers. A slice that writes free text instead is outvoted by any
+# slice that used the list; a company whose every slice used free text keeps it, and qa.py flags it.
+SECTORS = (
+    "IT services", "Software & internet", "Semiconductors & hardware", "BFSI", "Consulting & professional services",
+    "E-commerce & consumer internet", "Fintech", "SaaS", "AI & deep tech", "EdTech", "HealthTech & pharma",
+    "Mobility & EV", "Aerospace & defence", "Automotive & industrial", "Energy", "Retail & consumer goods",
+    "Telecom & networking", "Media & gaming", "Logistics", "Real estate & infrastructure", "Space", "Other",
+)
 STATUSES = ("active", "closing", "closed", "planned")
 CONFIDENCES = ("high", "medium", "low")
 CONF_RANK = {"low": 0, "medium": 1, "high": 2}
@@ -378,6 +386,13 @@ def resolve_park(parks, uf, name):
 
 # ----------------------------------------------------------------------------- companies
 
+def pick_sector(sectors):
+    """The most common sector from the fixed list; free text only when no slice used the list."""
+    listed = [x for x in sectors if x in SECTORS]
+    pool = listed or sectors
+    return Counter(pool).most_common(1)[0][0] if pool else "Other"
+
+
 def merge_companies(slices, parks, uf, problems):
     cuf = UnionFind()
     records = []
@@ -480,7 +495,7 @@ def merge_companies(slices, parks, uf, problems):
             "origin": Counter(origins).most_common(1)[0][0] if origins else "Foreign",
             "hqCountry": Counter(hq_country).most_common(1)[0][0] if hq_country else None,
             "hqCity": Counter(hq_city).most_common(1)[0][0] if hq_city else None,
-            "sector": Counter(sectors).most_common(1)[0][0] if sectors else "Other",
+            "sector": pick_sector(sectors),
             "description": max(descs, key=len) if descs else "",
             "website": websites[0] if websites else None,
             "founded": Counter(founded).most_common(1)[0][0] if founded else None,

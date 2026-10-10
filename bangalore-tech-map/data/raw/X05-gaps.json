@@ -1,0 +1,672 @@
+{
+ "key": "X05-gaps",
+ "techParks": [],
+ "companies": [
+  {
+   "name": "Clarivate",
+   "aliases": [
+    "Clarivate Analytics",
+    "Clarivate Analytics (India) Pvt Ltd",
+    "Thomson Reuters IP & Science (former)"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Information services / analytics (IP, scientific and academic data)",
+   "description": "London-headquartered analytics and information-services company (Web of Science, Derwent, CPA Global, ProQuest); India operations span Chennai, Hyderabad, Noida and a Bengaluru office in the Crescent building at Prestige Shantiniketan, Whitefield.",
+   "founded": 2016,
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://clarivate.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - Crescent 2, Prestige Shantiniketan",
+     "locality": "Whitefield (ITPL Main Road, Hoodi / Sadaramangala)",
+     "address": "CR2, 11th & 12th floor, Prestige Shantiniketan, Sadaramangala Village, ITPB Main Road, KR Puram Hobli, Whitefield, Bengaluru 560048",
+     "building": "Crescent 2 (The Crescent)",
+     "techPark": "Prestige Shantiniketan",
+     "lat": 12.990396,
+     "lng": 77.730433,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Clarivate's own contact/locations page lists 'Bangalore CR2 12th&11th floor Prestige Shantiniketan Sadaramangala Village ITPB Main Rd KR Puram Hobli Whitefield' among its Asia offices (page returns 403 to direct fetch; text seen in search index); coordinates are the OSM footprint of the Prestige Shantiniketan Commercial Complex (way/91003802): https://clarivate.com/contact-us/clarivate-locations/ and https://www.openstreetmap.org/way/91003802",
+     "geocodeSource": "osm-building"
+    }
+   ],
+   "sources": [
+    "https://clarivate.com/contact-us/clarivate-locations/",
+    "https://builtinbengaluru.in/job/associate-stem-content-analyst/4430951",
+    "https://www.openstreetmap.org/way/91003802"
+   ]
+  },
+  {
+   "name": "Ness Digital Engineering",
+   "aliases": [
+    "Ness Technologies",
+    "Ness Technologies (India) Pvt Ltd",
+    "Ness Digital Engineering (India) Pvt Ltd",
+    "Ness"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services / digital engineering",
+   "description": "KKR-owned digital product-engineering services firm headquartered in New York; its India Technology Innovation Center has long sat in its own 'Ness Towers' building in Koramangala 6th Block, alongside Hyderabad, Pune and Mumbai sites.",
+   "founded": 1999,
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.ness.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Technology Innovation Center - Ness Towers, Koramangala",
+     "locality": "Koramangala 6th Block",
+     "address": "No. 33, Ness Towers, 6th Block, 17th H Main Road, Koramangala, Bengaluru 560095",
+     "building": "Ness Towers",
+     "techPark": null,
+     "lat": 12.937922,
+     "lng": 77.621711,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "An archived copy of ness.com/india lists 'No. 33, 6th Block, 17th H Main Road, Koramangala, Bangalore 560095' under Ness Digital Engineering locations, and Ness's Naukri company page gives the same address for its Technology Innovation Center (+91-80-4196-1000); both pre-date the 2022 KKR deal, so the current tenancy is not re-confirmed. Coordinates are the 17th H Main Road street centroid, not the building: https://web-archive.nli.org.il/National_Library/mp_/https://www.ness.com/india/ and https://companies.naukri.com/ness-jobs/contact-us",
+     "geocodeSource": "geocoder-street (photon, 17th H Main Road)"
+    }
+   ],
+   "sources": [
+    "https://web-archive.nli.org.il/National_Library/mp_/https://www.ness.com/india/",
+    "https://companies.naukri.com/ness-jobs/contact-us",
+    "https://www.peoplematters.in/news/recruiting-and-onboarding/ness-digital-engineering-to-hire-1000-employees-for-india-operations-18288"
+   ]
+  },
+  {
+   "name": "PowerSchool",
+   "aliases": [
+    "PowerSchool India",
+    "PowerSchool India Pvt Ltd",
+    "PowerSchool Group"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Education software (K-12 SaaS)",
+   "description": "US K-12 education-software company (Bain Capital-owned since 2024) whose India Centre of Excellence at Embassy TechVillage on the Outer Ring Road is its largest offshore hub, expanded from 75,000 to 112,000 sq ft in 2024; ~1,300 of its ~1,450 India staff are in Bengaluru.",
+   "founded": 1997,
+   "hqCity": "Folsom",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.powerschool.com",
+   "bengaluruEmployeesApprox": 1300,
+   "offices": [
+    {
+     "label": "India Centre of Excellence - Embassy TechVillage",
+     "locality": "Devarabeesanahalli (Outer Ring Road, Bellandur)",
+     "address": "Embassy TechVillage, Outer Ring Road, Devarabeesanahalli, Varthur Hobli, Bengaluru 560103 (block not confirmed)",
+     "building": null,
+     "techPark": "Embassy TechVillage",
+     "lat": 12.93004,
+     "lng": 77.690611,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "PowerSchool's India careers page says 'our India Centre of Excellence at Embassy Tech Village (ETV) delivers a creative oasis for all our teams in Bengaluru'; The Week (Oct 2025) puts ~1,300 PowerSchool staff in Bengaluru. Block not confirmed, so coordinates are the ETV park centroid: https://www1.powerschool.com/company/careers/india/ and https://www.theweek.in/wire-updates/business/2025/10/03/mcm1-biz-powerschool-facility.html",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www1.powerschool.com/company/careers/india/",
+    "https://www.theweek.in/wire-updates/business/2025/10/03/mcm1-biz-powerschool-facility.html",
+    "https://www.hrkatha.com/?p=42750"
+   ]
+  },
+  {
+   "name": "Kantar",
+   "aliases": [
+    "Kantar IMRB",
+    "Kantar Analytics Practice",
+    "Analytics Quotient (acquired)",
+    "Kantar GDC India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Market research / data analytics",
+   "description": "London-headquartered market-research and brand-analytics group; its Bengaluru office is a delivery hub for analytics and insights teams (including the Centre of Excellence for brand analytics inherited from Bengaluru-founded Analytics Quotient).",
+   "founded": 1992,
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://www.kantar.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru analytics hub - Prestige Technology Park",
+     "locality": "Kadubeesanahalli (Outer Ring Road, Marathahalli-Sarjapur)",
+     "address": "Prestige Technology Park, Marathahalli-Sarjapur Outer Ring Road, Kadubeesanahalli, Bengaluru 560103 (block not given)",
+     "building": null,
+     "techPark": "Prestige Tech Park",
+     "lat": 12.942865,
+     "lng": 77.692806,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "A September 2026 Kantar analyst posting lists the job location as 'Bengaluru (Prestige Technology Park)' and calls the office 'a key delivery hub for the company's analytics and insights teams' (job aggregator, not a Kantar page); coordinates are the park centroid: https://fresherjobinfo.in/?p=40219",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Kote M R Plaza, Doddanekundi (older listing)",
+     "locality": "Doddanekundi / Marathahalli (Outer Ring Road)",
+     "address": "2nd & 3rd floor, Kote M R Plaza, 95/3 Doddanekundi, Outer Ring Road, Marathahalli, Bengaluru 560037",
+     "building": "Kote M R Plaza",
+     "techPark": null,
+     "lat": 12.9773708,
+     "lng": 77.6954828,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Craft.co lists Kantar IMRB's Bengaluru office at 95/3 Kote M R Plaza, Doddanekundi, Outer Ring Road, and Kantar's LinkedIn page (several years old) gives the same building; may have been superseded by the Prestige Tech Park hub. Coordinates are an approximate geocoder point on the ORR at Doddanekundi: https://craft.co/kantar-imrb/locations and https://in.linkedin.com/company/kantar",
+     "geocodeSource": "geocoder-approx (photon)"
+    },
+    {
+     "label": "AMR Tech Park, Hosur Road (older listing)",
+     "locality": "Bommanahalli (Hosur Road)",
+     "address": "No 23 & 24, 4A, 1st Floor, AMR Tech Park, Hosur Road, Bommanahalli, Bengaluru 560068",
+     "building": null,
+     "techPark": "AMR Tech Park",
+     "lat": 12.899424,
+     "lng": 77.630782,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Kantar's LinkedIn company page lists a second Bengaluru office at AMR Tech Park, Hosur Road (dated listing, not re-confirmed); coordinates are the AMR Tech Park centroid: https://in.linkedin.com/company/kantar",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://fresherjobinfo.in/?p=40219",
+    "https://craft.co/kantar-imrb/locations",
+    "https://in.linkedin.com/company/kantar",
+    "https://in.indeed.com/cmp/Kantar/jobs"
+   ]
+  },
+  {
+   "name": "T-Systems (Deutsche Telekom)",
+   "aliases": [
+    "T-Systems",
+    "T-Systems ICT India Pvt Ltd",
+    "T-Systems International",
+    "Deutsche Telekom"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services (Deutsche Telekom group)",
+   "description": "Deutsche Telekom's IT-services arm; T-Systems ICT India is headquartered in Pune and opened a Bengaluru 'point of production' in 2016, now in Umiya Business Bay at Cessna Business Park on the Outer Ring Road. Deutsche Telekom Digital Labs is a separate unit based in Gurugram, with no Bengaluru site found.",
+   "founded": 2000,
+   "hqCity": "Frankfurt",
+   "hqCountry": "Germany",
+   "isUnicorn": false,
+   "website": "https://www.t-systems.com/in/en",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "T-Systems ICT India - Umiya Business Bay, Cessna Business Park",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "address": "4th Floor, Umiya Business Bay Tower II, Cessna Business Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "building": "Umiya Business Bay Tower II",
+     "techPark": "Cessna Business Park",
+     "lat": 12.933858,
+     "lng": 77.694307,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "TelcoTitans' 'T-Sys furthers Indian expansion with new Bengaluru hub' reports new offices opening in Umiya Business Bay at Cessna Business Park, Bengaluru (paywalled); a business-directory listing seen in search gives Tower II, 4th floor; Wikipedia notes the Bengaluru point of production dates from April 2016. Coordinates are the OSM footprint 'Umiya Business Bay 2': https://www.telcotitans.com/deutsche-telekomwatch/t-sys-furthers-indian-expansion-with-new-bengaluru-hub/6520.article and https://www.openstreetmap.org/way/659696906",
+     "geocodeSource": "osm-building"
+    }
+   ],
+   "sources": [
+    "https://www.telcotitans.com/deutsche-telekomwatch/t-sys-furthers-indian-expansion-with-new-bengaluru-hub/6520.article",
+    "https://en.wikipedia.org/wiki/T-Systems",
+    "https://www.greatplacetowork.in/great/company/deutsche-telekom-digital-labs-private-limited/",
+    "https://www.openstreetmap.org/way/659696906"
+   ]
+  },
+  {
+   "name": "Temenos",
+   "aliases": [
+    "Temenos India Pvt Ltd",
+    "Temenos AG"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Banking software",
+   "description": "Geneva-headquartered core-banking software vendor; India operations (since 1996) run from Chennai and a Bengaluru branch at IBC Knowledge Park on Bannerghatta Road, which Temenos lists as its India office.",
+   "founded": 1993,
+   "hqCity": "Geneva",
+   "hqCountry": "Switzerland",
+   "isUnicorn": false,
+   "website": "https://www.temenos.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Temenos India (Bangalore Branch) - IBC Knowledge Park, Block D",
+     "locality": "Bannerghatta Road (Dairy Circle / S.G. Palya)",
+     "address": "IBC Knowledge Park, Block D, 10th & 11th Floor, No. 4/1 Bannerghatta Road, near Dairy Circle, Bengaluru 560029",
+     "building": "Block D",
+     "techPark": "IBC Knowledge Park",
+     "lat": 12.932234,
+     "lng": 77.602547,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Temenos' own offices page lists 'Temenos India Pvt Ltd (Bangalore Branch) IBC Knowledge Park, Block D 10th & 11th Floor No. 4/1, Bannergatta Road, Near Dairy Circle, Bangalore 560029'; Block D is not mapped separately, so coordinates are the IBC Knowledge Park centroid: https://www.temenos.com/offices",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.temenos.com/offices",
+    "https://www.temenos.com/?p=3663"
+   ]
+  },
+  {
+   "name": "Verizon",
+   "aliases": [
+    "Verizon Data Services India Pvt Ltd",
+    "Verizon India",
+    "Verizon Labs"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Telecommunications",
+   "description": "US Fortune 500 telecom operator; Verizon Data Services India is registered in Chennai and runs an innovation hub of five facilities across Chennai, Hyderabad and Bengaluru. The Bengaluru building is not stated by Verizon itself; the two locations below come from secondary sources.",
+   "founded": 2000,
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.verizon.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Verizon Bengaluru - Prestige Tech Park (reported)",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "address": "Prestige Tech Park, Marathahalli-Sarjapur Outer Ring Road, Kadubeesanahalli, Bengaluru 560103 (block not given)",
+     "building": null,
+     "techPark": "Prestige Tech Park",
+     "lat": 12.942865,
+     "lng": 77.692806,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "A Fishbowl Q&A answer gives Verizon's Bengaluru office as 'Prestige tech park kadubisanahalli' and a YouTube office-tour video shows Verizon at Prestige Tech Park; Verizon's own Feb 2024 India material confirms Bengaluru among its five India facilities but gives no address. Coordinates are the park centroid: https://www.fishbowlapp.com/post/where-is-verizon-bengaluru-office-locationverizon and https://www.verizon.com/about/sites/default/files/UpToSpeedLive-022924.pdf",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Verizon Data Services India - Torrey Pines, Embassy GolfLinks (directory listing)",
+     "locality": "Domlur / Challaghatta (Intermediate Ring Road)",
+     "address": "1st Floor, Torrey Pines, Embassy GolfLinks Business Park, Intermediate Ring Road, Domlur, Bengaluru 560071",
+     "building": "Torrey Pines",
+     "techPark": "Embassy GolfLinks Business Park",
+     "lat": 12.950263,
+     "lng": 77.642836,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "The D&B business directory lists Verizon Data Services India Pvt Ltd at '1st Floor Torrey Pines Building Embassy Golf Link Business Park, Intermediate Inner Road Domlur Bengaluru 560071' (directory data, currency unknown); coordinates are the OSM 'Torrey Pines' building: https://www.dnb.com/business-directory/company-profiles.verizon_data_services_india_private_limited.e52bf8298ad9400875f62c5c656dd76d.html and https://www.openstreetmap.org/way/105322134",
+     "geocodeSource": "osm-building"
+    }
+   ],
+   "sources": [
+    "https://www.verizon.com/about/sites/default/files/UpToSpeedLive-022924.pdf",
+    "https://www.fishbowlapp.com/post/where-is-verizon-bengaluru-office-locationverizon",
+    "https://www.youtube.com/watch?v=9V5Nt3iOMyU",
+    "https://www.dnb.com/business-directory/company-profiles.verizon_data_services_india_private_limited.e52bf8298ad9400875f62c5c656dd76d.html"
+   ]
+  },
+  {
+   "name": "TransUnion",
+   "aliases": [
+    "TransUnion Global Capability Center India",
+    "TransUnion GCC India",
+    "TransUnion LLC"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Financial services / credit information",
+   "description": "Chicago-headquartered credit bureau and information company; its India GCC is centred on Pune (moved from Chennai) with Hyderabad, and it keeps a Bengaluru office on Bannerghatta Road at Primeco Towers. Its Indian credit-bureau affiliate TransUnion CIBIL is Mumbai-based.",
+   "founded": 1968,
+   "hqCity": "Chicago",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.transunion.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "TransUnion Bengaluru - Primeco Towers, Bannerghatta Road",
+     "locality": "Arekere (Bannerghatta Road)",
+     "address": "5th floor, Primeco Towers, Bannerghatta Road, Arekere MICO Layout, Panduranga Nagar, Bengaluru 560076",
+     "building": "SJR Primeco Towers",
+     "techPark": null,
+     "lat": 12.891607,
+     "lng": 77.59636,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Built In Bengaluru's TransUnion company page lists one Bengaluru office: 'Primeco Towers - 5th floor, Bannerughatta Rd., Arekere MICO Layout, Main Rd. Panduranga Nagar, Bengaluru, India, 560076'; coordinates are the OSM footprint 'SJR Primeco Towers': https://builtinbengaluru.in/company/transunion/offices and https://www.openstreetmap.org/way/1149959379",
+     "geocodeSource": "osm-building"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/company/transunion/offices",
+    "https://newsroom.transunion.com/transunion-expands-global-capability-centers-to-bolster-innovation-scalability-and-talent/",
+    "https://www.openstreetmap.org/way/1149959379"
+   ]
+  },
+  {
+   "name": "Hitachi Vantara",
+   "aliases": [
+    "Hitachi Data Systems (former)",
+    "Hitachi Vantara India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Data storage / data infrastructure",
+   "description": "Hitachi's data-infrastructure and storage subsidiary (formed 2017 from Hitachi Data Systems, Pentaho and Hitachi Insight), headquartered in Santa Clara; its India HQ and engineering are in Hyderabad, and its official Bengaluru office is on Lavelle Road in the CBD.",
+   "founded": 2017,
+   "hqCity": "Santa Clara",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.hitachivantara.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - SKAV 909, Lavelle Road",
+     "locality": "Lavelle Road (CBD, Ashok Nagar)",
+     "address": "909 SKAV, Level 12, 9/1 Lavelle Road, Bengaluru 560001",
+     "building": "SKAV 909",
+     "techPark": null,
+     "lat": 12.9655913,
+     "lng": 77.5962532,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Hitachi Vantara's worldwide-locations page lists 'Bangalore: 909 SKAV, Level 12, 9/1 Lavelle Road, Bangalore 560001'; coordinates are the Awfis Lavelle Road POI, which sits in the SKAV 909 building: https://www.hitachivantara.com/en-us/company/contact/worldwide-locations and https://myhq.in/coworking-space/awfis-skav-909-building",
+     "geocodeSource": "geocoder (nominatim, Awfis POI in SKAV 909)"
+    }
+   ],
+   "sources": [
+    "https://www.hitachivantara.com/en-us/company/contact/worldwide-locations",
+    "https://builtinbengaluru.in/company/hitachi-vantara"
+   ]
+  },
+  {
+   "name": "Henkel",
+   "aliases": [
+    "Henkel AG & Co. KGaA",
+    "Henkel Adhesives Technologies India Pvt Ltd",
+    "Henkel dx",
+    "Henkel Global Technology Center"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Chemicals / consumer goods (adhesives, beauty, laundry)",
+   "description": "German adhesives and consumer-brands group; it opened a Global Technology Center (Henkel dx digital and IT hub, 200+ people by end-2022) in Bengaluru in April 2022 and an electronics customer application centre in March 2026, but neither release names a building. The one Bengaluru address Henkel publishes is its Indiranagar site (Schwarzkopf Professional Academy).",
+   "founded": 1876,
+   "hqCity": "Dusseldorf",
+   "hqCountry": "Germany",
+   "isUnicorn": false,
+   "website": "https://www.henkel.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Henkel Adhesives Technologies India - Indiranagar (Schwarzkopf Professional Academy)",
+     "locality": "Indiranagar 1st Stage",
+     "address": "No. 48, 9th A Main Road, Indira Nagar 1st Stage, Bengaluru 560038",
+     "building": null,
+     "techPark": null,
+     "lat": 12.9776269,
+     "lng": 77.6386934,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Henkel India's Locations & Addresses page lists Henkel Adhesives Technologies India Pvt Ltd - Schwarzkopf Professional Academy, 'No. 48, 9th A Main Road, Indira Nagar, 1st Stage, Bangalore - 560038' (+91-80-25267553); coordinates are the 9th A Main Road street centroid: https://www.henkel.in/company/locations",
+     "geocodeSource": "geocoder-street (nominatim, 9th A Main Road)"
+    }
+   ],
+   "sources": [
+    "https://www.henkel.in/company/locations",
+    "https://www.henkel.com/press-and-media/press-releases-and-kits/2022-05-04-henkel-opens-new-global-technology-center-in-india-1661374",
+    "https://www.henkel.com/spotlight/2023-01-31-seizing-the-opportunities-of-change-1799872",
+    "https://www.henkel.com/press-and-media/press-releases-and-kits/2026-03-24-henkel-launches-advanced-customer-application-center-for-electronics-solutions-in-india-2135888"
+   ]
+  },
+  {
+   "name": "Novartis",
+   "aliases": [
+    "Novartis India Ltd",
+    "Novartis Healthcare Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Pharmaceuticals",
+   "description": "Swiss pharma major whose India registered office is in Mumbai and whose large global hub is in Hyderabad; Novartis's own India site list names no Bengaluru site, and the only Bengaluru address found is a directory listing for Novartis Healthcare at Raheja Chambers, Museum Road.",
+   "founded": 1996,
+   "hqCity": "Basel",
+   "hqCountry": "Switzerland",
+   "isUnicorn": false,
+   "website": "https://www.novartis.com/in-en",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Novartis Healthcare - Raheja Chambers, Museum Road (directory listing)",
+     "locality": "Museum Road (CBD)",
+     "address": "Raheja Chambers, No. 12 Museum Road, Bengaluru 560001",
+     "building": "Raheja Chambers",
+     "techPark": null,
+     "lat": 12.9696688,
+     "lng": 77.6054112,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only a third-party directory (OneStopSAP) lists Novartis Healthcare Pvt Ltd at 'No. 124, 12, Museum Road, Raheja Chambers, Bangalore - 560001'; Novartis's own India site-locations page lists only Mumbai and Hyderabad. Coordinates are the Museum Road street centroid: https://www.onestopsap.com/companies/novartis-healthcare-pvt-ltd and https://novartis.com/in-en/about/india-site-locations",
+     "geocodeSource": "geocoder-street (nominatim, Museum Road)"
+    }
+   ],
+   "sources": [
+    "https://www.onestopsap.com/companies/novartis-healthcare-pvt-ltd",
+    "https://novartis.com/in-en/about/india-site-locations"
+   ]
+  },
+  {
+   "name": "Credit Saison India",
+   "aliases": [
+    "Kisetsu Saison Finance (India) Pvt Ltd",
+    "Credit Saison",
+    "CS India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Fintech / NBFC lending",
+   "description": "Indian NBFC arm of Japan's Credit Saison, set up in 2018 and headquartered in Bengaluru; it lends to individuals and SMEs directly and through fintech and NBFC partners.",
+   "founded": 2018,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://creditsaison.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office and HQ - IndiQube Lexington Tower",
+     "locality": "Tavarekere / S.G. Palya (Hosur Road)",
+     "address": "1st Floor, IndiQube Lexington Tower, Municipal No. 18, 2nd Cross Road, Chikka Audugodi, Tavarekere Main Road, S.G. Palya, Bengaluru 560029",
+     "building": "IndiQube Lexington Tower",
+     "techPark": null,
+     "lat": 12.930525,
+     "lng": 77.610331,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Bank of Maharashtra's co-lending partner page gives Kisetsu Saison Finance's registered office as 'IndiQube Lexington, Municipal No.18, 2nd Cross Road, Chikka Audugodi, Bengaluru 560029', and Mizuho's Feb 2024 investment release (filed with the SEC) gives the same building in Tavarekere/S.G. Palya; coordinates are the OSM 'IndiQube Lexington Tower' footprint: https://bankofmaharashtra.bank.in/ms-kisetsu-saison-finance-pvt-ltd and https://www.sec.gov/Archives/edgar/data/1335730/000119312524034824/d789218d6k.htm",
+     "geocodeSource": "osm-building"
+    }
+   ],
+   "sources": [
+    "https://bankofmaharashtra.bank.in/ms-kisetsu-saison-finance-pvt-ltd",
+    "https://www.sec.gov/Archives/edgar/data/1335730/000119312524034824/d789218d6k.htm",
+    "https://www.mizuhogroup.com/binaries/content/assets/pdf/mizuho-bank/news/2024/02/20240213release_eng.pdf",
+    "https://www.openstreetmap.org/way/334455498"
+   ]
+  },
+  {
+   "name": "Mercari",
+   "aliases": [
+    "Mercari India",
+    "Mercari Global Centre of Excellence (GCoE)",
+    "Mercari Inc."
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "E-commerce / C2C marketplace",
+   "description": "Japan's largest C2C marketplace; its first overseas Centre of Excellence opened in Bengaluru in 2022 and moved in August 2023 to a larger office at Vaishnavi Tech Park on the Sarjapur-ORR stretch, planned to double the 40-person team.",
+   "founded": 2013,
+   "hqCity": "Tokyo",
+   "hqCountry": "Japan",
+   "isUnicorn": false,
+   "website": "https://about.mercari.com/en/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Centre of Excellence - Vaishnavi Tech Park",
+     "locality": "Bellandur / Sarjapur Road (Outer Ring Road)",
+     "address": "Vaishnavi Tech Park, Sarjapur Main Road, Bellandur, Bengaluru 560103 (tower not given)",
+     "building": null,
+     "techPark": "Vaishnavi Tech Park",
+     "lat": 12.920256,
+     "lng": 77.671708,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Mercari's August 2023 announcement says 'The new GCoE in India is located in Vaishnavi Tech Park in Sarjapur', with 40 staff and plans to double (CXOToday press release; also People Matters); tower not given, so coordinates are the park centroid: https://cxotoday.com/press-release/japans-largest-c2c-marketplace-mercari-expands-presence-in-india/ and https://www.peoplematters.in/news/business/mercari-expands-operations-in-india-with-a-new-office-in-bengaluru-38845",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://cxotoday.com/press-release/japans-largest-c2c-marketplace-mercari-expands-presence-in-india/",
+    "https://www.peoplematters.in/news/business/mercari-expands-operations-in-india-with-a-new-office-in-bengaluru-38845",
+    "https://inc42.com/?p=412202"
+   ]
+  },
+  {
+   "name": "Zynga India (Take-Two)",
+   "aliases": [
+    "Zynga",
+    "Zynga Game Network India Pvt Ltd",
+    "Zynga Bengaluru",
+    "Take-Two Interactive"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Gaming (mobile and social games)",
+   "description": "Zynga's Bengaluru studio, opened in 2010 and its largest outside the US, now part of Take-Two Interactive; it builds and runs mobile games from Prestige Falcon Tower on Brunton Road off MG Road.",
+   "founded": 2007,
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.zynga.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Zynga Bengaluru studio - Prestige Falcon Tower",
+     "locality": "Brunton Road (off MG Road)",
+     "address": "4th & 5th Floor, Prestige Falcon Tower, Municipal No. 19, Brunton Road, Bengaluru 560025",
+     "building": "Prestige Falcon Tower",
+     "techPark": null,
+     "lat": 12.971206,
+     "lng": 77.614322,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Multiple Zynga job postings on Built In Bengaluru give 'Zynga Bengaluru ... 4th & 5th Floor, Prestige Falcon Tower, Municipal no 19, Brunton Rd, Bengaluru 560025'; the studio itself dates to 2010 (Game Developer). Coordinates are the OSM footprint 'Prestige Falcon Tower': https://builtinbengaluru.in/job/game-designer/4522327 and https://www.openstreetmap.org/way/781183660",
+     "geocodeSource": "osm-building"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/job/game-designer/4522327",
+    "https://builtinbengaluru.in/job/principal-software-engineer-full-stack/4023699",
+    "https://gamedeveloper.com/game-platforms/zynga-opens-bangalore-development-studio",
+    "https://www.pocketgamer.biz/zynga-moves-to-new-studio-in-bangalore"
+   ]
+  },
+  {
+   "name": "Merck Group (Merck KGaA)",
+   "aliases": [
+    "Merck KGaA",
+    "Merck Global Capability Centre",
+    "MGCC",
+    "Merck Healthcare R&D India Hub",
+    "Sigma-Aldrich Chemicals Pvt Ltd",
+    "Merck Life Science"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Pharma / life science / electronics materials",
+   "description": "Darmstadt-headquartered science and technology group; in June 2026 it consolidated its India technology and shared-services teams into a 17,000 sq m Global Capability Centre in Electronic City for ~3,300 people, its Healthcare R&D India hub moved to Bagmane Solarium City in early 2026, and its life-science arm (Sigma-Aldrich) operates from the Bommasandra-Jigani industrial area.",
+   "founded": 1668,
+   "hqCity": "Darmstadt",
+   "hqCountry": "Germany",
+   "isUnicorn": false,
+   "website": "https://www.merckgroup.com",
+   "bengaluruEmployeesApprox": 3300,
+   "offices": [
+    {
+     "label": "Merck Global Capability Centre (MGCC) - Electronic City",
+     "locality": "Electronic City Phase 1",
+     "address": "Merck Global Capability Centre, Electronic City, Bengaluru 560100 (building not named in coverage)",
+     "building": null,
+     "techPark": null,
+     "lat": 12.842384,
+     "lng": 77.65414,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Indian Pharma Post and BioSpectrum (29-30 June 2026) report Merck opened its 17,000 sq m Global Capability Centre in Electronic City for ~3,300 professionals, anchored by Digital Enterprise Solutions; no building is named, so coordinates are an OSM 'Merck' office POI in Electronic City Phase 1 (inside the 360 Business Park footprint), which may instead mark Merck's earlier Electronic City site: https://www.indianpharmapost.com/news/merck-consolidates-india-tech-operations-under-new-bengaluru-gcc-20774 and https://www.openstreetmap.org/node/13075411578",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Merck Healthcare R&D India Hub - Bagmane Solarium City",
+     "locality": "Doddanekundi / Kundalahalli (ORR-Whitefield)",
+     "address": "Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037 (tower not given)",
+     "building": null,
+     "techPark": "Bagmane Solarium City",
+     "lat": 12.969934,
+     "lng": 77.708425,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "BioVoice News (31 Jan 2026) reports the Merck Healthcare R&D India Hub, launched in 2022 as the Merck India R&D Excellence Centre and formerly in Electronic City, moved to a larger office at Bagmane Solarium City, Whitefield; tower not named, so coordinates are the park centroid: https://biovoicenews.com/?p=65007",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Sigma-Aldrich Chemicals (Merck Life Science) - Bommasandra-Jigani",
+     "locality": "Bommasandra-Jigani Link Road Industrial Area (Anekal taluk)",
+     "address": "Plot No. 12, Bommasandra-Jigani Link Road Industrial Area, Anekal Taluk, Bengaluru 562106",
+     "building": null,
+     "techPark": null,
+     "lat": 12.8010236,
+     "lng": 77.6617985,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Merck's Sigma-Aldrich offices page lists Sigma-Aldrich Chemicals Private Limited (Merck's Indian life-science company) at 'Plot No. 12, Bommasandra Jigani Link Road, Industrial Area, Anekal Taluk, Bangalore' with customerserviceindia@merckgroup.com; coordinates are the Jigani industrial-estate road centroid, not the plot: https://www.sigmaaldrich.com/collections/offices",
+     "geocodeSource": "geocoder-street (photon, Jigani Industrial Estate Road)"
+    }
+   ],
+   "sources": [
+    "https://www.indianpharmapost.com/news/merck-consolidates-india-tech-operations-under-new-bengaluru-gcc-20774",
+    "https://www.biospectrumindia.com/news/16/28039/merck-inaugurates-global-capability-centre-in-bengaluru.html",
+    "https://biovoicenews.com/?p=65007",
+    "https://www.sigmaaldrich.com/collections/offices",
+    "https://www.openstreetmap.org/node/13075411578"
+   ]
+  }
+ ],
+ "coverageNotes": "SCOPE. Gap-fill for 16 critic-named companies. None of them was already in the raw dataset under another name (checked by name/alias regex over all E*/G* files; 'Hitachi Energy' is a different company from Hitachi Vantara). 15 are recorded; Stellantis is LEFT OUT. METHOD. Official company location pages where they could be fetched (Temenos offices, Hitachi Vantara worldwide locations, Henkel India locations, Novartis India sites), Clarivate's contact page as surfaced in search results (direct fetch returns 403), press releases and trade press, and Built In Bengaluru job/company pages. Coordinates come from OSM building footprints where the building is mapped, park centroids where only a park is known (confidence held at medium), and street-centroid geocodes where only a street is known (stated in geocodeSource). The shared web-search budget ran out before the last Stellantis query. OMITTED: Stellantis. Its 50,000 sq ft Bengaluru software and technology centre (opened Oct 2022, STLA SmartCockpit lead site, ~500 hires planned, expanded Nov 2024) is confirmed, but no source found names its area, building or park, so it cannot be placed without inventing coordinates. PARTIAL. Henkel: the Global Technology Center (Apr 2022, 200+ staff by end-2022) and the March 2026 electronics application centre are confirmed in Bengaluru, but neither release names a site; only the Indiranagar address Henkel publishes is mapped. Hitachi Vantara: the official Bengaluru office is the Lavelle Road sales office; no Bengaluru R&D centre was found (Vantara's India HQ and engineering are in Hyderabad; the 2011 'Hitachi R&D Centre Bangalore' belonged to Hitachi India, and Hitachi High-Tech opened a separate Whitefield technical centre in 2025). T-Systems: Deutsche Telekom Digital Labs is Gurugram-based with no Bengaluru site found; only T-Systems ICT India's Cessna Business Park office is recorded. WEAK EVIDENCE, flagged low. Novartis: only a directory listing (Raheja Chambers, Museum Road), and Novartis's own India page names no Bengaluru site. Verizon: Bengaluru presence is confirmed by Verizon, but both buildings come from user/directory sources (Prestige Tech Park; Torrey Pines at Embassy GolfLinks). Kantar: the current hub at Prestige Technology Park comes from one Sept 2026 job posting; the Kote M R Plaza and AMR Tech Park addresses are older listings that may have been superseded. NOT RECORDED. An aggregator address for PowerSchool at Salarpuria Softzone (likely pre-ETV), a Koramangala site for Credit Saison from a customer-care directory, and Hitachi India's WTC Bengaluru branch (a different Hitachi company). MERGE NOTE. Merck Group is also being researched in another chunk; the name 'Merck Group (Merck KGaA)' is kept exactly as briefed so the merge joins them. The MGCC coordinate is an OSM 'Merck' POI in Electronic City Phase 1 and may mark Merck's earlier Electronic City R&D site rather than the new campus. CATEGORIES. Credit Saison India is classed MNC/Foreign because its parent is Tokyo-based, though its own HQ is Bengaluru (isHq true). Zynga, Mercari and Hitachi Vantara are MNC subsidiaries of foreign groups (Take-Two, Mercari Inc., Hitachi)."
+}

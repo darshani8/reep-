@@ -17,12 +17,8 @@ import re
 import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-SECTORS = {
-    "IT services", "Software & internet", "Semiconductors & hardware", "BFSI", "Consulting & professional services",
-    "E-commerce & consumer internet", "Fintech", "SaaS", "AI & deep tech", "EdTech", "HealthTech & pharma",
-    "Mobility & EV", "Aerospace & defence", "Automotive & industrial", "Energy", "Retail & consumer goods",
-    "Telecom & networking", "Media & gaming", "Logistics", "Real estate & infrastructure", "Space", "Other",
-}
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from merge import SECTORS  # noqa: E402  one list, owned by the merge
 
 
 def km(a_lat, a_lng, b_lat, b_lng):
@@ -61,8 +57,9 @@ def run(path):
         if not c["sources"]:
             flag(c, "no-sources", "no source URLs on the company record")
         for o in c["offices"]:
-            if not re.search(r"https?://", o["evidence"] or ""):
-                flag(c, "evidence-url", "office evidence carries no URL", o)
+            # an OpenStreetMap object reference (way/123) is a citation too: the app links it
+            if not re.search(r"https?://|(?<![\w/])(?:node|way|relation)/\d+", o["evidence"] or ""):
+                flag(c, "evidence-url", "office evidence carries no URL or OpenStreetMap reference", o)
             p = parks.get(o["techParkId"]) if o["techParkId"] else None
             if p:
                 if p.get("bbox"):

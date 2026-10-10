@@ -1,13 +1,8 @@
 import { Component, computed, input } from '@angular/core';
 
-interface Segment {
-  text: string;
-  url: string | null;
-}
+import { EvidenceSegment, evidenceSegments } from '../core/evidence';
 
-const URL_RE = /(https?:\/\/[^\s<>()"']+[^\s<>()"'.,;:!?])/g;
-
-/** Renders a sentence with its URLs as links, built from segments rather than innerHTML. */
+/** Renders a sentence with its URLs and OpenStreetMap references as links, built from segments rather than innerHTML. */
 @Component({
   selector: 'app-evidence-line',
   template: `
@@ -29,24 +24,5 @@ const URL_RE = /(https?:\/\/[^\s<>()"']+[^\s<>()"'.,;:!?])/g;
 export class EvidenceLineComponent {
   readonly text = input.required<string>();
 
-  readonly segments = computed<Segment[]>(() => {
-    const out: Segment[] = [];
-    const source = this.text();
-    let last = 0;
-    for (const m of source.matchAll(URL_RE)) {
-      const start = m.index ?? 0;
-      if (start > last) out.push({ text: source.slice(last, start), url: null });
-      const url = m[0];
-      let host = url;
-      try {
-        host = new URL(url).hostname.replace(/^www\./, '');
-      } catch {
-        /* keep the raw url as the label */
-      }
-      out.push({ text: host, url });
-      last = start + url.length;
-    }
-    if (last < source.length) out.push({ text: source.slice(last), url: null });
-    return out;
-  });
+  readonly segments = computed<EvidenceSegment[]>(() => evidenceSegments(this.text()));
 }

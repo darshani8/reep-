@@ -7,14 +7,14 @@ with every Bengaluru **branch** that could be substantiated, and the **tech park
 Angular 22 · MapLibre GL JS 6 · OpenFreeMap vector tiles · no API keys.
 
 <!-- GLANCE:START -->
-**Dataset at a glance** (generated 2026-10-10 from 32 research slices):
+**Dataset at a glance** (generated 2026-10-10 from 42 research slices):
 
 | | |
 |---|---|
-| Companies | **695** — 403 MNC, 103 mid-size, 165 startup, 24 PSU |
-| Offices (branches) | **1256** — 659 well evidenced, 433 one source, 164 unconfirmed; 250 companies have more than one Bengaluru office |
-| Tech parks and campuses | **209** (151 with an OpenStreetMap footprint) |
-| Busiest parks | RMZ Ecoworld (70), Manyata Tech Park (52), Electronics City Phase 1 (39), Bagmane Tech Park (37), Embassy TechVillage (35), Embassy GolfLinks Business Park (24) |
+| Companies | **862** — 488 MNC, 127 mid-size, 213 startup, 34 PSU |
+| Offices (branches) | **1538** — 800 well evidenced, 556 one source, 182 unconfirmed; 302 companies have more than one Bengaluru office |
+| Tech parks and campuses | **216** (158 with an OpenStreetMap footprint) |
+| Busiest parks | RMZ Ecoworld (81), Manyata Tech Park (60), Bagmane Tech Park (42), Electronics City Phase 1 (40), Embassy TechVillage (39), Embassy GolfLinks Business Park (33) |
 
 Every number above is recomputed by `python3 tools/data/update_readme.py`; `data/report.md` has the full merge log.
 <!-- GLANCE:END -->
@@ -97,7 +97,16 @@ from slices in `data/raw/` that `tools/data/merge.py` merges, validates and writ
    pin outside its park's footprint, two records of one office, a category that breaks the rule).
    Verifier agents checked each flagged company against company pages, filings and lease news and wrote
    their findings as `data/corrections/*.json`: drop, merge, fix a pin, re-categorise, add a missing
-   campus. Every applied correction is listed with its source in `data/report.md`.
+   campus. A second round (`W*.json`) checked what the gap-fill and the first round left flagged.
+   Every applied correction is listed with its source in `data/report.md`.
+6. **One sector list.** The filter panel offers a fixed list of 22 sectors (`SECTORS` in
+   `tools/data/merge.py`). A slice that described a sector in free text is outvoted by any slice that
+   used the list, and `data/corrections/Z01-sector-vocabulary.json` maps the rest by hand, following the
+   precedent already in the data (Finastra and Visa are Fintech, so banking-software vendors and payment
+   networks are too).
+
+Evidence sentences cite a web page or an OpenStreetMap object (`way/391787112`); the app turns both
+into links, so every pin can be traced back to what placed it.
 
 What the data is **not**: a live feed. Offices move, startups fold, parks change hands. Every office
 carries the date-free evidence that placed it, and a confidence word — _well evidenced_, _one source_,
@@ -123,7 +132,7 @@ Do not edit `public/data/dataset.json` by hand; the next merge overwrites it.
 ## Project layout
 
 ```
-src/app/core/        bengaluru.ts (bounds, style), filters.ts (pure filter logic), slug.ts,
+src/app/core/        bengaluru.ts (bounds, style), filters.ts (pure filter logic), slug.ts, evidence.ts (links in evidence),
                      dataset.service.ts (loads the JSON), map-state.service.ts (filters, selection, GeoJSON)
 src/app/map/         map.component.ts — the MapLibre map (lazy-loaded with @defer)
 src/app/panels/      filter panel, company list, company detail, park detail, legend, about dialog

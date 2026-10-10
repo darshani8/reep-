@@ -1,0 +1,2008 @@
+{
+ "key": "E12-energy-pharma-retail-consumer-gccs",
+ "techParks": [
+  {
+   "name": "Shell Technology Centre Bangalore",
+   "aliases": [
+    "STCB",
+    "Shell India technology centre"
+   ],
+   "locality": "Mahadeva Kodigehalli (KIADB Hardware Park SEZ, Devanahalli side)",
+   "developer": "Shell",
+   "lat": 13.156474,
+   "lng": 77.701876,
+   "bbox": [
+    13.154307,
+    13.158047,
+    77.698673,
+    77.704161
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Shell"
+   ],
+   "description": "Shell's own 52-acre, custom-built technology campus inside the KIADB Hardware Park SEZ near the airport, opened March 2017 for up to 1,500 researchers in fuels, lubricants, chemicals and energy-transition work; it is not in Mahadevapura despite the similar name.",
+   "sources": [
+    "https://worldoil.com/news/2017/3/31/shell-opens-new-technology-center-in-bangalore-india/",
+    "https://www.openstreetmap.org/way/203058241"
+   ]
+  },
+  {
+   "name": "Bagmane Solarium City",
+   "aliases": [
+    "Solarium City"
+   ],
+   "locality": "Kundalahalli Colony / Doddanekundi, Brookefield (ORR-Whitefield)",
+   "developer": "Bagmane",
+   "lat": 12.969934,
+   "lng": 77.708425,
+   "bbox": [
+    12.967266,
+    12.973182,
+    77.705221,
+    77.711449
+   ],
+   "areaSqFtMillions": 10.5,
+   "notableTenants": [
+    "Shell",
+    "Carelon Global Solutions",
+    "Baker Hughes",
+    "Cognizant",
+    "Schneider Electric",
+    "Tekion",
+    "Northern Trust",
+    "Zebra",
+    "Visteon",
+    "Thermo Fisher Scientific"
+   ],
+   "description": "Bagmane's 82-acre campus at the cusp of the Outer Ring Road and Whitefield, planned at 10.5 million sq ft with 3.8 msf completed; towers are named Neon-W, Xenon-N, Xenon-S, Argon-N, Helium and Radon.",
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city",
+    "https://www.openstreetmap.org/way/414833858"
+   ]
+  },
+  {
+   "name": "Bagmane Capital",
+   "aliases": [],
+   "locality": "Ferns City, Doddanekundi (Outer Ring Road, Mahadevapura)",
+   "developer": "Bagmane",
+   "lat": 12.984991,
+   "lng": 77.702489,
+   "bbox": [
+    12.982441,
+    12.988185,
+    77.700496,
+    77.704824
+   ],
+   "areaSqFtMillions": 10.5,
+   "notableTenants": [
+    "GSK",
+    "Google",
+    "Microsoft",
+    "American Express",
+    "Wayfair",
+    "Samsung",
+    "BNP Paribas",
+    "Amazon",
+    "Qualcomm",
+    "Databricks",
+    "Arm"
+   ],
+   "description": "Bagmane's 42-acre Outer Ring Road campus with 5.5 msf completed of a planned 10.5 msf; towers are Luxor South and North, Kyoto East, Rome South and North, Angkor East and West, Apollo and Troy.",
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-capital",
+    "https://www.openstreetmap.org/way/732010482"
+   ]
+  },
+  {
+   "name": "Bagmane Tech Park",
+   "aliases": [
+    "BTP"
+   ],
+   "locality": "C.V. Raman Nagar (Byrasandra)",
+   "developer": "Bagmane",
+   "lat": 12.978694,
+   "lng": 77.662447,
+   "bbox": [
+    12.977296,
+    12.98027,
+    77.65617,
+    77.66637
+   ],
+   "areaSqFtMillions": 4.7,
+   "notableTenants": [
+    "Nike",
+    "Volvo",
+    "Dell",
+    "PwC",
+    "Cisco",
+    "Boeing",
+    "Texas Instruments",
+    "Motorola",
+    "Infineon",
+    "Grant Thornton",
+    "Palo Alto Networks",
+    "Lam Research"
+   ],
+   "description": "Bagmane's original 42-acre, 4.7 msf park in C.V. Raman Nagar with the Olympia, Lakeview, Tridib and Quay buildings (plus Laurel, Parin and Commerz on OSM).",
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-tech-park",
+    "https://www.openstreetmap.org/way/323047914"
+   ]
+  },
+  {
+   "name": "Prestige Shantiniketan",
+   "aliases": [
+    "Prestige Shantiniketan Business Precinct",
+    "Shantiniketan Crescent"
+   ],
+   "locality": "Whitefield (Hoodi / Whitefield Main Road)",
+   "developer": "Prestige",
+   "lat": 12.988903,
+   "lng": 77.731042,
+   "bbox": null,
+   "areaSqFtMillions": 3.2,
+   "notableTenants": [
+    "ExxonMobil",
+    "Baxter International",
+    "Thermo Fisher Scientific",
+    "Hindustan Unilever",
+    "GE Digital",
+    "Britannia",
+    "TCS",
+    "Capgemini",
+    "Alcon",
+    "Caterpillar"
+   ],
+   "description": "Prestige Group's 105-acre township in Whitefield whose business precinct holds about 3.2 million sq ft across seven towers, six of them in one crescent-shaped building (Crescent 1 and 2 are ExxonMobil's) and Tower C beside the Nexus mall.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Prestige_Shantiniketan",
+    "https://therealtytoday.com/news/exxonmobil-renews-5-year-lease-for-531-lakh-sq-ft-office-in-bengalurus-whitefield-it-hub",
+    "https://www.openstreetmap.org/way/194740174"
+   ]
+  },
+  {
+   "name": "International Tech Park Bangalore",
+   "aliases": [
+    "ITPL",
+    "ITPB",
+    "International Tech Park Bengaluru"
+   ],
+   "locality": "Whitefield (Pattandur Agrahara, ITPL Main Road)",
+   "developer": "CapitaLand (KIADB-Ascendas)",
+   "lat": 12.985228,
+   "lng": 77.736825,
+   "bbox": [
+    12.981491,
+    12.987764,
+    77.733699,
+    77.739693
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "ExxonMobil",
+    "TCS",
+    "Oracle",
+    "Huawei",
+    "Atos",
+    "Unisys",
+    "Societe Generale",
+    "Mu Sigma",
+    "Applied Materials"
+   ],
+   "description": "The 1994 India-Singapore joint-venture park (KIADB/Ascendas, now CapitaLand-managed) with buildings named Discoverer, Innovator, Creator, Explorer, Inventor, Navigator, Voyager, Aviator, Pioneer, Victor and Anchor; ExxonMobil leased seven floors of Inventor in July 2026.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/International_Tech_Park,_Bangalore",
+    "https://en.channeliam.com/2026/07/09/exxonmobil-bengaluru-whitefield-office-lease-itpb/",
+    "https://www.openstreetmap.org/way/26399624"
+   ]
+  },
+  {
+   "name": "RMZ Ecoworld",
+   "aliases": [
+    "Ecoworld",
+    "RMZ Eco World",
+    "Pritech Park SEZ"
+   ],
+   "locality": "Bellandur / Devarabeesanahalli (Sarjapur-Marathahalli Outer Ring Road)",
+   "developer": "RMZ (Brookfield India REIT)",
+   "lat": 12.9298067,
+   "lng": 77.6846292,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Chevron",
+    "Optum",
+    "Shell",
+    "Honeywell",
+    "Morgan Stanley",
+    "KPMG",
+    "BT"
+   ],
+   "description": "RMZ's Outer Ring Road campus (its SEZ half is registered as Pritech Park SEZ), acquired by Brookfield India REIT in 2021; Chevron's 312,000 sq ft ENGINE centre opened here in October 2025 and Optum's largest Bengaluru site is Campus 5B.",
+   "sources": [
+    "https://news.ventureintelligence.com/private-equity/brookfield-india-reit-to-acquire-bengaluru-office-property-%E2%80%98ecoworld%E2%80%99-for-rs.13%2C125-cr",
+    "https://themachinemaker.com/news/chevron-india-marks-one-year-milestone-of-engine-with-launch-of-new-bengaluru-center/",
+    "https://www.optum.in/contact.html"
+   ]
+  },
+  {
+   "name": "Manyata Tech Park",
+   "aliases": [
+    "Embassy Manyata Business Park",
+    "Manyata Embassy Business Park",
+    "Embassy Manyata",
+    "Manyata NXT"
+   ],
+   "locality": "Nagavara / Rachenahalli (Hebbal Outer Ring Road)",
+   "developer": "Embassy Group / Embassy Office Parks REIT",
+   "lat": 13.04809,
+   "lng": 77.61975,
+   "bbox": [
+    13.041258,
+    13.055452,
+    77.616136,
+    77.625275
+   ],
+   "areaSqFtMillions": 12.8,
+   "notableTenants": [
+    "AstraZeneca",
+    "Novo Nordisk",
+    "Oracle Health",
+    "Optum",
+    "Carelon Global Solutions",
+    "Philips (former)",
+    "Victoria's Secret & Co. (Mast Global)",
+    "IBM",
+    "Cognizant",
+    "Target"
+   ],
+   "description": "Embassy's ~110-acre, 12+ msf business park on the northern Outer Ring Road, Bengaluru's largest; this lens's tenants sit in NXT-2, Block N1, Mountain Ash (H2), Cedar (C2), Banyan (L1) and Jacaranda (C1).",
+   "sources": [
+    "https://www.embassygroup.com/commercial-properties/bangalore/embassy-manyata-business-park",
+    "https://www.embassyofficeparks.com/about-us/occupiers/",
+    "https://www.openstreetmap.org/way/34121900"
+   ]
+  },
+  {
+   "name": "Embassy Business Hub",
+   "aliases": [
+    "EBH",
+    "Embassy Business Hub Yelahanka"
+   ],
+   "locality": "Yelahanka (Bellary Road / Bangalore Airport Road, Venkatala)",
+   "developer": "Embassy Office Parks REIT",
+   "lat": 13.110033,
+   "lng": 77.602271,
+   "bbox": [
+    13.107952,
+    13.111654,
+    77.600944,
+    77.603715
+   ],
+   "areaSqFtMillions": 0.65,
+   "notableTenants": [
+    "Philips"
+   ],
+   "description": "Embassy REIT's north-Bengaluru business park on Bellary Road whose first 0.65 msf building is the Philips Innovation Campus, inaugurated November 2023 for 5,000+ engineers.",
+   "sources": [
+    "https://www.philips.co.in/about/news-and-insights/press-release/philips-inaugurates-new-innovation-campus-in-yelahanka-bengaluru",
+    "https://www.openstreetmap.org/way/1245778214"
+   ]
+  },
+  {
+   "name": "Embassy TechVillage",
+   "aliases": [
+    "Vrindavan Tech Village",
+    "VTV",
+    "ETV",
+    "Embassy Tech Village"
+   ],
+   "locality": "Devarabeesanahalli, Outer Ring Road (Bellandur)",
+   "developer": "Embassy Group / Embassy Office Parks REIT",
+   "lat": 12.93004,
+   "lng": 77.690611,
+   "bbox": [
+    12.926403,
+    12.934501,
+    77.687141,
+    77.694925
+   ],
+   "areaSqFtMillions": 9.2,
+   "notableTenants": [
+    "Halliburton (Landmark)",
+    "Eli Lilly",
+    "Warner Bros. Discovery",
+    "Flipkart",
+    "Cisco",
+    "JPMorgan Chase",
+    "Sony",
+    "ANZ",
+    "Wells Fargo"
+   ],
+   "description": "Embassy REIT's 84-acre, ~9.2 msf Outer Ring Road campus (formerly Vrindavan Tech Village) whose blocks carry botanical names such as Gardenia (2D), Hibiscus (2B) and Primrose (7B); Halliburton's Landmark software office is in Gardenia and Hibiscus.",
+   "sources": [
+    "https://www.embassytechvillage.com/",
+    "https://www.embassyofficeparks.com/about-us/occupiers/",
+    "https://www.openstreetmap.org/way/232970396"
+   ]
+  },
+  {
+   "name": "Bhartiya Centre of Information Technology",
+   "aliases": [
+    "BCIT",
+    "Bhartiya City IT park"
+   ],
+   "locality": "Thanisandra Main Road (Bhartiya City, north Bengaluru)",
+   "developer": "Bhartiya Urban",
+   "lat": 13.08424,
+   "lng": 77.64038,
+   "bbox": [
+    13.082677,
+    13.085601,
+    77.63933,
+    77.641912
+   ],
+   "areaSqFtMillions": 4.1,
+   "notableTenants": [
+    "Takeda",
+    "Signify",
+    "Maersk",
+    "MUFG",
+    "NTT Data",
+    "IBM",
+    "Coforge",
+    "Ecolab",
+    "7-Eleven",
+    "TresVista"
+   ],
+   "description": "The IT park inside Bhartiya City on Thanisandra Main Road (BCIT 1, 2, 3A and 3B operational, 4.1 msf planned); Takeda's Innovation Capability Center occupies floors 10-12 of Block 3B.",
+   "sources": [
+    "https://www.bhartiyacity.com/bcit/",
+    "https://www.takeda.com/en-in/",
+    "https://www.openstreetmap.org/way/781780410"
+   ]
+  },
+  {
+   "name": "Salarpuria Sattva Mindcomp Tech Park",
+   "aliases": [
+    "Mindcomp Tech Park"
+   ],
+   "locality": "EPIP Zone Phase 2, Whitefield",
+   "developer": "Salarpuria Sattva",
+   "lat": 12.98223,
+   "lng": 77.72099,
+   "bbox": [
+    12.981727,
+    12.982881,
+    77.719541,
+    77.721937
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Novo Nordisk Global Business Services"
+   ],
+   "description": "A Salarpuria Sattva office building at Plot 149-A in the second phase of the EPIP zone, Whitefield, which Novo Nordisk gives as the address of its Global Business Services centre.",
+   "sources": [
+    "https://www.novonordisk.co.in/contact-us.html",
+    "https://www.openstreetmap.org/way/1151907061"
+   ]
+  },
+  {
+   "name": "Prestige Featherlite Tech Park",
+   "aliases": [
+    "Featherlite Tech Park"
+   ],
+   "locality": "EPIP Zone, Whitefield",
+   "developer": "Prestige",
+   "lat": 12.98152,
+   "lng": 77.721127,
+   "bbox": [
+    12.981212,
+    12.981727,
+    77.720605,
+    77.721887
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Novo Nordisk"
+   ],
+   "description": "A Prestige office park on Road 5 of the EPIP zone, Whitefield, next to Mindcomp Tech Park; a pharma directory lists Novo Nordisk India here.",
+   "sources": [
+    "https://pharmchoices.com/biotech-pharmaceutical-companies-in-bengaluru/6/",
+    "https://www.openstreetmap.org/way/122668438"
+   ]
+  },
+  {
+   "name": "Salarpuria Sattva Knowledge Court",
+   "aliases": [
+    "Sattva Knowledge Court"
+   ],
+   "locality": "Doddanekundi Phase 1 Industrial Area (ITPL Main Road)",
+   "developer": "Salarpuria Sattva",
+   "lat": 12.974023,
+   "lng": 77.711898,
+   "bbox": [
+    12.972548,
+    12.975202,
+    77.711013,
+    77.712971
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Stryker"
+   ],
+   "description": "A Salarpuria Sattva office building on Plot 9 of the Doddanekundi Phase 1 industrial area, home to Stryker's Global Technology Center office in Bengaluru.",
+   "sources": [
+    "https://stryker.com/in/en/about/our-locations/offices-in-india.html",
+    "https://www.openstreetmap.org/way/414838097"
+   ]
+  },
+  {
+   "name": "Kalyani Magnum",
+   "aliases": [
+    "Kalyani Magnum Infotech Park"
+   ],
+   "locality": "JP Nagar 7th Phase (Doraisanipalya, Bannerghatta Road)",
+   "developer": "Kalyani Developers",
+   "lat": 12.900462,
+   "lng": 77.596169,
+   "bbox": [
+    12.898695,
+    12.901685,
+    77.59497,
+    77.597827
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Optum",
+    "Oracle"
+   ],
+   "description": "Kalyani Developers' office campus off Bannerghatta Road in JP Nagar; Optum occupies part of Block 1 Wing A.",
+   "sources": [
+    "https://www.optum.in/contact.html",
+    "https://www.openstreetmap.org/way/699268545"
+   ]
+  },
+  {
+   "name": "John F. Welch Technology Centre",
+   "aliases": [
+    "JFWTC",
+    "GE India Technology Centre"
+   ],
+   "locality": "Whitefield (EPIP Phase 2, Hoodi-Whitefield Road)",
+   "developer": "GE",
+   "lat": 12.97376,
+   "lng": 77.724167,
+   "bbox": [
+    12.971151,
+    12.975557,
+    77.721444,
+    77.72694
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "GE HealthCare",
+    "GE Aerospace",
+    "GE Vernova"
+   ],
+   "description": "GE's multidisciplinary R&D campus opened in 2000 in the EPIP zone, Whitefield, its first and largest research site outside the US; GE HealthCare's Bengaluru engineering teams are based here.",
+   "sources": [
+    "https://www.openstreetmap.org/way/180969776",
+    "https://flexiple.com/global-capability-centers/list-of-global-capability-centers-in-bengaluru"
+   ]
+  },
+  {
+   "name": "Electronics City Phase 2",
+   "aliases": [
+    "Electronic City Phase II",
+    "E-City Phase 2"
+   ],
+   "locality": "Electronic City (east of Hosur Road) / Doddathogur, Bengaluru 560100",
+   "developer": "KIADB/ELCIA",
+   "lat": 12.847,
+   "lng": 77.678,
+   "bbox": [
+    12.838,
+    12.856,
+    77.672,
+    77.69
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Siemens Healthineers",
+    "Siemens"
+   ],
+   "description": "The KIADB-developed second phase of Electronic City east of Hosur Road, where Siemens Healthineers' development centre sits at Plot 16.",
+   "sources": [
+    "https://www.openstreetmap.org/way/557926285",
+    "https://www.electronics.org/member-directory?page=441"
+   ]
+  },
+  {
+   "name": "Kadugodi Industrial Area",
+   "aliases": [],
+   "locality": "Kadugodi, Whitefield",
+   "developer": "KIADB",
+   "lat": 12.991174,
+   "lng": 77.747588,
+   "bbox": [
+    12.98561,
+    12.995769,
+    77.744898,
+    77.748663
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Wipro GE Healthcare"
+   ],
+   "description": "KIADB industrial estate at Kadugodi, Whitefield, holding Wipro GE Healthcare's manufacturing plant and offices at No. 4.",
+   "sources": [
+    "https://www.openstreetmap.org/relation/1964703",
+    "https://www.openstreetmap.org/way/144993349"
+   ]
+  },
+  {
+   "name": "Bidadi Industrial Area",
+   "aliases": [
+    "KIADB Bidadi",
+    "Bidadi Industrial Estate"
+   ],
+   "locality": "Bidadi, Ramanagara district",
+   "developer": "KIADB",
+   "lat": 12.782,
+   "lng": 77.418217,
+   "bbox": [
+    12.76833,
+    12.793028,
+    77.403261,
+    77.434215
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Hindustan Coca-Cola Beverages",
+    "Toyota Kirloskar Motor",
+    "Britannia"
+   ],
+   "description": "KIADB industrial belt on the Mysuru road south-west of the city, holding HCCB's Coca-Cola bottling plant among others.",
+   "sources": [
+    "https://www.hccb.in/contact-us",
+    "https://www.openstreetmap.org/way/796362858",
+    "https://www.openstreetmap.org/way/124778550"
+   ]
+  },
+  {
+   "name": "Hindustan Unilever Research Centre",
+   "aliases": [
+    "HUL R&D Centre Bangalore",
+    "Unilever R&D Bangalore"
+   ],
+   "locality": "Whitefield (Whitefield Main Road)",
+   "developer": "Hindustan Unilever",
+   "lat": 12.964946,
+   "lng": 77.746855,
+   "bbox": [
+    12.9637904,
+    12.9663857,
+    77.7450033,
+    77.7484565
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Unilever (Hindustan Unilever)"
+   ],
+   "description": "Unilever's own R&D campus at 64 Main Road, Whitefield, a global Unilever R&D hub since 2006 developing home-care, personal-care and nutrition formulations.",
+   "sources": [
+    "https://www.openstreetmap.org/way/130510277",
+    "https://flexiple.com/global-capability-centers/list-of-global-capability-centers-in-bengaluru"
+   ]
+  },
+  {
+   "name": "Brigade Magnum",
+   "aliases": [],
+   "locality": "Hebbal (Kodigehalli Gate, Bellary Road)",
+   "developer": "Brigade Group",
+   "lat": 13.057298,
+   "lng": 77.59444,
+   "bbox": [
+    13.056709,
+    13.057887,
+    77.593704,
+    77.595571
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Hindustan Coca-Cola Beverages",
+    "Citi",
+    "PwC",
+    "ABB",
+    "Gallagher"
+   ],
+   "description": "Brigade Group's twin-wing commercial building on Bellary Road at Kodigehalli Gate, Hebbal; Hindustan Coca-Cola Beverages' corporate office is on floors 7-9 of B Wing.",
+   "sources": [
+    "https://www.hccb.in/privacy-policy",
+    "https://www.openstreetmap.org/way/631823255"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "Shell",
+   "aliases": [
+    "Shell India Markets",
+    "Shell Technology Centre Bangalore",
+    "STCB",
+    "Royal Dutch Shell"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "Oil, gas and energy major; Bengaluru holds its 52-acre Shell Technology Centre Bangalore (fuels, lubricants, energy-transition R&D) plus IT/business-operations offices at Bagmane Solarium City and RMZ Ecoworld.",
+   "founded": 1907,
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://www.shell.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Shell Technology Centre Bangalore",
+     "locality": "Mahadeva Kodigehalli (KIADB Hardware Park SEZ, Devanahalli side)",
+     "address": "Shell Technology Centre Bangalore, KIADB Hardware Park SEZ, Mahadeva Kodigehalli, Bengaluru 562149",
+     "building": null,
+     "techPark": "Shell Technology Centre Bangalore",
+     "lat": 13.156474,
+     "lng": 77.701876,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Shell opened the custom-built 52-acre technology centre for up to 1,500 experts in March 2017; OSM maps the campus polygon 'Shell Technology Centre Bangalore': https://worldoil.com/news/2017/3/31/shell-opens-new-technology-center-in-bangalore-india/ and https://www.openstreetmap.org/way/203058241",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Bagmane Solarium City - Xenon North",
+     "locality": "Doddanekundi / Kundalahalli (ORR-Whitefield)",
+     "address": "Xenon North, Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037",
+     "building": "Xenon North",
+     "techPark": "Bagmane Solarium City",
+     "lat": 12.971265,
+     "lng": 77.708208,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Bagmane's Solarium City page lists Shell among occupiers and OSM has a 'Shell' office POI on the Xenon North tower footprint: https://www.bagmanegroup.com/portfolio/bagmane-solarium-city and https://www.openstreetmap.org/node/9980237103",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "RMZ Ecoworld office",
+     "locality": "Bellandur / Devarabeesanahalli (Outer Ring Road)",
+     "address": "RMZ Ecoworld, RMZ Eco World Road, Bellandur, Bengaluru 560103",
+     "building": null,
+     "techPark": "RMZ Ecoworld",
+     "lat": 12.924896,
+     "lng": 77.688695,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Brookfield India REIT's 2021 Ecoworld acquisition coverage names Shell among the campus's tenants, Business Insider reported the RMZ-Shell deal for a Shell IT centre in 2015, and OSM has a 'Shell' office POI on RMZ Eco World Road: https://news.ventureintelligence.com/private-equity/brookfield-india-reit-to-acquire-bengaluru-office-property-%E2%80%98ecoworld%E2%80%99-for-rs.13%2C125-cr ; https://www.businessinsider.in/coming-up-the-shell-it-centre-bengaluru/amp_articleshow/47552388.cms ; https://www.openstreetmap.org/node/13372172801",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://worldoil.com/news/2017/3/31/shell-opens-new-technology-center-in-bangalore-india/",
+    "https://www.thechemicalengineer.com/news/shell-opens-bangalore-technology-centre/",
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city",
+    "https://news.ventureintelligence.com/private-equity/brookfield-india-reit-to-acquire-bengaluru-office-property-%E2%80%98ecoworld%E2%80%99-for-rs.13%2C125-cr",
+    "https://www.businessinsider.in/coming-up-the-shell-it-centre-bengaluru/amp_articleshow/47552388.cms",
+    "https://www.openstreetmap.org/way/203058241",
+    "https://flexiple.com/global-capability-centers/list-of-global-capability-centers-in-bengaluru"
+   ]
+  },
+  {
+   "name": "ExxonMobil",
+   "aliases": [
+    "ExxonMobil Services and Technology Private Limited",
+    "ExxonMobil Technology Centre India",
+    "Bengaluru Technology Centre (BTC)",
+    "BRDTC"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "US oil and gas supermajor; its Bengaluru Technology Centre (est. 2017, 900+ technologists) and Bengaluru R&D Technology Center sit in Prestige Shantiniketan, Whitefield, with a second Whitefield office leased at ITPB in 2026.",
+   "founded": 1999,
+   "hqCity": "Spring, Texas",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://corporate.exxonmobil.com/locations/india",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru Technology Centre - Prestige Shantiniketan (Crescent 1 & 2)",
+     "locality": "Whitefield (Hoodi / Whitefield Main Road)",
+     "address": "Crescent 1 and Crescent 2, Prestige Shantiniketan, Whitefield Main Road, Bengaluru 560048",
+     "building": "Crescent 1 / Crescent 2",
+     "techPark": "Prestige Shantiniketan",
+     "lat": 12.989288,
+     "lng": 77.73113,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "ExxonMobil's India page gives the contact address 'ExxonMobil, Prestige Shantiniketan, Whitefield Main Road, Bangalore 560048', and lease records show ExxonMobil Services and Technology holding ~5.31 lakh sq ft across Crescent 1 (floors 4-8) and Crescent 2 (floors 1,2,4-7) from Nov 2023 to Oct 2028; OSM POI 'ExxonMobil Services and Technology Private Limited' sits in the park: https://corporate.exxonmobil.com/locations/india ; https://therealtytoday.com/news/exxonmobil-renews-5-year-lease-for-531-lakh-sq-ft-office-in-bengalurus-whitefield-it-hub ; https://www.openstreetmap.org/node/6534475885",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "ITPB - Inventor building",
+     "locality": "Whitefield (ITPL Main Road, Pattandur Agrahara)",
+     "address": "Inventor, International Tech Park Bangalore, ITPL Main Road, Whitefield, Bengaluru 560066",
+     "building": "Inventor",
+     "techPark": "International Tech Park Bangalore",
+     "lat": 12.985968,
+     "lng": 77.735918,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "A July 2026 lease registration shows ExxonMobil taking ~2.35 lakh sq ft on seven floors (1-4, 6-8) of the ITPB Inventor building for three years at Rs 79/sq ft; OSM already records an 'ExxonMobil' office POI inside the ITPB polygon, though occupation is phased so the office may still be fitting out: https://en.channeliam.com/2026/07/09/exxonmobil-bengaluru-whitefield-office-lease-itpb/ ; https://www.openstreetmap.org/node/14028336557",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://corporate.exxonmobil.com/locations/india",
+    "https://corporate.exxonmobil.com/locations/india/newsroom/indian-talent-global-capability",
+    "https://therealtytoday.com/news/exxonmobil-renews-5-year-lease-for-531-lakh-sq-ft-office-in-bengalurus-whitefield-it-hub",
+    "https://en.channeliam.com/2026/07/09/exxonmobil-bengaluru-whitefield-office-lease-itpb/",
+    "https://en.wikipedia.org/wiki/Prestige_Shantiniketan"
+   ]
+  },
+  {
+   "name": "Halliburton",
+   "aliases": [
+    "Landmark Software & Services",
+    "Halliburton Landmark",
+    "Halliburton India Operations"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "Oilfield services major; its Landmark Software & Services unit runs a software engineering office in Embassy TechVillage, Bengaluru (the main India technology centre is in Pune).",
+   "founded": 1919,
+   "hqCity": "Houston, Texas",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.halliburton.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Landmark Software & Services - Embassy TechVillage, Gardenia (Block 2D)",
+     "locality": "Devarabeesanahalli, Outer Ring Road (Bellandur)",
+     "address": "4th Floor, Gardenia (Block 2D), Embassy TechVillage, Outer Ring Road, Bengaluru 560103",
+     "building": "Gardenia (Block 2D)",
+     "techPark": "Embassy TechVillage",
+     "lat": 12.930563,
+     "lng": 77.693049,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Halliburton's own job postings for Landmark software roles give the office as '4th Floor, Gardenia 2D, Bengaluru 560103'; Gardenia is Embassy TechVillage's Block 2D (as other tenants' contact pages spell it) and Embassy REIT lists Halliburton among its key occupiers: https://jobs.halliburton.com/job/Bengaluru-Software-Engineer-KA-560103/1399787300/ ; https://www.embassyofficeparks.com/about-us/occupiers/",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Landmark - Embassy TechVillage, Hibiscus (Block 2B Tower 2)",
+     "locality": "Devarabeesanahalli, Outer Ring Road (Bellandur)",
+     "address": "6th Floor, Hibiscus Tower 2 (Block 2B), Embassy TechVillage, Bengaluru 560103",
+     "building": "Hibiscus (Block 2B) Tower 2",
+     "techPark": "Embassy TechVillage",
+     "lat": 12.930692,
+     "lng": 77.692075,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "A second Halliburton careers posting lists '6th Floor, Hibiscus Tower 2, Bangalore 560103'; Hibiscus is ETV's Block 2B (ANZ's careers page spells it '2B Tower 1 (Hibiscus)'), so this is the same campus, a different block: https://careers.halliburton.com/job/bengaluru/software-qa-prin/543/74709551616",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://jobs.halliburton.com/job/Bengaluru-Software-Engineer-KA-560103/1399787300/",
+    "https://careers.halliburton.com/job/bengaluru/software-qa-prin/543/74709551616",
+    "https://www.embassyofficeparks.com/about-us/occupiers/",
+    "https://www.offshore-mag.com/drilling-completion/article/16797236/halliburton-opens-india-tech-center"
+   ]
+  },
+  {
+   "name": "Baker Hughes",
+   "aliases": [
+    "BHGE",
+    "Baker Hughes Oilfield Services India Private Limited",
+    "GE Oil & Gas"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "Energy technology company (formerly BHGE / GE Oil & Gas); its Bengaluru engineering and services teams sit in Bagmane Solarium City.",
+   "founded": 1907,
+   "hqCity": "Houston, Texas",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.bakerhughes.com",
+   "bengaluruEmployeesApprox": 600,
+   "offices": [
+    {
+     "label": "Bagmane Solarium City office",
+     "locality": "Doddanekundi / Kundalahalli (ORR-Whitefield)",
+     "address": "Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037",
+     "building": null,
+     "techPark": "Bagmane Solarium City",
+     "lat": 12.972165,
+     "lng": 77.708308,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Bagmane's Solarium City page lists 'BHGE' (Baker Hughes' former name) among occupiers and OSM has a 'Baker Hughes' office POI inside the campus; a GCC directory tracks 600+ Baker Hughes staff in Bengaluru: https://www.bagmanegroup.com/portfolio/bagmane-solarium-city ; https://www.openstreetmap.org/node/9783586257 ; https://flexiple.com/global-capability-centers/list-of-global-capability-centers-in-bengaluru",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city",
+    "https://www.openstreetmap.org/node/9783586257",
+    "https://flexiple.com/global-capability-centers/list-of-global-capability-centers-in-bengaluru"
+   ]
+  },
+  {
+   "name": "Chevron",
+   "aliases": [
+    "Chevron ENGINE",
+    "Chevron India",
+    "Engineering and Innovation Excellence Center"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "US oil major; its Engineering and Innovation Excellence Center (ENGINE), announced in August 2024 with a ~$1 billion commitment, opened a 312,000 sq ft LEED-certified centre in RMZ Ecoworld, Bellandur in October 2025 after hiring 1,000+ since 2024.",
+   "founded": 1879,
+   "hqCity": "Houston, Texas",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.chevron.com",
+   "bengaluruEmployeesApprox": 1000,
+   "offices": [
+    {
+     "label": "Chevron ENGINE - RMZ Ecoworld",
+     "locality": "Bellandur / Devarabeesanahalli (Outer Ring Road)",
+     "address": "RMZ Ecoworld, Bellandur, Outer Ring Road, Bengaluru 560103",
+     "building": null,
+     "techPark": "RMZ Ecoworld",
+     "lat": 12.9298067,
+     "lng": 77.6846292,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The Machine Maker and Reuters (via KFGO, 9 Oct 2025) report Chevron India opening its new 312,000 sq ft ENGINE centre in RMZ Ecoworld, Bellandur, a year after launching the unit; no block is published, so the park's Nominatim centroid is used: https://themachinemaker.com/news/chevron-india-marks-one-year-milestone-of-engine-with-launch-of-new-bengaluru-center/ ; http://kfgo.com/2025/10/09/chevron-expands-india-hub-to-boost-digital-and-ai-capabilities/",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://themachinemaker.com/news/chevron-india-marks-one-year-milestone-of-engine-with-launch-of-new-bengaluru-center/",
+    "http://kfgo.com/2025/10/09/chevron-expands-india-hub-to-boost-digital-and-ai-capabilities/",
+    "https://themachinemaker.com/news/chevron-to-invest-1-billion-in-bengaluru-engineering-innovation-hub/",
+    "https://www.dtnext.in/news/business/chevron-to-set-up-usd-1-bn-engineering-centre-in-india-822857"
+   ]
+  },
+  {
+   "name": "Novo Nordisk",
+   "aliases": [
+    "Novo Nordisk Global Business Services",
+    "Novo Nordisk Service Centre India Private Ltd",
+    "Novo Nordisk GBS",
+    "Novo Nordisk India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Danish diabetes and obesity pharma; its Global Business Services centre (set up 2007-08, ~4,000+ staff) is in Whitefield's EPIP zone and the India commercial affiliate sits in Manyata NXT.",
+   "founded": 1923,
+   "hqCity": "Bagsvaerd",
+   "hqCountry": "Denmark",
+   "isUnicorn": false,
+   "website": "https://www.novonordisk.co.in",
+   "bengaluruEmployeesApprox": 4400,
+   "offices": [
+    {
+     "label": "Novo Nordisk Global Business Services - Mindcomp Tech Park",
+     "locality": "EPIP Zone Phase 2, Whitefield",
+     "address": "Plot 149-A, Mindcomp Tech Park, 4th Floor, EPIP 2nd Phase, Whitefield, Bengaluru 560066",
+     "building": null,
+     "techPark": "Salarpuria Sattva Mindcomp Tech Park",
+     "lat": 12.98223,
+     "lng": 77.72099,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Novo Nordisk India's contact page lists 'Novo Nordisk Service Centre India Private Ltd, Plot No 149-A, Mindcomp Tech Park, 4th Floor, 2nd Phase, EPIP Area, Whitefield, Bangalore 560066'; pinned to the OSM Mindcomp Tech Park polygon: https://www.novonordisk.co.in/contact-us.html ; https://www.openstreetmap.org/way/1151907061",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Novo Nordisk India Pvt Ltd - Manyata NXT-2",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "NXT-2, 1st & 2nd Floor, Embassy Manyata Business Park, Nagavara, Bengaluru 560045",
+     "building": "Manyata NXT Tower 2",
+     "techPark": "Manyata Tech Park",
+     "lat": 13.041761,
+     "lng": 77.619526,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "The company's contact page gives 'NXT-2, 1 & 2nd Floor, Embassy Manyata Business Park, Nagavara Village, Kasaba Hobli, Bangalore 560045'; coordinates are OSM's Manyata NXT Tower 2 footprint: https://www.novonordisk.co.in/contact-us.html ; https://www.openstreetmap.org/way/782063729",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Prestige Featherlite Tech Park office",
+     "locality": "EPIP Zone, Whitefield",
+     "address": "Plot 32, 47-50, Road 5, Prestige Featherlite Tech Park, EPIP Zone, Whitefield, Bengaluru 560066",
+     "building": null,
+     "techPark": "Prestige Featherlite Tech Park",
+     "lat": 12.98152,
+     "lng": 77.721127,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "A Bengaluru pharma directory lists Novo Nordisk India at 'Plot No.32, 47-50, Rd Number 5, Prestige Featherlite Tech Park, Whitefield, EPIP Zone, Bengaluru 560066', next door to the Mindcomp GBS site; directory only, not on the company page: https://pharmchoices.com/biotech-pharmaceutical-companies-in-bengaluru/6/ ; https://www.openstreetmap.org/way/122668438",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.novonordisk.co.in/contact-us.html",
+    "https://yourstory.com/enterprise-story/2025/04/novo-nordisks-india-gcc-steadily-moves-value-chain",
+    "https://www.businessofgcc.com/gcc-data/companies/novo-nordisk-india-bangalore",
+    "https://pharmchoices.com/biotech-pharmaceutical-companies-in-bengaluru/6/",
+    "https://www.embassyofficeparks.com/about-us/occupiers/"
+   ]
+  },
+  {
+   "name": "AstraZeneca",
+   "aliases": [
+    "AstraZeneca Pharma India Ltd",
+    "AstraZeneca India Pvt Ltd",
+    "AstraZeneca Global Business Services"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Anglo-Swedish pharma; AstraZeneca Pharma India's corporate office and a ~1,300-person global hub (R&D support, GBS, IT, digital health; Rs 166 cr expansion announced June 2025) are at Manyata, while the Yelahanka plant is being exited.",
+   "founded": 1999,
+   "hqCity": "Cambridge",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://www.astrazeneca.in",
+   "bengaluruEmployeesApprox": 1300,
+   "offices": [
+    {
+     "label": "Corporate office and global hub - Manyata Block N1",
+     "locality": "Nagavara / Rachenahalli (Hebbal Outer Ring Road)",
+     "address": "Block N1, 12th Floor, Manyata Embassy Business Park, Rachenahalli, Outer Ring Road, Bengaluru 560045",
+     "building": "Block N1",
+     "techPark": "Manyata Tech Park",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "AstraZeneca Pharma India's BSE filing gives the corporate office as 'Block N1, 12th Floor, Manyata Embassy Business Park, Rachenahalli, Outer Ring Road, Bangalore 560045'; Embassy REIT lists AstraZeneca among key occupiers; Block N1 is not mapped so the park centroid is used: https://bseindia.com/xml-data/corpfiling/AttachHis/46e5ae98-d95d-4124-bfb4-7a3258b0b967.pdf ; https://www.embassyofficeparks.com/about-us/occupiers/",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Yelahanka manufacturing site",
+     "locality": "Venkatala / Kattigenahalli, Bellary Road, Yelahanka",
+     "address": "12th Mile, Bellary Road, Venkatala, Kattigenahalli, Yelahanka, Bengaluru 560063",
+     "building": null,
+     "techPark": null,
+     "lat": 13.1119849,
+     "lng": 77.6091323,
+     "isHq": false,
+     "status": "closing",
+     "confidence": "low",
+     "evidence": "The company's filings give the factory as '12th Mile on Bellary Road, Venkatala, Kattigenahalli Village, Yelahanka, Bangalore 560063' and in Nov 2023 it said it intends to exit the Bangalore manufacturing site; pinned to a Photon geocode of Venkatala on Bellary Road, not the plant gate: https://yourstory.com/enterprise-story/2023/11/astrazeneca-pharma-india-plans-to-sell-bengaluru-plant",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://bseindia.com/xml-data/corpfiling/AttachHis/46e5ae98-d95d-4124-bfb4-7a3258b0b967.pdf",
+    "https://www.theweek.in/wire-updates/business/2025/06/26/dcm68-biz-astrazeneca.html",
+    "https://yourstory.com/enterprise-story/2023/11/astrazeneca-pharma-india-plans-to-sell-bengaluru-plant",
+    "https://pharmchoices.com/biotech-pharmaceutical-companies-in-bengaluru/1/",
+    "https://www.embassyofficeparks.com/about-us/occupiers/"
+   ]
+  },
+  {
+   "name": "GSK",
+   "aliases": [
+    "GlaxoSmithKline",
+    "GSK Global Capability Centre",
+    "GSK GCC Bengaluru"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "UK pharma; its Bengaluru Global Capability Centre (tech, finance, R&D biostatistics/safety/regulatory, HR, procurement, legal, supply chain) occupies Luxor North at Bagmane Capital.",
+   "founded": 2000,
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://www.gsk.com",
+   "bengaluruEmployeesApprox": 2400,
+   "offices": [
+    {
+     "label": "GSK Global Capability Centre - Bagmane Capital, Luxor North",
+     "locality": "Doddanekundi (Outer Ring Road, Mahadevapura)",
+     "address": "Levels 1-3, Luxor North, Bagmane Capital, Doddanekundi, Mahadevapura, Bengaluru 560048",
+     "building": "Luxor North",
+     "techPark": "Bagmane Capital",
+     "lat": 12.984488,
+     "lng": 77.704014,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Bagmane's Capital page lists GSK among occupiers, OSM has a 'GlaxoSmithKline' office POI on the Luxor North tower, and a pharma directory gives 'Level 1, 2, 3 - Luxor North, Bagmane Capital, Mahadevapura, Bengaluru 560048': https://www.bagmanegroup.com/portfolio/bagmane-capital ; https://www.openstreetmap.org/node/9783611912 ; https://pharmchoices.com/biotech-pharmaceutical-companies-in-bengaluru/4/",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Embassy Links, Cunningham Road office",
+     "locality": "Vasanth Nagar (Cunningham Road)",
+     "address": "5, Embassy Links, SRT Road, Cunningham Road, Vasanth Nagar, Bengaluru 560052",
+     "building": "Embassy Links",
+     "techPark": null,
+     "lat": 12.9814395,
+     "lng": 77.5986425,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "A pharma directory lists a second GSK address at '5, Embassy Links, SRT Road, Cunningham Road, Vasanth Nagar, Bengaluru 560052'; directory only and pinned to the Cunningham Road geocode: https://pharmchoices.com/biotech-pharmaceutical-companies-in-bengaluru/4/",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.gsk.com/en-gb/careers/our-global-and-regional-hubs/",
+    "https://www.bagmanegroup.com/portfolio/bagmane-capital",
+    "https://pharmchoices.com/biotech-pharmaceutical-companies-in-bengaluru/4/",
+    "https://www.openstreetmap.org/node/9783611912"
+   ]
+  },
+  {
+   "name": "Takeda",
+   "aliases": [
+    "Takeda Innovation India Pvt. Ltd",
+    "Takeda ICC Bengaluru",
+    "Takeda Pharmaceutical"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Japanese biopharma; its first Asian Innovation Capability Center (ICC), opened January 2025 with 750 planned jobs in AI drug discovery, digital health and data, occupies Block 3B of Bhartiya Centre of Information Technology.",
+   "founded": 1781,
+   "hqCity": "Tokyo",
+   "hqCountry": "Japan",
+   "isUnicorn": false,
+   "website": "https://www.takeda.com/en-in/",
+   "bengaluruEmployeesApprox": 750,
+   "offices": [
+    {
+     "label": "Takeda Innovation Capability Centre - BCIT Block 3B",
+     "locality": "Thanisandra (Bhartiya City, north Bengaluru)",
+     "address": "10th-12th Floor, Block 3B, Bhartiya Centre of Information Technology, Thanisandra Main Road, Bengaluru 560064",
+     "building": "BCIT Block 3B",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "lat": 13.084733,
+     "lng": 77.641169,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Takeda's India site lists the ICC at '10, 11 and 12th floor, Block 3B, Bhartiya Centre of Information Technology, Bhartiya City, Thanisandra Main Rd, Bengaluru 560064', and the developer's BCIT page shows Takeda on its occupier wall; coordinates are OSM's Bhartiya City Block-3 (Wing B): https://www.takeda.com/en-in/ ; https://www.bhartiyacity.com/bcit/ ; https://www.openstreetmap.org/way/1065159786",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.takeda.com/en-in/",
+    "https://www.bhartiyacity.com/bcit/",
+    "https://biospectrumindia.com/news/104/25550/takeda-expands-presence-in-india-with-launch-of-global-innovation-capability-centre-in-bengaluru.html",
+    "https://www.computerweekly.com/news/366618110/Takeda-opens-innovation-centre-in-Bengaluru"
+   ]
+  },
+  {
+   "name": "Baxter International",
+   "aliases": [
+    "Baxter",
+    "Baxter India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "US medtech; its Bengaluru R&D centre and IT/business-services centre sit in the Prestige Shantiniketan campus, Whitefield (India registered office is Gurugram).",
+   "founded": 1931,
+   "hqCity": "Deerfield, Illinois",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.baxter.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Baxter R&D and business services - Prestige Shantiniketan",
+     "locality": "Whitefield (Hoodi / Whitefield Main Road)",
+     "address": "Prestige Shantiniketan, Whitefield Main Road, Bengaluru 560048",
+     "building": null,
+     "techPark": "Prestige Shantiniketan",
+     "lat": 12.988903,
+     "lng": 77.731042,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Baxter's own careers listing for a Bengaluru role gives the site as 'Prestige Shantiniketan Campus, Whitefield, Bangalore 560048' and its India overview describes an R&D centre and an IT/business services centre in Bengaluru; the campus polygon is OSM's Prestige Shantiniketan: https://jobs.baxter.com/en/job/bengaluru/executive-assistant-hybrid/152/72391153056 ; https://jobs.baxter.com/bengaluru",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://jobs.baxter.com/en/job/bengaluru/executive-assistant-hybrid/152/72391153056",
+    "https://jobs.baxter.com/bengaluru",
+    "https://builtinbengaluru.in/company/baxter-international-inc"
+   ]
+  },
+  {
+   "name": "Thermo Fisher Scientific",
+   "aliases": [
+    "Thermo Fisher"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "US life-sciences tools company; Bengaluru hosts R&D, digital and global business services teams (2,100+ tracked), with the main office in Tower C of Prestige Shantiniketan.",
+   "founded": 1956,
+   "hqCity": "Waltham, Massachusetts",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.thermofisher.com",
+   "bengaluruEmployeesApprox": 2100,
+   "offices": [
+    {
+     "label": "Prestige Shantiniketan - Tower C, 9th floor",
+     "locality": "Whitefield (Hoodi / ITPL Main Road)",
+     "address": "9th Floor, Tower C, Prestige Shantiniketan, ITPL Main Road, Whitefield, Bengaluru 560048",
+     "building": "Tower C",
+     "techPark": "Prestige Shantiniketan",
+     "lat": 12.991463,
+     "lng": 77.729407,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Built In's Thermo Fisher job pages give the Bengaluru office as '9F, Tower C, Prestige ShantiNiketan, ITPL Main Rd, Whitefield Main Rd' and Wikipedia's Prestige Shantiniketan tenant list names Thermo Fisher; pinned to the OSM commercial complex footprint: https://builtinbengaluru.in/job/sr-technical-sales-specialist/4314339 ; https://en.wikipedia.org/wiki/Prestige_Shantiniketan",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Bagmane Solarium City office",
+     "locality": "Doddanekundi / Kundalahalli (ORR-Whitefield)",
+     "address": "Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037",
+     "building": null,
+     "techPark": "Bagmane Solarium City",
+     "lat": 12.971398,
+     "lng": 77.708102,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM has an office POI 'Thermo Fischer Scientific' (website thermofisher.com) inside Bagmane Solarium City; not on the developer's occupier list, so OSM only: https://www.openstreetmap.org/node/11488303738",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/job/sr-technical-sales-specialist/4314339",
+    "https://builtinbengaluru.in/company/thermo-fisher-scientific",
+    "https://en.wikipedia.org/wiki/Prestige_Shantiniketan",
+    "https://flexiple.com/global-capability-centers/list-of-global-capability-centers-in-bengaluru"
+   ]
+  },
+  {
+   "name": "Philips",
+   "aliases": [
+    "Philips Innovation Campus",
+    "PIC Bangalore",
+    "Koninklijke Philips",
+    "Philips India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Dutch health-technology company; the Philips Innovation Campus (5,000+ engineers, 54 labs) moved from Manyata to a new 650,000 sq ft campus at Embassy Business Hub on Bellary Road, Yelahanka, inaugurated November 2023 and fully occupied in early 2024.",
+   "founded": 1891,
+   "hqCity": "Amsterdam",
+   "hqCountry": "Netherlands",
+   "isUnicorn": false,
+   "website": "https://www.philips.co.in",
+   "bengaluruEmployeesApprox": 5000,
+   "offices": [
+    {
+     "label": "Philips Innovation Campus - Embassy Business Hub",
+     "locality": "Yelahanka (Bellary Road / Bangalore Airport Road)",
+     "address": "Philips Innovation Campus, Embassy Business Hub, Bellary Road, Venkatala, Yelahanka, Bengaluru 560064",
+     "building": null,
+     "techPark": "Embassy Business Hub",
+     "lat": 13.110195,
+     "lng": 77.603107,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Philips' press release announces the INR 500 crore, 650,000 sq ft Yelahanka campus for 5,000+ professionals (9 Nov 2023); Embassy REIT disclosed Embassy Business Hub as pre-committed to Philips and OSM maps the parcel 'Embassy Business Hub - Philips': https://www.philips.co.in/about/news-and-insights/press-release/philips-inaugurates-new-innovation-campus-in-yelahanka-bengaluru ; https://www.embassyofficeparks.com/newsroom/press/embassy-reit-announces-3348-million-acquisition-of-embassy-business-hub-in-bangalore/ ; https://www.openstreetmap.org/way/1222386355",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Philips Innovation Campus - Manyata (former)",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Philips Innovation Campus, Manyata Embassy Business Park, Nagavara, Bengaluru 560045",
+     "building": null,
+     "techPark": "Manyata Tech Park",
+     "lat": 13.043891,
+     "lng": 77.62141,
+     "isHq": false,
+     "status": "closed",
+     "confidence": "medium",
+     "evidence": "Turner & Townsend's move-management note (May 2024) records relocating ~5,200 Philips employees, 54 labs and four data centres from Manyata Tech Park, Nagawara to the Yelahanka campus, fully open in early 2024; OSM still maps the 'Philips Innovation Campus' building at Manyata: https://www.turnerandtownsend.com/news/relocating-and-expanding-philips-bangalore-innovation-hub ; https://www.openstreetmap.org/way/491335687",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.philips.co.in/about/news-and-insights/press-release/philips-inaugurates-new-innovation-campus-in-yelahanka-bengaluru",
+    "https://www.turnerandtownsend.com/news/relocating-and-expanding-philips-bangalore-innovation-hub",
+    "https://biospectrumindia.com/news/98/23828/philips-inaugurates-new-innovation-campus-in-yelahanka-bengaluru.html",
+    "https://www.embassyofficeparks.com/newsroom/press/embassy-reit-announces-3348-million-acquisition-of-embassy-business-hub-in-bangalore/",
+    "https://www.openstreetmap.org/way/1222386355"
+   ]
+  },
+  {
+   "name": "GE HealthCare",
+   "aliases": [
+    "Wipro GE Healthcare",
+    "GE Healthcare India",
+    "GE HealthCare Technologies"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "US medical-imaging and diagnostics company (spun out of GE in 2023); its engineering teams sit in the John F. Welch Technology Centre, Whitefield, and its Wipro GE Healthcare joint venture manufactures at Kadugodi.",
+   "founded": 2023,
+   "hqCity": "Chicago, Illinois",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.gehealthcare.com/en-in",
+   "bengaluruEmployeesApprox": 4100,
+   "offices": [
+    {
+     "label": "John F. Welch Technology Centre - GE HealthCare engineering",
+     "locality": "Whitefield (EPIP side, Hoodi-Whitefield Road)",
+     "address": "John F. Welch Technology Centre, Plot 122, EPIP Phase 2, Hoodi Village, Whitefield Road, Bengaluru 560066",
+     "building": null,
+     "techPark": "John F. Welch Technology Centre",
+     "lat": 12.973354,
+     "lng": 77.724192,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "OSM maps the JFWTC campus (operator General Electric) and a GCC directory records GE HealthCare's engineering teams at JFWTC, described as GE's first and largest multidisciplinary R&D site outside the US, with 4,100+ staff tracked in Bengaluru: https://www.openstreetmap.org/way/180969776 ; https://flexiple.com/global-capability-centers/list-of-global-capability-centers-in-bengaluru",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Wipro GE Healthcare - Kadugodi plant and office",
+     "locality": "Kadugodi, Whitefield",
+     "address": "No. 4, Kadugodi Industrial Area, Whitefield, Bengaluru 560067",
+     "building": null,
+     "techPark": "Kadugodi Industrial Area",
+     "lat": 12.991547,
+     "lng": 77.746834,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps the 'Wipro GE Healthcare' / 'Wipro GE Medical Systems' campus at No. 4, Kadugodi Industrial Area; wiproge.com was unreachable (HTTP 503) during this run, so OSM is the only source read: https://www.openstreetmap.org/relation/1964703",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/180969776",
+    "https://www.openstreetmap.org/relation/1964703",
+    "https://flexiple.com/global-capability-centers/list-of-global-capability-centers-in-bengaluru",
+    "https://www.businessofgcc.com/gcc-data/companies/cities/bangalore"
+   ]
+  },
+  {
+   "name": "Siemens Healthineers",
+   "aliases": [
+    "Siemens Healthcare Private Limited",
+    "Siemens Healthineers Development Center Bengaluru"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "German medtech; its Bengaluru development centre (imaging and diagnostics software, ~3,300 staff) is in Electronics City Phase 2, and a Rs 1,300 crore combined R&D-manufacturing-HQ campus (foundation stone March 2023) is being built in Bengaluru.",
+   "founded": 2018,
+   "hqCity": "Erlangen",
+   "hqCountry": "Germany",
+   "isUnicorn": false,
+   "website": "https://www.siemens-healthineers.com/en-in",
+   "bengaluruEmployeesApprox": 3300,
+   "offices": [
+    {
+     "label": "Development centre - Electronics City Phase 2",
+     "locality": "Electronic City Phase 2 (Hosur Road)",
+     "address": "Plot 16, Electronic City Phase 2, Hosur Road, Bengaluru 560100",
+     "building": null,
+     "techPark": "Electronics City Phase 2",
+     "lat": 12.845966,
+     "lng": 77.678487,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "An industry directory lists Siemens Healthcare Private Limited at 'Plot No 16, Electronic City Phase 2, Hosur Road, Bangalore 560100' and OSM maps a 'Siemens Healthineers' office building off Shantipura Main Road in Phase 2: https://www.electronics.org/member-directory?page=441 ; https://www.openstreetmap.org/way/557926285",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://biospectrumindia.com/news/98/22808/siemens-healthineers-lays-foundation-stone-for-new-campus-in-bengaluru.html",
+    "https://businesstoday.in/current/corporate/siemens-healthineers-to-invest-rs-1300-crore-in-new-bengaluru-innovation-hub/story/419499.html",
+    "https://www.openstreetmap.org/way/557926285",
+    "https://flexiple.com/global-capability-centers/list-of-global-capability-centers-in-bengaluru"
+   ]
+  },
+  {
+   "name": "Eli Lilly",
+   "aliases": [
+    "Lilly",
+    "Lilly Capability Center India",
+    "LCCI",
+    "Eli Lilly Services Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "US pharma; the Lilly Capability Center India (LCCI, opened January 2016 as Eli Lilly Services Pvt Ltd; clinical, digital, data and business services, 2,700+ tracked) is in Embassy TechVillage on the Outer Ring Road.",
+   "founded": 1876,
+   "hqCity": "Indianapolis, Indiana",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.lilly.com/in",
+   "bengaluruEmployeesApprox": 2700,
+   "offices": [
+    {
+     "label": "Lilly Capability Center India - Embassy TechVillage",
+     "locality": "Devarabeesanahalli, Outer Ring Road (Bellandur)",
+     "address": "Embassy TechVillage, Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "building": null,
+     "techPark": "Embassy TechVillage",
+     "lat": 12.93004,
+     "lng": 77.690611,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Embassy TechVillage's own site lists Eli Lilly among its top occupiers and Embassy REIT's occupier page lists Lilly; Lilly's job listings place LCCI at PIN 560103 (the park's PIN) but name no block, so the park centroid is used: https://www.embassytechvillage.com/ ; https://www.embassyofficeparks.com/about-us/occupiers/ ; https://builtinbengaluru.in/job/lcci-sr-associate-consultant-consultant-sr-consultant-systems-analytics/4697756",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Eli Lilly Asia Inc office (OSM, likely legacy)",
+     "locality": "Central Bengaluru (Richmond Road / Residency Road area)",
+     "address": "Richmond Town area, Bengaluru 560025",
+     "building": null,
+     "techPark": null,
+     "lat": 12.973454,
+     "lng": 77.617045,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM records an office POI 'Eli Lilly Asia Inc' in central Bengaluru; no company page confirms it and it is probably a legacy commercial office, so OSM only: https://www.openstreetmap.org/node/3785884276",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://lilly.com/in/who-we-are/lilly-in-india",
+    "https://www.embassytechvillage.com/",
+    "https://www.embassyofficeparks.com/about-us/occupiers/",
+    "https://www.fiercepharma.com/pharma/eli-lilly-doubles-down-its-presence-india-new-capability-center",
+    "https://builtinbengaluru.in/job/lcci-sr-associate-consultant-consultant-sr-consultant-systems-analytics/4697756"
+   ]
+  },
+  {
+   "name": "Oracle Health",
+   "aliases": [
+    "Cerner",
+    "Cerner Healthcare Solutions Pvt Ltd",
+    "Oracle Cerner"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Oracle's electronic-health-record business, formerly Cerner (acquired 2022, renamed 2023); its Bengaluru campus is in Manyata (Mountain Ash H2 and, per older listings, Cedar C2).",
+   "founded": 1979,
+   "hqCity": "Kansas City, Missouri (Oracle: Austin, Texas)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.oracle.com/health/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Oracle Health (Cerner) - Manyata, Mountain Ash (Block H2)",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Mountain Ash (H2), Manyata Embassy Business Park, Nagavara, Bengaluru 560045",
+     "building": "Mountain Ash (H2)",
+     "techPark": "Manyata Tech Park",
+     "lat": 13.046377,
+     "lng": 77.622396,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Embassy Group names Cerner Healthcare Solutions as a marquee Manyata tenant and OSM has the POI 'Cerner, Mountain Ash H2 Block': https://www.embassygroup.com/commercial-properties/bangalore/embassy-manyata-business-park ; https://www.openstreetmap.org/node/5756379552",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Cerner - Manyata, Block C2 Cedar (older listing)",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Levels 5, 6 & 8, Block C2 Cedar, Manyata Embassy Business Park, Nagavara, Bengaluru 560045",
+     "building": "Cedar (C2)",
+     "techPark": "Manyata Tech Park",
+     "lat": 13.045823,
+     "lng": 77.620193,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "A Naukri company contact page (pre-rename) lists Cerner Healthcare Solutions at 'Manyata Embassy Business Park SEZ, Level 5, 6 & 8, Block C2, Cedar, Outer Ring Road, Nagavara 560045'; a 2024 forum post claims Oracle Cerner was not renewing Manyata leases, so current occupancy is unconfirmed; coordinates are OSM's Cedar building: https://company.naukri.com/cerner-jobs/contact-us.html ; https://www.openstreetmap.org/way/109125573",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.embassygroup.com/commercial-properties/bangalore/embassy-manyata-business-park",
+    "https://www.openstreetmap.org/node/5756379552",
+    "https://company.naukri.com/cerner-jobs/contact-us.html",
+    "https://www.teamblind.com/browse/Cerner-75173"
+   ]
+  },
+  {
+   "name": "Optum (UnitedHealth Group)",
+   "aliases": [
+    "Optum Global Solutions (India) Private Limited",
+    "UnitedHealth Group",
+    "UHG",
+    "United Health Group Information Services"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "UnitedHealth Group's health-services and technology arm; Optum Global Solutions (India) runs four Bengaluru sites, the largest at RMZ Ecoworld, with offices in Manyata, Kalyani Magnum and ITC Green Centre.",
+   "founded": 1977,
+   "hqCity": "Eden Prairie, Minnesota",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.optum.in",
+   "bengaluruEmployeesApprox": 2800,
+   "offices": [
+    {
+     "label": "Optum - RMZ Ecoworld Campus 5B",
+     "locality": "Bellandur / Devarabeesanahalli (Outer Ring Road)",
+     "address": "Ground Floor (Part) and 10th Floor, Campus 5B, RMZ Ecoworld, Bellandur, Bengaluru 560103",
+     "building": "Campus 5B",
+     "techPark": "RMZ Ecoworld",
+     "lat": 12.9234754,
+     "lng": 77.6819331,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Optum India's contact page lists 'Ground Floor (Part) and 10th Floor, Campus 5B, RMZ Ecoworld, Bengaluru 560103' for Optum Global Solutions (India) Pvt Ltd; coordinates are Photon's Campus 5B POI inside the Pritech Park SEZ (Ecoworld) parcel: https://www.optum.in/contact.html",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Optum - Manyata, C1 Jacaranda Wing B",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "4th Floor (part), Wing B, C1 Jacaranda, Embassy Manyata Business Park, Nagavara, Bengaluru 560045",
+     "building": "C1 Jacaranda, Wing B",
+     "techPark": "Manyata Tech Park",
+     "lat": 13.042841,
+     "lng": 77.619557,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Optum India's contact page lists '4th Floor (part), Wing B, C1 Jacaranda, Embassy Manyata Business Park, Nagawara, Bengaluru 560045'; OSM has a 'UHG' office POI beside Manyata NXT Tower 1, used for the pin: https://www.optum.in/contact.html ; https://www.openstreetmap.org/node/12055268758",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Optum - Kalyani Magnum, Block 1 Wing A",
+     "locality": "JP Nagar 4th/7th Phase (Doraisanipalya, Bannerghatta Road)",
+     "address": "4th Floor (part), Wing A, Block 1, Kalyani Magnum, Doraisanipalya, JP Nagar 4th Phase, Bannerghatta Road, Bengaluru 560076",
+     "building": "Block 1, Wing A",
+     "techPark": "Kalyani Magnum",
+     "lat": 12.900462,
+     "lng": 77.596169,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Optum India's contact page lists '4th Floor (part), Wing A of Block 1, Kalyani Magnum, Doraisanipalya, J.P. Nagar 4th Phase, Bannerghatta Road, Bengaluru 560076'; pinned to the OSM Kalyani Magnum polygon: https://www.optum.in/contact.html ; https://www.openstreetmap.org/way/699268545",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Optum - ITC Green Centre, Banaswadi",
+     "locality": "Maruthi Sevanagar (Banaswadi Main Road)",
+     "address": "1st and 3rd Floors, ITC Green Centre, 18 Banaswadi Main Road, Maruthi Sevanagar, Bengaluru 560005",
+     "building": "ITC Green Centre",
+     "techPark": null,
+     "lat": 12.9986349,
+     "lng": 77.6266349,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Optum India's contact page lists '1st and 3rd floors, ITC Green Centre, No. 18 Banaswadi Main Road, Maruthiseva Nagar, Bengaluru 560005'; coordinates are the Photon match for the ITC Green Centre building: https://www.optum.in/contact.html",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.optum.in/contact.html",
+    "https://unitedhealthgroup.com/careers/in.html",
+    "https://www.openstreetmap.org/node/12055268758",
+    "https://flexiple.com/global-capability-centers/list-of-global-capability-centers-in-bengaluru"
+   ]
+  },
+  {
+   "name": "Carelon Global Solutions",
+   "aliases": [
+    "Legato Health Technologies",
+    "Elevance Health",
+    "Anthem",
+    "CGS"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Elevance Health's (formerly Anthem) captive, renamed from Legato Health Technologies in January 2023; healthcare IT, analytics and operations from Bagmane Solarium City and Manyata (3,900+ tracked in Bengaluru).",
+   "founded": 2017,
+   "hqCity": "Indianapolis, Indiana",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.carelonglobal.in",
+   "bengaluruEmployeesApprox": 3900,
+   "offices": [
+    {
+     "label": "Carelon - Bagmane Solarium City, Xenon South Tower",
+     "locality": "Doddanakkundi / Kundalahalli (ORR-Whitefield)",
+     "address": "Xenon South Tower, Plot 39 & 40, Bagmane Solarium City, Doddanakkundi, Bengaluru 560037",
+     "building": "Xenon South",
+     "techPark": "Bagmane Solarium City",
+     "lat": 12.970519,
+     "lng": 77.708068,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Carelon Global Solutions' About page lists 'Bagmane Solarium City, Xenon South Tower, Plot number 39 & 40, Doddanakkundi, Bengaluru 560037' and Bagmane lists Carelon among occupiers; coordinates are OSM's Xenon South building: https://www.anthem.com/content/carelon/public-cgs/us/en/home-in/about-us.html ; https://www.bagmanegroup.com/portfolio/bagmane-solarium-city ; https://www.openstreetmap.org/way/1286471307",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Carelon - Manyata, Block Banyan (L1), floors 6-10",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Floors 6-10, Block Banyan (L1), Manyata Embassy Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "building": "Banyan (L1)",
+     "techPark": "Manyata Tech Park",
+     "lat": 13.043858,
+     "lng": 77.618365,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Carelon's About page lists 'Manyata Embassy Business Park, Floors 6-10, Block Banyan (L1), Outer Ring Road, Nagawara, Bengaluru 560045'; OSM maps the Banyan building and a 'Legato Health Technologies' POI on it: https://www.anthem.com/content/carelon/public-cgs/us/en/home-in/about-us.html ; https://www.openstreetmap.org/way/491335673",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.anthem.com/content/carelon/public-cgs/us/en/home-in/about-us.html",
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city",
+    "https://www.openstreetmap.org/way/1286471307",
+    "https://flexiple.com/global-capability-centers/list-of-global-capability-centers-in-bengaluru"
+   ]
+  },
+  {
+   "name": "Stryker",
+   "aliases": [
+    "Stryker Global Technology Center",
+    "SGTC",
+    "Stryker India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "US medtech; besides its Gurugram India HQ and R&D labs it runs a Stryker Global Technology Center office in Bengaluru at Sattva Knowledge Court, Doddanekundi.",
+   "founded": 1941,
+   "hqCity": "Portage, Michigan",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.stryker.com/in/en/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Stryker Global Technology Center - Sattva Knowledge Court",
+     "locality": "Doddanekundi Phase 1 Industrial Area (ITPL Main Road)",
+     "address": "2nd Floor, Sattva Knowledge Court, Plot 9, Doddanekundi Phase 1 Industrial Area, Bengaluru 560048",
+     "building": null,
+     "techPark": "Salarpuria Sattva Knowledge Court",
+     "lat": 12.974023,
+     "lng": 77.711898,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Stryker's own India locations page lists 'Stryker Global Technology Center, Sattva Knowledge Court, 2nd Floor, Plot No. 9 of Doddenakkundi, Phase 1 Industrial Area, Bengaluru 560048'; pinned to the OSM Salarpuria Sattva Knowledge Court polygon: https://stryker.com/in/en/about/our-locations/offices-in-india.html ; https://www.openstreetmap.org/way/414838097",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://stryker.com/in/en/about/our-locations/offices-in-india.html",
+    "https://www.openstreetmap.org/way/414838097"
+   ]
+  },
+  {
+   "name": "Nike",
+   "aliases": [
+    "Nike India",
+    "Nike Technology Center Bengaluru"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "US sportswear company; its Bengaluru office (Nike India / technology and commercial teams) is in the Olympia building of Bagmane Tech Park, C.V. Raman Nagar.",
+   "founded": 1964,
+   "hqCity": "Beaverton, Oregon",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.nike.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Nike - Bagmane Tech Park, Olympia",
+     "locality": "C.V. Raman Nagar (Byrasandra)",
+     "address": "Olympia, Bagmane Tech Park, C.V. Raman Nagar, Bengaluru 560093",
+     "building": "Olympia",
+     "techPark": "Bagmane Tech Park",
+     "lat": 12.978938,
+     "lng": 77.658768,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bagmane's Tech Park page lists Nike among the park's occupiers; no company page or OSM POI was found, so this rests on the developer's page, with coordinates from OSM's Olympia building: https://www.bagmanegroup.com/portfolio/bagmane-tech-park ; https://www.openstreetmap.org/way/323047932",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-tech-park",
+    "https://www.openstreetmap.org/way/323047932"
+   ]
+  },
+  {
+   "name": "Victoria's Secret & Co.",
+   "aliases": [
+    "Victoria's Secret",
+    "VS&Co",
+    "Mast Global Business Services India",
+    "L Brands"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "US lingerie and beauty retailer spun out of L Brands in 2021; L Brands' sourcing/business-services arm Mast Global Business Services India sits in Manyata, which is where the Bengaluru operation is recorded, though whether that office now belongs to VS&Co or Bath & Body Works could not be settled.",
+   "founded": 1977,
+   "hqCity": "Reynoldsburg, Ohio",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.victoriassecret.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Mast Global Business Services India - Manyata (beside Mountain Ash)",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Manyata Embassy Business Park, Nagavara, Bengaluru 560045",
+     "building": null,
+     "techPark": "Manyata Tech Park",
+     "lat": 13.046409,
+     "lng": 77.622701,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM records an office POI 'Mast Global Business Services India' beside Manyata's Mountain Ash block and Wikipedia's Manyata tenant list names L Brands and Victoria's Secret; after the 2021 L Brands split the office's current parent is ambiguous, so low confidence: https://www.openstreetmap.org/node/5756379551 ; https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/5756379551",
+    "https://en.wikipedia.org/wiki/Manyata_Embassy_Business_Park"
+   ]
+  },
+  {
+   "name": "IKEA (Ingka Group)",
+   "aliases": [
+    "IKEA India",
+    "Ingka Centres",
+    "Ingka Group Global Business Operations"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "Swedish-origin furniture retailer; its Bengaluru store opened at Nagasandra on Tumkur Road in 2022 (Ingka's Global Business Operations office in the city could not be placed in this run).",
+   "founded": 1943,
+   "hqCity": "Leiden",
+   "hqCountry": "Netherlands",
+   "isUnicorn": false,
+   "website": "https://www.ikea.com/in/en/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "IKEA Nagasandra store",
+     "locality": "Nagasandra / Tumkur Road (Manjunatha Nagar)",
+     "address": "IKEA Nagasandra, Nelamangala-Majestic Service Road, Manjunatha Nagar, Nagasandra, Bengaluru 560073",
+     "building": null,
+     "techPark": null,
+     "lat": 13.0479536,
+     "lng": 77.5001422,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "IKEA's own store page gives 'IKEA Nagasandra, Bengaluru, Nelamangala - Majestic Service Rd, Manjunatha Nagar, Nagasandra, 560073'; coordinate is the Photon match for Nagasandra on Tumkur Road rather than the store footprint: https://www.ikea.com/in/en/stores/bengaluru/",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.ikea.com/in/en/stores/bengaluru/"
+   ]
+  },
+  {
+   "name": "Marks & Spencer",
+   "aliases": [
+    "M&S",
+    "Marks and Spencer Reliance India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "UK retailer; OSM records a 'Marks and Spencer Pvt. Ltd.' office in central-east Bengaluru, most likely a regional/sourcing office, which no company page confirmed in this run.",
+   "founded": 1884,
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://www.marksandspencer.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Marks and Spencer Pvt. Ltd. office (OSM)",
+     "locality": "Cox Town / Pottery Road area",
+     "address": "Pottery Road / Cox Town area, Bengaluru 560005",
+     "building": null,
+     "techPark": null,
+     "lat": 12.986025,
+     "lng": 77.616394,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Marks and Spencer Pvt. Ltd.' only; no company page or press source confirms a Bengaluru office, so low confidence: https://www.openstreetmap.org/node/12788139574",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12788139574"
+   ]
+  },
+  {
+   "name": "Unilever (Hindustan Unilever)",
+   "aliases": [
+    "HUL",
+    "Hindustan Unilever Limited",
+    "Unilever R&D Bangalore",
+    "HUL Research Centre"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "Anglo-Dutch-origin consumer-goods group; its Bengaluru R&D centre on Whitefield Main Road (a global Unilever R&D hub since 2006, formulations for Lifebuoy, Vim, Horlicks and others) is the main site, with a further HUL office at Prestige Shantiniketan.",
+   "founded": 1929,
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://www.hul.co.in",
+   "bengaluruEmployeesApprox": 2200,
+   "offices": [
+    {
+     "label": "Hindustan Unilever Research Centre - Whitefield",
+     "locality": "Whitefield (Whitefield Main Road, Kadugodi side)",
+     "address": "Hindustan Unilever Research Centre, 64 Main Road, Whitefield, Bengaluru 560066",
+     "building": null,
+     "techPark": "Hindustan Unilever Research Centre",
+     "lat": 12.964946,
+     "lng": 77.746855,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "OSM maps the 'Hindustan Unilever Research Centre' campus on Whitefield Main Road (Photon resolves the same polygon), and a GCC directory records Unilever's Bengaluru R&D site, made a global hub in 2006, with 2,200+ staff tracked: https://www.openstreetmap.org/way/130510277 ; https://flexiple.com/global-capability-centers/list-of-global-capability-centers-in-bengaluru",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Hindustan Unilever - Prestige Shantiniketan office",
+     "locality": "Whitefield (Hoodi / Whitefield Main Road)",
+     "address": "Prestige Shantiniketan, Whitefield Main Road, Bengaluru 560048",
+     "building": null,
+     "techPark": "Prestige Shantiniketan",
+     "lat": 12.988843,
+     "lng": 77.731012,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM has a 'Hindustan Unilever' office POI inside Prestige Shantiniketan and Wikipedia's tenant list for the precinct names Hindustan Unilever; the function of this office is not published: https://www.openstreetmap.org/node/2052491864 ; https://en.wikipedia.org/wiki/Prestige_Shantiniketan",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/130510277",
+    "https://flexiple.com/global-capability-centers/list-of-global-capability-centers-in-bengaluru",
+    "https://en.wikipedia.org/wiki/Prestige_Shantiniketan",
+    "https://www.openstreetmap.org/node/2052491864"
+   ]
+  },
+  {
+   "name": "Coca-Cola (Hindustan Coca-Cola Beverages)",
+   "aliases": [
+    "HCCB",
+    "Hindustan Coca-Cola Beverages Pvt Ltd",
+    "The Coca-Cola Company",
+    "HCCB Business Shared Services"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "The Coca-Cola Company's India bottler HCCB (founded in Bengaluru in 1997) is headquartered at Brigade Magnum on Bellary Road and runs a bottling plant in the Bidadi industrial area; the business-shared-services centre is also in the city.",
+   "founded": 1997,
+   "hqCity": "Atlanta, Georgia (HCCB: Bengaluru)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.hccb.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HCCB corporate office - Brigade Magnum",
+     "locality": "Hebbal (Kodigehalli Gate, Bellary Road)",
+     "address": "B Wing, 7th-9th Floors, Brigade Magnum, Bellary Road, Kodigehalli Gate, Bengaluru 560092",
+     "building": "Brigade Magnum, B Wing",
+     "techPark": "Brigade Magnum",
+     "lat": 13.057298,
+     "lng": 77.59444,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "HCCB's privacy policy gives the company's address as 'Hindustan Coca-Cola Beverages Pvt. Ltd., Brigade Magnum, B Wing, 7th to 9th Floors, Bellary Road, Kodigehalli Gate, Bangalore 560092'; pinned to the OSM Brigade Magnum polygon: https://www.hccb.in/privacy-policy ; https://www.openstreetmap.org/way/631823255",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "HCCB Bidadi bottling plant",
+     "locality": "Bidadi Industrial Area (Ramanagara)",
+     "address": "Hindustan Coca-Cola Beverages, Bidadi Industrial Area, Ramanagara district",
+     "building": null,
+     "techPark": "Bidadi Industrial Area",
+     "lat": 12.816924,
+     "lng": 77.410581,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "HCCB's own site lists Bidadi among its factories and OSM maps a 'Coca-Cola' industrial site in the Bidadi industrial belt: https://www.hccb.in/contact-us ; https://www.openstreetmap.org/way/796362858",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.hccb.in/privacy-policy",
+    "https://www.hccb.in/contact-us",
+    "https://www.hccb.in/",
+    "https://www.openstreetmap.org/way/796362858",
+    "https://www.businessofgcc.com/gcc-data/companies/cities/bangalore"
+   ]
+  },
+  {
+   "name": "Reckitt",
+   "aliases": [
+    "Reckitt Benckiser",
+    "RB"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "UK consumer-health and hygiene group; OSM records a 'Reckitt Benckiser' office in central Bengaluru, likely a regional sales office, which no company page confirmed in this run.",
+   "founded": 1999,
+   "hqCity": "Slough",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://www.reckitt.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Reckitt Benckiser office (OSM)",
+     "locality": "Central Bengaluru (Richmond Town / Residency Road area)",
+     "address": "Richmond Town area, Bengaluru 560025",
+     "building": null,
+     "techPark": null,
+     "lat": 12.973395,
+     "lng": 77.616431,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Reckitt Benckiser' only; no company source confirms a Bengaluru office, so low confidence: https://www.openstreetmap.org/node/3785998690",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/3785998690"
+   ]
+  },
+  {
+   "name": "Warner Bros. Discovery",
+   "aliases": [
+    "WBD",
+    "Warner Bros Discovery India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Media & gaming",
+   "description": "US media and streaming group; its Bengaluru technology centre (alongside the larger Hyderabad hub) sits in Block 3B of Embassy TechVillage.",
+   "founded": 2022,
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.wbd.com",
+   "bengaluruEmployeesApprox": 300,
+   "offices": [
+    {
+     "label": "Warner Bros. Discovery - Embassy TechVillage, Block 3B",
+     "locality": "Devarabeesanahalli, Outer Ring Road (Bellandur)",
+     "address": "Block 3B, Embassy TechVillage, Outer Ring Road, Bengaluru 560103",
+     "building": "Block 3B",
+     "techPark": "Embassy TechVillage",
+     "lat": 12.929604,
+     "lng": 77.694186,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM's 'Warner Bros Discovery' office POI sits on ETV's Block 3B footprint, Embassy REIT lists Warner Bros among key occupiers, and a GCC directory records WBD's Bengaluru centre building streaming technology (300+ tracked): https://www.openstreetmap.org/node/13597927717 ; https://www.embassyofficeparks.com/about-us/occupiers/ ; https://flexiple.com/global-capability-centers/list-of-global-capability-centers-in-bengaluru",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13597927717",
+    "https://www.embassyofficeparks.com/about-us/occupiers/",
+    "https://flexiple.com/global-capability-centers/list-of-global-capability-centers-in-bengaluru"
+   ]
+  },
+  {
+   "name": "The Walt Disney Company",
+   "aliases": [
+    "Disney",
+    "Disney India",
+    "Disney+ Hotstar (now JioStar)"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Media & gaming",
+   "description": "US media group; a March 2026 Mint report (via a GCC directory) describes a Bengaluru technology centre taking over engineering from IT vendors, and OSM records a 'Walt Disney' office in central Bengaluru; Disney+ Hotstar itself is now part of the Reliance-majority JioStar joint venture.",
+   "founded": 1923,
+   "hqCity": "Burbank, California",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://thewaltdisneycompany.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Walt Disney office (OSM)",
+     "locality": "Central Bengaluru (Residency Road area)",
+     "address": "Residency Road area, Bengaluru 560025",
+     "building": null,
+     "techPark": null,
+     "lat": 12.973517,
+     "lng": 77.61269,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Walt Disney' only; the 2026 Bengaluru technology-centre report gives no address, so the pin is unconfirmed and low confidence: https://www.openstreetmap.org/node/3808195571 ; https://flexiple.com/global-capability-centers/list-of-global-capability-centers-in-bengaluru",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/3808195571",
+    "https://flexiple.com/global-capability-centers/list-of-global-capability-centers-in-bengaluru"
+   ]
+  }
+ ],
+ "coverageNotes": "SCOPE AND METHOD. Energy, pharma/healthcare, retail, consumer-goods and media MNC capability centres in Bengaluru, verified from company contact/careers pages where they could be fetched (ExxonMobil, Novo Nordisk, Takeda, Carelon, Optum, Stryker, Halliburton careers, HCCB, Philips), lease and press coverage, developer occupier pages (Bagmane, Embassy REIT, ETV, BCIT) and OSM office POIs, with coordinates from OSM building footprints where a block was named and park centroids otherwise. The shared web-search budget ran out after two rounds, so the second half of the lens was worked from direct fetches of company and developer pages, the shared OSM extracts and the other lenses' files. CORRECTIONS TO THE BRIEF. Shell Technology Centre Bangalore is at Mahadeva Kodigehalli in the KIADB Hardware Park near the airport, not Mahadevapura; nothing places Shell at WTC Bengaluru. Halliburton's India technology centre is in Pune, but its Landmark software unit has a real Bengaluru office in Embassy TechVillage (Gardenia 2D and Hibiscus 2B). Chevron ENGINE is at RMZ Ecoworld, Bellandur, not Bagmane. Stryker, listed as Gurgaon-only, has a Bengaluru office at Sattva Knowledge Court. Siemens Healthineers is confirmed at Electronics City Phase 2 only; no source put it in a Bagmane park, and the location of its Rs 1,300 crore new campus (foundation stone March 2023) was not published in the sources read. Takeda's ICC opened January 2025, not 2024. CONFIRMED IN BENGALURU BUT LEFT OUT FOR WANT OF AN ADDRESS (presence is documented, no building or coordinates could be substantiated, and coordinates are never invented): Best Buy (Bengaluru tech hub, 350 staff growing to 500-550 per Aug 2025 coverage), Kimberly-Clark (Bengaluru digital/analytics hub), Evernorth/Cigna (Cigna Health Solutions India in Bengaluru since 2011, 1,600+), Bayer (Bengaluru captive since 2001, IT/digital farming/business services, ~1,100 tracked), Ingka Group Global Business Operations (only the IKEA Nagasandra store is placed), and Colgate-Palmolive (tracked profiles only). NOT CONFIRMED IN BENGALURU IN THIS RUN, SO OMITTED: SLB/Schlumberger (India technology centre is in Pune), BP (Pune), Saudi Aramco, Medtronic (Hyderabad engineering centre; only a dated Wikipedia ITPB tenant list names it), Boston Scientific and Zimmer Biomet (Pune), Abbott, Pfizer (Chennai/Mumbai), Merck/MSD (an OSM 'Merck' POI in Electronics City was not corroborated), Roche and Sanofi (Hyderabad), Johnson & Johnson, Humana, CVS, Albertsons, Kroger, Levi Strauss, lululemon, H&M, Sainsbury's, Ahold Delhaize, Costco (Hyderabad), Home Depot, P&G, Nestle (its Karnataka plant is in Nanjangud, Mysuru, outside the metro box), Mondelez, PepsiCo (Hyderabad GCC), L'Oreal and Sony Pictures Networks; each company's own locations page either 403'd, 404'd or named no Bengaluru site. LOW-CONFIDENCE ENTRIES, FLAGGED AS SUCH: Marks & Spencer, Reckitt and The Walt Disney Company rest on a single OSM office POI each; Victoria's Secret & Co. rests on the Mast Global Business Services POI at Manyata whose post-2021 parent (VS&Co vs Bath & Body Works) is ambiguous; AstraZeneca's Yelahanka plant is pinned to a locality geocode and is being exited; Oracle Health's Cedar C2 block comes from a pre-rename listing with a forum claim that Manyata leases were not renewed; GSK's Cunningham Road and Novo Nordisk's Featherlite addresses are directory-only. Philips' Manyata campus is recorded as closed (relocation completed early 2024). Optum's older 'Abacus Center, JP Nagar' listing and an OSM 'Coca Cola Bottling Plant' polygon near Old Madras Road were left out as unverified. DELIBERATELY SKIPPED AS OTHER LENSES' TERRITORY: Walmart, Target, Tesco and Lowe's (E01), Diageo and AB InBev (E06), Thomson Reuters and Bloomberg (E04); where they appear here it is only as park tenants."
+}

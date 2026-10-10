@@ -1,0 +1,2080 @@
+{
+ "key": "E08-startups-fintech-saas-ai",
+ "techParks": [
+  {
+   "name": "Sigma Soft Tech Park",
+   "aliases": [
+    "Sigma Tech Park"
+   ],
+   "locality": "Whitefield (Ramagondanahalli)",
+   "lat": 12.9576526,
+   "lng": 77.7442422,
+   "developer": null,
+   "bbox": [
+    12.9568282,
+    12.9585941,
+    77.7436312,
+    77.7448829
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Niyo"
+   ],
+   "description": "Mid-size IT park on Whitefield Main Road at Ramagondanahalli with named blocks (Alpha, Beta, Gamma, Delta); Niyo's operating company Finnew Solutions is registered in Gamma Block. Coordinates and bbox are the OSM polygon.",
+   "sources": [
+    "https://www.indiacustomercare.com/niyo-global-customer-care"
+   ]
+  },
+  {
+   "name": "Salarpuria Sattva Knowledge Court",
+   "aliases": [
+    "Sattva Knowledge Court"
+   ],
+   "locality": "Whitefield (EPIP Zone / Hoodi)",
+   "lat": 12.974023,
+   "lng": 77.711898,
+   "developer": "Salarpuria Sattva",
+   "bbox": [
+    12.972548,
+    12.975202,
+    77.711013,
+    77.712971
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Fi"
+   ],
+   "description": "Salarpuria Sattva office building on 7th Cross, Green Domain Layout in the EPIP Zone of Whitefield, used by epiFi (Fi Money) as its headquarters. Coordinates and bbox are the OSM polygon.",
+   "sources": [
+    "https://www.uplers.com/company/fi-5022"
+   ]
+  },
+  {
+   "name": "RMZ Ecoworld",
+   "aliases": [
+    "Ecoworld",
+    "RMZ Ecoworld SEZ"
+   ],
+   "locality": "Bellandur / Devarabeesanahalli (Outer Ring Road)",
+   "lat": 12.9298067,
+   "lng": 77.6846292,
+   "developer": "RMZ",
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Cashfree Payments"
+   ],
+   "description": "RMZ's large campus of numbered office buildings on the Sarjapur-Marathahalli Outer Ring Road at Devarabeesanahalli; Cashfree took 80,000 sq ft in Building 7 through CoWrks for its new headquarters. Point is the geocoded campus road; no polygon in the OSM extract.",
+   "sources": [
+    "https://www.outlookbusiness.com/corporate/cowrks-leases-80k-sq-ft-office-space-to-cashfree-payments-at-bengaluru-centre"
+   ]
+  },
+  {
+   "name": "RGA Tech Park",
+   "aliases": [],
+   "locality": "Carmelaram / Doddakannelli (Sarjapur Road)",
+   "lat": 12.901265,
+   "lng": 77.704984,
+   "developer": null,
+   "bbox": [
+    12.899683,
+    12.902988,
+    77.703266,
+    77.706211
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Open"
+   ],
+   "description": "Two-tower tech park at 18 Sarjapur Road, Carmelaram; Open Financial Technologies' registered office is on the 3rd floor of Tower 2. Coordinates and bbox are the OSM polygon.",
+   "sources": [
+    "https://www.infyner.com/company/open-financial-technologies/U67200KA2017PTC166507"
+   ]
+  },
+  {
+   "name": "Diamond District",
+   "aliases": [
+    "Diamond District Commercial Block"
+   ],
+   "locality": "Kodihalli (HAL Old Airport Road)",
+   "lat": 12.959952,
+   "lng": 77.643379,
+   "developer": "IBC Group",
+   "bbox": [
+    12.959701,
+    12.960375,
+    77.642658,
+    77.644249
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Simpl",
+    "Zeta"
+   ],
+   "description": "Mixed-use complex on HAL Old Airport Road whose commercial towers (A, B, ...) house fintech and SaaS tenants; One Sigma Technologies (Simpl) lists Tower B and an OSM POI places Zeta here. Coordinates and bbox are the OSM commercial-block polygon.",
+   "sources": [
+    "https://www.leikart.com/leicert/335800IB93TD492C9Z13",
+    "https://www.openstreetmap.org/node/13563559848"
+   ]
+  },
+  {
+   "name": "Manyata Tech Park",
+   "aliases": [
+    "Embassy Manyata Business Park",
+    "Manyata Embassy Business Park"
+   ],
+   "locality": "Nagawara / Hebbal",
+   "lat": 13.04809,
+   "lng": 77.61975,
+   "developer": "Embassy",
+   "bbox": [
+    13.041258,
+    13.055452,
+    77.616136,
+    77.625275
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "M2P Fintech"
+   ],
+   "description": "Embassy's flagship north-Bengaluru business park at Nagawara; within this lens, M2P Fintech's subsidiary Conflux Technologies lists Phase II-B. Coordinates and bbox are the OSM polygon.",
+   "sources": [
+    "https://m2pfintech.com/contact-us"
+   ]
+  },
+  {
+   "name": "Embassy Tech Square",
+   "aliases": [
+    "Embassy Tech Square, Kadubeesanahalli"
+   ],
+   "locality": "Kadubeesanahalli (Outer Ring Road)",
+   "lat": 12.93509,
+   "lng": 77.693509,
+   "developer": "Embassy",
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "LeadSquared"
+   ],
+   "description": "Embassy office campus of named blocks (Alpha, Beta, Omega...) on the Outer Ring Road at Kadubeesanahalli, next to Prestige Tech Park; LeadSquared's corporate office is in the Omega block. Point is the OSM POI for Omega; no polygon in the extract.",
+   "sources": [
+    "https://www.leadsquared.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Helios Business Park",
+   "aliases": [],
+   "locality": "Kadubeesanahalli (Outer Ring Road)",
+   "lat": 12.937403,
+   "lng": 77.689719,
+   "developer": null,
+   "bbox": [
+    12.935185,
+    12.939717,
+    77.687917,
+    77.690748
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Mindtickle"
+   ],
+   "description": "Multi-tower office park on the Outer Ring Road service road at Kadubeesanahalli; Mindtickle's Bengaluru office is in E-Block. Coordinates and bbox are the OSM polygon.",
+   "sources": [
+    "https://www.mindtickle.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Embassy GolfLinks Business Park",
+   "aliases": [
+    "EGL",
+    "Embassy Golf Links"
+   ],
+   "locality": "Challaghatta / Domlur",
+   "lat": 12.950254,
+   "lng": 77.644071,
+   "developer": "Embassy",
+   "bbox": [
+    12.945593,
+    12.95396,
+    77.63981,
+    77.647252
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Uniphore"
+   ],
+   "description": "Embassy's campus of named buildings beside the KGA golf course between Domlur and the old airport road; Uniphore's Bengaluru office is in the St. Andrew's building. Coordinates and bbox are the OSM polygon.",
+   "sources": [
+    "https://www.uniphore.com/contact/"
+   ]
+  },
+  {
+   "name": "Brigade Senate",
+   "aliases": [
+    "Brigade Senate 2"
+   ],
+   "locality": "Hebbal-Kempapura",
+   "lat": 13.047608,
+   "lng": 77.580923,
+   "developer": "Brigade",
+   "bbox": [
+    13.046638,
+    13.04847,
+    77.579987,
+    77.581756
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Digantara"
+   ],
+   "description": "Brigade's office development at Hebbal-Kempapura on the Hebbal flyover side of Bellary Road; Digantara's India HQ is on the 9th floor of Brigade Senate 2. Coordinates and bbox are the OSM polygon.",
+   "sources": [
+    "https://www.digantara.co.in/"
+   ]
+  },
+  {
+   "name": "Prestige RMZ Startech",
+   "aliases": [
+    "RMZ Startech"
+   ],
+   "locality": "Koramangala (Hosur Road)",
+   "lat": 12.9315959,
+   "lng": 77.6155697,
+   "developer": "Prestige / RMZ",
+   "bbox": [
+    12.9307637,
+    12.9323971,
+    77.6136724,
+    77.6170431
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Krutrim"
+   ],
+   "description": "Prestige-RMZ office campus on Hosur Road at the Koramangala Industrial Layout, near Forum Mall; Krutrim SI Designs' registered office is in Block C. Coordinates and bbox are the OSM polygon.",
+   "sources": [
+    "https://www.olakrutrim.com/privacy-policy"
+   ]
+  },
+  {
+   "name": "MFAR Wilshire III",
+   "aliases": [
+    "Wilshire III by MFAR"
+   ],
+   "locality": "Mahadevapura (RHB Colony)",
+   "lat": 12.994636,
+   "lng": 77.693645,
+   "developer": "MFAR",
+   "bbox": [
+    12.993957,
+    12.995957,
+    77.693167,
+    77.694437
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Scripbox"
+   ],
+   "description": "MFAR's office tower at RHB Colony, Mahadevapura, off the Whitefield Road; Scripbox's registered and corporate office is on its 5th floor. Coordinates and bbox are the OSM polygon.",
+   "sources": [
+    "https://scripbox.com/contact-us"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "smallcase",
+   "aliases": [
+    "Smallcase Technologies Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech",
+   "description": "Thematic stock-basket investing platform for retail investors; headquartered in Richmond Town, central Bengaluru.",
+   "founded": 2015,
+   "isUnicorn": false,
+   "website": "https://www.smallcase.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Le Parc Richmonde",
+     "locality": "Richmond Town",
+     "lat": 12.966068,
+     "lng": 77.603468,
+     "address": "#51, 3rd Floor, Le Parc Richmonde, Richmond Road, Shanthala Nagar, Richmond Town, Bengaluru 560025",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "building": "Le Parc Richmonde",
+     "geocodeSource": "osm-poi",
+     "evidence": "smallcase's own About page footer gives this as its address, and an OSM office POI named 'smallcase' sits at these coordinates on Richmond Road, https://www.smallcase.com/about"
+    }
+   ],
+   "sources": [
+    "https://www.smallcase.com/about",
+    "https://inc42.com/company/smallcase/acquisitions/"
+   ]
+  },
+  {
+   "name": "Kuvera",
+   "aliases": [
+    "Arevuk Advisory Services Pvt Ltd",
+    "Kuvera by CRED"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech",
+   "description": "Direct mutual-fund investing app (acquired by CRED in February 2024); Bengaluru-founded, with its listed office in Basavanagudi.",
+   "founded": 2016,
+   "isUnicorn": false,
+   "website": "https://kuvera.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - Gandhi Bazaar, Basavanagudi",
+     "locality": "Basavanagudi",
+     "lat": 12.9459231,
+     "lng": 77.5705708,
+     "address": "Gandhi Bazaar Main Road, Basavanagudi, Bengaluru 560004 (above Bank of Baroda)",
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "photon",
+     "evidence": "Only CB Insights lists this address (kuvera.in's pages render no footer or legal address); the point is the geocoded road, not the building, and the team may have moved to CRED's Indiranagar office after the 2024 acquisition, https://www.cbinsights.com/company/kuvera"
+    }
+   ],
+   "sources": [
+    "https://www.cbinsights.com/company/kuvera",
+    "https://en.wikipedia.org/wiki/Kuvera.in"
+   ]
+  },
+  {
+   "name": "Scripbox",
+   "aliases": [
+    "Scripbox Advisors Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech",
+   "description": "Digital wealth-management and mutual-fund platform; registered and corporate office in MFAR's Wilshire III tower, Mahadevapura.",
+   "founded": 2012,
+   "isUnicorn": false,
+   "website": "https://scripbox.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru registered & corporate office - Wilshire III by MFAR",
+     "locality": "Mahadevapura",
+     "lat": 12.994636,
+     "lng": 77.693645,
+     "address": "Wilshire III by MFAR, 5th Floor, 492, RHB Colony, Mahadevapura, Bengaluru 560048",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "techPark": "MFAR Wilshire III",
+     "building": "Wilshire III",
+     "geocodeSource": "osm-park",
+     "evidence": "Scripbox's Contact Us page lists this as both its Bangalore registered office and corporate office, https://scripbox.com/contact-us ; coordinates are the OSM polygon of MFAR Wilshire III"
+    }
+   ],
+   "sources": [
+    "https://scripbox.com/contact-us",
+    "https://www.scripbox.com/pages/grievance-redressal"
+   ]
+  },
+  {
+   "name": "Niyo",
+   "aliases": [
+    "Finnew Solutions Pvt Ltd",
+    "Niyo Global",
+    "Niyo Solutions"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech",
+   "description": "Neo-banking app (Niyo Global forex cards, salary accounts); operates from Sigma Soft Tech Park in Whitefield.",
+   "founded": 2015,
+   "isUnicorn": false,
+   "website": "https://www.goniyo.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Sigma Soft Tech Park, Whitefield",
+     "locality": "Whitefield",
+     "lat": 12.9576526,
+     "lng": 77.7442422,
+     "address": "Gamma Block, Sigma Soft Tech Park, Ramagondanahalli Village, Varthur Hobli, Whitefield, Bengaluru 560066",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": "Sigma Soft Tech Park",
+     "building": "Gamma Block",
+     "geocodeSource": "photon",
+     "evidence": "A third-party customer-care directory gives Finnew Solutions' registered office as Gamma Block, Sigma Soft Tech Park, and an Accel job posting says the company is 'based out of Whitefield'; goniyo.com's contact page lists no address, https://www.indiacustomercare.com/niyo-global-customer-care"
+    }
+   ],
+   "sources": [
+    "https://www.indiacustomercare.com/niyo-global-customer-care",
+    "https://jobs.accel.com/companies/niyo/jobs/45659472-sde-1-golang",
+    "https://www.goniyo.com/contact-us"
+   ]
+  },
+  {
+   "name": "Fi",
+   "aliases": [
+    "epiFi",
+    "Fi Money",
+    "Epifi Technologies Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech",
+   "description": "Neo-banking app built on Federal Bank; office in Sattva Knowledge Court, Whitefield. fi.money now directs users to Federal Bank for the wound-down consumer product, so the office's current size is uncertain.",
+   "founded": 2019,
+   "isUnicorn": false,
+   "website": "https://fi.money",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Sattva Knowledge Court, Whitefield",
+     "locality": "Whitefield (EPIP Zone)",
+     "lat": 12.974023,
+     "lng": 77.711898,
+     "address": "Sattva Knowledge Court, 7th Cross Road, Green Domain Layout, EPIP Zone, Whitefield, Bengaluru 560048",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": "Salarpuria Sattva Knowledge Court",
+     "building": null,
+     "geocodeSource": "osm-park",
+     "evidence": "Uplers, Prospeo and Datanyze all place epiFi at Sattva Knowledge Court (an older Craft listing names IndiQube Gamma on ORR); fi.money's own pages carry no address, https://www.uplers.com/company/fi-5022 ; coordinates are the OSM park polygon"
+    }
+   ],
+   "sources": [
+    "https://www.uplers.com/company/fi-5022",
+    "https://www.datanyze.com/companies/fi/557840283",
+    "https://fi.money/"
+   ]
+  },
+  {
+   "name": "Rupeek",
+   "aliases": [
+    "Rupeek Fintech Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech",
+   "description": "Doorstep gold-loan platform; headquartered in Koramangala 1st Block.",
+   "founded": 2015,
+   "isUnicorn": false,
+   "website": "https://rupeek.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Koramangala 1st Block",
+     "locality": "Koramangala 1st Block",
+     "lat": 12.9253419,
+     "lng": 77.6327408,
+     "address": "1st Floor, Building No 1010, 7th A Main Road, 1st Block Koramangala, Bengaluru 560034",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "photon",
+     "evidence": "CB Insights and Craft both give this Koramangala 1st Block address; rupeek.com's contact and privacy pages carry no postal address, https://www.cbinsights.com/company/rupeek ; point is the geocoded 7th A Main Road"
+    }
+   ],
+   "sources": [
+    "https://www.cbinsights.com/company/rupeek",
+    "https://craft.co/rupeek",
+    "https://rupeek.com/contact-us"
+   ]
+  },
+  {
+   "name": "Cashfree Payments",
+   "aliases": [
+    "Cashfree Payments India Pvt Ltd",
+    "Cashfree"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech",
+   "description": "Payment gateway and payouts company; moved its headquarters into an 80,000 sq ft CoWrks-managed space in RMZ Ecoworld, Bellandur, from its long-time Koramangala office.",
+   "founded": 2015,
+   "isUnicorn": false,
+   "website": "https://www.cashfree.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - RMZ Ecoworld, Bellandur",
+     "locality": "Bellandur (Outer Ring Road)",
+     "lat": 12.9298067,
+     "lng": 77.6846292,
+     "address": "Building No 7, 10th Floor, RMZ Ecoworld, Sarjapur-Marathahalli Outer Ring Road, Bellandur, Bengaluru 560103",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": "RMZ Ecoworld",
+     "building": "Building 7",
+     "geocodeSource": "nominatim",
+     "evidence": "Outlook Business reported CoWrks leasing 80,000 sq ft at its Bellandur centre to Cashfree for its new corporate headquarters, and PitchBook lists Building 7, 10th Floor, Ecoworld as the corporate office, https://www.outlookbusiness.com/corporate/cowrks-leases-80k-sq-ft-office-space-to-cashfree-payments-at-bengaluru-centre ; point is the geocoded Ecoworld campus, not the tower"
+    },
+    {
+     "label": "Koramangala office - Vaishnavi Summit",
+     "locality": "Koramangala 1A Block",
+     "lat": 12.927425,
+     "lng": 77.632936,
+     "address": "Vaishnavi Summit, No. 6/B, 80 Feet Road, Koramangala 1A Block, Bengaluru 560034",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "building": "Vaishnavi Summit",
+     "geocodeSource": "osm-poi",
+     "evidence": "Cashfree's own press kit gives Vaishnavi Summit, 80 Feet Road, Koramangala as its address, and an OSM office POI 'Cashfree Payments' sits in that building, https://www.cashfree.com/presskit/"
+    }
+   ],
+   "sources": [
+    "https://www.cashfree.com/presskit/",
+    "https://www.outlookbusiness.com/corporate/cowrks-leases-80k-sq-ft-office-space-to-cashfree-payments-at-bengaluru-centre",
+    "https://pitchbook.com/profiles/company/121702-96"
+   ]
+  },
+  {
+   "name": "Instamojo",
+   "aliases": [
+    "Instamojo Technologies Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech",
+   "description": "Payments and online-store platform for small merchants; Koramangala office.",
+   "founded": 2012,
+   "isUnicorn": false,
+   "website": "https://www.instamojo.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Ma Grace, Koramangala",
+     "locality": "Koramangala",
+     "lat": 12.929381,
+     "lng": 77.632681,
+     "address": "3rd & 4th Floor, #12 Ma Grace, 7th Cross Road, Koramangala, Bengaluru 560034",
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "techPark": null,
+     "building": "Ma Grace",
+     "geocodeSource": "osm-poi",
+     "evidence": "Only an OSM office POI carrying the full address and the instamojo.com website tag places the office here; instamojo.com's contact and terms pages could not be read this run, https://www.openstreetmap.org/node/6633235407"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/6633235407",
+    "https://www.instamojo.com"
+   ]
+  },
+  {
+   "name": "Signzy",
+   "aliases": [
+    "Signzy Technologies Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech",
+   "description": "Digital KYC / onboarding RegTech; its About page says the headquarters is Bengaluru, in Garuda BHIVE Workspace at the BMTC complex on the Outer Ring Road, BTM Layout.",
+   "founded": 2015,
+   "isUnicorn": false,
+   "website": "https://www.signzy.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Garuda BHIVE Workspace, BMTC Complex",
+     "locality": "BTM Layout 2nd Stage (Old Madiwala)",
+     "lat": 12.916531,
+     "lng": 77.617746,
+     "address": "BMTC Complex, 4th Floor, Garuda BHIVE Workspace, Old Madiwala, Kuvempu Nagar, Stage 2, BTM Layout, Bengaluru 560068",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "building": "BMTC Complex (Garuda BHIVE Workspace)",
+     "geocodeSource": "osm-poi",
+     "evidence": "Signzy's About Us page lists this Bengaluru address and its FAQ says the headquarters is in Bengaluru, https://www.signzy.com/about-us ; coordinates are an OSM POI on the same Old Madiwala stretch of the Outer Ring Road (N.R Towers), so the point is approximate"
+    }
+   ],
+   "sources": [
+    "https://www.signzy.com/about-us",
+    "https://zoominfo.com/pic/signzy/439480341"
+   ]
+  },
+  {
+   "name": "Perfios",
+   "aliases": [
+    "Perfios Software Solutions Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech",
+   "description": "Financial-data analytics and credit-decisioning SaaS for banks and lenders; Bangalore HQ in HM Vibha Towers on Hosur Road, Adugodi. Valued above $1B after its 2023-24 rounds.",
+   "founded": 2008,
+   "isUnicorn": true,
+   "website": "https://perfios.ai",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - HM Vibha Towers, Adugodi",
+     "locality": "Adugodi (Hosur Road)",
+     "lat": 12.9365869,
+     "lng": 77.6102824,
+     "address": "4th Floor, Lasker, HM Vibha Towers, 66/525, Hosur Road, above Star Hyper, Chikku Lakshmaiah Layout, Adugodi, Bengaluru 560030",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "building": "HM Vibha Towers",
+     "geocodeSource": "photon",
+     "evidence": "perfios.ai's Contact page lists this as 'Bangalore HQ', https://perfios.ai/contact-us/ ; coordinates are the geocoded HM Vibha Towers building"
+    }
+   ],
+   "sources": [
+    "https://perfios.ai/contact-us/",
+    "https://clay.com/dossier/perfios-headquarters-office-locations"
+   ]
+  },
+  {
+   "name": "KredX",
+   "aliases": [
+    "Minions Ventures Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech",
+   "description": "Invoice-discounting and supply-chain-finance marketplace; corporate office in Sakti Statesman, Iblur, off the Outer Ring Road (earlier at Salarpuria Softzone, Bellandur).",
+   "founded": 2015,
+   "isUnicorn": false,
+   "website": "https://www.kredx.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Sakti Statesman, Iblur",
+     "locality": "Iblur (Outer Ring Road)",
+     "lat": 12.9236405,
+     "lng": 77.6676517,
+     "address": "Unit 106-109, 1st Floor, Sakti Statesman, Wing B, S No 34, Iblur, Begur Hobli, Bengaluru 560103",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "building": "Sakti Statesman, Wing B",
+     "geocodeSource": "nominatim",
+     "evidence": "KredX's Contact Us page lists this Bangalore address, https://www.kredx.com/contact-us ; coordinates are the OSM building polygon 'Sakti Statesman'"
+    }
+   ],
+   "sources": [
+    "https://www.kredx.com/contact-us",
+    "https://yourstory.com/companies/kredx"
+   ]
+  },
+  {
+   "name": "Khatabook",
+   "aliases": [
+    "Khatabook Technologies Pvt Ltd",
+    "Kyte Technologies"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech",
+   "description": "Digital ledger and SME finance app; headquartered in HSR Layout Sector 3.",
+   "founded": 2018,
+   "isUnicorn": false,
+   "website": "https://khatabook.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - HSR Layout Sector 3",
+     "locality": "HSR Layout Sector 3",
+     "lat": 12.911741,
+     "lng": 77.644274,
+     "address": "1203, 22nd Cross Road, 14th Main, Sector 3, HSR Layout, Bengaluru 560102",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "osm-poi",
+     "evidence": "The LEI record, CB Insights, ZoomInfo and Craft all give this HSR Layout address, and an OSM office POI 'Khatabook' sits at these coordinates, https://www.cbinsights.com/company/khatabook"
+    }
+   ],
+   "sources": [
+    "https://www.cbinsights.com/company/khatabook",
+    "https://www.leikart.com/leicert/254900QGCO8LWHFUQ397",
+    "https://www.openstreetmap.org/node/11061527379"
+   ]
+  },
+  {
+   "name": "Open",
+   "aliases": [
+    "Open Financial Technologies Pvt Ltd",
+    "Open Money"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech",
+   "description": "SME neo-banking / business-payments platform (India's 100th unicorn, May 2022, so included only because it was on the lens list); registered office in RGA Tech Park on Sarjapur Road.",
+   "founded": 2017,
+   "isUnicorn": true,
+   "website": "https://open.money",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - RGA Tech Park, Sarjapur Road",
+     "locality": "Carmelaram (Sarjapur Road)",
+     "lat": 12.901265,
+     "lng": 77.704984,
+     "address": "3rd Floor, Tower 2, RGA Tech Park, 18 Sarjapur Road, Carmelaram, Hadosiddapura, Doddakannelli, Bengaluru 560035",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": "RGA Tech Park",
+     "building": "Tower 2",
+     "geocodeSource": "osm-park",
+     "evidence": "An MCA-derived company listing and a second profile both give this registered office, https://www.infyner.com/company/open-financial-technologies/U67200KA2017PTC166507 ; coordinates are the OSM polygon of RGA Tech Park, not Tower 2"
+    }
+   ],
+   "sources": [
+    "https://www.infyner.com/company/open-financial-technologies/U67200KA2017PTC166507",
+    "https://siliconvalleyinvestclub.com/companies/open/",
+    "https://inc42.com/company/open-money/"
+   ]
+  },
+  {
+   "name": "Simpl",
+   "aliases": [
+    "One Sigma Technologies Pvt Ltd",
+    "Get Simpl"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech",
+   "description": "Buy-now-pay-later / checkout-credit network; legal and headquarters address in Diamond District on Old Airport Road (earlier HAL 2nd Stage, Indiranagar).",
+   "founded": 2015,
+   "isUnicorn": false,
+   "website": "https://getsimpl.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Diamond District, Tower B",
+     "locality": "Kodihalli (HAL Old Airport Road)",
+     "lat": 12.959952,
+     "lng": 77.643379,
+     "address": "7th Floor, Tower B, Diamond District, HAL Old Airport Road, Bengaluru 560008",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": "Diamond District",
+     "building": "Tower B",
+     "geocodeSource": "osm-park",
+     "evidence": "The MCA-validated LEI record for One Sigma Technologies gives Tower B, Diamond District as both legal and headquarters address; aggregators still show the older 12th Main HAL 2nd Stage office, https://www.leikart.com/leicert/335800IB93TD492C9Z13 ; coordinates are the OSM polygon of Diamond District's commercial block"
+    }
+   ],
+   "sources": [
+    "https://www.leikart.com/leicert/335800IB93TD492C9Z13",
+    "https://www.cbinsights.com/company/simpl-technologies"
+   ]
+  },
+  {
+   "name": "M2P Fintech",
+   "aliases": [
+    "M2P Solutions Pvt Ltd",
+    "Yap",
+    "Conflux Technologies Pvt Ltd (subsidiary)"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Chennai",
+   "hqCountry": "India",
+   "sector": "Fintech",
+   "description": "Chennai-headquartered banking-as-a-service / card-issuing platform (unicorn since its October 2024 round); three Bengaluru offices, two of them run by its acquired subsidiary Conflux Technologies.",
+   "founded": 2014,
+   "isUnicorn": true,
+   "website": "https://m2pfintech.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Manyata Tech Park office (Conflux Technologies)",
+     "locality": "Nagawara",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "address": "Conflux Technologies Pvt Ltd, 3rd Floor, Phase II-B, Manyata Tech Park, Nagawara, Bengaluru 560045",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": "Manyata Tech Park",
+     "building": "Phase II-B",
+     "geocodeSource": "park-centroid",
+     "evidence": "M2P's official Contact Us page lists this Manyata address, https://m2pfintech.com/contact-us ; coordinates are the Manyata Tech Park centroid, not the Phase II-B block"
+    },
+    {
+     "label": "IndiQube Penta, Richmond Road",
+     "locality": "Richmond Town",
+     "lat": 12.965995,
+     "lng": 77.603566,
+     "address": "IndiQube Penta, New No. 51 (Old No. 14), Richmond Road, Bengaluru 560025",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "building": "IndiQube Penta",
+     "geocodeSource": "osm-park",
+     "evidence": "M2P's official Contact Us page lists this Richmond Road office, https://m2pfintech.com/contact-us ; coordinates are the OSM polygon of IndiQube Penta"
+    },
+    {
+     "label": "HRBR Layout office (Conflux Technologies)",
+     "locality": "HRBR Layout 1st Block, Kalyan Nagar",
+     "lat": 13.0115726,
+     "lng": 77.6428715,
+     "address": "Conflux Technologies Pvt Ltd, #304, 5th Floor, 7th Main Road, HRBR Layout 1st Block, Bengaluru 560043",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "nominatim",
+     "evidence": "M2P's official Contact Us page lists this HRBR Layout office, https://m2pfintech.com/contact-us ; coordinates are the geocoded 7th Main Road"
+    }
+   ],
+   "sources": [
+    "https://m2pfintech.com/contact-us",
+    "https://inc42.com/?p=359667"
+   ]
+  },
+  {
+   "name": "Zeta",
+   "aliases": [
+    "Better World Technology Pvt Ltd",
+    "Zeta Services"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "hqCity": "San Ramon",
+   "hqCountry": "United States",
+   "sector": "Fintech",
+   "description": "Banking-technology / card-processing platform, dual-headquartered in San Ramon and Bengaluru (unicorn since 2021). Its Bengaluru office is poorly documented online; only an OSM POI places it in Diamond District.",
+   "founded": 2015,
+   "isUnicorn": true,
+   "website": "https://www.zeta.tech",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - Diamond District (OSM POI only)",
+     "locality": "Kodihalli (HAL Old Airport Road)",
+     "lat": 12.960069,
+     "lng": 77.643373,
+     "address": "Diamond District, HAL Old Airport Road, Bengaluru 560008 (tower not published)",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "techPark": "Diamond District",
+     "building": null,
+     "geocodeSource": "osm-poi",
+     "evidence": "An OSM office POI named 'Zeta' sits inside the Diamond District polygon; zeta.tech's contact page lists only the San Ramon HQ and its /in/ page was rate-limited this run, https://www.openstreetmap.org/node/13563559848"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13563559848",
+    "https://www.zeta.tech/contact-us"
+   ]
+  },
+  {
+   "name": "Fam",
+   "aliases": [
+    "FamPay",
+    "FamApp by Trio",
+    "FamPay Solutions Pvt Ltd",
+    "Trio"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech",
+   "description": "Teen-focused payments app (FamPay, now FamApp by Trio); office on the Outer Ring Road edge of HSR Layout Sector 1.",
+   "founded": 2019,
+   "isUnicorn": false,
+   "website": "https://famapp.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - HSR Layout Sector 1",
+     "locality": "HSR Layout Sector 1 (Outer Ring Road)",
+     "lat": 12.9192619,
+     "lng": 77.6471583,
+     "address": "1st Floor, No. 144, Outer Ring Road, 22nd Main Road, 1st Sector, HSR Layout, Bengaluru 560102",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "nominatim",
+     "evidence": "famapp.in's footer gives this as the company address, https://famapp.in/ ; coordinates are the geocoded 22nd Main Road, Sector 1 (aggregators list an older Sector 6 address)"
+    }
+   ],
+   "sources": [
+    "https://famapp.in/",
+    "https://insights.persana.ai/FamPay"
+   ]
+  },
+  {
+   "name": "Jar",
+   "aliases": [
+    "Changejar Technologies Pvt Ltd",
+    "Jar App"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech",
+   "description": "Daily-savings / digital-gold investing app; registered office in Koramangala 6th Block.",
+   "founded": 2021,
+   "isUnicorn": false,
+   "website": "https://www.myjar.app",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Vasantham Building, Koramangala 6th Block",
+     "locality": "Koramangala 6th Block",
+     "lat": 12.9415892,
+     "lng": 77.6231099,
+     "address": "No. 752, Vasantham Building, 18th Main Road, 6th Block, Koramangala, Bengaluru 560095",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "building": "Vasantham Building",
+     "geocodeSource": "photon",
+     "evidence": "myjar.app's Mandatory Disclosures give this as Changejar Technologies' registered office, https://www.myjar.app/ ; coordinates are the geocoded 18th Main Road"
+    }
+   ],
+   "sources": [
+    "https://www.myjar.app/",
+    "https://inc42.com/company/jar-app/overview"
+   ]
+  },
+  {
+   "name": "Stable Money",
+   "aliases": [
+    "Stable Finserv Pvt Ltd",
+    "Stable-Alpha Technologies Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech",
+   "description": "Fixed-deposit and bond investing app; registered office in Block A of the Bhive HSR Premium Campus at Kudlu Gate.",
+   "founded": 2022,
+   "isUnicorn": false,
+   "website": "https://stablemoney.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Bhive HSR Premium Campus, Kudlu Gate",
+     "locality": "Kudlu Gate (Bommanahalli)",
+     "lat": 12.8903178,
+     "lng": 77.6389484,
+     "address": "Third Floor, Block A, Bhive HSR Premium Campus, Krishna Reddy Industrial Area, Kudlu Gate, Bommanahalli, Bengaluru 560068",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "building": "Bhive HSR Premium Campus, Block A",
+     "geocodeSource": "photon",
+     "evidence": "stablemoney.in's footer gives this registered address for Stable Finserv Pvt Ltd, https://stablemoney.in/ ; coordinates are the geocoded Kudlu Gate junction, not the campus building"
+    }
+   ],
+   "sources": [
+    "https://stablemoney.in/",
+    "https://www.cbinsights.com/company/stable-money"
+   ]
+  },
+  {
+   "name": "Sarvam AI",
+   "aliases": [
+    "Axonwise Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "AI & deep tech",
+   "description": "Indian foundation-model / sovereign-LLM startup; office on Chinmaya Mission Hospital Road, Indiranagar (next door to Pixxel).",
+   "founded": 2023,
+   "isUnicorn": false,
+   "website": "https://www.sarvam.ai",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Indiranagar",
+     "locality": "Indiranagar 1st Stage",
+     "lat": 12.9787589,
+     "lng": 77.6449321,
+     "address": "732, Chinmaya Mission Hospital Road, Indiranagar Stage 1, Bengaluru 560038",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "photon",
+     "evidence": "sarvam.ai's footer names Axonwise Pvt Ltd at this address, https://www.sarvam.ai/ ; coordinates are the geocoded Chinmaya Mission Hospital Road segment at no. 722-732"
+    }
+   ],
+   "sources": [
+    "https://www.sarvam.ai/"
+   ]
+  },
+  {
+   "name": "Krutrim",
+   "aliases": [
+    "Krutrim SI Designs Pvt Ltd",
+    "Ola Krutrim"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "AI & deep tech",
+   "description": "Ola group's AI and silicon company (unicorn since January 2024, included because it was on the lens list); registered office in Prestige RMZ Startech on Hosur Road, Koramangala.",
+   "founded": 2023,
+   "isUnicorn": true,
+   "website": "https://www.olakrutrim.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Prestige RMZ Startech, Koramangala",
+     "locality": "Koramangala (Hosur Road)",
+     "lat": 12.9315959,
+     "lng": 77.6155697,
+     "address": "8th Floor, Wing C, Prestige RMZ Startech Block C, Industrial Layout, Hosur Road, Koramangala, Bengaluru 560095",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "techPark": "Prestige RMZ Startech",
+     "building": "Block C, Wing C",
+     "geocodeSource": "photon",
+     "evidence": "Krutrim's privacy policy gives this registered office for Krutrim SI Designs Pvt Ltd, https://www.olakrutrim.com/privacy-policy ; coordinates are the OSM polygon of Prestige RMZ Startech"
+    }
+   ],
+   "sources": [
+    "https://www.olakrutrim.com/privacy-policy"
+   ]
+  },
+  {
+   "name": "Yellow.ai",
+   "aliases": [
+    "Bitonic Technology Labs Inc",
+    "Yellow Messenger"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "hqCity": "San Mateo",
+   "hqCountry": "United States",
+   "sector": "AI & deep tech",
+   "description": "Conversational-AI / customer-service automation platform, Bengaluru-founded and now San Mateo-headquartered; its India office is in Koramangala 5th Block.",
+   "founded": 2016,
+   "isUnicorn": false,
+   "website": "https://yellow.ai",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - Koramangala 5th Block",
+     "locality": "Koramangala 5th Block",
+     "lat": 12.9374857,
+     "lng": 77.6199616,
+     "address": "5B, Site No. 142, 1st Cross Road, 5th Block, next to Apollo Spectra Hospital, Koramangala, Bengaluru 560034",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "nominatim",
+     "evidence": "yellow.ai's About Us page lists this as its India office, https://yellow.ai/about-us/ ; coordinates are the geocoded 1st Cross Road, Koramangala 5th Block"
+    }
+   ],
+   "sources": [
+    "https://yellow.ai/about-us/"
+   ]
+  },
+  {
+   "name": "MoEngage",
+   "aliases": [
+    "MoEngage Inc"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "sector": "SaaS",
+   "description": "Customer-engagement / marketing-automation SaaS, Bengaluru-founded with a San Francisco corporate HQ; Bengaluru engineering office in Salarpuria Tower II on Hosur Road, Koramangala.",
+   "founded": 2014,
+   "isUnicorn": false,
+   "website": "https://www.moengage.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - Salarpuria Tower II, Koramangala",
+     "locality": "Koramangala (Hosur Road)",
+     "lat": 12.9333764,
+     "lng": 77.6125275,
+     "address": "1st Floor, #32, Salarpuria Tower II, Chikku Lakshmaiah Layout, Luskar Hosur Road, Koramangala, Bengaluru 560034",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "building": "Salarpuria Tower II",
+     "geocodeSource": "photon",
+     "evidence": "MoEngage's Contact Us page lists this Bengaluru office, https://www.moengage.com/contact-us/ ; coordinates are a geocoder hit on the same Hosur Road frontage, so the point is approximate"
+    }
+   ],
+   "sources": [
+    "https://www.moengage.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Amagi",
+   "aliases": [
+    "Amagi Media Labs Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Media & gaming",
+   "description": "Cloud broadcast and connected-TV advertising SaaS (unicorn since 2022, included because it was on the lens list); global HQ in Raj Alkaa Park on Bannerghatta Road.",
+   "founded": 2008,
+   "isUnicorn": true,
+   "website": "https://www.amagi.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global HQ - Raj Alkaa Park, Bannerghatta Road",
+     "locality": "Kalena Agrahara (Bannerghatta Road)",
+     "lat": 12.8661075,
+     "lng": 77.59192,
+     "address": "4th Floor, Raj Alkaa Park, Kalena Agrahara, Bannerghatta Road, Bengaluru 560076",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "building": "Raj Alkaa Park",
+     "geocodeSource": "photon",
+     "evidence": "Amagi's Contact page lists this as its Global HQ, https://www.amagi.com/contact ; the building could not be geocoded, so the point is the Kalena Agrahara locality on Bannerghatta Road"
+    }
+   ],
+   "sources": [
+    "https://www.amagi.com/contact"
+   ]
+  },
+  {
+   "name": "LeadSquared",
+   "aliases": [
+    "MarketXpander Services Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "SaaS",
+   "description": "Sales-execution CRM SaaS (unicorn since June 2022, included because it was on the lens list); corporate office in the Omega block of Embassy Tech Square on the Outer Ring Road.",
+   "founded": 2011,
+   "isUnicorn": true,
+   "website": "https://www.leadsquared.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Embassy Tech Square, Omega Block",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "lat": 12.93509,
+     "lng": 77.693509,
+     "address": "2nd Floor, Omega Block, Embassy Tech Square, Kadubeesanahalli, Outer Ring Road, Bengaluru 560103",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "techPark": "Embassy Tech Square",
+     "building": "Omega Block",
+     "geocodeSource": "osm-poi",
+     "evidence": "LeadSquared's Contact Us page lists this as its corporate office, https://www.leadsquared.com/contact-us/ ; coordinates are the OSM POI for the Omega block of Embassy Tech Square"
+    }
+   ],
+   "sources": [
+    "https://www.leadsquared.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Exotel",
+   "aliases": [
+    "Exotel Techcom Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "SaaS",
+   "description": "Cloud telephony / CPaaS and contact-centre platform; headquartered in Maruthi Infotech Center, Domlur.",
+   "founded": 2011,
+   "isUnicorn": false,
+   "website": "https://exotel.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Maruthi Infotech Center, Domlur",
+     "locality": "Domlur (Amarjyoti Layout)",
+     "lat": 12.9566279,
+     "lng": 77.6427434,
+     "address": "Maruthi Infotech Center, 2nd Floor, Tower A, 540, 100 Feet Road, Krishna Reddy Layout, Amarjyoti Layout, Domlur, Bengaluru 560071",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "building": "Maruthi Infotech Center, Tower A",
+     "geocodeSource": "photon",
+     "evidence": "Exotel's Contact Us page lists this Bengaluru address first, https://exotel.com/contact-us/ ; the building could not be geocoded, so the point is the Amarjyoti Layout locality"
+    }
+   ],
+   "sources": [
+    "https://exotel.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Whatfix",
+   "aliases": [
+    "Whatfix Inc",
+    "Whatfix Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "sector": "SaaS",
+   "description": "Digital-adoption platform, Bengaluru-founded and San Jose-headquartered; its main engineering office is in HSR Layout Sector 3.",
+   "founded": 2014,
+   "isUnicorn": false,
+   "website": "https://whatfix.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - HSR Layout Sector 3",
+     "locality": "HSR Layout Sector 3",
+     "lat": 12.911858,
+     "lng": 77.640249,
+     "address": "No. 1289/1090E, 18th Cross Road, Sector 3, HSR Layout, Bengaluru 560102",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "osm-poi",
+     "evidence": "Whatfix's About Us page lists this Bengaluru address, https://whatfix.com/about-us/ ; four OSM office POIs named 'Whatfix' sit at these coordinates"
+    }
+   ],
+   "sources": [
+    "https://whatfix.com/about-us/"
+   ]
+  },
+  {
+   "name": "SpotDraft",
+   "aliases": [
+    "SpotDraft Technologies Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "SaaS",
+   "description": "Contract-lifecycle-management SaaS; registered in Gurugram but run from HSR Layout, Bengaluru, with a New York office.",
+   "founded": 2017,
+   "isUnicorn": false,
+   "website": "https://www.spotdraft.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - HSR Layout Sector 7",
+     "locality": "HSR Layout Sector 7",
+     "lat": 12.9100092,
+     "lng": 77.6351171,
+     "address": "No. 1193 & 1194, Sector VII, HSR Layout, Bengaluru 560102",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "nominatim",
+     "evidence": "SpotDraft's About Us page lists this Bengaluru address in its visible office section, https://www.spotdraft.com/about-us ; coordinates are the Sector 7 centroid, not the building"
+    },
+    {
+     "label": "Bengaluru office - UrbanVault 97, HSR Layout Sector 4",
+     "locality": "HSR Layout Sector 4",
+     "lat": 12.912516,
+     "lng": 77.639625,
+     "address": "4th Floor, UrbanVault, 97, 17th Cross Road, Sector 4, HSR Layout, Bengaluru 560102",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "building": "UrbanVault 97",
+     "geocodeSource": "osm-poi",
+     "evidence": "The same About Us page's structured data gives the UrbanVault 97 address, and an OSM POI 'Urban Vault 97' sits at these coordinates, https://www.spotdraft.com/about-us"
+    }
+   ],
+   "sources": [
+    "https://www.spotdraft.com/about-us"
+   ]
+  },
+  {
+   "name": "Capillary Technologies",
+   "aliases": [
+    "Capillary Technologies India Ltd",
+    "Capillary Technologies International Pte Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "SaaS",
+   "description": "Loyalty and customer-engagement SaaS founded in Bengaluru in 2008 and listed on NSE/BSE in November 2025 (Singapore holding company); its Bengaluru office is only OSM-evidenced this run.",
+   "founded": 2008,
+   "isUnicorn": false,
+   "website": "https://www.capillarytech.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office (OSM POI only)",
+     "locality": "BTM Layout 2nd Stage / Koramangala border",
+     "lat": 12.913187,
+     "lng": 77.625714,
+     "address": "Not published on a page readable this run; OSM POI 'Capillary Technologies' near BTM Layout 2nd Stage",
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "osm-poi",
+     "evidence": "Only an OSM office POI places Capillary here; capillarytech.com returned 403 and Wikipedia gives no street address, https://www.openstreetmap.org/node/6871418831"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Capillary_Technologies",
+    "https://www.openstreetmap.org/node/6871418831"
+   ]
+  },
+  {
+   "name": "Uniphore",
+   "aliases": [
+    "Uniphore Software Systems"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "hqCity": "Palo Alto",
+   "hqCountry": "United States",
+   "sector": "AI & deep tech",
+   "description": "Conversational-AI company founded at IIT Madras in 2008 and now headquartered in Palo Alto; its Bengaluru office is in the St. Andrew's building at Embassy GolfLinks.",
+   "founded": 2008,
+   "isUnicorn": false,
+   "website": "https://www.uniphore.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - Embassy GolfLinks, St. Andrew's",
+     "locality": "Challaghatta / Domlur (Embassy GolfLinks)",
+     "lat": 12.9510388,
+     "lng": 77.6440837,
+     "address": "St. Andrew's building, 1st Floor, Embassy Golf Links Business Park, Challaghatta, Bengaluru 560071",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "St. Andrew's",
+     "geocodeSource": "nominatim",
+     "evidence": "Uniphore's Contact page lists this Bengaluru office, https://www.uniphore.com/contact/ ; coordinates are the OSM polygon of the St. Andrews building inside the park"
+    }
+   ],
+   "sources": [
+    "https://www.uniphore.com/contact/"
+   ]
+  },
+  {
+   "name": "Mindtickle",
+   "aliases": [
+    "MindTickle Inc"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "sector": "SaaS",
+   "description": "Sales-readiness / revenue-enablement SaaS, Pune-founded and San Francisco-headquartered (unicorn since 2021); its Bengaluru office is in E-Block of Helios Business Park.",
+   "founded": 2011,
+   "isUnicorn": true,
+   "website": "https://www.mindtickle.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - Helios Business Park, E-Block",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "lat": 12.937403,
+     "lng": 77.689719,
+     "address": "2nd Floor, E-Block, Helios Business Park, Chandana, Kadubeesanahalli, Bengaluru 560103",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": "Helios Business Park",
+     "building": "E-Block",
+     "geocodeSource": "osm-park",
+     "evidence": "Mindtickle's Contact Us page lists this Bengaluru APAC office, https://www.mindtickle.com/contact-us/ ; coordinates are the OSM polygon of Helios Business Park, not E-Block"
+    }
+   ],
+   "sources": [
+    "https://www.mindtickle.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Tata Communications Kaleyra",
+   "aliases": [
+    "Kaleyra",
+    "Kaleyra S.p.A.",
+    "Solutions Infini"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "sector": "Telecom & networking",
+   "description": "CPaaS (SMS, voice, WhatsApp APIs) company that grew out of Bengaluru's Solutions Infini, was Milan-headquartered and NYSE-listed, and was acquired by Tata Communications in October 2023; kaleyra.com now redirects to tatacommunications.com.",
+   "founded": 1999,
+   "isUnicorn": false,
+   "website": "https://www.tatacommunications.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - Bannerghatta Road (OSM POI)",
+     "locality": "Bannerghatta Road (J.P. Nagar)",
+     "lat": 12.90401,
+     "lng": 77.60129,
+     "address": "Bannerghatta Road, Bengaluru 560076 (building not published)",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "osm-poi",
+     "evidence": "An OSM office POI 'Kaleyra' with PIN 560076 sits here; the company's own contact page now redirects to Tata Communications, which lists no Bengaluru address, https://www.openstreetmap.org/node/12053283218"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12053283218",
+    "https://www.tatacommunications.com/contact-us/contact-sales-kaleyra"
+   ]
+  },
+  {
+   "name": "Pixxel",
+   "aliases": [
+    "Pixxel Space Technologies",
+    "Pixxel Space India Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Space",
+   "description": "Hyperspectral earth-imaging satellite company; HQ in Indiranagar with a second Bengaluru site (its spacecraft facility) in HBR Layout, plus El Segundo, CA.",
+   "founded": 2019,
+   "isUnicorn": false,
+   "website": "https://www.pixxel.space",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Indiranagar",
+     "locality": "Indiranagar 2nd Stage",
+     "lat": 12.97827,
+     "lng": 77.645201,
+     "address": "Third Floor, 722, Chinmaya Mission Hospital Road, Stage 2, Indiranagar, Bengaluru 560038",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "osm-poi",
+     "evidence": "pixxel.space's Contact page lists this Indiranagar office and an OSM POI 'Pixxel' with the same house number sits here, https://www.pixxel.space/contact"
+    },
+    {
+     "label": "HBR Layout facility",
+     "locality": "HBR Layout 3rd Block",
+     "lat": 13.0281,
+     "lng": 77.6304,
+     "address": "2JHJ+756, Swami Narayani Clinic Road, 3rd Block, HBR Layout, Bengaluru 560043",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "manual-known",
+     "evidence": "pixxel.space's Contact page lists this second Bengaluru address as a plus code, https://www.pixxel.space/contact ; coordinates are the decoded plus code 7J5V2JHJ+756, which lands in HBR Layout 3rd Block beside the BDA complex"
+    }
+   ],
+   "sources": [
+    "https://www.pixxel.space/contact"
+   ]
+  },
+  {
+   "name": "Bellatrix Aerospace",
+   "aliases": [
+    "Bellatrix Aerospace Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Space",
+   "description": "In-space propulsion (electric and green chemical thrusters) startup; office on Sankey Road.",
+   "founded": 2015,
+   "isUnicorn": false,
+   "website": "https://bellatrix.aero",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Sankey Road",
+     "locality": "Sankey Road (Malleshwaram / Sadashivanagar)",
+     "lat": 12.996719,
+     "lng": 77.585014,
+     "address": "#22, 5th Floor, Sankey Road, Bengaluru 560020",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "osm-poi",
+     "evidence": "bellatrix.aero's Contact page lists this address, https://bellatrix.aero/contact/ ; an OSM office POI 'Bellatrix Aerospace' sits at these coordinates on Sankey Road"
+    }
+   ],
+   "sources": [
+    "https://bellatrix.aero/contact/"
+   ]
+  },
+  {
+   "name": "Digantara",
+   "aliases": [
+    "Digantara Research and Technologies Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Space",
+   "description": "Space situational-awareness / orbital-surveillance company; India HQ on the 9th floor of Brigade Senate 2 at Hebbal-Kempapura.",
+   "founded": 2018,
+   "isUnicorn": false,
+   "website": "https://www.digantara.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Brigade Senate 2, Hebbal",
+     "locality": "Hebbal-Kempapura",
+     "lat": 13.047098,
+     "lng": 77.581053,
+     "address": "Floor 9, Brigade Senate 2, Hebbal-Kempapura, Bengaluru 560094",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "techPark": "Brigade Senate",
+     "building": "Brigade Senate 2",
+     "geocodeSource": "osm-poi",
+     "evidence": "digantara.co.in lists this as its India HQ, https://www.digantara.co.in/ ; an OSM office POI 'Digantara' sits inside the Brigade Senate polygon"
+    }
+   ],
+   "sources": [
+    "https://www.digantara.co.in/"
+   ]
+  },
+  {
+   "name": "GalaxEye",
+   "aliases": [
+    "GalaxEye Space Solutions Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Space",
+   "description": "Multi-sensor (SAR + optical) earth-observation satellite startup incubated at IIT Madras and registered in Tamil Nadu, but operating from HSR Layout, Bengaluru.",
+   "founded": 2021,
+   "isUnicorn": false,
+   "website": "https://www.galaxeye.space",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - HSR Layout",
+     "locality": "HSR Layout (27th Main)",
+     "lat": 12.916235,
+     "lng": 77.651866,
+     "address": "646, 27th Main Road, HSR Layout, Bengaluru",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "osm-poi",
+     "evidence": "An OSM office POI 'GalaxEye Space' tagged with the company website sits here; galaxeye.space's pages carry no postal address and its CIN is Tamil Nadu-registered, https://www.openstreetmap.org/node/11597433497"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11597433497",
+    "https://www.galaxeye.space/"
+   ]
+  },
+  {
+   "name": "Niramai",
+   "aliases": [
+    "Niramai Health Analytix Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "HealthTech & pharma",
+   "description": "AI thermal-imaging breast-cancer screening (Thermalytix); office in Innova Pearl, Koramangala Industrial Layout.",
+   "founded": 2016,
+   "isUnicorn": false,
+   "website": "https://www.niramai.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Innova Pearl, Koramangala Industrial Layout",
+     "locality": "Koramangala 5th Block (Industrial Layout)",
+     "lat": 12.933884,
+     "lng": 77.614764,
+     "address": "Ground Floor, Innova Pearl, No. 17, 5th Block, Koramangala Industrial Layout, Bengaluru 560095",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "building": "Innova Pearl",
+     "geocodeSource": "osm-poi",
+     "evidence": "niramai.com's Contact page lists this Bangalore address, https://www.niramai.com/contact/ ; Innova Pearl could not be geocoded, so the point is a neighbouring OSM POI in the same Koramangala Industrial Layout block"
+    }
+   ],
+   "sources": [
+    "https://www.niramai.com/contact/"
+   ]
+  },
+  {
+   "name": "SigTuple",
+   "aliases": [
+    "SigTuple Technologies Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "HealthTech & pharma",
+   "description": "AI-driven digital microscopy / pathology devices; HQ in Balaji Complex, Garvebhavipalya on Hosur Road.",
+   "founded": 2015,
+   "isUnicorn": false,
+   "website": "https://www.sigtuple.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Garvebhavipalya, Hosur Road",
+     "locality": "Garvebhavipalya (Hosur Road)",
+     "lat": 12.8950661,
+     "lng": 77.6345825,
+     "address": "Balaji Complex, #284/11, Garvebhavipalya, Hosur Road, Bengaluru 560068",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "building": "Balaji Complex",
+     "geocodeSource": "nominatim",
+     "evidence": "sigtuple.com's Contact page gives this headquarters address, https://www.sigtuple.com/contact ; the building could not be geocoded, so the point is the Garvebhavipalya locality node"
+    }
+   ],
+   "sources": [
+    "https://www.sigtuple.com/contact"
+   ]
+  },
+  {
+   "name": "Tricog",
+   "aliases": [
+    "Tricog Health India Pvt Ltd",
+    "Tricog Health Services Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "HealthTech & pharma",
+   "description": "AI cardiac-diagnostics (InstaECG) company headquartered in Bengaluru and Singapore; two Bengaluru addresses in Vyalikaval and Rajmahal Vilas Extension.",
+   "founded": 2014,
+   "isUnicorn": false,
+   "website": "https://www.tricog.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Vyalikaval Extension",
+     "locality": "Vyalikaval (Malleshwaram)",
+     "lat": 13.0037663,
+     "lng": 77.5774978,
+     "address": "Old No. 82, New No. 3, PID No. 5-24-3, 2nd Main Road, Vyalikaval Extension, Bengaluru 560003",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "nominatim",
+     "evidence": "tricog.com's Contact page lists this as the Bangalore headquarters of Tricog Health India Pvt Ltd, https://www.tricog.com/contact-us/ ; coordinates are a geocoded main road in Vyalikaval, so the point is approximate"
+    },
+    {
+     "label": "Rajmahal Vilas Extension office (Tricog Health Services)",
+     "locality": "Rajmahal Vilas Extension (Sadashivanagar)",
+     "lat": 13.0131914,
+     "lng": 77.5769418,
+     "address": "94-H, 13th Main, 9th Cross, Rajmahal Vilas Extension, Bengaluru 560080",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "nominatim",
+     "evidence": "tricog.com's Contact page lists this address for Tricog Health Services Pvt Ltd, https://www.tricog.com/contact-us/ ; coordinates are the geocoded 13th Main Road"
+    }
+   ],
+   "sources": [
+    "https://www.tricog.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Ati Robotics",
+   "aliases": [
+    "Ati Motors",
+    "Ati Motors Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "AI & deep tech",
+   "description": "Autonomous industrial mobile robots (Sherpa tugs), rebranded from Ati Motors to Ati Robotics; India office and works on the Outer Ring Road at Goraguntepalya.",
+   "founded": 2017,
+   "isUnicorn": false,
+   "website": "https://www.atirobotics.ai",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ / works - Goraguntepalya",
+     "locality": "Goraguntepalya (Outer Ring Road, Peenya)",
+     "lat": 13.029739,
+     "lng": 77.536394,
+     "address": "19/A, 2nd Stage, Outer Ring Road, Goraguntepalya, Bengaluru 560022",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "osm-poi",
+     "evidence": "atirobotics.ai's Contact page lists this India address, https://www.atirobotics.ai/contact ; an OSM office POI 'Ati Motors' sits at these coordinates"
+    }
+   ],
+   "sources": [
+    "https://www.atirobotics.ai/contact"
+   ]
+  },
+  {
+   "name": "Tonbo Imaging",
+   "aliases": [
+    "Tonbo Imaging India Ltd",
+    "Tonbo Imaging India Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Aerospace & defence",
+   "description": "Thermal-imaging and night-vision systems for defence; four Bengaluru addresses on its own sales page (registered, corporate and two branches, all in the Koramangala / Jakkasandra area).",
+   "founded": 2012,
+   "isUnicorn": false,
+   "website": "https://www.tonboimaging.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - Koramangala 6th Block",
+     "locality": "Koramangala 6th Block",
+     "lat": 12.9415892,
+     "lng": 77.6231099,
+     "address": "No. 235, 18th Main, 6th Block, Koramangala, Bengaluru 560095",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "photon",
+     "evidence": "tonboimaging.com's sales-enquiry page lists this as the corporate office, http://tonboimaging.com/defense/sales-enquiry/ ; coordinates are the geocoded 18th Main Road"
+    },
+    {
+     "label": "Registered office - Jakkasandra Extension",
+     "locality": "Jakkasandra Extension (Sarjapur Main Road)",
+     "lat": 12.915582,
+     "lng": 77.626934,
+     "address": "No. 3, Chikkayellappa Tower-II, 1st C Main, Sarjapur Main Road, Jakkasandra Extension, Chikkayellappa Industrial Layout, Bengaluru 560034",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "techPark": null,
+     "building": "Chikkayellappa Tower-II",
+     "geocodeSource": "osm-poi",
+     "evidence": "Listed as the registered office on the same page, http://tonboimaging.com/defense/sales-enquiry/ ; the tower could not be geocoded, so the point is an OSM POI on 1st C Main in Jakkasandra and is approximate"
+    },
+    {
+     "label": "Branch office - Koramangala 1st Block (1st Main Road)",
+     "locality": "Koramangala 1st Block",
+     "lat": 12.9253419,
+     "lng": 77.6327408,
+     "address": "No. 1, 1st Main Road, 1st Block, Koramangala, Bengaluru 560034",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "photon",
+     "evidence": "Listed as a Bengaluru branch office on the same page, http://tonboimaging.com/defense/sales-enquiry/ ; point is a geocoded road in the same block and is approximate"
+    },
+    {
+     "label": "Branch office - Koramangala 1st Block (Sarjapura Main Road)",
+     "locality": "Koramangala 1st Block (Sarjapur Main Road)",
+     "lat": 12.924066,
+     "lng": 77.638945,
+     "address": "No. 9, Ground Floor, 1st C Main, Koramangala 1 Block, Sarjapura Main Road, Bengaluru 560034",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "osm-poi",
+     "evidence": "Listed as a second Bengaluru branch office on the same page, http://tonboimaging.com/defense/sales-enquiry/ ; point is an OSM POI on Sarjapur Main Road nearby and is approximate"
+    }
+   ],
+   "sources": [
+    "http://tonboimaging.com/defense/sales-enquiry/"
+   ]
+  },
+  {
+   "name": "Stellapps",
+   "aliases": [
+    "Stellapps Technologies Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Other",
+   "description": "Dairy-supply-chain IoT and fintech (mooON, SmartMoo); its contact page's map pin is on Hosur Road near Kudlu Gate (an older OSM POI records the earlier Domlur office).",
+   "founded": 2011,
+   "isUnicorn": false,
+   "website": "https://www.stellapps.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Hosur Road, Kudlu Gate",
+     "locality": "Kudlu Gate (Hosur Road)",
+     "lat": 12.891462,
+     "lng": 77.6390773,
+     "address": "Hosur Road near Kudlu Gate, Bengaluru 560068 (street address not printed on the page)",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "manual-known",
+     "evidence": "stellapps.com's Contact Us page gives no postal address but its 'Map Direction' link carries these coordinates for 'Stellapps Technologies Private Limited', https://www.stellapps.com/contact-us/"
+    }
+   ],
+   "sources": [
+    "https://www.stellapps.com/contact-us/",
+    "https://www.openstreetmap.org/node/1483450407"
+   ]
+  },
+  {
+   "name": "String Bio",
+   "aliases": [
+    "String Bio Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "HealthTech & pharma",
+   "description": "Methane-to-protein / biomanufacturing deep-tech company; office and pilot facility at Nagasandra on Tumkur Road.",
+   "founded": 2013,
+   "isUnicorn": false,
+   "website": "https://www.stringbio.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Nagasandra, Tumkur Road",
+     "locality": "Nagasandra (Tumkur Road)",
+     "lat": 13.0479536,
+     "lng": 77.5001422,
+     "address": "No. 456 G, 1st Main Road, Vinayaka Nagar, opposite Kennametal Widia, 9th Mile, Tumkur Road, Nagasandra, Bengaluru 560073",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "photon",
+     "evidence": "stringbio.com's footer gives this address, https://www.stringbio.com/ ; the plot could not be geocoded, so the point is the Nagasandra locality on Tumkur Road"
+    }
+   ],
+   "sources": [
+    "https://www.stringbio.com/"
+   ]
+  },
+  {
+   "name": "Bugworks",
+   "aliases": [
+    "Bugworks Research India Pvt Ltd",
+    "Bugworks Research Inc"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "HealthTech & pharma",
+   "description": "Antibiotic / immuno-oncology drug-discovery startup with a Delaware holding company and its labs at C-CAMP on the NCBS-TIFR campus, GKVK.",
+   "founded": 2014,
+   "isUnicorn": false,
+   "website": "https://www.bugworksresearch.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru labs - C-CAMP, NCBS GKVK campus",
+     "locality": "GKVK Campus, Bellary Road (Yelahanka)",
+     "lat": 13.0714927,
+     "lng": 77.5802525,
+     "address": "Centre for Cellular & Molecular Platforms, National Centre for Biological Sciences, TIFR GKVK Campus, Bellary Road, Bengaluru 560065",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "photon",
+     "evidence": "bugworksresearch.com's Contact page lists this address for Bugworks Research India Pvt Ltd, https://www.bugworksresearch.com/contact ; coordinates are the geocoded NCBS campus"
+    }
+   ],
+   "sources": [
+    "https://www.bugworksresearch.com/contact"
+   ]
+  },
+  {
+   "name": "Pandorum",
+   "aliases": [
+    "Pandorum Technologies Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "HealthTech & pharma",
+   "description": "Tissue-engineering / regenerative-medicine startup (bio-engineered cornea, liver tissue), a C-CAMP incubatee on the NCBS campus.",
+   "founded": 2011,
+   "isUnicorn": false,
+   "website": "https://pandorumtechnologies.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru labs - C-CAMP, NCBS GKVK campus",
+     "locality": "GKVK Campus, Bellary Road (Yelahanka)",
+     "lat": 13.0714927,
+     "lng": 77.5802525,
+     "address": "Centre for Cellular & Molecular Platforms (C-CAMP), NCBS-TIFR, GKVK Campus, Bellary Road, Bengaluru 560065",
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "photon",
+     "evidence": "pandorumtechnologies.com answered 503 on every attempt this run, so the C-CAMP address rests on the company's well-known incubation there and is unverified here, https://pandorumtechnologies.com/"
+    }
+   ],
+   "sources": [
+    "https://pandorumtechnologies.com/"
+   ]
+  },
+  {
+   "name": "Eyestem",
+   "aliases": [
+    "Eyestem Research Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "HealthTech & pharma",
+   "description": "Cell-therapy startup (iPSC-derived retinal cells for dry AMD) based at C-CAMP on the NCBS campus.",
+   "founded": 2015,
+   "isUnicorn": false,
+   "website": "https://www.eyestem.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru labs - C-CAMP, NCBS GKVK campus",
+     "locality": "GKVK Campus, Bellary Road (Yelahanka)",
+     "lat": 13.0714927,
+     "lng": 77.5802525,
+     "address": "Centre for Cellular And Molecular Platforms (C-CAMP), NCBS-TIFR, GKVK Post, Bellary Road, Bengaluru 560065",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "photon",
+     "evidence": "eyestem.com's Contact page lists this address for Eyestem Research Pvt Ltd, https://www.eyestem.com/contact ; coordinates are the geocoded NCBS campus"
+    }
+   ],
+   "sources": [
+    "https://www.eyestem.com/contact"
+   ]
+  }
+ ],
+ "coverageNotes": "Web-search budget (shared across the 33 researchers) ran out after the first 16 fintech lookups, so everything after that was verified by fetching company contact/about/legal pages directly plus the offline OSM extract; Nominatim/Photon were also throttled (429) for the last third, so several building-level addresses carry street- or locality-level points and are marked medium/low accordingly. CONFIRMED FROM OFFICIAL PAGES: smallcase, Scripbox, Perfios, KredX, M2P (3 offices), Jar, Stable Money, Fam, Signzy, Sarvam AI, Krutrim, Yellow.ai, MoEngage, Amagi, LeadSquared, Exotel, Whatfix, SpotDraft (2), Uniphore, Mindtickle, Pixxel (2), Bellatrix, Digantara, Niramai, SigTuple, Tricog (2), Ati Robotics, Tonbo (4), Stellapps (map pin only), String Bio, Bugworks, Eyestem; Cashfree's old office from its press kit and its new Ecoworld HQ from lease news. REGISTRY/AGGREGATOR ONLY (medium): Niyo, Fi, Rupeek, Khatabook, Open (MCA-derived listing), Simpl (LEI). OSM-POI ONLY (low): Instamojo, Zeta, Capillary, Kaleyra, GalaxEye (medium, website-tagged POI), Kuvera (CB Insights, low). Pandorum is low because its site answered 503 every time. UNICORNS KEPT DESPITE THE 'non-unicorn' brief because they were on the lens list, each flagged isUnicorn=true: Open, Zeta, M2P, Perfios, Krutrim, Amagi, LeadSquared, Mindtickle. LEFT OUT - no Bengaluru address could be substantiated (sites carry no postal address or were 403/404/503/rate-limited): Setu (entities Anumati Technologies / BrokenTusk Technologies found, no address), Hyperface, Decentro, Locus (Mara Labs), Hasura/PromptQL, Hevo Data, Skyflow (site lists Palo Alto only), Appsmith (remote-first), Toplyne (wound down in 2024), Observe.AI (site lists Redwood City only), Vymo, Entropik (site names Bangalore but no address), Gnani.ai, Slang Labs, Log9 Materials, CynLr, Fasal (Wolkus Technology Solutions, no address), plus extra candidates Juspay, Navi, KreditBee, Hiver, Fyle and Moneyview that were tried and gave no address. NOT BENGALURU, verified or by HQ: Lentra (Pune only on its contact page), Zenoti (Hyderabad only), CleverTap (Mumbai; footer names Bengaluru but no office address), Vivriti (Chennai), Lendingkart (Ahmedabad, excluded as instructed), OneCard/FPL (Pune), Dezerv (Mumbai), Kissflow, Rocketlane, Mad Street Den and Agnikul (Chennai), Druva (Pune, page unreachable), WebEngage (Mumbai, 403), Ozonetel (Hyderabad, no address), Atlan (Delhi/remote), Skyroot (Hyderabad), Qure.ai (Mumbai) - the last nine were not fetched because of budget and rest on their known HQs. Groww and Postman (E07), Ultraviolette (E09) were left to those lenses; Niramai overlaps E09 and is included here from its official page. KredX's earlier Salarpuria Softzone office and Stellapps' earlier Domlur office (OSM) are omitted rather than marked closed, since neither closure is documented. Headcounts were not stated by any source consulted, so bengaluruEmployeesApprox is null throughout."
+}

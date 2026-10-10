@@ -19,7 +19,9 @@ jobs:
         with:
           python-version: '3.12'
       - run: npm ci
-      - name: Dataset merges cleanly from the research slices
+      - name: dataset.json is exactly what the research slices produce
         run: python3 tools/data/merge.py --check
+      - name: Data quality report (informational)
+        run: python3 tools/data/qa.py
       - run: npm test -- --watch=false
       - run: npm run build

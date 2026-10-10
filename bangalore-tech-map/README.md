@@ -103,9 +103,14 @@ gathered".
 Add a slice to `data/raw/` (shape in `data/raw/README.md`), then:
 
 ```bash
-python3 tools/data/merge.py        # writes public/data/dataset.json and data/report.md
-npm test                           # the dataset integrity test re-checks the shipped file
+python3 tools/data/merge.py           # writes public/data/dataset.json and data/report.md
+python3 tools/data/update_readme.py   # refreshes the numbers at the top of this file
+python3 tools/data/qa.py              # lists records worth a second look (changes nothing)
+npm test                              # the dataset integrity test re-checks the shipped file
 ```
+
+CI runs `merge.py --check`, which fails unless the committed `dataset.json` is exactly what the
+slices and corrections produce.
 
 Do not edit `public/data/dataset.json` by hand; the next merge overwrites it.
 

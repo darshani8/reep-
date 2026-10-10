@@ -2,7 +2,9 @@
 """merge.py -- turn the research slices in data/raw/ into public/data/dataset.json.
 
     python3 tools/data/merge.py            # merge, validate, write dataset + data/report.md
-    python3 tools/data/merge.py --check    # validate only, exit 1 on any problem
+    python3 tools/data/merge.py --check    # exit 1 unless public/data/dataset.json is exactly what the
+                                           # slices and corrections produce (CI: the JSON is generated,
+                                           # never hand-edited)
 
 The slices are what the research agents wrote (one file per lens; see data/raw/README.md).
 This script is DETERMINISTIC and ADDITIVE in spirit: it never invents a coordinate, never
@@ -353,7 +355,7 @@ def merge_parks(slices, problems):
             "bbox": [round(x, 6) for x in bbox] if bbox else None,
             "areaSqFtMillions": round(max(sizes), 2) if sizes else None,
             "description": max(descs, key=len) if descs else "",
-            "notableTenants": sorted(set(tenants), key=str.lower),
+            "notableTenants": sorted(set(tenants), key=lambda x: (x.lower(), x)),
             "sources": sorted(set(sources)),
             "footprint": None,
             "verified": True,
@@ -686,7 +688,7 @@ def apply_corrections(companies, parks, uf, applied, problems):
             for a in [src["name"]] + src["aliases"]:
                 if a != dst["name"] and a not in dst["aliases"]:
                     dst["aliases"].append(a)
-            dst["notableTenants"] = sorted(set(dst["notableTenants"]) | set(src["notableTenants"]), key=str.lower)
+            dst["notableTenants"] = sorted(set(dst["notableTenants"]) | set(src["notableTenants"]), key=lambda x: (x.lower(), x))
             dst["sources"] = sorted(set(dst["sources"]) | set(src["sources"]))
             if not dst["description"] and src["description"]:
                 dst["description"] = src["description"]
@@ -829,7 +831,7 @@ def build(check_only=False):
             o.pop("_lens", None); o.pop("_corroborated_by", None)
     for p in parks.values():
         names = set(p["notableTenants"]) | tenants_by_park.get(p["id"], set())
-        p["notableTenants"] = sorted(names, key=str.lower)
+        p["notableTenants"] = sorted(names, key=lambda x: (x.lower(), x))
 
     companies.sort(key=lambda c: c["name"].lower())
     park_list = sorted(parks.values(), key=lambda p: p["name"].lower())
@@ -867,9 +869,26 @@ def build(check_only=False):
         "", f"## Corrections applied ({len(applied)})", "",
     ] + [f"- {a}" for a in applied] + ([] if applied else ["- none"])
     report = "\n".join(summary) + "\n"
-    print(report)
     if check_only:
-        return 1 if problems else 0
+        # Compare everything except the timestamp. A dropped record is reported, not a failure: dropping
+        # an office outside Bengaluru is the merge doing its job.
+        try:
+            with open(OUT, encoding="utf-8") as fh:
+                shipped = json.load(fh)
+        except (OSError, json.JSONDecodeError) as exc:
+            print(f"cannot read {OUT}: {exc}", file=sys.stderr)
+            return 1
+        fresh = json.loads(json.dumps(dataset, ensure_ascii=False))
+        shipped.pop("generatedAt", None)
+        fresh.pop("generatedAt", None)
+        if shipped != fresh:
+            print("public/data/dataset.json is not what tools/data/merge.py produces from data/raw and "
+                  "data/corrections. Re-run the merge and commit the result; do not edit the JSON by hand.",
+                  file=sys.stderr)
+            return 1
+        print(f"dataset.json matches the merge: {len(companies)} companies, {offices} offices, {len(park_list)} parks")
+        return 0
+    print(report)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(dataset, fh, ensure_ascii=False, separators=(",", ":"))

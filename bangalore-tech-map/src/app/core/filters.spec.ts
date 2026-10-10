@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Company, TechPark } from '../data/types';
-import { DEFAULT_FILTERS, applyFilters, countBy, officePasses, visibleOffices } from './filters';
+import { DEFAULT_FILTERS, applyFilters, countBy, matchingOffices, officePasses, visibleOffices } from './filters';
 
 const park: TechPark = {
   id: 'manyata-tech-park',
@@ -60,6 +60,7 @@ const ibm = company({
   offices: [
     { id: 'ibm~1', label: 'Manyata campus', techParkId: park.id, building: 'Block D', locality: 'Nagavara', address: '', lat: 13.048, lng: 77.621, isHq: true, status: 'active', confidence: 'high', evidence: '' },
     { id: 'ibm~2', label: 'Old office', techParkId: null, building: null, locality: 'Domlur', address: '', lat: 12.96, lng: 77.64, isHq: false, status: 'closed', confidence: 'low', evidence: '' },
+    { id: 'ibm~3', label: 'Whitefield lab', techParkId: null, building: 'Prestige Shantiniketan', locality: 'Whitefield', address: 'ITPL Main Road', lat: 12.99, lng: 77.73, isHq: false, status: 'active', confidence: 'medium', evidence: '' },
   ],
 });
 const zerodha = company({ id: 'zerodha', name: 'Zerodha', category: 'STARTUP', origin: 'Indian', sector: 'Fintech' });
@@ -106,8 +107,29 @@ describe('applyFilters', () => {
 
 describe('visibleOffices', () => {
   it('flattens to office rows that pass the office filters', () => {
-    expect(visibleOffices(all, DEFAULT_FILTERS).map((r) => r.office.id)).toEqual(['ibm~1', 'zerodha~1', 'hal~1']);
-    expect(visibleOffices(all, { ...DEFAULT_FILTERS, includeClosed: true }).map((r) => r.office.id)).toContain('ibm~2');
+    expect(visibleOffices(all, parks, DEFAULT_FILTERS).map((r) => r.office.id)).toEqual(['ibm~1', 'ibm~3', 'zerodha~1', 'hal~1']);
+    expect(visibleOffices(all, parks, { ...DEFAULT_FILTERS, includeClosed: true }).map((r) => r.office.id)).toContain('ibm~2');
+  });
+});
+
+describe('matchingOffices', () => {
+  const q = (query: string) => matchingOffices(ibm, parks, { ...DEFAULT_FILTERS, query }).map((o) => o.id);
+
+  it('a query naming the company shows every open office of it', () => {
+    expect(q('ibm')).toEqual(['ibm~1', 'ibm~3']);
+  });
+
+  it('a query naming a place shows only the offices in that place', () => {
+    expect(q('whitefield')).toEqual(['ibm~3']);
+    expect(q('manyata')).toEqual(['ibm~1']);
+    expect(q('itpl main')).toEqual(['ibm~3']);
+    expect(q('shantiniketan')).toEqual(['ibm~3']);
+  });
+
+  it('a place that matches only a closed office lists nothing unless closed offices are shown', () => {
+    expect(q('domlur')).toEqual([]);
+    expect(applyFilters(all, parks, { ...DEFAULT_FILTERS, query: 'domlur' })).toEqual([]);
+    expect(matchingOffices(ibm, parks, { ...DEFAULT_FILTERS, query: 'domlur', includeClosed: true }).map((o) => o.id)).toEqual(['ibm~2']);
   });
 });
 

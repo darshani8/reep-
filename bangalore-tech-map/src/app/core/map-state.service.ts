@@ -50,7 +50,7 @@ export class MapStateService {
   readonly fitRequest = signal(0);
 
   readonly filteredCompanies = computed(() => applyFilters(this.ds.companies(), this.ds.parksById(), this.filters()));
-  readonly visibleRows = computed(() => visibleOffices(this.filteredCompanies(), this.filters()));
+  readonly visibleRows = computed(() => visibleOffices(this.filteredCompanies(), this.ds.parksById(), this.filters()));
   readonly visibleOfficeCount = computed(() => this.visibleRows().length);
 
   readonly categoryCounts = computed(() => countBy(this.ds.companies(), (c) => c.category));

@@ -10,6 +10,7 @@ import {
   Map as MapLibreMap,
   type MapGeoJSONFeature,
   type MapMouseEvent,
+  type SymbolLayerSpecification,
   NavigationControl,
   Popup,
   ScaleControl,
@@ -31,7 +32,9 @@ const L_CLUSTER_COUNT = 'office-cluster-count';
 const L_OFFICES = 'office-points';
 const L_OFFICE_LABELS = 'office-labels';
 const L_PARKS = 'park-points';
+const L_PARKS_EMPTY = 'park-points-empty';
 const L_PARK_LABELS = 'park-labels';
+const L_PARK_LABELS_EMPTY = 'park-labels-empty';
 const L_SELECTED = 'selected-ring';
 
 /**
@@ -255,6 +258,54 @@ export class MapComponent {
       paint: { 'line-color': TECH_PARK_COLOR, 'line-width': 1.2, 'line-opacity': 0.55, 'line-dasharray': [3, 2] },
     });
 
+    // Parks sit UNDER the office clusters: a white ring on top of a cluster hid its count. The ring grows
+    // with the number of mapped tenants, and a park with none appears only once the map is zoomed in,
+    // so the city view is not 190 rings competing with the offices.
+    map.addLayer({
+      id: L_PARKS_EMPTY,
+      type: 'circle',
+      source: SRC_PARKS,
+      minzoom: 12.5,
+      filter: ['==', ['get', 'tenants'], 0],
+      paint: {
+        'circle-color': '#ffffff',
+        'circle-radius': 5,
+        'circle-stroke-color': TECH_PARK_COLOR,
+        'circle-stroke-width': 1.2,
+        'circle-opacity': 0.9,
+      },
+    });
+    map.addLayer({
+      id: L_PARKS,
+      type: 'circle',
+      source: SRC_PARKS,
+      filter: ['>', ['get', 'tenants'], 0],
+      paint: {
+        'circle-color': '#ffffff',
+        'circle-radius': [
+          'interpolate', ['linear'], ['zoom'],
+          10, ['interpolate', ['linear'], ['get', 'tenants'], 1, 4, 10, 6, 40, 9],
+          15, ['interpolate', ['linear'], ['get', 'tenants'], 1, 8, 10, 11, 40, 15],
+        ],
+        'circle-stroke-color': TECH_PARK_COLOR,
+        'circle-stroke-width': ['case', ['get', 'verified'], 2.5, 1.5],
+        'circle-opacity': 0.95,
+      },
+    });
+    const parkLabelLayout: SymbolLayerSpecification['layout'] = {
+      'text-field': ['get', 'name'],
+      'text-font': ['Noto Sans Bold'],
+      'text-size': 11.5,
+      'text-anchor': 'bottom',
+      'text-offset': [0, -1.1],
+      'text-max-width': 10,
+      // the busiest parks win label collisions
+      'symbol-sort-key': ['-', 0, ['get', 'tenants']],
+    };
+    const parkLabelPaint: SymbolLayerSpecification['paint'] = { 'text-color': TECH_PARK_COLOR, 'text-halo-color': '#ffffff', 'text-halo-width': 1.4 };
+    map.addLayer({ id: L_PARK_LABELS, type: 'symbol', source: SRC_PARKS, minzoom: 11.2, filter: ['>', ['get', 'tenants'], 0], layout: parkLabelLayout, paint: parkLabelPaint });
+    map.addLayer({ id: L_PARK_LABELS_EMPTY, type: 'symbol', source: SRC_PARKS, minzoom: 13, filter: ['==', ['get', 'tenants'], 0], layout: parkLabelLayout, paint: parkLabelPaint });
+
     map.addLayer({
       id: L_CLUSTERS,
       type: 'circle',
@@ -309,34 +360,6 @@ export class MapComponent {
     });
 
     map.addLayer({
-      id: L_PARKS,
-      type: 'circle',
-      source: SRC_PARKS,
-      paint: {
-        'circle-color': '#ffffff',
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 5, 15, 9],
-        'circle-stroke-color': TECH_PARK_COLOR,
-        'circle-stroke-width': ['case', ['get', 'verified'], 2.5, 1.5],
-        'circle-opacity': 0.95,
-      },
-    });
-    map.addLayer({
-      id: L_PARK_LABELS,
-      type: 'symbol',
-      source: SRC_PARKS,
-      minzoom: 11.2,
-      layout: {
-        'text-field': ['get', 'name'],
-        'text-font': ['Noto Sans Bold'],
-        'text-size': 11.5,
-        'text-anchor': 'bottom',
-        'text-offset': [0, -0.9],
-        'text-max-width': 10,
-      },
-      paint: { 'text-color': TECH_PARK_COLOR, 'text-halo-color': '#ffffff', 'text-halo-width': 1.4 },
-    });
-
-    map.addLayer({
       id: L_SELECTED,
       type: 'circle',
       source: SRC_SELECTED,
@@ -351,7 +374,7 @@ export class MapComponent {
 
   private wireInteractions(map: MapLibreMap): void {
     const canvas = map.getCanvas();
-    for (const layer of [L_CLUSTERS, L_OFFICES, L_PARKS]) {
+    for (const layer of [L_CLUSTERS, L_OFFICES, L_PARKS, L_PARKS_EMPTY]) {
       map.on('mouseenter', layer, () => (canvas.style.cursor = 'pointer'));
       map.on('mouseleave', layer, () => {
         canvas.style.cursor = '';
@@ -378,16 +401,20 @@ export class MapComponent {
       this.showClickPopup(map, feature);
     });
 
-    map.on('click', L_PARKS, (e) => {
-      const feature = e.features?.[0];
-      if (!feature) return;
-      this.state.selectPark(feature.properties['parkId'] as string, 'map');
-    });
-    map.on('mousemove', L_PARKS, (e) => this.showHover(map, e));
+    for (const layer of [L_PARKS, L_PARKS_EMPTY]) {
+      map.on('click', layer, (e) => {
+        // an office drawn over the park wins the click
+        if (map.queryRenderedFeatures(e.point, { layers: [L_CLUSTERS, L_OFFICES] }).length) return;
+        const feature = e.features?.[0];
+        if (!feature) return;
+        this.state.selectPark(feature.properties['parkId'] as string, 'map');
+      });
+      map.on('mousemove', layer, (e) => this.showHover(map, e));
+    }
 
     map.on('click', (e) => {
       // a click on empty map closes the click popup; the panel selection stays so the user can read on
-      const hits = map.queryRenderedFeatures(e.point, { layers: [L_CLUSTERS, L_OFFICES, L_PARKS] });
+      const hits = map.queryRenderedFeatures(e.point, { layers: [L_CLUSTERS, L_OFFICES, L_PARKS, L_PARKS_EMPTY] });
       if (!hits.length) {
         this.clickPopup?.remove();
         this.clickPopup = null;

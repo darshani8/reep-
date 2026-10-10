@@ -128,6 +128,18 @@ import { CATEGORIES, CATEGORY_COLOR, CATEGORY_LABEL, type Confidence } from '../
     }
     summary {
       cursor: pointer;
+      list-style: none;
+    }
+    summary::-webkit-details-marker {
+      display: none;
+    }
+    summary::before {
+      content: '▸';
+      display: inline-block;
+      width: 1em;
+    }
+    details[open] > summary::before {
+      content: '▾';
     }
     .chips {
       display: flex;

@@ -1,6 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { DatasetService } from '../core/dataset.service';
-import { officePasses } from '../core/filters';
+import { matchingOffices } from '../core/filters';
 import { MapStateService } from '../core/map-state.service';
 import { CategoryChipComponent } from './category-chip.component';
 
@@ -105,7 +105,7 @@ export class CompanyListComponent {
     const f = this.state.filters();
     const parks = this.ds.parksById();
     return this.state.filteredCompanies().map((company) => {
-      const offices = company.offices.filter((o) => officePasses(o, f));
+      const offices = matchingOffices(company, parks, f);
       const names: string[] = [];
       for (const o of offices) {
         const label = o.techParkId ? (parks.get(o.techParkId)?.name ?? o.locality) : o.locality;

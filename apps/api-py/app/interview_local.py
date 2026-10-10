@@ -91,7 +91,7 @@ def _add_cuda_dlls() -> None:
         return
     for d in dirs:
         try:
-            os.add_dll_directory(d)
+            os.add_dll_directory(d)  # type: ignore[attr-defined,unused-ignore]  # Windows-only API, guarded by os.name above
         except OSError:
             pass
     os.environ["PATH"] = os.pathsep.join(dirs) + os.pathsep + os.environ.get("PATH", "")
@@ -309,8 +309,8 @@ class _Vad:
 # an engine and the router's writers, and a parallel definition here would drift
 # the moment one of them gained a field -- silently, because both would still
 # construct and only one would carry the new value into the database.
-from .interview_audio import TRACK_INTERVIEWER, TRACK_STUDENT  # noqa: E402
-from .interview_core import (  # noqa: E402
+from .interview_audio import TRACK_INTERVIEWER, TRACK_STUDENT  # noqa: E402  kept beside the session section it serves, as the comment says
+from .interview_core import (  # noqa: E402  kept beside the session section it serves, as the comment says
     _INTERVIEWER_PERSONA,
     _ReportRecord,
     _SessionOutcome,
@@ -933,7 +933,10 @@ def _ollama_client() -> Any:
     import httpx
 
     if not _CLIENT_BOX:
-        _CLIENT_BOX.append(httpx.AsyncClient(timeout=None))
+        # Reads stay unbounded on purpose -- a local model's first token can
+        # take minutes while it loads, and the report path has its own
+        # wait_for -- but a connect that never answers is a hang, not a model.
+        _CLIENT_BOX.append(httpx.AsyncClient(timeout=httpx.Timeout(None, connect=10.0)))
     return _CLIENT_BOX[0]
 
 

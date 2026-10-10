@@ -1,0 +1,29 @@
+# Evidence for UT-GX-001-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T10:04:07 UTC] cwd=/home/user/reep-
+$ eval "$(sed -n '214,217p' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/preflight.sh)"; for f in real2 a b c d e f g missing; do REPO_ROOT=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/gx1/$f; eval "$(sed -n '218p' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/preflight.sh)"; printf '%-8s line=%-48s -> GITLEAKS_PINNED=[%s]\n' $f "$(grep -m1 -h 'GITLEAKS_VERSION\|OTHER' $REPO_ROOT/.github/workflows/secret-scan.yml 2>/dev/null | tr -d '\r')" "$(printf %s "$GITLEAKS_PINNED" | cat -v)"; done
+real2    line=  GITLEAKS_VERSION: "8.30.0"                     -> GITLEAKS_PINNED=[8.30.0]
+a        line=  GITLEAKS_VERSION: "8.30.0"                     -> GITLEAKS_PINNED=[8.30.0]
+b        line=      GITLEAKS_VERSION:   "9.1.2"   # bump with the sha -> GITLEAKS_PINNED=[9.1.2]
+c        line=  GITLEAKS_VERSION: '8.30.0'                     -> GITLEAKS_PINNED=[8.30.0]
+d        line=  GITLEAKS_VERSION: 8.30.0                       -> GITLEAKS_PINNED=[8.30.0]
+e        line=  GITLEAKS_VERSION: "8.30.0"                     -> GITLEAKS_PINNED=[8.30.0]
+f        line=# GITLEAKS_VERSION: "1.0.0" in a comment         -> GITLEAKS_PINNED=[8.30.0]
+g        line=  OTHER: 1                                       -> GITLEAKS_PINNED=[]
+missing  line=                                                 -> GITLEAKS_PINNED=[]
+[exit=0]
+
+[2026-10-08T10:04:07 UTC] cwd=/home/user/reep-
+$ echo 'Downstream of an empty pin: check_secrets() lines 464-472 evaluated verbatim with stubs:'; ( record(){ echo "record: $1 -> $2 ($4)"; }; should_stop(){ false; }; banner(){ :; }; now(){ echo 0; }; GITLEAKS=/usr/local/bin/gitleaks; GITLEAKS_FOUND_VERSION=8.30.0; GITLEAKS_PINNED=''; eval "$(sed -n '464,469p' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/preflight.sh); }"; check_secrets )
+Downstream of an empty pin: check_secrets() lines 464-472 evaluated verbatim with stubs:
+bash: eval: line 6: syntax error near unexpected token `}'
+bash: eval: line 6: `    record "$name" SKIP 0 "could not read the pinned version from secret-scan.yml (GITLEAKS_VERSION in its env block)"; return; }'
+bash: line 1: check_secrets: command not found
+[exit=127]
+
+[2026-10-08T10:04:12 UTC] cwd=/home/user/reep-
+$ echo '(the block above cut the function one line short - tester error; re-run with lines 464-470)'; ( record(){ echo "record: $1 -> $2 ($4)"; }; should_stop(){ false; }; banner(){ :; }; now(){ echo 0; }; GITLEAKS=/usr/local/bin/gitleaks; GITLEAKS_FOUND_VERSION=8.30.0; GITLEAKS_PINNED=''; eval "$(sed -n '464,470p' /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/tools/ci/preflight.sh); }"; check_secrets )
+(the block above cut the function one line short - tester error; re-run with lines 464-470)
+record: Secrets (gitleaks) -> SKIP (could not read the pinned version from secret-scan.yml (GITLEAKS_VERSION in its env block))
+[exit=0]

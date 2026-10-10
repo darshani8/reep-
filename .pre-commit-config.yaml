@@ -16,13 +16,14 @@
 # What this file buys is SPEED: two seconds on a laptop instead of four minutes
 # waiting for CI, or four weeks until the thing reaches a student. That is worth
 # having. It is not worth trusting. Every hook below is meant to be mirrored by a
-# CI step that cannot be skipped -- and as of this commit that mirror does NOT
-# exist yet: .github/workflows/ci.yml has four jobs ("API (FastAPI + Postgres)",
-# "API (dependency completeness)", "Voice worker (dependency completeness)",
-# "Web (Angular)") and none of them runs gitleaks, checks line endings, or reads
-# a commit message. Until the hygiene job lands, everything here is advisory in
-# the strict sense: the only thing standing behind it is the developer choosing
-# not to type `--no-verify`.
+# CI step that cannot be skipped. For the SECRETS hook that mirror exists since
+# 2026-10-08: the required check "Secrets (gitleaks)" in
+# .github/workflows/secret-scan.yml runs the same pinned version over every pull
+# request's commits and the tree, and no `--no-verify` reaches it. The other
+# hooks -- line endings, conflict markers, large files, the commit subject --
+# still have no CI mirror, and for them everything here is advisory in the strict
+# sense: the only thing standing behind them is the developer choosing not to
+# type `--no-verify`.
 #
 # INSTALL (both hook types -- the commit-msg one is not installed by default):
 #     pip install pre-commit
@@ -45,7 +46,12 @@ repos:
   # Secrets. The one hook here that guards something unrecoverable.
   # ---------------------------------------------------------------------------
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.18.4
+    # The SAME version as .github/workflows/secret-scan.yml's GITLEAKS_VERSION,
+    # and it is not cosmetic: .gitleaks.toml uses `[[allowlists]]`, which
+    # v8.18.4 (this pin until the CI gate landed) silently ignores -- measured
+    # over the tracked files, it reported 20 findings where v8.30.0 reports none.
+    # Bump both together.
+    rev: v8.30.0
     hooks:
       - id: gitleaks
         name: gitleaks (REEP's own secret shapes)
@@ -62,7 +68,10 @@ repos:
         # database row involved -- and on a public repo there is no un-pushing
         # it, only rotation, which signs every live session out. See the header
         # of .gitleaks.toml for the rules and every allowlist entry's reason.
-        args: ["--config", ".gitleaks.toml"]
+        # --ignore-gitleaks-allow: an inline `gitleaks:allow` comment is an
+        # allowlist written by the leak's author and read by no reviewer; the
+        # CI gate refuses to honour one, so the hook does not either.
+        args: ["--config", ".gitleaks.toml", "--ignore-gitleaks-allow"]
 
   # ---------------------------------------------------------------------------
   # Commit message shape.

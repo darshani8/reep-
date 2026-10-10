@@ -1,0 +1,25 @@
+# Evidence for UT-G3-017-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+# [2026-10-08T09:45:23 UTC] Method: synthetic handlers in app/routers/qg_probe.py, SCRATCH worktree /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt (at 40201a1) only, included in that worktree's app/main.py;
+#   then from its apps/api-py: .venv/bin/python -m pytest -q -p no:cacheprovider -o addopts= tests/test_route_audit.py (DATABASE_URL at 127.0.0.1:1)
+#   full output: UT-G3-rt1-pytest-output.txt. Behaviour: TestClient with get_current_session overridden to a STUDENT session.
+
+--- probe source:
+@router.post("/widgets")
+def s01_create_200(session: dict = Depends(get_current_session)) -> Out:
+    require_admin(session)
+    return Out()
+
+--- audit failure lines naming /api/qg/widgets: 2
+E           POST /api/qg/widgets  (app.routers.qg_probe.s01_create_200: POST to a collection answers 200, not 201)
+E       assert not ["STATUS: 2 new violation(s). A create answers 201, a body-less answer is 204, a DELETE is 204 or returns the model it...dy model)', '  POST /api/qg/widgets  (app.routers.qg_probe.s01_create_200: POST to a collection answers 200, not 201)']
+
+--- probe source:
+@router.post("/gadgets", status_code=201)
+def s02_create_201(session: dict = Depends(get_current_session)) -> Out:
+    require_admin(session)
+    return Out()
+
+--- audit failure lines naming /api/qg/gadgets: 0
+(none: the audit did not report this operation under any rule)
+

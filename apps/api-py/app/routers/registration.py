@@ -31,7 +31,7 @@ import threading
 import time
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import Annotated, NamedTuple, Sequence
+from typing import Annotated, NamedTuple, Sequence, cast
 
 from fastapi import (
     APIRouter,
@@ -50,12 +50,10 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from fastapi.responses import RedirectResponse
 
 from .. import account_links, batch_labels, dual_specialization
 from ..clock import local_today
 from ..semester_bounds import semester_on
-from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
 from ..models.job import DegreeLevel
@@ -2145,7 +2143,7 @@ ALREADY_DECIDED_STATUSES: tuple[RegistrationStatus, ...] = (
 #: verify_password can never match it. A provisioned account therefore cannot be
 #: signed into with a password until one is deliberately set — which is the
 #: activation flow's job, not this endpoint's.
-SSO_ONLY_PASSWORD_HASH = "google-only"
+SSO_ONLY_PASSWORD_HASH = "google-only"  # noqa: S105  the SSO-only sentinel: no password verifies against it
 
 
 def _provisioned_department(db: Session, cohort_id: str | None, department_id: str | None) -> str | None:
@@ -3455,7 +3453,8 @@ def update_rule(
     if "auto_approve" in provided:
         rule.auto_approve = bool(body.auto_approve)
     if "priority" in provided:
-        rule.priority = int(body.priority)
+        # A null priority was refused above (_RULE_NOT_NULLABLE).
+        rule.priority = int(cast(int, body.priority))
     _assert_rule_has_a_condition(rule)
     db.flush()
     _assert_rule_reachable(db, session, rule)

@@ -1,0 +1,100 @@
+### 2026-10-08T08:42:25Z  cwd=/home/user/reep-
+$ rm -f /tmp/ghshim/calls.log; PATH=/tmp/ghshim:$PATH SHIM_AUTH=no bash tools/ci/protect-main.sh --dry-run; echo SCRIPT_EXIT=$?; echo '--- gh calls made:'; cat /tmp/ghshim/calls.log
+not authenticated to GitHub. Run:  gh auth login   (or export GH_TOKEN) -- continuing anyway because --dry-run sends nothing.
+-----------------------------------------------------------------
+Branch protection — darshani8/reep- @ main
+-----------------------------------------------------------------
+
+  NOW:
+    (unprotected — the API answers 404 "Branch not protected")
+
+  AFTER:
+    strict                     true
+    checks                     API (FastAPI + Postgres)|API (dependency completeness)|Branch policy (promotion path)|Infra (CDK synth guards)|Rule 1 (every model call declares its cargo)|Secrets (gitleaks)|Web (Angular)
+    admins                     true
+    pull_request_required      true
+    approvals                  1
+    dismiss_stale              true
+    conversation_resolution    true
+    force_pushes               false
+    deletions                  false
+
+  strict = "require branches to be up to date before merging", and it stays on:
+  GitHub does not re-run an open PR's checks when main moves underneath it, so
+  without strict two Alembic revisions generated against the same parent each
+  pass their own run and then collide on main as multiple heads.
+
+  NOTE: 1 approval(s) + enforced-for-admins, on a one-collaborator repo,
+        means you cannot merge your own pull request at all. That is option (a)
+        in this script's header and it is a real choice — if it is not the one
+        you meant to make, re-run with --approvals 0.
+
+  PUT repos/darshani8/reep-/branches/main/protection
+
+    {
+      "required_status_checks": {
+        "strict": true,
+        "checks": [
+            { "context": "API (FastAPI + Postgres)" },
+            { "context": "Rule 1 (every model call declares its cargo)" },
+            { "context": "API (dependency completeness)" },
+            { "context": "Web (Angular)" },
+            { "context": "Infra (CDK synth guards)" },
+            { "context": "Branch policy (promotion path)" },
+            { "context": "Secrets (gitleaks)" }
+        ]
+      },
+      "enforce_admins": true,
+      "required_pull_request_reviews": {
+        "dismiss_stale_reviews": true,
+        "require_code_owner_reviews": false,
+        "required_approving_review_count": 1
+      },
+      "restrictions": null,
+      "required_linear_history": false,
+      "allow_force_pushes": false,
+      "allow_deletions": false,
+      "block_creations": false,
+      "required_conversation_resolution": true,
+      "lock_branch": false,
+      "allow_fork_syncing": false
+    }
+
+-----------------------------------------------------------------
+--dry-run: nothing was sent.
+SCRIPT_EXIT=0
+--- gh calls made:
+gh auth status
+gh api repos/darshani8/reep-/branches/main/protection --jq 
+  "strict=\(.required_status_checks.strict // false)"
++ ";checks=\((.required_status_checks.checks // [] | map(.context) | sort | join("|")))"
++ ";admins=\(.enforce_admins.enabled // false)"
++ ";pull_request_required=\(if .required_pull_request_reviews == null then false else true end)"
++ ";approvals=\(.required_pull_request_reviews.required_approving_review_count // 0)"
++ ";dismiss_stale=\(.required_pull_request_reviews.dismiss_stale_reviews // false)"
++ ";conversation_resolution=\(.required_conversation_resolution.enabled // false)"
++ ";force_pushes=\(.allow_force_pushes.enabled // false)"
++ ";deletions=\(.allow_deletions.enabled // false)"
+
+[exit 0, 1s]
+
+### 2026-10-08T08:42:26Z  cwd=/home/user/reep-
+$ rm -f /tmp/ghshim/calls.log; PATH=/tmp/ghshim:$PATH SHIM_AUTH=yes bash tools/ci/protect-main.sh --dry-run >/tmp/pm2.out 2>&1; echo SCRIPT_EXIT=$?; echo '--- gh calls made (authenticated shim):'; cat /tmp/ghshim/calls.log; grep -c 'PUT' /tmp/ghshim/calls.log
+SCRIPT_EXIT=0
+--- gh calls made (authenticated shim):
+gh auth status
+gh api repos/darshani8/reep- --jq .permissions.admin
+gh api repos/darshani8/reep-/branches/main/protection --jq 
+  "strict=\(.required_status_checks.strict // false)"
++ ";checks=\((.required_status_checks.checks // [] | map(.context) | sort | join("|")))"
++ ";admins=\(.enforce_admins.enabled // false)"
++ ";pull_request_required=\(if .required_pull_request_reviews == null then false else true end)"
++ ";approvals=\(.required_pull_request_reviews.required_approving_review_count // 0)"
++ ";dismiss_stale=\(.required_pull_request_reviews.dismiss_stale_reviews // false)"
++ ";conversation_resolution=\(.required_conversation_resolution.enabled // false)"
++ ";force_pushes=\(.allow_force_pushes.enabled // false)"
++ ";deletions=\(.allow_deletions.enabled // false)"
+
+0
+[exit 1, 0s]
+

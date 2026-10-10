@@ -373,7 +373,7 @@ def execute(db: Session, plan: AccountPlan) -> list[str]:
     _release_manifest(db, documents)
     try:
         db.commit()
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001  a failed release commit is rolled back and reported, never raised mid-delete
         db.rollback()
     return failures
 

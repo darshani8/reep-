@@ -113,6 +113,7 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
+from typing import TYPE_CHECKING, TypeGuard, cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -127,6 +128,9 @@ from .models.governance import AccessGroupMember, CapabilityGrant, SubjectKind
 from .models.leave import LeaveRequest, LeaveStatus
 from .models.mail import MailLog, MailStatus
 from .models.user import Role, User
+
+if TYPE_CHECKING:
+    from .mailer import Driver
 
 log = logging.getLogger(__name__)
 
@@ -280,7 +284,8 @@ def _is_active(user: User | None) -> bool:
     return user is not None and user.barred_at is None and bool((user.email or "").strip())
 
 
-def _is_faculty(user: User | None) -> bool:
+def _is_faculty(user: User | None) -> TypeGuard[User]:
+    # TypeGuard so callers' `not _is_faculty(u) or u.attr` reads u as a User.
     return user is not None and user.role in FACULTY_ROLES
 
 
@@ -363,7 +368,9 @@ def notify_approvers(db: Session, lr: LeaveRequest) -> list[MailLog]:
                 recipient=approver.email,
                 dedupe_key=approver_dedupe_key(lr, approver),
                 subject=subject,
-                send=lambda to, subj, text=text: transport_send(to, subj or "", text),
+                # The default binds this iteration's text; mypy cannot infer a
+                # lambda with an extra defaulted parameter against Driver.
+                send=cast("Driver", lambda to, subj, text=text: transport_send(to, subj or "", text)),
             )
         )
     return rows
@@ -462,7 +469,9 @@ def announce_on_leave(
                 recipient=recipient.email,
                 dedupe_key=on_leave_dedupe_key(lr, day, recipient),
                 subject=subject,
-                send=lambda to, subj, text=text: transport_send(to, subj or "", text),
+                # The default binds this iteration's text; mypy cannot infer a
+                # lambda with an extra defaulted parameter against Driver.
+                send=cast("Driver", lambda to, subj, text=text: transport_send(to, subj or "", text)),
             )
         )
     return rows

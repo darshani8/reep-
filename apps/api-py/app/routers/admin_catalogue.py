@@ -68,7 +68,7 @@ from typing import Final, Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile, status
 from pydantic import BaseModel, Field
-from sqlalchemy import func, or_, select
+from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy import false as sa_false
 from sqlalchemy import true as sa_true
 from sqlalchemy.orm import Session
@@ -199,7 +199,7 @@ def _certification_scope_clause(reach: Reach):
     programme_wide = ApprovedCertification.college_id.is_(None) & (
         ApprovedCertification.course_id.is_(None)
     )
-    clauses = [programme_wide]
+    clauses: list[ColumnElement[bool]] = [programme_wide]
     if reach.colleges:
         clauses.append(ApprovedCertification.college_id.in_(reach.colleges))
     clauses.append(ApprovedCertification.course_id.in_(_reachable_course_ids(reach)))
@@ -300,15 +300,17 @@ def list_catalogue_courses(
             select(ApprovedCertification.course_id, func.count())
             .where(ApprovedCertification.course_id.is_not(None))
             .group_by(ApprovedCertification.course_id)
-        ).all()
+        ).tuples().all()
     )
     badges = dict(
         db.execute(
             select(BadgeCourseMap.course_id, func.count()).group_by(BadgeCourseMap.course_id)
-        ).all()
+        ).tuples().all()
     )
     stages = dict(
-        db.execute(select(StageRule.course_id, func.count()).group_by(StageRule.course_id)).all()
+        db.execute(
+            select(StageRule.course_id, func.count()).group_by(StageRule.course_id)
+        ).tuples().all()
     )
 
     return [
@@ -398,7 +400,11 @@ def _scope_names(db: Session, rows: list[ApprovedCertification]) -> tuple[dict, 
     college_ids = {r.college_id for r in rows if r.college_id}
     course_ids = {r.course_id for r in rows if r.course_id}
     colleges = (
-        dict(db.execute(select(College.id, College.name).where(College.id.in_(college_ids))).all())
+        dict(
+            db.execute(
+                select(College.id, College.name).where(College.id.in_(college_ids))
+            ).tuples().all()
+        )
         if college_ids
         else {}
     )
@@ -408,7 +414,7 @@ def _scope_names(db: Session, rows: list[ApprovedCertification]) -> tuple[dict, 
                 select(AcademicCourse.id, AcademicCourse.name).where(
                     AcademicCourse.id.in_(course_ids)
                 )
-            ).all()
+            ).tuples().all()
         )
         if course_ids
         else {}
@@ -867,7 +873,7 @@ def list_stage_rules(
     scope_header(response, reach)
     if reach.nothing:
         return []
-    where = [StageRule.course_id.in_(_reachable_course_ids(reach))]
+    where: list[ColumnElement[bool]] = [StageRule.course_id.in_(_reachable_course_ids(reach))]
     if course_id:
         _course_within_reach(db, session, course_id)
         where.append(StageRule.course_id == course_id)

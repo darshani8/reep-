@@ -1,0 +1,31 @@
+### 2026-10-08T09:56:27Z  cwd=/tmp/ci-r1/apps/api-py
+$ DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@192.0.2.2:5432/reep_py /home/user/reep-/apps/api-py/.venv/bin/python ../../tools/ci/check_migration_roundtrip.py 2>&1 | grep -E 'FAILED|refus' | cut -c1-200; echo RT_EXIT=${PIPESTATUS[0]}; DATABASE_URL='postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_g4?hostaddr=192.0.2.2' /home/user/reep-/apps/api-py/.venv/bin/python ../../tools/ci/check_migration_roundtrip.py 2>&1 | grep -E 'FAILED|refus' | cut -c1-200; echo RT_EXIT=${PIPESTATUS[0]}; DATABASE_URL='postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_g4?host=192.0.2.2' /home/user/reep-/apps/api-py/.venv/bin/python ../../tools/ci/check_migration_roundtrip.py 2>&1 | grep -E 'FAILED|refus' | cut -c1-200; echo RT_EXIT=${PIPESTATUS[0]}; DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_g4 ENV=production /home/user/reep-/apps/api-py/.venv/bin/python ../../tools/ci/check_migration_roundtrip.py 2>&1 | grep -E 'FAILED|refus' | cut -c1-200; echo RT_EXIT=${PIPESTATUS[0]}; DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_g4 ENV=staging /home/user/reep-/apps/api-py/.venv/bin/python ../../tools/ci/check_migration_roundtrip.py 2>&1 | grep -E 'FAILED|refus' | cut -c1-200; echo RT_EXIT=${PIPESTATUS[0]}; psql -h localhost -p 5433 -U postgres -qc 'create database reep_prodcopy owner reep'; DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_prodcopy /home/user/reep-/apps/api-py/.venv/bin/python ../../tools/ci/check_migration_roundtrip.py 2>&1 | grep -E 'FAILED|refus' | cut -c1-200; echo RT_EXIT=${PIPESTATUS[0]}; psql -h localhost -p 5433 -U postgres -qc 'drop database reep_prodcopy'
+FAILED: refusing to run: the connection would go to ['192.0.2.2'], which is not loopback (host and hostaddr are both read, from the query string and from PGHOSTADDR). CI's database and a developer's d
+RT_EXIT=1
+FAILED: refusing to run: the connection would go to ['192.0.2.2'], which is not loopback (host and hostaddr are both read, from the query string and from PGHOSTADDR). CI's database and a developer's d
+RT_EXIT=1
+FAILED: refusing to run: the connection would go to ['192.0.2.2'], which is not loopback (host and hostaddr are both read, from the query string and from PGHOSTADDR). CI's database and a developer's d
+RT_EXIT=1
+FAILED: refusing to run: ENV='production' is not a development environment. This script creates and drops a database and runs every downgrade; it runs only where ENV is one of app.config's development
+RT_EXIT=1
+FAILED: refusing to run: ENV='staging' is not a development environment. This script creates and drops a database and runs every downgrade; it runs only where ENV is one of app.config's development na
+RT_EXIT=1
+FAILED: refusing to run: the database is named 'reep_prodcopy', which says production.
+RT_EXIT=1
+[exit 0, 4s]
+
+NOTE: Added in rt1 for the L1 change 'the round trip reads PGHOSTADDR/PGSERVICE': loopback URL with PGHOSTADDR=192.0.2.2 in the environment.
+### 2026-10-08T09:56:31Z  cwd=/tmp/ci-r1/apps/api-py
+$ DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_g4 PGHOSTADDR=192.0.2.2 /home/user/reep-/apps/api-py/.venv/bin/python ../../tools/ci/check_migration_roundtrip.py 2>&1 | grep -E 'FAILED|refus' | cut -c1-200; echo RT_EXIT=${PIPESTATUS[0]}
+FAILED: refusing to run: the connection would go to ['192.0.2.2'], which is not loopback (host and hostaddr are both read, from the query string and from PGHOSTADDR). CI's database and a developer's d
+RT_EXIT=1
+[exit 0, 0s]
+
+### 2026-10-08T09:56:31Z  cwd=/tmp/ci-r1/apps/api-py
+$ psql -h localhost -p 5433 -U postgres -qc 'create database reep_rds owner reep' -c "alter database reep_rds set rds.superuser_variables = 'session_replication_role'"; DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_rds /home/user/reep-/apps/api-py/.venv/bin/python -m alembic upgrade head >/dev/null 2>&1; DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_rds /home/user/reep-/apps/api-py/.venv/bin/python ../../tools/ci/check_migration_roundtrip.py 2>&1 | grep -E 'FAILED|refus' | cut -c1-200; echo RT_EXIT=${PIPESTATUS[0]}; psql -h localhost -p 5433 -U postgres -Atc "select count(*) from pg_database where datname like '%roundtrip%'"; psql -h localhost -p 5433 -U postgres -qc 'drop database reep_rds'
+exercised  90 of 92 downgrades; the rest refuse on purpose
+FAILED: refusing to run: the server defines rds.superuser_variables, which only Amazon RDS does
+RT_EXIT=1
+0
+[exit 0, 5s]
+

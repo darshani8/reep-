@@ -42,3 +42,10 @@ def downgrade() -> None:
     op.drop_index('ix_alert_rule', table_name='alerts')
     op.drop_table('alerts')
     # ### end Alembic commands ###
+    # The enum types this revision created go with its tables. Autogenerate
+    # drops the table and leaves the type, so re-applying this revision after a
+    # rollback failed with `type ... already exists` -- found by
+    # tools/ci/check_migration_roundtrip.py. Every later revision is reverted
+    # before this one runs, so nothing still uses them.
+    op.execute("DROP TYPE IF EXISTS alert_rule_key")
+    op.execute("DROP TYPE IF EXISTS alert_severity")

@@ -1,0 +1,23 @@
+# Evidence for UT-G2-026-rt2
+# build e55d1395379e9bc97cf5f3dfbc6a55bd16962475 (re-test round 2), tester session U
+
+[2026-10-08T10:33:47 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: CI AUTH_SECRET, then a postgresql URL whose password is 20 random alnum, on one line'; for cfg in /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaks.toml /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/linecfg2.toml; do gitleaks dir g2-010c-pgurl-beside-ci --config $cfg --ignore-gitleaks-allow --redact --no-banner --report-format json --report-path /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/lc.json >/dev/null 2>&1; echo "$(basename $cfg): $(python3 -c "import json;print(sorted({x['RuleID'] for x in json.load(open('/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/lc.json'))}) or 'QUIET')")"; done
+shape: CI AUTH_SECRET, then a postgresql URL whose password is 20 random alnum, on one line
+.gitleaks.toml: ['reep-database-url-password']
+linecfg2.toml: QUIET
+[exit=0]
+
+[2026-10-08T10:33:49 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: the dev DATABASE_URL, then GITHUB_TOKEN= a 40-char ghp token, on one line'; for cfg in /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/.gitleaks.toml /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/linecfg2.toml; do gitleaks dir g2-026-devurl-beside-ghp --config $cfg --ignore-gitleaks-allow --redact --no-banner --report-format json --report-path /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/lc.json >/dev/null 2>&1; echo "$(basename $cfg): $(python3 -c "import json;print(sorted({x['RuleID'] for x in json.load(open('/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/lc.json'))}) or 'QUIET')")"; done
+shape: the dev DATABASE_URL, then GITHUB_TOKEN= a 40-char ghp token, on one line
+.gitleaks.toml: ['github-pat']
+linecfg2.toml: QUIET
+[exit=0]
+
+[2026-10-08T10:33:50 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt
+$ echo 'replay with the regexTarget=line edit in the scratch worktree:'; sed -i 's/^regexTarget = "match"$/regexTarget = "line"/' .gitleaks.toml; python3 tools/ci/check_gitleaks_rules.py 2>&1 | grep -cE 'MISSED'; python3 tools/ci/check_gitleaks_rules.py >/dev/null 2>&1; echo replay_exit=$?; git checkout -q .gitleaks.toml
+replay with the regexTarget=line edit in the scratch worktree:
+9
+replay_exit=1
+[exit=0]

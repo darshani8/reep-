@@ -1,0 +1,17 @@
+# ST-036-rt1 2026-10-08T10:04:28Z links and paths in docs/engineering/*.md and docs/adr/*.md at NEW HEAD 40201a1 (worktree /tmp/new)
+files=12 relative_links=41 broken_links=0 path_mentions=163 missing_paths=1
+  scanned docs/adr/0000-template.md
+  scanned docs/adr/0001-record-architecture-decisions.md
+  scanned docs/adr/0002-quality-gates-in-existing-ci-jobs.md
+  scanned docs/adr/0003-ratcheted-baselines-for-new-gates.md
+  scanned docs/adr/0004-reversible-migrations-to-a-declared-floor.md
+  scanned docs/adr/0005-one-live-session-per-account.md
+  scanned docs/adr/0006-google-sign-in-roster-is-access-control.md
+  scanned docs/adr/0007-student-data-egress-gate.md
+  scanned docs/adr/README.md
+  scanned docs/engineering/api-checklist.md
+  scanned docs/engineering/architecture-review.md
+  scanned docs/engineering/quality-gates.md
+MISSING PATH docs/engineering/api-checklist.md /openapi.json
+
+Result: 41/41 links resolve; 163 path mentions, the single 'missing' is again /openapi.json (an HTTP path, not a file). Pass.

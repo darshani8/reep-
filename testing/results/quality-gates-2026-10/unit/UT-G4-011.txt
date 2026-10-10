@@ -1,0 +1,86 @@
+# Evidence for UT-G4-011
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:47:29 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ cd /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py && echo '--- probe revision:' && sed -n '/^def upgrade/,$p' migrations/versions/bbbb00000001_qg_probe.py && echo '--- migrate the case database to head:' && .venv/bin/python -m alembic upgrade head 2>&1 | tail -1 && echo '--- round trip:' && .venv/bin/python ../../tools/ci/check_migration_roundtrip.py 2>&1 | grep -vE '^\$ python -m alembic|^INFO' | tail -25
+--- probe revision:
+def upgrade() -> None:
+    op.add_column("resumes", sa.Column("qg_probe_note", sa.Text(), nullable=True))
+    op.create_table("qg_probe_table", sa.Column("id", sa.Integer(), primary_key=True))
+
+
+def downgrade() -> None:
+    # incomplete: forgets the table
+    op.drop_column("resumes", "qg_probe_note")
+--- migrate the case database to head:
+INFO  [alembic.runtime.migration] Running upgrade f4a2c9e7b1d3 -> bbbb00000001, QG unit probe revision (scratch worktree only).
+--- round trip:
+straight path: 2125 catalogue lines at bbbb00000001
+
+== segment base .. 31ca99852acd
+   declared leftovers ignored at the bottom: [('extension', 'vector'), ('table', 'students_orphaned_cohort_ids')]
+   OK: 66 downgrade(s), identical at both ends
+
+== segment 7c4e0b21d9aa .. 31f7a4c60b12
+   OK: 2 downgrade(s), identical at both ends
+
+== segment 9b2d47f0ce15 .. bbbb00000001
+--- before
++++ after
+@@ -568,0 +569 @@
++column | qg_probe_table | id | integer | True | nextval('qg_probe_table_id_seq'::regclass) |  |  | 
+@@ -1147,0 +1149 @@
++constraint | qg_probe_table | qg_probe_table_pkey | PRIMARY KEY (id)
+@@ -1539,0 +1542 @@
++index | qg_probe_table_pkey | CREATE UNIQUE INDEX qg_probe_table_pkey ON public.qg_probe_table USING btree (id)
+@@ -1687,0 +1691,2 @@
++relation | qg_probe_table | r
++relation | qg_probe_table_id_seq | S
+@@ -1726,0 +1732 @@
++sequence | qg_probe_table_id_seq | integer | 1 | 1 | 1 | 2147483647 | False
+
+FAILED: the catalogue at 9b2d47f0ce15 after 23 downgrade(s) differs ('-' lost, '+' left behind). A downgrade in this segment did not restore what its upgrade changed. If the leftover is genuinely impossible to remove (an enum value), declare it in KEPT_ON_DOWNGRADE with the reason.
+[exit=0]
+(note: the [exit=0] above is tail's; g4case.sh now prints roundtrip_exit. Case re-run below.)
+
+[2026-10-08T08:48:04 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ cd /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py && echo '--- probe revision:' && sed -n '/^def upgrade/,$p' migrations/versions/bbbb00000001_qg_probe.py && echo '--- migrate the case database to head:' && .venv/bin/python -m alembic upgrade head 2>&1 | tail -1 && echo '--- round trip:' && .venv/bin/python ../../tools/ci/check_migration_roundtrip.py > /tmp/g4.out 2>&1; rc=$?; grep -vE '^INFO|python -m alembic' /tmp/g4.out | tail -25; echo roundtrip_exit=$rc
+--- probe revision:
+def upgrade() -> None:
+    op.add_column("resumes", sa.Column("qg_probe_note", sa.Text(), nullable=True))
+    op.create_table("qg_probe_table", sa.Column("id", sa.Integer(), primary_key=True))
+
+
+def downgrade() -> None:
+    # incomplete: forgets the table
+    op.drop_column("resumes", "qg_probe_note")
+--- migrate the case database to head:
+INFO  [alembic.runtime.migration] Running upgrade f4a2c9e7b1d3 -> bbbb00000001, QG unit probe revision (scratch worktree only).
+--- round trip:
+straight path: 2125 catalogue lines at bbbb00000001
+
+== segment base .. 31ca99852acd
+   declared leftovers ignored at the bottom: [('extension', 'vector'), ('table', 'students_orphaned_cohort_ids')]
+   OK: 66 downgrade(s), identical at both ends
+
+== segment 7c4e0b21d9aa .. 31f7a4c60b12
+   OK: 2 downgrade(s), identical at both ends
+
+== segment 9b2d47f0ce15 .. bbbb00000001
+--- before
++++ after
+@@ -568,0 +569 @@
++column | qg_probe_table | id | integer | True | nextval('qg_probe_table_id_seq'::regclass) |  |  | 
+@@ -1147,0 +1149 @@
++constraint | qg_probe_table | qg_probe_table_pkey | PRIMARY KEY (id)
+@@ -1539,0 +1542 @@
++index | qg_probe_table_pkey | CREATE UNIQUE INDEX qg_probe_table_pkey ON public.qg_probe_table USING btree (id)
+@@ -1687,0 +1691,2 @@
++relation | qg_probe_table | r
++relation | qg_probe_table_id_seq | S
+@@ -1726,0 +1732 @@
++sequence | qg_probe_table_id_seq | integer | 1 | 1 | 1 | 2147483647 | False
+
+FAILED: the catalogue at 9b2d47f0ce15 after 23 downgrade(s) differs ('-' lost, '+' left behind). A downgrade in this segment did not restore what its upgrade changed. If the leftover is genuinely impossible to remove (an enum value), declare it in KEPT_ON_DOWNGRADE with the reason.
+roundtrip_exit=1
+[exit=0]

@@ -1,0 +1,51 @@
+# Evidence for UT-G4-022
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:52:45 UTC] cwd=/home/user/reep-/apps/api-py
+$ ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py .venv/bin/python -c "
+import sys, contextlib; sys.path.insert(0, '../../tools/ci')
+import check_migration_roundtrip as rt
+class R:
+    def __init__(s, v): s.v = v
+    def scalar(s): return s.v
+class Conn:
+    def __init__(s, found, role): s.answers = [found, role]; s.sql = []
+    def execute(s, q, p=None): s.sql.append(str(q)[:60]); return R(s.answers.pop(0))
+class Eng:
+    def __init__(s, found, role): s.c = Conn(found, role)
+    @contextlib.contextmanager
+    def connect(s): yield s.c
+rows = [('rds.extensions', None, 'REFUSED'), ('aurora_compute_plan_id', None, 'REFUSED'), ('cloudsql.iam_authentication', None, 'REFUSED'),
+        ('azure.extensions', None, 'REFUSED'), (None, 'rds_superuser', 'REFUSED'), (None, None, 'RUNS')]
+for found, role, exp in rows:
+    e = Eng(found, role); why = rt.managed_server(e); got = 'REFUSED' if why else 'RUNS'
+    print(f'pg_settings={found!r:32} rds.superuser_variables={role!r:16} -> {got:7} expected {exp:7} {\"as-expected\" if got == exp else \"UNEXPECTED\"}  {why or \"\"}')
+print('queries issued:', e.c.sql)
+print('patterns:', rt.MANAGED_SETTING_PREFIXES)
+from sqlalchemy import create_engine
+from app.config import settings
+print('real local PG16 server ->', rt.managed_server(create_engine(settings.sqlalchemy_url)))
+"
+pg_settings='rds.extensions'                 rds.superuser_variables=None             -> REFUSED expected REFUSED as-expected  the server carries the setting 'rds.extensions', which only a managed cloud Postgres has
+pg_settings='aurora_compute_plan_id'         rds.superuser_variables=None             -> REFUSED expected REFUSED as-expected  the server carries the setting 'aurora_compute_plan_id', which only a managed cloud Postgres has
+pg_settings='cloudsql.iam_authentication'    rds.superuser_variables=None             -> REFUSED expected REFUSED as-expected  the server carries the setting 'cloudsql.iam_authentication', which only a managed cloud Postgres has
+pg_settings='azure.extensions'               rds.superuser_variables=None             -> REFUSED expected REFUSED as-expected  the server carries the setting 'azure.extensions', which only a managed cloud Postgres has
+pg_settings=None                             rds.superuser_variables='rds_superuser'  -> REFUSED expected REFUSED as-expected  the server defines rds.superuser_variables, which only Amazon RDS does
+pg_settings=None                             rds.superuser_variables=None             -> RUNS    expected RUNS    as-expected  
+queries issued: ['SELECT name FROM pg_settings WHERE name LIKE ANY(:patterns) ', "SELECT current_setting('rds.superuser_variables', true)"]
+patterns: ('rds.', 'aurora', 'cloudsql.', 'azure.')
+real local PG16 server -> None
+[exit=0]
+
+[2026-10-08T08:52:45 UTC] cwd=/home/user/reep-/apps/api-py
+$ echo 'Fail closed when the server cannot be asked (loopback URL, nothing listening on :1):'; ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/reep_py .venv/bin/python ../../tools/ci/check_migration_roundtrip.py 2>&1 | tail -1 | cut -c1-140; echo script_exit=${PIPESTATUS[0]}
+Fail closed when the server cannot be asked (loopback URL, nothing listening on :1):
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+script_exit=1
+[exit=0]
+
+[2026-10-08T08:52:49 UTC] cwd=/home/user/reep-/apps/api-py
+$ ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/reep_py .venv/bin/python ../../tools/ci/check_migration_roundtrip.py > /tmp/fc.out 2>&1; rc=$?; grep -o 'FAILED: [^(]*' /tmp/fc.out | head -1; echo script_exit=$rc
+FAILED: could not connect to ask the server what it is: 
+script_exit=1
+[exit=0]

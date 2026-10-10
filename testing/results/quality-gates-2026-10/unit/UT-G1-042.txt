@@ -1,0 +1,42 @@
+# Evidence for UT-G1-042
+# build e55d1395379e9bc97cf5f3dfbc6a55bd16962475 (re-test round 2), tester session U
+
+[2026-10-08T10:31:43 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; echo '--- ruff (CI config):'; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py; echo ruff_exit=$?; echo '--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):'; ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/x .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_codebase_guards.py -k test_every_suppression_in_shipped_code 2>&1 | grep -E '^E  |passed|failed' | head -6
+--- probe app/_qg_probe.py:
+     1	# flake8: noqa: S101, S602  vendored module
+     2	import subprocess
+     3	
+     4	
+     5	def f(cmd, x):
+     6	    assert x
+     7	    subprocess.run(cmd, shell=True)
+--- ruff (CI config):
+All checks passed!
+ruff_exit=0
+--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):
+E       AssertionError: Suppressions without codes or a reason:
+E           apps/api-py/app/_qg_probe.py:1: file-level `ruff: noqa`; suppress one line, with a reason
+E       assert not ['apps/api-py/app/_qg_probe.py:1: file-level `ruff: noqa`; suppress one line, with a reason']
+1 failed, 81 deselected in 1.25s
+[exit=0]
+
+[2026-10-08T10:31:47 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; echo '--- ruff (CI config):'; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py; echo ruff_exit=$?; echo '--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):'; ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/x .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_codebase_guards.py -k test_every_suppression_in_shipped_code 2>&1 | grep -E '^E  |passed|failed' | head -6
+--- probe app/_qg_probe.py:
+     1	import subprocess
+     2	
+     3	
+     4	def f(cmd, x):
+     5	    assert x
+     6	    subprocess.run(cmd, shell=True)
+     7	# ruff: file-ignore[S101, S602]  vendored module
+--- ruff (CI config):
+All checks passed!
+ruff_exit=0
+--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):
+E       AssertionError: Suppressions without codes or a reason:
+E           apps/api-py/app/_qg_probe.py:7: `ruff: file-ignore` silences the whole file; suppress one line, with a reason
+E       assert not ['apps/api-py/app/_qg_probe.py:7: `ruff: file-ignore` silences the whole file; suppress one line, with a reason']
+1 failed, 81 deselected in 1.21s
+[exit=0]

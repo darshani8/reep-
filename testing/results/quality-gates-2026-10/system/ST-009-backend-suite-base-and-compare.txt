@@ -1,0 +1,41 @@
+# ST-009 backend suite on BASE 15a9e7d (worktree /tmp/base, same venv), own fresh db reep_pt_base; then a per-test comparison of the two junit reports
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_interview_nova.py:1275: AWS_REGION is set in this environment
+SKIPPED [1] tests/test_knowledge.py:126: no embedding provider configured (KB runs full-text only)
+SKIPPED [1] tests/test_knowledge.py:139: no embedding provider configured (KB runs full-text only)
+1981 passed, 3 skipped, 2 warnings in 278.97s (0:04:38)
+EXIT 0
+
+## per-test comparison (junit_cmp.py base head)
+base 1984 {'passed': 1981, 'skipped': 3}
+head 2078 {'passed': 2075, 'skipped': 3}
+passed on base but not passed on head: 0
+new on head: 94
+     40 tests.test_async_blocking_guard
+     21 tests.test_migration_roundtrip_guard
+     17 tests.test_route_audit
+     10 tests.test_migration_reversibility
+      3 tests.test_interview_rehearsal.TestTheBackstopAtRuntime
+      2 tests.test_release_gate
+      1 tests.test_interview_local.TestEngineSelection
+on base but absent on head: 0
+
+## tool
+import sys, xml.etree.ElementTree as ET, collections
+def load(p):
+    out = {}
+    for tc in ET.parse(p).iter('testcase'):
+        k = tc.get('classname') + '::' + tc.get('name')
+        st = 'failed' if tc.find('failure') is not None or tc.find('error') is not None else 'skipped' if tc.find('skipped') is not None else 'passed'
+        out[k] = st
+    return out
+b, h = load(sys.argv[1]), load(sys.argv[2])
+print('base', len(b), dict(collections.Counter(b.values())))
+print('head', len(h), dict(collections.Counter(h.values())))
+lost = [k for k, v in b.items() if v == 'passed' and h.get(k) != 'passed']
+print('passed on base but not passed on head:', len(lost)); [print('  ', k, '->', h.get(k, 'ABSENT')) for k in lost]
+new = sorted(set(h) - set(b)); print('new on head:', len(new))
+mods = collections.Counter(k.split('::')[0] for k in new); [print(f'   {n:4d} {m}') for m, n in mods.most_common()]
+gone = sorted(set(b) - set(h)); print('on base but absent on head:', len(gone)); [print('  ', k) for k in gone]

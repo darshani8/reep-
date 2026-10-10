@@ -165,6 +165,77 @@ must import `FormsModule`, which the login screen legitimately does for its
 and not just the template: strip that import and the check goes red rather than
 the button going quiet.
 
+**FIVE CONCERNS, FIVE GATES, AND THE FIFTH IS A HUMAN (2026-10-08).** Each concern a
+reviewer used to have to remember is now asked by a machine on every pull request, and
+`docs/engineering/quality-gates.md` is the map (concern → gate → where it runs → how to run
+it alone → what to do when it fails). ADRs 0002–0004 in `docs/adr/` record why each is shaped
+the way it is.
+
+  * **Types, unsafe code, blocking calls in async** — the `api` job's first step, "Static
+    analysis (ruff, mypy, async blocking)". `apps/api-py/pyproject.toml` holds `[tool.ruff]`
+    and `[tool.mypy]` and nothing else (pytest still reads `pytest.ini`; pip never reads this
+    file). ruff selects its rules EXPLICITLY — F, E9, the bugbear rules that are bugs, S
+    (bandit), ASYNC, RUF100 — because its defaults report about a thousand style findings here
+    and a gate that is mostly noise gets turned off. An exception is a `# noqa: Sxxx` with its
+    reason on the line, never a file-level ignore in `app/`. mypy targets 3.14 with
+    `check_untyped_defs`; untyped libraries are named one by one, never ignored globally.
+    **`tools/ci/check_async_blocking.py` exists because ruff cannot see the defect that
+    reached production**: the /register 504s were a `db: Session = Depends(get_db)` parameter
+    on an `async def`, and ruff does not know that parameter's type. Its `KNOWN` dict (three
+    Main-Admin-only handlers on main, each with its reason) ratchets both ways.
+  * **Secrets in code** — the standalone required check "Secrets (gitleaks)"
+    (`.github/workflows/secret-scan.yml`), required on `main`, `stage` AND `dev`. gitleaks is
+    pinned by version AND sha256 (not gitleaks-action, which wants a licence and the token),
+    and scans the PR's commits and the tree with `.gitleaks.toml`. A standalone workflow and
+    not a sixth `ci.yml` job, for §34's reason; §34 declares it in
+    `STANDALONE_REQUIRED_CHECKS` and reads the workflow to prove the name. **A finding is
+    ROTATED first**, because removing the line does not un-publish a pushed secret. A
+    published dev value is allowlisted by value, scoped to its rule; a historical non-secret
+    is pinned by fingerprint in `.gitleaksignore` with what it was. The pre-commit hook runs
+    the same version.
+  * **Auth on every route, response_model, status codes, pagination** —
+    `apps/api-py/tests/test_route_audit.py`, inside the ordinary pytest step. It walks the
+    ASSEMBLED app through `fastapi.routing.iter_route_contexts` (a flat walk of `app.routes`
+    finds the four documentation routes and nothing else, and the audit fails below 300
+    operations so a broken walk cannot pass) and asks of every operation: a session in its
+    dependency tree or a `PUBLIC` entry; a named gate called, or a raise on a role
+    comparison, on a live path from the handler (a comparison that refuses nothing, or a
+    gate in a dead branch, does not count) or a `KNOWN_UNGATED` entry saying whose rows the
+    session alone reads; a Pydantic response
+    model and never an ORM class; 201 on a create, 204 without a body; a bounded page size on
+    a list, or a `BOUNDED`/`KNOWN_UNPAGINATED` entry. The lists in
+    `tests/route_audit_exceptions.py` ratchet both ways, and every entry names its HANDLER,
+    so a different handler mounted at a listed path does not inherit the exception. **Never change an existing route's
+    status code, model or parameters to satisfy it** — that breaks the Angular client; record
+    it instead. It proves a gate is CALLED, not that it is the right one, which is still rule
+    2's tests' job.
+  * **Migration works and can roll back** — the `api` job's step "Migrations roll back
+    (downgrade to the floor, then up again)", right after `alembic upgrade head` and before
+    the seed. `tools/ci/check_migration_roundtrip.py` only READS that database (the
+    straight-path schema, which is what production has, so the seed and the suite still run
+    on it); it creates a scratch database beside it and walks the chain in SEGMENTS cut at
+    every revision whose downgrade refuses on purpose (`IRREVERSIBLE` in
+    `apps/api-py/migrations/reversibility.py`). Every other downgrade runs, and the
+    catalogue must match at each segment's BOTTOM — which is what catches a downgrade that
+    restores the wrong default, invisible at the top because the re-upgrade overwrites it —
+    and at its TOP, the walked head must match the straight one, and `alembic check` must be
+    clean. Columns compare as a set (Postgres can only append a restored column); the one
+    other licence is `KEPT_ON_DOWNGRADE`, for leftovers Postgres cannot remove (an enum
+    value), declared with the reason. A `pass` or bare `raise` downgrade needs an
+    `IRREVERSIBLE` entry in words (`tests/test_migration_reversibility.py` ratchets both
+    ways); `"raises"` cuts a segment, and `"no-op"` is only honest when the upgrade can run
+    twice, which the walk proves. It refuses a non-dev `ENV`, any non-loopback `host` or
+    `hostaddr` (the query string included) and a production-named database — production's
+    database is also called `reep_py`. `preflight.sh` runs it the same way; your dev rows are
+    never touched.
+  * **Design, naming, "is this the right approach"** — a human, through the pull request
+    template's "Design and approach" section and its engineering checklist, where every item
+    names the gate that enforces it or says "human — no gate".
+
+`tools/ci/preflight.sh` runs all of it locally: six checks now (the five `ci.yml` jobs plus
+the secret scan, which SKIPs without gitleaks 8.30.0 — another version is another ruleset).
+"Branch policy" stays CI-only: which branch a pull request comes FROM has no local answer.
+
 **Routes are lazy.** `app.routes.ts` uses `loadComponent`, never a static `component:` reference. Every route was once eagerly imported, which put the whole app — mentor and admin screens, the resume builder, the realtime assistant — into a single 1.23 MB `main` chunk that a student on a phone downloaded before the login form could paint. It is ~142 kB initial now, and the production bundle budget is set close enough to that number that one re-eager-ed route fails `ng build` in CI.
 
 ## Auth — Google-only sign-in over the session retained from the migration

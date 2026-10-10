@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -20,7 +21,7 @@ def _lease_token() -> str:
     return uuid.uuid4().hex
 
 
-def claim_outbox(db: Session, *, owner: str, limit: int = 20, lease_seconds: int = 60, now: datetime | None = None) -> list[OutboxEvent]:
+def claim_outbox(db: Session, *, owner: str, limit: int = 20, lease_seconds: int = 60, now: datetime | None = None) -> Sequence[OutboxEvent]:
     now = now or utc_now()
     rows = db.scalars(
         select(OutboxEvent)
@@ -77,7 +78,7 @@ def mark_outbox_failure(db: Session, row: OutboxEvent, *, owner: str, token: str
     return True
 
 
-def claim_jobs(db: Session, *, owner: str, job_type: str | None = None, limit: int = 10, lease_seconds: int = 300, now: datetime | None = None) -> list[DomainJob]:
+def claim_jobs(db: Session, *, owner: str, job_type: str | None = None, limit: int = 10, lease_seconds: int = 300, now: datetime | None = None) -> Sequence[DomainJob]:
     now = now or utc_now()
     eligible = or_(
         DomainJob.status == JobStatus.QUEUED,

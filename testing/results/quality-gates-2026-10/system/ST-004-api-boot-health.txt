@@ -1,0 +1,29 @@
+# ST-004 2026-10-08T08:36:49Z uvicorn app.main:app --port 3300 --workers 2, ENV=dev, db=reep_sys
+--- server log (first lines)
+INFO:     Uvicorn running on http://127.0.0.1:3300 (Press CTRL+C to quit)
+INFO:     Started parent process [1328]
+INFO:     Started server process [1331]
+INFO:     Waiting for application startup.
+2026-10-08 08:36:44,809 INFO reep.startup: outbound mail: NO TRANSPORT (SES_FROM_ADDRESS blank) — activation, reset and confirmation emails are logged here and kept in app.mail_transport.outbox; activation links can still be issued on screen
+2026-10-08 08:36:44,809 WARNING reep.startup: document archive: NOT CONFIGURED (DOCUMENT_ARCHIVE_BUCKET blank) — uploaded marksheets, certificates, resumes, signatures and recordings have NO copy outliving the volume's 35-day backup lifecycle, and a file deleted from the website is unrecoverable after it
+INFO:     Started server process [1332]
+INFO:     Waiting for application startup.
+2026-10-08 08:36:44,861 INFO reep.startup: outbound mail: NO TRANSPORT (SES_FROM_ADDRESS blank) — activation, reset and confirmation emails are logged here and kept in app.mail_transport.outbox; activation links can still be issued on screen
+2026-10-08 08:36:44,861 WARNING reep.startup: document archive: NOT CONFIGURED (DOCUMENT_ARCHIVE_BUCKET blank) — uploaded marksheets, certificates, resumes, signatures and recordings have NO copy outliving the volume's 35-day backup lifecycle, and a file deleted from the website is unrecoverable after it
+INFO:     Application startup complete.
+INFO:     Application startup complete.
+$ curl -si http://127.0.0.1:3300/health
+HTTP/1.1 200 OK
+date: Thu, 08 Oct 2026 08:36:48 GMT
+server: uvicorn
+content-length: 39
+content-type: application/json
+vary: Origin
+x-request-id: 8b26defc4df1487bb4b42f737202eb06
+x-content-type-options: nosniff
+x-frame-options: DENY
+
+{"status":"ok","service":"reep-api-py"}
+$ curl -s -o /dev/null -w "%{http_code}" /docs /openapi.json
+docs=200
+openapi=200

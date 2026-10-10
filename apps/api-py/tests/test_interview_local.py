@@ -218,6 +218,14 @@ class TestEngineSelection:
     def test_the_known_names_survive_normalisation(self, good, expected):
         assert type(settings)._known_engine(good) == expected
 
+    def test_an_engine_this_process_does_not_have_is_not_ready(self):
+        """`interview_ready`'s last branch used to return `self.realtime_ready`,
+        which left with the OpenAI engine. The validator keeps it unreachable;
+        this reaches it anyway, past validation, and expects a plain False
+        rather than an AttributeError."""
+        unknown = type(settings).model_construct(interview_engine="openai")
+        assert unknown.interview_ready is False
+
     def test_the_interviewer_model_is_separate_from_the_app_model(self):
         """They have different constraints: the interviewer shares a GPU with
         Whisper and must answer inside a conversation. Measured cost of

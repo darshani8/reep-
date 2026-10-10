@@ -31,7 +31,11 @@ passed**.
 | Touched | Run (from repo root unless noted) |
 |---|---|
 | any `apps/api-py/app/**` | `python tools/ci/check_pii_gate.py` |
+| any `apps/api-py/**` or `tools/ci/*.py` | `cd apps/api-py && python -m ruff check --config pyproject.toml . ../../tools/ci && python -m mypy && python ../../tools/ci/check_async_blocking.py` (the `api` job's "Static analysis" step; ruff and mypy come from `requirements-dev.txt`) |
 | any `apps/api-py/app/**` | `cd apps/api-py && python -m pytest -q <the test modules for the area>` (needs Postgres on 5433; see AGENTS.md "One thing at a time touches one database") |
+| a route added or changed | `cd apps/api-py && python -m pytest -q tests/test_route_audit.py` (no database needed; a new exception in `tests/route_audit_exceptions.py` needs a reason written after reading the handler) |
+| `apps/api-py/migrations/**` | `cd apps/api-py && python -m pytest -q tests/test_migration_reversibility.py`, then `python ../../tools/ci/check_migration_roundtrip.py` against a SCRATCH database — it drops what the newest revisions created (see the `new-migration` skill) |
+| anything, before every push | `gitleaks git . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore --log-opts=origin/dev..HEAD --redact` with gitleaks 8.30.0 (the "Secrets (gitleaks)" required check). A finding is ROTATED first: removing the line does not un-publish it |
 | `requirements*.txt` or a new import | `cd apps/api-py && python ../../tools/ci/check_api_imports.py` |
 | `apps/web/src/**` | `python tools/ci/check_brand_magenta.py && python tools/ci/check_style_duplicates.py && python tools/ci/check_theme_tokens.py && python tools/ci/check_form_submit.py` |
 | `apps/web/src/**` | `cd apps/web && npx tsc --noEmit -p tsconfig.app.json && npx ng test --watch=false && npx ng build` |

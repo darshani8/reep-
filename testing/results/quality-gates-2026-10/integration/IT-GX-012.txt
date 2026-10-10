@@ -1,0 +1,27 @@
+### 2026-10-08T09:12:17Z  cwd=/home/user/reep-
+$ PATH=/opt/node-v22.22.3-linux-x64/bin:$PATH DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py bash tools/ci/preflight.sh --quick --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; sed 's/\x1b\[[0-9;]*m//g' /tmp/pf.out | grep -E '^  gitleaks|^(PASS|FAIL|SKIP|PARTIAL) ' ; sed 's/\x1b\[[0-9;]*m//g' /tmp/pf.out | sed -n '/^Summary/,$p' | grep -vE '^\s*$'
+PREFLIGHT_EXIT=2
+  gitleaks         /usr/local/bin/gitleaks (8.30.0)
+PASS  API (dependency completeness)
+PASS  Rule 1 (every model call declares its cargo)
+PASS  Secrets (gitleaks)
+PASS  Infra (CDK synth guards)
+PARTIAL  Web (Angular) - guards and typecheck only - --quick: ng test and ng build did NOT run, and both are inside a required check
+SKIP  API (FastAPI + Postgres) - --quick
+Summary
+  CHECK                                        RESULT   TIME
+  ---------------------------------------------------------------------
+  API (dependency completeness)                PASS     4s
+  Rule 1 (every model call declares its cargo) PASS     1s
+  Secrets (gitleaks)                           PASS     8s
+  Infra (CDK synth guards)                     PASS     37s
+  Web (Angular) - guards and typecheck only    PARTIAL  6s
+  API (FastAPI + Postgres)                     SKIP     0s
+  PASS: ran in .venv (requirements-dev.txt); --clean-deps asks CI's question
+  PARTIAL: --quick: ng test and ng build did NOT run, and both are inside a required check
+  SKIP: --quick
+  total 56s
+INCOMPLETE. --quick ran only the fast checks. It is not sufficient for a
+pull request: run tools/ci/preflight.sh with no flags before you push.
+[exit 0, 58s]
+

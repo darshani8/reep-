@@ -1,0 +1,15 @@
+# Evidence for UT-G1-011-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T10:04:36 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe '../../tools/ci/_qg_probe.py':'; cat -n ../../tools/ci/_qg_probe.py; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise ../../tools/ci/_qg_probe.py
+--- probe ../../tools/ci/_qg_probe.py:
+     1	import subprocess
+     2	
+     3	
+     4	def f():
+     5	    subprocess.run(["git", "status"])
+     6	    assert True
+/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/tools/ci/_qg_probe.py:6:5: S101 Use of `assert` detected
+Found 1 error.
+[exit=1]

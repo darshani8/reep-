@@ -38,6 +38,20 @@ def test_docs_and_tests_alone_deploy_nothing_and_are_never_auto() -> None:
     assert (v.target, v.auto_ok) == ("none", False)
 
 
+def test_test_documents_deploy_nothing_and_do_not_block_an_auto_deploy() -> None:
+    """testing/ (test plans, results, evidence) is NO_DEPLOY like docs/. Before
+    it was listed, any pull request carrying a test report was refused
+    auto-deploy as "a path this gate cannot classify" (OBS-QG-I03)."""
+    v = gate.classify(["testing/docs/quality-gates-2026-10/03-integration-testing.md",
+                       "testing/results/quality-gates-2026-10/integration/IT-GX-005.txt"])
+    assert (v.target, v.reasons) == ("none", [])
+    with_api = gate.classify(["apps/api-py/app/routers/swoc.py", "testing/docs/plan.md"])
+    plain_api = gate.classify(["apps/api-py/app/routers/swoc.py"])
+    assert (with_api.target, with_api.auto_ok, with_api.reasons) == (
+        plain_api.target, plain_api.auto_ok, plain_api.reasons,
+    )
+
+
 def test_an_empty_change_set_is_not_a_release() -> None:
     v = gate.classify([])
     assert (v.target, v.auto_ok) == ("none", False)
@@ -45,6 +59,21 @@ def test_an_empty_change_set_is_not_a_release() -> None:
 
 def test_a_migration_needs_a_human() -> None:
     v = gate.classify(["apps/api-py/migrations/versions/abc_new.py", "apps/api-py/app/routers/swoc.py"])
+    assert v.auto_ok is False and v.target == "api-only"
+
+
+def test_the_secret_scan_rules_are_known_and_deploy_nothing() -> None:
+    """.gitleaksignore is classified exactly as .gitleaks.toml is: a change to
+    either deploys nothing, so it is never "a path this gate cannot classify"."""
+    for path in (".gitleaks.toml", ".gitleaksignore"):
+        v = gate.classify([path])
+        assert (v.target, v.reasons) == ("none", []), (path, v.reasons)
+
+
+def test_the_rollback_floor_list_stays_on_the_migration_side() -> None:
+    """migrations/reversibility.py is read only by CI, but it decides how far CI
+    rolls the schema back: it stays refused, on purpose."""
+    v = gate.classify(["apps/api-py/migrations/reversibility.py"])
     assert v.auto_ok is False and v.target == "api-only"
 
 

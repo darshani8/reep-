@@ -29,7 +29,7 @@ import httpx
 from ..config import settings
 from ..tracing import span
 
-_LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1", "0.0.0.0"}
+_LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1", "0.0.0.0"}  # noqa: S104  a host this classifies as local, never a bind address
 
 
 class LLMNotConfigured(RuntimeError):

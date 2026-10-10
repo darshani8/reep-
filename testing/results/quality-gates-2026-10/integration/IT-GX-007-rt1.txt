@@ -1,0 +1,44 @@
+### 2026-10-08T09:52:34Z  cwd=/tmp/pfr
+$ bash tools/ci/protect-main.sh --help 2>&1 | grep -iE 'dry-run|read' | head -6; rm -f /tmp/ghshim/calls.log; PATH=/tmp/ghshim:$PATH SHIM_AUTH=yes bash tools/ci/protect-main.sh --dry-run > /tmp/pm.out 2>&1; echo SCRIPT_EXIT=$?; grep -E 'checks |nothing was sent|context' /tmp/pm.out; echo '--- gh calls:'; cut -c1-90 /tmp/ghshim/calls.log | grep -E '^gh'; echo PUT-calls: $(grep -c PUT /tmp/ghshim/calls.log)
+and the push lands anyway, and from that moment every MENTOR reads every
+permanently amber check, which reads as a flake, and the first person blocked
+THE APPROVAL DECISION IS YOURS, AND IT IS A REAL TRADE. READ THIS.
+      read the diff. The friction is the feature; it is also real, and on a
+requiring an approval. That configuration reads as protected and behaves as
+  ./tools/ci/protect-main.sh --dry-run       # reads the current protection, writes nothing;
+SCRIPT_EXIT=0
+    checks                     API (FastAPI + Postgres)|API (dependency completeness)|Branch policy (promotion path)|Infra (CDK synth guards)|Rule 1 (every model call declares its cargo)|Secrets (gitleaks)|Web (Angular)
+  GitHub does not re-run an open PR's checks when main moves underneath it, so
+            { "context": "API (FastAPI + Postgres)" },
+            { "context": "Rule 1 (every model call declares its cargo)" },
+            { "context": "API (dependency completeness)" },
+            { "context": "Web (Angular)" },
+            { "context": "Infra (CDK synth guards)" },
+            { "context": "Branch policy (promotion path)" },
+            { "context": "Secrets (gitleaks)" }
+--- gh calls:
+gh auth status
+gh api repos/darshani8/reep- --jq .permissions.admin
+gh api repos/darshani8/reep-/branches/main/protection --jq 
+PUT-calls: 0
+[exit 0, 0s]
+
+### 2026-10-08T09:52:45Z  cwd=/tmp/pfr
+$ sed 's/\x1b\[[0-9;]*m//g' /tmp/pm.out | grep -E '"context"|nothing was sent|^\s+checks'
+    checks                     API (FastAPI + Postgres)|API (dependency completeness)|Branch policy (promotion path)|Infra (CDK synth guards)|Rule 1 (every model call declares its cargo)|Secrets (gitleaks)|Web (Angular)
+            { "context": "API (FastAPI + Postgres)" },
+            { "context": "Rule 1 (every model call declares its cargo)" },
+            { "context": "API (dependency completeness)" },
+            { "context": "Web (Angular)" },
+            { "context": "Infra (CDK synth guards)" },
+            { "context": "Branch policy (promotion path)" },
+            { "context": "Secrets (gitleaks)" }
+[exit 0, 0s]
+
+### 2026-10-08T09:52:54Z  cwd=/tmp/pfr
+$ sed 's/\x1b\[[0-9;]*m//g' /tmp/pm.out | tail -3
+
+-----------------------------------------------------------------
+--dry-run: read the current protection, wrote nothing.
+[exit 0, 0s]
+

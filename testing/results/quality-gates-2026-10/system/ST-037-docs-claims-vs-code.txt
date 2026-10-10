@@ -1,0 +1,39 @@
+# ST-037 docs/engineering + docs/adr factual claims checked against the code at a3688f0 (2026-10-08)
+Each row: claim (doc:location) | what was read | verdict
+
+C01 quality-gates.md §1 / table: static analysis is the step "Static analysis (ruff, mypy, async blocking)" in the "API (FastAPI + Postgres)" job, running `python -m ruff check --config pyproject.toml . ../../tools/ci`, `python -m mypy`, `python ../../tools/ci/check_async_blocking.py`
+    | .github/workflows/ci.yml:113-118 - same step name, same three commands verbatim, immediately after "Install dependencies" (line 91) | TRUE
+C02 quality-gates.md §4 + ADR 0004: the roll-back step is "Migrations roll back (downgrade to the floor, then up again)", after `alembic upgrade head` and before the seed
+    | ci.yml:120 "Apply migrations" -> :143 the round-trip step -> :147 "Seed the dev dataset" -> :151 "Run tests" | TRUE
+C03 quality-gates.md intro + ADR 0002: ci.yml keeps exactly five jobs, pinned in main.json, protect-main.sh, preflight.sh
+    | ci.yml jobs: api, pii-gate, api-imports, web, cdk (5); their display names appear in rulesets/{main,stage,dev}.json, protect-main.sh REQUIRED_CHECKS (lines 130-135) and preflight.sh check_* functions (lines 354-636) | TRUE
+C04 quality-gates.md: "Secrets (gitleaks)" is required on main, stage AND dev; "Branch policy (promotion path)" on main and stage
+    | rulesets main: 5 + Branch policy + Secrets; stage: same; dev: 5 + Secrets (no Branch policy). secret-scan.yml:57 job name "Secrets (gitleaks)" | TRUE
+C05 quality-gates.md §1 / AGENTS.md: ruff selects F, E9, the bug-class B rules, S, ASYNC, RUF100 explicitly, not ruff's defaults
+    | pyproject.toml [tool.ruff.lint] select = F, E9, 22 explicit B codes (B008/B904/B905 excluded with reasons), E402, E731, S, ASYNC..., RUF100. E402/E731 are additionally selected and documented in the file as "selected so RUF100 can tell those suppressions are still live" | TRUE (doc omits E402/E731; the file explains them - not misleading)
+C06 AGENTS.md: mypy targets 3.14 with check_untyped_defs (plan adds warn_unused_ignores, warn_redundant_casts)
+    | pyproject.toml [tool.mypy] python_version = "3.14", files = ["app"], warn_unused_ignores, warn_redundant_casts, check_untyped_defs = true | TRUE
+C07 quality-gates.md §3: the audit must find at least 300 operations
+    | tests/test_route_audit.py:79 MIN_HTTP_OPERATIONS = 300; live document has 370 HTTP operations (ST-007) | TRUE
+C08 quality-gates.md §3: FOREIGN_HANDLER_PACKAGES is today only fastapi_mcp
+    | test_route_audit.py:96-98 - one key, "fastapi_mcp" | TRUE
+C09 quality-gates.md §3 Gate row: named gates are require_mentor, require_admin, require_capability, _assert_can_access_student, assert_student_scope, require_role, require_alumni, the two _require_students, _own_student_id
+    | test_route_audit.py:410-423 GATE_FUNCTIONS = exactly those 10 qualified names | TRUE
+C10 api-checklist.md:27: "13 operations ... are listed in KNOWN_NO_RESPONSE_MODEL"
+    | tests/route_audit_exceptions.py: len(KNOWN_NO_RESPONSE_MODEL) = 13 | TRUE
+C11 api-checklist.md:36: "30 lists are capped by construction (BOUNDED); 61 are recorded gaps (KNOWN_UNPAGINATED)"
+    | len(BOUNDED) = 30, len(KNOWN_UNPAGINATED) = 61 | TRUE
+C12 quality-gates.md §3: exception lists are PUBLIC, KNOWN_UNGATED, KNOWN_NO_RESPONSE_MODEL, KNOWN_STATUS, BOUNDED, KNOWN_UNPAGINATED
+    | route_audit_exceptions.py defines exactly these six upper-case collections (sizes 29, 26, 13, 2, 30, 61) | TRUE
+C13 quality-gates.md §4 / ADR 0004: the floor is derived from IRREVERSIBLE entries whose downgrade refuses
+    | migrations/reversibility.py IRREVERSIBLE: 4 entries, 2 'raises' (7c4e0b21d9aa, 9b2d47f0ce15), 2 'no-op'. ST-002 output: "floor 9b2d47f0ce15", 3 segments cut at the two raising revisions, "90 of 92 downgrades" (92 files in migrations/versions) | TRUE
+C14 AGENTS.md / quality-gates.md §1: the async guard's KNOWN baseline holds three handlers
+    | tools/ci/check_async_blocking.py:142-168 KNOWN = admin_imports.preview_import, voice_platform admin.bulk_candidates, voice_platform calls.close_call (3) | TRUE
+C15 quality-gates.md "Running everything": preflight.sh runs six checks (five ci.yml jobs + the secret scan)
+    | preflight.sh check_api_imports, check_rule_one, check_secrets, check_cdk, check_web, check_api_tests = 6 | TRUE
+C16 quality-gates.md §2: gitleaks 8.30.0 pinned by version and sha256
+    | secret-scan.yml:52-53 GITLEAKS_VERSION "8.30.0", GITLEAKS_SHA256 79a3ab57...a66e; the release tarball downloaded in this test bed hashes to the same value | TRUE
+C17 quality-gates.md §4: the round trip refuses a non-dev ENV / non-loopback host / production-named db, and leaves the dev database untouched
+    | ST-002: "database ... (read only: compared against)", "scratch reep_sys_roundtrip (created, walked, dropped)", and pg_database afterwards lists no scratch db. (Refusal paths are L1/L2 scope; not re-tested here.) | TRUE for the system-observable half
+
+Summary: 17 claims checked, 17 true, 0 false. No defect.

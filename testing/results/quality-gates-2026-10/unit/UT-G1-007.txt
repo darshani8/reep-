@@ -1,0 +1,27 @@
+# Evidence for UT-G1-007
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:39:39 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'migrations/versions/_qg_probe.py':'; cat -n migrations/versions/_qg_probe.py; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise migrations/versions/_qg_probe.py
+--- probe migrations/versions/_qg_probe.py:
+     1	from alembic import op
+     2	
+     3	TABLE = "users"
+     4	
+     5	
+     6	def upgrade():
+     7	    op.execute(f"UPDATE {TABLE} SET x = 1")
+All checks passed!
+[exit=0]
+
+[2026-10-08T08:39:39 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py
+--- probe app/_qg_probe.py:
+     1	TABLE = "users"
+     2	
+     3	
+     4	def q(conn):
+     5	    return conn.execute(f"SELECT * FROM {TABLE} WHERE id = 1")
+app/_qg_probe.py:5:25: S608 Possible SQL injection vector through string-based query construction
+Found 1 error.
+[exit=1]

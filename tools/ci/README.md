@@ -1,14 +1,18 @@
 # tools/ci — the check CI runs, the copy you run first, and the one that turns CI into a gate
 
-Eight files, and the difference between the KINDS matters more than the count.
-Five are executed by a workflow on every push and every pull request:
-`check_api_imports.py`, `check_pii_gate.py` and the three design-system guards
-(`check_brand_magenta.py`, `check_style_duplicates.py`, `check_theme_tokens.py`)
-— and a sixth lives next to the code it reads, at
-`apps/api-py/tools/ci/check_capability_enforcement.py`. Two are executed by a
-developer on a laptop before pushing and are advisory by construction. One is
-executed by a repository admin, once, from a terminal, and is the reason the
-others can fail anything at all.
+Fourteen files, and the difference between the KINDS matters more than the
+count. Most are executed by a workflow on every push and every pull request:
+`check_api_imports.py`, `check_pii_gate.py`, the four web guards
+(`check_brand_magenta.py`, `check_style_duplicates.py`, `check_theme_tokens.py`,
+`check_form_submit.py`) and `check_migration_roundtrip.py` from `ci.yml`;
+`check_gitleaks_rules.py` from `secret-scan.yml`; `branch_policy.py` from
+`branch-policy.yml`; `check_ngsw_integrity.py` from `deploy.yml`; and
+`release_gate.py` from `agent-release.yml`. A further one lives next to the code
+it reads, at `apps/api-py/tools/ci/check_capability_enforcement.py`. Two
+(`preflight.sh`, `preflight.ps1`) are executed by a developer on a laptop before
+pushing and are advisory by construction. One (`protect-main.sh`) is executed
+by a repository admin, once, from a terminal, and is one of the two ways the
+others can fail anything at all -- the other is applying `.github/rulesets/`.
 
 This file documents the three in the second and third groups in depth; the
 design-system guards are described where the rule they defend lives
@@ -21,6 +25,8 @@ down here rather than left to be discovered.
 | file | what it proves | who runs it | can it block a merge? |
 |---|---|---|---|
 | `check_api_imports.py` | `app/` imports nothing `requirements.txt` fails to declare | CI job **API (dependency completeness)**, every push to `main` and every PR | **not yet** — the job fails, but no check is *required*: `main` has no protection (see `protect-main.sh`) |
+| `check_migration_roundtrip.py` | every downgrade that does not refuse on purpose runs, segment by segment on a scratch database, and the catalogue matches at each segment's bottom and top and at the head | step **Migrations roll back** in CI job **API (FastAPI + Postgres)** | **not yet**, for the same reason as the row above: the job fails, but no ruleset is applied |
+| `check_gitleaks_rules.py` | `.gitleaks.toml` still catches 13 replayed leaks (values made up at run time) and stays quiet on 6 placeholder files | job **Secrets (gitleaks)** in `secret-scan.yml`, before the scan | **not yet** -- same reason |
 | `preflight.sh` | all five CI jobs, run locally, before you push | a developer, by hand | **no**, and it is not meant to — it is invoked by nothing |
 | `preflight.ps1` | nothing of its own — it finds `bash` and hands `preflight.sh` the arguments | a developer on Windows | **no** |
 | `protect-main.sh` | nothing; it *applies* branch protection to `main` | a repository admin, by hand, with `gh auth login` | **no** — but every other row's ability to block comes from it |
@@ -70,6 +76,44 @@ completeness)"` for months afterwards. Had that ruleset ever been applied, every
 pull request would have blocked on a check that could never report — a job is
 matched by its DISPLAY NAME as a string, so deleting one does not retire its
 requirement.
+
+## `check_migration_roundtrip.py`
+
+```bash
+cd apps/api-py && python ../../tools/ci/check_migration_roundtrip.py --plan   # read-only
+cd apps/api-py && python ../../tools/ci/check_migration_roundtrip.py
+```
+
+Leaves `DATABASE_URL`'s database alone, apart from reading it: that is the
+straight-path schema, and it must be at the single head. Beside it, it creates
+`<name>_roundtrip` and walks the chain in SEGMENTS cut at every revision whose
+downgrade refuses (`IRREVERSIBLE` "raises" in
+`apps/api-py/migrations/reversibility.py`). For each segment it dumps the
+catalogue at the bottom, upgrades to the top and dumps, downgrades to the bottom
+and dumps, then upgrades again and dumps. The bottom pair catches a downgrade
+that restores the WRONG thing, which a re-upgrade would hide. The top pair
+catches one that leaves something behind. At the head the walked schema must
+match the straight one, and `alembic check` must be clean. The scratch database
+is dropped afterwards. Today that is 90 of 92 downgrades in three segments,
+about 20 s.
+
+"Matches" has two declared exceptions. Columns are compared as a set, because a
+reverse of DROP COLUMN can only append. And the leftovers in
+`KEPT_ON_DOWNGRADE` (an enum value Postgres cannot drop, the pgvector extension,
+the rescue table) are ignored at a segment's bottom and nowhere else. That list
+is a ratchet: an entry that is not actually left behind fails the run.
+
+It refuses unless `ENV` is one of app.config's development names, every host
+and hostaddr psycopg would use (the URL's query string included) is loopback,
+the connected server is not a managed cloud Postgres (no `rds.*`, `aurora*`,
+`cloudsql.*` or `azure.*` setting), and the database name does not say "prod".
+Production's database is also called `reep_py`, so the name alone cannot be the
+guard. It deliberately does NOT ask where the server is listening: behind a port
+mapping (the CI service container, `docker compose up -d`) that is a Docker
+bridge address, and RDS is on a private address too, so no address rule tells
+them apart. It never writes to `DATABASE_URL`'s database, only to its own
+`<name>_roundtrip`, which bounds what a tunnel could reach. It exits 2 if no downgrade on the chain can run, because a
+gate that proved nothing is not a pass.
 
 ## `preflight.sh`
 
@@ -133,17 +177,17 @@ lets you push into the fifth. `apps/api-py/tests/test_codebase_guards.py` now
 fails the build if `ci.yml`, `.github/rulesets/main.json`, `protect-main.sh` and
 `preflight.sh` ever name different checks.
 
-What is still missing from all five is schema hygiene. Nothing runs
-`alembic check`, nothing asserts `alembic heads` prints one row, nothing attempts
-the `downgrade -1 && upgrade head` round trip, and there is no secret scan, no
-`git check-ignore` assertion and no formatter. Those are steps the process
-documents ask for and **no workflow performs them today** — so preflight is not
-lagging CI, it matches it, and both are silent on the schema mistake that is the
-most common one in this repository (a model changed with no revision, or two
-heads after a rebase). Check those by hand until a job exists:
+Schema and secret hygiene arrived on 2026-10-08, in CI rather than here:
+`tests/test_migration_reversibility.py` asserts one head and that every
+downgrade is real or declared; the **Migrations roll back** step in the `api`
+job runs the round trip and `alembic check`; and **Secrets (gitleaks)** scans
+every pull request's commits and tree. What preflight runs of those is in its
+own usage text, which is the copy to trust. Still run by nothing in this
+directory: a `git check-ignore` assertion. To check the schema by hand:
 
 ```
 cd apps/api-py && python -m alembic check && python -m alembic heads
+python ../../tools/ci/check_migration_roundtrip.py --plan
 ```
 
 ## `preflight.ps1`

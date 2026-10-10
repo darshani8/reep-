@@ -75,12 +75,12 @@ def _normalised_png(content: bytes) -> bytes:
         from PIL import Image, ImageOps
 
         with Image.open(io.BytesIO(content)) as image:
-            image = ImageOps.exif_transpose(image) or image
-            flat = image.convert("RGBA")
+            upright = ImageOps.exif_transpose(image) or image
+            flat = upright.convert("RGBA")
         out = io.BytesIO()
         flat.save(out, format="PNG", optimize=True)
         return out.getvalue()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001  best-effort normalising; the upload is stored as sent
         log.warning("signature stored as uploaded; Pillow could not normalise it: %s", exc)
         return content
 

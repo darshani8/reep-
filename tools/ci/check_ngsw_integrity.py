@@ -39,7 +39,7 @@ import sys
 
 
 def sha1(path: pathlib.Path) -> str:
-    return hashlib.sha1(path.read_bytes()).hexdigest()
+    return hashlib.sha1(path.read_bytes(), usedforsecurity=False).hexdigest()
 
 
 def main(argv: list[str]) -> int:

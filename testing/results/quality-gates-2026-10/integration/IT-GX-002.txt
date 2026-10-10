@@ -1,0 +1,26 @@
+### 2026-10-08T08:41:07Z  cwd=/tmp/wt34
+$ sed -i 's/^    name: Secrets (gitleaks)$/    name: Secrets (gitleaks v8)/' .github/workflows/secret-scan.yml; echo '--- diff:'; git diff --stat; git diff | grep -E '^[-+][^-+]' | head -8 | cut -c1-200
+--- diff:
+ .github/workflows/secret-scan.yml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+-    name: Secrets (gitleaks)
++    name: Secrets (gitleaks v8)
+[exit 0, 0s]
+
+### 2026-10-08T08:41:07Z  cwd=/tmp/wt34
+$ cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= tests/test_codebase_guards.py::test_the_five_required_check_names_agree_across_all_four_files 2>&1 | grep -E 'AssertionError|assert|^E ' | head -6; echo PYTEST_EXIT=${PIPESTATUS[0]}
+        the local runner. This asserts all four in CI, where nobody has to remember.
+        assert len(ci_names) == len(jobs), (
+        assert not standalone & ci_names, (
+>           assert name in reported, (
+E           AssertionError: the rulesets require 'Secrets (gitleaks)', which .github/workflows/secret-scan.yml does not report (its jobs report ['Secrets (gitleaks v8)']). A required check no job reports is never reported, and GitHub then waits for it FOREVER: every pull request into that branch shows it as 'Expected' and cannot merge. Rename the job back, or edit the rulesets, protect-main.sh's STANDALONE_CHECKS and STANDALONE_REQUIRED_CHECKS in the same commit.
+E           assert 'Secrets (gitleaks)' in {'Secrets (gitleaks v8)'}
+PYTEST_EXIT=1
+[exit 0, 2s]
+
+### 2026-10-08T08:41:09Z  cwd=/tmp/wt34
+$ git checkout -q -- . && git clean -fdq && echo restored; git status --porcelain | wc -l
+restored
+0
+[exit 0, 0s]
+

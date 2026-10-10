@@ -1,0 +1,32 @@
+# Evidence for UT-G1-002-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:43:48 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/apps/api-py
+$ grep -n -B1 -A4 '"E9"' pyproject.toml
+33-    # E902: a path the gate was pointed at and could not open must fail it.
+34:    "E9",
+35-    # The bugbear rules that are bugs rather than style. Deliberately NOT B008
+36-    # (722 hits: it is FastAPI's `Depends()` idiom), B904 (`raise ... from`
+37-    # is a traceback nicety on an HTTPException) or B905 (making every zip
+38-    # strict= is a behaviour decision per call site, not a lint fix).
+[exit=0]
+
+[2026-10-08T09:43:48 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py
+--- probe app/_qg_probe.py:
+     1	def f(:
+     2	    pass
+app/_qg_probe.py:1:7: invalid-syntax: Expected a parameter or the end of the parameter list
+app/_qg_probe.py:1:8: invalid-syntax: Expected `)`, found newline
+Found 2 errors.
+[exit=1]
+
+[2026-10-08T10:04:35 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py
+--- probe app/_qg_probe.py:
+     1	def f(:
+     2	    pass
+app/_qg_probe.py:1:7: invalid-syntax: Expected a parameter or the end of the parameter list
+app/_qg_probe.py:1:8: invalid-syntax: Expected `)`, found newline
+Found 2 errors.
+[exit=1]

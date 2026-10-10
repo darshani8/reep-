@@ -1,0 +1,40 @@
+$ cd apps/api-py && ENV=dev DATABASE_URL=postgresql+psycopg://reep:***@localhost:5433/reep_py python ../../tools/ci/check_migration_roundtrip.py
+2026-10-08T08:46:18Z
+database   postgresql+psycopg://reep:***@localhost:5433/reep_py  (read only: compared against)
+scratch    reep_py_roundtrip  (created, walked, dropped)
+head       f4a2c9e7b1d3
+floor      9b2d47f0ce15  (the furthest a real rollback can go)
+segment    base .. 31ca99852acd: 66 downgrade(s)
+segment    7c4e0b21d9aa .. 31f7a4c60b12: 2 downgrade(s)
+segment    9b2d47f0ce15 .. f4a2c9e7b1d3: 22 downgrade(s)
+exercised  90 of 92 downgrades; the rest refuse on purpose
+
+straight path: 2118 catalogue lines at f4a2c9e7b1d3
+
+== segment base .. 31ca99852acd
+$ python -m alembic upgrade 31ca99852acd
+$ python -m alembic downgrade base
+$ python -m alembic upgrade 31ca99852acd
+   declared leftovers ignored at the bottom: [('extension', 'vector'), ('table', 'students_orphaned_cohort_ids')]
+   OK: 66 downgrade(s), identical at both ends
+
+== segment 7c4e0b21d9aa .. 31f7a4c60b12
+$ python -m alembic upgrade 7c4e0b21d9aa
+$ python -m alembic upgrade 31f7a4c60b12
+$ python -m alembic downgrade 7c4e0b21d9aa
+$ python -m alembic upgrade 31f7a4c60b12
+   OK: 2 downgrade(s), identical at both ends
+
+== segment 9b2d47f0ce15 .. f4a2c9e7b1d3
+$ python -m alembic upgrade 9b2d47f0ce15
+$ python -m alembic upgrade f4a2c9e7b1d3
+$ python -m alembic downgrade 9b2d47f0ce15
+$ python -m alembic upgrade f4a2c9e7b1d3
+   declared leftovers ignored at the bottom: [('enum-value', 'registration_status', 'HOLD')]
+   OK: 22 downgrade(s), identical at both ends
+
+$ python -m alembic check
+
+OK: 90 of 92 downgrades run in 3 segment(s), catalogues identical at every bottom and top, the round-tripped head matches the straight one (2118 lines), alembic check clean (22 s).
+[exit=0]
+2026-10-08T08:46:40Z

@@ -1,10 +1,12 @@
 <!--
   This template is a checklist, not a gate. Nothing here blocks a merge — only the
-  required status checks on `main` do that, and those are the FIVE named in Checks
-  below, declared in `.github/rulesets/main.json` and applied by
-  `tools/ci/protect-main.sh`. A ticked box is a claim, not evidence. What a checklist
-  buys is narrower and still worth having: after this file exists, "I did not know
-  rule 1 applied to that call site" stops being available to anyone.
+  required status checks do that: the FIVE `ci.yml` jobs named in Checks below,
+  plus "Secrets (gitleaks)" (main, stage, dev) and "Branch policy (promotion
+  path)" (main, stage), declared in `.github/rulesets/*.json` and applied by
+  `tools/ci/protect-main.sh`. A ticked
+  box is a claim, not evidence. What a checklist buys is narrower and still worth
+  having: after this file exists, "I did not know rule 1 applied to that call
+  site" stops being available to anyone.
 
   Delete nothing. If a section does not apply, tick its "not applicable" box — an
   untouched section reads as an unanswered question, and a reviewer cannot tell the
@@ -35,6 +37,25 @@ asks both before any code exists, which is the cheapest place to answer them. --
 **Why this fix and not the obvious alternative** — name the alternative you rejected.
 
 **Deliberately not done** — the scope you cut, so the next person does not read it as an oversight.
+
+## Design and approach (human review)
+
+<!--
+  The one part of review no machine does. Every gate in
+  docs/engineering/quality-gates.md checks a property of the code; none of them can
+  tell you whether this was the right change to make. Answer in a line each — "n/a"
+  is an answer, a blank is not. If an answer is a decision the next person will
+  want to undo, it is an ADR: docs/adr/README.md says when, 0000-template.md how.
+-->
+
+- **Is this the right approach?** One sentence on why this shape and not a smaller one.
+- **The rejected alternative:** what you considered and why it lost (it may be the same one as in "Why"; say so).
+- **Naming:** new modules, endpoints, tables, settings and screen labels — do they say what they are? (`AGENTS.md`: if a label needs decoding, change the label.)
+- **Boundaries — which module owns this?** Name the file that is now the one place this rule lives. A rule copied into a second router is a rule that will disagree with itself.
+- **Backward compatibility / API versioning:** does any existing route change its status code, response shape or parameters, or any column its meaning? The SPA and the API deploy separately and an installed phone keeps the old client until its next load. `/api` or `/api/v1`?
+- **Who must review:** the code owner always (`.github/CODEOWNERS`); name anyone else — rule 1/rule 2, infra, a migration on a table students read.
+- [ ] This records a decision that constrains future work, and the ADR is in this PR: `docs/adr/____-________.md`
+- [ ] No ADR needed — a fix, a refactor that preserves behaviour, or a screen on existing patterns.
 
 ---
 
@@ -117,16 +138,63 @@ Tick one:
 - [ ] This PR does not touch `app/config.py`, `app/security.py`, `app/google_auth.py`, `app/identity.py`, `.github/workflows/**`, `infra/aws/**` or `infra/cdk/**`.
 - [ ] It does, and the PR body above says which guard changed and what it now refuses. Specifically: `production_boot_failures()` must still refuse to boot on a repo-default `AUTH_SECRET`, and `password_login_allowed` must remain an **allowlist** of dev/CI environment names — never `not is_prod`, because an unrecognised `ENV` has to shut the password door, not open it.
 
+## Engineering checklist
+
+<!--
+  Each item names the gate that enforces it, so a tick is either backed by a
+  machine or honestly marked "human — no gate". A ticked "human" item is a claim
+  the reviewer has to check by reading. The long form, with REEP's convention for
+  each and the file to copy, is docs/engineering/api-checklist.md.
+-->
+
+**Before coding**
+
+- [ ] Request and response shapes agreed as Pydantic models — *human — no gate*
+- [ ] Edge cases listed in "Why": empty, duplicate, huge input, bad input — *human — no gate*
+
+**While coding**
+
+- [ ] Separate input / output / DB models; the DB model is never returned — *route audit* (`test_no_operation_returns_a_database_model`)
+- [ ] Every JSON operation declares a typed response model (not `dict`, `dict[str, Any]` or `Any`) — *route audit*
+- [ ] Input validated with Pydantic: types, `ge=`/`le=`, enums, cross-field validators — *human — no gate* (FastAPI turns a schema failure into 422)
+- [ ] Auth and permission on every route: `Depends(get_current_session)` plus a gate in the body (`require_*`, `require_capability`, `_assert_can_access_student`) — *route audit* (`PUBLIC` / `KNOWN_UNGATED` carry the exceptions, with reasons)
+- [ ] Thin routes; shared logic in an `app/` module, not copied between routers — *human — no gate* (REEP has no repository layer; see the checklist doc)
+- [ ] Correct status codes: 201 create, 204 no body, 404, 409, 422 — *route audit* for 204/DELETE and for a create on a collection path (`/{id}` children or a plural segment); a create at a singular or verb segment and the rest are *human — no gate*
+- [ ] Errors use the one envelope, `{"detail": ...}` — *human — no gate* (not enforced yet)
+- [ ] One transaction per request, committed after every refusal; no N+1 — *human — no gate*
+- [ ] An index for every filter and sort column, declared on the model — *codebase guards* for foreign keys; others *human — no gate*
+- [ ] Lists are paginated (`limit` with `le=`, plus `offset`/cursor) — *route audit* for a response that is a list (`BOUNDED` / `KNOWN_UNPAGINATED`); a list inside a response model is *human — no gate*
+- [ ] `async def` only around async libraries; blocking work in a plain `def` — *Static analysis* step
+- [ ] Retries are idempotent (a client key, `require_idempotency_key`, keyed mail) — *human — no gate*
+- [ ] Config and secrets from the environment (`app/config.py`), none in code — *Secrets (gitleaks)* check; the boot guard at runtime
+
+**Before merge**
+
+- [ ] Tests for the happy path, the failure path and the auth failure — *human — no gate* (see Tests below; the route audit proves a gate is called, not that it is the right one)
+- [ ] ruff and mypy pass — *Static analysis* step
+- [ ] Migration written and checked for rollback, or listed as irreversible with a reason — *migration round-trip* step
+- [ ] Logs carry the request id and no passwords, tokens or student free text — *human — no gate* (only the access line carries `rid=` today)
+- [ ] Rate limit on any new login-like or public route — *human — no gate*
+- [ ] `/docs` examples and descriptions are correct for changed endpoints — *human — no gate*
+- [ ] Review done, including "Design and approach" above — *human — no gate*
+
 ## Checks
 
 CI runs five jobs against this PR head — "API (FastAPI + Postgres)", "Rule 1 (every
 model call declares its cargo)", "API (dependency completeness)", "Web (Angular)" and
 "Infra (CDK synth guards)". The voice worker's job went with the LiveKit stack it
-checked. Run them locally first, in one command rather than five typed from memory:
+checked. "API (FastAPI + Postgres)" now also runs **static analysis** (ruff, mypy, the
+async-blocking guard), the **migration round trip** (downgrade to the floor, then up
+again) and, inside its pytest step, the **route audit**
+(`apps/api-py/tests/test_route_audit.py`). Two more required checks run as their own
+workflows: **"Secrets (gitleaks)"** (`.github/workflows/secret-scan.yml`) and
+**"Branch policy (promotion path)"** (`.github/workflows/branch-policy.yml`).
+`docs/engineering/quality-gates.md` says what each refuses and how to run it. Run them
+locally first, in one command rather than six typed from memory:
 
 ```
-./tools/ci/preflight.sh            # all five, in the order that fails fastest
-./tools/ci/preflight.sh --quick    # the two fast ones only — NOT sufficient for a PR
+./tools/ci/preflight.sh            # the five ci.yml checks plus the secret scan, fastest-failing first
+./tools/ci/preflight.sh --quick    # the fast checks only — NOT sufficient for a PR
 .\tools\ci\preflight.ps1           # same thing from PowerShell: it finds bash and hands over
 ```
 
@@ -137,7 +205,9 @@ check that passed — that is the same distinction `REEP_REQUIRE_DB=1` draws in
 way CI asks them, from a throwaway venv built from the manifest alone; without it they
 run in your existing venvs, which is a weaker question and the script says so.
 
-- [ ] All five pass locally — **exit 0, not exit 2** — or all five are green on this PR.
+- [ ] All six pass locally — **exit 0, not exit 2** — or all six are green on this PR.
+- [ ] "Secrets (gitleaks)" is green. If it flagged a real secret, it has been **rotated**, not just removed from the diff.
+- [ ] If this PR adds or changes a route, `tests/test_route_audit.py` passes, and any entry added to `tests/route_audit_exceptions.py` names the handler and has a reason written after reading it (and any entry it made stale is struck off).
 - [ ] If a dependency was added, it is in the right manifest: `requirements.txt` is runtime-only and pinned `==` (it is what the Dockerfile installs), `requirements-dev.txt` is test-only. "API (dependency completeness)" installs `requirements.txt` ALONE, so a lazy import inside a request handler does not save you.
 - [ ] No route in `apps/web/src/app/app.routes.ts` was changed from `loadComponent` to a static `component:`. One re-eager-ed route fails `ng build` on the bundle budget.
 - [ ] If this PR touches a template or a component under `apps/web/src`, `check_form_submit.py` still passes: something must own every `<form>`'s submit — `[formGroup]`, a `(submit)` binding that prevents the default, `ngNoForm`, or `FormsModule` in the component's decorator imports. A bare `<form (ngSubmit)="…">` compiles, builds, type-checks and never fires, and the unprevented native submit reloads the page and drops the query string.

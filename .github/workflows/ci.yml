@@ -94,9 +94,60 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
+      # Three questions no test asks, answered before the database is touched
+      # so the cheapest failures come first. Configuration: pyproject.toml.
+      #   ruff  -- correctness (pyflakes, the bugbear rules that are bugs),
+      #            unsafe code (bandit) and the blocking calls it can see in
+      #            `async def`. Explicit selection, never ruff's defaults, and
+      #            every exception is a `# noqa` with its reason on the line.
+      #   mypy  -- types over app/. Behaviour-neutral fixes or a narrow
+      #            `type: ignore[code]` with a reason; warn_unused_ignores
+      #            makes a stale one a failure.
+      #   check_async_blocking.py -- the shape ruff cannot see: an `async def`
+      #            holding a sync Session (Depends(get_db)) on the event loop,
+      #            which is how /register returned 504s on 2026-09-29.
+      # A STEP in `api`, not a sixth job: the five job names are required-check
+      # strings compared across ci.yml, the ruleset, protect-main.sh and
+      # preflight.sh (test_codebase_guards.py §34), and a new job would be a
+      # required check nobody listed.
+      - name: Static analysis (ruff, mypy, async blocking)
+        working-directory: apps/api-py
+        # All three run even when one fails, so a pull request sees every
+        # finding in one round rather than ruff's, then mypy's on the next push.
+        # The step still fails if any of them did.
+        run: |
+          rc=0
+          python -m ruff check --config pyproject.toml . ../../tools/ci || rc=1
+          python -m mypy || rc=1
+          python ../../tools/ci/check_async_blocking.py || rc=1
+          exit "$rc"
+
       - name: Apply migrations
         working-directory: apps/api-py
         run: python -m alembic upgrade head
+
+      # The downgrades had never been run by anything. `upgrade head` runs on
+      # every job and every deploy; a downgrade runs on the night a bad
+      # migration has already shipped, which is the worst moment to learn that
+      # it drops the wrong index. This leaves the database above alone (it is
+      # the straight-path schema), creates a scratch one beside it, and walks the
+      # chain in segments cut at each revision whose downgrade refuses on
+      # purpose (migrations/reversibility.py, never typed here): every other
+      # downgrade runs, the catalogue must match at each segment's BOTTOM (a
+      # downgrade that restores the wrong default) and TOP (one that leaves
+      # something behind), the walked head must match the straight one, and
+      # `alembic check` must be clean. Columns compare as a set, and only the
+      # leftovers KEPT_ON_DOWNGRADE declares are ignored, at a bottom.
+      #
+      # Its position here, before the seed, is the contract's: it reads the
+      # migrated database and writes only its own scratch copy, so the seed and
+      # the suite still run on a database built by a straight `upgrade head`,
+      # which is what production has. A seeded round trip was measured passing
+      # locally, but the dev seed is a handful of rows and proves little about
+      # real data, so it does not buy a second walk here.
+      - name: Migrations roll back (downgrade to the floor, then up again)
+        working-directory: apps/api-py
+        run: python ../../tools/ci/check_migration_roundtrip.py
 
       - name: Seed the dev dataset
         working-directory: apps/api-py

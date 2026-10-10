@@ -5,13 +5,15 @@ description: Repo-specific rules for driving a REEP pull request to green and me
 
 # Driving a REEP PR to green
 
-## The five required checks
+## The required checks
 
-`API (FastAPI + Postgres)`, `Rule 1 (every model call declares its cargo)`,
-`API (dependency completeness)`, `Web (Angular)`, `Infra (CDK synth guards)`.
-Those display names are pinned in four files (§34 in
-`apps/api-py/tests/test_codebase_guards.py`); never rename a job to fix a PR.
-`Claude review` and `Claude` are advisory and never required.
+The five `ci.yml` jobs — `API (FastAPI + Postgres)`, `Rule 1 (every model call
+declares its cargo)`, `API (dependency completeness)`, `Web (Angular)`,
+`Infra (CDK synth guards)` — plus two standalone workflows: `Secrets (gitleaks)`
+(main, stage, dev) and `Branch policy (promotion path)` (main, stage). Those
+display names are pinned across the rulesets, `protect-main.sh`, `preflight.sh`
+and §34 in `apps/api-py/tests/test_codebase_guards.py`; never rename a job to
+fix a PR. `Claude review` and `Claude` are advisory and never required.
 
 ## Reading a red check
 
@@ -29,6 +31,22 @@ Those display names are pinned in four files (§34 in
   `loadComponent`; never raise the budget.
 - `test_codebase_guards.py` red → read the guard's docstring first; it says
   what invariant broke and why. Fix the code, not the guard.
+- `Static analysis (ruff, mypy, async blocking)` red → fix the line the finding
+  names. A `# noqa: Sxxx` or `# type: ignore[code]` needs its reason on the line;
+  a blocking call in an `async def` moves to a plain `def` or a thread — never
+  into the guard's `KNOWN` list to get green.
+- `Migrations roll back` red → write the missing `downgrade()`, or, if it truly
+  cannot run, add the revision to `IRREVERSIBLE` in
+  `apps/api-py/migrations/reversibility.py` with the reason in words.
+- `Secrets (gitleaks)` red → ROTATE the credential first; deleting the line does
+  not un-publish a pushed secret. Only a published dev value or a proven
+  non-secret goes into `.gitleaks.toml` / `.gitleaksignore`, with its reason.
+- `test_route_audit.py` red → a route lacks a session, a gate, a response model,
+  a status rule or a page size. Fix the new route; never change an existing
+  route's status code, model or parameters to satisfy it (that breaks the
+  Angular client) — record it in `tests/route_audit_exceptions.py` with a reason.
+- `Branch policy` red → the PR targets the wrong base: feature work targets
+  `dev` (`docs/branching-strategy.md`). Retarget; do not add an exception.
 - `alembic` "Multiple head revisions" → re-parent your migration's
   `down_revision` onto the current head. Never `alembic merge`.
 

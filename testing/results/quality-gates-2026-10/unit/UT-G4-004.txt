@@ -1,0 +1,21 @@
+# Evidence for UT-G4-004
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:46:45 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ cd /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py; mkrev aaaa00000001 f4a2c9e7b1d3 $'def downgrade() -> None:\n    raise RuntimeError("refuses on purpose")'; RT; echo '--- now declared raises:'; sed -i 's/^IRREVERSIBLE: dict\[str, Irreversible\] = {/IRREVERSIBLE: dict[str, Irreversible] = {\n    "aaaa00000001": Irreversible("raises", "QG probe: a refusing revision at the head"),/' migrations/reversibility.py; RT; .venv/bin/python ../../tools/ci/check_migration_roundtrip.py --plan 2>&1 | sed -n '3,9p'; git checkout -q migrations/reversibility.py; rm -f migrations/versions/aaaa*
+E       AssertionError: these migrations cannot be rolled back and do not say why:
+E           aaaa00000001 (aaaa00000001_qg_probe.py): downgrade is raises
+E         Write the downgrade. If the reverse would have to guess, re-issue something a person revoked, or undo what Postgres cannot, add the revision to IRREVERSIBLE in migrations/reversibility.py with that reason in words.
+E       assert not ['aaaa00000001 (aaaa00000001_qg_probe.py): downgrade is raises']
+tests/test_migration_reversibility.py:73: AssertionError
+1 failed, 9 passed in 0.81s
+--- now declared raises:
+10 passed in 0.81s
+head       aaaa00000001
+floor      aaaa00000001  (the furthest a real rollback can go)
+segment    base .. 31ca99852acd: 66 downgrade(s)
+segment    7c4e0b21d9aa .. 31f7a4c60b12: 2 downgrade(s)
+segment    9b2d47f0ce15 .. f4a2c9e7b1d3: 22 downgrade(s)
+segment    aaaa00000001 .. aaaa00000001: empty (the next revision refuses)
+exercised  90 of 93 downgrades; the rest refuse on purpose
+[exit=0]

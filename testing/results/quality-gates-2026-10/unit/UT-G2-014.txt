@@ -1,0 +1,34 @@
+# Evidence for UT-G2-014
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:35:40 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-014-bypass-changeme-prefix && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-014-bypass-changeme-prefix
+--- g2-014-bypass-changeme-prefix/.env
+AUTH_SECRET=<FAKE-VALUE-MASKED>
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T08:35:40 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-015-bypass-interp-prefix && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-015-bypass-interp-prefix
+--- g2-015-bypass-interp-prefix/.env
+AUTH_SECRET=<FAKE-VALUE-MASKED>
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T08:55:06 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks2
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-014b-openai-changeme | sed -E 's/changeme[0-9a-f]+/changeme<FAKE-HEX-MASKED>/' && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-014b-openai-changeme
+--- g2-014b-openai-changeme/.env
+OPENAI_API_KEY=<FAKE-VALUE-MASKED>
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T08:55:06 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks2
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-014c-pgurl-changeme | sed -E 's/changeme[0-9a-f]+/changeme<FAKE-HEX-MASKED>/' && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-014c-pgurl-changeme
+--- g2-014c-pgurl-changeme/doc.md
+psql <FAKE-VALUE-MASKED>
+findings: 0 []
+gitleaks exit=0
+[exit=0]

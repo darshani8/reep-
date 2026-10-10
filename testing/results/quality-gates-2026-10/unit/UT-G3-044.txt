@@ -1,0 +1,30 @@
+# Evidence for UT-G3-044
+# build e55d1395379e9bc97cf5f3dfbc6a55bd16962475 (re-test round 2), tester session U
+# [2026-10-08T10:37:15 UTC] Method: synthetic handlers in app/routers/qg_probe.py, SCRATCH worktree /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt (at e55d139) only, included in that worktree's app/main.py;
+#   pytest -q -p no:cacheprovider -o addopts= tests/test_route_audit.py (DATABASE_URL at 127.0.0.1:1); full output: UT-G3-rt2-pytest-output.txt.
+#   Behaviour: TestClient with get_current_session overridden to a STUDENT session. (S = Depends(get_current_session) in the probe module.)
+
+--- probe source:
+@router.get("/n14-nested-called")
+def n14_nested_called(session: dict = S) -> Out:
+    def check() -> None:
+        require_admin(session)
+    check()
+    return Out()
+
+--- audit failure lines naming /api/qg/n14-nested-called: 0
+(none: the audit did not report this operation under any rule)
+--- behaviour:
+GET /api/qg/n14-nested-called as a STUDENT session -> 403 {"detail":"Main Admin access required."}
+
+--- probe source:
+@router.get("/n15-lambda-called")
+def n15_lambda_called(session: dict = S) -> Out:
+    (lambda: require_admin(session))()
+    return Out()
+
+--- audit failure lines naming /api/qg/n15-lambda-called: 0
+(none: the audit did not report this operation under any rule)
+--- behaviour:
+GET /api/qg/n15-lambda-called as a STUDENT session -> 403 {"detail":"Main Admin access required."}
+

@@ -1,0 +1,45 @@
+# Evidence for UT-G3-009
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+# Method: synthetic handlers in app/routers/qg_probe.py (SCRATCH worktree /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt only), mounted in that worktree's app/main.py
+# with 'app.include_router(_qg_probe.router)'; then, from the scratch apps/api-py:
+#   .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_route_audit.py   (full output: UT-G3-run1-pytest-output.txt; p11: UT-G3-run2-gate-pytest-output.txt)
+
+--- probe source:
+@router.get("/p09-if-not-true")
+def p09_if_not_true(session: dict = Depends(get_current_session)) -> Out:
+    if not True:
+        require_admin(session)
+    return Out()
+
+--- audit failure lines naming /api/qg/p09-if-not-true: 0
+(none: the audit did not report this operation under any rule)
+
+--- probe source:
+@router.get("/p10-while-false")
+def p10_while_false(session: dict = Depends(get_current_session)) -> Out:
+    while False:
+        require_admin(session)
+    return Out()
+
+--- audit failure lines naming /api/qg/p10-while-false: 0
+(none: the audit did not report this operation under any rule)
+
+
+[2026-10-08T08:43:47 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef .venv/bin/python -W ignore /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/asstudent.py
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/asstudent.py", line 2, in <module>
+    from app.main import app
+ModuleNotFoundError: No module named 'app'
+[exit=1]
+(the block above failed on the tester's PYTHONPATH, not the product: re-run with PYTHONPATH=.)
+
+[2026-10-08T08:43:58 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ PYTHONPATH=. DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef .venv/bin/python -W ignore /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/asstudent.py
+GET /api/qg/p11-predicate-only as a STUDENT session -> 200 {"ok":false}
+GET /api/qg/p08-swallowed as a STUDENT session -> 200 {"ok":true}
+GET /api/qg/p07-after-return as a STUDENT session -> 200 {"ok":true}
+GET /api/qg/p09-if-not-true as a STUDENT session -> 200 {"ok":true}
+GET /api/qg/p10-while-false as a STUDENT session -> 200 {"ok":true}
+GET /api/qg/p06-helper as a STUDENT session -> 403 {"detail":"Main Admin access required."}
+[exit=0]

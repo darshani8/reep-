@@ -1,0 +1,20 @@
+# Evidence for UT-G1-037
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:43:02 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; echo '--- ruff (CI config):'; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py; echo ruff_exit=$?; echo '--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):'; ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/x .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_codebase_guards.py -k test_every_suppression_in_shipped_code 2>&1 | grep -E '^E  |passed|failed' | head -6
+--- probe app/_qg_probe.py:
+     1	# flake8: noqa
+     2	import subprocess
+     3	
+     4	
+     5	def f(cmd, x):
+     6	    assert x
+     7	    subprocess.run(cmd, shell=True)
+--- ruff (CI config):
+app/_qg_probe.py:1:1: PGH004 Use specific rule codes when using `ruff: noqa`
+Found 1 error.
+ruff_exit=1
+--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):
+1 passed, 68 deselected in 0.99s
+[exit=0]

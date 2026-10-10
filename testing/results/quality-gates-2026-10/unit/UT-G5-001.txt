@@ -1,0 +1,28 @@
+# Evidence for UT-G5-001
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:53:43 UTC] cwd=/home/user/reep-
+$ echo '--- headings at base 15a9e7d:'; git show 15a9e7d:.github/pull_request_template.md | grep -E '^#{1,6} '; echo '--- headings at head a3688f0:'; git show a3688f0:.github/pull_request_template.md | grep -E '^#{1,6} '; echo '--- base headings missing at head:'; comm -23 <(git show 15a9e7d:.github/pull_request_template.md | grep -E '^#{1,6} ' | sort) <(git show a3688f0:.github/pull_request_template.md | grep -E '^#{1,6} ' | sort); echo '(end)'
+--- headings at base 15a9e7d:
+## Why
+## Rule 1 — student data must not leave the machine unbidden
+## Rule 2 — staff scope is decided by role, not by a missing field
+## Tests
+## Schema
+## Config, auth and deploy guards
+## Checks
+## What a reviewer should look at twice
+--- headings at head a3688f0:
+## Why
+## Design and approach (human review)
+## Rule 1 — student data must not leave the machine unbidden
+## Rule 2 — staff scope is decided by role, not by a missing field
+## Tests
+## Schema
+## Config, auth and deploy guards
+## Engineering checklist
+## Checks
+## What a reviewer should look at twice
+--- base headings missing at head:
+(end)
+[exit=0]

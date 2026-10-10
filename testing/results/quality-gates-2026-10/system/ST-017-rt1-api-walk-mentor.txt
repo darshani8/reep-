@@ -1,0 +1,19 @@
+# ST-017-rt1 2026-10-08T09:58:04Z API walk as mentor, NEW HEAD 40201a1 :3300 (1 worker, db reep_rt1_sys)
+POST /api/auth/login (mentor@bgscet.ac.in) -> 200; set-cookie names: ['reep_session']
+GET /api/auth/me -> 200 dict keys=['capabilities', 'email', 'features', 'google_linked', 'last_sign_ins', 'mentorId', 'name', 'notification_prefs', 'role', 'studentId', 'userId'] 
+   body: {"userId":"6a393efa480844a1b2e2097e2c9d00e0","email":"mentor@bgscet.ac.in","name":"Test Mentor","role":"MENTOR","studentId":null,"mentorId":"d6ce93a37c0c4f2ab3ba8b063816470e","capabilities":["mentor.agent","mentor.mentees","mentor.notebook","mentor.upskilling"
+GET /api/mentor/mentees -> 200 list[1] 
+   body: [{"student_id":"e110f073a0734f17bff2d4335dbebe37","name":"Test Student","usn":"1BG24MBA001","current_stage":"EXCEL_ADVANCED","current_semester":2}]
+GET /api/leaves/mine -> 200 list[0] 
+   body: []
+GET /api/interview/status -> 200 dict keys=['active_sessions', 'available', 'max_sessions', 'reason', 'rehearsal'] 
+   body: {"available":false,"reason":"Mock interviews are a student feature.","active_sessions":0,"max_sessions":100,"rehearsal":false}
+mentee student_id: e110f073a0734f17bff2d4335dbebe37
+POST /api/mentor/students/e110f073a0734f17bff2d4335dbebe37/notes -> 201 dict keys=['created_at', 'id', 'linked_action', 'location', 'meeting_at', 'note_text', 'title'] 
+   body: {"id":"326caa9ef99b4c0e96c34f7e00969ff5","note_text":"ST system test note QG-2026-10","linked_action":"NONE","title":"QG-2026-10 check-in","location":null,"meeting_at":"2026-10-08T09:58:04.334182Z","created_at":"2026-10-08T09:58:04.329570Z"}
+GET /api/mentor/students/e110f073a0734f17bff2d4335dbebe37/notes -> 200 list[2] 
+   body: [{"id":"326caa9ef99b4c0e96c34f7e00969ff5","note_text":"ST system test note QG-2026-10","linked_action":"NONE","title":"QG-2026-10 check-in","location":null,"meeting_at":"2026-10-08T09:58:04.334182Z","created_at":"2026-10-08T09:58:04.329570Z"},{"id":"d31a8b5a3e
+note present in list: True
+POST /api/auth/logout -> 200
+GET after logout /api/auth/me -> 401 dict keys=['detail'] 
+   body: {"detail":"Sign in required."}

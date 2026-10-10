@@ -51,7 +51,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping, cast
 
 from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.orm import Session
@@ -61,7 +61,10 @@ from .db import Base
 
 # Importing the package registers every model on Base.metadata. The walk is
 # only a guard if it runs against the WHOLE schema.
-from . import models  # noqa: F401
+from . import models  # noqa: F401  imported for its side effect: every model on Base.metadata
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import CursorResult
 
 log = logging.getLogger("reep.deletion_walk")
 
@@ -246,7 +249,8 @@ class Walk:
         if name not in set(self.deleted_tables):
             return []
         table = Base.metadata.tables[name]
-        return list(db.execute(select(*(table.c[c] for c in columns)).where(self.predicate(name))).all())
+        # A Row is tuple-like (unpacks and indexes), which is all callers do.
+        return cast("list[tuple]", list(db.execute(select(*(table.c[c] for c in columns)).where(self.predicate(name))).all()))
 
     # ----------------------------------------------------------------- writes --
 
@@ -256,11 +260,12 @@ class Walk:
         the report printed is the count that was written. BEFORE any delete."""
         out: dict[str, int] = {}
         for fk in self.cleared_edges:
-            result = db.execute(
+            # An UPDATE executes to a CursorResult, which is what carries rowcount.
+            result = cast("CursorResult[Any]", db.execute(
                 update(fk.parent.table)
                 .where(self._pointer_clause(fk))
                 .values({fk.parent.name: None})
-            )
+            ))
             if result.rowcount:
                 out[f"{fk.parent.table.name}.{fk.parent.name}"] = int(result.rowcount)
         return out
@@ -274,7 +279,7 @@ class Walk:
         for table in reversed(Base.metadata.sorted_tables):
             if table.name not in doomed:
                 continue
-            result = db.execute(delete(table).where(self.predicate(table.name)))
+            result = cast("CursorResult[Any]", db.execute(delete(table).where(self.predicate(table.name))))
             if result.rowcount:
                 out[table.name] = int(result.rowcount)
         return out

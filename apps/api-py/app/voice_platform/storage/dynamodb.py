@@ -138,7 +138,7 @@ class DynamoSessionStore:
                 ExpressionAttributeValues=values,
             )
             return True
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001  session state is a projection; a failed write is logged
             log.error("DynamoDB update_item failed on %s: %s", self.name, exc)
             return False
 
@@ -147,7 +147,7 @@ class DynamoSessionStore:
             out = self._client.get_item(
                 TableName=self.name, Key={"session_id": {"S": session_id}}
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001  session state is a projection; a failed read is logged
             log.error("DynamoDB get_item failed on %s: %s", self.name, exc)
             return None
         item = out.get("Item")

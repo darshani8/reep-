@@ -11,7 +11,6 @@ The contract these tests pin:
 Hits the seeded dev DB through the TestClient; skipped when Postgres is down.
 """
 
-from datetime import datetime, timezone
 
 from sqlalchemy import func, select
 

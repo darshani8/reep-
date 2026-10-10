@@ -1,0 +1,15 @@
+# ST-034-rt1 2026-10-08T10:02:43Z gitleaks 8.30.0 (sha256-verified, round 1) over the full history of NEW HEAD 40201a1 with the NEW .gitleaks.toml / .gitleaksignore and --ignore-gitleaks-allow
+Clone: UNSHALLOWED (is-shallow=false); HEAD=40201a140ba70f8be40d6b016f55ddb828fcaa91; commits in HEAD's history: 746 (602 non-merge); reachable from --all: 1564
+config sha256: .gitleaks.toml 7ceec379bccd146f…  .gitleaksignore 6008924774192430…
+
+## A. $ cd <worktree 40201a1> && gitleaks git . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore --ignore-gitleaks-allow --redact --no-banner --exit-code 1
+10:03AM INF 1292 commits scanned.
+10:03AM INF scanned ~107235208 bytes (107.24 MB) in 23.3s
+10:03AM INF no leaks found
+exit=0
+
+## B. same with --log-opts="40201a1" (exactly the head's ancestry)
+10:03AM INF 594 commits scanned.
+10:03AM INF scanned ~42180225 bytes (42.18 MB) in 11.7s
+10:03AM INF no leaks found
+exit=0

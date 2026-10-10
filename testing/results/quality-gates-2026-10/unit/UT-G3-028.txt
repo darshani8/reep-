@@ -1,0 +1,30 @@
+# Evidence for UT-G3-028
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:45:56 UTC] cwd=/home/user/reep-/apps/api-py
+$ ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/reep_py .venv/bin/python -W ignore -c "
+import tests.test_route_audit as t
+n = len(t.OPERATIONS); w = len(t.WEBSOCKETS)
+print('operations', n, 'websockets', w, 'floor', t.MIN_HTTP_OPERATIONS, t.MIN_WEBSOCKETS)
+for floor in (n - 1, n, n + 1):
+    t.MIN_HTTP_OPERATIONS = floor
+    try:
+        t.test_the_inventory_is_the_whole_application(); print('floor', floor, '-> pass')
+    except AssertionError as e:
+        print('floor', floor, '-> FAIL:', str(e).splitlines()[0][:90])
+t.MIN_HTTP_OPERATIONS = 300
+import fastapi.routing as fr
+orig = t._contexts
+t._contexts = lambda: [c for c in orig() if c.path in t.DOCUMENTATION_ROUTES]
+t.OPERATIONS = []
+try:
+    t.test_the_inventory_is_the_whole_application(); print('empty walk -> pass (BAD)')
+except AssertionError as e:
+    print('simulated broken walk (0 ops) -> FAIL:', str(e).splitlines()[0][:90])
+"
+operations 376 websockets 3 floor 300 2
+floor 375 -> pass
+floor 376 -> pass
+floor 377 -> FAIL: The route walk found 376 HTTP operations; the app has hundreds. The walk is broken (FastAP
+simulated broken walk (0 ops) -> FAIL: The route walk found 0 HTTP operations; the app has hundreds. The walk is broken (FastAPI 
+[exit=0]

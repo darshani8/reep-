@@ -1,0 +1,12 @@
+# Evidence for UT-G4-016
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:50:10 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ cd /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py && git diff --stat && ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_py .venv/bin/python ../../tools/ci/check_migration_roundtrip.py 2>&1 | tail -3; echo script_exit=${PIPESTATUS[0]}
+ apps/api-py/migrations/reversibility.py | 4 ++++
+ 1 file changed, 4 insertions(+)
+exercised  0 of 92 downgrades; the rest refuse on purpose
+
+FAILED: no downgrade on the chain can run, so nothing was proven; a gate that proved nothing is not a pass.
+script_exit=2
+[exit=0]

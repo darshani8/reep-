@@ -1,0 +1,44 @@
+# Evidence for UT-G1-036
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:54:11 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py
+--- probe app/_qg_probe.py:
+     1	# ruff: noqa
+     2	import subprocess
+     3	
+     4	
+     5	def f(cmd, x):
+     6	    assert x
+     7	    subprocess.run(cmd, shell=True)
+All checks passed!
+[exit=0]
+
+[2026-10-08T08:54:11 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py
+--- probe app/_qg_probe.py:
+     1	import subprocess
+     2	
+     3	
+     4	def f(cmd, x):
+     5	    assert x  # noqa
+     6	    subprocess.run(cmd, shell=True)  # noqa: S602
+All checks passed!
+[exit=0]
+
+[2026-10-08T08:54:22 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo 'INFORMATION ONLY (not the shipped config): would ruff own PGH004 see these? same probe, --extend-select PGH004:'; cat -n app/_qg_probe.py; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise --extend-select PGH004 app/_qg_probe.py; echo '--- and is there any existing blanket/file-level noqa in app/ today?'; grep -rnE '# ruff: noqa|# noqa(\s*$|[^:])' app | grep -v '_qg_probe' | head -3; echo '(none above = none)'
+INFORMATION ONLY (not the shipped config): would ruff own PGH004 see these? same probe, --extend-select PGH004:
+     1	# ruff: noqa
+     2	import subprocess
+     3	
+     4	
+     5	def f(cmd, x):
+     6	    assert x  # noqa
+     7	    subprocess.run(cmd, shell=True)
+app/_qg_probe.py:1:1: PGH004 Use specific rule codes when using `ruff: noqa`
+app/_qg_probe.py:6:15: PGH004 Use specific rule codes when using `noqa`
+Found 2 errors.
+--- and is there any existing blanket/file-level noqa in app/ today?
+(none above = none)
+[exit=0]

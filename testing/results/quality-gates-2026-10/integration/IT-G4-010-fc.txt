@@ -1,0 +1,9 @@
+### 2026-10-08T11:03:38Z  cwd=/tmp/pff
+$ pg_dump -h localhost -p 5433 -U postgres -s --no-owner reep_pf | grep -vE '^-- Dumped|^\\(un)?restrict ' | md5sum > /tmp/fc_schema_after; echo before: $(cat /tmp/fc_schema_before); echo after:  $(cat /tmp/fc_schema_after); cmp /tmp/fc_schema_before /tmp/fc_schema_after && echo 'SCHEMA IDENTICAL after a full preflight run'; psql -h localhost -p 5433 -U postgres -Atc "select count(*) from pg_database where datname like '%roundtrip%'"; PGPASSWORD=reep_dev_password psql 'host=127.0.0.1 port=5435 user=reep dbname=postgres' -Atc "select count(*) from pg_database where datname like '%roundtrip%'"
+before: 1e1ca80ced813d128f889ee915d8ac0d -
+after: 1e1ca80ced813d128f889ee915d8ac0d -
+SCHEMA IDENTICAL after a full preflight run
+0
+0
+[exit 0, 1s]
+

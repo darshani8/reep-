@@ -1,0 +1,14 @@
+NOTE: CONFIRMATION of DEF-QG-I01: same range, GitHub's exact shell. Expect: both scans run, ::error:: verdict line, four report files, exit 1.
+### 2026-10-08T09:41:55Z  cwd=/tmp/ss-clone
+$ rm -rf /tmp/rt && mkdir /tmp/rt && EVENT=pull_request BASE_SHA=40201a140ba70f8be40d6b016f55ddb828fcaa91 HEAD_SHA=43328a1ab88b0737496cda66eeead986eca68bfe RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-rt1.sh >/tmp/o 2>&1; echo STEP_EXIT=$?; sed 's/\x1b\[[0-9;]*m//g' /tmp/o | grep -E 'commits scanned|no leaks|leaks found|::error'; ls /tmp/rt/gitleaks-report
+STEP_EXIT=1
+9:41AM INF 1 commits scanned.
+9:41AM WRN leaks found: 1
+9:42AM INF no leaks found
+::error::gitleaks found a secret in the history scan (file, line and rule above; the value is redacted). Rotate it first -- removing the line does not un-publish it -- then see .gitleaks.toml for how a published dev value is allowlisted.
+history.json
+history.log
+tree.json
+tree.log
+[exit 0, 7s]
+

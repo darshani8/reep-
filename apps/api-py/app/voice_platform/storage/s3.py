@@ -141,7 +141,7 @@ class RecordingStore:
             self._client.upload_file(
                 str(path), self.bucket, key, ExtraArgs={"ContentType": ctype}
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001  any SDK failure becomes RecordingStoreError for the caller
             raise RecordingStoreError(f"S3 upload_file failed for {key}: {exc}") from exc
         return StoredObject(self.bucket, key, path.stat().st_size, ctype)
 
@@ -156,7 +156,7 @@ class RecordingStore:
     def delete(self, key: str) -> None:
         try:
             self._client.delete_object(Bucket=self.bucket, Key=key)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001  any SDK failure becomes RecordingStoreError for the caller
             raise RecordingStoreError(f"S3 delete_object failed for {key}: {exc}") from exc
 
 

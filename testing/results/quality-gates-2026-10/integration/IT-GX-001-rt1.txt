@@ -1,0 +1,7 @@
+### 2026-10-08T09:44:20Z  cwd=/tmp/w34r
+$ git rev-parse HEAD; (cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= --tb=line tests/test_codebase_guards.py::test_the_five_required_check_names_agree_across_all_four_files 2>&1 | grep -E 'Error|passed|failed' | cut -c1-260); (cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= tests/test_codebase_guards.py 2>&1 | tail -1)
+40201a140ba70f8be40d6b016f55ddb828fcaa91
+1 passed in 6.74s
+69 passed in 3.53s
+[exit 0, 46s]
+

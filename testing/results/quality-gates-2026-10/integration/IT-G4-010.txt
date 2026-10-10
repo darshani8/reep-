@@ -1,0 +1,47 @@
+### 2026-10-08T09:03:57Z  cwd=/home/user/reep-
+$ pg_dump -h localhost -p 5433 -U postgres -s --no-owner reep_py | grep -vE '^-- Dumped|^\\(un)?restrict ' | md5sum > /tmp/p1_schema_after; echo before: $(cat /tmp/p1_schema_before); echo after:  $(cat /tmp/p1_schema_after); cmp /tmp/p1_schema_before /tmp/p1_schema_after && echo 'SCHEMA IDENTICAL after a full preflight run'; psql -h localhost -p 5433 -U postgres -d reep_py -Atc "select relname||'='||n_live_tup from pg_stat_user_tables where n_live_tup>0 order by 1" > /tmp/p1_rows_after; echo 'tables whose live row count changed (before -> after); the seed and the pytest suite both write here, the round trip must not:'; diff /tmp/p1_rows_before /tmp/p1_rows_after | grep -E '^[<>]'; psql -h localhost -p 5433 -U postgres -Atc "select datname from pg_database where datname like '%roundtrip%'" | wc -l; echo '(databases named *roundtrip* left: must be 0)'
+before: 1e1ca80ced813d128f889ee915d8ac0d -
+after: 1e1ca80ced813d128f889ee915d8ac0d -
+SCHEMA IDENTICAL after a full preflight run
+tables whose live row count changed (before -> after); the seed and the pytest suite both write here, the round trip must not:
+> academic_calendar=2
+> access_group_members=1
+> agent_runs=12
+> archived_documents=142
+> assistant_feedback=4
+> auth_tokens=1
+> badge_course_map=1
+> conversations=2
+> export_events=14
+> feature_overrides=3
+> interview_bank_questions=2
+> interview_cap_resets=1
+> interview_policies=2
+> interview_sessions=1
+< login_days=5
+< mail_logs=2
+> leave_balances=1
+> login_days=8
+> login_events=74
+> mail_logs=105
+> messages=18
+> redesign_audit_events=469
+> redesign_outbox_events=579
+> resume_profiles=1
+> resumes=1
+< semester_results=1
+> semester_results=5
+> staff_signatures=1
+> staff_upskilling_certs=1
+> stage_rules=1
+< student_profiles=1
+> student_profiles=2
+< students=1
+> students=3
+> swoc_entry_revisions=1
+< users=4
+> users=5
+0
+(databases named *roundtrip* left: must be 0)
+[exit 0, 0s]
+

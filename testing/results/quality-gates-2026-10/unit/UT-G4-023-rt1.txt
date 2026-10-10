@@ -1,0 +1,17 @@
+# Evidence for UT-G4-023-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T10:03:45 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/apps/api-py
+$ .venv/bin/python -c "
+import sys; sys.path.insert(0, '../../tools/ci')
+import check_migration_roundtrip as rt
+before = ['enum | registration_status | PENDING,APPROVED', 'extension | plpgsql', 'relation | users | r']
+after  = ['enum | registration_status | PENDING,APPROVED,HOLD', 'extension | plpgsql', 'extension | vector', 'relation | users | r', 'relation | rescue | r', 'column | rescue | id | integer', 'index | rescue_pkey | CREATE UNIQUE INDEX rescue_pkey ON public.rescue USING btree (id)']
+kept = [('enum-value', 'registration_status', 'HOLD'), ('extension', 'vector'), ('table', 'rescue')]
+print('without equal:', rt.without(after, kept) == rt.without(before, kept)); print('present after/before:', [rt.present(after, k) for k in kept], [rt.present(before, k) for k in kept])
+extra = after + ['relation | other_left_behind | r']; print('undeclared still differs:', rt.without(extra, kept) != rt.without(before, kept))
+"
+without equal: True
+present after/before: [True, True, True] [False, False, False]
+undeclared still differs: True
+[exit=0]

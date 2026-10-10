@@ -1,0 +1,24 @@
+NOTE: Control commit: apps/api-py/.env.qg holding ONLY the published CI AUTH_SECRET (allowlisted). Range a3688f0..control must be clean.
+### 2026-10-08T09:16:44Z  cwd=/tmp/ss-clone
+$ rm -rf /tmp/rt && mkdir /tmp/rt && EVENT=pull_request BASE_SHA=a3688f0189c48287f376cf8c165d762a2f8ab8d8 HEAD_SHA=88689fe78a205b9df8728cb53227f39a0873abf6 RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|RuleID|File:|commits scanned|leaks|::error'; echo STEP_EXIT=${PIPESTATUS[0]}
+Range a3688f0189c48287f376cf8c165d762a2f8ab8d8..88689fe78a205b9df8728cb53227f39a0873abf6: 1 non-merge commit(s), 1 adding lines
+9:16AM INF 1 commits scanned.
+9:16AM INF no leaks found
+9:16AM INF no leaks found
+STEP_EXIT=0
+[exit 0, 5s]
+
+NOTE: Second commit: the SAME line now also carries <fake ghp_ token, 40 chars>.
+### 2026-10-08T09:16:50Z  cwd=/tmp/ss-clone
+$ rm -rf /tmp/rt && mkdir /tmp/rt && EVENT=pull_request BASE_SHA=a3688f0189c48287f376cf8c165d762a2f8ab8d8 HEAD_SHA=6b1507c2989cc09e203fb87e973ceece64a980a2 RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|RuleID|File:|Line:|commits scanned|leaks|::error'; echo STEP_EXIT=${PIPESTATUS[0]}; grep -c "$(cat /tmp/faketok)" /tmp/rt/gitleaks-report/*
+Range a3688f0189c48287f376cf8c165d762a2f8ab8d8..6b1507c2989cc09e203fb87e973ceece64a980a2: 2 non-merge commit(s), 2 adding lines
+RuleID:      github-pat
+File:        apps/api-py/.env.qg
+Line:        1
+9:16AM INF 2 commits scanned.
+9:16AM WRN leaks found: 1
+STEP_EXIT=1
+/tmp/rt/gitleaks-report/history.json:0
+/tmp/rt/gitleaks-report/history.log:0
+[exit 1, 0s]
+

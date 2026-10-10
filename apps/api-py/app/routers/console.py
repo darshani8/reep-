@@ -2,12 +2,11 @@
 an admin.* capability per screen (Governance). Compute-only over existing data.
 """
 
-from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy import true as sa_true
 from sqlalchemy.orm import Session
 
@@ -18,7 +17,6 @@ from ..identity import get_current_session
 from ..models.alert import AlertRuleConfig, AlertRuleKey, AlertSeverity
 from ..models.attendance import AttendanceRecord
 from ..models.badge import (
-    BADGE_BY_CODE,
     BADGES,
     CATEGORY_LABEL,
     BadgeEvidence,
@@ -136,7 +134,9 @@ def cohorts(
 ) -> list[CohortOut]:
     require_capability(db, session, "admin.analytics")
     counts = dict(
-        db.execute(select(Student.cohort_id, func.count()).group_by(Student.cohort_id)).all()
+        db.execute(
+            select(Student.cohort_id, func.count()).group_by(Student.cohort_id)
+        ).tuples().all()
     )
     rows = db.execute(
         select(Cohort, AcademicCourse.name, AcademicSpecialization.name)
@@ -2336,7 +2336,7 @@ def export_students_csv(
             select(Mentor.id, User.name).join(User, Mentor.user_id == User.id)
         ).all()
     }
-    cohort_name = dict(db.execute(select(Cohort.id, Cohort.name)).all())
+    cohort_name = dict(db.execute(select(Cohort.id, Cohort.name)).tuples().all())
     rows = (
         []
         if reach.nothing

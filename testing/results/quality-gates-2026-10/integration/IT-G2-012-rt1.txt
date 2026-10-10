@@ -1,0 +1,49 @@
+### 2026-10-08T09:43:10Z  cwd=/tmp/ss-clone
+$ for h in e0709ed796cc6e3575b3520191149daa28b02a26 67dc93dc0c2a928c5e106c3e928aa852aa73fad6; do rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=pull_request BASE_SHA=40201a140ba70f8be40d6b016f55ddb828fcaa91 HEAD_SHA=$h RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-rt1.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|RuleID|File:|Line:|commits scanned|no leaks|leaks found|::error' | cut -c1-160; echo STEP_EXIT=${PIPESTATUS[0]}; done; git checkout -q -f --detach 40201a140ba70f8be40d6b016f55ddb828fcaa91
+Range 40201a140ba70f8be40d6b016f55ddb828fcaa91..e0709ed796cc6e3575b3520191149daa28b02a26: 1 non-merge commit(s), 1 adding lines
+9:43AM INF 1 commits scanned.
+9:43AM INF no leaks found
+RuleID:      github-pat
+File:        apps/api-py/.env.qg
+Line:        1
+9:43AM WRN leaks found: 1
+::error::gitleaks found a secret in the tree scan (file, line and rule above; the value is redacted). Rotate it first -- removing the line does not un-publish i
+STEP_EXIT=1
+Range 40201a140ba70f8be40d6b016f55ddb828fcaa91..67dc93dc0c2a928c5e106c3e928aa852aa73fad6: 2 non-merge commit(s), 2 adding lines
+RuleID:      github-pat
+File:        apps/api-py/.env.qg
+Line:        1
+9:43AM INF 2 commits scanned.
+9:43AM WRN leaks found: 1
+RuleID:      github-pat
+File:        apps/api-py/.env.qg
+Line:        1
+9:43AM WRN leaks found: 1
+::error::gitleaks found a secret in the history scan (file, line and rule above; the value is redacted). Rotate it first -- removing the line does not un-publis
+::error::gitleaks found a secret in the tree scan (file, line and rule above; the value is redacted). Rotate it first -- removing the line does not un-publish i
+STEP_EXIT=1
+[exit 0, 12s]
+
+NOTE: TEST-EXECUTION ERROR in the run above: the clone's working tree was left at the branch tip while earlier heads were scanned, but CI's checkout is the scanned head. The tree-scan half of the run above is therefore invalid. Re-executed below with 'git checkout <head>' before each scan.
+### 2026-10-08T09:43:56Z  cwd=/tmp/ss-clone
+$ for h in $(git rev-parse pr-same-rt1~1) $(git rev-parse pr-same-rt1); do git checkout -q -f --detach $h; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=pull_request BASE_SHA=40201a140ba70f8be40d6b016f55ddb828fcaa91 HEAD_SHA=$h RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-rt1.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|RuleID|File:|Line:|commits scanned|no leaks|leaks found|::error' | cut -c1-160; echo STEP_EXIT=${PIPESTATUS[0]}; done; git checkout -q -f --detach 40201a140ba70f8be40d6b016f55ddb828fcaa91
+Range 40201a140ba70f8be40d6b016f55ddb828fcaa91..e0709ed796cc6e3575b3520191149daa28b02a26: 1 non-merge commit(s), 1 adding lines
+9:43AM INF 1 commits scanned.
+9:43AM INF no leaks found
+9:44AM INF no leaks found
+STEP_EXIT=0
+Range 40201a140ba70f8be40d6b016f55ddb828fcaa91..67dc93dc0c2a928c5e106c3e928aa852aa73fad6: 2 non-merge commit(s), 2 adding lines
+RuleID:      github-pat
+File:        apps/api-py/.env.qg
+Line:        1
+9:44AM INF 2 commits scanned.
+9:44AM WRN leaks found: 1
+RuleID:      github-pat
+File:        apps/api-py/.env.qg
+Line:        1
+9:44AM WRN leaks found: 1
+::error::gitleaks found a secret in the history scan (file, line and rule above; the value is redacted). Rotate it first -- removing the line does not un-publis
+::error::gitleaks found a secret in the tree scan (file, line and rule above; the value is redacted). Rotate it first -- removing the line does not un-publish i
+STEP_EXIT=1
+[exit 0, 12s]
+

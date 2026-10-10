@@ -1,0 +1,14 @@
+# Evidence for UT-G1-019
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:40:24 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe app/_qg_probe.py:'; cat -n app/_qg_probe.py; .venv/bin/python -m mypy > /tmp/mp.out 2>&1; rc=$?; tail -6 /tmp/mp.out; echo mypy_exit=$rc
+--- probe app/_qg_probe.py:
+     1	from typing import cast
+     2	
+     3	
+     4	def f(x: object) -> int:
+     5	    return cast(int, x)
+Success: no issues found in 219 source files
+mypy_exit=0
+[exit=0]

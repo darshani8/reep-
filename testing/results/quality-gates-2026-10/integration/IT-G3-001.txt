@@ -1,0 +1,29 @@
+NOTE: REQ-G3-08 in the assembled environment: the audit with NO database reachable (DATABASE_URL on a closed port, REEP_REQUIRE_DB unset), alone, and in two different orders beside other modules.
+### 2026-10-08T09:07:42Z  cwd=/tmp/wtmig/apps/api-py
+$ env -u REEP_REQUIRE_DB DATABASE_URL=postgresql+psycopg://reep:x@127.0.0.1:5499/none ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= tests/test_route_audit.py 2>&1 | tail -1
+17 passed in 4.22s
+[exit 0, 7s]
+
+### 2026-10-08T09:07:49Z  cwd=/tmp/wtmig/apps/api-py
+$ env -u REEP_REQUIRE_DB DATABASE_URL=postgresql+psycopg://reep:x@127.0.0.1:5499/none ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= -p no:cacheprovider tests/test_route_audit.py tests/test_codebase_guards.py tests/test_release_gate.py 2>&1 | tail -1
+92 passed in 7.34s
+[exit 0, 9s]
+
+### 2026-10-08T09:07:58Z  cwd=/tmp/wtmig/apps/api-py
+$ env -u REEP_REQUIRE_DB DATABASE_URL=postgresql+psycopg://reep:x@127.0.0.1:5499/none ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= -p no:cacheprovider tests/test_release_gate.py tests/test_codebase_guards.py tests/test_route_audit.py 2>&1 | tail -1
+92 passed in 7.79s
+[exit 0, 10s]
+
+### 2026-10-08T09:08:08Z  cwd=/tmp/ci-replay/apps/api-py
+$ grep -E 'test_route_audit' ../../.github/workflows/ci.yml || echo 'no special-casing: the audit runs inside the api job step Run tests (python -m pytest -q, testpaths=tests)'; grep -c 'tests/test_route_audit.py' /home/user/reep-/testing/results/quality-gates-2026-10/integration/IT-G1-001-ci-api-job-replay.txt
+no special-casing: the audit runs inside the api job step Run tests (python -m pytest -q, testpaths=tests)
+0
+[exit 1, 0s]
+
+NOTE: The 0 above: pytest -q prints no file names. Proof the CI step collects the audit instead: the same collection CI's 'python -m pytest -q' does, from the CI checkout:
+### 2026-10-08T09:08:21Z  cwd=/tmp/ci-replay/apps/api-py
+$ DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5435/reep_py ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef /tmp/py314/bin/python -m pytest --collect-only -q -o addopts= 2>/dev/null | grep -c '^tests/test_route_audit.py::'; DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5435/reep_py ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef /tmp/py314/bin/python -m pytest --collect-only -q -o addopts= 2>/dev/null | tail -1
+17
+2078 tests collected in 2.62s
+[exit 0, 10s]
+

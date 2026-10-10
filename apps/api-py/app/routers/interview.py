@@ -87,7 +87,7 @@ import asyncio
 import logging
 import uuid
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 
@@ -106,7 +106,6 @@ from ..interview_audio import (
     SKIP_NOTHING_CAPTURED,
     available_tracks,
     download_name,
-    recorder_for,
     recorder_or_reason,
     track_path,
 )
@@ -163,6 +162,9 @@ from ..models.interview import (
     InterviewTurn,
 )
 from ..models.user import Role
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import CursorResult
 
 log = logging.getLogger(__name__)
 
@@ -847,7 +849,7 @@ def _record_audio_in_the_manifest(
         # behind for the `db.close()` in the caller's `finally`.
         try:
             db.rollback()
-        except Exception:  # pragma: no cover - a session that is already gone
+        except Exception:  # noqa: S110  # pragma: no cover - a session that is already gone
             pass
         log.exception(
             "Could not name interview %s's audio in the archive manifest. The "
@@ -932,7 +934,7 @@ def _make_finalizer(interview_session_id: str, *, audio_skip_reason: str | None 
                 )
             )
             db.commit()
-            if not result.rowcount:
+            if not cast("CursorResult[Any]", result).rowcount:
                 # Somebody finalized first — normally impossible, since Layer 2
                 # only runs after this returns. Worth a line rather than silence:
                 # if it starts happening, two layers are racing and the row's
@@ -1288,7 +1290,8 @@ async def interview(websocket: WebSocket) -> None:
     # never leak the slot it did not take. to_thread because this is a SELECT
     # and this coroutine shares its loop with every live interview's audio.
     switch = (
-        await asyncio.to_thread(_assistant_switch, student_id)
+        # Not a rehearsal, so the missing-studentId case was refused above.
+        await asyncio.to_thread(_assistant_switch, cast(str, student_id))
         if not rehearsal
         else None
     )
@@ -1439,7 +1442,8 @@ async def interview(websocket: WebSocket) -> None:
             _open_records,
             user_id,
             Role(session["role"]),
-            student_id,
+            # A rehearsal returned above; anyone else without one was refused.
+            cast(str, student_id),
             conn_id,
             specialization,
         )
@@ -1730,19 +1734,23 @@ async def _run_relay(
         # usually still lands and Layer 3's sweeper covers the case where it does
         # not. That is the correct shape — a deploy must not be held open by a
         # bookkeeping write, and there is a third layer for exactly this.
-        if interview_session_id is None:
-            return
-        try:
-            await asyncio.to_thread(
-                _finalize_if_running, interview_session_id, conn_id, code, reason
-            )
-        except Exception:
-            # Never allowed to replace the outcome with a teardown detail: the
-            # student's close frame has already gone out with the real code, and
-            # _close_downstream documents the same discipline one line above.
-            log.exception(
-                "[conn=%s] Interview backstop finalization failed", conn_id
-            )
+        #
+        # NOT a `return` when there is no row: a `return` inside `finally`
+        # swallows the exception in flight, so a rehearsal cancelled at shutdown
+        # lost the CancelledError the handler above re-raises (ruff B012, and a
+        # SyntaxWarning from Python 3.14 on, PEP 765).
+        if interview_session_id is not None:
+            try:
+                await asyncio.to_thread(
+                    _finalize_if_running, interview_session_id, conn_id, code, reason
+                )
+            except Exception:
+                # Never allowed to replace the outcome with a teardown detail: the
+                # student's close frame has already gone out with the real code, and
+                # _close_downstream documents the same discipline one line above.
+                log.exception(
+                    "[conn=%s] Interview backstop finalization failed", conn_id
+                )
 
 
 @dataclass(frozen=True, slots=True)
@@ -1967,7 +1975,7 @@ def _finalize_if_running(
             )
         )
         db.commit()
-        if result.rowcount:
+        if cast("CursorResult[Any]", result).rowcount:
             log.warning(
                 "[conn=%s] Interview record %s was closed by the router backstop; "
                 "the relay's own finalizer did not run",

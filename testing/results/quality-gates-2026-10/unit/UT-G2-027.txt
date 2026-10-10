@@ -1,0 +1,76 @@
+# Evidence for UT-G2-027
+# build e55d1395379e9bc97cf5f3dfbc6a55bd16962475 (re-test round 2), tester session U
+
+[2026-10-08T10:35:16 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: two placeholders with spaces inside the brackets: <your openai key> and <paste the secret here>'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-027a-placeholder-spaces; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-027a-placeholder-spaces
+shape: two placeholders with spaces inside the brackets: <your openai key> and <paste the secret here>
+--- g2-027a-placeholder-spaces/.env
+OPENAI_API_KEY=<your openai key>
+AUTH_SECRET=<paste the secret here>
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T10:35:17 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: two nested placeholders: <<your key>> and <a<bc>d>'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-027b-nested-brackets; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-027b-nested-brackets
+shape: two nested placeholders: <<your key>> and <a<bc>d>
+--- g2-027b-nested-brackets/.env
+OPENAI_API_KEY=<<your key>>
+LIVEKIT_API_SECRET=<FAKE-VALUE-MASKED>  (the input was the nested placeholder a-bc-d in three bracket pairs)
+findings: 1 [('reep-livekit-credentials', 2)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T10:35:18 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: the OPENAI_API_KEY variable set to: an opening <, 30 random alnum, <abc>, a closing >'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-027c-nested-real; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-027c-nested-real
+shape: the OPENAI_API_KEY variable set to: an opening <, 30 random alnum, <abc>, a closing >
+--- g2-027c-nested-real/.env
+OPENAI_API_KEY=<FAKE-VALUE-MASKED>
+findings: 1 [('reep-openai-key', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T10:35:18 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: the OPENAI_API_KEY variable set to 40 random alnum characters wrapped in < and >'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-027d-bracketed-real-40; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-027d-bracketed-real-40
+shape: the OPENAI_API_KEY variable set to 40 random alnum characters wrapped in < and >
+--- g2-027d-bracketed-real-40/.env
+OPENAI_API_KEY=<6zoJMbxZ0xvWgUVjgTNDzs0SeyVQu2iwH4v7szpr>
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T10:35:19 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: the OPENAI_API_KEY variable set to 41 random alnum characters wrapped in < and >'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-027e-bracketed-real-41; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-027e-bracketed-real-41
+shape: the OPENAI_API_KEY variable set to 41 random alnum characters wrapped in < and >
+--- g2-027e-bracketed-real-41/.env
+OPENAI_API_KEY=<FAKE-VALUE-MASKED>
+findings: 1 [('reep-openai-key', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T10:35:20 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: the AUTH_SECRET variable set to a quoted value: 32 random hex wrapped in < and >'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-027f-bracketed-auth-hex; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-027f-bracketed-auth-hex
+shape: the AUTH_SECRET variable set to a quoted value: 32 random hex wrapped in < and >
+--- g2-027f-bracketed-auth-hex/.env
+AUTH_SECRET=<FAKE-VALUE-MASKED>
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T10:35:20 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: a postgresql URL for user admin whose password is 24 random alnum wrapped in < and >'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-027g-bracketed-pgpw; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-027g-bracketed-pgpw
+shape: a postgresql URL for user admin whose password is 24 random alnum wrapped in < and >
+--- g2-027g-bracketed-pgpw/doc.md
+psql <FAKE-VALUE-MASKED>
+findings: 0 []
+gitleaks exit=0
+[exit=0]
+
+[2026-10-08T10:35:21 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks-rt2
+$ echo 'shape: the OPENAI_API_KEY variable set to <abc>, 30 random alnum, <def>'; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/show g2-027h-two-placeholders; /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/gl g2-027h-two-placeholders
+shape: the OPENAI_API_KEY variable set to <abc>, 30 random alnum, <def>
+--- g2-027h-two-placeholders/.env
+OPENAI_API_KEY=<FAKE-VALUE-MASKED>
+findings: 1 [('reep-openai-key', 1)]
+gitleaks exit=1
+[exit=0]

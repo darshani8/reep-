@@ -1,0 +1,30 @@
+# Evidence for UT-G3-008-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+# [2026-10-08T09:45:23 UTC] Method: synthetic handlers in app/routers/qg_probe.py, SCRATCH worktree /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt (at 40201a1) only, included in that worktree's app/main.py;
+#   then from its apps/api-py: .venv/bin/python -m pytest -q -p no:cacheprovider -o addopts= tests/test_route_audit.py (DATABASE_URL at 127.0.0.1:1)
+#   full output: UT-G3-rt1-pytest-output.txt. Behaviour: TestClient with get_current_session overridden to a STUDENT session.
+
+--- probe source:
+@router.get("/p08-swallowed")
+def p08_swallowed(session: dict = Depends(get_current_session)) -> Out:
+    try:
+        require_admin(session)
+    except HTTPException:
+        pass
+    return Out()
+
+--- audit failure lines naming /api/qg/p08-swallowed: 1
+E           GET /api/qg/p08-swallowed  (app.routers.qg_probe.p08_swallowed: no role or scope gate)
+--- behaviour:
+GET /api/qg/p08-swallowed as a STUDENT session -> 200 {"ok":true}
+
+--- probe source:
+@router.get("/p11-predicate-only")
+def p11_predicate_only(session: dict = Depends(get_current_session)) -> Out:
+    return Out(ok=_may_see_raw_response(session))
+
+--- audit failure lines naming /api/qg/p11-predicate-only: 1
+E           GET /api/qg/p11-predicate-only  (app.routers.qg_probe.p11_predicate_only: no role or scope gate)
+--- behaviour:
+GET /api/qg/p11-predicate-only as a STUDENT session -> 200 {"ok":false}
+

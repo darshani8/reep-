@@ -1,0 +1,17 @@
+# ST-035 2026-10-08T08:50:05Z gitleaks over the tracked tree at a3688f0
+Method: git archive HEAD | tar -x into a clean directory (1325 files; excludes untracked node_modules/.venv/dist/test output), then scan it exactly as secret-scan.yml does: from the tree root, target '.'
+$ (cd <tree> && gitleaks dir . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore --redact --no-banner --exit-code 1)
+8:50AM INF scanned ~31724253 bytes (31.72 MB) in 4.44s
+8:50AM INF no leaks found
+exit=0
+$ also the working tree in place (repo root, git-ignored files excluded by gitleaks):
+8:50AM WRN skipping file: too large max_size=5MB, size=8MB path=docs/design-v4/reep-app-standalone.html
+8:50AM INF scanned ~70549235 bytes (70.55 MB) in 6.88s
+8:50AM WRN leaks found: 136
+
+## Side finding (-> OBS-QG-S02): scanning the SAME tree by an absolute path instead of '.' reports 4 findings, all allowlisted values whose [[allowlists]] paths are anchored '^apps/...', '^infra/...':
+   reep-database-url-password apps/api-py/tests/test_backup_database.py:59
+   reep-database-url-password apps/api-py/tests/test_backup_database.py:100
+   generic-api-key apps/api-py/app/voice_platform/api/calls.py:219
+   generic-api-key infra/cdk/import-map.json:80
+   -> all 136 are in test-results/.playwright-artifacts-*/traces (Playwright traces written by the e2e run in progress, ST-012; they hold the seeded accounts' session JWTs). test-results/ is git-ignored (.gitignore:55:/test-results/	test-results/x); no tracked file and nothing under testing/results/quality-gates-2026-10/ is among them.

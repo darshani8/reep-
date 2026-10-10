@@ -1,0 +1,17 @@
+# Evidence for UT-G3-028-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:46:31 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/apps/api-py
+$ ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/reep_py .venv/bin/python -W ignore -c "
+import tests.test_route_audit as t
+n = len(t.OPERATIONS); print('operations', n, 'websockets', len(t.WEBSOCKETS), 'floor', t.MIN_HTTP_OPERATIONS)
+for floor in (n - 1, n, n + 1):
+    t.MIN_HTTP_OPERATIONS = floor
+    try: t.test_the_inventory_is_the_whole_application(); print('floor', floor, '-> pass')
+    except AssertionError as e: print('floor', floor, '-> FAIL:', str(e).splitlines()[0][:80])
+"
+operations 376 websockets 3 floor 300
+floor 375 -> pass
+floor 376 -> pass
+floor 377 -> FAIL: The route walk found 376 HTTP operations; the app has hundreds. The walk is brok
+[exit=0]

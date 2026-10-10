@@ -1,0 +1,15 @@
+# Evidence for UT-G3-010
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+# Method: synthetic handlers in app/routers/qg_probe.py (SCRATCH worktree /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt only), mounted in that worktree's app/main.py
+# with 'app.include_router(_qg_probe.router)'; then, from the scratch apps/api-py:
+#   .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_route_audit.py   (full output: UT-G3-run1-pytest-output.txt; p11: UT-G3-run2-gate-pytest-output.txt)
+
+--- probe source:
+@router.get("/r01-dict")
+def r01_dict(session: dict = Depends(get_current_session)) -> dict:
+    require_admin(session)
+    return {}
+
+--- audit failure lines naming /api/qg/r01-dict: 1
+E           GET /api/qg/r01-dict  (app.routers.qg_probe.r01_dict: untyped response model (dict))
+

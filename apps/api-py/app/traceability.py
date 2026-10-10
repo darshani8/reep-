@@ -52,7 +52,7 @@ class RequestTraceMiddleware(BaseHTTPMiddleware):
             import sentry_sdk
 
             sentry_sdk.get_isolation_scope().set_tag("request_id", rid)
-        except Exception:  # noqa: BLE001 — telemetry must never fail a request
+        except Exception:  # noqa: BLE001, S110 — telemetry must never fail a request
             pass
         started = time.perf_counter()
         try:

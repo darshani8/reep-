@@ -1,0 +1,53 @@
+# Evidence for UT-G1-012
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:39:53 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py
+--- probe app/_qg_probe.py:
+     1	import sys
+     2	import json
+     3	from fastapi import Depends, HTTPException
+     4	
+     5	
+     6	def get_db():
+     7	    return None
+     8	
+     9	
+    10	def handler(db=Depends(get_db)):
+    11	    x = None
+    12	    if x == None:
+    13	        pass
+    14	    try:
+    15	        return json.dumps({"a_very_long_key_name_to_make_this_line_exceed_one_hundred_characters": sys.argv})   
+    16	    except ValueError:
+    17	        raise HTTPException(400)
+All checks passed!
+[exit=0]
+
+[2026-10-08T08:39:53 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ .venv/bin/python -m ruff check --config pyproject.toml --no-cache --show-settings app/main.py | sed -n '/linter.rules.enabled/,/^\t\]/p' | grep -cE '^\s+[a-z-]+ \([A-Z]+[0-9]+\)'
+290
+[exit=0]
+
+[2026-10-08T08:39:53 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ .venv/bin/python -m ruff check --config pyproject.toml --no-cache --show-settings app/main.py | sed -n '/linter.rules.enabled/,/^\t\]/p' | grep -oE '\(([A-Z]+)[0-9]+\)' | sed -E 's/\(([A-Z]+)[0-9]+\)/\1/' | sort | uniq -c
+     30 ASYNC
+     45 B
+      6 E
+     87 F
+      2 RUF
+    122 S
+[exit=0]
+
+[2026-10-08T08:40:02 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '(the two counts above were a test-script error: the sed range ran past linter.rules.enabled into linter.rules.should_fix, double-counting. Corrected:)'; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --show-settings app/main.py | sed -n '/^linter.rules.enabled/,/^\]/p' | grep -oE '\(([A-Z]+)[0-9]+\)' | sed -E 's/\(([A-Z]+)[0-9]+\)/\1/' | sort | uniq -c; echo B codes:; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --show-settings app/main.py | sed -n '/^linter.rules.enabled/,/^\]/p' | grep -oE '\((B|E|RUF)[0-9]+\)' | tr -d '()' | sort | tr '\n' ' '
+(the two counts above were a test-script error: the sed range ran past linter.rules.enabled into linter.rules.should_fix, double-counting. Corrected:)
+     15 ASYNC
+     22 B
+      3 E
+     43 F
+      1 RUF
+     58 S
+B codes:
+B002 B003 B004 B006 B012 B015 B016 B017 B018 B020 B021 B022 B023 B025 B026 B029 B030 B031 B032 B033 B035 B039 E402 E731 E902 RUF100 
+[exit=0]

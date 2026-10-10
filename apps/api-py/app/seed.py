@@ -218,6 +218,8 @@ def main() -> None:
             )
             db.add(user)
             db.flush()
+            # Re-read below as "maybe None" once the account may predate this run.
+            stu: Student | None
             stu = Student(user_id=user.id)
             db.add(stu)
             db.flush()

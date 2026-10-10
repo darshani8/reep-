@@ -1,0 +1,9 @@
+# Evidence for UT-G3-027-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:46:03 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/apps/api-py
+$ ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/reep_py .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_route_audit.py tests/test_codebase_guards.py 2>&1 | tail -1; ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/reep_py .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_codebase_guards.py tests/test_route_audit.py 2>&1 | tail -1; ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/reep_py .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_route_audit.py 2>&1 | tail -1
+127 passed in 8.00s
+127 passed in 8.05s
+58 passed in 4.34s
+[exit=0]

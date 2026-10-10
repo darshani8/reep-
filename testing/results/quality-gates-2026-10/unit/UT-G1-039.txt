@@ -1,0 +1,46 @@
+# Evidence for UT-G1-039
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:43:08 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; echo '--- ruff (CI config):'; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py; echo ruff_exit=$?; echo '--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):'; ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/x .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_codebase_guards.py -k test_every_suppression_in_shipped_code 2>&1 | grep -E '^E  |passed|failed' | head -6
+--- probe app/_qg_probe.py:
+     1	import subprocess
+     2	
+     3	HELP = "write # noqa to silence a line; # ruff: noqa switches a file off"
+     4	DOC = """
+     5	# ruff: noqa
+     6	"""
+     7	
+     8	
+     9	def f(cmd):
+    10	    subprocess.run(cmd, shell=True)  # noqa: S602  fixed argv built from constants in this module
+--- ruff (CI config):
+All checks passed!
+ruff_exit=0
+--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):
+1 passed, 68 deselected in 0.91s
+[exit=0]
+(the block above is not conclusive: its only violation carried a reasoned noqa. Re-designed below so an unsuppressed S602/S101 remains.)
+
+[2026-10-08T09:43:39 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; echo '--- ruff (CI config):'; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py; echo ruff_exit=$?; echo '--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):'; ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/x .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_codebase_guards.py -k test_every_suppression_in_shipped_code 2>&1 | grep -E '^E  |passed|failed' | head -6
+--- probe app/_qg_probe.py:
+     1	import subprocess
+     2	
+     3	HELP = "write # noqa to silence a line; # ruff: noqa switches a file off"
+     4	DOC = """
+     5	# ruff: noqa
+     6	"""
+     7	
+     8	
+     9	def f(cmd, x):
+    10	    assert x
+    11	    subprocess.run(cmd, shell=True)
+--- ruff (CI config):
+app/_qg_probe.py:10:5: S101 Use of `assert` detected
+app/_qg_probe.py:11:5: S602 `subprocess` call with `shell=True` identified, security issue
+Found 2 errors.
+ruff_exit=1
+--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):
+1 passed, 68 deselected in 1.05s
+[exit=0]

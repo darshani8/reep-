@@ -16,6 +16,8 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
+import pytest
+
 APP = Path(__file__).resolve().parent.parent / "app"
 MIGRATIONS = Path(__file__).resolve().parent.parent / "migrations" / "versions"
 REPO = Path(__file__).resolve().parent.parent.parent.parent
@@ -1629,12 +1631,38 @@ def test_the_capability_guard_resolves_constants_and_looks_inside_helpers() -> N
 
 
 # --------------------------------------------------------------------------- #
-# §34  The five required status checks are five STRINGS in four files          #
+# §34  Required status checks are STRINGS in four files and two workflows     #
 # --------------------------------------------------------------------------- #
 
 
-def _ci_job_display_names() -> dict[str, str]:
-    """`.github/workflows/ci.yml`'s jobs, as {job id: the name GitHub reports}.
+#: Required checks reported by a workflow OTHER than ci.yml, as
+#: {display name: the workflow file whose job reports it}. Declared, not
+#: discovered: each is subtracted from the rulesets before they are compared with
+#: ci.yml, and each is then proved to be the display name of a job in the file
+#: named here -- so renaming that job without the rulesets fails this guard the
+#: same way renaming a ci.yml job does. They are not ci.yml jobs on purpose:
+#: Branch policy has nothing to run locally, and the secret scan wants the whole
+#: history (fetch-depth: 0) and a verdict in thirty seconds whatever else is
+#: broken. Adding one here is the review that a new required check is meant to
+#: live outside the five.
+STANDALONE_REQUIRED_CHECKS: dict[str, str] = {
+    "Branch policy (promotion path)": ".github/workflows/branch-policy.yml",
+    "Secrets (gitleaks)": ".github/workflows/secret-scan.yml",
+}
+
+#: Which branch's ruleset requires which standalone check. The promotion path is
+#: a question about main and stage only (tests/test_branch_policy.py pins that);
+#: a leaked secret is a leak on every branch, dev included, because dev is where
+#: a feature branch's commits first land in the shared history.
+STANDALONE_CHECKS_BY_BRANCH: dict[str, set[str]] = {
+    "main": {"Branch policy (promotion path)", "Secrets (gitleaks)"},
+    "stage": {"Branch policy (promotion path)", "Secrets (gitleaks)"},
+    "dev": {"Secrets (gitleaks)"},
+}
+
+
+def _ci_job_display_names(workflow: str = "ci.yml") -> dict[str, str]:
+    """A workflow's jobs, as {job id: the name GitHub reports}; ci.yml by default.
 
     Parsed with a regex rather than PyYAML on purpose: PyYAML is not declared in
     `requirements.txt` OR `requirements-dev.txt` — it is in this venv only as
@@ -1646,9 +1674,9 @@ def _ci_job_display_names() -> dict[str, str]:
     what this falls back to — getting that backwards would make the guard demand
     a display name that never appears on any pull request.
     """
-    text = (REPO / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    text = (REPO / ".github" / "workflows" / workflow).read_text(encoding="utf-8")
     body = text.split("\njobs:\n", 1)
-    assert len(body) == 2, "ci.yml has no top-level `jobs:` block; this guard read nothing"
+    assert len(body) == 2, f"{workflow} has no top-level `jobs:` block; this guard read nothing"
 
     jobs: dict[str, str] = {}
     current: str | None = None
@@ -1661,7 +1689,7 @@ def _ci_job_display_names() -> dict[str, str]:
         label = re.match(r"^    name:\s*(\S.*?)\s*$", line)
         if label and current and jobs[current] == current:
             jobs[current] = label.group(1).strip("\"'")
-    assert jobs, "no jobs parsed out of ci.yml — the guard would pass by finding nothing"
+    assert jobs, f"no jobs parsed out of {workflow} — the guard would pass by finding nothing"
     return jobs
 
 
@@ -1702,16 +1730,37 @@ def test_the_five_required_check_names_agree_across_all_four_files() -> None:
         f"independently of the other: {sorted(jobs.items())}"
     )
 
-    # main and stage also require the promotion-path check, which lives in its
-    # own workflow (.github/workflows/branch-policy.yml) and is pinned by
-    # tests/test_branch_policy.py; it is not a ci.yml job, so it is set aside here.
-    branch_policy = "Branch policy (promotion path)"
+    # The standalone checks are subtracted before the comparison with ci.yml,
+    # and each must be EXACTLY the set its branch is declared to require -- a
+    # standalone check dropped from a ruleset is a gate removed as quietly as a
+    # ci.yml job renamed. Each one's name is then proved against its own
+    # workflow file, below, so the subtraction cannot hide a stale string.
+    standalone = set(STANDALONE_REQUIRED_CHECKS)
+    assert not standalone & ci_names, (
+        f"{sorted(standalone & ci_names)} is declared standalone but is also a ci.yml job; "
+        "one check reported by two workflows can never be required independently"
+    )
+    for name, workflow in STANDALONE_REQUIRED_CHECKS.items():
+        reported = set(_ci_job_display_names(workflow.removeprefix(".github/workflows/")).values())
+        assert name in reported, (
+            f"the rulesets require {name!r}, which {workflow} does not report (its jobs report "
+            f"{sorted(reported)}). A required check no job reports is never reported, and "
+            "GitHub then waits for it FOREVER: every pull request into that branch shows it "
+            "as 'Expected' and cannot merge. Rename the job back, or "
+            "edit the rulesets, protect-main.sh's STANDALONE_CHECKS and "
+            "STANDALONE_REQUIRED_CHECKS in the same commit."
+        )
     rulesets: dict[str, set[str]] = {}
     for branch in ("main", "stage", "dev"):
         ruleset = json.loads((REPO / ".github" / "rulesets" / f"{branch}.json").read_text(encoding="utf-8"))
         checks = [r for r in ruleset["rules"] if r["type"] == "required_status_checks"]
         assert len(checks) == 1, f"{branch}.json declares no single required_status_checks rule"
-        rulesets[branch] = {c["context"] for c in checks[0]["parameters"]["required_status_checks"]} - {branch_policy}
+        contexts = {c["context"] for c in checks[0]["parameters"]["required_status_checks"]}
+        assert contexts & standalone == STANDALONE_CHECKS_BY_BRANCH[branch], (
+            f"{branch}.json requires standalone checks {sorted(contexts & standalone)}, "
+            f"but is declared to require {sorted(STANDALONE_CHECKS_BY_BRANCH[branch])}"
+        )
+        rulesets[branch] = contexts - standalone
     ruleset_names = rulesets["main"]
     for branch, names in rulesets.items():
         assert names == ruleset_names, (
@@ -1724,13 +1773,29 @@ def test_the_five_required_check_names_agree_across_all_four_files() -> None:
     assert block, "protect-main.sh has no REQUIRED_CHECKS array for this guard to read"
     protect_names = set(re.findall(r'"([^"]+)"', block.group(1)))
     assert protect_names, "REQUIRED_CHECKS parsed empty"
+    # The classic-protection twin of main.json: the non-ci.yml checks travel in
+    # their own array, as "name|workflow", because REQUIRED_CHECKS is compared
+    # with ci.yml below and they are not ci.yml jobs.
+    sblock = re.search(r"^STANDALONE_CHECKS=\((.*?)^\)", protect, re.S | re.M)
+    assert sblock, "protect-main.sh has no STANDALONE_CHECKS array for this guard to read"
+    protect_standalone = dict(
+        entry.split("|", 1) for entry in re.findall(r'"([^"]+)"', sblock.group(1))
+    )
+    assert protect_standalone == {
+        name: STANDALONE_REQUIRED_CHECKS[name] for name in STANDALONE_CHECKS_BY_BRANCH["main"]
+    }, (
+        "protect-main.sh's STANDALONE_CHECKS disagree with what main.json requires outside "
+        f"ci.yml: {protect_standalone}. The script and the ruleset are two ways to protect "
+        "one branch, and must not be two different gates."
+    )
 
     assert ruleset_names == ci_names, (
         "the committed ruleset and ci.yml disagree about the required checks.\n"
         f"  only in .github/rulesets/*.json:   {sorted(ruleset_names - ci_names)}\n"
         f"  only in ci.yml:                     {sorted(ci_names - ruleset_names)}\n"
-        "A required check no job reports is never reported, and GitHub does not "
-        "wait for a check it has never seen on that branch."
+        "A required check no job reports is never reported, and GitHub then waits "
+        "for it FOREVER: every pull request into that branch shows it as 'Expected' "
+        "and cannot merge, while the renamed job runs and gates nothing."
     )
     assert protect_names == ci_names, (
         "protect-main.sh's REQUIRED_CHECKS and ci.yml disagree.\n"
@@ -1738,16 +1803,217 @@ def test_the_five_required_check_names_agree_across_all_four_files() -> None:
         f"  only in ci.yml:          {sorted(ci_names - protect_names)}"
     )
 
-    # preflight.sh runs these locally. It names each check in the `record` call
-    # that reports it, so the string being present is the same string comparison
-    # the other three make — not a claim in a comment.
+    # preflight.sh runs these locally -- and "runs" is what is checked, not
+    # "mentions". A substring test over the raw file passed with a check renamed
+    # or never called, because every name also lives in a comment, the banner
+    # and the usage text (DEF-QG-I02). `_preflight_problems` reads the script
+    # with comments and heredocs stripped.
+    # Branch policy is the standalone check with no local answer: it asks which
+    # branch a pull request comes FROM.
+    local_standalone = {"Secrets (gitleaks)"}
+    assert local_standalone <= set(STANDALONE_REQUIRED_CHECKS)
     preflight = (REPO / "tools" / "ci" / "preflight.sh").read_text(encoding="utf-8")
-    unrun = sorted(n for n in ci_names if n not in preflight)
-    assert not unrun, (
-        f"tools/ci/preflight.sh does not run, or does not name, {unrun}. Every "
-        "required check belongs in the local runner: one it does not cover is one "
-        "a developer discovers from a runner after the push, which is what that "
-        "script exists to prevent."
+    problems = _preflight_problems(preflight, ci_names | local_standalone)
+    assert not problems, (
+        "tools/ci/preflight.sh does not run every required check under its required "
+        "name:\n  " + "\n  ".join(problems) + "\nEvery required check belongs in the "
+        "local runner: one it does not cover is one a developer discovers from a "
+        "runner after the push, which is what that script exists to prevent."
+    )
+
+
+def _shell_code(text: str) -> list[str]:
+    """preflight.sh's lines with comments and heredoc bodies removed.
+
+    Quotes are tracked per line, which is all this script needs: a `#` inside a
+    quoted string (`"$#"`, a URL fragment) is not a comment. A heredoc body is
+    text for a person -- the usage screen names every check -- and is dropped.
+    """
+    out: list[str] = []
+    heredoc_end: str | None = None
+    for raw in text.splitlines():
+        if heredoc_end is not None:
+            if raw.strip() == heredoc_end:
+                heredoc_end = None
+            out.append("")
+            continue
+        line, quote = [], None
+        for i, ch in enumerate(raw):
+            if quote:
+                if ch == quote and (quote == "'" or raw[i - 1] != "\\"):
+                    quote = None
+            elif ch in "'\"":
+                quote = ch
+            elif ch == "#" and (i == 0 or raw[i - 1] in " \t;"):
+                break
+            line.append(ch)
+        code = "".join(line).rstrip()
+        marker = re.search(r"<<-?\s*['\"]?([A-Za-z_]+)['\"]?", code)
+        if marker:
+            heredoc_end = marker.group(1)
+        out.append(code)
+    return out
+
+
+def _preflight_problems(text: str, required: set[str]) -> list[str]:
+    """Why preflight.sh does not run each required check, or [] if it does.
+
+    For every name: a function that declares `local name="<name>"` and calls
+    `record "$name"` -- so the summary row carries exactly the string GitHub
+    requires -- and that function CALLED on every dispatch path. The --quick
+    path may instead record the check by its literal name as SKIP, which is how
+    it says "not run" rather than staying silent.
+    """
+    lines = _shell_code(text)
+    functions: dict[str, list[str]] = {}
+    top: list[str] = []
+    current: str | None = None
+    for line in lines:
+        start = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)\(\)\s*\{(.*)$", line)
+        if current is None and start:
+            if start.group(2).rstrip().endswith("}"):
+                functions[start.group(1)] = [start.group(2)]  # one-line function
+                continue
+            current = start.group(1)
+            functions[current] = []
+            continue
+        if current is not None:
+            if line == "}":
+                current = None
+            else:
+                functions[current].append(line)
+            continue
+        top.append(line)
+
+    owner: dict[str, str] = {}
+    for fn, body in functions.items():
+        joined = "\n".join(body)
+        declared = re.search(r'^\s*local name="([^"]+)"', joined, re.M)
+        if declared and re.search(r'\brecord "\$name"', joined):
+            owner.setdefault(declared.group(1), fn)
+
+    # The dispatch: the top-level `if [ "$QUICK" ... ]; then A else B fi`, or
+    # one straight path when there is no such branch.
+    block = "\n".join(top)
+    branch = re.search(
+        r'^if \[ "\$QUICK" -eq 1 \]; then\n(?P<quick>.*?)^else\n(?P<full>.*?)^fi$',
+        block, re.S | re.M,
+    )
+    paths = (
+        {"--quick": branch.group("quick"), "full": branch.group("full")}
+        if branch else {"full": block}
+    )
+
+    def called(path: str, fn: str) -> bool:
+        return re.search(rf"^\s*{re.escape(fn)}\s*$", path, re.M) is not None
+
+    problems: list[str] = []
+    for name in sorted(required):
+        fn = owner.get(name)
+        if fn is None:
+            problems.append(f'no check function declares `local name="{name}"` and records it')
+            continue
+        for label, path in paths.items():
+            if called(path, fn):
+                continue
+            if label == "--quick" and re.search(
+                rf'^\s*record "{re.escape(name)}" SKIP\b', path, re.M
+            ):
+                continue
+            problems.append(f"the {label} path never calls {fn} ({name!r})")
+    return problems
+
+
+def _preflight_text() -> str:
+    return (REPO / "tools" / "ci" / "preflight.sh").read_text(encoding="utf-8")
+
+
+_REQUIRED_LOCALLY = {
+    "API (FastAPI + Postgres)", "API (dependency completeness)", "Infra (CDK synth guards)",
+    "Rule 1 (every model call declares its cargo)", "Web (Angular)", "Secrets (gitleaks)",
+}
+
+
+def test_preflight_reader_passes_the_real_script() -> None:
+    assert _preflight_problems(_preflight_text(), _REQUIRED_LOCALLY) == []
+
+
+def test_preflight_reader_refuses_a_renamed_check() -> None:
+    """Mutation A (IT-GX-005): the name survives in comments and the banner."""
+    text = _preflight_text().replace('local name="Secrets (gitleaks)"', 'local name="Secret scan"')
+    assert _preflight_problems(text, _REQUIRED_LOCALLY) == [
+        'no check function declares `local name="Secrets (gitleaks)"` and records it'
+    ]
+
+
+def test_preflight_reader_refuses_a_check_that_is_never_called() -> None:
+    """Mutations B and C: both call sites deleted, the function still defined."""
+    for fn, name in (("check_secrets", "Secrets (gitleaks)"), ("check_web", "Web (Angular)")):
+        text = re.sub(rf"^  {fn}\n", "", _preflight_text(), flags=re.M)
+        assert _preflight_problems(text, _REQUIRED_LOCALLY) == [
+            f"the --quick path never calls {fn} ({name!r})",
+            f"the full path never calls {fn} ({name!r})",
+        ], fn
+
+
+def test_preflight_reader_does_not_count_a_comment_or_the_usage_text() -> None:
+    text = _preflight_text().replace("  check_web\n", "  # check_web\n")
+    assert any("never calls check_web" in p for p in _preflight_problems(text, _REQUIRED_LOCALLY))
+    lines = _shell_code("say 'a # b'  # comment\ncat <<'X'\n  check_web\nX\nrun x \"$#\"\n")
+    assert lines == ["say 'a # b'", "cat <<'X'", "", "", 'run x "$#"']
+
+
+#: Every file that runs gitleaks, or prints a command for a person to run.
+GITLEAKS_CALLERS = (
+    ".github/workflows/secret-scan.yml",
+    "tools/ci/preflight.sh",
+    "tools/ci/preflight.ps1",
+    "tools/ci/check_gitleaks_rules.py",
+    ".pre-commit-config.yaml",
+    "docs/engineering/quality-gates.md",
+)
+
+
+def test_every_gitleaks_invocation_refuses_inline_allow_comments() -> None:
+    """`--ignore-gitleaks-allow` on every scan, or a comment is an allowlist.
+
+    Without the flag gitleaks honours a `gitleaks:allow` comment on the line and
+    drops the finding -- a third way to allowlist, written by whoever wrote the
+    leak, outside .gitleaks.toml (by value) and .gitleaksignore (by
+    fingerprint), the two this repository reviews. DEF-QG-U04 found every
+    invocation missing it. This reads each caller and demands the flag on every
+    `gitleaks git` / `gitleaks dir` command (shell continuation lines joined),
+    in preflight.sh's shared argument array, in the replay script's argv and in
+    the pre-commit hook's args -- so a new scan written without it fails here.
+    """
+    flag = "--ignore-gitleaks-allow"
+    missing: list[str] = []
+    for rel in GITLEAKS_CALLERS:
+        text = (REPO / rel).read_text(encoding="utf-8").replace("\\\n", " ")
+        if rel.endswith(".pre-commit-config.yaml"):
+            hook = re.search(r"- id: gitleaks\b.*?\n\s*args:\s*(\[[^\]]*\])", text, re.S)
+            if not hook or flag not in hook.group(1):
+                missing.append(f"{rel}: the gitleaks hook's args")
+            continue
+        if rel.endswith("check_gitleaks_rules.py"):
+            call = re.search(r"\[gitleaks, \"dir\".*?\]", text, re.S)
+            if not call or flag not in call.group(0):
+                missing.append(f"{rel}: the replay's gitleaks argv")
+            continue
+        if rel.endswith("preflight.sh"):
+            cfg = re.search(r"local cfg=\((.*?)\)", text, re.S)
+            if not cfg or flag not in cfg.group(1):
+                missing.append(f"{rel}: the shared cfg array")
+            for line in text.splitlines():
+                if re.search(r"\bgitleaks (git|dir)\b", line) and "run gitleaks" in line and '"${cfg[@]}"' not in line:
+                    missing.append(f"{rel}: a scan not using cfg: {line.strip()}")
+            continue
+        for line in text.splitlines():
+            if re.search(r"\bgitleaks (git|dir)\b", line) and not line.lstrip().startswith("#") and flag not in line:
+                missing.append(f"{rel}: {line.strip()[:100]}")
+    assert not missing, (
+        f"these gitleaks invocations do not pass {flag}, so a `gitleaks:allow` comment "
+        "silences a real secret on them:\n  " + "\n  ".join(missing)
     )
 
 
@@ -1827,10 +2093,11 @@ RETENTION_APP_IMPORTS: frozenset[tuple[str, str]] = frozenset(
     }
 )
 
-#: Imported as a module rather than a name, so it carries no single function to
-#: walk. `document_store` is a file-store façade over a directory tree; it holds
-#: no ORM model at all, which the guard below checks rather than assumes.
-RETENTION_APP_MODULE_IMPORTS: frozenset[str] = frozenset({"document_store"})
+#: Modules imported whole rather than by name, which carry no single function to
+#: walk. EMPTY since the static-analysis gate: retention.py imported
+#: `document_store` and never used it (ruff F401), so the import went and the
+#: sweep's surface got smaller. Adding one back is a review, like a name above.
+RETENTION_APP_MODULE_IMPORTS: frozenset[str] = frozenset()
 
 #: The names that mean "this code can write to an account".
 _IDENTITY_MODELS = ("User", "Student", "Mentor")
@@ -2314,3 +2581,198 @@ def test_the_release_gate_refuses_the_wrapper_and_its_registration() -> None:
     gate = (REPO / "tools" / "ci" / "release_gate.py").read_text(encoding="utf-8")
     for path in ('"apps/web/public/reep-sw.js"', '"apps/web/src/app/app.config.ts"'):
         assert path in gate, f"tools/ci/release_gate.py REFUSE must list {path}"
+
+
+# ---------------------------------------------------------------------------#
+# §39  Every suppression in shipped code names its codes AND says why        #
+# ---------------------------------------------------------------------------#
+#
+# The static-analysis step is only a gate while a suppression costs a sentence.
+# A file-level ruff-noqa directive on line 1 switched S, ASYNC, F and B off for
+# a whole file, and a bare noqa did the same for a line; both passed CI
+# (DEF-QG-U03). ruff's PGH004 (selected in pyproject.toml) refuses those two
+# shapes. What it cannot refuse is a noqa naming S602 with no reason, or a
+# file-level directive that NAMES its codes -- the rule here is a line-level
+# suppression with its reason in words after the codes, never a file-level one.
+# (The directives are spelled out in words in this block on purpose: ruff reads
+# directives in any comment, this one included.)
+#
+# A real tokenizer, not a grep: the directive inside a string literal is not a
+# suppression, and only a COMMENT token is read.
+#
+# Scope: app/ (what ships) and the CI scripts the gate itself trusts
+# (tools/ci/ at the repo root and apps/api-py/tools/). tests/ is exempt on
+# purpose: it never ships, and its few reasonless E402 suppressions are the
+# house import idiom described where they sit.
+
+# Every spelling ruff 0.16.10 honours, measured against the binary rather than
+# remembered (DEF-QG-U07): the noqa family (`noqa`, `noqa: X`, and the file-level
+# `ruff: noqa` / `flake8: noqa`, with or without codes) and the `ruff:` bracket
+# family -- `ignore[X]` (this line, or the next when on its own line),
+# `disable[X]` ... `enable[X]` (a range; an UNCLOSED disable runs to the end of
+# the file) and `file-ignore[X]` (the whole file, from ANY line). Matched
+# case-insensitively and with optional spaces, which is wider than ruff is:
+# refusing a spelling ruff would ignore costs nothing, missing one it honours
+# is a silent gate.
+_NOQA = re.compile(
+    r"(?P<file>(?:ruff|flake8)\s*:\s*)?\bnoqa\b"
+    r"(?::\s*(?P<codes>[A-Z]+[0-9]+(?:\s*,\s*[A-Z]+[0-9]+)*))?",
+    re.IGNORECASE,
+)
+_RUFF_DIRECTIVE = re.compile(
+    r"\bruff\s*:\s*(?P<verb>file-ignore|ignore|disable|enable)\b\s*"
+    r"(?:\[(?P<codes>[^\]]*)\])?",
+    re.IGNORECASE,
+)
+
+
+def _codes(text: str | None) -> frozenset[str]:
+    return frozenset(c.strip().upper() for c in (text or "").split(",") if c.strip())
+
+
+def _noqa_problems(source: str) -> list[tuple[int, str]]:
+    """(line, problem) for every suppression comment that breaks the rule."""
+    import io
+    import tokenize
+
+    problems: list[tuple[int, str]] = []
+    open_ranges: list[tuple[int, frozenset[str]]] = []
+    for tok in tokenize.generate_tokens(io.StringIO(source).readline):
+        if tok.type != tokenize.COMMENT:
+            continue
+        line, text = tok.start[0], tok.string
+        noqa = list(_NOQA.finditer(text))
+        ruff = list(_RUFF_DIRECTIVE.finditer(text))
+        if not noqa and not ruff:
+            continue
+        # The reason is whatever words remain once every directive is removed.
+        rest = _RUFF_DIRECTIVE.sub(" ", _NOQA.sub(" ", text))
+        has_reason = re.search(r"[A-Za-z]{2,}", rest) is not None
+        for match in noqa:
+            if match.group("file"):
+                problems.append((line, "file-level `ruff: noqa`; suppress one line, with a reason"))
+            elif not match.group("codes"):
+                problems.append((line, "bare `noqa`; name the rule codes"))
+            elif not has_reason:
+                problems.append((line, f"`noqa: {match.group('codes')}` with no reason after the codes"))
+        for match in ruff:
+            verb, codes = match.group("verb").lower(), _codes(match.group("codes"))
+            if verb == "file-ignore":
+                problems.append((line, "`ruff: file-ignore` silences the whole file; suppress one line, with a reason"))
+                continue
+            if not codes:
+                problems.append((line, f"`ruff: {verb}` with no codes"))
+                continue
+            if verb == "enable":
+                open_ranges = [(at, c) for at, c in open_ranges if c != codes]
+                continue
+            if not has_reason:
+                problems.append((line, f"`ruff: {verb}[{', '.join(sorted(codes))}]` with no reason"))
+            if verb == "disable":
+                open_ranges.append((line, codes))
+    for line, codes in open_ranges:
+        problems.append((
+            line,
+            f"`ruff: disable[{', '.join(sorted(codes))}]` is never closed by a matching "
+            "`ruff: enable`, so it silences the rest of the file",
+        ))
+    return sorted(problems)
+
+
+def _shipped_python() -> list[Path]:
+    roots = [APP, REPO / "tools" / "ci", APP.parent / "tools"]
+    return sorted(p for root in roots for p in root.rglob("*.py") if "__pycache__" not in p.parts)
+
+
+def test_every_suppression_in_shipped_code_has_codes_and_a_reason() -> None:
+    files = _shipped_python()
+    assert len(files) > 150, "the scan found too few files to be scanning app/"
+    bad = [
+        f"{path.relative_to(REPO)}:{line}: {problem}"
+        for path in files
+        for line, problem in _noqa_problems(path.read_text(encoding="utf-8"))
+    ]
+    assert not bad, "Suppressions without codes or a reason:\n  " + "\n  ".join(bad)
+
+
+def test_the_file_level_form_is_refused() -> None:
+    """The tester's first shape (UT-G1-036): one line switches a file off."""
+    source = "# ruff: noqa\nimport subprocess\nsubprocess.run(cmd, shell=True)\n"
+    assert _noqa_problems(source) == [(1, "file-level `ruff: noqa`; suppress one line, with a reason")]
+    assert _noqa_problems("# ruff: noqa: S101  tests only\nassert x\n")[0][0] == 1
+
+
+def test_the_bare_and_the_reasonless_forms_are_refused() -> None:
+    """The tester's second shape: a bare noqa and a noqa with codes but no words."""
+    source = "assert x  # noqa\nsubprocess.run(cmd, shell=True)  # noqa: S602\n"
+    assert _noqa_problems(source) == [
+        (1, "bare `noqa`; name the rule codes"),
+        (2, "`noqa: S602` with no reason after the codes"),
+    ]
+
+
+def test_a_reasoned_suppression_and_a_string_literal_pass() -> None:
+    source = (
+        'assert x  # noqa: S101  type narrowing only\n'
+        'except Exception:  # noqa: BLE001, S110  telemetry must never fail its caller\n'
+        'HELP = "write # noqa to silence a line"\n'
+    )
+    assert _noqa_problems(source) == []
+
+
+def test_ruff_itself_refuses_the_blanket_forms() -> None:
+    """PGH004 is the first line of defence; pin that it stays selected."""
+    pyproject = (APP.parent / "pyproject.toml").read_text(encoding="utf-8")
+    select = pyproject.split("select = [", 1)[1].split("]", 1)[0]
+    assert '"PGH004"' in select
+    # RUF103 (an invalid suppression comment) and RUF104 (a `disable` with no
+    # matching `enable`) are ruff's own half of DEF-QG-U07.
+    assert '"RUF103"' in select and '"RUF104"' in select
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        # The tester's case (UT-G1-038): an unclosed range at the top of a file.
+        ("# ruff: disable[S101, S602]\nassert x\n",
+         [(1, "`ruff: disable[S101, S602]` with no reason"),
+          (1, "`ruff: disable[S101, S602]` is never closed by a matching `ruff: enable`, "
+              "so it silences the rest of the file")]),
+        # A reason does not excuse leaving it open.
+        ("# ruff: disable[S101]  tests below\nassert x\n",
+         [(1, "`ruff: disable[S101]` is never closed by a matching `ruff: enable`, "
+              "so it silences the rest of the file")]),
+        # Closed, but by a DIFFERENT set: still open.
+        ("# ruff: disable[S101]  narrowing\nassert x\n# ruff: enable[S602]\n",
+         [(1, "`ruff: disable[S101]` is never closed by a matching `ruff: enable`, "
+              "so it silences the rest of the file")]),
+        ("x = 1  # ruff: ignore[S101]\n", [(1, "`ruff: ignore[S101]` with no reason")]),
+        ("# ruff: file-ignore[S101]  tests only\n",
+         [(1, "`ruff: file-ignore` silences the whole file; suppress one line, with a reason")]),
+        ("# flake8: noqa: S101  tests only\n",
+         [(1, "file-level `ruff: noqa`; suppress one line, with a reason")]),
+        ("# flake8: noqa\n", [(1, "file-level `ruff: noqa`; suppress one line, with a reason")]),
+        ("x = 1  #noqa:S101\n", [(1, "`noqa: S101` with no reason after the codes")]),
+        ("x = 1  # NOQA\n", [(1, "bare `noqa`; name the rule codes")]),
+        ("# ruff:disable[S101]\n# ruff:enable[S101]\n",
+         [(1, "`ruff: disable[S101]` with no reason")]),
+        ("# ruff: disable\n", [(1, "`ruff: disable` with no codes")]),
+        # A second directive is not a reason for the first.
+        ("x = 1  # noqa: S101  # ruff: ignore[S602]\n",
+         [(1, "`noqa: S101` with no reason after the codes"),
+          (1, "`ruff: ignore[S602]` with no reason")]),
+    ],
+)
+def test_every_spelling_ruff_honours_is_read(source: str, expected: list) -> None:
+    assert _noqa_problems(source) == sorted(expected)
+
+
+def test_a_closed_and_reasoned_range_and_a_reasoned_ignore_pass() -> None:
+    source = (
+        "def f(x):\n"
+        "    # ruff: disable[S101]  type narrowing for the block below\n"
+        "    assert x\n"
+        "    # ruff: enable[S101]\n"
+        "    return x  # ruff: ignore[S101]  the caller proved it\n"
+    )
+    assert _noqa_problems(source) == []

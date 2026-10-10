@@ -1,0 +1,25 @@
+# Evidence for UT-G1-009-rt2
+# build e55d1395379e9bc97cf5f3dfbc6a55bd16962475 (re-test round 2), tester session U
+
+[2026-10-08T10:32:02 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py
+$ echo '--- probe 'app/_qg_probe.py':'; cat -n app/_qg_probe.py; echo '--- ruff (CI config):'; .venv/bin/python -m ruff check --config pyproject.toml --no-cache --output-format concise app/_qg_probe.py; echo ruff_exit=$?; echo '--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):'; ENV=dev AUTH_SECRET=x DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:1/x .venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_codebase_guards.py -k test_every_suppression_in_shipped_code 2>&1 | grep -E '^E  |passed|failed' | head -6
+--- probe app/_qg_probe.py:
+     1	import asyncio
+     2	import subprocess
+     3	import time
+     4	
+     5	
+     6	async def ok():
+     7	    await asyncio.sleep(1)
+     8	    await asyncio.to_thread(time.sleep, 1)
+     9	
+    10	
+    11	def sync_is_fine(cmd):
+    12	    time.sleep(1)
+    13	    subprocess.run(cmd, check=True)  # noqa: S603  fixed argv from the caller
+--- ruff (CI config):
+All checks passed!
+ruff_exit=0
+--- §39 (test_every_suppression_in_shipped_code_has_codes_and_a_reason):
+1 passed, 81 deselected in 1.08s
+[exit=0]

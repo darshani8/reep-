@@ -1,0 +1,10 @@
+### 2026-10-08T10:42:45Z  cwd=/tmp/w34f
+$ (cd apps/api-py && /home/user/reep-/apps/api-py/.venv/bin/python -m pytest -q -o addopts= tests/test_release_gate.py 2>&1 | tail -1); python3 tools/ci/release_gate.py --base 15a9e7d --head 988e732207de9869243d9343a51a6a391b352911 | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['target'],'auto_ok=',d['auto_ok'],len(d['reasons']))"; for p in testing/docs/x.md .gitleaks.toml .gitleaksignore tools/ci/release_gate.py; do printf '%-30s ' $p; echo $p | python3 tools/ci/release_gate.py | tr -d '\n '; echo; done
+17 passed in 0.60s
+api-only auto_ok= False 42
+testing/docs/x.md              {"target":"none","auto_ok":false,"reasons":[],"files":1}
+.gitleaks.toml                 {"target":"none","auto_ok":false,"reasons":[],"files":1}
+.gitleaksignore                {"target":"none","auto_ok":false,"reasons":[],"files":1}
+tools/ci/release_gate.py       {"target":"none","auto_ok":false,"reasons":["tools/ci/release_gate.py:thisgatechanged"],"files":1}
+[exit 0, 2s]
+

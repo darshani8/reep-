@@ -1,0 +1,30 @@
+# Evidence for UT-G3-009-rt2
+# build e55d1395379e9bc97cf5f3dfbc6a55bd16962475 (re-test round 2), tester session U
+# [2026-10-08T10:37:15 UTC] Method: synthetic handlers in app/routers/qg_probe.py, SCRATCH worktree /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt (at e55d139) only, included in that worktree's app/main.py;
+#   pytest -q -p no:cacheprovider -o addopts= tests/test_route_audit.py (DATABASE_URL at 127.0.0.1:1); full output: UT-G3-rt2-pytest-output.txt.
+#   Behaviour: TestClient with get_current_session overridden to a STUDENT session. (S = Depends(get_current_session) in the probe module.)
+
+--- probe source:
+@router.get("/p09-if-not-true")
+def p09_if_not_true(session: dict = S) -> Out:
+    if not True:
+        require_admin(session)
+    return Out()
+
+--- audit failure lines naming /api/qg/p09-if-not-true: 1
+E           GET /api/qg/p09-if-not-true  (app.routers.qg_probe.p09_if_not_true: no role or scope gate)
+--- behaviour:
+GET /api/qg/p09-if-not-true as a STUDENT session -> 200 {"ok":true}
+
+--- probe source:
+@router.get("/p10-while-false")
+def p10_while_false(session: dict = S) -> Out:
+    while False:
+        require_admin(session)
+    return Out()
+
+--- audit failure lines naming /api/qg/p10-while-false: 1
+E           GET /api/qg/p10-while-false  (app.routers.qg_probe.p10_while_false: no role or scope gate)
+--- behaviour:
+GET /api/qg/p10-while-false as a STUDENT session -> 200 {"ok":true}
+

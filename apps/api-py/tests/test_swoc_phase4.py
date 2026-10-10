@@ -38,7 +38,7 @@ from conftest import requires_db
 from app.db import SessionLocal
 from app.models.redesign import AuditEvent
 from app.models.swoc import SwocEntry, SwocEntryRevision
-from app.models.user import Mentor, Role, Student, User
+from app.models.user import Role, Student
 
 API = "/api/admin/swoc"
 MINE = "/api/student/swoc"

@@ -16,13 +16,17 @@
 # pulled in whole by the [extend] block; these rules are additive, never a
 # replacement.
 #
-# WHERE THIS RUNS, AND WHAT IT IS WORTH TODAY. .pre-commit-config.yaml runs it
+# WHERE THIS RUNS. Twice, with one rules file. .pre-commit-config.yaml runs it
 # over the staged diff, which is fast and skippable -- `--no-verify` skips it and
-# the hook lives in .git/, so it is not even cloned. That is the fast copy, not
-# the authority. The authority is meant to be this same rules file run by a
-# required CI job. As of this commit that job does not exist, so this file has
-# exactly one caller and that caller can be bypassed by anyone who wants to.
-# Read it as a rules file that is ready, not as a gate that is closed.
+# the hook lives in .git/, so it is not even cloned. That is the fast copy. The
+# authority is .github/workflows/secret-scan.yml, the check "Secrets
+# (gitleaks)" that all three rulesets require: it scans the pull request's whole
+# commit range AND the checked-out tree with this same file, and nobody can
+# --no-verify a required check -- once an admin has applied the rulesets
+# (.github/rulesets/README.md). Before that it is a red X nobody is obliged to
+# respect. Until that workflow existed this file had one
+# caller and anybody could bypass it; read old commit bodies that say so as
+# history.
 #
 # VERIFIED BEFORE COMMITTING, and re-runnable. Every rule below was matched
 # against every file `git ls-files` lists -- 523 of them -- with the allowlist
@@ -56,6 +60,20 @@ title = "REEP secret rules"
 # and an outage even when it is not a student-data breach.
 useDefault = true
 
+# EVERY GROUP BELOW IS NON-CAPTURING `(?:...)` EXCEPT reep-auth-secret's value.
+# gitleaks reports a rule's FIRST capture group as the secret, so
+# `LIVEKIT_API_(KEY|SECRET)` reported the secret "SECRET" -- the word, not the
+# value -- and no allowlist keyed on the secret could ever see the value
+# (FV-QG-01). With no group, the secret is the whole match, `NAME=value`, which
+# is why the placeholder allowlists accept an optional `NAME=` prefix.
+#
+# EVERY `=` BELOW IS FOLLOWED BY `[ \t]*`, NEVER `\s*`. `\s` matches a newline,
+# so `GROQ_API_KEY=` with nothing after it -- the shape every template ships --
+# took the NEXT LINE as its value and reported `#MISTRAL_API_KEY=` as a Groq key
+# (.env.selfhost.example, found by the first full-history scan). An empty value
+# is not a secret, and a rule that reads the next line's comment as one is the
+# noise that gets a scanner switched off.
+
 # ---------------------------------------------------------------------------
 # Rules
 # ---------------------------------------------------------------------------
@@ -80,7 +98,13 @@ description = "AUTH_SECRET assigned a real value (the HS256 key for the reep_ses
 # somebody deletes. Restricting the unquoted branch to the alphabet a key is
 # actually written in -- hex, base64, base64url -- ends the match at the first
 # `)` or `.` and takes all eight away without weakening the real case.
-regex = '''(?i)\bAUTH_SECRET\b\s*[:=]\s*(["'][^"'\n]{32,}["']|[A-Za-z0-9+/=_\-]{32,})'''
+#
+# The one rule here allowed to cross a line: YAML writes `AUTH_SECRET:` and puts
+# the value on the NEXT line, indented (a compose override, a k8s Secret's
+# stringData). Only a newline FOLLOWED BY INDENTATION is crossed, so the next
+# top-level key is never read as the value -- which is the bug that made every
+# other rule use `[ \t]*`.
+regex = '''(?i)\bAUTH_SECRET\b[ \t]*[:=](?:[ \t]*|[ \t]*\r?\n[ \t]+)(["'][^"'\n]{32,}["']|[A-Za-z0-9+/=_\-]{32,})'''
 tags = ["reep", "auth", "session"]
 
 [[rules]]
@@ -96,7 +120,7 @@ description = "A 64-character hex string sitting next to the words secret / toke
 # Measured before writing this rule: `git grep -lE '[0-9a-fA-F]{64}'` matches no
 # tracked file in the repository today. The rule starts green; it does not need
 # an exemption on arrival.
-regex = '''(?i)(secret|token|api[_-]?key|auth)[^\n]{0,40}\b[0-9a-f]{64}\b'''
+regex = '''(?i)(?:secret|token|api[_-]?key|auth)[^\n]{0,40}\b[0-9a-f]{64}\b'''
 tags = ["reep", "auth", "entropy"]
 
   [rules.allowlist]
@@ -116,12 +140,12 @@ description = "VOICE_WORKER_SECRET assigned a real value (the API-to-voice-worke
 # attacker POST forged transcripts into `messages` with channel='voice'. That is
 # a poisoned record rather than an exposed one, and per AGENTS.md's voice runbook
 # the failure mode of this key is already silent enough.
-regex = '''(?i)\bVOICE_WORKER_SECRET\b\s*[:=]\s*["']?[^"'\s$]{8,}["']?'''
+regex = '''(?i)\bVOICE_WORKER_SECRET\b[ \t]*[:=][ \t]*["']?[^"'\s$]{8,}["']?'''
 tags = ["reep", "voice"]
 
 [[rules]]
 id = "reep-database-url-password"
-description = "A postgresql+psycopg:// URL carrying a password that is not the published dev one"
+description = "A postgres:// or postgresql[+driver]:// URL carrying a password that is not the published dev one"
 # The connection string to the database holding every student's marks,
 # attendance and USN, every interview transcript, and the interview_consents
 # rows whose whole purpose is to stay answerable after a grant is revoked.
@@ -133,15 +157,33 @@ description = "A postgresql+psycopg:// URL carrying a password that is not the p
 #
 # The 4-character floor is why `postgresql+psycopg://u:p@h/db` in
 # tests/test_voice.py does not fire: a one-character stand-in is not a credential.
-regex = '''postgresql\+psycopg://[A-Za-z0-9_.\-]+:[^@\s"'/]{4,}@'''
+#
+# Every spelling libpq and SQLAlchemy accept, not only the one app/config.py
+# writes: `postgres://` and `postgresql://` are what RDS, psql, pg_dump and every
+# runbook hand you, and an operator pasting one into a doc leaks the same
+# password as the +psycopg form.
+regex = '''postgres(?:ql)?(?:\+[a-z0-9]+)?://[A-Za-z0-9_.\-]+:[^@\s"'/]{4,}@'''
 tags = ["reep", "database"]
+
+[[rules]]
+id = "reep-env-name-value-pair"
+description = "An ECS / Kubernetes / docker env entry: name: <..._SECRET|_PASSWORD|_API_KEY|_TOKEN> beside value: <literal>"
+# Task definitions, k8s manifests and CDK `environment=[{"name": ..., "value":
+# ...}]` blocks split the variable NAME and its VALUE into two keys, so every
+# rule above -- keyed on `NAME=value` -- reads straight past them. The secret
+# belongs in `valueFrom` / `secretKeyRef`; a literal `value` beside a secret-ish
+# name is the leak. The value must be 16+ key-alphabet characters, so `${VAR}`,
+# an empty string and a short flag stay quiet; the pair may sit on one line
+# (JSON) or two (YAML).
+regex = '''(?i)["']?name["']?[ \t]*[:=][ \t]*["']?[A-Z0-9_]*(?:SECRET|PASSWORD|API_KEY|TOKEN)["']?[ \t]*,?[ \t]*(?:\r?\n[ \t]*-?[ \t]*)?["']?value["']?[ \t]*[:=][ \t]*["']?[A-Za-z0-9+/=_\-]{16,}'''
+tags = ["reep", "deploy"]
 
 [[rules]]
 id = "reep-groq-key"
 description = "GROQ_API_KEY, by variable name or by Groq's own gsk_ shape"
 # One key drives STT, the LLM and optionally TTS for the voice worker, so a leak
 # is somebody else's inference running on this project's quota.
-regex = '''(?i)(\bGROQ_API_KEY\b\s*[:=]\s*["']?[^"'\s$]{8,}["']?|\bgsk_[A-Za-z0-9]{40,})'''
+regex = '''(?i)(?:\bGROQ_API_KEY\b[ \t]*[:=][ \t]*["']?[^"'\s$]{8,}["']?|\bgsk_[A-Za-z0-9]{40,})'''
 tags = ["reep", "llm", "provider"]
 
 [[rules]]
@@ -149,7 +191,7 @@ id = "reep-livekit-credentials"
 description = "LIVEKIT_API_KEY or LIVEKIT_API_SECRET assigned a real value"
 # LIVEKIT_URL is not a secret and is deliberately not matched. The key/secret
 # pair mints room tokens, which is the entire access control on a live call.
-regex = '''(?i)\bLIVEKIT_API_(KEY|SECRET)\b\s*[:=]\s*["']?[^"'\s$]{8,}["']?'''
+regex = '''(?i)\bLIVEKIT_API_(?:KEY|SECRET)\b[ \t]*[:=][ \t]*["']?[^"'\s$]{8,}["']?'''
 tags = ["reep", "voice", "provider"]
 
 [[rules]]
@@ -158,12 +200,16 @@ description = "OPENAI_API_KEY assigned a real value (the realtime mock interview
 # gitleaks' default ruleset already knows the vendor `sk-` shapes. This catches
 # the variable being set to anything at all, including a proxy token or a
 # gateway-issued key carrying no vendor prefix.
-regex = '''(?i)\bOPENAI_API_KEY\b\s*[:=]\s*["']?[^"'\s$]{16,}["']?'''
+regex = '''(?i)\bOPENAI_API_KEY\b[ \t]*[:=][ \t]*["']?[^"'\s$]{16,}["']?'''
 tags = ["reep", "llm", "provider"]
 
 # ---------------------------------------------------------------------------
 # Allowlist
 # ---------------------------------------------------------------------------
+#
+# `[[allowlists]]` with no targetRules is GLOBAL: it applies to every rule,
+# gitleaks' default ruleset included. (The singular `[allowlist]` this block
+# was first written as is deprecated, and gitleaks refuses a file holding both.)
 #
 # ALLOWLISTED BY VALUE, NOT BY PATH -- with three narrow exceptions at the
 # bottom, none of which is a source file. The difference matters. Allowlisting
@@ -180,25 +226,41 @@ tags = ["reep", "llm", "provider"]
 # (app/config.py, production_boot_failures) REFUSES TO BOOT on them: a production
 # host carrying one of these is already compromised by anyone who has cloned
 # REEP. They are worthless as secrets, and worse than worthless as scanner noise.
-[allowlist]
+[[allowlists]]
 description = "Published dev/CI values, and the placeholders the templates ship with"
-regexTarget = "line"
+# regexTarget = "match", NEVER "line". Against the line, every entry below
+# exempted the WHOLE LINE from every rule, gitleaks' defaults included: an
+# unanchored `<...>` or `${` frees roughly 4,400 tracked lines (every HTML tag,
+# every TypeScript generic, every shell interpolation), so `AUTH_SECRET=<real>
+# # change-me`, `<span>ghp_...</span>` or a GitHub token beside
+# reep_dev_password all passed. Against the MATCH -- the text a rule actually
+# matched -- an entry frees a finding only when the published value or the
+# placeholder IS the finding. That is what "allowlisted by value" means, and
+# tools/ci/check_gitleaks_rules.py replays those six leaks on every run of the
+# gate to keep it meaning that.
+#
+# AND EVERY VALUE IS DELIMITED, because "the match CONTAINS it" is still too
+# wide: `postgresql://admin:reep_dev_passwordX1@prod/...` contains the dev
+# password and is not it. Each entry below is bounded by characters a key
+# cannot continue with. The template PLACEHOLDERS (change-me, <...>, ${...})
+# moved to the next block, which matches them against the WHOLE secret.
+regexTarget = "match"
 regexes = [
   # app/config.py:81 -- the dev AUTH_SECRET. Printed in apps/api-py/.env.example
   # line 35 and quoted in docs/codebase-mahabharath/{01,05} and
   # docs/audit-backend-voice-2026-08.md.
-  '''reep-dev-secret-change-me-in-production-0123456789abcdef''',
+  '''(^|[^A-Za-z0-9_-])reep-dev-secret-change-me-in-production-0123456789abcdef([^A-Za-z0-9_-]|$)''',
   # app/config.py:80 -- the dev database password. In .env.example line 14,
   # docker-compose.yml line 12 and ci.yml's service block.
-  '''reep_dev_password''',
+  ''':reep_dev_password@''',
   # .github/workflows/ci.yml -- the AUTH_SECRET the Postgres job runs under. It
   # is in a public workflow file and it guards a container that is destroyed
   # when the job ends.
-  '''ci-secret-not-used-outside-ci-0123456789abcdef''',
+  '''(^|[^A-Za-z0-9_-])ci-secret-not-used-outside-ci-0123456789abcdef([^A-Za-z0-9_-]|$)''',
   # tests/test_boot_guard.py:61 -- GOOD_DATABASE_URL's stand-in password, whose
   # only purpose is to be "not the repo password" so the guard's negative case
   # can be asserted at all.
-  '''not-the-repo-password''',
+  ''':not-the-repo-password@''',
   # tests/test_seed_guard.py:33 -- a URL aimed at 127.0.0.1:1 precisely so the
   # connection cannot succeed.
   '''nobody:nobody@''',
@@ -206,20 +268,13 @@ regexes = [
   # that a `@` inside a Postgres password must be percent-encoded before it goes
   # through alembic's ConfigParser. The password IS the illustration.
   '''reep:p%40ss@''',
+  # app/backup_database.py and its test -- prose explaining why a password must
+  # not travel in argv, spelled `postgres://user:pass@...` because the shape IS
+  # the illustration. Only these two words, in exactly that position.
+  ''':\/\/user:pass@''',
   # tests/test_boot_guard.py -- f-strings that interpolate the dev constants
   # instead of spelling them out.
   '''\{_DEV_(DB_PASSWORD|DATABASE_URL|AUTH_SECRET)\}''',
-  # Template placeholders. `change-me` in either case is one of the two shapes
-  # the boot guard itself treats as a placeholder; the angle-bracket form is
-  # what the deployment docs use.
-  '''(?i)change[-_]?me''',
-  '''<[A-Za-z0-9_ .-]{3,40}>''',
-  # Shell and compose interpolation is a REFERENCE, not a value:
-  # `${VOICE_WORKER_SECRET:?set VOICE_WORKER_SECRET}`, `${AUTH_SECRET}`.
-  '''\$\{[A-Z_]+''',
-  # AWS Secrets Manager / SSM references in infra/aws/ecs.tf -- an ARN and a key
-  # NAME on the left of a `valueFrom`, never a value.
-  '''valueFrom''',
 ]
 paths = [
   # gitleaks re-scanning its own rules file reports every regex above as the
@@ -234,3 +289,140 @@ paths = [
   # is a different problem from a leaked secret.
   '''\.pyc$''',
 ]
+
+[[allowlists]]
+description = "Template placeholders, freed only when the WHOLE secret is the placeholder"
+# Matched against the SECRET a rule extracted, and anchored at both ends. Against
+# the match these were freeing any real value that merely CONTAINED one:
+# `OPENAI_API_KEY=changeme<40 hex>` and `postgresql://admin:changeme<hex>@db...`
+# were both quiet (DEF-QG-U01's observation, replayed in
+# tools/ci/check_gitleaks_rules.py). `change-me` in either case is one of the
+# two shapes app/config.py's boot guard treats as a placeholder; `<...>` is
+# what the deployment docs write; `${VAR}` / `${VAR:?message}` / `${VAR:-}` is a
+# shell or compose REFERENCE, not a value. Optional surrounding quotes, because
+# a rule's value group may carry them.
+regexTarget = "secret"
+regexes = [
+  # The whole value is the placeholder, with or without the `NAME=` / `NAME: `
+  # a group-less rule includes in its secret.
+  '''(?i)^(?:[A-Za-z0-9_]+[ \t]*[:=][ \t]*)?["']?change[-_]?me["']?$''',
+  '''^(?:[A-Za-z0-9_]+[ \t]*[:=][ \t]*)?["']?\$\{[A-Za-z_][A-Za-z0-9_]*(:[-?=+][^}]*)?\}["']?$''',
+  # The whole value is ONE `<...>` placeholder (FV-QG-01, narrowed by
+  # OBS-QG-U07). An earlier version freed any single-line secret CONTAINING a
+  # `<...>` run, on the premise that no key these rules describe can contain
+  # `<`. That premise was false: reep-openai-key, reep-groq-key's name branch,
+  # livekit, voice-worker, the database URL and a quoted AUTH_SECRET all admit
+  # `<` in their value class, so `<real chars><abc><real chars>` was a usable
+  # value walking out quiet -- for a database password, `<abc>` in the middle is
+  # simply a password. What is safe is narrower: a value that is NOTHING BUT one
+  # bracketed placeholder carries no secret characters at all. Written that
+  # way, `KEY=<FAKE-VALUE-MASKED>` and `KEY=<your key>` stay quiet; `proxy-<x>`
+  # and prose such as `changeme<hex>` are findings again, by decision -- respell
+  # documentation as a whole `<...>`. The database URL's whole-password form is
+  # its own block below; the PEM block's is the one after this.
+  '''^(?:[A-Za-z0-9_]+[ \t]*[:=][ \t]*)?["']?<[A-Za-z0-9_ .-]{3,40}>["']?$''',
+]
+
+[[allowlists]]
+description = "private-key: a PEM block whose body is NOTHING but <...> placeholders"
+# A test report pasting a masked key keeps the BEGIN/END lines and replaces the
+# body; that is not a key. A block with even one real body line is still found.
+targetRules = ["private-key"]
+regexTarget = "secret"
+regexes = ['''^-----BEGIN[ A-Z0-9_-]{0,100}PRIVATE KEY(?: BLOCK)?-----\s*(?:<[A-Za-z0-9_ .-]{3,40}>\s*)+-----END[ A-Z0-9_-]{0,100}PRIVATE KEY(?: BLOCK)?-----$''']
+
+[[allowlists]]
+description = "reep-auth-secret: a value the ENV=prod boot guard refuses to boot on"
+# The one place a value merely CONTAINING a marker is freed, and it is freed for
+# this rule alone, because for AUTH_SECRET alone the product already refuses it:
+# app/config.py's production_boot_failures() rejects any AUTH_SECRET containing
+# one of _PLACEHOLDER_SECRET_MARKERS, case-insensitively, so such a value can
+# never sign a production cookie. The list below IS that tuple -- change one,
+# change both. tests/test_boot_guard.py's `CHANGE-ME-BEFORE-PRODUCTION-...` is
+# the line that needs it. OPENAI_API_KEY and the database password have no such
+# guard, so `changeme<40 hex>` is still a finding for them.
+targetRules = ["reep-auth-secret"]
+regexTarget = "secret"
+regexes = ['''(?i)(change-me|changeme|change_me|your-secret)''']
+
+[[allowlists]]
+description = "reep-database-url-password: a URL whose PASSWORD is a placeholder"
+# That rule has no value group, so its "secret" is the whole
+# `scheme://user:password@` and the anchored block above can never match it.
+# This frees the URL only when everything between `:` and `@` is a placeholder.
+targetRules = ["reep-database-url-password"]
+regexTarget = "secret"
+regexes = [
+  '''(?i)^postgres(?:ql)?(?:\+[a-z0-9]+)?://[A-Za-z0-9_.\-]+:(change[-_]?me|<[A-Za-z0-9_ .-]{3,40}>|\$\{[A-Za-z_][A-Za-z0-9_]*(:[-?=+][^}]*)?\})@$''',
+]
+
+# ---------------------------------------------------------------------------
+# Rule-scoped exemptions
+# ---------------------------------------------------------------------------
+#
+# RUN GITLEAKS FROM THE REPOSITORY ROOT, AS `gitleaks dir .` / `gitleaks git .`.
+# Every `paths` entry in this file is a regex over the path gitleaks REPORTS,
+# which is relative to the directory it was given: from the root that is
+# `apps/api-py/...` and the `^apps/...` anchors match; given an absolute path it
+# is `/home/.../apps/api-py/...`, they match nothing, and a clean tree reports
+# four findings. CI, preflight.sh and tools/ci/check_gitleaks_rules.py (which
+# runs `gitleaks dir .` from its temp root, so the one path-scoped VALUE
+# exemption below has a same-line case at its exact path) all run it this way.
+#
+# The global block above frees a VALUE for every rule. These free one
+# shape for ONE rule, so the same string under any other rule still fires. Each
+# exists because the first scan with the pinned gitleaks (the version in
+# .github/workflows/secret-scan.yml, newer than the pre-commit hook's and with a
+# wider default ruleset) reported it, and each line was read before it was
+# written down. Nothing is here pre-emptively: the seeded demo passwords
+# (student123, mentor123, alumni123, admin123, director123) match no rule, so
+# they have no entry -- an entry for a value nothing matches is a hole waiting
+# for the rule that would.
+
+[[allowlists]]
+description = "generic-api-key: a dotenv variable NAME read as the value of the line above it"
+# gitleaks' generic-api-key spans a newline, so in apps/api-py/.env.example
+# `SAKANA_API_KEY=""` followed by `GROQ_API_KEY=""` is reported with the second
+# line's NAME (`GROQ_API_KEY=`) as the secret. A name ending in `=` is never a
+# credential. Keyed on the secret's WHOLE shape, so a real value on either line
+# still fires.
+targetRules = ["generic-api-key"]
+regexTarget = "secret"
+regexes = ['''^[A-Z][A-Z0-9_]*=$''']
+
+[[allowlists]]
+description = "generic-api-key: an ORM attribute passed as a keyword in voice_platform/api/calls.py"
+# `s3_key=row.recording_s3_key, size_bytes=row.recording_bytes` passes columns
+# to a response model, and the rule reads `size_bytes=row.recording_bytes` as a
+# key because `s3_key` sits in front of it: the "secret" is Python. Path AND
+# regex -- a keyword argument whose value is an attribute of `row` -- so the
+# exemption covers that shape in that file and nothing else.
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^apps/api-py/app/voice_platform/api/calls\.py$''']
+regexTarget = "secret"
+regexes = ['''^[a-z_]+=row\.[a-z0-9_]+$''']
+
+[[allowlists]]
+description = "generic-api-key: an EFS access point ID in the CDK import map"
+# infra/cdk/import-map.json is the cutover's record of which physical resource
+# each logical id adopted (docs/cdk-cutover.md). `fsap-` + 17 hex is an AWS
+# resource IDENTIFIER, the same kind of string as the cluster name beside it: it
+# names a thing and authorises nothing.
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^infra/cdk/import-map\.json$''']
+regexTarget = "secret"
+regexes = ['''^fsap-[0-9a-f]{17}$''']
+
+[[allowlists]]
+description = "reep-database-url-password: the stand-in password test_backup_database.py proves never leaks"
+# Those tests exist to assert that the password in a DATABASE_URL reaches
+# pg_dump through libpq's PG* variables and never argv or an error message, so
+# they must spell one out. `s3cr3t` against `db.internal` and `h` is that
+# stand-in; scoped to this file so the same word anywhere else still fires.
+targetRules = ["reep-database-url-password"]
+condition = "AND"
+paths = ['''^apps/api-py/tests/test_backup_database\.py$''']
+regexTarget = "match"
+regexes = [''':s3cr3t@''']

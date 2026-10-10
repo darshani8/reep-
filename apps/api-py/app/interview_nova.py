@@ -258,7 +258,7 @@ def _boto3_credentials() -> Any | None:
     configuration at all still gets the SDK's error rather than ours.
     """
     try:
-        import boto3  # noqa: PLC0415
+        import boto3  # noqa: PLC0415  lazy: the Smithy/AWS stack loads only when Nova runs
 
         credentials = boto3.session.Session().get_credentials()
         if credentials is None:
@@ -645,20 +645,20 @@ class _NovaUpstream:
     async def open(self) -> None:
         """Resolve credentials, open the stream, and wait for it to be writable."""
         try:
-            from aws_sdk_bedrock_runtime.client import (  # noqa: PLC0415
+            from aws_sdk_bedrock_runtime.client import (  # noqa: PLC0415  lazy: the Smithy/AWS stack loads only when Nova runs
                 AsyncBedrockRuntimeClient,
             )
-            from aws_sdk_bedrock_runtime.config import (  # noqa: PLC0415
+            from aws_sdk_bedrock_runtime.config import (  # noqa: PLC0415  lazy: the Smithy/AWS stack loads only when Nova runs
                 AsyncBedrockRuntimeConfig,
             )
-            from aws_sdk_bedrock_runtime.models import (  # noqa: PLC0415
+            from aws_sdk_bedrock_runtime.models import (  # noqa: PLC0415  lazy: the Smithy/AWS stack loads only when Nova runs
                 InvokeModelWithBidirectionalStreamOperationInput,
             )
-            from smithy_aws_core.identity import (  # noqa: PLC0415
+            from smithy_aws_core.identity import (  # noqa: PLC0415  lazy: the Smithy/AWS stack loads only when Nova runs
                 AWSCredentialsIdentity,
                 StaticCredentialsResolver,
             )
-            from smithy_http.aio.crt import AWSCRTHTTPClient  # noqa: PLC0415
+            from smithy_http.aio.crt import AWSCRTHTTPClient  # noqa: PLC0415  lazy: the Smithy/AWS stack loads only when Nova runs
         except ImportError as exc:  # pragma: no cover - requirements.txt declares it
             raise RuntimeError(
                 "aws-sdk-bedrock-runtime and awscrt are not both installed; "
@@ -748,7 +748,7 @@ class _NovaUpstream:
         """
         if self._closed or self._stream is None:
             return
-        from aws_sdk_bedrock_runtime.models import (  # noqa: PLC0415
+        from aws_sdk_bedrock_runtime.models import (  # noqa: PLC0415  lazy: the Smithy/AWS stack loads only when Nova runs
             BidirectionalInputPayloadPart,
             InvokeModelWithBidirectionalStreamInputChunk,
         )
@@ -1473,7 +1473,7 @@ class NovaSonicSession:
 
     async def _pump_upstream(self) -> None:
         """Bedrock -> browser. One task, and the only one that reads the stream."""
-        assert self._upstream is not None
+        assert self._upstream is not None  # noqa: S101  type narrowing only; run() opens the stream first
         while True:
             event = await self._upstream.receive()
             if event is None:
@@ -1500,7 +1500,7 @@ class NovaSonicSession:
         session_id = payload.get("sessionId")
         if isinstance(session_id, str) and session_id and self._session_id is None:
             self._session_id = session_id
-            self._log.extra["session_id"] = session_id  # type: ignore[union-attr]
+            self._log.extra["session_id"] = session_id  # type: ignore[index]
 
         if name in _UPSTREAM_ERROR_EVENTS:
             # `message` here describes OUR event documents, never the student's

@@ -1,0 +1,9 @@
+set -euo pipefail
+tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+curl -sSfL -o "$RUNNER_TEMP/$tarball" \
+  "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
+echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/$tarball" | sha256sum --check --strict
+mkdir -p "$RUNNER_TEMP/gitleaks"
+tar -xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP/gitleaks" gitleaks
+echo "$RUNNER_TEMP/gitleaks" >> "$GITHUB_PATH"
+"$RUNNER_TEMP/gitleaks/gitleaks" version

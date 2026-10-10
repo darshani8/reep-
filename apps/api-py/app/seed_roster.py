@@ -70,7 +70,7 @@ DEFAULT_COLLEGE_DOMAIN = "bgscet.ac.in"
 # ordinary 401 — no crash, no oracle telling an attacker which accounts are
 # SSO-only. Nothing else in the codebase writes a non-scrypt password_hash;
 # this is new ground, and it is why no migration is needed to ship the roster.
-SSO_ONLY_PASSWORD_HASH = "google-only"
+SSO_ONLY_PASSWORD_HASH = "google-only"  # noqa: S105  the SSO-only sentinel: no password verifies against it
 
 # Source document: the MBA 1MP25MDM batch roster (33 students) supplied by the
 # department with the Google-only sign-in brief, 2026-08. Transcribed verbatim,
@@ -289,6 +289,8 @@ def seed_roster(
             )
             db.add(user)
             db.flush()  # populates user.id
+            # Re-read below as "maybe None" for an account that already exists.
+            stu: Student | None
             stu = Student(user_id=user.id, usn=usn)
             if cohort is not None:
                 # Plain nullable String, NOT a foreign key (models/user.py) —

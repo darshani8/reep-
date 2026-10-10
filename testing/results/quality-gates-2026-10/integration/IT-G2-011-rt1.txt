@@ -1,0 +1,18 @@
+### 2026-10-08T09:52:37Z  cwd=/tmp/ss-clone
+$ grep -nE 'rev: v8|args:' .pre-commit-config.yaml | head -4; grep -n 'GITLEAKS_VERSION:' .github/workflows/secret-scan.yml; /tmp/pcvenv/bin/pre-commit run gitleaks --all-files 2>&1 | tail -1; echo PRECOMMIT_EXIT=${PIPESTATUS[0]}; python3 -c "open('apps/api-py/leak_probe.py','w').write('GITHUB_TOKEN = \"'+open('/tmp/faketok').read().strip()+'\"\n')"; git add apps/api-py/leak_probe.py; /tmp/pcvenv/bin/pre-commit run gitleaks --all-files > /tmp/pc.out 2>&1; echo PRECOMMIT_EXIT=$?; sed 's/\x1b\[[0-9;]*m//g' /tmp/pc.out | grep -E 'Passed|Failed|RuleID|File:|leaks found'; echo raw-token: $(grep -c "$(cat /tmp/faketok)" /tmp/pc.out); git rm -q --cached apps/api-py/leak_probe.py; rm apps/api-py/leak_probe.py; git status --porcelain | wc -l
+54:    rev: v8.30.0
+74:        args: ["--config", ".gitleaks.toml", "--ignore-gitleaks-allow"]
+101:        args:
+131:        args: ["--fix=lf"]
+52:  GITLEAKS_VERSION: "8.30.0"
+gitleaks (REEP's own secret shapes)......................................Passed
+PRECOMMIT_EXIT=0
+PRECOMMIT_EXIT=1
+gitleaks (REEP's own secret shapes)......................................Failed
+RuleID:      github-pat
+File:        apps/api-py/leak_probe.py
+9:52AM WRN leaks found: 1
+raw-token: 0
+0
+[exit 0, 2s]
+

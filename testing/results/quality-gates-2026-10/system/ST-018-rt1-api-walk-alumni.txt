@@ -1,0 +1,11 @@
+# ST-018-rt1 2026-10-08T09:58:04Z API walk as alumni, NEW HEAD 40201a1 :3300 (1 worker, db reep_rt1_sys)
+POST /api/auth/login (alumni@bgscet.ac.in) -> 200; set-cookie names: ['reep_session']
+GET /api/auth/me -> 200 dict keys=['capabilities', 'email', 'features', 'google_linked', 'last_sign_ins', 'mentorId', 'name', 'notification_prefs', 'role', 'studentId', 'userId'] 
+   body: {"userId":"87e6381073114f83a6413be9ccad3285","email":"alumni@bgscet.ac.in","name":"Test Alumnus","role":"ALUMNI","studentId":null,"mentorId":null,"capabilities":[],"features":{},"google_linked":false,"last_sign_ins":[{"at":"2026-10-08T09:58:04.548751Z","door":
+GET /api/alumni/profile -> 200 dict keys=['company', 'created', 'designation', 'email', 'graduation_year', 'joined_on', 'name', 'resume', 'updated_at'] 
+   body: {"created":false,"name":"Test Alumnus","email":"alumni@bgscet.ac.in","company":null,"designation":null,"joined_on":null,"graduation_year":null,"resume":null,"updated_at":null}
+GET /api/alumni/jobs -> 200 list[3] 
+   body: [{"id":"2b5c427dfeee4eedb0000e51823be659","title":"Financial Analyst","company":"Acme Capital","degree_level":"PG","location":"Bengaluru","apply_url":"https://example.com/apply/1","required_skills":["excel","financial-modeling"],"closes_on":null,"posted_on":"2
+POST /api/auth/logout -> 200
+GET after logout /api/auth/me -> 401 dict keys=['detail'] 
+   body: {"detail":"Sign in required."}

@@ -1,0 +1,18 @@
+# Evidence for UT-G4-010-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:59:14 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/apps/api-py
+$ ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_u_rt1 .venv/bin/python ../../tools/ci/check_migration_roundtrip.py > /tmp/b.out 2>&1; rc=$?; grep -vE '^INFO|python -m alembic' /tmp/b.out | tail -3; echo roundtrip_exit=$rc
+FAILED: could not connect to ask the server what it is: (psycopg.OperationalError) connection failed: connection to server at "127.0.0.1", port 5433 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+roundtrip_exit=1
+[exit=0]
+(ENVIRONMENT, not product: the block above failed because PostgreSQL was not running — the container had stopped it between rounds. Restarted with the same data directory and options; re-run below.)
+
+[2026-10-08T09:59:39 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/nb/apps/api-py
+$ ENV=dev AUTH_SECRET=ci-secret-not-used-outside-ci-0123456789abcdef DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@localhost:5433/reep_u_rt1 .venv/bin/python ../../tools/ci/check_migration_roundtrip.py > /tmp/b.out 2>&1; rc=$?; grep -vE '^INFO|python -m alembic' /tmp/b.out | tail -2; echo roundtrip_exit=$rc
+
+OK: 90 of 92 downgrades run in 3 segment(s), catalogues identical at every bottom and top, the round-tripped head matches the straight one (2118 lines), alembic check clean (21 s).
+roundtrip_exit=0
+[exit=0]

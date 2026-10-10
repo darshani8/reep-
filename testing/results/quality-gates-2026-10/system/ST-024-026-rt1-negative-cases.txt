@@ -1,0 +1,63 @@
+# ST-024/025/026-rt1 2026-10-08T09:58:27Z negative cases on NEW HEAD 40201a1 :3300 (1 worker, db reep_rt1_sys), then the same script on BASE :3301 (2 workers, db reep_base_api)
+## new head
+## ST-024 wrong role
+login student 200 mentor 200 alumni 200
+st GET /api/admin/students              -> {"detail":"You do not hold the 'Students' capability. An administrator can grant it in Governance."} 403
+st GET /api/admin/governance/grants     -> {"detail":"Insufficient role."} 403
+st GET /api/admin/mentor-load           -> {"detail":"You do not hold the 'Analytics' capability. An administrator can grant it in Governance."} 403
+st GET /api/register/pending            -> {"detail":"You do not hold the 'Registrations' capability. An administrator can grant it in Governance."} 403
+st GET /api/mentor/mentees              -> {"detail":"You do not hold the 'Mentee log' capability. An administrator can grant it in Governance."} 403
+me GET /api/admin/students              -> {"detail":"You do not hold the 'Students' capability. An administrator can grant it in Governance."} 403
+me GET /api/admin/governance/grants     -> {"detail":"You do not hold the 'Governance' capability. An administrator can grant it in Governance."} 403
+al GET /api/student/dashboard           -> {"detail":"The student screens are open to current students only."} 403
+al GET /api/mentor/mentees              -> {"detail":"You do not hold the 'Mentee log' capability. An administrator can grant it in Governance."} 403
+al GET /api/admin/students              -> {"detail":"You do not hold the 'Students' capability. An administrator can grant it in Governance."} 403
+st POST /api/admin/students/bulk {} -> 422
+st POST /api/admin/students/bulk valid -> {"detail":"You do not hold the 'Students' capability. An administrator can grant it in Governance."} 403
+## ST-025 anonymous / forged
+GET /api/auth/me                   -> {"detail":"Sign in required."} 401
+GET /api/student/dashboard         -> {"detail":"Sign in required."} 401
+GET /api/student/ledger            -> {"detail":"Sign in required."} 401
+GET /api/mentor/mentees            -> {"detail":"Sign in required."} 401
+GET /api/admin/students            -> {"detail":"Sign in required."} 401
+GET /api/admin/governance/grants   -> {"detail":"Sign in required."} 401
+GET /api/alumni/profile            -> {"detail":"Sign in required."} 401
+GET /api/interview/status          -> {"detail":"Sign in required."} 401
+POST /api/mentor/students/x/notes -> {"detail":"Sign in required."} 401
+GET /api/admin/students cookie reep_session=garbage -> {"detail":"Sign in required."} 401
+public GET /health -> 200
+public GET /api/auth/sso/status -> 200
+public GET /api/register/hierarchy -> 200
+## ST-026 single device
+A login 200
+A /api/auth/me -> 200
+B login 200
+A /api/mentor/mentees -> HTTP/1.1 401 Unauthorized x-reep-session: retired 
+A /api/mentor/mentees -> HTTP/1.1 401 Unauthorized x-reep-session: retired 
+A /api/mentor/mentees -> HTTP/1.1 401 Unauthorized x-reep-session: retired 
+A /api/mentor/mentees -> HTTP/1.1 401 Unauthorized x-reep-session: retired 
+A /api/mentor/mentees -> HTTP/1.1 401 Unauthorized x-reep-session: retired 
+A /api/mentor/mentees -> HTTP/1.1 401 Unauthorized x-reep-session: retired 
+B /api/mentor/mentees -> 200
+no cookie: x-reep-session headers = 0
+
+## diff base vs new head
+IDENTICAL
+
+## script
+# usage: negatives.sh BASEURL  -- ST-024/025/026 in one script
+B=$1; J=$(mktemp -d)
+login(){ curl -s -o /dev/null -w "%{http_code}" -c $J/$1 -H 'content-type: application/json' -d "{\"email\":\"$2\",\"password\":\"$3\"}" $B/api/auth/login; }
+echo "## ST-024 wrong role"; echo "login student $(login st student@bgscet.ac.in student123) mentor $(login me mentor@bgscet.ac.in mentor123) alumni $(login al alumni@bgscet.ac.in alumni123)"
+for x in "st /api/admin/students" "st /api/admin/governance/grants" "st /api/admin/mentor-load" "st /api/register/pending" "st /api/mentor/mentees" "me /api/admin/students" "me /api/admin/governance/grants" "al /api/student/dashboard" "al /api/mentor/mentees" "al /api/admin/students"; do set -- $x; printf '%s GET %-32s -> ' $1 $2; curl -s -b $J/$1 -w " %{http_code}\n" $B$2; done
+printf 'st POST /api/admin/students/bulk {} -> '; curl -s -o /dev/null -w "%{http_code}\n" -b $J/st -H 'content-type: application/json' -d '{}' $B/api/admin/students/bulk
+printf 'st POST /api/admin/students/bulk valid -> '; curl -s -b $J/st -w " %{http_code}\n" -H 'content-type: application/json' -d '{"student_ids":["x"],"action":"department","department_id":"x","reason":"system test negative case"}' $B/api/admin/students/bulk
+echo "## ST-025 anonymous / forged"; for u in /api/auth/me /api/student/dashboard /api/student/ledger /api/mentor/mentees /api/admin/students /api/admin/governance/grants /api/alumni/profile /api/interview/status; do printf 'GET %-30s -> ' $u; curl -s -w " %{http_code}\n" $B$u; done
+printf 'POST /api/mentor/students/x/notes -> '; curl -s -w " %{http_code}\n" -H 'content-type: application/json' -d '{"note_text":"x"}' $B/api/mentor/students/x/notes
+printf 'GET /api/admin/students cookie reep_session=garbage -> '; curl -s -H 'Cookie: reep_session=garbage.not.a.jwt' -w " %{http_code}\n" $B/api/admin/students
+for u in /health /api/auth/sso/status /api/register/hierarchy; do printf 'public GET %s -> ' $u; curl -s -o /dev/null -w "%{http_code}\n" $B$u; done
+echo "## ST-026 single device"; echo "A login $(login devA mentor@bgscet.ac.in mentor123)"; printf 'A /api/auth/me -> '; curl -s -o /dev/null -w "%{http_code}\n" -b $J/devA $B/api/auth/me; echo "B login $(login devB mentor@bgscet.ac.in mentor123)"
+for i in 1 2 3 4 5 6; do printf 'A /api/mentor/mentees -> '; curl -s -o /dev/null -D - -b $J/devA $B/api/mentor/mentees | grep -i "^HTTP\|x-reep-session" | tr -d '\r' | tr '\n' ' '; echo; done
+printf 'B /api/mentor/mentees -> '; curl -s -o /dev/null -w "%{http_code}\n" -b $J/devB $B/api/mentor/mentees
+printf 'no cookie: x-reep-session headers = '; curl -s -D - -o /dev/null $B/api/auth/me | grep -ci x-reep-session
+rm -r "${J:?}"

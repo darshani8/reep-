@@ -1,0 +1,17 @@
+# Evidence for UT-G1-033
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:41:33 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt
+$ sed -i '229s/^    db.close()/    pass/' apps/api-py/app/voice_platform/api/calls.py && sed -n 228,230p apps/api-py/app/voice_platform/api/calls.py && python3 tools/ci/check_async_blocking.py; echo script_exit=$?; git checkout -q apps/api-py/app/voice_platform/api/calls.py; git status --short | wc -l
+    degree = row.degree_level
+    pass  # the close handler opens its own session on a worker thread
+    report = await call_close.finish_call(
+
+A function in KNOWN no longer does exactly what its entry pins. If it
+gained a blocking call, move that work off the loop; if it lost one,
+update `findings` in KNOWN to what it does now:
+
+  voice_platform/api/calls.py::close_call: GONE     calls db.close() on a sync Session
+script_exit=1
+1
+[exit=0]

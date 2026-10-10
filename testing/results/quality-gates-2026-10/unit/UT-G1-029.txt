@@ -1,0 +1,81 @@
+# Evidence for UT-G1-029
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:41:00 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/ab.py UT-G1-029a
+--- synthetic source:
+    import asyncio, time
+    async def h():
+        await asyncio.to_thread(time.sleep, 1)
+
+expected not flagged; actual not flagged -> MATCH
+[exit=0]
+
+[2026-10-08T08:41:00 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/ab.py UT-G1-029b
+--- synthetic source:
+    from starlette.concurrency import run_in_threadpool
+    from pathlib import Path
+    async def h(p):
+        return await run_in_threadpool(Path(p).read_text)
+
+expected not flagged; actual not flagged -> MATCH
+[exit=0]
+
+[2026-10-08T08:41:00 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/ab.py UT-G1-029c
+--- synthetic source:
+    import asyncio, time
+    async def h():
+        def work():
+            time.sleep(1)
+            return open('x').read()
+        return await asyncio.to_thread(work)
+
+expected not flagged; actual not flagged -> MATCH
+[exit=0]
+
+[2026-10-08T08:41:00 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/ab.py UT-G1-029d
+--- synthetic source:
+    import anyio
+    async def h(p):
+        return await anyio.Path(p).read_text()
+
+expected not flagged; actual not flagged -> MATCH
+[exit=0]
+
+[2026-10-08T08:41:00 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/ab.py UT-G1-029e
+--- synthetic source:
+    async def h(items):
+        requests = []
+        requests.append(items)
+        return requests
+
+expected not flagged; actual not flagged -> MATCH
+[exit=0]
+
+[2026-10-08T08:41:00 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/ab.py UT-G1-029f
+--- synthetic source:
+    import asyncio
+    async def h():
+        await asyncio.sleep(1)
+
+expected not flagged; actual not flagged -> MATCH
+[exit=0]
+
+[2026-10-08T08:41:00 UTC] cwd=/home/user/reep-
+$ python3 /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/ab.py UT-G1-029g
+--- synthetic source:
+    from fastapi import Depends
+    from typing import Annotated
+    from sqlalchemy.orm import Session
+    from ..db import get_db
+    def h(db=Depends(get_db)):
+        db.execute('x')
+        open('f').read()
+
+expected not flagged; actual not flagged -> MATCH
+[exit=0]

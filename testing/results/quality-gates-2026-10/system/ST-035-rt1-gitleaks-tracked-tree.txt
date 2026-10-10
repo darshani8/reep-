@@ -1,0 +1,22 @@
+# ST-035-rt1 2026-10-08T10:03:30Z gitleaks over the tracked tree of NEW HEAD 40201a1 (git archive -> clean dir, 1328 files), NEW config, --ignore-gitleaks-allow
+$ (cd <tree> && gitleaks dir . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore --ignore-gitleaks-allow --redact --no-banner --exit-code 1)
+10:03AM INF scanned ~31798700 bytes (31.80 MB) in 5.69s
+10:03AM INF no leaks found
+exit=0
+
+## OBS-QG-S02 re-check: the same tree scanned by ABSOLUTE path (from the repo root)
+10:03AM INF scanned ~31798700 bytes (31.80 MB) in 6.75s
+10:03AM WRN leaks found: 4
+4 finding(s)
+   generic-api-key apps/api-py/app/voice_platform/api/calls.py:219
+   reep-database-url-password apps/api-py/tests/test_backup_database.py:59
+   reep-database-url-password apps/api-py/tests/test_backup_database.py:100
+   generic-api-key infra/cdk/import-map.json:80
+How the new config handles it:
+233:# unanchored `<...>` or `${` frees roughly 4,400 tracked lines (every HTML tag,
+295:# Matched against the SECRET a rule extracted, and anchored at both ends. Against
+349:# `scheme://user:password@` and the anchored block above can never match it.
+361:# RUN GITLEAKS FROM THE REPOSITORY ROOT, AS `gitleaks dir .` / `gitleaks git .`.
+363:# which is relative to the directory it was given: from the root that is
+364:# `apps/api-py/...` and the `^apps/...` anchors match; given an absolute path it
+367:# temp directory by absolute path on purpose: none of its cases relies on a

@@ -1,0 +1,18 @@
+### 2026-10-08T10:39:35Z  cwd=/tmp/ss-clone
+$ git checkout -q -f --detach fc-ignore~1; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=pull_request BASE_SHA=988e732207de9869243d9343a51a6a391b352911 HEAD_SHA=$(git rev-parse fc-ignore~1) RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-fc.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|RuleID|File:|Line:|commits scanned|no leaks|leaks found|::error' | cut -c1-170; echo STEP_EXIT=${PIPESTATUS[0]}; git checkout -q -f --detach fc-ignore; rm -rf /tmp/rt && mkdir /tmp/rt; EVENT=pull_request BASE_SHA=988e732207de9869243d9343a51a6a391b352911 HEAD_SHA=$(git rev-parse fc-ignore) RUNNER_TEMP=/tmp/rt bash --noprofile --norc -eo pipefail /tmp/claude-0/-home-user-reep-/498ab05c-4d2d-5c3b-87d9-4c5dd20a9e55/scratchpad/scan-step-fc.sh 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E 'Range|RuleID|File:|Line:|commits scanned|no leaks|leaks found|::error' | cut -c1-170; echo STEP_EXIT=${PIPESTATUS[0]}
+Range 988e732207de9869243d9343a51a6a391b352911..6a4869fe7b1b1edb9f2501d8257b10b2122eb2b0: 2 non-merge commit(s), 2 adding lines
+10:39AM INF 2 commits scanned.
+10:39AM INF no leaks found
+RuleID:      github-pat
+File:        apps/api-py/leak_probe.py
+Line:        1
+10:39AM WRN leaks found: 1
+::error::gitleaks found a secret in the tree scan (file, line and rule above; the value is redacted). Rotate it first -- removing the line does not un-publish it -- then 
+STEP_EXIT=1
+Range 988e732207de9869243d9343a51a6a391b352911..c4d5b4cd4ce448fb5c804e2fbe3486e4508fd474: 3 non-merge commit(s), 3 adding lines
+10:39AM INF 3 commits scanned.
+10:39AM INF no leaks found
+10:39AM INF no leaks found
+STEP_EXIT=0
+[exit 0, 12s]
+

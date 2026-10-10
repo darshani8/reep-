@@ -1,0 +1,10 @@
+# Evidence for UT-G4-006-rt1
+# build 40201a140ba70f8be40d6b016f55ddb828fcaa91 (re-test round 1), tester session U
+
+[2026-10-08T09:58:52 UTC] cwd=/home/user/reep-
+$ cd /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/wt/apps/api-py; source /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin2/mkrev.sh; mkrev aaaa00000001 f4a2c9e7b1d3 ''; RT 12 | grep -E 'missing|passed|failed'; rm -f migrations/versions/aaaa*; git status --short
+E           aaaa00000001 (aaaa00000001_qg_probe.py): downgrade is missing
+E       assert not ['aaaa00000001 (aaaa00000001_qg_probe.py): downgrade is missing']
+2 failed, 21 passed in 0.79s
+?? .venv
+[exit=0]

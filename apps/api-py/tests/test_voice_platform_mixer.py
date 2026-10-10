@@ -6,7 +6,6 @@ from __future__ import annotations
 import asyncio
 
 import numpy as np
-import pytest
 
 from app.interview_audio import TRACK_INTERVIEWER, TRACK_STUDENT
 from app.voice_platform.streaming import mixer

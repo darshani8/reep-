@@ -36,7 +36,6 @@ from ..document_store import (
 )
 from ..models.staff_upskilling import StaffUpskillingCertificate
 from ..governance import require_capability
-from .mentor import require_mentor
 
 router = APIRouter(prefix="/staff/upskilling", tags=["staff-upskilling"])
 

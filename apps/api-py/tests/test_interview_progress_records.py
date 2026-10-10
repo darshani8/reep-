@@ -828,7 +828,7 @@ def test_the_grid_carries_the_score_and_a_missing_one_is_null(api, world):
 @requires_db
 def test_the_kpis_count_the_same_rows_the_grid_lists(api, world):
     r = api.get(
-        f"/api/admin/interviews/summary?track=hr&status=completed",
+        "/api/admin/interviews/summary?track=hr&status=completed",
         headers=world.as_admin,
     )
     assert r.status_code == 200, r.text

@@ -1075,7 +1075,6 @@ class TestTheTransport:
         from smithy_aws_core.identity import StaticCredentialsResolver
 
         captured: dict[str, object] = {}
-        phases: list[str] = []
 
         async def _fake_resolve(**kwargs):
             captured.update(kwargs)
@@ -1861,7 +1860,7 @@ class TestTheOpenSequence:
             """
 
             async def receive(self) -> dict:
-                while not self.of_type("reep.ready"):
+                while not self.of_type("reep.ready"):  # noqa: ASYNC110  a test fake polling its own buffer
                     await asyncio.sleep(0.01)
                 raise WebSocketDisconnect(code=1001)
 
@@ -1953,7 +1952,7 @@ class TestTheOpenSequence:
 
         class _LeavesAfterReady(_FakeBrowser):
             async def receive(self) -> dict:
-                while not self.of_type("reep.ready"):
+                while not self.of_type("reep.ready"):  # noqa: ASYNC110  a test fake polling its own buffer
                     await asyncio.sleep(0.01)
                 raise WebSocketDisconnect(code=1001)
 

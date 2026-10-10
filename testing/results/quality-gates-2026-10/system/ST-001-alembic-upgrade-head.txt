@@ -1,0 +1,14 @@
+# ST-001 2026-10-08T08:35:54Z sha=a3688f0189c48287f376cf8c165d762a2f8ab8d8 db=reep_sys
+$ .venv/bin/python -m alembic upgrade head
+INFO  [alembic.runtime.migration] Running upgrade a3f9c2e17b48 -> b7d2e4f9a1c3, interview_sessions.audio_skipped_reason — why an interview has no recording.
+INFO  [alembic.runtime.migration] Running upgrade b7d2e4f9a1c3 -> d4c8e1f7a2b9, registrations.second_specialization_id — the second tick of a dual
+specialization.
+INFO  [alembic.runtime.migration] Running upgrade d4c8e1f7a2b9 -> e2b7c4d9f1a6, students.second_specialization_id — the other half of a dual specialization.
+INFO  [alembic.runtime.migration] Running upgrade e2b7c4d9f1a6 -> f4a2c9e7b1d3, registrations.submission_key_hash — a retry after a lost reply is the same application.
+exit=0
+$ alembic heads; alembic current
+f4a2c9e7b1d3 (head)
+f4a2c9e7b1d3 (head)
+$ alembic check
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.checkconstraint_byname
+No new upgrade operations detected.

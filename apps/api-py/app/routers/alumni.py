@@ -20,6 +20,7 @@ The two surfaces here are deliberately small:
 """
 
 from datetime import date, datetime
+from typing import cast
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
 from pydantic import BaseModel
@@ -226,7 +227,8 @@ def save_profile(
             )
             document_store_delete(prof.resume_stored_name)
         stored_name, mime, size = stored
-        prof.resume_original_name = resume.filename
+        # `stored` is only ever set inside the `resume is not None` branch.
+        prof.resume_original_name = cast(UploadFile, resume).filename
         prof.resume_stored_name = stored_name
         prof.resume_mime_type = mime
         prof.resume_size_bytes = size

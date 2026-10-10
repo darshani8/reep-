@@ -1,0 +1,14 @@
+### 2026-10-08T10:06:30Z  cwd=/tmp/pfr
+$ DATABASE_URL=postgresql+psycopg://reep:reep_dev_password@127.0.0.1:5499/reep_pf bash tools/ci/preflight.sh --no-color > /tmp/pf.out 2>&1; echo PREFLIGHT_EXIT=$?; grep -E '^  gitleaks |^  postgres |^(PASS|FAIL|SKIP|PARTIAL) |error:|qg_pii|NOT READY|INCOMPLETE|^READY' /tmp/pf.out | cut -c1-200
+PREFLIGHT_EXIT=2
+  gitleaks         /usr/local/bin/gitleaks (8.30.0)
+  postgres         127.0.0.1:5499 NOT REACHABLE
+PASS  API (dependency completeness)
+PASS  Rule 1 (every model call declares its cargo)
+PASS  Secrets (gitleaks)
+PASS  Infra (CDK synth guards)
+PASS  Web (Angular)
+SKIP  API (FastAPI + Postgres) - static analysis ran; the rest needs Postgres at 127.0.0.1:5499 - run: docker compose up -d
+INCOMPLETE. Nothing failed, but a check did not run - and a check that did
+[exit 0, 116s]
+

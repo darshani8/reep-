@@ -1,0 +1,19 @@
+# ST-007 2026-10-08T08:37:57Z OpenAPI comparison base 15a9e7d vs head a3688f0
+Method: app.openapi() dumped in each tree (same venv), json.dumps(sort_keys=True, indent=1); base tree = git worktree /tmp/base at 15a9e7d
+import json, sys
+from app.main import app
+print(json.dumps(app.openapi(), sort_keys=True, indent=1))
+--- sha256 / lines
+70c88fd08614fe535ab49c895a6f8e17badcaf7fc075af830f58859e9bbc6b1f  openapi-base.json
+70c88fd08614fe535ab49c895a6f8e17badcaf7fc075af830f58859e9bbc6b1f  openapi-head.json
+70c88fd08614fe535ab49c895a6f8e17badcaf7fc075af830f58859e9bbc6b1f  openapi-head-live.json
+  37764 openapi-base.json
+  37764 openapi-head.json
+  75528 total
+--- diff openapi-base.json openapi-head.json
+(no differences)
+--- live /openapi.json from the running head API equals the generated head document:
+yes
+--- inventory
+paths 318 operations 370 schemas 394
+{'patch': 17, 'get': 192, 'post': 121, 'put': 18, 'delete': 22}

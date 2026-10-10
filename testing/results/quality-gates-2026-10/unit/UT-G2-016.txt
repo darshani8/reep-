@@ -1,0 +1,27 @@
+# Evidence for UT-G2-016
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:36:16 UTC] cwd=/home/user/reep-
+$ python3 tools/ci/check_gitleaks_rules.py
+leak   l01/apps/api-py/.env.example               caught by ['reep-auth-secret']
+leak   l02/docker-compose.yml                     caught by ['reep-auth-secret']
+leak   l03/apps/web/src/app/x.component.html      caught by ['github-pat']
+leak   l04/apps/web/src/app/x.ts                  caught by ['aws-access-token']
+leak   l05/infra/task.json                        caught by ['github-pat']
+leak   l06/apps/api-py/.env.example               caught by ['github-pat']
+leak   l07/k8s/secret.yaml                        caught by ['reep-auth-secret']
+leak   l08/infra/taskdef.yaml                     caught by ['reep-env-name-value-pair']
+leak   l09/infra/taskdef.json                     caught by ['reep-env-name-value-pair']
+leak   l10/docs/runbook.md                        caught by ['reep-database-url-password']
+leak   l11/docs/runbook2.md                       caught by ['reep-database-url-password']
+leak   l12/apps/api-py/.env                       caught by ['reep-auth-secret', 'reep-openai-key']
+leak   l13/apps/api-py/.env2                      caught by ['reep-groq-key']
+quiet  q01/apps/api-py/.env.example               quiet
+quiet  q02/docker-compose.yml                     quiet
+quiet  q03/infra/taskdef.yaml                     quiet
+quiet  q04/k8s/secret.yaml                        quiet
+quiet  q05/docs/x.md                              quiet
+quiet  q06/apps/web/src/app/x.ts                  quiet
+
+OK: 13 leaks caught, 6 placeholder files quiet.
+[exit=0]

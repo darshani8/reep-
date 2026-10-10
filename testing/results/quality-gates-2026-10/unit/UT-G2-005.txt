@@ -1,0 +1,30 @@
+# Evidence for UT-G2-005
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:35:28 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-005a-namevalue-json && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-005a-namevalue-json
+--- g2-005a-namevalue-json/task.json
+[{"name": "SES_SMTP_PASSWORD", "value": <FAKE-VALUE-MASKED>
+findings: 1 [('reep-env-name-value-pair', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T08:35:29 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-005b-namevalue-yaml && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-005b-namevalue-yaml
+--- g2-005b-namevalue-yaml/task.yaml
+env:
+  - name: PAYMENT_API_KEY
+    value: <FAKE-VALUE-MASKED>
+findings: 1 [('reep-env-name-value-pair', 2)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T08:35:29 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-005c-namevalue-short && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-005c-namevalue-short
+--- g2-005c-namevalue-short/task.yaml
+env:
+  - name: PAYMENT_API_KEY
+    value: short
+findings: 0 []
+gitleaks exit=0
+[exit=0]

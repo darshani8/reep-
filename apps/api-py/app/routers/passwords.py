@@ -356,7 +356,7 @@ def reset(body: LinkPasswordIn, db: Session = Depends(get_db)) -> MessageOut:
 #: received - a dead end dressed as an instruction. It now names the door that
 #: exists: `forgot`, which mails such a student the setup link.
 NO_PASSWORD_YET_MESSAGE = (
-    "This account has no password yet. To set one, use \"Forgot password?\" on "
+    "This account has no password yet. To set one, use \"Forgot password?\" on "  # noqa: S105  a user-facing sentence, not a secret
     "the sign-in screen: we will email you a setup link, then a code, and you "
     "choose a password at the end. You can keep signing in with Google meanwhile."
 )

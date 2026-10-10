@@ -9,7 +9,6 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.dialects import postgresql
 
 revision: str = '094277ababc9'
 down_revision: Union[str, None] = '2b3f9aa4b8f2'
@@ -47,3 +46,9 @@ def downgrade() -> None:
     op.drop_index('ix_agentrun_actor_created', table_name='agent_runs')
     op.drop_table('agent_runs')
     # ### end Alembic commands ###
+    # The enum type this revision created go with its tables. Autogenerate
+    # drops the table and leaves the type, so re-applying this revision after a
+    # rollback failed with `type ... already exists` -- found by
+    # tools/ci/check_migration_roundtrip.py. Every later revision is reverted
+    # before this one runs, so nothing still uses them.
+    op.execute("DROP TYPE IF EXISTS agent_run_status")

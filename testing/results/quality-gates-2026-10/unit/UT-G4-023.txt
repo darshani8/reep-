@@ -1,0 +1,32 @@
+# Evidence for UT-G4-023
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:52:57 UTC] cwd=/home/user/reep-/apps/api-py
+$ .venv/bin/python -c "
+import sys; sys.path.insert(0, '../../tools/ci')
+import check_migration_roundtrip as rt
+before = ['enum | registration_status | PENDING,APPROVED', 'extension | plpgsql', 'relation | users | r']
+after  = ['enum | registration_status | PENDING,APPROVED,HOLD', 'extension | plpgsql', 'extension | vector', 'relation | users | r',
+          'relation | rescue | r', 'column | rescue | id | integer', 'index | rescue_pkey | CREATE UNIQUE INDEX rescue_pkey ON public.rescue USING btree (id)']
+kept = [('enum-value', 'registration_status', 'HOLD'), ('extension', 'vector'), ('table', 'rescue')]
+print('without(after) == without(before):', rt.without(after, kept) == rt.without(before, kept))
+print('present in after :', [rt.present(after, k) for k in kept])
+print('present in before:', [rt.present(before, k) for k in kept])
+extra = after + ['relation | other_left_behind | r']
+print('an UNDECLARED leftover still differs:', rt.without(extra, kept) != rt.without(before, kept))
+print('an enum value NOT declared still differs:', rt.without(after, kept[1:]) != rt.without(before, kept[1:]))
+try:
+    rt.compare(rt.without(before, kept), rt.without(extra, kept), 'at X', 'hint')
+except rt.Refused as e: print('compare() ->', str(e)[:80])
+"
+without(after) == without(before): True
+present in after : [True, True, True]
+present in before: [False, False, False]
+an UNDECLARED leftover still differs: True
+an enum value NOT declared still differs: True
+--- before
++++ after
+@@ -2,0 +3 @@
++relation | other_left_behind | r
+compare() -> the catalogue at X differs ('-' lost, '+' left behind). hint
+[exit=0]

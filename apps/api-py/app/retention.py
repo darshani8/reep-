@@ -45,12 +45,12 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
+from typing import cast
 
 from sqlalchemy import and_, delete, or_, select, update
 from sqlalchemy.orm import Session
 
 from .account_links import sweep_login_codes
-from . import document_store
 from .config import settings
 from .models.agent_run import AgentRun
 from .models.conversation import Conversation, Message
@@ -377,7 +377,8 @@ def purge_expired(db: Session, now: datetime | None = None) -> dict[str, int]:
         ).all():
             scrubbed = redact_pii(msg.content)
             if scrubbed != msg.content:
-                msg.content = scrubbed
+                # A str in is a str out; redact_pii is typed for the nullable case.
+                msg.content = cast("str", scrubbed)
                 summary["messages_redacted"] += 1
 
     # --- 2) Hard-delete conversations soft-deleted past the grace window. ------
@@ -456,7 +457,7 @@ def purge_expired(db: Session, now: datetime | None = None) -> dict[str, int]:
         ).all():
             scrubbed = redact_pii(turn.content)
             if scrubbed != turn.content:
-                turn.content = scrubbed
+                turn.content = cast("str", scrubbed)  # str in, str out
                 summary["interview_turns_redacted"] += 1
         for report in db.scalars(
             select(InterviewEvaluation).where(

@@ -1,0 +1,18 @@
+# Evidence for UT-G2-004
+# build a3688f0189c48287f376cf8c165d762a2f8ab8d8, tester session U
+
+[2026-10-08T08:35:30 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-004a-auth-31 && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-004a-auth-31
+--- g2-004a-auth-31/.env
+AUTH_SECRET=<FAKE-VALUE-MASKED>
+findings: 1 [('generic-api-key', 1)]
+gitleaks exit=1
+[exit=0]
+
+[2026-10-08T08:35:31 UTC] cwd=/tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/leaks
+$ /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/show g2-004b-auth-32 && /tmp/claude-0/-home-user-reep-/6f890d6b-a4ad-54dc-90a8-0d2e87f642e1/scratchpad/bin/gl g2-004b-auth-32
+--- g2-004b-auth-32/.env
+AUTH_SECRET=<FAKE-VALUE-MASKED>
+findings: 1 [('reep-auth-secret', 1)]
+gitleaks exit=1
+[exit=0]

@@ -1,0 +1,169 @@
+# ST-027 classification of the e2e failures of the FIRST head run (db reep_sys, which by then also held the 110 load-test students created for ST-011)
+First run: 233 passed, 15 failed, 8 timed out  [ST-027-manual-test-results-HEAD-first-run-db-with-load-accounts.csv]
+Cause of 11 of them: the admin roster grid virtualises rows, and with 111 students the seeded student's row (row-id 865c140f...) is not rendered; e.g. TC-503: locator('.ag-row[row-id="865c..."] [col-id="usn"]') - element(s) not found. Test-environment interference by this tester, not a product defect.
+
+## re-run of the same 23 cases on a fresh db: head (reep_e2e_head) then base (reep_e2e_base)
+| case | first run (load accounts) | re-run head | re-run base |
+| TC-022 | Failed | Failed | Failed |
+| TC-025 | Failed | Passed | Passed |
+| TC-038 | Failed | Failed | Failed |
+| TC-503 | Failed | Passed | Passed |
+| TC-504 | Failed | Passed | Passed |
+| TC-505 | Failed | Passed | Passed |
+| TC-506 | Failed | Timed out | Timed out |
+| TC-507 | Timed out | Timed out | Timed out |
+| TC-508 | Failed | Passed | Passed |
+| TC-509 | Timed out | Passed | Passed |
+| TC-510 | Timed out | Timed out | Timed out |
+| TC-511 | Failed | Passed | Passed |
+| TC-512 | Timed out | Passed | Passed |
+| TC-513 | Timed out | Failed | Failed |
+| TC-514 | Timed out | Passed | Passed |
+| TC-524 | Failed | Failed | Passed |
+| TC-529 | Failed | Passed | Passed |
+| TC-532 | Failed | Failed | Failed |
+| TC-539 | Timed out | Timed out | Timed out |
+| TC-631 | Timed out | Passed | Timed out |
+| TC-651 | Failed | Failed | Failed |
+| TC-715 | Failed | Failed | Failed |
+| TC-735 | Failed | Failed | Failed |
+Re-run totals: head 11 passed / 12 failed; base 11 passed / 12 failed. The remaining failures are the same set on both sides except TC-524 (head fail, base pass) and TC-631 (head pass, base fail) - resolved as intermittent by the 5x repetitions in ST-012-015.
+
+## repetition consoles
+== head
+  ✘   1 [chromium] › tests/06-admin-people.spec.ts:2331:7 › Admin: people and access › Signing a faculty member out of every device @TC-524 (9.5s)
+  ✘   2 [chromium] › tests/07-admin-operations.spec.ts:1855:7 › Admin: daily operations › Placement's batch and period filters, and the offers export @TC-631 (30.4s)
+  ✘   3 [chromium] › tests/auth-sync.spec.ts:1375:7 › Authentication › My account says so when the session ended on another device @TC-025 (7.7s)
+  ✘   4 [chromium] › tests/auth-sync.spec.ts:2008:7 › Authentication › Reset requests are limited per address @TC-038 (6.2s)
+  ✓   5 [chromium] › tests/06-admin-people.spec.ts:2331:7 › Admin: people and access › Signing a faculty member out of every device @TC-524 (4.2s)
+  ✘   6 [chromium] › tests/07-admin-operations.spec.ts:1855:7 › Admin: daily operations › Placement's batch and period filters, and the offers export @TC-631 (30.3s)
+  ✓   7 [chromium] › tests/auth-sync.spec.ts:1375:7 › Authentication › My account says so when the session ended on another device @TC-025 (3.0s)
+  ✘   8 [chromium] › tests/auth-sync.spec.ts:2008:7 › Authentication › Reset requests are limited per address @TC-038 (6.0s)
+  ✘   9 [chromium] › tests/06-admin-people.spec.ts:2331:7 › Admin: people and access › Signing a faculty member out of every device @TC-524 (9.4s)
+  ✘  10 [chromium] › tests/07-admin-operations.spec.ts:1855:7 › Admin: daily operations › Placement's batch and period filters, and the offers export @TC-631 (30.4s)
+  ✘  11 [chromium] › tests/auth-sync.spec.ts:1375:7 › Authentication › My account says so when the session ended on another device @TC-025 (7.9s)
+  ✘  12 [chromium] › tests/auth-sync.spec.ts:2008:7 › Authentication › Reset requests are limited per address @TC-038 (6.3s)
+  ✓  13 [chromium] › tests/06-admin-people.spec.ts:2331:7 › Admin: people and access › Signing a faculty member out of every device @TC-524 (4.6s)
+  ✘  14 [chromium] › tests/07-admin-operations.spec.ts:1855:7 › Admin: daily operations › Placement's batch and period filters, and the offers export @TC-631 (30.4s)
+  ✘  15 [chromium] › tests/auth-sync.spec.ts:1375:7 › Authentication › My account says so when the session ended on another device @TC-025 (8.2s)
+  ✓  16 [chromium] › tests/auth-sync.spec.ts:2008:7 › Authentication › Reset requests are limited per address @TC-038 (1.1s)
+  ✓  17 [chromium] › tests/06-admin-people.spec.ts:2331:7 › Admin: people and access › Signing a faculty member out of every device @TC-524 (4.0s)
+  ✘  18 [chromium] › tests/07-admin-operations.spec.ts:1855:7 › Admin: daily operations › Placement's batch and period filters, and the offers export @TC-631 (30.4s)
+  ✘  19 [chromium] › tests/auth-sync.spec.ts:1375:7 › Authentication › My account says so when the session ended on another device @TC-025 (8.3s)
+  ✓  20 [chromium] › tests/auth-sync.spec.ts:2008:7 › Authentication › Reset requests are limited per address @TC-038 (1.2s)
+    expect(page).toHaveURL(expected) failed
+    test-results/06-admin-people-Admin-peop-5487d--out-of-every-device-TC-524-chromium/test-failed-1.png
+    test-results/06-admin-people-Admin-peop-5487d--out-of-every-device-TC-524-chromium/test-failed-2.png
+    expect(page).toHaveURL(expected) failed
+    test-results/06-admin-people-Admin-peop-5487d--out-of-every-device-TC-524-chromium-repeat2/test-failed-1.png
+    test-results/06-admin-people-Admin-peop-5487d--out-of-every-device-TC-524-chromium-repeat2/test-failed-2.png
+    test-results/07-admin-operations-Admin--ab51f-nd-the-offers-export-TC-631-chromium/test-failed-1.png
+    test-results/07-admin-operations-Admin--ab51f-nd-the-offers-export-TC-631-chromium-repeat1/test-failed-1.png
+    test-results/07-admin-operations-Admin--ab51f-nd-the-offers-export-TC-631-chromium-repeat2/test-failed-1.png
+    test-results/07-admin-operations-Admin--ab51f-nd-the-offers-export-TC-631-chromium-repeat3/test-failed-1.png
+    test-results/07-admin-operations-Admin--ab51f-nd-the-offers-export-TC-631-chromium-repeat4/test-failed-1.png
+    expect(locator).toContainText(expected) failed
+    test-results/auth-sync-Authentication-M-bf206-ed-on-another-device-TC-025-chromium/test-failed-1.png
+    test-results/auth-sync-Authentication-M-bf206-ed-on-another-device-TC-025-chromium/test-failed-2.png
+    expect(locator).toHaveText(expected) failed
+    test-results/auth-sync-Authentication-R-9ef1a--limited-per-address-TC-038-chromium/test-failed-1.png
+    expect(locator).toHaveText(expected) failed
+    test-results/auth-sync-Authentication-R-9ef1a--limited-per-address-TC-038-chromium-repeat1/test-failed-1.png
+    expect(locator).toContainText(expected) failed
+    test-results/auth-sync-Authentication-M-bf206-ed-on-another-device-TC-025-chromium-repeat2/test-failed-1.png
+    test-results/auth-sync-Authentication-M-bf206-ed-on-another-device-TC-025-chromium-repeat2/test-failed-2.png
+    expect(locator).toHaveText(expected) failed
+    test-results/auth-sync-Authentication-R-9ef1a--limited-per-address-TC-038-chromium-repeat2/test-failed-1.png
+    expect(locator).toContainText(expected) failed
+    test-results/auth-sync-Authentication-M-bf206-ed-on-another-device-TC-025-chromium-repeat3/test-failed-1.png
+    test-results/auth-sync-Authentication-M-bf206-ed-on-another-device-TC-025-chromium-repeat3/test-failed-2.png
+    expect(page).toHaveURL(expected) failed
+    test-results/auth-sync-Authentication-M-bf206-ed-on-another-device-TC-025-chromium-repeat4/test-failed-1.png
+    test-results/auth-sync-Authentication-M-bf206-ed-on-another-device-TC-025-chromium-repeat4/test-failed-2.png
+  14 failed
+  6 passed (4.3m)
+manual-test-results.csv: 289 rows (252 Not run, 9 Failed, 6 Passed, 17 Not automated, 5 Timed out)
+== base
+  ✓   1 [chromium] › tests/06-admin-people.spec.ts:2331:7 › Admin: people and access › Signing a faculty member out of every device @TC-524 (4.3s)
+  ✘   2 [chromium] › tests/07-admin-operations.spec.ts:1855:7 › Admin: daily operations › Placement's batch and period filters, and the offers export @TC-631 (30.3s)
+  ✘   3 [chromium] › tests/auth-sync.spec.ts:1375:7 › Authentication › My account says so when the session ended on another device @TC-025 (7.7s)
+  ✘   4 [chromium] › tests/auth-sync.spec.ts:2008:7 › Authentication › Reset requests are limited per address @TC-038 (6.2s)
+  ✓   5 [chromium] › tests/06-admin-people.spec.ts:2331:7 › Admin: people and access › Signing a faculty member out of every device @TC-524 (4.6s)
+  ✘   6 [chromium] › tests/07-admin-operations.spec.ts:1855:7 › Admin: daily operations › Placement's batch and period filters, and the offers export @TC-631 (30.4s)
+  ✘   7 [chromium] › tests/auth-sync.spec.ts:1375:7 › Authentication › My account says so when the session ended on another device @TC-025 (7.6s)
+  ✘   8 [chromium] › tests/auth-sync.spec.ts:2008:7 › Authentication › Reset requests are limited per address @TC-038 (6.2s)
+  ✘   9 [chromium] › tests/06-admin-people.spec.ts:2331:7 › Admin: people and access › Signing a faculty member out of every device @TC-524 (9.7s)
+  ✘  10 [chromium] › tests/07-admin-operations.spec.ts:1855:7 › Admin: daily operations › Placement's batch and period filters, and the offers export @TC-631 (30.4s)
+  ✘  11 [chromium] › tests/auth-sync.spec.ts:1375:7 › Authentication › My account says so when the session ended on another device @TC-025 (7.7s)
+  ✓  12 [chromium] › tests/auth-sync.spec.ts:2008:7 › Authentication › Reset requests are limited per address @TC-038 (1.2s)
+  ✓  13 [chromium] › tests/06-admin-people.spec.ts:2331:7 › Admin: people and access › Signing a faculty member out of every device @TC-524 (4.3s)
+  ✘  14 [chromium] › tests/07-admin-operations.spec.ts:1855:7 › Admin: daily operations › Placement's batch and period filters, and the offers export @TC-631 (30.4s)
+  ✘  15 [chromium] › tests/auth-sync.spec.ts:1375:7 › Authentication › My account says so when the session ended on another device @TC-025 (7.7s)
+  ✘  16 [chromium] › tests/auth-sync.spec.ts:2008:7 › Authentication › Reset requests are limited per address @TC-038 (6.3s)
+  ✘  17 [chromium] › tests/06-admin-people.spec.ts:2331:7 › Admin: people and access › Signing a faculty member out of every device @TC-524 (9.5s)
+  ✘  18 [chromium] › tests/07-admin-operations.spec.ts:1855:7 › Admin: daily operations › Placement's batch and period filters, and the offers export @TC-631 (30.4s)
+  ✓  19 [chromium] › tests/auth-sync.spec.ts:1375:7 › Authentication › My account says so when the session ended on another device @TC-025 (3.2s)
+  ✘  20 [chromium] › tests/auth-sync.spec.ts:2008:7 › Authentication › Reset requests are limited per address @TC-038 (6.0s)
+    expect(page).toHaveURL(expected) failed
+    test-results/06-admin-people-Admin-peop-5487d--out-of-every-device-TC-524-chromium-repeat2/test-failed-1.png
+    test-results/06-admin-people-Admin-peop-5487d--out-of-every-device-TC-524-chromium-repeat2/test-failed-2.png
+    expect(page).toHaveURL(expected) failed
+    test-results/06-admin-people-Admin-peop-5487d--out-of-every-device-TC-524-chromium-repeat4/test-failed-1.png
+    test-results/06-admin-people-Admin-peop-5487d--out-of-every-device-TC-524-chromium-repeat4/test-failed-2.png
+    test-results/07-admin-operations-Admin--ab51f-nd-the-offers-export-TC-631-chromium/test-failed-1.png
+    test-results/07-admin-operations-Admin--ab51f-nd-the-offers-export-TC-631-chromium-repeat1/test-failed-1.png
+    test-results/07-admin-operations-Admin--ab51f-nd-the-offers-export-TC-631-chromium-repeat2/test-failed-1.png
+    test-results/07-admin-operations-Admin--ab51f-nd-the-offers-export-TC-631-chromium-repeat3/test-failed-1.png
+    test-results/07-admin-operations-Admin--ab51f-nd-the-offers-export-TC-631-chromium-repeat4/test-failed-1.png
+    expect(locator).toContainText(expected) failed
+    test-results/auth-sync-Authentication-M-bf206-ed-on-another-device-TC-025-chromium/test-failed-1.png
+    test-results/auth-sync-Authentication-M-bf206-ed-on-another-device-TC-025-chromium/test-failed-2.png
+    expect(locator).toHaveText(expected) failed
+    test-results/auth-sync-Authentication-R-9ef1a--limited-per-address-TC-038-chromium/test-failed-1.png
+    expect(locator).toContainText(expected) failed
+    test-results/auth-sync-Authentication-M-bf206-ed-on-another-device-TC-025-chromium-repeat1/test-failed-1.png
+    test-results/auth-sync-Authentication-M-bf206-ed-on-another-device-TC-025-chromium-repeat1/test-failed-2.png
+    expect(locator).toHaveText(expected) failed
+    test-results/auth-sync-Authentication-R-9ef1a--limited-per-address-TC-038-chromium-repeat1/test-failed-1.png
+    expect(locator).toContainText(expected) failed
+    test-results/auth-sync-Authentication-M-bf206-ed-on-another-device-TC-025-chromium-repeat2/test-failed-1.png
+    test-results/auth-sync-Authentication-M-bf206-ed-on-another-device-TC-025-chromium-repeat2/test-failed-2.png
+    expect(locator).toContainText(expected) failed
+    test-results/auth-sync-Authentication-M-bf206-ed-on-another-device-TC-025-chromium-repeat3/test-failed-1.png
+    test-results/auth-sync-Authentication-M-bf206-ed-on-another-device-TC-025-chromium-repeat3/test-failed-2.png
+    expect(locator).toHaveText(expected) failed
+    test-results/auth-sync-Authentication-R-9ef1a--limited-per-address-TC-038-chromium-repeat3/test-failed-1.png
+    expect(locator).toHaveText(expected) failed
+    test-results/auth-sync-Authentication-R-9ef1a--limited-per-address-TC-038-chromium-repeat4/test-failed-1.png
+  15 failed
+  5 passed (4.4m)
+manual-test-results.csv: 289 rows (252 Not run, 10 Failed, 5 Passed, 17 Not automated, 5 Timed out)
+== head-1w
+  ✓   1 [chromium] › tests/06-admin-people.spec.ts:2331:7 › Admin: people and access › Signing a faculty member out of every device @TC-524 (5.1s)
+  ✘   2 [chromium] › tests/07-admin-operations.spec.ts:1855:7 › Admin: daily operations › Placement's batch and period filters, and the offers export @TC-631 (30.4s)
+  ✓   3 [chromium] › tests/auth-sync.spec.ts:1375:7 › Authentication › My account says so when the session ended on another device @TC-025 (3.1s)
+  ✓   4 [chromium] › tests/auth-sync.spec.ts:2008:7 › Authentication › Reset requests are limited per address @TC-038 (1.1s)
+  ✓   5 [chromium] › tests/06-admin-people.spec.ts:2331:7 › Admin: people and access › Signing a faculty member out of every device @TC-524 (4.8s)
+  ✘   6 [chromium] › tests/07-admin-operations.spec.ts:1855:7 › Admin: daily operations › Placement's batch and period filters, and the offers export @TC-631 (30.4s)
+  ✓   7 [chromium] › tests/auth-sync.spec.ts:1375:7 › Authentication › My account says so when the session ended on another device @TC-025 (3.2s)
+  ✓   8 [chromium] › tests/auth-sync.spec.ts:2008:7 › Authentication › Reset requests are limited per address @TC-038 (993ms)
+  ✓   9 [chromium] › tests/06-admin-people.spec.ts:2331:7 › Admin: people and access › Signing a faculty member out of every device @TC-524 (3.8s)
+  ✘  10 [chromium] › tests/07-admin-operations.spec.ts:1855:7 › Admin: daily operations › Placement's batch and period filters, and the offers export @TC-631 (30.4s)
+  ✓  11 [chromium] › tests/auth-sync.spec.ts:1375:7 › Authentication › My account says so when the session ended on another device @TC-025 (3.3s)
+  ✓  12 [chromium] › tests/auth-sync.spec.ts:2008:7 › Authentication › Reset requests are limited per address @TC-038 (1.0s)
+  ✓  13 [chromium] › tests/06-admin-people.spec.ts:2331:7 › Admin: people and access › Signing a faculty member out of every device @TC-524 (4.5s)
+  ✘  14 [chromium] › tests/07-admin-operations.spec.ts:1855:7 › Admin: daily operations › Placement's batch and period filters, and the offers export @TC-631 (30.4s)
+  ✓  15 [chromium] › tests/auth-sync.spec.ts:1375:7 › Authentication › My account says so when the session ended on another device @TC-025 (3.2s)
+  ✓  16 [chromium] › tests/auth-sync.spec.ts:2008:7 › Authentication › Reset requests are limited per address @TC-038 (1.0s)
+  ✓  17 [chromium] › tests/06-admin-people.spec.ts:2331:7 › Admin: people and access › Signing a faculty member out of every device @TC-524 (4.4s)
+  ✘  18 [chromium] › tests/07-admin-operations.spec.ts:1855:7 › Admin: daily operations › Placement's batch and period filters, and the offers export @TC-631 (30.4s)
+  ✓  19 [chromium] › tests/auth-sync.spec.ts:1375:7 › Authentication › My account says so when the session ended on another device @TC-025 (3.3s)
+  ✓  20 [chromium] › tests/auth-sync.spec.ts:2008:7 › Authentication › Reset requests are limited per address @TC-038 (957ms)
+    test-results/07-admin-operations-Admin--ab51f-nd-the-offers-export-TC-631-chromium/test-failed-1.png
+    test-results/07-admin-operations-Admin--ab51f-nd-the-offers-export-TC-631-chromium-repeat1/test-failed-1.png
+    test-results/07-admin-operations-Admin--ab51f-nd-the-offers-export-TC-631-chromium-repeat2/test-failed-1.png
+    test-results/07-admin-operations-Admin--ab51f-nd-the-offers-export-TC-631-chromium-repeat3/test-failed-1.png
+    test-results/07-admin-operations-Admin--ab51f-nd-the-offers-export-TC-631-chromium-repeat4/test-failed-1.png
+  5 failed
+  15 passed (3.4m)
+manual-test-results.csv: 289 rows (252 Not run, 15 Passed, 17 Not automated, 5 Timed out)

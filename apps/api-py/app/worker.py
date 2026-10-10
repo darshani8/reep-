@@ -89,7 +89,7 @@ def _run_embedding(*, once: bool, poll_seconds: float, owner: str) -> None:
                 with SessionLocal() as db:
                     result = process_embedding(db, embedding_id, owner=owner, provider=provider)
                 if result in ("ready", "failed", "noop", "missing"):
-                    transport.delete(queue, receipt)
+                    transport.delete(queue, receipt)  # type: ignore[arg-type]  # SQS always sends a ReceiptHandle
                 log.info("embedding worker result=%s embedding_id=%s", result, embedding_id)
             except Exception:
                 log.exception("embedding message failed; transport will retry")

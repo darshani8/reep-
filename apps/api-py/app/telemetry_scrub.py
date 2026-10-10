@@ -149,7 +149,7 @@ def filter_url(url: str | None) -> str | None:
         return url
     try:
         parts = urlsplit(url)
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001  an unparseable URL is filtered, never shipped
         return FILTERED
     return urlunsplit(parts._replace(query=filter_query(parts.query) or "", fragment=""))
 

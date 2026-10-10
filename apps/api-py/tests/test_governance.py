@@ -39,7 +39,6 @@ from app.models.governance import (
     CapabilityScope,
     FeatureOverride,
     ScopeLevel,
-    SubjectKind,
 )
 from app.models.user import Role
 

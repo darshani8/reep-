@@ -1,0 +1,10 @@
+# ST-010 2026-10-08T08:44:12Z web unit suite on HEAD: cd apps/web && npx ng test --watch=false (Node 22.22.3)
+✔ Building...
+Application bundle generation complete. [20.855 seconds] - 2026-10-08T08:43:46.304Z
+ RUN  v4.1.11 /home/user/reep-/apps/web
+ Test Files  32 passed (32)
+      Tests  226 passed (226)
+   Start at  08:43:46
+   Duration  6.71s (transform 3.19s, setup 1.42s, import 4.37s, tests 9.76s, environment 25.84s)
+EXIT 0
+Base comparison: git diff 15a9e7d a3688f0 -- apps/web is empty (ST-005), so the base runs the identical suite on identical sources; not re-run.

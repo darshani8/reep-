@@ -32,6 +32,16 @@
       >
         <span class="icon" aria-hidden="true">groups</span> Assign a whole batch
       </button>
+      <button
+        type="button"
+        class="btn secondary"
+        [class.toggled]="sheetOpen()"
+        [attr.aria-expanded]="sheetOpen()"
+        aria-controls="sheet-bar"
+        (click)="toggleSheetBar()"
+      >
+        <span class="icon" aria-hidden="true">upload_file</span> Assign from a spreadsheet
+      </button>
     </div>
   </div>
 
@@ -123,6 +133,148 @@
             Each move is recorded on that student's own assignment history.
           </div>
         }
+      }
+    </section>
+  }
+
+  <!-- ASSIGN FROM A SPREADSHEET (2026-10-10). The office's mentor list as a
+       file: `POST /admin/mentor-mapping/preview` judges every line and writes
+       nothing; `/apply` seats the "Will assign" lines through the same helpers
+       the Assign button uses, one reason for the whole file. The verdicts are
+       the server's — this screen never reads the spreadsheet itself. -->
+  @if (sheetOpen()) {
+    <section class="card sheet-bar" id="sheet-bar" aria-labelledby="sheet-bar-title">
+      <div class="card-head">
+        <h2 class="card-heading" id="sheet-bar-title">Assign from a spreadsheet</h2>
+        <div class="card-head__actions">
+          <a class="btn ghost sm" [href]="mappingTemplateUrl" download="reep-mentor-mapping-template.xlsx">
+            <span class="icon" aria-hidden="true">download</span> Download the template
+          </a>
+          <button type="button" class="iconbtn" (click)="toggleSheetBar()" aria-label="Close the spreadsheet card">
+            <span class="icon" aria-hidden="true">close</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="sheet-bar__row">
+        <div class="sheet-file">
+          <label class="btn secondary sheet-file__label">
+            <span class="icon" aria-hidden="true">upload_file</span>
+            {{ sheetFileName() ? 'Choose a different file' : 'Choose file' }}
+            <!-- Hidden by GEOMETRY, never display:none: an input taken out of
+                 the focus order leaves the picker mouse-only, and a <label>
+                 wrapper is not tabbable either. -->
+            <input
+              #sheetPicker
+              class="sheet-file__input"
+              type="file"
+              accept=".xlsx,.csv"
+              (change)="chooseSheetFile($event)"
+            />
+          </label>
+          <span class="sheet-file__name">{{ sheetFileName() || 'No file chosen' }}</span>
+          @if (sheetFileName()) {
+            <button type="button" class="btn ghost sm" (click)="forgetSheetFile()">
+              <span class="icon" aria-hidden="true">close</span> Remove
+            </button>
+          }
+        </div>
+
+        <div class="field sheet-bar__reason">
+          <label for="sheet-reason">Reason</label>
+          <input
+            id="sheet-reason"
+            type="text"
+            maxlength="400"
+            [value]="sheetReason()"
+            (input)="sheetReason.set($any($event.target).value)"
+          />
+          <span class="help">Recorded on every student's assignment history.</span>
+        </div>
+
+        <button
+          type="button"
+          class="btn secondary"
+          [disabled]="!sheetCanCheck()"
+          (click)="checkSheet()"
+        >
+          <span class="icon" aria-hidden="true">search</span> Check the file
+        </button>
+        <button
+          type="button"
+          class="btn primary"
+          [disabled]="!sheetCanAssign()"
+          (click)="applySheet()"
+        >
+          <span class="icon" aria-hidden="true">groups</span>
+          Assign {{ sheetPreview()?.to_assign ?? 0 | plural: 'student' }}
+        </button>
+      </div>
+
+      @if (sheetError(); as problem) {
+        <div class="notice" role="alert">
+          <span class="icon" aria-hidden="true">error</span>{{ problem }}
+        </div>
+      }
+      @if (sheetFlash(); as words) {
+        <p class="sheet-summary" role="status">{{ words }}</p>
+      }
+
+      @if (sheetPreview(); as judged) {
+        <div class="sheet-table">
+          <table class="dt-table">
+            <thead>
+              <tr>
+                <th scope="col">Line</th>
+                <th scope="col">Student</th>
+                <th scope="col">On the roster</th>
+                <th scope="col">Faculty member</th>
+                <th scope="col">Check</th>
+                <th scope="col">Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of judged.rows; track row.line_no) {
+                <tr>
+                  <td>{{ row.line_no }}</td>
+                  <td class="given">
+                    {{ row.student || '—' }}
+                    @if (row.usn) {
+                      <span class="sheet-usn">{{ row.usn }}</span>
+                    }
+                  </td>
+                  <td>
+                    @if (row.student_name) {
+                      {{ row.student_name }}
+                      @if (row.student_usn) { · {{ row.student_usn }} }
+                      @if (row.batch) { · {{ row.batch }} }
+                    } @else if (row.candidates.length > 0) {
+                      <ul class="candidates">
+                        @for (who of row.candidates; track who.id) {
+                          <li>{{ who.name }}@if (who.detail) { · {{ who.detail }} }</li>
+                        }
+                      </ul>
+                    } @else {
+                      —
+                    }
+                  </td>
+                  <td>
+                    <span class="given">{{ row.faculty || '—' }}</span>
+                    @if (row.faculty_name && row.faculty_name !== row.faculty) {
+                      <span class="sheet-resolved">{{ row.faculty_name }}</span>
+                    }
+                  </td>
+                  <td>
+                    <span class="chip" [class]="'chip ' + verdictTone(row.verdict)">
+                      {{ row.applied ? 'Assigned' : verdictLabel(row.verdict) }}
+                    </span>
+                  </td>
+                  <td>{{ row.detail }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       }
     </section>
   }

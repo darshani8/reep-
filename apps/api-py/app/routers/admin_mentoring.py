@@ -41,19 +41,37 @@ reported on the load board and no assignment endpoint consults it. See
 this phase.
 """
 
+import io
+from dataclasses import dataclass
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, aliased
 
+from .. import batch_labels, mentor_mapping
 from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
 
 from ..architecture_events import record_change
 from ..governance import ancestry_of_student, ancestry_of_user, require_capability
+# The office's spreadsheet, read by the same reader B8.1's imports use, so a
+# file this screen refuses and a file the Imports screen refuses are refused
+# for the same reasons in the same words.
+from ..imports_sheet import MAX_UPLOAD_BYTES, SheetError, parse_sheet, read_text
 # The one writer of `mentor_assignments`, and the one minter of the handover
 # grant. Read its module docstring before changing anything in here that moves
 # `students.mentor_id`.
@@ -61,7 +79,7 @@ from ..mentor_history import record_mentor_change
 from ..models.attendance import AttendanceRecord
 from ..models.cohort import Cohort
 from ..models.governance import ScopeLevel
-from ..models.institution import Department
+from ..models.institution import AcademicCourse, AcademicSpecialization, Department
 from ..models.mentor_assignment import MentorAssignment
 from ..models.skill import StudentSkill
 from ..models.time_ledger import TimeLedgerCell, TimeLedgerDay
@@ -888,3 +906,513 @@ def compose_mentor_history(db: Session, student_id: str) -> list[MentorAssignmen
         )
         for row, mentor_name, by_name, ended_by_name in rows
     ]
+
+
+# --- assign from a spreadsheet (2026-10-10) ---------------------------------
+# The office's mentor list is a spreadsheet — a student per line, a faculty
+# member beside them — and until now the only way onto the roster was that
+# list retyped: one assignment per student on this screen, or the batch bar
+# once per faculty member per batch. The three endpoints below take the file.
+#
+# THE WRITE IS THE SAME WRITE. `apply` sets `students.mentor_id` through
+# `ensure_mentor_group`, refuses a cross-college pair through
+# `_assert_same_college`, asks `require_capability` about BOTH people, writes
+# the spell through `record_mentor_change` and an audit row per student,
+# exactly as `set_student_mentor` does: a file of eighty assignments is eighty
+# assignments, not a sixth writer of rule 2's scope key with rules of its own.
+# What the file adds is MATCHING (`app/mentor_mapping.py`), and matching is
+# where this can go wrong — which is why `preview` exists and writes nothing.
+# The office reads the judged lines, fixes the file (a USN on the line settles
+# any ambiguity; an email address settles a faculty name), and presses Assign
+# on rows it has seen.
+#
+# PREVIEW WRITES NOTHING, AND APPLY JUDGES AGAIN. Unlike B8.1's imports no run
+# row is kept: the file is small, the judge is deterministic, and the answer
+# to `apply` names every line and what was done with it, which is the receipt
+# — beside the per-student audit row and the spell on each student's own
+# history card. A line whose verdict changed between the two presses (the
+# student seated by hand in between) is reported with the verdict it has NOW.
+#
+# `admin.mentors`, like the single assignment. A faculty member by role holds
+# nothing here: a mentor who could upload a sheet could seat themselves with
+# any student in the programme and then read everything about them.
+
+MAPPING_CAPABILITY = "admin.mentors"
+
+#: The columns the template writes and `preview` reads back, with whether the
+#: column must be filled — ONE constant for both, `imports_sheet.DATASET_COLUMNS`'
+#: reason. `student` or `usn` must be given on every line; the sheet needs the
+#: USN column only where a name is not enough.
+MAPPING_COLUMNS: tuple[tuple[str, bool], ...] = (
+    ("student", True),
+    ("usn", False),
+    ("faculty", True),
+    ("specialization", False),
+)
+MAPPING_EXAMPLE: tuple[str, ...] = ("Priya Sharma", "1MP25MDM01", "Prof. Ramesh Kumar", "Finance")
+MAPPING_SHAPE = (
+    "One row per student: student (the name as the roster has it), usn (only where two "
+    "students share a name), faculty (a name or an email address), specialization (optional)."
+)
+
+V_ASSIGN = "assign"
+V_UNCHANGED = "unchanged"
+V_DUPLICATE = "duplicate"
+V_LISTED_TWICE = "listed_twice"
+V_BLANK = "blank"
+V_STUDENT_NOT_FOUND = "student_not_found"
+V_STUDENT_AMBIGUOUS = "student_ambiguous"
+V_FACULTY_NOT_FOUND = "faculty_not_found"
+V_FACULTY_AMBIGUOUS = "faculty_ambiguous"
+V_FACULTY_DISABLED = "faculty_disabled"
+V_DIFFERENT_COLLEGE = "different_college"
+V_OUT_OF_REACH = "out_of_reach"
+
+_XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+class MappingCandidateOut(BaseModel):
+    """One of the people an ambiguous line could mean — enough to tell them
+    apart on screen (USN and batch, or email) and nothing else."""
+
+    id: str
+    name: str
+    detail: str | None
+
+
+class MappingRowOut(BaseModel):
+    #: The operator's line number: the header is line 1, as Excel's gutter has it.
+    line_no: int
+    #: The cells as typed, so the screen can show what was read beside what it meant.
+    student: str | None
+    usn: str | None
+    faculty: str | None
+    specialization: str | None
+    verdict: str
+    detail: str
+    #: Who the line resolved to, when it did.
+    student_id: str | None = None
+    student_name: str | None = None
+    student_usn: str | None = None
+    batch: str | None = None
+    current_faculty: str | None = None
+    faculty_user_id: str | None = None
+    faculty_name: str | None = None
+    candidates: list[MappingCandidateOut] = []
+    #: True only on `apply`, for the lines it wrote.
+    applied: bool = False
+
+
+class MappingPreviewOut(BaseModel):
+    filename: str
+    rows: list[MappingRowOut]
+    #: Lines per verdict, for the sentence over the table.
+    counts: dict[str, int]
+    #: How many lines Assign would write right now.
+    to_assign: int
+
+
+class MappingApplyOut(MappingPreviewOut):
+    applied: int
+    reason: str
+
+
+@dataclass
+class _RosterRow:
+    student_id: str
+    name: str
+    usn: str | None
+    mentor_id: str | None
+    batch: str | None
+    current_faculty: str | None
+
+
+@dataclass
+class _FacultyRow:
+    user_id: str
+    name: str
+    email: str
+    disabled: bool
+    mentor_id: str | None
+
+
+def _roster_for_mapping(db: Session, reach) -> dict[str, _RosterRow]:
+    """Every student this caller may seat, with the batch label the tiebreak
+    reads and the faculty member they sit with today. A REMOVED account
+    (`users.deleted_at`) is matched by nobody, `mentor-load`'s rule."""
+    faculty_user = aliased(User)
+    stmt = (
+        select(
+            Student.id, User.name, Student.usn, Student.mentor_id,
+            Cohort.name, Cohort.batch_label, AcademicCourse.name, AcademicSpecialization.name,
+            faculty_user.name,
+        )
+        .join(User, User.id == Student.user_id)
+        .outerjoin(Cohort, Cohort.id == Student.cohort_id)
+        .outerjoin(AcademicCourse, AcademicCourse.id == Cohort.course_id)
+        .outerjoin(AcademicSpecialization, AcademicSpecialization.id == Cohort.specialization_id)
+        .outerjoin(Mentor, Mentor.id == Student.mentor_id)
+        .outerjoin(faculty_user, faculty_user.id == Mentor.user_id)
+        .where(User.deleted_at.is_(None), Student.id.in_(reach.student_ids()))
+    )
+    roster: dict[str, _RosterRow] = {}
+    for (sid, name, usn, mentor_id, cohort_name, batch_label,
+         course_name, spec_name, faculty_name) in db.execute(stmt):
+        batch = (
+            batch_labels.compose(course_name, spec_name, cohort_name, batch_label)
+            if cohort_name else None
+        )
+        roster[sid] = _RosterRow(sid, name, usn, mentor_id, batch, faculty_name)
+    return roster
+
+
+def _faculty_for_mapping(db: Session, reach) -> dict[str, _FacultyRow]:
+    """Every faculty account this caller may seat students with. A removed
+    account is not offered; a DISABLED one is listed so the line can say so
+    rather than "not found", and is refused below."""
+    stmt = (
+        select(User.id, User.name, User.email, User.disabled_at, Mentor.id)
+        .outerjoin(Mentor, Mentor.user_id == User.id)
+        .where(User.role == Role.MENTOR, User.deleted_at.is_(None), User.id.in_(reach.user_ids()))
+    )
+    return {
+        uid: _FacultyRow(uid, name, email, disabled_at is not None, mentor_id)
+        for uid, name, email, disabled_at, mentor_id in db.execute(stmt)
+    }
+
+
+def _read_upload(file: UploadFile) -> tuple[bytes, str]:
+    """The bytes, bounded the way every upload in the product is bounded: a
+    `read(MAX + 1)` so the comparison runs before the memory is spent. Read
+    SYNCHRONOUSLY, because these handlers are plain `def` on the threadpool —
+    the registration lesson of 2026-09-29, where an `async def` doing blocking
+    database work froze the whole process."""
+    payload = file.file.read(MAX_UPLOAD_BYTES + 1)
+    filename = (file.filename or "upload")[:255]
+    if len(payload) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"The file is larger than {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
+        )
+    return payload, filename
+
+
+def _student_candidates(hits, roster: dict[str, _RosterRow]) -> list[MappingCandidateOut]:
+    out = []
+    for person in hits:
+        row = roster[person.id]
+        where = " · ".join(part for part in (row.usn, row.batch) if part)
+        out.append(MappingCandidateOut(id=row.student_id, name=row.name, detail=where or None))
+    return out
+
+
+def _judge_mapping(
+    db: Session, session: dict, payload: bytes, filename: str,
+) -> list[MappingRowOut]:
+    """Read the file and say, line by line, what Assign would do with it.
+
+    Every verdict here is reached against THIS caller's reach, and the two
+    fences the single assignment applies (`_assert_same_college`, the
+    per-target `require_capability`) are asked per line so the preview and the
+    apply cannot disagree about a pair.
+    """
+    reach = scope_filter(db, session, MAPPING_CAPABILITY)
+    if reach.nothing:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your 'Mentors & students' capability reaches no student.",
+        )
+    try:
+        lines = parse_sheet(payload, filename)
+    except SheetError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc))
+
+    roster = _roster_for_mapping(db, reach)
+    faculty = _faculty_for_mapping(db, reach)
+    students = [
+        mentor_mapping.Person(id=row.student_id, name=row.name, key=row.usn, hint=row.batch or "")
+        for row in roster.values()
+    ]
+    staff = [
+        mentor_mapping.Person(id=row.user_id, name=row.name, key=row.email)
+        for row in faculty.values()
+    ]
+
+    # Pass 1: the cells, and each name on its own.
+    cells: list[tuple[str | None, str | None, str | None, str | None]] = []
+    student_matches: list[mentor_mapping.Match] = []
+    for line in lines:
+        given = read_text(line.values, "student_name")
+        usn = read_text(line.values, "usn")
+        who = read_text(line.values, "faculty")
+        spec = read_text(line.values, "specialization")
+        cells.append((given, usn, who, spec))
+        if usn:
+            hit = mentor_mapping.by_key(usn, students)
+            student_matches.append(
+                mentor_mapping.Match(mentor_mapping.MATCH_EXACT, (hit,))
+                if hit else mentor_mapping.Match(mentor_mapping.MATCH_NONE)
+            )
+        else:
+            student_matches.append(mentor_mapping.match_name(given, students, hint=spec))
+    # Pass 2: a name ambiguous here and plainly matched on another line.
+    student_matches = mentor_mapping.resolve_claims(student_matches)
+
+    rows: list[MappingRowOut] = []
+    for line, (given, usn, who, spec), match in zip(lines, cells, student_matches):
+        row = MappingRowOut(
+            line_no=line.line_no, student=given, usn=usn, faculty=who, specialization=spec,
+            verdict=V_BLANK, detail="",
+        )
+        rows.append(row)
+        if not given and not usn:
+            row.detail = "No student on this line."
+            continue
+        if not who:
+            row.detail = "No faculty member on this line."
+            continue
+
+        # The student.
+        person = match.person
+        if person is None:
+            if match.kind == mentor_mapping.MATCH_AMBIGUOUS:
+                row.verdict = V_STUDENT_AMBIGUOUS
+                row.candidates = _student_candidates(match.hits, roster)
+                row.detail = (
+                    f"{len(match.hits)} students match '{given}' — put the USN on this line."
+                )
+            else:
+                row.verdict = V_STUDENT_NOT_FOUND
+                row.detail = (
+                    f"No student holds USN {usn}." if usn
+                    else f"No student named '{given}' is on the roster."
+                )
+            continue
+        seat = roster[person.id]
+        row.student_id = seat.student_id
+        row.student_name = seat.name
+        row.student_usn = seat.usn
+        row.batch = seat.batch
+        row.current_faculty = seat.current_faculty
+
+        # The faculty member: an address is exact, a name goes through the matcher.
+        if "@" in who:
+            hit = mentor_mapping.by_key(who, staff)
+            staff_match = (
+                mentor_mapping.Match(mentor_mapping.MATCH_EXACT, (hit,))
+                if hit else mentor_mapping.Match(mentor_mapping.MATCH_NONE)
+            )
+        else:
+            staff_match = mentor_mapping.match_name(who, staff)
+        chosen = staff_match.person
+        if chosen is None:
+            if staff_match.kind == mentor_mapping.MATCH_AMBIGUOUS:
+                row.verdict = V_FACULTY_AMBIGUOUS
+                row.candidates = [
+                    MappingCandidateOut(id=p.id, name=p.name, detail=faculty[p.id].email)
+                    for p in staff_match.hits
+                ]
+                row.detail = (
+                    f"{len(staff_match.hits)} faculty accounts match '{who}' — "
+                    "write the email address instead."
+                )
+            else:
+                row.verdict = V_FACULTY_NOT_FOUND
+                row.detail = f"No faculty account matches '{who}'."
+            continue
+        member = faculty[chosen.id]
+        row.faculty_user_id = member.user_id
+        row.faculty_name = member.name
+        if member.disabled:
+            row.verdict = V_FACULTY_DISABLED
+            row.detail = f"{member.name}'s account is disabled; enable it first."
+            continue
+        if member.mentor_id is not None and seat.mentor_id == member.mentor_id:
+            row.verdict = V_UNCHANGED
+            row.detail = f"Already assigned to {member.name}."
+            continue
+        row.verdict = V_ASSIGN
+        row.detail = (
+            f"Moves from {seat.current_faculty} to {member.name}."
+            if seat.current_faculty else f"Will be assigned to {member.name}."
+        )
+
+    # Pass 3: one student on two lines. The same faculty member twice is a
+    # harmless repeat; two different ones is a contradiction the file settles.
+    # Only lines that RESOLVED both people can contradict each other; a line
+    # whose faculty member was not found has already said so.
+    seated = [row for row in rows if row.verdict in (V_ASSIGN, V_UNCHANGED)]
+    twice = mentor_mapping.listed_twice([row.student_id for row in seated])
+    for sid in twice:
+        group = [row for row in seated if row.student_id == sid]
+        named = {row.faculty_user_id for row in group}
+        if len(named) == 1:
+            for row in group[1:]:
+                row.verdict = V_DUPLICATE
+                row.detail = f"Also on line {group[0].line_no}; nothing more to do."
+        else:
+            others = ", ".join(str(row.line_no) for row in group)
+            for row in group:
+                row.verdict = V_LISTED_TWICE
+                row.detail = (
+                    f"{row.student_name} is on lines {others} with different faculty "
+                    "members — keep one line."
+                )
+
+    # Pass 4: the two fences, on exactly the lines that would be written. The
+    # single assignment raises; here the sentence goes on the line, so one
+    # cross-college pair does not hide the other seventy-nine verdicts.
+    for row in rows:
+        if row.verdict != V_ASSIGN:
+            continue
+        try:
+            require_capability(
+                db, session, MAPPING_CAPABILITY, target=ancestry_of_student(db, row.student_id)
+            )
+            require_capability(
+                db, session, MAPPING_CAPABILITY, target=ancestry_of_user(db, row.faculty_user_id)
+            )
+        except HTTPException as exc:
+            row.verdict = V_OUT_OF_REACH
+            row.detail = str(exc.detail)
+            continue
+        try:
+            _assert_same_college(db, db.get(Student, row.student_id), row.faculty_user_id)
+        except HTTPException as exc:
+            row.verdict = V_DIFFERENT_COLLEGE
+            row.detail = str(exc.detail)
+    return rows
+
+
+def _counts(rows: list[MappingRowOut]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in rows:
+        counts[row.verdict] = counts.get(row.verdict, 0) + 1
+    return counts
+
+
+@router.get("/mentor-mapping/template.xlsx")
+def mentor_mapping_template(
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> Response:
+    """The blank workbook for a mentor list, built from `MAPPING_COLUMNS` —
+    the same constant `preview` reads, so the file REEP hands out and the file
+    it accepts cannot drift apart. No student data; behind the capability all
+    the same, `admin_imports.template`'s reasoning."""
+    require_capability(db, session, MAPPING_CAPABILITY)
+    import openpyxl
+
+    header = [name for name, _required in MAPPING_COLUMNS]
+    book = openpyxl.Workbook()
+    sheet = book.active
+    sheet.title = "Mentor mapping"
+    sheet.append(header)
+    sheet.append(list(MAPPING_EXAMPLE))
+    sheet.append([])
+    sheet.append([MAPPING_SHAPE])
+    for name, required in MAPPING_COLUMNS:
+        sheet.append([name, "required" if required else "optional — leave blank if you do not have it"])
+    buffer = io.BytesIO()
+    book.save(buffer)
+    book.close()
+    return Response(
+        content=buffer.getvalue(),
+        media_type=_XLSX_MEDIA_TYPE,
+        headers={"Content-Disposition": 'attachment; filename="reep-mentor-mapping-template.xlsx"'},
+    )
+
+
+@router.post("/mentor-mapping/preview", response_model=MappingPreviewOut)
+def preview_mentor_mapping(
+    file: UploadFile = File(...),
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> MappingPreviewOut:
+    """Read a mentor list and say what Assign would do with every line.
+    Writes nothing — not a run row, not a student record."""
+    require_capability(db, session, MAPPING_CAPABILITY)
+    payload, filename = _read_upload(file)
+    rows = _judge_mapping(db, session, payload, filename)
+    return MappingPreviewOut(
+        filename=filename, rows=rows, counts=_counts(rows),
+        to_assign=sum(1 for row in rows if row.verdict == V_ASSIGN),
+    )
+
+
+@router.post("/mentor-mapping/apply", response_model=MappingApplyOut)
+def apply_mentor_mapping(
+    request: Request,
+    file: UploadFile = File(...),
+    reason: str = Form(...),
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> MappingApplyOut:
+    """Judge the file again and seat every line that reads `assign`.
+
+    ONE TRANSACTION for the whole file, and the same write per line as
+    `set_student_mentor`: the group through `ensure_mentor_group`, the spell
+    through `record_mentor_change` (which flushes and never commits, so the
+    pointer and its history land together), and an audit row per student with
+    the previous mentor in `before`. The reason is REQUIRED, B9.2's rule for
+    the single assignment — one sentence for the whole file, since that is the
+    act the office performed, stamped on every student's own spell.
+    """
+    require_capability(db, session, MAPPING_CAPABILITY)
+    reason = " ".join(reason.split())
+    if not reason:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Say why these students are being assigned.",
+        )
+    if len(reason) > 400:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="The reason is longer than 400 characters.",
+        )
+    payload, filename = _read_upload(file)
+    rows = _judge_mapping(db, session, payload, filename)
+    groups: dict[str, str] = {}
+    applied = 0
+    for row in rows:
+        if row.verdict != V_ASSIGN:
+            continue
+        student = db.get(Student, row.student_id)
+        if student is None:
+            row.verdict = V_STUDENT_NOT_FOUND
+            row.detail = "This student left the roster while the file was being read."
+            continue
+        group_id = groups.get(row.faculty_user_id)
+        if group_id is None:
+            group_id = groups[row.faculty_user_id] = ensure_mentor_group(db, row.faculty_user_id)
+        before = student.mentor_id
+        student.mentor_id = group_id
+        record_mentor_change(
+            db,
+            student_id=student.id,
+            previous_mentor_id=before,
+            new_mentor_id=group_id,
+            by_user_id=session.get("userId"),
+            reason=reason,
+            session=session,
+            request=request,
+        )
+        record_change(
+            db, session=session, request=request, tenant_id=None,
+            entity_type="student", entity_id=student.id, action="MENTOR_ASSIGNED",
+            before={"mentor_id": before}, after={"mentor_id": group_id},
+            event_type="student.mentor.assigned",
+            payload={
+                "student_id": student.id, "mentor_id": group_id, "released": False,
+                "reason": reason, "source": "spreadsheet", "file": filename,
+                "line": row.line_no,
+            },
+        )
+        row.applied = True
+        applied += 1
+    db.commit()
+    return MappingApplyOut(
+        filename=filename, rows=rows, counts=_counts(rows),
+        to_assign=sum(1 for row in rows if row.verdict == V_ASSIGN),
+        applied=applied, reason=reason,
+    )

@@ -1,0 +1,2831 @@
+{
+ "key": "G13-cbd",
+ "techParks": [
+  {
+   "name": "UB City",
+   "aliases": [
+    "UB Tower",
+    "Canberra Tower",
+    "Concorde Tower",
+    "Kingfisher Tower",
+    "Comet Block"
+   ],
+   "locality": "Vittal Mallya Road / Kasturba Road",
+   "lat": 12.972557,
+   "lng": 77.595772,
+   "developer": "UB Group with Prestige Group",
+   "description": "Bengaluru's flagship CBD development (completed 2008, >1.6 million sq ft) with four office towers - UB Tower, Canberra, Concorde and Comet/Kingfisher - over The Collection luxury mall; home to the UB/Diageo spirits HQs and several strategy and audit firms.",
+   "notableTenants": [
+    "Boston Consulting Group",
+    "EY",
+    "Diageo India (United Spirits)",
+    "United Breweries",
+    "3M India",
+    "The Executive Centre",
+    "Apple (former)"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/UB_City",
+    "https://www.bcg.com/offices/bengaluru",
+    "https://www.ey.com/en_in/locations/india",
+    "https://www.diageoindia.com/contact-us",
+    "OSM way/38773290"
+   ],
+   "bbox": [
+    12.971215,
+    12.973403,
+    77.594928,
+    77.596949
+   ],
+   "areaSqFtMillions": 1.6
+  },
+  {
+   "name": "Prestige Trade Tower",
+   "aliases": [
+    "Prestige Deloitte"
+   ],
+   "locality": "Palace Road / High Grounds",
+   "lat": 12.985811,
+   "lng": 77.58782,
+   "developer": "Prestige Group",
+   "description": "Prestige's tallest CBD office tower on Palace Road, anchored by Deloitte (OSM names the building 'Prestige Deloitte') with The Executive Centre serviced offices.",
+   "notableTenants": [
+    "Deloitte",
+    "The Executive Centre"
+   ],
+   "sources": [
+    "OSM way/775169704",
+    "OSM node/6201720093",
+    "OSM node/10291118232"
+   ],
+   "bbox": [
+    12.985449,
+    12.986243,
+    77.587155,
+    77.588505
+   ],
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Prestige Khoday Tower",
+   "aliases": [],
+   "locality": "Raj Bhavan Road / Vasanth Nagar",
+   "lat": 12.9827233,
+   "lng": 77.5940229,
+   "developer": "Prestige Group",
+   "description": "Grade-A office tower at 5 Raj Bhavan Road next to Cubbon Park; OSM records The Executive Centre and Frauscher Sensor Technology as tenants.",
+   "notableTenants": [
+    "The Executive Centre",
+    "Frauscher Sensor Technology"
+   ],
+   "sources": [
+    "Nominatim way/325773309",
+    "OSM node/10291118231"
+   ],
+   "bbox": [
+    12.9824615,
+    12.9829657,
+    77.593867,
+    77.5941671
+   ],
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Raheja Towers",
+   "aliases": [],
+   "locality": "MG Road",
+   "lat": 12.973388,
+   "lng": 77.613879,
+   "developer": "K Raheja",
+   "description": "1990s twin office block at 26-27 MG Road; OSM mappers record Standard Chartered's branch, Regus, HCL Infosystems, JSW Steel and several insurers here.",
+   "notableTenants": [
+    "Standard Chartered",
+    "Regus",
+    "HCL Infosystems",
+    "JSW Steel"
+   ],
+   "sources": [
+    "OSM way/369295558",
+    "OSM node/3808585051"
+   ],
+   "bbox": [
+    12.972671,
+    12.973648,
+    77.613471,
+    77.614314
+   ],
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Barton Centre",
+   "aliases": [],
+   "locality": "MG Road",
+   "lat": 12.9752912,
+   "lng": 77.6050582,
+   "developer": null,
+   "description": "Older mixed-use office block at 84 MG Road; mainly small professional firms, no large anchor tenant could be verified.",
+   "notableTenants": [],
+   "sources": [
+    "Nominatim way/327534043"
+   ],
+   "bbox": [
+    12.9751004,
+    12.9755304,
+    77.6048431,
+    77.6052733
+   ],
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Prestige Meridian",
+   "aliases": [
+    "Prestige Meridian 1",
+    "Prestige Meridian 2"
+   ],
+   "locality": "MG Road",
+   "lat": 12.97367,
+   "lng": 77.612516,
+   "developer": "Prestige Group",
+   "description": "Pair of office towers at 29-30 MG Road; historically Citibank's Bengaluru branch (now Axis Bank after the 2023 consumer-business sale) and a cluster of OSM-recorded insurers and mutual funds.",
+   "notableTenants": [
+    "Axis Bank (ex-Citibank branch)"
+   ],
+   "sources": [
+    "OSM way/369295557",
+    "Photon way/369295561"
+   ],
+   "bbox": [
+    12.973146,
+    12.973977,
+    77.612035,
+    77.612913
+   ],
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Embassy Square",
+   "aliases": [],
+   "locality": "Infantry Road",
+   "lat": 12.983468,
+   "lng": 77.593872,
+   "developer": "Embassy Group",
+   "description": "Embassy Group office building at 148 Infantry Road beside Embassy Point and Embassy Icon; no tenant could be verified in this run.",
+   "notableTenants": [],
+   "sources": [
+    "OSM way/473575814"
+   ],
+   "bbox": [
+    12.983104,
+    12.983839,
+    77.593537,
+    77.594156
+   ],
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "The Estate",
+   "aliases": [],
+   "locality": "Dickenson Road",
+   "lat": 12.974449,
+   "lng": 77.614729,
+   "developer": null,
+   "description": "Office building at 121 Dickenson Road off MG Road; OSM records Havells India, ACC, Mitsubishi Elevators and Razorfish among its tenants (unverified).",
+   "notableTenants": [
+    "Havells India",
+    "ACC",
+    "Mitsubishi Elevators",
+    "Razorfish"
+   ],
+   "sources": [
+    "OSM way/1301321582"
+   ],
+   "bbox": [
+    12.974121,
+    12.974733,
+    77.614207,
+    77.615212
+   ],
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Prestige Nebula",
+   "aliases": [],
+   "locality": "Cubbon Road / Queen's Road",
+   "lat": 12.9823372,
+   "lng": 77.596838,
+   "developer": "Prestige Group",
+   "description": "Office building at 12 Queen's Road / Cubbon Road, part of the Prestige cluster around Minsk Square; no tenant verified in this run.",
+   "notableTenants": [],
+   "sources": [
+    "Nominatim way/325764795"
+   ],
+   "bbox": [
+    12.9820506,
+    12.982796,
+    77.5964035,
+    77.5970114
+   ],
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Prestige Obelisk",
+   "aliases": [],
+   "locality": "Kasturba Road",
+   "lat": 12.975726,
+   "lng": 77.597427,
+   "developer": "Prestige Group",
+   "description": "Office tower at 3 Kasturba Road opposite Cubbon Park; OSM records JSA, Livspace, Indeed, Infor, Rockwell Automation, Allergan and ICICI Venture here.",
+   "notableTenants": [
+    "JSA Advocates & Solicitors",
+    "Livspace",
+    "Indeed",
+    "Infor",
+    "Rockwell Automation",
+    "ICICI Venture"
+   ],
+   "sources": [
+    "OSM way/327551782"
+   ],
+   "bbox": [
+    12.975324,
+    12.976178,
+    77.597128,
+    77.59786
+   ],
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Prestige Centre Point",
+   "aliases": [
+    "Centre Point"
+   ],
+   "locality": "Cunningham Road",
+   "lat": 12.9866754,
+   "lng": 77.5957345,
+   "developer": "Prestige Group",
+   "description": "Office building at 7 Cunningham Road; no tenant verified in this run.",
+   "notableTenants": [],
+   "sources": [
+    "Photon way/52340474"
+   ],
+   "bbox": [
+    12.986392,
+    12.9869494,
+    77.5954673,
+    77.5959986
+   ],
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Prestige Minsk Square",
+   "aliases": [],
+   "locality": "Cubbon Road",
+   "lat": 12.981964,
+   "lng": 77.596228,
+   "developer": "Prestige Group",
+   "description": "Prestige's newest CBD office building at Municipal No. 6 Cubbon Road; Apple India's registered office since it left UB City.",
+   "notableTenants": [
+    "Apple"
+   ],
+   "sources": [
+    "https://www.apple.com/legal/sales-support/sales-policies/retail_in.html",
+    "Photon way/1240555817"
+   ],
+   "bbox": [
+    12.9815959,
+    12.9827148,
+    77.595718,
+    77.5967252
+   ],
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Vigyan",
+   "aliases": [
+    "Vigyan, 9 Lavelle Road"
+   ],
+   "locality": "Lavelle Road",
+   "lat": 12.966136,
+   "lng": 77.5962972,
+   "developer": null,
+   "description": "Standalone office building at 9 Lavelle Road long occupied by Microsoft India (R&D).",
+   "notableTenants": [
+    "Microsoft"
+   ],
+   "sources": [
+    "OSM way/174496298"
+   ],
+   "bbox": [
+    12.9658218,
+    12.9664501,
+    77.5960464,
+    77.5965479
+   ],
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "SKAV 909",
+   "aliases": [
+    "Skav 909 Lavelle Road"
+   ],
+   "locality": "Lavelle Road",
+   "lat": 12.965364,
+   "lng": 77.59643,
+   "developer": "SKAV",
+   "description": "Boutique office building on Lavelle Road; OSM records MiQ, athenahealth, Awfis and (formerly) Bain and Tesla India here.",
+   "notableTenants": [
+    "MiQ",
+    "athenahealth",
+    "Awfis"
+   ],
+   "sources": [
+    "OSM way/1119219537"
+   ],
+   "bbox": null,
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Khanija Bhavan",
+   "aliases": [],
+   "locality": "Race Course Road / High Grounds",
+   "lat": 12.982985,
+   "lng": 77.585659,
+   "developer": "Mysore Minerals (Government of Karnataka)",
+   "description": "State-owned office block at 49 Race Course Road housing Mysore Minerals, Trigent Software's HQ, an ABB research presence and the Bengaluru Arbitration Centre.",
+   "notableTenants": [
+    "Trigent Software",
+    "ABB India",
+    "Mysore Minerals"
+   ],
+   "sources": [
+    "OSM way/96787265",
+    "OSM node/1554187112"
+   ],
+   "bbox": null,
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Marksquare",
+   "aliases": [
+    "Marks Square"
+   ],
+   "locality": "St Mark's Road",
+   "lat": 12.973353,
+   "lng": 77.601586,
+   "developer": null,
+   "description": "Office building at 61 St Mark's Road shared by EY (3rd-4th floors) and Trilegal (6th-7th floors).",
+   "notableTenants": [
+    "EY",
+    "Trilegal"
+   ],
+   "sources": [
+    "https://www.ey.com/en_in/locations/india",
+    "https://trilegal.com/contact-us/",
+    "OSM way/796463149"
+   ],
+   "bbox": null,
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Prestige Sterling Square",
+   "aliases": [],
+   "locality": "Madras Bank Road / Lavelle Road",
+   "lat": 12.972793,
+   "lng": 77.600314,
+   "developer": "Prestige Group",
+   "description": "Small Prestige office building off Lavelle Road; OSM records Shardul Amarchand Mangaldas and Nexus Venture Partners.",
+   "notableTenants": [
+    "Shardul Amarchand Mangaldas",
+    "Nexus Venture Partners"
+   ],
+   "sources": [
+    "OSM way/1119219523"
+   ],
+   "bbox": null,
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Prestige Emerald",
+   "aliases": [
+    "Prestige Emerald Towers"
+   ],
+   "locality": "Madras Bank Road / Lavelle Road",
+   "lat": 12.972707,
+   "lng": 77.599495,
+   "developer": "Prestige Group",
+   "description": "Office building at Municipal No. 2 Madras Bank Road; OSM records Mitsubishi Electric India and Shimizu Corporation.",
+   "notableTenants": [
+    "Mitsubishi Electric India",
+    "Shimizu Corporation"
+   ],
+   "sources": [
+    "OSM way/1119219521"
+   ],
+   "bbox": null,
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Prestige Falcon Tower",
+   "aliases": [
+    "Prestige Falcon Towers"
+   ],
+   "locality": "Brunton Road",
+   "lat": 12.971206,
+   "lng": 77.614322,
+   "developer": "Prestige Group",
+   "description": "Office tower at 19 Brunton Road off MG Road; Cyril Amarchand Mangaldas's Bengaluru office.",
+   "notableTenants": [
+    "Cyril Amarchand Mangaldas"
+   ],
+   "sources": [
+    "https://www.cyrilshroff.com/contact-us/",
+    "OSM way/781183660"
+   ],
+   "bbox": null,
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Prestige Loka",
+   "aliases": [],
+   "locality": "Brunton Road",
+   "lat": 12.970557,
+   "lng": 77.615177,
+   "developer": "Prestige Group",
+   "description": "Office building at 202 Brunton Road; OSM records SatSure, KaleidEO and DSK Legal.",
+   "notableTenants": [
+    "SatSure",
+    "DSK Legal"
+   ],
+   "sources": [
+    "OSM way/1119408832"
+   ],
+   "bbox": null,
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Mittal Tower",
+   "aliases": [
+    "Mittal Towers"
+   ],
+   "locality": "MG Road (Trinity Circle)",
+   "lat": 12.974004,
+   "lng": 77.615934,
+   "developer": null,
+   "description": "Older office tower at 47/6 MG Road near Trinity Circle; HSBC's MG Road branch is recorded by OSM just beside it. No large tenant verified.",
+   "notableTenants": [],
+   "sources": [
+    "Photon way/1307896626"
+   ],
+   "bbox": [
+    12.9734389,
+    12.9746175,
+    77.6152931,
+    77.6163435
+   ],
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "IndiQube Symphony",
+   "aliases": [
+    "Indiqube Symphony, 25 MG Road"
+   ],
+   "locality": "MG Road",
+   "lat": 12.972699,
+   "lng": 77.614538,
+   "developer": "IndiQube",
+   "description": "Managed-office building at 25 MG Road operated by IndiQube; Khaitan & Co occupies three floors of Tower 2.",
+   "notableTenants": [
+    "Khaitan & Co",
+    "IndiQube"
+   ],
+   "sources": [
+    "https://www.khaitanco.com/contact-us",
+    "OSM way/1305202467"
+   ],
+   "bbox": null,
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Purva Premiere",
+   "aliases": [
+    "Purva Premier"
+   ],
+   "locality": "Residency Road",
+   "lat": 12.966182,
+   "lng": 77.599038,
+   "developer": "Puravankara",
+   "description": "Office building at 135 Residency Road; Unisys's Bengaluru centre per OSM.",
+   "notableTenants": [
+    "Unisys"
+   ],
+   "sources": [
+    "OSM way/1291752683"
+   ],
+   "bbox": null,
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Prestige Central",
+   "aliases": [],
+   "locality": "Infantry Road",
+   "lat": 12.981011,
+   "lng": 77.603353,
+   "developer": "Prestige Group",
+   "description": "Office building at 36 Infantry Road; WeWork India's registered office and Infantry Road centre.",
+   "notableTenants": [
+    "WeWork India"
+   ],
+   "sources": [
+    "https://wework.co.in/",
+    "OSM way/1066902642"
+   ],
+   "bbox": null,
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "WeWork Galaxy",
+   "aliases": [
+    "Galaxy, 43 Residency Road"
+   ],
+   "locality": "Residency Road",
+   "lat": 12.973571,
+   "lng": 77.608764,
+   "developer": "WeWork India",
+   "description": "Former Galaxy cinema site at 43 Residency Road, rebuilt as a WeWork flagship and the CBD's best-known startup coworking address.",
+   "notableTenants": [
+    "WeWork India"
+   ],
+   "sources": [
+    "OSM way/132782112",
+    "OSM node/6569023747"
+   ],
+   "bbox": [
+    12.972979,
+    12.973816,
+    77.60837,
+    77.609111
+   ],
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "The Pavilion",
+   "aliases": [
+    "WeWork Church Street"
+   ],
+   "locality": "Church Street",
+   "lat": 12.9747066,
+   "lng": 77.6070892,
+   "developer": null,
+   "description": "Office building at 62/63 Church Street run as a WeWork centre.",
+   "notableTenants": [
+    "WeWork India"
+   ],
+   "sources": [
+    "OSM way/327534056",
+    "OSM node/6569023748"
+   ],
+   "bbox": null,
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Embassy Quest",
+   "aliases": [
+    "WeWork Embassy Quest"
+   ],
+   "locality": "Magrath Road",
+   "lat": 12.968911,
+   "lng": 77.613889,
+   "developer": "Embassy Group",
+   "description": "Embassy office building on Magrath Road operated as a WeWork centre.",
+   "notableTenants": [
+    "WeWork India"
+   ],
+   "sources": [
+    "OSM way/997966823",
+    "OSM node/9214580824"
+   ],
+   "bbox": null,
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Embassy Point",
+   "aliases": [],
+   "locality": "Infantry Road",
+   "lat": 12.983867,
+   "lng": 77.592823,
+   "developer": "Embassy Group",
+   "description": "Embassy Group's original corporate-office building at 150 Infantry Road (the group has since moved its HQ to Pinnacle Tower, Hebbal).",
+   "notableTenants": [],
+   "sources": [
+    "OSM way/1041871108",
+    "https://www.embassyindia.com/contact-us"
+   ],
+   "bbox": null,
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Embassy Icon",
+   "aliases": [],
+   "locality": "Infantry Road",
+   "lat": 12.983793,
+   "lng": 77.595734,
+   "developer": "Embassy Group",
+   "description": "Embassy office building on Infantry Road beside Embassy Point; no tenant verified in this run.",
+   "notableTenants": [],
+   "sources": [
+    "OSM way/124760636"
+   ],
+   "bbox": null,
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "RMZ Millenia",
+   "aliases": [
+    "The Millenia"
+   ],
+   "locality": "Ulsoor (Murphy Road / Kensington Gardens)",
+   "lat": 12.98263,
+   "lng": 77.624764,
+   "developer": "RMZ Corp",
+   "description": "RMZ's twin-tower campus at the eastern edge of the CBD by Ulsoor Lake; RMZ Corp's own head office and PwC India's Bengaluru client office.",
+   "notableTenants": [
+    "RMZ Corp",
+    "PwC"
+   ],
+   "sources": [
+    "https://www.rmz.com/contact",
+    "OSM way/112647576"
+   ],
+   "bbox": null,
+   "areaSqFtMillions": null
+  },
+  {
+   "name": "Salarpuria Windsor",
+   "aliases": [
+    "Sattva Windsor"
+   ],
+   "locality": "Ulsoor Road",
+   "lat": 12.975548,
+   "lng": 77.617809,
+   "developer": "Sattva Group",
+   "description": "Office building at 3 Ulsoor Road; Sattva Group's corporate office.",
+   "notableTenants": [
+    "Sattva Group"
+   ],
+   "sources": [
+    "https://www.sattvagroup.com/contact-us/",
+    "OSM way/775163648"
+   ],
+   "bbox": null,
+   "areaSqFtMillions": null
+  }
+ ],
+ "companies": [
+  {
+   "name": "Boston Consulting Group",
+   "aliases": [
+    "BCG"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Global strategy consultancy; its Bengaluru office sits on the 17th floor of UB City's Canberra Tower B.",
+   "founded": 1963,
+   "hqCity": "Boston",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.bcg.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office",
+     "techPark": "UB City",
+     "building": "Canberra Tower B",
+     "locality": "Vittal Mallya Road",
+     "address": "1701, 17th Floor, Canberra Tower B, UB City, 24 Vittal Mallya Road, Bengaluru 560001",
+     "lat": 12.972557,
+     "lng": 77.595772,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "BCG's own office page lists this address: https://www.bcg.com/offices/bengaluru",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.bcg.com/offices/bengaluru"
+   ]
+  },
+  {
+   "name": "Bain & Company",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Global strategy consultancy; Bengaluru office on Vittal Mallya Road in the CBD.",
+   "founded": 1973,
+   "hqCity": "Boston",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.bain.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office",
+     "techPark": null,
+     "building": "Anand Bhavan",
+     "locality": "Vittal Mallya Road",
+     "address": "10, Anand Bhavan, Vittal Mallya Road, Bengaluru 560001",
+     "lat": 12.969538,
+     "lng": 77.594475,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Bain's own office page gives this address; coordinates are the Nominatim centroid of Vittal Mallya Road because the building itself is not geocodable: https://www.bain.com/offices/bengaluru/",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.bain.com/offices/bengaluru/",
+    "OSM node/10236050009 (older 'Bain & Company' POI at SKAV 909, Lavelle Road)"
+   ]
+  },
+  {
+   "name": "McKinsey & Company",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Global management consultancy; a Bengaluru client office in the CBD plus knowledge/service centres in Whitefield recorded by OSM mappers.",
+   "founded": 1926,
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.mckinsey.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office (CBD)",
+     "techPark": null,
+     "building": null,
+     "locality": "Church Street / St Mark's Road",
+     "address": "Church Street area, Bengaluru 560001",
+     "lat": 12.975316,
+     "lng": 77.602144,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OpenStreetMap office POI (node/12845378944, office=consulting) places McKinsey here; mckinsey.com/locations/bengaluru answered HTTP 503 on every attempt, so the building is unconfirmed.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Service centre (Whitefield)",
+     "techPark": null,
+     "building": null,
+     "locality": "Whitefield",
+     "address": "Whitefield, Bengaluru",
+     "lat": 12.992823,
+     "lng": 77.699635,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OpenStreetMap office POI 'McKinsey & Company Service Center' (node/6535096492); unconfirmed by a primary source.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.mckinsey.com/locations/bengaluru (HTTP 503)",
+    "OSM node/12845378944",
+    "OSM node/6535096492"
+   ]
+  },
+  {
+   "name": "Deloitte",
+   "aliases": [
+    "Deloitte Touche Tohmatsu India LLP",
+    "Deloitte Consulting India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Big Four audit and consulting network; Deloitte Touche Tohmatsu India's Bengaluru office is in Prestige Trade Tower on Palace Road, with delivery centres on the ORR.",
+   "founded": 1845,
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://www.deloitte.com/in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Trade Tower office",
+     "techPark": "Prestige Trade Tower",
+     "building": "Prestige Trade Tower",
+     "locality": "Palace Road / High Grounds",
+     "address": "Prestige Trade Tower, 46 Palace Road, High Grounds, Bengaluru 560001",
+     "lat": 12.9859613,
+     "lng": 77.5876278,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "OpenStreetMap records the tower itself as 'Prestige Deloitte' (node/6201720093) and Deloitte India's office locator lists Prestige Trade Tower, Palace Road; the locator page itself is JavaScript-rendered and returned no text in this run: https://www.deloitte.com/in/en/offices.html",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "ORR delivery centre (Bellandur)",
+     "techPark": null,
+     "building": null,
+     "locality": "Bellandur",
+     "address": "Outer Ring Road, Bellandur, Bengaluru",
+     "lat": 12.947798,
+     "lng": 77.69193,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OpenStreetMap office POI 'Deloitte' (node/9828082757) on the ORR; park/building unconfirmed.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.deloitte.com/in/en/offices.html",
+    "OSM node/6201720093",
+    "OSM node/9828082757"
+   ]
+  },
+  {
+   "name": "EY",
+   "aliases": [
+    "Ernst & Young",
+    "EY GDS"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Big Four firm; four Bengaluru offices, two of them in the CBD (UB City Canberra Block and Marksquare on St Mark's Road).",
+   "founded": 1989,
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://www.ey.com/en_in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "UB City - Canberra Block",
+     "techPark": "UB City",
+     "building": "Canberra Block",
+     "locality": "Vittal Mallya Road",
+     "address": "6th, 12th & 13th floor, Canberra Block, UB City, No. 24 Vittal Mallya Road, Bengaluru 560001",
+     "lat": 12.972557,
+     "lng": 77.595772,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "EY India's locations page lists this address: https://www.ey.com/en_in/locations/india",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Marksquare - St Mark's Road",
+     "techPark": null,
+     "building": "Marksquare",
+     "locality": "St Mark's Road",
+     "address": "3rd & 4th Floor, Marksquare, #61 St Mark's Road, Shantala Nagar, Bengaluru 560001",
+     "lat": 12.973353,
+     "lng": 77.601586,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "EY India's locations page lists this address; OSM also records an 'Ernst and Young' POI here (node/12845378964): https://www.ey.com/en_in/locations/india",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Divyasree Chambers - Langford Gardens",
+     "techPark": null,
+     "building": "Divyasree Chambers",
+     "locality": "Langford Gardens",
+     "address": "Ground Floor, 'A' wing, Divyasree Chambers, #11 O'Shaughnessy Road, Langford Gardens, Bengaluru 560025",
+     "lat": 12.962091,
+     "lng": 77.5989226,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "EY India's locations page lists this address; coordinates are Photon's O'Shaughnessy Road centroid: https://www.ey.com/en_in/locations/india",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Prestige Shantiniketan - Whitefield",
+     "techPark": "Prestige Shantiniketan",
+     "building": "Tower A",
+     "locality": "Whitefield",
+     "address": "Tower A, Prestige Shantiniketan, Mahadevapura Post, Whitefield, Bengaluru 560048",
+     "lat": 12.988903,
+     "lng": 77.7310416,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "EY India's locations page lists this address: https://www.ey.com/en_in/locations/india",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.ey.com/en_in/locations/india"
+   ]
+  },
+  {
+   "name": "PwC",
+   "aliases": [
+    "PricewaterhouseCoopers",
+    "Price Waterhouse"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Big Four firm; PwC India's Bengaluru client office is in RMZ Millenia at Ulsoor, with acceleration-centre teams in Bagmane Tech Park and Embassy GolfLinks.",
+   "founded": 1998,
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://www.pwc.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Millenia - Ulsoor",
+     "techPark": "RMZ Millenia",
+     "building": "Tower D",
+     "locality": "Ulsoor (Murphy Road)",
+     "address": "The Millenia, Tower D, 1 & 2 Murphy Road, Ulsoor, Bengaluru 560008",
+     "lat": 12.98263,
+     "lng": 77.624764,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "PwC India's published Bengaluru address (pwc.in/about-us/office-locations.html, HTTP 403 in this run) is The Millenia, Murphy Road; coordinates are the OSM polygon of RMZ Millenia.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "PwC AC Bangalore - Bagmane Tech Park",
+     "techPark": "Bagmane Tech Park",
+     "building": null,
+     "locality": "CV Raman Nagar",
+     "address": "Bagmane Tech Park, CV Raman Nagar, Bengaluru 560093",
+     "lat": 12.980056,
+     "lng": 77.664884,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OpenStreetMap office POI 'PwC AC Bangalore' with street 'Bagmane Tech Park' (node/12097049981).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "PwC US - Embassy GolfLinks",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": null,
+     "locality": "Domlur / Challaghatta",
+     "address": "Inner Road, Embassy Golf Links Business Park, Challaghatta, Bengaluru 560071",
+     "lat": 12.946403,
+     "lng": 77.646654,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OpenStreetMap office POI 'PriceWaterhouseCoopers(US) Ltd' with the park address (node/4445102215).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.pwc.in/about-us/office-locations.html (HTTP 403)",
+    "OSM node/12097049981",
+    "OSM node/4445102215",
+    "OSM way/112647576 (RMZ Millenia)"
+   ]
+  },
+  {
+   "name": "KPMG",
+   "aliases": [
+    "KPMG Global Services",
+    "KGS"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Big Four firm. KPMG has no CBD office: KPMG in India sits in Embassy GolfLinks and its two global-services entities in RMZ Ecoworld.",
+   "founded": 1987,
+   "hqCity": "Amstelveen",
+   "hqCountry": "Netherlands",
+   "isUnicorn": false,
+   "website": "https://kpmg.com/in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "KPMG in India - Embassy GolfLinks",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Pebble Beach, B Block",
+     "locality": "Domlur / Challaghatta",
+     "address": "Pebble Beach, 13/02 'B' Block, 1st & 2nd Floor, Embassy Golf Links Business Park, Off Intermediate Ring Road, Bengaluru",
+     "lat": 12.9533885,
+     "lng": 77.644292,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "KPMG India's office page lists this address; coordinates are the park centroid: https://kpmg.com/in/en/home/about/offices.html",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "KPMG Global Services / Global Delivery Center - RMZ Ecoworld",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 7",
+     "locality": "Devarabeesanahalli (ORR)",
+     "address": "RMZ Ecoworld, Campus 7, Floors 1-6, Devarabeesanahalli, Marathahalli Outer Ring Road, Bengaluru 560103",
+     "lat": 12.9298067,
+     "lng": 77.6846292,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "KPMG India's office page lists both KGS (floors 1-5) and KGDC (floor 6) at Campus 7; coordinates are the park centroid: https://kpmg.com/in/en/home/about/offices.html",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://kpmg.com/in/en/home/about/offices.html"
+   ]
+  },
+  {
+   "name": "Cushman & Wakefield",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Real estate & infrastructure",
+   "description": "Global commercial real-estate services firm; Bengaluru office in Embassy GolfLinks (not the CBD).",
+   "founded": 1917,
+   "hqCity": "Chicago",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.cushmanwakefield.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - Embassy GolfLinks",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Pine Valley",
+     "locality": "Domlur / Challaghatta",
+     "address": "Pine Valley, 4th Floor, Embassy Golf Links Business Park, Inner Road, Bengaluru 560071",
+     "lat": 12.9533885,
+     "lng": 77.644292,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "C&W's own office page gives this address; coordinates are the park centroid: https://www.cushmanwakefield.com/en/india/offices/bengaluru",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.cushmanwakefield.com/en/india/offices/bengaluru"
+   ]
+  },
+  {
+   "name": "Cyril Amarchand Mangaldas",
+   "aliases": [
+    "CAM"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Consulting & professional services",
+   "description": "India's largest full-service law firm; Bengaluru office in Prestige Falcon Tower on Brunton Road.",
+   "founded": 2015,
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.cyrilshroff.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office",
+     "techPark": null,
+     "building": "Prestige Falcon Tower",
+     "locality": "Brunton Road (off MG Road)",
+     "address": "3rd Floor, Prestige Falcon Tower, 19 Brunton Road, Off MG Road, Bengaluru 560025",
+     "lat": 12.971206,
+     "lng": 77.614322,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "The firm's contact page gives this address, and OSM records the POI (node at Brunton Cross Road 19): https://www.cyrilshroff.com/contact-us/",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.cyrilshroff.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Trilegal",
+   "aliases": [],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Consulting & professional services",
+   "description": "Top-tier Indian law firm; Bengaluru office occupies two floors of Marksquare on St Mark's Road.",
+   "founded": 2000,
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://trilegal.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office",
+     "techPark": null,
+     "building": "Marksquare",
+     "locality": "St Mark's Road",
+     "address": "6th & 7th Floor, Marks Square, No. 61 St Mark's Road, Bengaluru 560001",
+     "lat": 12.973353,
+     "lng": 77.601586,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Trilegal's contact page gives this address; OSM records a Trilegal POI at Marksquare: https://trilegal.com/contact-us/",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://trilegal.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Khaitan & Co",
+   "aliases": [],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Consulting & professional services",
+   "description": "Century-old Indian law firm; Bengaluru office in the IndiQube Symphony building on MG Road.",
+   "founded": 1911,
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.khaitanco.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office",
+     "techPark": null,
+     "building": "IndiQube Symphony, Tower 2",
+     "locality": "MG Road",
+     "address": "3rd, 4th & 5th Floor, Tower 2, Indiqube Symphony, 25 MG Road, Bengaluru 560001",
+     "lat": 12.972699,
+     "lng": 77.614538,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Khaitan & Co's contact page gives this address: https://www.khaitanco.com/contact-us",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.khaitanco.com/contact-us"
+   ]
+  },
+  {
+   "name": "Shardul Amarchand Mangaldas",
+   "aliases": [
+    "SAM"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Consulting & professional services",
+   "description": "Large Indian law firm; Bengaluru office in Prestige Sterling Square off Madras Bank Road / Lavelle Road.",
+   "founded": 2015,
+   "hqCity": "New Delhi",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.amsshardul.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office",
+     "techPark": null,
+     "building": "Prestige Sterling Square",
+     "locality": "Madras Bank Road / Lavelle Road",
+     "address": "Prestige Sterling Square, Madras Bank Road, Lavelle Road, Bengaluru 560001",
+     "lat": 12.972793,
+     "lng": 77.600314,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OpenStreetMap office POI 'Shardul Amarchand Mangaldas' (node) sits on the Prestige Sterling Square polygon; the firm's office page returned HTTP 404 in this run, so the floor is unconfirmed.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "OSM node (Shardul Amarchand Mangaldas, 12.97275, 77.60035)",
+    "https://www.amsshardul.com/offices/ (HTTP 404)"
+   ]
+  },
+  {
+   "name": "JSA Advocates & Solicitors",
+   "aliases": [
+    "J. Sagar Associates"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Consulting & professional services",
+   "description": "National law firm; Bengaluru office in Prestige Obelisk on Kasturba Road.",
+   "founded": 1991,
+   "hqCity": "New Delhi",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.jsalaw.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office",
+     "techPark": "Prestige Obelisk",
+     "building": "Prestige Obelisk",
+     "locality": "Kasturba Road",
+     "address": "Prestige Obelisk, 3 Kasturba Road, Bengaluru 560001",
+     "lat": 12.975726,
+     "lng": 77.597427,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OpenStreetMap office POI 'JSA' sits on the Prestige Obelisk polygon (way/327551782); the firm's contact page returned HTTP 404, so floor and current status are unconfirmed.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "OSM node (JSA, 12.975706, 77.597338)",
+    "https://www.jsalaw.com/contact-us/ (HTTP 404)"
+   ]
+  },
+  {
+   "name": "Microsoft",
+   "aliases": [
+    "Microsoft India (R&D) Pvt Ltd",
+    "Microsoft IDC"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Microsoft India (R&D) has been registered at Vigyan on Lavelle Road for two decades; the large engineering campus is 'BLR Ferns' (Prestige Ferns Galaxy) off the ORR.",
+   "founded": 1975,
+   "hqCity": "Redmond",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.microsoft.com/en-in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Vigyan - Lavelle Road (Microsoft India R&D)",
+     "techPark": null,
+     "building": "Vigyan",
+     "locality": "Lavelle Road",
+     "address": "Vigyan, No. 9 Lavelle Road, Bengaluru 560001",
+     "lat": 12.966136,
+     "lng": 77.5962972,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OpenStreetMap maps the building as 'Microsoft Research and Development, 9 Lavelle Road' (way/174496298) and Nominatim resolves 'Vigyan, 9 Lavelle Road' to it; Microsoft's own IDC page names only the Ferns campus, so treat as a long-standing registered office.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "BLR Ferns campus (Prestige Ferns Galaxy)",
+     "techPark": "Prestige Ferns Galaxy",
+     "building": null,
+     "locality": "Kadubeesanahalli / Iblur",
+     "address": "Prestige Ferns Galaxy, Outer Ring Road, Bengaluru 560103",
+     "lat": 12.921663,
+     "lng": 77.6691975,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Microsoft IDC's own page lists the 'BLR Ferns' campus among its locations: https://www.microsoft.com/en-in/msidc/",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.microsoft.com/en-in/msidc/",
+    "OSM way/174496298"
+   ]
+  },
+  {
+   "name": "Apple",
+   "aliases": [
+    "Apple India Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Apple India Pvt Ltd's registered office moved to Prestige Minsk Square on Cubbon Road (from UB City's Concorde Tower), making it the largest consumer-tech tenant in the CBD.",
+   "founded": 1976,
+   "hqCity": "Cupertino",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.apple.com/in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Minsk Square - Cubbon Road (Apple India registered office)",
+     "techPark": "Prestige Minsk Square",
+     "building": "Prestige Minsk Square",
+     "locality": "Cubbon Road",
+     "address": "13th Floor, Prestige Minsk Square, Municipal No. 6, Cubbon Road, Bengaluru 560001",
+     "lat": 12.981964,
+     "lng": 77.596228,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Apple's India sales-policy page names this as Apple India Private Limited's registered office: https://www.apple.com/legal/sales-support/sales-policies/retail_in.html",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.apple.com/legal/sales-support/sales-policies/retail_in.html",
+    "OSM node (Apple, Vittal Mallya Road 24 - the earlier UB City address)"
+   ]
+  },
+  {
+   "name": "Unisys",
+   "aliases": [
+    "Unisys Global Services India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "US IT-services company; its Bengaluru centre is in Purva Premiere on Residency Road.",
+   "founded": 1986,
+   "hqCity": "Blue Bell, Pennsylvania",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.unisys.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Purva Premiere - Residency Road",
+     "techPark": null,
+     "building": "Purva Premiere",
+     "locality": "Residency Road",
+     "address": "Purva Premiere, 135 Residency Road, Bengaluru 560025",
+     "lat": 12.966182,
+     "lng": 77.599038,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OpenStreetMap office POI 'Unisys Global Services India Pvt Ltd' (node) sits on the Purva Premiere polygon (way/1291752683); unisys.com returned HTTP 403, so the floor is unconfirmed.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "OSM node (Unisys Global Services India, 12.966114, 77.599125)",
+    "OSM way/1291752683"
+   ]
+  },
+  {
+   "name": "MiQ",
+   "aliases": [
+    "MiQ Digital"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "UK programmatic-advertising company whose largest engineering and operations hub is in Bengaluru, on Lavelle Road.",
+   "founded": 2010,
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://www.wearemiq.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Lavelle Road office (SKAV 909)",
+     "techPark": null,
+     "building": "SKAV 909",
+     "locality": "Lavelle Road",
+     "address": "5th & 6th Floor, SKAV 909, Lavelle Road, Bengaluru 560001",
+     "lat": 12.965364,
+     "lng": 77.59643,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OpenStreetMap office POI 'MiQ Digital' carries the address 'Lavelle Road, 5th & 6th Floor' and sits on the SKAV 909 polygon (way/1119219537); wearemiq.com contact page returned HTTP 404.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "OSM node (MiQ Digital, 12.96545, 77.596352)",
+    "OSM way/1119219537"
+   ]
+  },
+  {
+   "name": "athenahealth",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "US healthcare-software company with an India engineering centre; OSM places its Bengaluru office at SKAV 909 on Lavelle Road.",
+   "founded": 1997,
+   "hqCity": "Watertown, Massachusetts",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.athenahealth.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Lavelle Road office (SKAV 909)",
+     "techPark": null,
+     "building": "SKAV 909",
+     "locality": "Lavelle Road",
+     "address": "SKAV 909, Lavelle Road, Bengaluru 560001",
+     "lat": 12.965364,
+     "lng": 77.59643,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OpenStreetMap office POI 'Athenahealth' (12.965629, 77.596375, on the SKAV 909 polygon) places it here; athenahealth.com/about/locations returned HTTP 403, so unconfirmed.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "OSM node (Athenahealth, 12.965629, 77.596375)"
+   ]
+  },
+  {
+   "name": "Indeed",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Job-search platform (Recruit Holdings); OSM records its Bengaluru office in Prestige Obelisk on Kasturba Road.",
+   "founded": 2004,
+   "hqCity": "Austin, Texas",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.indeed.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Obelisk - Kasturba Road",
+     "techPark": "Prestige Obelisk",
+     "building": "Prestige Obelisk",
+     "locality": "Kasturba Road",
+     "address": "Prestige Obelisk, 3 Kasturba Road, Bengaluru 560001",
+     "lat": 12.975726,
+     "lng": 77.597427,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OpenStreetMap office POI 'Indeed' (12.975788, 77.597343, on the Prestige Obelisk polygon) places it here; indeed.com/about/offices returned HTTP 403, so unconfirmed.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "OSM node (Indeed, 12.975788, 77.597343)"
+   ]
+  },
+  {
+   "name": "Rakuten India",
+   "aliases": [
+    "Rakuten India Enterprise"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "E-commerce & consumer internet",
+   "description": "Japanese internet group's largest development centre outside Japan; OSM places it at Bagmane Pallavi Towers near Kasturba Road.",
+   "founded": 1997,
+   "hqCity": "Tokyo",
+   "hqCountry": "Japan",
+   "isUnicorn": false,
+   "website": "https://www.rakuten.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Pallavi Towers",
+     "techPark": null,
+     "building": "Bagmane Pallavi Towers",
+     "locality": "Sampangi Rama Nagar (Kasturba Road)",
+     "address": "Bagmane Pallavi Towers, Sampangi Rama Nagar, Bengaluru 560027",
+     "lat": 12.967479,
+     "lng": 77.590561,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OpenStreetMap office POI 'Rakuten India' (12.967566, 77.590906, 38 m from the Bagamane Pallavi Towers polygon way/781182593) places it here; india.rakuten.com did not resolve, so unconfirmed.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "OSM node (Rakuten India, 12.967566, 77.590906)",
+    "OSM way/781182593"
+   ]
+  },
+  {
+   "name": "Tata Consultancy Services",
+   "aliases": [
+    "TCS"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "India's largest IT-services company; besides its ORR/Whitefield campuses, OSM names SJM Towers on Seshadri Road (western edge of the CBD) as a TCS building.",
+   "founded": 1968,
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.tcs.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "SJM Towers - Seshadri Road",
+     "techPark": null,
+     "building": "SJM Towers",
+     "locality": "Gandhinagar (Anand Rao Circle)",
+     "address": "SJM Towers, 18 Seshadri Road, Gandhinagar, Bengaluru 560009",
+     "lat": 12.980049,
+     "lng": 77.577306,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OpenStreetMap maps the building as 'SJM Towers ( Tata Consultancy Services )' (way/169818351); no primary source was reachable, so current occupancy is unconfirmed.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "OSM way/169818351"
+   ]
+  },
+  {
+   "name": "Diageo India (United Spirits)",
+   "aliases": [
+    "United Spirits Limited",
+    "USL",
+    "McDowell & Co"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "India's largest spirits company, controlled by Diageo; head office is UB Tower in UB City.",
+   "founded": 1999,
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://www.diageoindia.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "UB Tower - head office",
+     "techPark": "UB City",
+     "building": "UB Tower",
+     "locality": "Vittal Mallya Road",
+     "address": "UB Tower, #24 Vittal Mallya Road, Bengaluru 560001",
+     "lat": 12.972557,
+     "lng": 77.595772,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Diageo India's contact page lists 'UB Tower #24 Vittal Mallya Road Bengaluru - 560 001' as Head Office: https://www.diageoindia.com/contact-us",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.diageoindia.com/contact-us"
+   ]
+  },
+  {
+   "name": "United Breweries",
+   "aliases": [
+    "UB Group",
+    "Kingfisher"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "Kingfisher brewer, 61.5% owned by Heineken since 2021; headquartered in UB Tower, UB City.",
+   "founded": 1915,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.unitedbreweries.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "UB Tower - head office",
+     "techPark": "UB City",
+     "building": "UB Tower",
+     "locality": "Vittal Mallya Road",
+     "address": "UB Tower, UB City, 24 Vittal Mallya Road, Bengaluru 560001",
+     "lat": 12.972557,
+     "lng": 77.595772,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia's United Breweries Group article states the group is headquartered in UB City (lead, not proof); the company's own site is behind an age gate: https://en.wikipedia.org/wiki/United_Breweries_Group",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/United_Breweries_Group"
+   ]
+  },
+  {
+   "name": "3M India",
+   "aliases": [
+    "3M India Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Listed Indian arm of 3M; corporate office in UB City's Concorde Block, registered office and plant in Electronics City.",
+   "founded": 1902,
+   "hqCity": "St. Paul, Minnesota",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.3mindia.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - UB City Concorde Block",
+     "techPark": "UB City",
+     "building": "Concorde Block",
+     "locality": "Vittal Mallya Road",
+     "address": "Concorde Block, UB City, 24 Vittal Mallya Road, Bengaluru 560001",
+     "lat": 12.972557,
+     "lng": 77.595772,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Address as published in 3M India's annual reports and contact page; the page (3mindia.in ... contact-us) returned HTTP 503 in this run, so no live fetch backs it.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Registered office and plant - Electronics City",
+     "techPark": "Electronics City Phase 1",
+     "building": null,
+     "locality": "Electronic City Phase 1",
+     "address": "Plot 48-51, Electronics City, Hosur Road, Bengaluru 560100",
+     "lat": 12.844773,
+     "lng": 77.6605993,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Registered-office address as published in 3M India's filings; coordinates are a Nominatim hit inside Electronics City Phase 1, not the plot itself.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.3mindia.in/3M/en_IN/company-in/about-3m/contact-us/ (HTTP 503)",
+    "OSM node (3M India, St Mark's Road, older POI)"
+   ]
+  },
+  {
+   "name": "Mitsubishi Electric India",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Japanese electrical-equipment maker; its Bengaluru branch is in Prestige Emerald on Madras Bank Road.",
+   "founded": 1921,
+   "hqCity": "Tokyo",
+   "hqCountry": "Japan",
+   "isUnicorn": false,
+   "website": "https://in.mitsubishielectric.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Emerald - Madras Bank Road",
+     "techPark": null,
+     "building": "Prestige Emerald",
+     "locality": "Lavelle Road / Madras Bank Road",
+     "address": "6th Floor, Prestige Emerald, Municipal No. 2, Madras Bank Road, Lavelle Road, Bengaluru 560001",
+     "lat": 12.972707,
+     "lng": 77.599495,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OpenStreetMap office POI 'Mitsubishi Electric India Pvt Ltd' carries this full address (12.972803, 77.5996); the company's locations page lists only location names.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "OSM node (Mitsubishi Electric India Pvt Ltd, 12.972803, 77.5996)",
+    "https://in.mitsubishielectric.com/en/about/local/locations/index.html"
+   ]
+  },
+  {
+   "name": "ABB India",
+   "aliases": [
+    "ABB India Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Swiss-Swedish electrification and automation group; OSM records an ABB corporate research presence in Khanija Bhavan on Race Course Road, while the registered office is in Peenya.",
+   "founded": 1988,
+   "hqCity": "Zurich",
+   "hqCountry": "Switzerland",
+   "isUnicorn": false,
+   "website": "https://new.abb.com/indian-subcontinent",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Khanija Bhavan - Race Course Road",
+     "techPark": null,
+     "building": "Khanija Bhavan",
+     "locality": "Race Course Road / High Grounds",
+     "address": "Khanija Bhavan, 49 Race Course Road, Bengaluru 560001",
+     "lat": 12.982985,
+     "lng": 77.585659,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OpenStreetMap office POI 'ABB Corporate Research Center' (node/1554187112, on the Khanija Bhavan polygon way/96787265) places ABB here; new.abb.com returned HTTP 503, so unconfirmed.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Registered office - Peenya",
+     "techPark": null,
+     "building": null,
+     "locality": "Peenya Industrial Area",
+     "address": "Disha, Plot No. 5 & 6, 2nd Stage, Peenya Industrial Area IV Phase, Bengaluru 560058",
+     "lat": 12.978,
+     "lng": 77.550857,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Address as published in ABB India's filings; OSM has an 'ABB India Limited' POI at Plot 1-4 nearby (node/4489715363). Not fetched from a primary page in this run.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "OSM node/1554187112",
+    "OSM way/96787265",
+    "OSM node/4489715363",
+    "https://new.abb.com/indian-subcontinent/about/contact-us (HTTP 503)"
+   ]
+  },
+  {
+   "name": "Titan Company",
+   "aliases": [
+    "Titan Industries",
+    "Tanishq"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Retail & consumer goods",
+   "description": "Tata group watch, jewellery and eyewear company; corporate office is the 'Integrity' campus in Electronic City (registered office is in Hosur, outside Bengaluru).",
+   "founded": 1984,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.titancompany.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - 'Integrity', Electronic City",
+     "techPark": null,
+     "building": null,
+     "locality": "Veerasandra, Electronic City",
+     "address": "'INTEGRITY' #193, Veerasandra, Electronic City PO, Off Hosur Main Road, Bengaluru 560100",
+     "lat": 12.8412854,
+     "lng": 77.6728713,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Titan Company's contact page lists this as its Corporate Office; OSM maps the 'Titan' campus on Hosur Road at Veerasandra (way/1071434830): https://www.titancompany.in/contact-us",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.titancompany.in/contact-us",
+    "OSM way/1071434830"
+   ]
+  },
+  {
+   "name": "Canara Bank",
+   "aliases": [],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "BFSI",
+   "description": "Public-sector bank headquartered in Bengaluru; Head Office at 112 JC Road, with a Head Office Annex near Manyata in the north.",
+   "founded": 1906,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.canarabank.bank.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Head Office - JC Road",
+     "techPark": null,
+     "building": null,
+     "locality": "JC Road (Jayachamarajendra Road)",
+     "address": "Head Office, No. 112, JC Road, Bengaluru 560002",
+     "lat": 12.9644487,
+     "lng": 77.5854105,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Canara Bank's contact page lists 'Head Office, No. 112, JC Road Bengaluru - 560 002'; coordinates are Photon's 'Canara Bank' building on Silver Jubilee Park Road / JC Road: https://www.canarabank.bank.in/contactus",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Head Office Annex (Nagavara)",
+     "techPark": null,
+     "building": null,
+     "locality": "Nagavara / Manyata",
+     "address": "Canara Bank Head Office Annex, near Manyata Tech Park, Bengaluru",
+     "lat": 13.0529547,
+     "lng": 77.6200007,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Photon resolves 'Canara Bank Head Office' to an OSM building named 'Canara Bank Head Office Annex' (way/1344809155) here; the bank's site does not describe it, so low confidence.",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.canarabank.bank.in/contactus",
+    "OSM way/1344809155"
+   ]
+  },
+  {
+   "name": "State Bank of India",
+   "aliases": [
+    "SBI"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "BFSI",
+   "description": "India's largest bank; its Bengaluru Local Head Office (Karnataka circle) is on St Mark's Road.",
+   "founded": 1955,
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://sbi.bank.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Local Head Office - St Mark's Road",
+     "techPark": null,
+     "building": "SBI LHO",
+     "locality": "St Mark's Road",
+     "address": "State Bank of India, Local Head Office, 65 St Mark's Road, Bengaluru 560001",
+     "lat": 12.9724314,
+     "lng": 77.6015162,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Nominatim resolves 'State Bank of India, St Marks Road' to the SBI building relation (4602221) here; the LHO address is SBI's published Karnataka-circle address but sbi.bank.in/contact-us returned HTTP 404 in this run.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "OSM relation/4602221",
+    "https://sbi.bank.in/web/about-us/contact-us (HTTP 404)"
+   ]
+  },
+  {
+   "name": "ICICI Bank",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "BFSI",
+   "description": "India's second-largest private bank; its Bengaluru regional office is ICICI Bank Towers on Commissariat Road.",
+   "founded": 1994,
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.icicibank.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "ICICI Bank Towers - Commissariat Road",
+     "techPark": null,
+     "building": "ICICI Bank Towers",
+     "locality": "Commissariat Road (Ashok Nagar)",
+     "address": "ICICI Bank Towers, 1 Commissariat Road, Bengaluru 560025",
+     "lat": 12.973051,
+     "lng": 77.6110437,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Photon resolves 'ICICI Bank Towers, Commissariat Road' to an ICICI Bank node at this point; icicibank.com's contact page returned HTTP 404, so the tower's exact tenancy mix is unconfirmed.",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "Photon node/1474001857 (ICICI Bank, Commissariat Road)"
+   ]
+  },
+  {
+   "name": "Standard Chartered",
+   "aliases": [
+    "Standard Chartered GBS",
+    "SCB"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "UK bank; its long-standing Bengaluru branch is in Raheja Towers on MG Road and its global business services centre is in Bellandur.",
+   "founded": 1969,
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://www.sc.bank.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Raheja Towers branch - MG Road",
+     "techPark": null,
+     "building": "Raheja Towers",
+     "locality": "MG Road",
+     "address": "Raheja Towers, 26-27 MG Road, Bengaluru 560001",
+     "lat": 12.973388,
+     "lng": 77.613879,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "The bank's published Bengaluru branch address is Raheja Towers, MG Road; sc.bank.in/contact-us lists only a Chennai mailing address and no OSM POI exists, so unconfirmed in this run.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "GBS centre - Bellandur",
+     "techPark": null,
+     "building": null,
+     "locality": "Bellandur",
+     "address": "6B Bellandur-Doddakannelli Road, Bellandur, Bengaluru 560103",
+     "lat": 12.921149,
+     "lng": 77.685063,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OpenStreetMap office POI 'Standard Chartered Bank' with street address (node/5179373222).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.sc.bank.in/contact-us/",
+    "OSM node/5179373222"
+   ]
+  },
+  {
+   "name": "HSBC",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "UK bank; its Bengaluru branch is on MG Road near Trinity Circle (technology and service centres elsewhere in the city are covered by other lenses).",
+   "founded": 1865,
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://www.hsbc.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "MG Road branch",
+     "techPark": null,
+     "building": null,
+     "locality": "MG Road (Trinity Circle end)",
+     "address": "No. 7 MG Road, Bengaluru 560001",
+     "lat": 12.973582,
+     "lng": 77.616021,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OpenStreetMap office POI 'HSBC Bank' (node/12112045025) places the branch here; the published branch address is 7 MG Road but no primary page was fetched, so low confidence.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "OSM node/12112045025"
+   ]
+  },
+  {
+   "name": "Hindustan Aeronautics Limited",
+   "aliases": [
+    "HAL"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "description": "India's state-owned aerospace major; the corporate office is on Cubbon Road in the CBD, separate from the airport-side complex.",
+   "founded": 1940,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://hal-india.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - Cubbon Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Cubbon Road",
+     "address": "HAL Corporate Office, 15/1 Cubbon Road, Bengaluru 560001",
+     "lat": 12.981035,
+     "lng": 77.59783,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OpenStreetMap maps the compound as 'Hindustan Aeronautics Limited' (way/460600476) on Cubbon Road; hal-india.co.in/contact-us rendered no text in this run, so the house number is from the company's published address.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "OSM way/460600476",
+    "https://hal-india.co.in/contact-us"
+   ]
+  },
+  {
+   "name": "BEML",
+   "aliases": [
+    "Bharat Earth Movers Limited"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "description": "State-owned earthmoving, rail and defence equipment maker; headquarters 'BEML Soudha' is in SR Nagar, just south of Kasturba Road.",
+   "founded": 1964,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.bemlindia.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "BEML Soudha - headquarters",
+     "techPark": null,
+     "building": "BEML Soudha",
+     "locality": "Sampangi Rama Nagar",
+     "address": "BEML Soudha, 23/1, 4th Main, SR Nagar, Bengaluru 560027",
+     "lat": 12.965218,
+     "lng": 77.591462,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "BEML's contact page lists this address and OSM maps 'BEML Head Quarter Offices' (way/38758048): https://www.bemlindia.in/contact-us",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.bemlindia.in/contact-us",
+    "OSM way/38758048"
+   ]
+  },
+  {
+   "name": "Mysore Sales International Limited",
+   "aliases": [
+    "MSIL"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Other",
+   "description": "Karnataka state trading and liquor-distribution corporation; corporate office MSIL House on Cunningham Road.",
+   "founded": 1966,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": null,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "MSIL House - Cunningham Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Cunningham Road",
+     "address": "MSIL House, 36 Cunningham Road, Bengaluru 560052",
+     "lat": 12.9878733,
+     "lng": 77.5940584,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Photon resolves the query to an OSM building 'MSIL Tower, Cunningham Road' (way/257600768); msilonline.com was suspended at fetch time, so the address is the corporation's published one.",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "Photon way/257600768 (MSIL Tower)",
+    "OSM node/12118054085 (MSIL showroom near Residency Road)"
+   ]
+  },
+  {
+   "name": "Prestige Group",
+   "aliases": [
+    "Prestige Estates Projects Ltd"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Bengaluru's largest listed developer and the builder of most CBD towers; registered office is The Falcon House on Main Guard Cross Road.",
+   "founded": 1986,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.prestigeconstructions.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "The Falcon House - registered office",
+     "techPark": null,
+     "building": "The Falcon House",
+     "locality": "Main Guard Cross Road (Shivajinagar)",
+     "address": "The Falcon House, No. 1 Main Guard Cross Road, Bengaluru 560001",
+     "lat": 12.980193,
+     "lng": 77.607166,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OpenStreetMap office POI 'Prestige Estates Limited' (node, 12.980193, 77.607166) on Main Guard Cross Road matches the registered-office address in the company's filings; prestigeconstructions.com returned HTTP 403.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "OSM node (Prestige Estates Limited, 12.980193, 77.607166)",
+    "https://www.prestigeconstructions.com/contact-us (HTTP 403)"
+   ]
+  },
+  {
+   "name": "Puravankara",
+   "aliases": [],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Listed Bengaluru developer; headquartered at 130/1 Ulsoor Road.",
+   "founded": 1975,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.puravankara.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Head office - Ulsoor Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Ulsoor Road",
+     "address": "Puravankara Limited, #130/1 Ulsoor Road, Bengaluru 560042",
+     "lat": 12.975863,
+     "lng": 77.615673,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Puravankara's contact page lists this address and OSM has a 'Puravankara' office POI here: https://www.puravankara.com/contact-us",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.puravankara.com/contact-us",
+    "OSM node (Puravankara, 12.975863, 77.615673)"
+   ]
+  },
+  {
+   "name": "Sattva Group",
+   "aliases": [
+    "Salarpuria Sattva"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Developer of Knowledge City / Knowledge Park and many ORR campuses; corporate office in Salarpuria Windsor on Ulsoor Road.",
+   "founded": 1986,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.sattvagroup.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - Salarpuria Windsor",
+     "techPark": null,
+     "building": "Salarpuria Windsor",
+     "locality": "Ulsoor Road",
+     "address": "4th Floor, Salarpuria Windsor, #3 Ulsoor Road, Bengaluru 560042",
+     "lat": 12.975548,
+     "lng": 77.617809,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Sattva's contact page lists this address; OSM maps 'Salarpuria Windsor' (way/775163648): https://www.sattvagroup.com/contact-us/",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.sattvagroup.com/contact-us/",
+    "OSM way/775163648"
+   ]
+  },
+  {
+   "name": "RMZ Corp",
+   "aliases": [],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Developer of Ecoworld, Ecospace and Infinity; corporate office in its own RMZ Millenia campus at Ulsoor.",
+   "founded": 2002,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.rmz.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - RMZ Millenia",
+     "techPark": "RMZ Millenia",
+     "building": null,
+     "locality": "Ulsoor (Kensington Gardens)",
+     "address": "RMZ Millenia, D Bhaskaran Road, Kensington Gardens, Bengaluru 560042",
+     "lat": 12.98263,
+     "lng": 77.624764,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "RMZ's contact page lists this address; OSM maps 'RMZ Millenia' (way/112647576): https://www.rmz.com/contact",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.rmz.com/contact",
+    "OSM way/112647576"
+   ]
+  },
+  {
+   "name": "Embassy Group",
+   "aliases": [
+    "Embassy Office Parks",
+    "Embassy REIT"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Developer behind Embassy Manyata, TechVillage and GolfLinks and sponsor of India's first REIT; corporate office has moved from Embassy Point (Infantry Road) to Pinnacle Tower at Hebbal.",
+   "founded": 1993,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.embassyindia.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - Pinnacle Tower, Hebbal",
+     "techPark": null,
+     "building": "Pinnacle Tower",
+     "locality": "Hebbal (Bellary Road)",
+     "address": "14th Floor, Pinnacle Tower, 1st C Main, Hebbal Mill, Ganganagar, Bellary Road, Bengaluru 560032",
+     "lat": 13.0567,
+     "lng": 77.592838,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Embassy's contact page lists this address; OSM maps 'VSPL Pinnacle' on Bellary Road (way): https://www.embassyindia.com/contact-us",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.embassyindia.com/contact-us"
+   ]
+  },
+  {
+   "name": "WeWork India",
+   "aliases": [
+    "WeWork India Management Ltd"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Embassy-controlled, NSE-listed flexible-workspace operator; registered office in Prestige Central, Infantry Road, with five CBD centres.",
+   "founded": 2017,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://wework.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office and Infantry Road centre - Prestige Central",
+     "techPark": "Wework / coworking (Prestige Central)",
+     "building": "Prestige Central",
+     "locality": "Infantry Road",
+     "address": "6th Floor, Prestige Central, 36 Infantry Road, Shivaji Nagar, Bengaluru 560001",
+     "lat": 12.981011,
+     "lng": 77.603353,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "wework.co.in's footer gives this registered office; OSM has a WeWork POI at Infantry Road 36 (node/6857730768): https://wework.co.in/",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "WeWork Galaxy - Residency Road",
+     "techPark": "Wework / coworking (WeWork Galaxy)",
+     "building": "Galaxy",
+     "locality": "Residency Road",
+     "address": "WeWork Galaxy, 43 Residency Road, Bengaluru 560025",
+     "lat": 12.973571,
+     "lng": 77.608764,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps the building 'WeWork Galaxy' (way/132782112) and a POI at 43 Field Marshal Cariappa (Residency) Road; wework.co.in lists a Residency Road centre.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "WeWork The Pavilion - Church Street",
+     "techPark": "Wework / coworking (The Pavilion)",
+     "building": "The Pavilion",
+     "locality": "Church Street",
+     "address": "The Pavilion, 62/63 Church Street, Bengaluru 560001",
+     "lat": 12.9747066,
+     "lng": 77.6070892,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM POI 'WeWork' at Church Street 62/63 (node/6569023748) on The Pavilion polygon; wework.co.in lists an MG Road centre.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "WeWork Embassy Quest - Magrath Road",
+     "techPark": "Wework / coworking (Embassy Quest)",
+     "building": "Embassy Quest",
+     "locality": "Magrath Road",
+     "address": "Embassy Quest, Magrath Road, Bengaluru 560025",
+     "lat": 12.968911,
+     "lng": 77.613889,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM POI 'WeWork' on Magrath Road (node/9214580824) sits on the Embassy Quest polygon (way/997966823).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "WeWork 37 Cunningham",
+     "techPark": "Wework / coworking (37 Cunningham)",
+     "building": "37 Cunningham",
+     "locality": "Cunningham Road",
+     "address": "37 Cunningham Road, Bengaluru 560052",
+     "lat": 12.987492,
+     "lng": 77.593551,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM POI 'WeWork 37 Cunningham' (node/12074809946) and building '37 Cunningham' (way/782014103); wework.co.in lists a Cunningham Road centre.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://wework.co.in/",
+    "OSM way/132782112",
+    "OSM node/6569023748",
+    "OSM node/9214580824",
+    "OSM node/12074809946",
+    "OSM node/6857730768"
+   ]
+  },
+  {
+   "name": "IndiQube",
+   "aliases": [
+    "IndiQube Spaces Ltd"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Bengaluru-headquartered, listed managed-workspace operator (HQ in Kudlu Gate, outside the CBD) with a cluster of CBD centres.",
+   "founded": 2015,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.indiqube.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "IndiQube Symphony - MG Road",
+     "techPark": "Wework / coworking (IndiQube Symphony)",
+     "building": "IndiQube Symphony",
+     "locality": "MG Road",
+     "address": "IndiQube Symphony, 25 MG Road, Bengaluru 560001",
+     "lat": 12.972699,
+     "lng": 77.614538,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Khaitan & Co's contact page names 'Indiqube Symphony, 25 MG Road' as its office and OSM maps the building (way/1305202467).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "IndiQube Penta - Richmond Road",
+     "techPark": "Wework / coworking (IndiQube Penta)",
+     "building": "IndiQube Penta",
+     "locality": "Richmond Road",
+     "address": "IndiQube Penta, 32 Richmond Road, Bengaluru 560025",
+     "lat": 12.966007,
+     "lng": 77.603581,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM coworking POI 'IndiQube Penta' with address Richmond Road 32 (way/1124838112).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "IndiQube Grandeur - Walton Road",
+     "techPark": "Wework / coworking (IndiQube Grandeur)",
+     "building": "IndiQube Grandeur",
+     "locality": "Lavelle Road / Walton Road",
+     "address": "IndiQube Grandeur, Walton Road, Bengaluru 560001",
+     "lat": 12.9725988,
+     "lng": 77.5983681,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM coworking POI 'IndiQube Grandeur' (node/12118752220).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "IndiQube Logos - Craig Park Road",
+     "techPark": "Wework / coworking (IndiQube Logos)",
+     "building": "IndiQube Logos",
+     "locality": "Ulsoor Road / Craig Park Layout",
+     "address": "IndiQube Logos, 206 Craig Park Road, Bengaluru 560001",
+     "lat": 12.9723799,
+     "lng": 77.6175807,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM coworking POI 'IndiQube Logos' with house number 206 (node/10138074572).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "IndiQube Sapphire - St Mark's Road",
+     "techPark": "Wework / coworking (IndiQube Sapphire)",
+     "building": "IndiQube Sapphire",
+     "locality": "St Mark's Road",
+     "address": "IndiQube Sapphire, St Mark's Road, Bengaluru 560001",
+     "lat": 12.9688112,
+     "lng": 77.6005927,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM building 'IndiQube Sapphire' (way/328994155).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.khaitanco.com/contact-us",
+    "OSM way/1305202467",
+    "OSM way/1124838112",
+    "OSM node/12118752220",
+    "OSM node/10138074572",
+    "OSM way/328994155"
+   ]
+  },
+  {
+   "name": "Awfis",
+   "aliases": [
+    "Awfis Space Solutions Ltd"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Listed Indian coworking operator (HQ New Delhi) with three CBD centres on Lavelle Road and Residency Road.",
+   "founded": 2015,
+   "hqCity": "New Delhi",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.awfis.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Awfis Lavelle Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Lavelle Road",
+     "address": "Lavelle Road (SKAV 909 / Sattva Cosmo block), Bengaluru 560001",
+     "lat": 12.965591,
+     "lng": 77.596253,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM coworking POI 'Awfis' on Lavelle Road (node/10236025508); awfis.com lists Bengaluru centres only by neighbourhood.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Awfis Residency Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Residency Road",
+     "address": "Field Marshal Cariappa (Residency) Road, Bengaluru 560025",
+     "lat": 12.971619,
+     "lng": 77.605964,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM coworking POI 'Awfis' (node/9870882726).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Awfis Residency Square",
+     "techPark": null,
+     "building": "Residency Square",
+     "locality": "Residency Road",
+     "address": "#5 Residency Square, Residency Road, Bengaluru 560025",
+     "lat": 12.96556,
+     "lng": 77.600389,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM building 'Awfis Residency Square' (way/318032591).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.awfis.com/",
+    "OSM node/10236025508",
+    "OSM node/9870882726",
+    "OSM way/318032591"
+   ]
+  },
+  {
+   "name": "The Executive Centre",
+   "aliases": [
+    "TEC"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Real estate & infrastructure",
+   "description": "Hong Kong premium serviced-office operator with four CBD centres recorded by OSM mappers, all in Prestige/UB landmark towers.",
+   "founded": 1994,
+   "hqCity": "Hong Kong",
+   "hqCountry": "Hong Kong",
+   "isUnicorn": false,
+   "website": "https://www.executivecentre.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Khoday Tower centre",
+     "techPark": "Prestige Khoday Tower",
+     "building": "Prestige Khoday Tower",
+     "locality": "Raj Bhavan Road",
+     "address": "Prestige Khoday Tower, 5 Raj Bhavan Road, Bengaluru 560001",
+     "lat": 12.982748,
+     "lng": 77.594011,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM coworking POI 'The Executive Centre' at Raj Bhavan Road 5 (node/10291118231) on the Prestige Khoday Tower polygon; executivecentre.com's Bengaluru page returned HTTP 404.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Prestige Trade Tower centre",
+     "techPark": "Prestige Trade Tower",
+     "building": "Prestige Trade Tower",
+     "locality": "Palace Road",
+     "address": "Prestige Trade Tower, 46 Palace Road, Bengaluru 560001",
+     "lat": 12.985994,
+     "lng": 77.587429,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM coworking POI 'The Executive Centre' at Palace Road 46 (node/10291118232).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "UB City centre",
+     "techPark": "UB City",
+     "building": null,
+     "locality": "Vittal Mallya Road",
+     "address": "UB City, 24 Vittal Mallya Road, Bengaluru 560001",
+     "lat": 12.97182,
+     "lng": 77.595687,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM coworking POI 'The Executive Centre' at Vittal Mallya Road 24 (node/10291118243).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Safina Towers centre",
+     "techPark": null,
+     "building": "Safina Towers",
+     "locality": "Ali Asker Road (Cunningham Road)",
+     "address": "Safina Towers, 3 Ali Asker Road, Bengaluru 560052",
+     "lat": 12.987079,
+     "lng": 77.590973,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM coworking POI 'The Executive Centre' at Ali Asker Road 3 (node/10291118234).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "OSM node/10291118231",
+    "OSM node/10291118232",
+    "OSM node/10291118243",
+    "OSM node/10291118234"
+   ]
+  },
+  {
+   "name": "Trigent Software",
+   "aliases": [],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Bengaluru-founded IT services and product-engineering firm; headquartered in Khanija Bhavan on Race Course Road.",
+   "founded": 1995,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.trigent.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Head office - Khanija Bhavan",
+     "techPark": null,
+     "building": "Khanija Bhavan",
+     "locality": "Race Course Road / High Grounds",
+     "address": "Khanija Bhavan, 49 Race Course Road, Bengaluru 560001",
+     "lat": 12.982985,
+     "lng": 77.585659,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Trigent Software' (node, 12.983344, 77.585482) sits on the Khanija Bhavan polygon (way/96787265); trigent.com rendered no text in this run.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "OSM node (Trigent Software, 12.983344, 77.585482)",
+    "OSM way/96787265"
+   ]
+  },
+  {
+   "name": "Ittiam Systems",
+   "aliases": [],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Semiconductors & hardware",
+   "description": "Bengaluru media-codec and signal-processing IP company; headquartered at The Consulate, 1 Richmond Road, by Richmond Circle.",
+   "founded": 2001,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.ittiam.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Head office - The Consulate, Richmond Road",
+     "techPark": null,
+     "building": "The Consulate",
+     "locality": "Richmond Circle",
+     "address": "The Consulate, 1 Richmond Road, Bengaluru 560025",
+     "lat": 12.965244,
+     "lng": 77.59846,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Ittiam' (12.965244, 77.59846) at Richmond Circle matches the company's published HQ; ittiam.com/contact-us returned HTTP 404, so medium.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "OSM node (Ittiam, 12.965244, 77.59846)"
+   ]
+  },
+  {
+   "name": "smallcase",
+   "aliases": [
+    "smallcase Technologies"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Venture-backed investment platform (Peak XV, Amazon, Faering); headquartered in Le Parc Richmonde on Richmond Road.",
+   "founded": 2015,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.smallcase.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Head office - Le Parc Richmonde",
+     "techPark": null,
+     "building": "Le Parc Richmonde",
+     "locality": "Richmond Road",
+     "address": "#51, 3rd Floor, Le Parc Richmonde, Richmond Road, Shanthala Nagar, Bengaluru 560025",
+     "lat": 12.9660245,
+     "lng": 77.6035371,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "smallcase.com's footer gives this address; Photon maps 'Le Parc Richmonde' (way/387074241): https://www.smallcase.com/",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.smallcase.com/",
+    "OSM node (smallcase, 12.966068, 77.603468)"
+   ]
+  },
+  {
+   "name": "Groww",
+   "aliases": [
+    "Billionbrains Garage Ventures"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Investment and broking unicorn (listed 2025); headquartered in Vaishnavi Tech Park, Bellandur - not in the CBD despite the lens note about Vasanth Nagar.",
+   "founded": 2016,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://groww.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Head office - Vaishnavi Tech Park",
+     "techPark": "Vaishnavi Tech Park",
+     "building": "South Tower",
+     "locality": "Bellandur (Sarjapur Main Road)",
+     "address": "Vaishnavi Tech Park, South Tower, 3rd Floor, Sarjapur Main Road, Bellandur, Bengaluru 560103",
+     "lat": 12.920256,
+     "lng": 77.671708,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "groww.in's footer gives this address; OSM maps 'Vaishnavi Tech Park' (centroid used): https://groww.in/about-us",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://groww.in/about-us"
+   ]
+  },
+  {
+   "name": "SatSure",
+   "aliases": [
+    "KaleidEO"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Space",
+   "description": "Earth-observation analytics startup (with satellite subsidiary KaleidEO); OSM places both at 202 Brunton Road (Prestige Loka).",
+   "founded": 2017,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.satsure.co",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - Brunton Road",
+     "techPark": null,
+     "building": "Prestige Loka",
+     "locality": "Brunton Road (off MG Road)",
+     "address": "202 Brunton Road, Bengaluru 560025",
+     "lat": 12.970631,
+     "lng": 77.615104,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POIs 'SatSure Analytics India Pvt Ltd' and 'KaleidEO' both carry 'Brunton Road 202' and sit on the Prestige Loka polygon (way/1119408832); satsure.co/contact returned HTTP 404.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "OSM node (SatSure Analytics India, 12.970631, 77.615104)",
+    "OSM node (KaleidEO, 12.970656, 77.615253)",
+    "OSM way/1119408832"
+   ]
+  },
+  {
+   "name": "Livspace",
+   "aliases": [],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "Home-interiors unicorn; OSM records its Bengaluru office in Prestige Obelisk on Kasturba Road.",
+   "founded": 2014,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.livspace.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Obelisk - Kasturba Road",
+     "techPark": "Prestige Obelisk",
+     "building": "Prestige Obelisk",
+     "locality": "Kasturba Road",
+     "address": "Prestige Obelisk, 3 Kasturba Road, Bengaluru 560001",
+     "lat": 12.975726,
+     "lng": 77.597427,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OpenStreetMap office POI 'Livspace' (12.975691, 77.597461, on the Prestige Obelisk polygon) places it here; livspace.com/in/contact-us carries no address, so unconfirmed.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "OSM node (Livspace, 12.975691, 77.597461)",
+    "https://www.livspace.com/in/contact-us"
+   ]
+  }
+ ],
+ "coverageNotes": "WebSearch quota was exhausted for every agent in this run, so verification relied on companies' own pages fetched directly (WebFetch) plus the OpenStreetMap office/landuse extracts and Nominatim/Photon; many corporate sites blocked fetches (403/404/503), and each such case is marked low or medium. CONFIRMED FROM PRIMARY PAGES: BCG (UB City Canberra B), Bain (Anand Bhavan, Vittal Mallya Rd), EY (UB City Canberra, Marksquare, Divyasree Chambers, Prestige Shantiniketan), KPMG (EGL + RMZ Ecoworld - no CBD office), Cushman & Wakefield (EGL), Cyril Amarchand (Prestige Falcon Tower), Trilegal (Marksquare), Khaitan (IndiQube Symphony), Apple (Prestige Minsk Square registered office), Microsoft IDC (BLR Ferns), Diageo/United Spirits (UB Tower), Canara Bank HO (112 JC Road), BEML Soudha, Puravankara, Sattva, RMZ, Embassy Group (now Hebbal), WeWork India (Prestige Central), smallcase (Le Parc Richmonde), Groww (Vaishnavi Tech Park, Bellandur - not Vasanth Nagar), Titan (Electronic City corporate office). OSM-ONLY OR PUBLISHED-ADDRESS-WITHOUT-FETCH (low/medium): Deloitte at Prestige Trade Tower (OSM names the building 'Prestige Deloitte'), PwC at RMZ Millenia, McKinsey (OSM node on Church Street; mckinsey.com 503 x4), Microsoft at Vigyan, 3M at UB City Concorde, Shardul Amarchand (Sterling Square), JSA/Livspace/Indeed (Prestige Obelisk), Unisys (Purva Premiere), MiQ/athenahealth (SKAV 909), Rakuten (Bagmane Pallavi Towers), Mitsubishi Electric (Prestige Emerald), ABB and Trigent (Khanija Bhavan), TCS (SJM Towers), HAL corporate office (Cubbon Road), MSIL, SBI LHO, ICICI Bank Towers, Standard Chartered (Raheja Towers), HSBC (MG Road), SatSure (Prestige Loka), IndiQube/Awfis/Regus/TEC centres. LEFT OUT: Goldman Sachs, Morgan Stanley, UBS/Credit Suisse, Citi, Google, Uber, Airbnb, Rolls-Royce, Airbus, Bosch, Wipro, TVS and Hitachi Energy - none has a verifiable CBD office (Citi's MG Road branch became Axis Bank in 2023; Airbus/Google are in Whitefield/ORR; Hitachi Energy's registered office is Brigade Opus, Hebbal); they belong to other lenses. Vijaya Bank's 41/2 MG Road head office was dropped because the merger into Bank of Baroda (2019) predates the 2023 cut-off and no current zonal-office address could be verified. Tesla India's 2021 Lavelle Road registered office (OSM POI at SKAV 909) was dropped as its current status is unknown. Prestige Atlanta (named in the lens as CBD coworking) is actually a WeWork in Koramangala 1st Block, so it is not listed as a CBD park. VC firms (3one4, Nexus, Accel, Peak XV) recorded by OSM in the CBD were left out because none of the four categories fits them. Tenant lists for Barton Centre, Embassy Square, Prestige Nebula, Centre Point and Mittal Tower could not be verified and are empty or OSM-derived. Headcounts were not stated by any fetched source, so every bengaluruEmployeesApprox is null."
+}

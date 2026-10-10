@@ -1,0 +1,3452 @@
+{
+ "key": "E07-unicorns",
+ "techParks": [
+  {
+   "name": "Embassy TechVillage",
+   "aliases": [
+    "Embassy Tech Village",
+    "ETV",
+    "Vrindavan Tech Village"
+   ],
+   "locality": "Devarabeesanahalli (Outer Ring Road)",
+   "developer": "Embassy Group / Embassy Office Parks REIT",
+   "lat": 12.93004,
+   "lng": 77.690611,
+   "bbox": [
+    12.926403,
+    12.934501,
+    77.687141,
+    77.694925
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Flipkart",
+    "Myntra",
+    "Swiggy",
+    "MathWorks",
+    "Rippling"
+   ],
+   "description": "Large business park on the Outer Ring Road at Devarabeesanahalli; Flipkart's group HQ occupies the bridge-linked Alyssa, Begonia and Clover buildings (also the registered office of Myntra and Instakart), and Swiggy's listed company is still registered in the I & J block although its head office moved to Whitefield in 2026.",
+   "sources": [
+    "https://www.openstreetmap.org/way/232970396",
+    "https://search.gleif.org/#/record/335800KS8LATZVLFH345",
+    "https://search.gleif.org/#/record/335800R11DC3QR7KH186"
+   ]
+  },
+  {
+   "name": "Embassy Tech Square",
+   "aliases": [
+    "Embassy TechSquare"
+   ],
+   "locality": "Kadubeesanahalli (Outer Ring Road)",
+   "developer": "Embassy Group",
+   "lat": 12.9351,
+   "lng": 77.694,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "InMobi",
+    "Glance",
+    "LeadSquared"
+   ],
+   "description": "Office campus on the Marathahalli-Sarjapur Outer Ring Road at Kadubeesanahalli, made up of named blocks (Alpha, Delta, Omega and others); InMobi's corporate office and Glance occupy Delta Block and LeadSquared the Omega block. OSM has no campus polygon, so the point is between the mapped InMobi building and the Omega POI.",
+   "sources": [
+    "https://www.inmobi.com/company/contact",
+    "https://search.gleif.org/#/record/3358009M1HA9TJFJG476",
+    "https://search.gleif.org/#/record/335800Z1BDSSGTVUB236",
+    "https://www.openstreetmap.org/way/348080119"
+   ]
+  },
+  {
+   "name": "Prestige Tech Park",
+   "aliases": [
+    "Prestige Tech Park, Kadubeesanahalli"
+   ],
+   "locality": "Kadubeesanahalli (Outer Ring Road)",
+   "developer": "Prestige Group",
+   "lat": 12.942865,
+   "lng": 77.692806,
+   "bbox": [
+    12.939183,
+    12.94534,
+    77.688172,
+    77.697502
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "CoinSwitch",
+    "Awfis"
+   ],
+   "description": "Large multi-block tech park on the Outer Ring Road at Kadubeesanahalli whose blocks carry planet and element names (Valence, Electra, Jupiter and others); CoinSwitch's operating LLP is registered at the Awfis centre in Valence and OSM pins a CoinSwitch office in Electra.",
+   "sources": [
+    "https://www.openstreetmap.org/way/233001388",
+    "https://search.gleif.org/#/record/254900Y1946Z9SD7B516"
+   ]
+  },
+  {
+   "name": "Salarpuria Sattva Softzone",
+   "aliases": [
+    "Salarpuria Softzone",
+    "Sattva Softzone"
+   ],
+   "locality": "Bellandur (Green Glen Layout, Outer Ring Road)",
+   "developer": "Salarpuria Sattva",
+   "lat": 12.924165,
+   "lng": 77.67037,
+   "bbox": [
+    12.923288,
+    12.925219,
+    77.669654,
+    77.671441
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "PhonePe"
+   ],
+   "description": "Office complex at the Sarjapur Road - Outer Ring Road junction, Bellandur; every PhonePe group company is registered in Block A (Wings A and B, floors 3-7).",
+   "sources": [
+    "https://www.openstreetmap.org/way/232329241",
+    "https://search.gleif.org/#/record/335800NGJ7E9BD4C6Z11"
+   ]
+  },
+  {
+   "name": "Vaishnavi Tech Park",
+   "aliases": [],
+   "locality": "Ambalipura / Bellandur (Sarjapur Main Road)",
+   "developer": "Vaishnavi Group",
+   "lat": 12.920256,
+   "lng": 77.671708,
+   "bbox": [
+    12.918249,
+    12.921694,
+    77.670779,
+    77.672613
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Groww",
+    "ShareChat",
+    "Smartworks"
+   ],
+   "description": "Two-tower office campus on Sarjapur Main Road at Ambalipura; Groww's listed parent and every Groww subsidiary are registered in the South Tower, and ShareChat (Mohalla Tech) in the Smartworks centre in the North Tower.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1084971895",
+    "https://search.gleif.org/#/record/984500V0370C80BS6191",
+    "https://search.gleif.org/#/record/9845007TF8B4BE3A5A69"
+   ]
+  },
+  {
+   "name": "Vaishnavi Tech Square",
+   "aliases": [],
+   "locality": "Iblur (Sarjapur-Outer Ring Road junction)",
+   "developer": "Vaishnavi Group",
+   "lat": 12.926646,
+   "lng": 77.665886,
+   "bbox": [
+    12.926279,
+    12.926907,
+    77.665575,
+    77.666251
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Navi"
+   ],
+   "description": "Single office building at Iblur near the Sarjapur Road - ORR junction; Navi Ltd is registered on its 9th floor and OSM pins a Navi office inside it.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1167872058",
+    "https://search.gleif.org/#/record/335800GLKJQRX4Z8LW61"
+   ]
+  },
+  {
+   "name": "Mantri Commercio",
+   "aliases": [
+    "Spatium Commercio",
+    "Mantri Commercio Spatium"
+   ],
+   "locality": "Bellandur / Kariyammana Agrahara (Outer Ring Road)",
+   "developer": "Mantri Developers",
+   "lat": 12.932449,
+   "lng": 77.683813,
+   "bbox": [
+    12.931675,
+    12.933694,
+    77.683151,
+    77.684224
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Rapido",
+    "VerSe Innovation",
+    "Flipkart"
+   ],
+   "description": "Office complex on the Outer Ring Road near Sakra World Hospital, Bellandur, now branded Spatium Commercio; Rapido's corporate office and VerSe Innovation (Dailyhunt, Josh) are both in Tower A.",
+   "sources": [
+    "https://www.openstreetmap.org/way/320455185",
+    "https://www.rapido.bike/Contact",
+    "https://www.verse.in/"
+   ]
+  },
+  {
+   "name": "Helios Business Park",
+   "aliases": [
+    "IndiQube Helios"
+   ],
+   "locality": "Kadubeesanahalli (Outer Ring Road)",
+   "developer": null,
+   "lat": 12.937403,
+   "lng": 77.689719,
+   "bbox": [
+    12.935185,
+    12.939717,
+    77.687917,
+    77.690748
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Meesho",
+    "Ninjacart"
+   ],
+   "description": "Business park on the Outer Ring Road at Kadubeesanahalli (Chandana bus stop); Meesho's listed company is registered in Wing E and Ninjacart in IndiQube's Tower E.",
+   "sources": [
+    "https://www.openstreetmap.org/way/779346494",
+    "https://search.gleif.org/#/record/984500M5ED0E01BBA079",
+    "https://search.gleif.org/#/record/335800CYNGI5JZVU3666"
+   ]
+  },
+  {
+   "name": "RGA Tech Park",
+   "aliases": [],
+   "locality": "Carmelaram / Doddakannelli (Sarjapur Road)",
+   "developer": null,
+   "lat": 12.901265,
+   "lng": 77.704984,
+   "bbox": [
+    12.899683,
+    12.902988,
+    77.703266,
+    77.706211
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Open",
+    "Unisys"
+   ],
+   "description": "Multi-tower tech park on Sarjapur Road at Carmelaram; Open Financial Technologies is registered on the 3rd floor of Tower 2.",
+   "sources": [
+    "https://www.openstreetmap.org/way/460960666",
+    "https://search.gleif.org/#/record/335800CRYGZDOPHJXO21"
+   ]
+  },
+  {
+   "name": "Diamond District",
+   "aliases": [
+    "Diamond District Commercial Block"
+   ],
+   "locality": "Kodihalli (HAL Old Airport Road)",
+   "developer": null,
+   "lat": 12.959952,
+   "lng": 77.643379,
+   "bbox": [
+    12.959701,
+    12.960375,
+    77.642658,
+    77.644249
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "apna",
+    "Zeta"
+   ],
+   "description": "Mixed-use office and residential development on HAL Old Airport Road with Towers A-C; apna's headquarters is the Bizzhub Esquire centre in Tower A and OSM pins a Zeta office here. OSM tags the commercial block's operator as IBC Group.",
+   "sources": [
+    "https://www.openstreetmap.org/way/323629916",
+    "https://search.gleif.org/#/record/984500D68439CE425090",
+    "https://www.openstreetmap.org/node/13563559848"
+   ]
+  },
+  {
+   "name": "Bharat IT Park",
+   "aliases": [
+    "Zepto HQ - Bharat IT Park"
+   ],
+   "locality": "Kaikondrahalli / Ambalipura (Sarjapur Main Road)",
+   "developer": null,
+   "lat": 12.916905,
+   "lng": 77.67146,
+   "bbox": [
+    12.915873,
+    12.917564,
+    77.670694,
+    77.672136
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Zepto"
+   ],
+   "description": "Office site at 773 Sarjapur Main Road, Kaikondrahalli, mapped in OSM as 'Zepto HQ-Bharat IT Park'; Zepto's LEI headquarters and three Zepto group companies are registered on its floors.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1389761625",
+    "https://search.gleif.org/#/record/984500EDDYFSBFFB8314"
+   ]
+  },
+  {
+   "name": "IBC Knowledge Park",
+   "aliases": [
+    "IBC Knowlegde Park"
+   ],
+   "locality": "S.G. Palya (Bannerghatta Main Road)",
+   "developer": "IBC Group",
+   "lat": 12.932234,
+   "lng": 77.602547,
+   "bbox": [
+    12.931499,
+    12.933611,
+    77.600926,
+    77.604239
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Ather Energy",
+    "Byju's",
+    "Red Hat",
+    "ACL Digital"
+   ],
+   "description": "Multi-tower office park at 4/1 Bannerghatta Main Road; Ather Energy's headquarters (3rd floor) and Byju's headquarters (2nd floor) are both in Tower D.",
+   "sources": [
+    "https://www.openstreetmap.org/way/514073928",
+    "https://search.gleif.org/#/record/335800SZ7EUDQVUICH52",
+    "https://search.gleif.org/#/record/2549006XBBGEQL8H6M81"
+   ]
+  },
+  {
+   "name": "Prestige RMZ Startech",
+   "aliases": [
+    "Prestige RMZ Star Tech",
+    "Ola Campus"
+   ],
+   "locality": "Koramangala Industrial Layout (Hosur Road)",
+   "developer": "Prestige Group and RMZ Corp",
+   "lat": 12.931521,
+   "lng": 77.615487,
+   "bbox": [
+    12.930764,
+    12.932397,
+    77.613672,
+    77.617043
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Ola",
+    "Ola Electric",
+    "Krutrim"
+   ],
+   "description": "Office campus on Hosur Road at Koramangala; Wing C is the 'Ola Campus', where ANI Technologies (Ola), Ola Electric, Ola Cell Technologies and Krutrim are all registered.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1196503481",
+    "https://search.gleif.org/#/record/3358005EI53EZBOISD56",
+    "https://search.gleif.org/#/record/335800BB7I348XAZPI13",
+    "https://search.gleif.org/#/record/335800DW8G5GD8OBLJ91"
+   ]
+  },
+  {
+   "name": "Maruthi Infotech Centre",
+   "aliases": [
+    "Maruti Infotech Centre"
+   ],
+   "locality": "Domlur (Amarjyothi Layout, Intermediate Ring Road)",
+   "developer": null,
+   "lat": 12.9566279,
+   "lng": 77.6427434,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Unacademy",
+    "Licious"
+   ],
+   "description": "Office complex on the Intermediate Ring Road at Amarjyothi Layout, Domlur; Unacademy (Sorting Hat) is registered in A Block and Licious (Delightful Gourmet) in B Wing. Not mapped in OSM; the point is the Amarjyothi Layout geocode.",
+   "sources": [
+    "https://search.gleif.org/#/record/984500FDD385C0649E68",
+    "https://search.gleif.org/#/record/984500B0B36490Q63787"
+   ]
+  },
+  {
+   "name": "SJR Primeco The Hub",
+   "aliases": [
+    "Primeco The Hub",
+    "TWA-SJR The Hub"
+   ],
+   "locality": "Bellandur (Sarjapur Main Road)",
+   "developer": "SJR Primeco",
+   "lat": 12.920335,
+   "lng": 77.668522,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Udaan",
+    "Safran Engineering Services"
+   ],
+   "description": "Office building on Sarjapur Main Road, Bellandur; every Udaan (Hiveloop) company is registered on the 1st floor of its South Wing.",
+   "sources": [
+    "https://www.openstreetmap.org/way/610128861",
+    "https://search.gleif.org/#/record/3358008NBI1WIJTYZU28"
+   ]
+  },
+  {
+   "name": "Sumadhura Capitol Towers",
+   "aliases": [],
+   "locality": "Pattandur Agrahara (Whitefield)",
+   "developer": "Sumadhura Group",
+   "lat": 12.984959,
+   "lng": 77.750298,
+   "bbox": [
+    12.984305,
+    12.985809,
+    77.74799,
+    77.75232
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Swiggy"
+   ],
+   "description": "Office towers at Pattandur Agrahara, Whitefield; Swiggy's head office occupies floors 3-6 of Tower 1 after its 2026 move from the Outer Ring Road.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1004340436",
+    "https://www.swiggy.com/corporate/",
+    "https://search.gleif.org/#/record/335800X1V83HPPJOCG52"
+   ]
+  },
+  {
+   "name": "HM Tech Park",
+   "aliases": [],
+   "locality": "Pattandur Agrahara (Whitefield)",
+   "developer": null,
+   "lat": 12.983005,
+   "lng": 77.75134,
+   "bbox": [
+    12.982671,
+    12.983389,
+    77.75021,
+    77.752089
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Netradyne"
+   ],
+   "description": "Office campus in east Whitefield near Hope Farm; Netradyne's Indian R&D company is registered in Unit 102, Wing 2.",
+   "sources": [
+    "https://www.openstreetmap.org/way/145130697",
+    "https://search.gleif.org/#/record/335800BXAUC6GK4SVY42"
+   ]
+  },
+  {
+   "name": "International Tech Park Bangalore",
+   "aliases": [
+    "ITPB",
+    "ITPL",
+    "International Tech Park Bangalore",
+    "Ascendas ITPL SEZ"
+   ],
+   "locality": "Whitefield",
+   "developer": "Ascendas (CapitaLand) with KIADB",
+   "lat": 12.985228,
+   "lng": 77.736825,
+   "bbox": [
+    12.981491,
+    12.987764,
+    77.733699,
+    77.739693
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Mu Sigma"
+   ],
+   "description": "Whitefield's original IT park and SEZ; Mu Sigma's Global Innovation Center occupies floors 10-14 of the Aviator building.",
+   "sources": [
+    "https://www.openstreetmap.org/way/26399624",
+    "https://www.mu-sigma.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Embassy GolfLinks Business Park",
+   "aliases": [
+    "EGL",
+    "Embassy Golf Links"
+   ],
+   "locality": "Domlur / Challaghatta (Intermediate Ring Road)",
+   "developer": "Embassy Group and K Raheja Corp",
+   "lat": 12.950254,
+   "lng": 77.644071,
+   "bbox": [
+    12.945593,
+    12.95396,
+    77.63981,
+    77.647252
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Unacademy"
+   ],
+   "description": "Business park off the Intermediate Ring Road at Challaghatta; in this lens it appears only through an OSM 'Unacademy' office POI (other lenses cover its large MNC tenants).",
+   "sources": [
+    "https://www.openstreetmap.org/way/28453683",
+    "https://www.openstreetmap.org/node/11684157869"
+   ]
+  },
+  {
+   "name": "Fairway Business Park",
+   "aliases": [],
+   "locality": "Challaghatta (Domlur)",
+   "developer": null,
+   "lat": 12.951905,
+   "lng": 77.642272,
+   "bbox": [
+    12.951191,
+    12.952659,
+    77.64161,
+    77.643085
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "BigBasket"
+   ],
+   "description": "Office building behind Dell at Challaghatta, Domlur; BigBasket's operating company (Supermarket Grocery Supplies) is registered on its 2nd, 7th and 8th floors.",
+   "sources": [
+    "https://www.openstreetmap.org/way/217566879",
+    "https://search.gleif.org/#/record/9845009D9AEDDA4D5809"
+   ]
+  },
+  {
+   "name": "Eastland Citadel",
+   "aliases": [],
+   "locality": "Madiwala (Hosur Road)",
+   "developer": null,
+   "lat": 12.931828,
+   "lng": 77.613052,
+   "bbox": [
+    12.931515,
+    12.932137,
+    77.612786,
+    77.613398
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Jumbotail"
+   ],
+   "description": "Office building at 102 Hosur Road, Madiwala Check Post; both Jumbotail companies are registered on its 6th floor.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1160859552",
+    "https://search.gleif.org/#/record/984500985CE5N0D7Q867"
+   ]
+  },
+  {
+   "name": "Kalyani Tech Park",
+   "aliases": [],
+   "locality": "Kundalahalli / Whitefield (EPIP side)",
+   "developer": "Kalyani Developers",
+   "lat": 12.969732,
+   "lng": 77.71753,
+   "bbox": [
+    12.967354,
+    12.972473,
+    77.715457,
+    77.719202
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Byju's"
+   ],
+   "description": "Tech park near Kundalahalli, Whitefield; OSM pins a Byju's office here, which Byju's would have vacated in 2024 when it kept only its IBC Knowledge Park HQ.",
+   "sources": [
+    "https://www.openstreetmap.org/way/414833843",
+    "https://www.openstreetmap.org/node/9851123904"
+   ]
+  },
+  {
+   "name": "Salarpuria Sattva Eminence",
+   "aliases": [],
+   "locality": "Panathur (off Outer Ring Road)",
+   "developer": "Salarpuria Sattva",
+   "lat": 12.94393,
+   "lng": 77.698793,
+   "bbox": [
+    12.942902,
+    12.94451,
+    77.69792,
+    77.69941
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Myntra"
+   ],
+   "description": "Office building on Panathur Main Road behind Prestige Tech Park; OSM pins a Myntra office inside it.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1092683241",
+    "https://www.openstreetmap.org/node/13342712936"
+   ]
+  },
+  {
+   "name": "HustleHub Tech Park",
+   "aliases": [
+    "HustleHub One East"
+   ],
+   "locality": "HSR Layout Sector 2 (Somasundarapalya)",
+   "developer": "HustleHub",
+   "lat": 12.901075,
+   "lng": 77.650973,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Acko"
+   ],
+   "description": "Managed office campus at 36/5 Somasundarapalya, 27th Main Road, HSR Layout Sector 2; all three Acko insurance companies are registered in HustleHub One East. Not mapped as a polygon; the point is a tenant POI carrying the campus address.",
+   "sources": [
+    "https://www.openstreetmap.org/node/12589624599",
+    "https://search.gleif.org/#/record/335800MKESDG213OS763"
+   ]
+  },
+  {
+   "name": "Vaishnavi Silicon Terraces",
+   "aliases": [],
+   "locality": "Koramangala (Hosur Main Road)",
+   "developer": "Vaishnavi Group",
+   "lat": 12.937793,
+   "lng": 77.611084,
+   "bbox": [
+    12.937518,
+    12.938207,
+    77.610397,
+    77.611691
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "BRND.ME"
+   ],
+   "description": "Office complex at 30/1 Hosur Main Road, Koramangala; BRND.ME (formerly Mensa Brands) gives Tower A as its headquarters.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1084382254",
+    "https://search.gleif.org/#/record/254900YIIQ9R6S52EX32"
+   ]
+  },
+  {
+   "name": "KIADB Hardware Park",
+   "aliases": [
+    "KIADB Hi-Tech Hardware Park",
+    "Hi-Tech Defence and Aerospace Park (adjacent)"
+   ],
+   "locality": "Hardware Park, near Devanahalli (Yelahanka taluk)",
+   "developer": "KIADB",
+   "lat": 13.151089,
+   "lng": 77.685651,
+   "bbox": [
+    13.146138,
+    13.16031,
+    77.675343,
+    77.708203
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Zetwerk"
+   ],
+   "description": "State industrial estate north of the city near the airport; Zetwerk Electronics opened a defence, automotive and IT-hardware manufacturing unit here in February 2026.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1279894907",
+    "https://machinist.in/2026/02/zetwerk-electronics-inaugurates-defence-automotive-and-it-hardware-manufacturing-unit-in-bengaluru/"
+   ]
+  },
+  {
+   "name": "Trifecta Adatto",
+   "aliases": [],
+   "locality": "Garudacharpalya / Mahadevapura (ITPL Main Road)",
+   "developer": null,
+   "lat": 12.993865,
+   "lng": 77.699255,
+   "bbox": [
+    12.993083,
+    12.994383,
+    77.698839,
+    77.699664
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Flipkart"
+   ],
+   "description": "Commercial building on ITPL Main Road at Garudacharpalya; OSM pins a Flipkart office inside it (unconfirmed).",
+   "sources": [
+    "https://www.openstreetmap.org/way/1267710996",
+    "https://www.openstreetmap.org/node/13747713838"
+   ]
+  },
+  {
+   "name": "Aurbis Business Park",
+   "aliases": [],
+   "locality": "Devarabeesanahalli (Outer Ring Road)",
+   "developer": null,
+   "lat": 12.930081,
+   "lng": 77.68686,
+   "bbox": [
+    12.929594,
+    12.930422,
+    77.686611,
+    77.687026
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "PhonePe"
+   ],
+   "description": "Office building on the Outer Ring Road beside Embassy TechVillage; OSM pins a PhonePe office inside it (unconfirmed).",
+   "sources": [
+    "https://www.openstreetmap.org/way/1066436539",
+    "https://www.openstreetmap.org/node/12872598871"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "Flipkart",
+   "aliases": [
+    "Flipkart Internet Pvt Ltd",
+    "Flipkart India Pvt Ltd",
+    "Flipkart Group",
+    "Instakart Services (Ekart)"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "India's largest e-commerce marketplace (Walmart-majority-owned since 2018), founded and headquartered in Bengaluru; its HQ is the three bridge-linked Alyssa, Begonia and Clover buildings at Embassy TechVillage.",
+   "founded": 2007,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.flipkart.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Embassy TechVillage (Alyssa, Begonia & Clover)",
+     "address": "Buildings Alyssa, Begonia & Clover, Embassy Tech Village, Outer Ring Road, Devarabeesanahalli Village, Bengaluru 560103",
+     "building": "Alyssa, Begonia & Clover",
+     "techPark": "Embassy TechVillage",
+     "locality": "Devarabeesanahalli (Outer Ring Road)",
+     "lat": 12.926941,
+     "lng": 77.692637,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "GLEIF LEI records for Flipkart Internet Pvt Ltd (renewed 24 Sep 2026), Flipkart India Pvt Ltd and Instakart Services all give this legal address, and an OSM office POI 'Flipkart' (node/11232355796) marks the buildings: https://search.gleif.org/#/record/335800KS8LATZVLFH345"
+    },
+    {
+     "label": "Mantri Commercio office (OSM only)",
+     "address": "Mantri Commercio, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "building": null,
+     "techPark": "Mantri Commercio",
+     "locality": "Bellandur / Kariyammana Agrahara (Outer Ring Road)",
+     "lat": 12.932997,
+     "lng": 77.683501,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI 'Flipkart Internet Private Limited' with housenumber 'Mantri Commercio' places Flipkart here; it may be historical and no company or press source was reached: https://www.openstreetmap.org/node/3394879073"
+    },
+    {
+     "label": "Trifecta Adatto office (OSM only)",
+     "address": "Trifecta Adatto, ITPL Main Road, Garudacharpalya, Mahadevapura, Bengaluru 560048",
+     "building": null,
+     "techPark": "Trifecta Adatto",
+     "locality": "Garudacharpalya / Mahadevapura (ITPL Main Road)",
+     "lat": 12.993427,
+     "lng": 77.699136,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI 'Flipkart' inside the Trifecta Adatto commercial polygon places an office here; function and date unknown, unconfirmed by any company or press source: https://www.openstreetmap.org/node/13747713838"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800KS8LATZVLFH345",
+    "https://search.gleif.org/#/record/335800ILXPCOFAHC5V79",
+    "https://search.gleif.org/#/record/335800HK7TY629RYNC74",
+    "https://www.openstreetmap.org/node/11232355796",
+    "https://www.openstreetmap.org/node/3394879073",
+    "https://www.openstreetmap.org/node/13747713838"
+   ]
+  },
+  {
+   "name": "Myntra",
+   "aliases": [
+    "Myntra Designs Pvt Ltd",
+    "Myntra Jabong"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "Fashion e-commerce platform founded in Bengaluru and owned by Flipkart since 2014 (not separately a unicorn); registered in Flipkart's Alyssa/Begonia/Clover buildings at Embassy TechVillage.",
+   "founded": 2007,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.myntra.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Embassy TechVillage (shared with Flipkart)",
+     "address": "Buildings Alyssa, Begonia & Clover, Embassy Tech Village, Outer Ring Road, Devarabeesanahalli Village, Bengaluru 560103",
+     "building": "Alyssa, Begonia & Clover",
+     "techPark": "Embassy TechVillage",
+     "locality": "Devarabeesanahalli (Outer Ring Road)",
+     "lat": 12.926941,
+     "lng": 77.692637,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Myntra Designs Pvt Ltd's GLEIF LEI record (renewed 12 Aug 2026) gives the Alyssa/Begonia/Clover buildings at Embassy Tech Village as its legal address; the point is the OSM 'Flipkart' POI on the same buildings: https://search.gleif.org/#/record/335800UYD9YQC7QAVA42"
+    },
+    {
+     "label": "Salarpuria Sattva Eminence office (OSM only)",
+     "address": "Salarpuria Sattva Eminence, Panathur Main Road, Bengaluru 560103",
+     "building": null,
+     "techPark": "Salarpuria Sattva Eminence",
+     "locality": "Panathur (off Outer Ring Road)",
+     "lat": 12.943754,
+     "lng": 77.698762,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI 'Myntra' inside the Salarpuria Sattva Eminence polygon places Myntra here; function unknown and unconfirmed: https://www.openstreetmap.org/node/13342712936"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800UYD9YQC7QAVA42",
+    "https://www.openstreetmap.org/node/13342712936"
+   ]
+  },
+  {
+   "name": "PhonePe",
+   "aliases": [
+    "PhonePe Ltd",
+    "PhonePe Pvt Ltd",
+    "Pincode"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "UPI payments and financial-services group (Walmart-majority-owned), headquartered in Bengaluru; every group entity is registered at Salarpuria Softzone on the Sarjapur-ORR junction.",
+   "founded": 2015,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.phonepe.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Salarpuria Softzone, Block A",
+     "address": "Office-2, Floors 4-7, Wing A, Block A, Salarpuria Softzone, Service Road, Green Glen Layout, Bellandur, Bengaluru 560103",
+     "building": "Block A, Wings A & B",
+     "techPark": "Salarpuria Sattva Softzone",
+     "locality": "Bellandur (Green Glen Layout, Outer Ring Road)",
+     "lat": 12.924165,
+     "lng": 77.67037,
+     "geocodeSource": "osm-park",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "GLEIF LEI records for PhonePe Ltd and six group companies (Lending, Technology Services, Insurance Broking, Finance, Wealth Broking; Pincode at Wing B floor 6) all give Salarpuria Softzone Block A; point is the Softzone polygon centroid, not the wing: https://search.gleif.org/#/record/335800NGJ7E9BD4C6Z11"
+    },
+    {
+     "label": "Aurbis Business Park office (OSM only)",
+     "address": "Aurbis Business Park, Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "building": null,
+     "techPark": "Aurbis Business Park",
+     "locality": "Devarabeesanahalli (Outer Ring Road)",
+     "lat": 12.929855,
+     "lng": 77.686795,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI 'PhonePe' inside the Aurbis Business Park building places a PhonePe office here; not confirmed by the company or press: https://www.openstreetmap.org/node/12872598871"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800NGJ7E9BD4C6Z11",
+    "https://search.gleif.org/#/record/3358003F76VTTKT3MC29",
+    "https://search.gleif.org/#/record/335800IJ84E5DYATXL15",
+    "https://search.gleif.org/#/record/3358007BSUY9A4FXOO93",
+    "https://www.openstreetmap.org/node/12872598871"
+   ]
+  },
+  {
+   "name": "Swiggy",
+   "aliases": [
+    "Swiggy Ltd",
+    "Bundl Technologies",
+    "Swiggy Instamart",
+    "Scootsy Logistics"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "Food-delivery and Instamart quick-commerce company (listed Nov 2024); its head office moved in 2026 to Sumadhura Capitol Towers, Whitefield, while the listed company's registered office remains at Embassy TechVillage.",
+   "founded": 2014,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.swiggy.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Head office - Sumadhura Capitol Towers, Tower 1",
+     "address": "Sumadhura Capitol Towers, 3rd-6th Floor, Tower 1, Sy. No. 14 & 158, Pattanduru Agrahara, K R Puram Hobli, Bengaluru 560066",
+     "building": "Tower 1",
+     "techPark": "Sumadhura Capitol Towers",
+     "locality": "Pattandur Agrahara (Whitefield)",
+     "lat": 12.985034,
+     "lng": 77.750152,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Swiggy's corporate page lists this as its 'Head Office Address' (fetched Oct 2026), Swiggy Networks Ltd's LEI (updated 6 Oct 2026) gives Tower I as its legal address, and an OSM 'Swiggy' POI sits in the complex: https://www.swiggy.com/corporate/"
+    },
+    {
+     "label": "Registered office - Embassy TechVillage, Blocks I & J",
+     "address": "No. 55, Sy No. 8-14, Ground Floor, I & J Block, Embassy Tech Village, Outer Ring Road, Devarabisanahalli, Bengaluru 560103",
+     "building": "Blocks I & J",
+     "techPark": "Embassy TechVillage",
+     "locality": "Devarabeesanahalli (Outer Ring Road)",
+     "lat": 12.928577,
+     "lng": 77.69269,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Swiggy Ltd's and Swiggy Instamart's LEI records (Instamart renewed 15 Apr 2026) still give the I&J Block at Embassy Tech Village as legal address, though the head office has moved to Whitefield; how much space remains here is unconfirmed. Point is OSM's 'Block 5I & 5J' building: https://search.gleif.org/#/record/335800R11DC3QR7KH186"
+    }
+   ],
+   "sources": [
+    "https://www.swiggy.com/corporate/",
+    "https://search.gleif.org/#/record/335800X1V83HPPJOCG52",
+    "https://search.gleif.org/#/record/335800R11DC3QR7KH186",
+    "https://search.gleif.org/#/record/335800ZNF1O5FZWA3T67",
+    "https://www.openstreetmap.org/node/11232355795",
+    "https://www.openstreetmap.org/way/1060953990"
+   ]
+  },
+  {
+   "name": "Ola",
+   "aliases": [
+    "Ola Cabs",
+    "ANI Technologies Pvt Ltd",
+    "Ola Consumer",
+    "Ola Fleet Technologies"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Mobility & EV",
+   "description": "Ride-hailing company (ANI Technologies); its registered and headquarters address is the Ola Campus, Wing C of Prestige RMZ Startech on Hosur Road, shared with Ola Electric and Krutrim.",
+   "founded": 2010,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.olacabs.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Ola Campus - Prestige RMZ Startech, Wing C",
+     "address": "Ola Campus, Wing C, Prestige RMZ Startech, Hosur Road, Municipal Ward No. 67, Industrial Layout, Bengaluru 560095",
+     "building": "Wing C",
+     "techPark": "Prestige RMZ Startech",
+     "locality": "Koramangala Industrial Layout (Hosur Road)",
+     "lat": 12.931334,
+     "lng": 77.616353,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "ANI Technologies' LEI record (renewed Nov 2025) gives this address and Ola Fleet Technologies' gives 2nd Floor, Block C, Prestige Startech; an OSM 'Ola Office' POI sits in the complex: https://search.gleif.org/#/record/3358005EI53EZBOISD56"
+    },
+    {
+     "label": "Regent Insignia, Koramangala 4th Block (former registered office)",
+     "address": "Regent Insignia, #414, 3rd Floor, 4th Block, 17th Main, 100 Feet Road, Koramangala, Bengaluru 560034",
+     "building": "Regent Insignia",
+     "techPark": null,
+     "locality": "Koramangala 4th Block (100 Feet Road)",
+     "lat": 12.93367,
+     "lng": 77.623793,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM maps this building as 'ANI Technologies Pvt Ltd.' (way/347416561 and node/5915230907) and older references give it as Ola's address; current use is unconfirmed, so low: https://www.openstreetmap.org/way/347416561"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/3358005EI53EZBOISD56",
+    "https://search.gleif.org/#/record/3358003633QWXDBSQZ09",
+    "https://www.openstreetmap.org/node/12320010204",
+    "https://www.openstreetmap.org/way/347416561"
+   ]
+  },
+  {
+   "name": "Ola Electric",
+   "aliases": [
+    "Ola Electric Mobility Ltd",
+    "Ola Electric Technologies",
+    "Ola Cell Technologies"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Mobility & EV",
+   "description": "Electric two-wheeler and battery-cell maker (listed Aug 2024); corporate HQ in Wing C of Prestige RMZ Startech, Bengaluru, while its Futurefactory and gigafactory are in Krishnagiri, Tamil Nadu (outside the metro).",
+   "founded": 2017,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.olaelectric.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate HQ - Prestige RMZ Startech, Wing C",
+     "address": "Wing C, Prestige RMZ Startech, Hosur Road, Municipal Ward No. 67, Municipal No. 140, Bengaluru 560095",
+     "building": "Wing C",
+     "techPark": "Prestige RMZ Startech",
+     "locality": "Koramangala Industrial Layout (Hosur Road)",
+     "lat": 12.931334,
+     "lng": 77.616353,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Ola Electric Mobility Ltd's LEI record (renewed Dec 2025) plus Ola Electric Technologies' and Ola Cell Technologies' records all give Wing C, Prestige RMZ Startech; the point is the OSM 'Ola Office' POI in the complex: https://search.gleif.org/#/record/335800BB7I348XAZPI13"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800BB7I348XAZPI13",
+    "https://search.gleif.org/#/record/335800PIWV2EPXD6WB54",
+    "https://search.gleif.org/#/record/9845009DSDVCC95J4591"
+   ]
+  },
+  {
+   "name": "Krutrim",
+   "aliases": [
+    "Ola Krutrim",
+    "Krutrim SI Designs Pvt Ltd",
+    "Krutrim Data Centre"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "AI & deep tech",
+   "description": "Bhavish Aggarwal's AI-model and AI-cloud company, India's first AI unicorn (2024); registered in Wing C of Prestige RMZ Startech alongside Ola.",
+   "founded": 2023,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.olakrutrim.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Prestige RMZ Startech, Wing C",
+     "address": "Wing C, Prestige RMZ Startech, Industrial Layout, Hosur Road, Koramangala, Bengaluru 560034",
+     "building": "Wing C",
+     "techPark": "Prestige RMZ Startech",
+     "locality": "Koramangala Industrial Layout (Hosur Road)",
+     "lat": 12.931334,
+     "lng": 77.616353,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LEI records for Krutrim SI Designs Pvt Ltd (renewed Jun 2026) and Krutrim Data Centre Pvt Ltd give this address; point is the OSM 'Ola Office' POI in the same complex: https://search.gleif.org/#/record/335800DW8G5GD8OBLJ91"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800DW8G5GD8OBLJ91",
+    "https://search.gleif.org/#/record/984500A0099B382HE825"
+   ]
+  },
+  {
+   "name": "Razorpay",
+   "aliases": [
+    "Razorpay Software Ltd",
+    "Razorpay Software Pvt Ltd",
+    "Razorpay Payments",
+    "Razorpay Technologies"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Payments-gateway and business-banking fintech; every Indian entity is registered at SJR Cyber on Laskar Hosur Road, Adugodi.",
+   "founded": 2014,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://razorpay.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - SJR Cyber, Adugodi",
+     "address": "1st Floor, SJR Cyber, 22 Laskar Hosur Road, Adugodi, Bengaluru 560030",
+     "building": "SJR Cyber",
+     "techPark": null,
+     "locality": "Adugodi (Laskar Hosur Road)",
+     "lat": 12.939054,
+     "lng": 77.609513,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LEI records for Razorpay Software Ltd (renewed Jul 2026), Razorpay Payments and Razorpay Technologies give this address, and an OSM POI 'Razorpay Software Private Limited' (website razorpay.com) sits in the SJR Cyber building: https://search.gleif.org/#/record/335800MPTXBI8YNP7245"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800MPTXBI8YNP7245",
+    "https://search.gleif.org/#/record/3358006CKLQ4MQSR6E67",
+    "https://search.gleif.org/#/record/335800DPJ2C3LDEO7R75",
+    "https://www.openstreetmap.org/node/4586511728"
+   ]
+  },
+  {
+   "name": "CRED",
+   "aliases": [
+    "Dreamplug Technologies Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Credit-card payments and rewards app; registered in Mumbai but headquartered on 12th Main, HAL 2nd Stage, Indiranagar, where OSM maps its named buildings (aero, terra, aqua).",
+   "founded": 2018,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://cred.club",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - CRED aero, 12th Main, HAL 2nd Stage",
+     "address": "769/770, 12th Main Road, HAL 2nd Stage, Indiranagar, Bengaluru 560008",
+     "building": "CRED aero",
+     "techPark": null,
+     "locality": "HAL 2nd Stage (Indiranagar)",
+     "lat": 12.969965,
+     "lng": 77.641036,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Dreamplug Technologies' LEI record gives '770, 12th Main, 100 Feet Road, HAL II Stage, Indiranagar' as headquarters address (legal address Mumbai), and OSM maps building 769;770 as 'CRED aero' with website cred.club: https://search.gleif.org/#/record/3358009PTDF3JSS9N195"
+    },
+    {
+     "label": "CRED terra, 12th Main",
+     "address": "777, 12th Main Road, HAL 2nd Stage, Indiranagar, Bengaluru 560008",
+     "building": "CRED terra",
+     "techPark": null,
+     "locality": "HAL 2nd Stage (Indiranagar)",
+     "lat": 12.968713,
+     "lng": 77.641078,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps building no. 777 as 'CRED terra' with website cred.club, two doors from the HQ; no company page lists it: https://www.openstreetmap.org/way/346526055"
+    },
+    {
+     "label": "CRED aqua, 100 Feet Road",
+     "address": "100 Feet Road, Indiranagar, Bengaluru 560071",
+     "building": "CRED aqua",
+     "techPark": null,
+     "locality": "Indiranagar / Domlur (100 Feet Road)",
+     "lat": 12.963781,
+     "lng": 77.641341,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI 'CRED aqua' with website cred.club places this office on 100 Feet Road: https://www.openstreetmap.org/node/10012574395"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/3358009PTDF3JSS9N195",
+    "https://www.openstreetmap.org/way/346526047",
+    "https://www.openstreetmap.org/way/346526055",
+    "https://www.openstreetmap.org/node/10012574395"
+   ]
+  },
+  {
+   "name": "Zerodha",
+   "aliases": [
+    "Zerodha Broking Ltd",
+    "Zerodha Commodities",
+    "Zerodha Asset Management",
+    "Zerodha Fund House",
+    "Rainmatter"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Bootstrapped discount stockbroker headquartered in J.P. Nagar, with a support centre nearby and its mutual-fund arm on Richmond Road.",
+   "founded": 2010,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://zerodha.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Dollars Colony, J.P. Nagar 4th Phase",
+     "address": "#153/154, 4th Cross, Dollars Colony, opp. Clarence Public School, J.P. Nagar 4th Phase, Bengaluru 560078",
+     "building": null,
+     "techPark": null,
+     "locality": "J.P. Nagar 4th Phase",
+     "lat": 12.904037,
+     "lng": 77.597257,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Zerodha's contact page lists this as headquarters and registered office (fetched Oct 2026), its LEI record repeats it, and OSM maps the building 'Zerodha Broking Limited' (way/348322866): https://zerodha.com/contact/"
+    },
+    {
+     "label": "Support & mailing office - Kalyani Vista",
+     "address": "#192A, 4th Floor, Kalyani Vista, 3rd Main Road, J.P. Nagar 4th Phase, Bengaluru 560076",
+     "building": "Kalyani Vista",
+     "techPark": null,
+     "locality": "J.P. Nagar 4th Phase",
+     "lat": 12.904517,
+     "lng": 77.601476,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Zerodha's contact page gives Kalyani Vista as its support and mailing address and customer-care escalation address, and an OSM 'Zerodha' POI on Bannerghatta Road (560076) sits beside it: https://zerodha.com/contact/"
+    },
+    {
+     "label": "Zerodha Fund House (AMC) - IndiQube Penta, Richmond Road",
+     "address": "IndiQube Penta / Le Parc Richmonde, New No. 51 (Old No. 14), 2nd Floor, Richmond Road, Bengaluru 560025",
+     "building": "IndiQube Penta",
+     "techPark": null,
+     "locality": "Richmond Road (Shanthala Nagar)",
+     "lat": 12.965995,
+     "lng": 77.603566,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "GLEIF records for Zerodha Mutual Fund and its schemes (renewed Jun-Oct 2026) give Zerodha Asset Management's address as IndiQube Penta / Zerodha Fund House, No. 51 Richmond Road; point is the OSM 'IndiQube Penta' building polygon: https://search.gleif.org/#/record/335800JJNVWMGYSF7H10"
+    }
+   ],
+   "sources": [
+    "https://zerodha.com/contact/",
+    "https://search.gleif.org/#/record/335800Z8V2AE3K5WGU11",
+    "https://search.gleif.org/#/record/335800JJNVWMGYSF7H10",
+    "https://www.openstreetmap.org/way/348322866",
+    "https://www.openstreetmap.org/node/3791464519",
+    "https://www.openstreetmap.org/way/1124838112"
+   ]
+  },
+  {
+   "name": "Groww",
+   "aliases": [
+    "Billionbrains Garage Ventures Ltd",
+    "Groww Invest Tech",
+    "Nextbillion Technology"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Investing and broking platform (parent Billionbrains Garage Ventures listed Nov 2025); all group entities are registered at Vaishnavi Tech Park South Tower on Sarjapur Main Road.",
+   "founded": 2016,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://groww.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Vaishnavi Tech Park, South Tower",
+     "address": "Vaishnavi Tech Park, South Tower, 3rd & 4th Floor, Survey No. 16/1 and 17/2, Ambalipura, Varthur Hobli, Bellandur, Bengaluru 560103",
+     "building": "South Tower",
+     "techPark": "Vaishnavi Tech Park",
+     "locality": "Bellandur / Ambalipura (Sarjapur Main Road)",
+     "lat": 12.919865,
+     "lng": 77.671736,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LEI records for Billionbrains Garage Ventures Ltd (Jan 2026), Groww Invest Tech, Groww AMC, Groww Pay and Groww Creditserv all give South Tower, Vaishnavi Tech Park; point is OSM's 'South Tower' building (way/1363272826): https://search.gleif.org/#/record/984500V0370C80BS6191"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/984500V0370C80BS6191",
+    "https://search.gleif.org/#/record/335800Z52MRUZRLDV332",
+    "https://search.gleif.org/#/record/9845004E7AZ4GB567946",
+    "https://www.openstreetmap.org/way/1363272826"
+   ]
+  },
+  {
+   "name": "slice",
+   "aliases": [
+    "slice Small Finance Bank",
+    "North East Small Finance Bank",
+    "Garagepreneurs Internet"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Consumer-credit fintech that merged with North East Small Finance Bank (2024-25) to become slice Small Finance Bank, registered in Guwahati with its corporate office in Koramangala.",
+   "founded": 2016,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://slice.bank.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - Ashford Park View, Koramangala",
+     "address": "No. 9 Ashford Park View, 80 Feet Road, Koramangala 3rd Block, Bengaluru 560034",
+     "building": "Ashford Park View",
+     "techPark": null,
+     "locality": "Koramangala 3rd Block (80 Feet Road)",
+     "lat": 12.9286858,
+     "lng": 77.6327879,
+     "geocodeSource": "nominatim",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "slice.bank.in's footer gives this as the bank's corporate office (fetched Oct 2026); Nominatim resolves the Ashford Park View building and an OSM 'slice' POI (node/11134754760) sits beside it: https://slice.bank.in/"
+    }
+   ],
+   "sources": [
+    "https://slice.bank.in/",
+    "https://search.gleif.org/#/record/335800TJ4OW1RJFFJZ49",
+    "https://www.openstreetmap.org/node/11134754760"
+   ]
+  },
+  {
+   "name": "Juspay",
+   "aliases": [
+    "Juspay Technologies Pvt Ltd",
+    "Namma Yatri"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Payments-infrastructure company (unicorn 2025) behind HyperCheckout and the open-mobility app Namma Yatri; headquartered at Stallion Business Centre, Koramangala 6th Block.",
+   "founded": 2012,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://juspay.io",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Stallion Business Centre",
+     "address": "Stallion Business Centre, No. 444, 3rd & 4th Floor, 18th Main, 6th Block, Koramangala, Bengaluru 560095",
+     "building": "Stallion Business Centre",
+     "techPark": null,
+     "locality": "Koramangala 6th Block",
+     "lat": 12.940009,
+     "lng": 77.622924,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Juspay Technologies' LEI record (renewed Jan 2026) gives this address and OSM maps the building as 'Juspay Technologies Private Limited' (way/1168771886): https://search.gleif.org/#/record/9845000A466M9O6D4859"
+    },
+    {
+     "label": "Namma Yatri office - Ganapathi Temple Road",
+     "address": "817, Ganapathi Temple Road, Koramangala 8th Block, Bengaluru 560095",
+     "building": null,
+     "techPark": null,
+     "locality": "Koramangala 8th Block",
+     "lat": 12.942236,
+     "lng": 77.622057,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI 'Namma Yatri' (Juspay's mobility app) at 817 Ganapathi Temple Road places this office; unconfirmed by the company: https://www.openstreetmap.org/node/12528704603"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/9845000A466M9O6D4859",
+    "https://www.openstreetmap.org/way/1168771886",
+    "https://www.openstreetmap.org/node/12528704603"
+   ]
+  },
+  {
+   "name": "Open",
+   "aliases": [
+    "Open Financial Technologies Pvt Ltd",
+    "Open Money"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "SME neobanking and business-finance platform (unicorn 2022), registered at Tower 2, RGA Tech Park on Sarjapur Road.",
+   "founded": 2017,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://open.money",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - RGA Tech Park, Tower 2",
+     "address": "3rd Floor, Tower 2, RGA Tech Park, 18 Sarjapur Road, Carmelaram, Hadosiddapura, Doddakannelli, Bengaluru 560035",
+     "building": "Tower 2",
+     "techPark": "RGA Tech Park",
+     "locality": "Carmelaram / Doddakannelli (Sarjapur Road)",
+     "lat": 12.901265,
+     "lng": 77.704984,
+     "geocodeSource": "osm-park",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Open Financial Technologies' LEI record (renewed Apr 2026) gives this as legal address; point is the RGA Tech Park polygon centroid, not Tower 2: https://search.gleif.org/#/record/335800CRYGZDOPHJXO21"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800CRYGZDOPHJXO21"
+   ]
+  },
+  {
+   "name": "Zeta",
+   "aliases": [
+    "Better World Technology Pvt Ltd",
+    "Zeta Suite"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "Fintech",
+   "description": "Banking-technology and card-processing platform (SoftBank-backed unicorn) founded by Bhavin Turakhia; Indian entity registered in Mumbai, with Bangalore listed first among its India locations.",
+   "founded": 2015,
+   "hqCity": "San Ramon",
+   "hqCountry": "United States",
+   "isUnicorn": true,
+   "website": "https://www.zeta.tech",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - Diamond District (OSM only)",
+     "address": "Diamond District, HAL Old Airport Road, Kodihalli, Bengaluru 560008 (tower not published)",
+     "building": null,
+     "techPark": "Diamond District",
+     "locality": "Kodihalli (HAL Old Airport Road)",
+     "lat": 12.960069,
+     "lng": 77.643373,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Zeta's careers page lists Bangalore among its India locations but no address (fetched Oct 2026), its Indian entity's LEI is in Mumbai, and only an OSM office POI 'Zeta' places the office in Diamond District: https://www.openstreetmap.org/node/13563559848"
+    }
+   ],
+   "sources": [
+    "https://www.zeta.tech/in/careers",
+    "https://search.gleif.org/#/record/984500AFCD3C746QA657",
+    "https://www.openstreetmap.org/node/13563559848"
+   ]
+  },
+  {
+   "name": "Perfios",
+   "aliases": [
+    "Perfios Software Solutions Pvt Ltd",
+    "Perfios Account Aggregation Services"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Credit-decisioning and financial-data analytics SaaS for lenders (unicorn 2024); registered in Mumbai with its Bengaluru HQ at HM Vibha Towers, Adugodi.",
+   "founded": 2008,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://perfios.ai",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - IndiQube HM Vibha, Adugodi",
+     "address": "66/5-25, 4th-5th Floor, IndiQube HM Vibha Towers, Lasker Hosur Road, above Star Bazaar, Adugodi, Bengaluru 560030",
+     "building": "HM Vibha Towers",
+     "techPark": null,
+     "locality": "Adugodi (Lasker Hosur Road)",
+     "lat": 12.9365869,
+     "lng": 77.6102824,
+     "geocodeSource": "photon",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Perfios Account Aggregation Services' LEI record gives 5th Floor, IndiQube-HM Vibha Building, Lasker Hosur Road, and perfios.ai's contact page (cited by lens E08) lists the 4th floor of the same building as 'Bangalore HQ'; Photon resolves HM Vibha Towers: https://search.gleif.org/#/record/894500ECFFCR2B813H33"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/894500ECFFCR2B813H33",
+    "https://search.gleif.org/#/record/8945005EX9MQBIO1AL24",
+    "https://perfios.ai/contact-us/"
+   ]
+  },
+  {
+   "name": "CoinSwitch",
+   "aliases": [
+    "Bitcipher Labs LLP",
+    "CoinSwitch Kuber",
+    "Peepalco"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Crypto and multi-asset investing app (unicorn 2021); its operating LLP is registered at an Awfis centre in Prestige Tech Park.",
+   "founded": 2017,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://coinswitch.co",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office - Awfis, Valence Block, Prestige Tech Park",
+     "address": "C/o Awfis, 6th Floor, Valence Block, Prestige Tech Park, Marathahalli-Sarjapur Outer Ring Road, Bellandur, Bengaluru 560103",
+     "building": "Valence",
+     "techPark": "Prestige Tech Park",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "lat": 12.942865,
+     "lng": 77.692806,
+     "geocodeSource": "osm-park",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bitcipher Labs LLP's LEI record (renewed Sep 2025) gives this coworking address; point is the Prestige Tech Park centroid, not Valence: https://search.gleif.org/#/record/254900Y1946Z9SD7B516"
+    },
+    {
+     "label": "Electra block office (OSM only)",
+     "address": "Electra, Prestige Tech Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "building": "Electra",
+     "techPark": "Prestige Tech Park",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "lat": 12.943111,
+     "lng": 77.692348,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI 'Coinswitch / Peepalco' in the Electra footprint places an office here; it may be the same tenancy as the Awfis address: https://www.openstreetmap.org/node/11948821069"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/254900Y1946Z9SD7B516",
+    "https://www.openstreetmap.org/node/11948821069"
+   ]
+  },
+  {
+   "name": "Moneyview",
+   "aliases": [
+    "Moneyview Ltd",
+    "Whizdm Innovations",
+    "Whizdm Finance"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Digital personal-loan and money-management app (unicorn 2024), headquartered in The Address building on the Outer Ring Road.",
+   "founded": 2014,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://moneyview.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - The Address, Outer Ring Road",
+     "address": "17/1, 1st-3rd Floor, The Address Building, Outer Ring Road, Marathahalli, Kadubeesanahalli, Bellandur, Bengaluru 560103",
+     "building": "The Address",
+     "techPark": null,
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "lat": 12.937444,
+     "lng": 77.692711,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LEI records for Moneyview Ltd (Dec 2025) and Whizdm Finance (3rd floor) give The Address Building; point is OSM's 'The Address' building (way/377325102): https://search.gleif.org/#/record/984500F9C8FC8694D558"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/984500F9C8FC8694D558",
+    "https://search.gleif.org/#/record/9845006BD765B02D8A16",
+    "https://www.openstreetmap.org/way/377325102"
+   ]
+  },
+  {
+   "name": "Navi",
+   "aliases": [
+    "Navi Ltd",
+    "Navi Technologies"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Sachin Bansal's lending, insurance and UPI fintech (not a priced unicorn), registered on the 9th floor of Vaishnavi Tech Square, Iblur.",
+   "founded": 2018,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://navi.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Vaishnavi Tech Square, Iblur",
+     "address": "9th Floor, Vaishnavi Tech Square, Iballur Village, Begur Hobli, HSR Layout, Bengaluru 560102",
+     "building": null,
+     "techPark": "Vaishnavi Tech Square",
+     "locality": "Iblur (HSR Layout / Sarjapur Main Road)",
+     "lat": 12.92677,
+     "lng": 77.666028,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Navi Ltd's LEI record (renewed Jun 2026) gives this legal address and an OSM office POI 'Navi' sits in the Vaishnavi Tech Square building: https://search.gleif.org/#/record/335800GLKJQRX4Z8LW61"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800GLKJQRX4Z8LW61",
+    "https://www.openstreetmap.org/node/11237374568"
+   ]
+  },
+  {
+   "name": "Khatabook",
+   "aliases": [
+    "Khatabook Technologies Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Digital ledger and payments app for small merchants (valued below $1 bn); two addresses in HSR Layout Sector 3.",
+   "founded": 2018,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://khatabook.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - 22nd Cross, HSR Layout Sector 3",
+     "address": "1203, 22nd Cross, 14th Main, Sector 3, HSR Layout, Bengaluru 560102",
+     "building": null,
+     "techPark": null,
+     "locality": "HSR Layout Sector 3",
+     "lat": 12.911741,
+     "lng": 77.644274,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Khatabook Technologies' LEI record (renewed Sep 2026) gives this as headquarters address and an OSM 'Khatabook' office POI sits here: https://search.gleif.org/#/record/254900QGCO8LWHFUQ397"
+    },
+    {
+     "label": "Registered office - 18th Cross, HSR Layout Sector 3",
+     "address": "1539, 18th Cross Road, Sector 3, HSR Layout, Bengaluru 560102",
+     "building": null,
+     "techPark": null,
+     "locality": "HSR Layout Sector 3",
+     "lat": 12.9092342,
+     "lng": 77.6398674,
+     "geocodeSource": "nominatim",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The same LEI record gives 1539, 18th Cross Road as the legal (registered) address; point is a Sector 3 street-level geocode, not the building: https://search.gleif.org/#/record/254900QGCO8LWHFUQ397"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/254900QGCO8LWHFUQ397",
+    "https://www.openstreetmap.org/node/11061527379"
+   ]
+  },
+  {
+   "name": "Simpl",
+   "aliases": [
+    "One Sigma Technologies Pvt Ltd",
+    "Get Simpl"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Buy-now-pay-later / one-tap checkout fintech (not a unicorn); its current LEI gives a coworking desk in Gottigere as both legal and headquarters address.",
+   "founded": 2015,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://getsimpl.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office - Kokarya Business Synergy Center (coworking desk)",
+     "address": "Desk No. 07, Kokarya Business Synergy Center, No. 15, 2nd & 3rd Floor, Jambusavari Dinne Main Road, Gottigere, Bengaluru 560083",
+     "building": "Kokarya Business Synergy Center",
+     "techPark": null,
+     "locality": "Gottigere (Bannerghatta Road)",
+     "lat": 12.861699,
+     "lng": 77.585122,
+     "geocodeSource": "photon",
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "One Sigma Technologies' LEI record (renewed Jun 2026) gives this coworking desk as legal address; a desk is not evidence of an operating office, and older records placed Simpl in Diamond District, so low: https://search.gleif.org/#/record/335800IB93TD492C9Z13"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800IB93TD492C9Z13"
+   ]
+  },
+  {
+   "name": "Acko",
+   "aliases": [
+    "Acko General Insurance Ltd",
+    "Acko Technology & Services Pvt Ltd",
+    "Acko Life Insurance"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "BFSI",
+   "description": "Digital-first general and life insurer (unicorn 2021); all three Acko entities are registered at HustleHub One East, HSR Layout Sector 2.",
+   "founded": 2016,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.acko.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - HustleHub One East, HSR Layout",
+     "address": "2nd Floor, #36/5, HustleHub One East, Somasandrapalya, 27th Main Road, Sector 2, HSR Layout, Bengaluru 560102",
+     "building": "HustleHub One East",
+     "techPark": "HustleHub Tech Park",
+     "locality": "HSR Layout Sector 2 (Haralukunte / Somasundarapalya)",
+     "lat": 12.901075,
+     "lng": 77.650973,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LEI records for Acko General Insurance (Jan 2026), Acko Technology & Services and Acko Life Insurance give 36/5 HustleHub One East; the point is an OSM POI of another tenant addressed 'HustleHub Tech Park, 36/5' on the same plot: https://search.gleif.org/#/record/335800MKESDG213OS763"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800MKESDG213OS763",
+    "https://search.gleif.org/#/record/335800GVYKNPUW7RX517",
+    "https://search.gleif.org/#/record/9845008A56XAA1A07F47",
+    "https://www.openstreetmap.org/node/12589624599"
+   ]
+  },
+  {
+   "name": "Go Digit",
+   "aliases": [
+    "Go Digit General Insurance Ltd",
+    "Digit Insurance",
+    "Go Digit Life Insurance"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "BFSI",
+   "description": "Fairfax-backed digital general insurer (unicorn 2021, listed May 2024), registered in Pune with its corporate office and three more offices in Bengaluru.",
+   "founded": 2016,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.godigit.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - Atlantis, Koramangala 5th Block",
+     "address": "Atlantis, 95, 4th B Cross Road, Koramangala Industrial Layout, 5th Block, Bengaluru 560095",
+     "building": "Atlantis",
+     "techPark": null,
+     "locality": "Koramangala Industrial Layout (5th Block)",
+     "lat": 12.9342463,
+     "lng": 77.6151949,
+     "geocodeSource": "photon",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "godigit.com/contact lists 'Corporate Office (Bangalore): Atlantis, 95, 4th B Cross Road, Koramangala Industrial Layout, 5th Block' (fetched Oct 2026); Atlantis is not in OSM, so the point is a building on the same 4th B Cross Road: https://www.godigit.com/contact"
+    },
+    {
+     "label": "Bangalore-3 office - 98, 4th B Cross Road",
+     "address": "No. 98, 4th B Cross Road, KHB Colony, Koramangala Industrial Layout, 5th Block, Bengaluru 560095",
+     "building": null,
+     "techPark": null,
+     "locality": "Koramangala Industrial Layout (5th Block)",
+     "lat": 12.9342463,
+     "lng": 77.6151949,
+     "geocodeSource": "photon",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The same contact page lists 'Bangalore-3: No. 98, 4th B Cross Rd, KHB Colony, Koramangala 5th Block'; point is the same-street geocode used for Atlantis: https://www.godigit.com/contact"
+    },
+    {
+     "label": "Office - Salarpuria TechPoint, 100 Feet Road",
+     "address": "5th Floor, Salarpuria TechPoint, Municipal No. 30, 100 Feet Road, Srinivagilu Main Road, AVS Layout, Bengaluru 560034",
+     "building": "Salarpuria TechPoint",
+     "techPark": null,
+     "locality": "AVS Layout / Ejipura (100 Feet Road)",
+     "lat": 12.9392098,
+     "lng": 77.6322712,
+     "geocodeSource": "nominatim",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "godigit.com/contact lists this 'Bangalore (Prestige Office)'; the building is not in OSM, so the point is Nominatim's Srinivagilu Main Road: https://www.godigit.com/contact"
+    },
+    {
+     "label": "Retail office - Consulate 1, Richmond Road",
+     "address": "Consulate I, No. 1, Richmond Road, Bengaluru 560025",
+     "building": "Consulate 1",
+     "techPark": null,
+     "locality": "Richmond Road (Ashok Nagar)",
+     "lat": 12.9653651,
+     "lng": 77.5985291,
+     "geocodeSource": "nominatim",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "godigit.com/contact lists 'Bangalore (Retail): Consulate I, Number 1, Richmond Road' and Nominatim resolves the Consulate 1 building: https://www.godigit.com/contact"
+    }
+   ],
+   "sources": [
+    "https://www.godigit.com/contact",
+    "https://search.gleif.org/#/record/335800SK7LCVIS6FV951"
+   ]
+  },
+  {
+   "name": "Meesho",
+   "aliases": [
+    "Meesho Ltd",
+    "Fashnear Technologies",
+    "Meesho Technologies"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "Value e-commerce marketplace (listed Dec 2025), registered on the 3rd floor of Wing E, Helios Business Park on the Outer Ring Road.",
+   "founded": 2015,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.meesho.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Helios Business Park, Wing E",
+     "address": "3rd Floor, Wing-E, Helios Business Park, Kadubeesanahalli Village, Varthur Hobli, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "building": "Wing E",
+     "techPark": "Helios Business Park",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "lat": 12.938512,
+     "lng": 77.690305,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LEI records for Meesho Ltd (Nov 2025) and Meesho Technologies (Mar 2026) give this address, and two OSM 'Meesho' POIs sit in Helios Business Park, one beside 'Wing E': https://search.gleif.org/#/record/984500M5ED0E01BBA079"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/984500M5ED0E01BBA079",
+    "https://search.gleif.org/#/record/6488U4EMV042W5CP2572",
+    "https://www.openstreetmap.org/node/13345701701",
+    "https://www.openstreetmap.org/node/11546284235"
+   ]
+  },
+  {
+   "name": "Udaan",
+   "aliases": [
+    "Hiveloop Technology Pvt Ltd",
+    "Hiveloop E-commerce",
+    "Hiveloop Capital"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "B2B e-commerce marketplace for small retailers (unicorn 2018); every Hiveloop entity is registered at SJR Primeco The Hub on Sarjapur Main Road.",
+   "founded": 2016,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://udaan.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - SJR Primeco The Hub, South Wing",
+     "address": "TWA-SJR-The Hub, 1st Floor, South Wing, Survey No. 8, 2 & 9, Sarjapur Main Road, Bellandur, Bengaluru 560102",
+     "building": "South Wing",
+     "techPark": "SJR Primeco The Hub",
+     "locality": "Bellandur (Sarjapur Main Road)",
+     "lat": 12.920335,
+     "lng": 77.668522,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LEI records for Hiveloop Technology (Mar 2026), Hiveloop E-commerce and Hiveloop Capital give this address; the point is OSM's 'Primeco The Hub' building (way/610128861): https://search.gleif.org/#/record/3358008NBI1WIJTYZU28"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/3358008NBI1WIJTYZU28",
+    "https://search.gleif.org/#/record/335800AV9Y4CRP4MMM35",
+    "https://www.openstreetmap.org/way/610128861"
+   ]
+  },
+  {
+   "name": "BigBasket",
+   "aliases": [
+    "Supermarket Grocery Supplies Pvt Ltd",
+    "Innovative Retail Concepts Pvt Ltd",
+    "bbnow",
+    "Tata BigBasket"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "Online grocer and bbnow quick-commerce service, majority-owned by Tata Digital since 2021; headquartered on Old Madras Road opposite RMZ Infinity, with registered offices at Fairway Business Park and Ranka Junction.",
+   "founded": 2011,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.bigbasket.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Headquarters - Old Madras Road, C V Raman Nagar",
+     "address": "7/3, Old Madras Road, above HDFC Bank, C V Raman Nagar, opposite RMZ Infinity, Bengaluru 560093",
+     "building": null,
+     "techPark": null,
+     "locality": "C V Raman Nagar (Old Madras Road)",
+     "lat": 12.994436,
+     "lng": 77.660919,
+     "geocodeSource": "park-centroid",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "LEI records for both Supermarket Grocery Supplies and Innovative Retail Concepts name this as headquarters address; the building is not mapped, so the point is RMZ Infinity's centroid across the road: https://search.gleif.org/#/record/9845009D9AEDDA4D5809"
+    },
+    {
+     "label": "Registered office - Fairway Business Park",
+     "address": "Fairway Business Park, 2nd, 7th & 8th Floor, Challaghatta, behind Dell, Domlur, Bengaluru 560071",
+     "building": null,
+     "techPark": "Fairway Business Park",
+     "locality": "Challaghatta (Domlur)",
+     "lat": 12.951905,
+     "lng": 77.642272,
+     "geocodeSource": "osm-park",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Supermarket Grocery Supplies' LEI record (renewed Mar 2026) gives Fairway Business Park as legal address; point is the park polygon: https://search.gleif.org/#/record/9845009D9AEDDA4D5809"
+    },
+    {
+     "label": "Registered office - Ranka Junction, K R Puram",
+     "address": "Ranka Junction, No. 224 (old Sy No. 80/3), 4th Floor, Vijinapura, Old Madras Road, K R Puram, Bengaluru 560016",
+     "building": "Ranka Junction",
+     "techPark": null,
+     "locality": "Vijinapura (Old Madras Road)",
+     "lat": 13.0039028,
+     "lng": 77.6736303,
+     "geocodeSource": "nominatim",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Innovative Retail Concepts' LEI record (renewed May 2026) gives Ranka Junction as legal address; point is the Vijinapura locality, not the building: https://search.gleif.org/#/record/984500F5B80E679BF343"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/9845009D9AEDDA4D5809",
+    "https://search.gleif.org/#/record/984500F5B80E679BF343"
+   ]
+  },
+  {
+   "name": "Zepto",
+   "aliases": [
+    "Zepto Ltd",
+    "Kiranakart Technologies",
+    "Zepto Marketplace",
+    "Zepto Commerce"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "Quick-commerce unicorn that moved its headquarters from Mumbai to Bengaluru in 2024; its LEI headquarters and three group companies sit at 773 Sarjapur Main Road (Bharat IT Park).",
+   "founded": 2021,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.zeptonow.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - 773 Sarjapur Main Road (Bharat IT Park)",
+     "address": "Second Floor, 773, Sarjapur Main Road, Kaikondarahalli, Bellandur, Bengaluru 560103",
+     "building": null,
+     "techPark": "Bharat IT Park",
+     "locality": "Kaikondrahalli / Ambalipura (Sarjapur Main Road)",
+     "lat": 12.916493,
+     "lng": 77.671275,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Zepto Ltd's LEI record (renewed Jun 2026) names this as headquarters address (legal address Mumbai), Zepto Commerce, Zepto Marketplace and Kiranakart Wholesale are registered on other floors of 773, and OSM names the building 'Zepto HQ-Bharat IT Park': https://search.gleif.org/#/record/984500EDDYFSBFFB8314"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/984500EDDYFSBFFB8314",
+    "https://search.gleif.org/#/record/6488M96B61XHU8OF6122",
+    "https://search.gleif.org/#/record/984500CF8EJEB3A1D167",
+    "https://www.openstreetmap.org/way/159980947"
+   ]
+  },
+  {
+   "name": "Jumbotail",
+   "aliases": [
+    "Jumbotail Technologies Pvt Ltd",
+    "Jumbotail Wholesale"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "B2B grocery marketplace and kirana-supply platform (unicorn 2025), headquartered in Eastland Citadel on Hosur Road.",
+   "founded": 2015,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.jumbotail.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Eastland Citadel, Hosur Road",
+     "address": "Eastland Citadel, 6th Floor, No. 102, Hosur Road, Madiwala Check Post, Bengaluru 560029",
+     "building": null,
+     "techPark": "Eastland Citadel",
+     "locality": "Madiwala (Hosur Road)",
+     "lat": 12.931828,
+     "lng": 77.613052,
+     "geocodeSource": "osm-park",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LEI records for Jumbotail Technologies (Jul 2026) and Jumbotail Wholesale give this address; point is the single-building OSM polygon 'Eastland Citadel': https://search.gleif.org/#/record/984500985CE5N0D7Q867"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/984500985CE5N0D7Q867",
+    "https://search.gleif.org/#/record/984500487P607225DE57"
+   ]
+  },
+  {
+   "name": "Licious",
+   "aliases": [
+    "Delightful Gourmet Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "Direct-to-consumer meat and seafood brand (unicorn 2021), registered in B Wing of Maruthi Infotech Centre, Domlur.",
+   "founded": 2015,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.licious.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Maruthi Infotech Centre, B Wing",
+     "address": "Maruti Infotech Center, No. 11/1, 12/1, B Wing, 1st Floor, Amarjyoti Layout, Intermediate Ring Road, Domlur, Bengaluru 560071",
+     "building": "B Wing",
+     "techPark": "Maruthi Infotech Centre",
+     "locality": "Domlur (Intermediate Ring Road)",
+     "lat": 12.9566279,
+     "lng": 77.6427434,
+     "geocodeSource": "photon",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Delightful Gourmet Pvt Ltd's LEI record (renewed Apr 2026) gives this address; the building is not in OSM, so the point is Photon's Amarjyothi Layout hit: https://search.gleif.org/#/record/984500B0B36490Q63787"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/984500B0B36490Q63787"
+   ]
+  },
+  {
+   "name": "DealShare",
+   "aliases": [
+    "Merabo Labs Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "Social / value grocery e-commerce company (unicorn 2022) that has since shrunk sharply; its operating entity is registered in Jaipur and its Bengaluru office is evidenced only by OSM.",
+   "founded": 2018,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.dealshare.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - HSR Layout Sector 3 (OSM only)",
+     "address": "18th Cross area, Sector 3, HSR Layout, Bengaluru 560102 (building not published)",
+     "building": null,
+     "techPark": null,
+     "locality": "HSR Layout Sector 3",
+     "lat": 12.912389,
+     "lng": 77.640889,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Two OSM office POIs 'DealShare' sit in HSR Sector 3, but they are part of a cluster of startup pins at one spot, so this may be historical; DealShare's site refused the fetch and its LEI (Merabo Labs) is in Jaipur: https://www.openstreetmap.org/node/10066854614"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/10066854614",
+    "https://www.openstreetmap.org/node/10066902927",
+    "https://search.gleif.org/#/record/984500C5B8C54D86DF26"
+   ]
+  },
+  {
+   "name": "Dunzo",
+   "aliases": [
+    "Dunzo Digital Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "Reliance-backed hyperlocal and quick-commerce delivery startup that collapsed in 2024-25 (never a unicorn; peaked near $775 m); kept as a notable recent closure.",
+   "founded": 2014,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": null,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Former registered office - Wind Tunnel Road (closed)",
+     "address": "1st Floor, Saideep Srinidhi, No. 2, NAL Wind Tunnel Road, Murugeshpalya, Bengaluru 560017",
+     "building": "Saideep Srinidhi",
+     "techPark": null,
+     "locality": "Murugeshpalya (Old Airport Road)",
+     "lat": 12.955042,
+     "lng": 77.653313,
+     "geocodeSource": "photon",
+     "isHq": true,
+     "status": "closed",
+     "confidence": "medium",
+     "evidence": "Dunzo Digital's LEI record lapsed in August 2024 with this as its legal address, and the company stopped operating in January 2025 (as recorded by Wikipedia); the point is a Wind Tunnel Road geocode: https://search.gleif.org/#/record/335800F9XYM6VF2HSR76"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800F9XYM6VF2HSR76",
+    "https://en.wikipedia.org/wiki/Dunzo"
+   ]
+  },
+  {
+   "name": "Ninjacart",
+   "aliases": [
+    "63Ideas Infolabs Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "Fresh-produce B2B supply-chain platform (Walmart/Flipkart-backed, not a unicorn), registered in IndiQube's Tower E at Helios Business Park.",
+   "founded": 2015,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.ninjacart.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Helios Business Park, Tower E (IndiQube)",
+     "address": "IndiQube Helios Business Park, Tower E, 2nd Floor, Chandana, Kadubeesanahalli, Bengaluru 560103",
+     "building": "Tower E",
+     "techPark": "Helios Business Park",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "lat": 12.937403,
+     "lng": 77.689719,
+     "geocodeSource": "osm-park",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "63Ideas Infolabs' LEI record (renewed Nov 2025) gives this address; point is the Helios Business Park centroid, not Tower E: https://search.gleif.org/#/record/335800CYNGI5JZVU3666"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800CYNGI5JZVU3666"
+   ]
+  },
+  {
+   "name": "Quikr",
+   "aliases": [
+    "Quikr India Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "Online classifieds company, a former unicorn (2015) that has shrunk to a small operation; its last LEI record (lapsed 2022) gives a K R Puram hobli address in Rachenahalli village.",
+   "founded": 2008,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.quikr.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office - Rachenahalli (last registry address)",
+     "address": "106, Sub No. 5-9, Rachenahalli Village, 167 SRK Nagar Post, K R Puram Hobli, Bengaluru 560045",
+     "building": null,
+     "techPark": null,
+     "locality": "Rachenahalli / Thanisandra",
+     "lat": 13.0588586,
+     "lng": 77.6232576,
+     "geocodeSource": "nominatim",
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Quikr India's LEI record, which lapsed in May 2022, gives this address; whether Quikr still occupies it is unconfirmed and the point is only the Rachenahalli village node: https://search.gleif.org/#/record/335800WHK3TWCGFEOW64"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800WHK3TWCGFEOW64"
+   ]
+  },
+  {
+   "name": "Rapido",
+   "aliases": [
+    "Roppen Transportation Services Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Mobility & EV",
+   "description": "Bike-taxi, auto and cab-hailing platform (unicorn 2024); registered in Hyderabad, with its corporate office at Mantri Commercio and a city office in HSR Layout.",
+   "founded": 2015,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.rapido.bike",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - Mantri Commercio (Spatium), Tower A",
+     "address": "Spatium Commercio, Tower A, 2nd Floor, A Wing, Sy No. 51/2-51/4 Devarabeesanahalli & 39/5 Kariyammana Agrahara, Bellandur, Bengaluru 560103",
+     "building": "Tower A",
+     "techPark": "Mantri Commercio",
+     "locality": "Bellandur / Kariyammana Agrahara (Outer Ring Road)",
+     "lat": 12.93213,
+     "lng": 77.683685,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "rapido.bike/Contact lists this as the Bangalore corporate office (fetched Oct 2026), Roppen's LEI names it as headquarters address, and an OSM 'Rapido Office' POI sits in Mantri Commercio: https://www.rapido.bike/Contact"
+    },
+    {
+     "label": "City office - HSR Layout Sector 6",
+     "address": "648, 1st Main Road, Muneswara Nagar, Sector 6, HSR Layout, Bengaluru 560102",
+     "building": null,
+     "techPark": null,
+     "locality": "HSR Layout Sector 6",
+     "lat": 12.9155838,
+     "lng": 77.6252951,
+     "geocodeSource": "photon",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "rapido.bike/Contact lists 'Rapido office, 648, 1st Main Rd, Muneswara Nagar, Sector 6, HSR Layout' as its Bengaluru city office; point is a street-level geocode: https://www.rapido.bike/Contact"
+    }
+   ],
+   "sources": [
+    "https://www.rapido.bike/Contact",
+    "https://search.gleif.org/#/record/254900C74WLU14JD4665",
+    "https://www.openstreetmap.org/node/13997547101"
+   ]
+  },
+  {
+   "name": "Bounce",
+   "aliases": [
+    "Wickedride Adventure Services Pvt Ltd",
+    "Bounce Infinity"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Mobility & EV",
+   "description": "Scooter-rental turned EV-scooter maker (Bounce Infinity), not a unicorn; registered at Abhaya Heights, J.P. Nagar 3rd Phase.",
+   "founded": 2014,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://bounceinfinity.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office - Abhaya Heights, J.P. Nagar",
+     "address": "Abhaya Heights, No. 11, Service Road, J.P. Nagar 3rd Phase, Bannerghatta Road, Bengaluru 560078",
+     "building": "Abhaya Heights",
+     "techPark": null,
+     "locality": "J.P. Nagar 3rd Phase (Bannerghatta Road)",
+     "lat": 12.910331,
+     "lng": 77.599552,
+     "geocodeSource": "photon",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wickedride Adventure Services' LEI record (renewed Apr 2026) gives this legal address; point is a street-level geocode: https://search.gleif.org/#/record/984500BDEB2AC1F15935"
+    },
+    {
+     "label": "Corporate office (OSM only), J.P. Nagar",
+     "address": "J.P. Nagar, Bengaluru (building not published)",
+     "building": null,
+     "techPark": null,
+     "locality": "J.P. Nagar",
+     "lat": 12.9159,
+     "lng": 77.598892,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI 'Bounce Corporate Office' places this office: https://www.openstreetmap.org/node/9946270757"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/984500BDEB2AC1F15935",
+    "https://www.openstreetmap.org/node/9946270757"
+   ]
+  },
+  {
+   "name": "Porter",
+   "aliases": [
+    "SmartShift Logistics Solutions Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Logistics",
+   "description": "Intra-city goods-transport and courier platform (unicorn 2023); registered in Mumbai with its headquarters at BCM Prime, Bannerghatta Road.",
+   "founded": 2014,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://porter.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - BCM Prime, Bannerghatta Road",
+     "address": "BCM Prime, 1st Cross, BDA Layout, Guruppana Palya, Bannerghatta Road, Tilaknagar, Bengaluru 560041",
+     "building": "BCM Prime",
+     "techPark": null,
+     "locality": "Gurappanapalya / Tilaknagar (Bannerghatta Road)",
+     "lat": 12.926049,
+     "lng": 77.60016,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "SmartShift Logistics' LEI record names BCM Prime as headquarters address (its privacy policy gives the Mumbai registered office), and OSM maps a commercial site named 'Porter Head Office' (way/442048044) at this point: https://search.gleif.org/#/record/335800BFM56DCC1PKM89"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800BFM56DCC1PKM89",
+    "https://porter.in/privacy-policy",
+    "https://www.openstreetmap.org/way/442048044"
+   ]
+  },
+  {
+   "name": "BlackBuck",
+   "aliases": [
+    "BlackBuck Ltd",
+    "Zinka Logistics Solutions",
+    "BlackBuck Finserve"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Logistics",
+   "description": "Digital trucking and fleet-operator platform (unicorn 2021, listed Nov 2024), headquartered at Vaswani Presidio, Panathur Main Road.",
+   "founded": 2015,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://blackbuck.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Vaswani Presidio, Panathur",
+     "address": "Vaswani Presidio, No. 84-2, 2nd Floor, Panathur Main Road, Kadubeesanahalli, off Outer Ring Road, Bengaluru 560103",
+     "building": "Vaswani Presidio",
+     "techPark": null,
+     "locality": "Kadubeesanahalli / Panathur (off Outer Ring Road)",
+     "lat": 12.9376078,
+     "lng": 77.6995121,
+     "geocodeSource": "nominatim",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LEI records for BlackBuck Ltd (Jan 2026) and BlackBuck Finserve give Vaswani Presidio, and Nominatim resolves the building: https://search.gleif.org/#/record/3358003IBMJFDHOYF615"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/3358003IBMJFDHOYF615",
+    "https://search.gleif.org/#/record/894500IFGPJXVVSPE308"
+   ]
+  },
+  {
+   "name": "Ather Energy",
+   "aliases": [
+    "Ather Energy Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Mobility & EV",
+   "description": "Electric-scooter maker (listed May 2025) headquartered in Tower D of IBC Knowledge Park; its scooter factory is in Hosur, Tamil Nadu, outside the metro.",
+   "founded": 2013,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.atherenergy.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - IBC Knowledge Park, Tower D",
+     "address": "3rd Floor, Tower D, IBC Knowledge Park, 4/1 Bannerghatta Main Road, Bengaluru 560029",
+     "building": "Tower D",
+     "techPark": "IBC Knowledge Park",
+     "locality": "S.G. Palya (Bannerghatta Main Road)",
+     "lat": 12.932711,
+     "lng": 77.603596,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Ather Energy Ltd's LEI record (renewed Mar 2026) gives this legal address and an OSM 'Ather Energy' POI carries the same Tower D address: https://search.gleif.org/#/record/335800SZ7EUDQVUICH52"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800SZ7EUDQVUICH52",
+    "https://www.openstreetmap.org/node/5764956349"
+   ]
+  },
+  {
+   "name": "Netradyne",
+   "aliases": [
+    "Netradyne Technology India Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "AI & deep tech",
+   "description": "San Diego-headquartered AI dash-cam and fleet-safety company (unicorn 2025) founded by Indian engineers; its Bengaluru R&D centre is at HM Tech Park, Whitefield.",
+   "founded": 2015,
+   "hqCity": "San Diego",
+   "hqCountry": "United States",
+   "isUnicorn": true,
+   "website": "https://www.netradyne.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru R&D centre - HM Tech Park",
+     "address": "HM Tech Park, Wing-2 Block, Unit No. 102, Sy No. 12/1 & 13/1A, Pattandur Agrahara Village, K R Puram Hobli, Bengaluru 560066",
+     "building": "Wing 2",
+     "techPark": "HM Tech Park",
+     "locality": "Pattandur Agrahara (Whitefield)",
+     "lat": 12.982924,
+     "lng": 77.751225,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Netradyne Technology India's LEI record (renewed Mar 2026) gives this address and an OSM 'Netradyne' POI sits in HM Tech Park: https://search.gleif.org/#/record/335800BXAUC6GK4SVY42"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800BXAUC6GK4SVY42",
+    "https://www.openstreetmap.org/node/12901416853"
+   ]
+  },
+  {
+   "name": "Byju's",
+   "aliases": [
+    "Think & Learn Pvt Ltd",
+    "BYJU'S The Learning App"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "EdTech",
+   "description": "Former decacorn ed-tech company now in insolvency proceedings; it gave up its other Indian offices in 2024 and retains only its IBC Knowledge Park headquarters.",
+   "founded": 2011,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://byjus.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Headquarters - IBC Knowledge Park, Tower D (winding down)",
+     "address": "2nd Floor, Tower D, IBC Knowledge Park, 4/1 Bannerghatta Main Road, Bengaluru 560029",
+     "building": "Tower D",
+     "techPark": "IBC Knowledge Park",
+     "locality": "S.G. Palya (Bannerghatta Main Road)",
+     "lat": 12.932659,
+     "lng": 77.603493,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "closing",
+     "confidence": "high",
+     "evidence": "Think & Learn's LEI record (renewed 29 Sep 2026) still gives Tower D, IBC Knowledge Park, an OSM 'Byjus the Learning App' POI sits there, and Storyboard18 (Mar 2024) reported Byju's gave up all other offices and kept only this HQ: https://search.gleif.org/#/record/2549006XBBGEQL8H6M81"
+    },
+    {
+     "label": "Kalyani Tech Park office (vacated)",
+     "address": "Kalyani Tech Park, Kundalahalli, Whitefield, Bengaluru 560066",
+     "building": null,
+     "techPark": "Kalyani Tech Park",
+     "locality": "Kundalahalli / Whitefield (EPIP side)",
+     "lat": 12.970806,
+     "lng": 77.717958,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "closed",
+     "confidence": "low",
+     "evidence": "An OSM office POI 'Byjus' sits in Kalyani Tech Park; Storyboard18 (Mar 2024) reported Byju's vacated every office except its IBC Knowledge Park HQ, so this is recorded as closed: https://www.storyboard18.com/how-it-works/byjus-gives-up-all-offices-across-india-retains-only-headquarters-in-bengaluru-26144.htm"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/2549006XBBGEQL8H6M81",
+    "https://www.storyboard18.com/how-it-works/byjus-gives-up-all-offices-across-india-retains-only-headquarters-in-bengaluru-26144.htm",
+    "https://www.openstreetmap.org/node/7528043671",
+    "https://www.openstreetmap.org/node/9851123904"
+   ]
+  },
+  {
+   "name": "Unacademy",
+   "aliases": [
+    "Sorting Hat Technologies Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "EdTech",
+   "description": "Test-prep and online-learning platform (unicorn 2020), registered in A Block of Maruthi Infotech Centre, Domlur.",
+   "founded": 2015,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://unacademy.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Maruthi Infotech Centre, A Block",
+     "address": "Maruti Infotech Centre, 3rd Floor, A Block, Domlur, Koramangala Inner Ring Road, Bengaluru 560071",
+     "building": "A Block",
+     "techPark": "Maruthi Infotech Centre",
+     "locality": "Domlur (Koramangala Inner Ring Road)",
+     "lat": 12.9566279,
+     "lng": 77.6427434,
+     "geocodeSource": "photon",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Sorting Hat Technologies' LEI record (Oct 2025) gives this address; the building is not in OSM, so the point is the Amarjyothi Layout geocode: https://search.gleif.org/#/record/984500FDD385C0649E68"
+    },
+    {
+     "label": "Embassy GolfLinks office (OSM only)",
+     "address": "Embassy Golf Links Business Park, Domlur, Bengaluru 560071",
+     "building": null,
+     "techPark": "Embassy GolfLinks Business Park",
+     "locality": "Domlur / Challaghatta",
+     "lat": 12.951847,
+     "lng": 77.640765,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI 'Unacademy' inside Embassy GolfLinks places an office here: https://www.openstreetmap.org/node/11684157869"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/984500FDD385C0649E68",
+    "https://www.openstreetmap.org/node/11684157869"
+   ]
+  },
+  {
+   "name": "Vedantu",
+   "aliases": [
+    "Vedantu Innovations Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "EdTech",
+   "description": "Live online-tutoring company (unicorn 2021), registered across three floors of 1081, 14th Main, HSR Layout Sector 3 (Vistar Arcade).",
+   "founded": 2014,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.vedantu.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Vistar Arcade, HSR Layout Sector 3",
+     "address": "No. 1081, 2nd-4th Floor, Vistar Arcade, 14th Main, Sector 3, HSR Layout, Bengaluru 560102",
+     "building": "Vistar Arcade",
+     "techPark": null,
+     "locality": "HSR Layout Sector 3",
+     "lat": 12.9138684,
+     "lng": 77.6383591,
+     "geocodeSource": "photon",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Vedantu Innovations' LEI record (renewed Mar 2026) gives this address and Vedantu's contacts page (cited by lens G10) names Vistar Arcade; the point is a 14th Main geocode, not the building: https://search.gleif.org/#/record/98450068ON55C51D5C53"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/98450068ON55C51D5C53",
+    "https://www.vedantu.com/v/contacts"
+   ]
+  },
+  {
+   "name": "Cult.fit",
+   "aliases": [
+    "Cult.fit Ltd",
+    "Curefit Healthcare Pvt Ltd",
+    "cure.fit",
+    "Cultfit"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "HealthTech & pharma",
+   "description": "Fitness-studio, gym and health-services chain (unicorn 2021, preparing an IPO); its company is now registered in Chennai, but its grievance/office address is in HSR Layout Sector 3, Bengaluru.",
+   "founded": 2016,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.cult.fit",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - HSR Layout Sector 3",
+     "address": "No. 17/17C, Sector 3, HSR Layout, Bengaluru 560102",
+     "building": null,
+     "techPark": null,
+     "locality": "HSR Layout Sector 3",
+     "lat": 12.9092342,
+     "lng": 77.6398674,
+     "geocodeSource": "nominatim",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "cult.fit's privacy policy gives 'Cult.fit Limited (formerly Curefit Healthcare Pvt Ltd), No. 17/17C, Sector 3, HSR Layout, Bengaluru 560102' as its postal address (fetched Oct 2026); its LEI shows a Chennai registered office; point is a Sector 3 street geocode: https://static.cult.fit/privacy__cult.html"
+    }
+   ],
+   "sources": [
+    "https://static.cult.fit/privacy__cult.html",
+    "https://search.gleif.org/#/record/335800J6MB5ZJ9WTZJ47"
+   ]
+  },
+  {
+   "name": "Practo",
+   "aliases": [
+    "Practo Technologies Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "HealthTech & pharma",
+   "description": "Doctor-discovery, teleconsultation and clinic-software company (not a unicorn), headquartered in the Clayworks building, Koramangala 3rd Block.",
+   "founded": 2008,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.practo.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Clayworks Building, Koramangala",
+     "address": "No. 371, Clayworks Building, 1st Cross Road, Santhosapuram, Koramangala 3rd Block, Bengaluru 560034",
+     "building": "Clayworks Building",
+     "techPark": null,
+     "locality": "Koramangala 3rd Block (Santhosapuram)",
+     "lat": 12.9250105,
+     "lng": 77.6278708,
+     "geocodeSource": "photon",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Practo's contact page lists this as its only street address (fetched Oct 2026) and its LEI record gives 371, St. Johns Hospital Road, Santhosapuram; point is a geocode on the same 1st Cross Road: https://www.practo.com/company/contact"
+    }
+   ],
+   "sources": [
+    "https://www.practo.com/company/contact",
+    "https://search.gleif.org/#/record/335800GSNZLZCXGTJQ07"
+   ]
+  },
+  {
+   "name": "BlueStone",
+   "aliases": [
+    "BlueStone Jewellery and Lifestyle Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Retail & consumer goods",
+   "description": "Omnichannel diamond and gold jewellery brand (listed Aug 2025 just below a $1 bn valuation), registered at Lava Kusha Arcade on the Outer Ring Road, Marathahalli.",
+   "founded": 2011,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.bluestone.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office - Lava Kusha Arcade, Munnekolal",
+     "address": "Site No. 89/2, Lava Kusha Arcade, Munnekolal Village, Outer Ring Road, Marathahalli, Bengaluru 560037",
+     "building": "Lava Kusha Arcade",
+     "techPark": null,
+     "locality": "Munnekolal / Marathahalli (Outer Ring Road)",
+     "lat": 12.9552572,
+     "lng": 77.6984163,
+     "geocodeSource": "photon",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "BlueStone Jewellery and Lifestyle Ltd's LEI record (renewed Jan 2026) gives this legal address; the building is not mapped, so the point is Marathahalli: https://search.gleif.org/#/record/3358007CRLUJGI4KG885"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/3358007CRLUJGI4KG885"
+   ]
+  },
+  {
+   "name": "BRND.ME",
+   "aliases": [
+    "Mensa Brands",
+    "Mensa Brand Technologies Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Retail & consumer goods",
+   "description": "D2C brand-aggregator (unicorn 2021) rebranded from Mensa Brands to BRND.ME; registered in Gurugram with its headquarters at Vaishnavi Silicon Terraces, Koramangala.",
+   "founded": 2021,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://brndme.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Vaishnavi Silicon Terraces, Tower A",
+     "address": "2nd & 3rd Floor, Tower A, 30/1 Vaishnavi Silicon Terraces, Hosur Main Road, Koramangala, Bengaluru 560095",
+     "building": "Tower A",
+     "techPark": "Vaishnavi Silicon Terraces",
+     "locality": "Koramangala (Hosur Main Road)",
+     "lat": 12.937793,
+     "lng": 77.611084,
+     "geocodeSource": "osm-park",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Mensa Brand Technologies Ltd's LEI record (renewed Jul 2026) names this as headquarters address, and brndme.in says 'BRND.ME (formerly Mensa Brands)' is 'a Bengaluru-based consumer brand platform'; point is the OSM complex polygon: https://search.gleif.org/#/record/254900YIIQ9R6S52EX32"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/254900YIIQ9R6S52EX32",
+    "https://brndme.in/"
+   ]
+  },
+  {
+   "name": "Livspace",
+   "aliases": [
+    "Livspace India Pvt Ltd",
+    "Home Interior Designs E-Commerce Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Home-interiors and renovation platform launched in Bangalore in 2014 (unicorn 2022); its Indian entity is now registered in Gurugram and no Bengaluru office address is published.",
+   "founded": 2014,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.livspace.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Obelisk office (OSM only)",
+     "address": "Prestige Obelisk, 3 Kasturba Road, Bengaluru 560001",
+     "building": "Prestige Obelisk",
+     "techPark": null,
+     "locality": "Kasturba Road (CBD)",
+     "lat": 12.975691,
+     "lng": 77.597461,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI 'Livspace' inside Prestige Obelisk places an office here; livspace.com's contact and about pages give no address (its about page mentions a 23,000 sq ft Marathahalli experience centre), and its LEI is in Gurugram: https://www.openstreetmap.org/node/4308192383"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4308192383",
+    "https://www.livspace.com/in/about-us",
+    "https://search.gleif.org/#/record/9845007CB4070DDC6U44"
+   ]
+  },
+  {
+   "name": "NoBroker",
+   "aliases": [
+    "NoBroker Technologies Solutions Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Brokerage-free property and home-services platform (unicorn 2021); its current LEI gives IndiQube The Fore on Sarjapur Road.",
+   "founded": 2014,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.nobroker.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office - IndiQube The Fore, Carmelaram",
+     "address": "Ground Floor, Survey No. 103, IndiQube The Fore, Varthur, Carmelaram, Bengaluru 560087",
+     "building": "IndiQube The Fore",
+     "techPark": null,
+     "locality": "Carmelaram / Varthur (Sarjapur Road)",
+     "lat": 12.9009915,
+     "lng": 77.7107609,
+     "geocodeSource": "photon",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "NoBroker's LEI record (renewed May 2026) gives this legal address, and Photon resolves the IndiQube The Fore building on Sarjapur Road: https://search.gleif.org/#/record/335800KRU61BMTYN7E71"
+    },
+    {
+     "label": "Kaikondrahalli office, Sarjapur Main Road (OSM only)",
+     "address": "Sarjapur Main Road, Kaikondrahalli, Bengaluru 560035",
+     "building": null,
+     "techPark": null,
+     "locality": "Kaikondrahalli (Sarjapur Main Road)",
+     "lat": 12.91445,
+     "lng": 77.677363,
+     "geocodeSource": "osm-poi",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM IT-office POI 'NoBroker' places an office here: https://www.openstreetmap.org/node/10248454960"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800KRU61BMTYN7E71",
+    "https://www.openstreetmap.org/node/10248454960"
+   ]
+  },
+  {
+   "name": "apna",
+   "aliases": [
+    "Apna.co",
+    "Apnatime Tech Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Software & internet",
+   "description": "Jobs and professional-networking app for blue- and grey-collar workers (unicorn 2021); registered in Gurugram with its headquarters in Diamond District and an office in Ejipura.",
+   "founded": 2019,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://apna.co",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Bizzhub Esquire, Diamond District Tower A",
+     "address": "Bizzhub Esquire, No. 150, 1st Floor, Tower A, Diamond District, Kodihalli, Old Airport Road, Bengaluru 560008",
+     "building": "Tower A",
+     "techPark": "Diamond District",
+     "locality": "Kodihalli (HAL Old Airport Road)",
+     "lat": 12.960016,
+     "lng": 77.643571,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Apnatime Tech's LEI record (renewed Sep 2026) names this as headquarters address and an OSM office POI 'Apna' sits in Diamond District: https://search.gleif.org/#/record/984500D68439CE425090"
+    },
+    {
+     "label": "Office - Akemps Building, 100 Feet Road, Ejipura",
+     "address": "1st Floor, Akemps Building, No. 28, 3rd Main Road, 1st Cross, Ashwini Layout, 100 Feet Road, Ejipura, Bengaluru 560047",
+     "building": "Akemps Building",
+     "techPark": null,
+     "locality": "Ejipura (100 Feet Road)",
+     "lat": 12.9383287,
+     "lng": 77.6310323,
+     "geocodeSource": "photon",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "apna.co/contact-us gives this as its office address (fetched Oct 2026); point is a street-level geocode: https://apna.co/contact-us"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/984500D68439CE425090",
+    "https://apna.co/contact-us",
+    "https://www.openstreetmap.org/node/13563559849"
+   ]
+  },
+  {
+   "name": "VerSe Innovation",
+   "aliases": [
+    "Dailyhunt",
+    "Josh",
+    "VerSe Innovation Pvt Ltd",
+    "NewsHunt"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Media & gaming",
+   "description": "Local-language content company behind Dailyhunt and the Josh short-video app (unicorn 2020), headquartered in Tower A of Mantri Commercio.",
+   "founded": 2007,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.verse.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Mantri Commercio, Tower A",
+     "address": "Mantri Commercio, Spatium Offices, Unit 001, Tower A, 5th Floor, Outer Ring Road, near Sakra World Hospital, Kariyammana Agrahara, Bellandur, Bengaluru 560103",
+     "building": "Tower A",
+     "techPark": "Mantri Commercio",
+     "locality": "Bellandur / Kariyammana Agrahara (Outer Ring Road)",
+     "lat": 12.932449,
+     "lng": 77.683813,
+     "geocodeSource": "osm-park",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "verse.in's footer gives this address for VerSe Innovation Pvt Ltd (fetched Oct 2026); point is the Mantri Commercio polygon centroid, not Tower A: https://www.verse.in/"
+    }
+   ],
+   "sources": [
+    "https://www.verse.in/"
+   ]
+  },
+  {
+   "name": "ShareChat",
+   "aliases": [
+    "Mohalla Tech Pvt Ltd",
+    "Moj"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Media & gaming",
+   "description": "Indic social-media and short-video company (ShareChat, Moj; unicorn 2021), registered in the Smartworks centre in North Tower, Vaishnavi Tech Park.",
+   "founded": 2015,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://sharechat.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Vaishnavi Tech Park, North Tower (Smartworks)",
+     "address": "North Tower Smartworks, Vaishnavi Tech Park, Survey No. 16/1 & 17/2, Ambalipura, Varthur Hobli, Bengaluru 560103",
+     "building": "North Tower",
+     "techPark": "Vaishnavi Tech Park",
+     "locality": "Bellandur / Ambalipura (Sarjapur Main Road)",
+     "lat": 12.921087,
+     "lng": 77.672159,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Mohalla Tech's LEI record (renewed Mar 2026) gives this address, ShareChat's get-in-touch page (cited by lens G11) repeats it, and the point is OSM's 'North Tower' building (way/1363272825): https://search.gleif.org/#/record/9845007TF8B4BE3A5A69"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/9845007TF8B4BE3A5A69",
+    "https://sharechat.com/get-in-touch",
+    "https://www.openstreetmap.org/way/1363272825"
+   ]
+  },
+  {
+   "name": "Pocket FM",
+   "aliases": [
+    "Pocket Entertainment Ventures Pvt Ltd",
+    "Pocket FM Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Media & gaming",
+   "description": "Audio-series and audiobook platform (valued at about $750 m in its 2024 Series D, so not counted as a unicorn here), registered at IndiQube Royal Arcade in KHB Colony, Koramangala.",
+   "founded": 2018,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.pocketfm.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - IndiQube Royal Arcade, Koramangala",
+     "address": "IndiQube Royal Arcade, No. 6, 80 Feet Road, KHB Colony, Koramangala Industrial Layout, Bengaluru 560034",
+     "building": "IndiQube Royal Arcade",
+     "techPark": null,
+     "locality": "Koramangala Industrial Layout (KHB Colony)",
+     "lat": 12.9349632,
+     "lng": 77.6177709,
+     "geocodeSource": "nominatim",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Pocket Entertainment Ventures' LEI record (renewed May 2026) gives this address and Pocket FM's contact page (cited by lens E09) gives No. 6, KHB Colony; the point is the KHB Colony locality, not the building: https://search.gleif.org/#/record/335800UQSY1U5XEJ6X98"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800UQSY1U5XEJ6X98",
+    "https://www.pocketfm.com/contact-us"
+   ]
+  },
+  {
+   "name": "Mobile Premier League",
+   "aliases": [
+    "MPL",
+    "Galactus Funware Technology Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Media & gaming",
+   "description": "Mobile e-sports and skill-gaming platform (unicorn 2021) that cut its India business after the 2025 ban on real-money gaming; HQ on 80 Feet Road, HSR Layout.",
+   "founded": 2018,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.mpl.live",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - 80 Feet Road, HSR Layout Sector 7",
+     "address": "1135, 3rd Floor, 17th Cross, 80 Feet Road, Sector 7, HSR Layout, Bengaluru 560102",
+     "building": null,
+     "techPark": null,
+     "locality": "HSR Layout Sector 7 (80 Feet Road)",
+     "lat": 12.91221,
+     "lng": 77.633896,
+     "geocodeSource": "nominatim",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Galactus Funware's LEI record (renewed Sep 2026) names this as headquarters address and Nominatim resolves house 1135 on 17th Cross Road: https://search.gleif.org/#/record/254900LJUCG6303W4C81"
+    },
+    {
+     "label": "Registered office - Iblur, Bellandur",
+     "address": "Units 201-210, 2nd Floor, Sy. No. 34, Iblur, Begur Hobli, Bellandur, Bengaluru 560103",
+     "building": null,
+     "techPark": null,
+     "locality": "Iblur (Bellandur)",
+     "lat": 12.9218104,
+     "lng": 77.6615878,
+     "geocodeSource": "photon",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The same LEI record gives this as the legal address; the building is not named, so the point is the Iblur locality: https://search.gleif.org/#/record/254900LJUCG6303W4C81"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/254900LJUCG6303W4C81"
+   ]
+  },
+  {
+   "name": "Gameskraft",
+   "aliases": [
+    "Gameskraft Technologies Pvt Ltd",
+    "RummyCulture"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Media & gaming",
+   "description": "Bootstrapped online card-gaming company (RummyCulture); some trackers listed it at a $1 bn+ valuation but that is not established by a priced round, and its business shrank after the 2025 real-money-gaming ban.",
+   "founded": 2017,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.gameskraft.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Urban Vault 1086, HSR Layout",
+     "address": "4th Floor, Urban Vault #1086, 18th Cross Road, Sector 4, HSR Layout, Bengaluru 560102",
+     "building": "Urban Vault 1086",
+     "techPark": null,
+     "locality": "HSR Layout Sector 4",
+     "lat": 12.9118536,
+     "lng": 77.6389971,
+     "geocodeSource": "photon",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Gameskraft Technologies' LEI record (renewed Mar 2026) gives this address and Photon resolves 'Urban Vault, 18th Cross Road, HSR Layout': https://search.gleif.org/#/record/9845005A3A6DB0FD9F87"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/9845005A3A6DB0FD9F87"
+   ]
+  },
+  {
+   "name": "InMobi",
+   "aliases": [
+    "InMobi Technology Services Pvt Ltd",
+    "mKhoj"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Software & internet",
+   "description": "Mobile-advertising technology group and India's first unicorn (2011); its Indian company is registered in Gurugram, and its corporate office is the 7th floor of Delta Block, Embassy Tech Square.",
+   "founded": 2007,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.inmobi.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - Embassy Tech Square, Delta Block",
+     "address": "7th Floor, Block Delta, Block B, Embassy Tech Square, Kadubeesanahalli Village, Marathahalli-Sarjapur Outer Ring Road, Bengaluru 560103",
+     "building": "Delta Block",
+     "techPark": "Embassy Tech Square",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "lat": 12.93518,
+     "lng": 77.694509,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "InMobi's contact page gives this as its 'Corporate office address' and Bangalore office (registered office: WeWork, Gurugram) (fetched Oct 2026); OSM maps the building 'InMobi Technologies' (way/348080119): https://www.inmobi.com/company/contact"
+    }
+   ],
+   "sources": [
+    "https://www.inmobi.com/company/contact",
+    "https://search.gleif.org/#/record/3358001LR4DAY255C289",
+    "https://www.openstreetmap.org/way/348080119"
+   ]
+  },
+  {
+   "name": "Glance",
+   "aliases": [
+    "Glance Digital Experience Pvt Ltd",
+    "Glance InMobi",
+    "Roposo"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Software & internet",
+   "description": "InMobi's lock-screen content and AI-commerce subsidiary (unicorn 2020), registered on the 5th floor of Delta Block B, Embassy Tech Square.",
+   "founded": 2019,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://glance.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Embassy Tech Square, Delta Block",
+     "address": "5th Floor, Delta Block B, Embassy Tech Square, Kadubeesanahalli Village, Bengaluru 560103",
+     "building": "Delta Block",
+     "techPark": "Embassy Tech Square",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "lat": 12.93518,
+     "lng": 77.694509,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Glance Digital Experience's LEI record (renewed Feb 2026) gives this address; point is the OSM 'InMobi Technologies' building in the same Delta Block: https://search.gleif.org/#/record/3358009M1HA9TJFJG476"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/3358009M1HA9TJFJG476",
+    "https://www.openstreetmap.org/way/348080119"
+   ]
+  },
+  {
+   "name": "Postman",
+   "aliases": [
+    "Postdot Technologies Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "API-development platform founded in Bengaluru and headquartered in San Francisco (unicorn 2020); its Indian entity sits at 310, 6th Main, Indiranagar.",
+   "founded": 2014,
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "isUnicorn": true,
+   "website": "https://www.postman.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - 6th Main Road, Indiranagar",
+     "address": "No. 310, 6th Main Road, Indiranagar, Bengaluru 560038",
+     "building": null,
+     "techPark": null,
+     "locality": "Indiranagar (HAL 2nd Stage)",
+     "lat": 12.973831,
+     "lng": 77.644404,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Postdot Technologies' LEI record (renewed Jun 2026) gives 310, 6th Main, Postman's contact page (cited by lens G10) lists the same address, and an OSM 'Postman' POI sits here: https://search.gleif.org/#/record/335800B45XEEE5IVP647"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800B45XEEE5IVP647",
+    "https://www.postman.com/company/contact-us/",
+    "https://www.openstreetmap.org/node/9689541269"
+   ]
+  },
+  {
+   "name": "Whatfix",
+   "aliases": [
+    "Whatfix Pvt Ltd",
+    "Quicko Technosoft Labs"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "Digital-adoption platform founded in Bengaluru and headquartered in San Jose; its main engineering centre is in HSR Layout Sector 3.",
+   "founded": 2014,
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://whatfix.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India HQ - 18th Cross Road, HSR Layout Sector 3",
+     "address": "No. 1289/1090E, 18th Cross Road, Sector 3, HSR Layout, Bengaluru 560102",
+     "building": null,
+     "techPark": null,
+     "locality": "HSR Layout Sector 3",
+     "lat": 12.911858,
+     "lng": 77.640249,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Whatfix Pvt Ltd's LEI record (renewed Jul 2026) gives this address and four OSM 'Whatfix' POIs sit on the block: https://search.gleif.org/#/record/335800JDGTYYITQBS478"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800JDGTYYITQBS478",
+    "https://www.openstreetmap.org/node/9858668172"
+   ]
+  },
+  {
+   "name": "MoEngage",
+   "aliases": [
+    "MoEngage India Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "Customer-engagement and marketing-automation SaaS founded in Bengaluru, headquartered in San Francisco; Indian entity at Salarpuria Tower II, Koramangala.",
+   "founded": 2014,
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.moengage.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - Salarpuria Tower II, Koramangala",
+     "address": "1st Floor, #32, Salarpuria Tower II, Chikku Lakshmaiah Layout, Laskar Hosur Road, Koramangala, Bengaluru 560034",
+     "building": "Salarpuria Tower II",
+     "techPark": null,
+     "locality": "Koramangala (Laskar Hosur Road)",
+     "lat": 12.9333764,
+     "lng": 77.6125275,
+     "geocodeSource": "photon",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "MoEngage India's LEI record (renewed Dec 2025) gives this address and MoEngage's contact page (cited by lens E08) lists it; point is a geocode on the same Hosur Road frontage: https://search.gleif.org/#/record/335800AR1FGIVW3CMQ17"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800AR1FGIVW3CMQ17",
+    "https://www.moengage.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Amagi",
+   "aliases": [
+    "Amagi Media Labs Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "SaaS",
+   "description": "Cloud broadcast and FAST-channel SaaS company (unicorn 2022), with its global HQ at Raj Alkaa Park, Kalena Agrahara on Bannerghatta Road.",
+   "founded": 2008,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.amagi.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global HQ - Raj Alkaa Park, Kalena Agrahara",
+     "address": "Raj Alkaa Park, Sy. No. 29/3 & 32/2, 4th Floor, Kalena Agrahara, Begur Hobli, Bengaluru 560076",
+     "building": "Raj Alkaa Park",
+     "techPark": null,
+     "locality": "Kalena Agrahara (Bannerghatta Road)",
+     "lat": 12.8661075,
+     "lng": 77.59192,
+     "geocodeSource": "photon",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Amagi Media Labs Ltd's LEI record (renewed Mar 2026) gives this address and Amagi's contact page (cited by lens E08) calls it the Global HQ; the building is not geocoded, so the point is Kalena Agrahara: https://search.gleif.org/#/record/984500C9A43J5H3EA260"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/984500C9A43J5H3EA260",
+    "https://www.amagi.com/contact"
+   ]
+  },
+  {
+   "name": "LeadSquared",
+   "aliases": [
+    "MarketXpander Services Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "SaaS",
+   "description": "Sales-execution and CRM SaaS (unicorn 2022), headquartered in the Omega block of Embassy Tech Square.",
+   "founded": 2011,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.leadsquared.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Embassy Tech Square, Omega",
+     "address": "2nd Floor, Omega, Embassy Tech Square, Marathahalli-Sarjapur Outer Ring Road, Bellandur, Bengaluru 560103",
+     "building": "Omega",
+     "techPark": "Embassy Tech Square",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "lat": 12.9350904,
+     "lng": 77.6935086,
+     "geocodeSource": "photon",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "MarketXpander Services' LEI record (renewed Aug 2026) gives this address, LeadSquared's contact page (cited by lens E08) repeats it, and Photon resolves 'Omega, Embassy Tech Square': https://search.gleif.org/#/record/335800Z1BDSSGTVUB236"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800Z1BDSSGTVUB236",
+    "https://www.leadsquared.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Zetwerk",
+   "aliases": [
+    "Zetwerk Manufacturing Businesses Ltd",
+    "Zetwerk Electronics"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "description": "Contract-manufacturing and industrial-supply-chain company (unicorn 2021) headquartered at Vaishnavi Sovereign, Bellandur, with an electronics plant opened in 2026 at the KIADB Hi-Tech Hardware Park.",
+   "founded": 2018,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.zetwerk.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Vaishnavi Sovereign, Green Glen Layout",
+     "address": "84/1, Ground & 1st Floor, Vaishnavi Sovereign, Green Glen Layout, Bellandur, Bengaluru 560103",
+     "building": "Vaishnavi Sovereign",
+     "techPark": null,
+     "locality": "Bellandur (Green Glen Layout)",
+     "lat": 12.9277683,
+     "lng": 77.6690248,
+     "geocodeSource": "nominatim",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LEI records for Zetwerk Manufacturing Businesses Ltd (Jul 2026) and Zetwerk Electronics give this address, Nominatim resolves the building, and an OSM 'Zetwerk Manufacturing' POI sits beside it: https://search.gleif.org/#/record/254900PW7HEU49RCMS53"
+    },
+    {
+     "label": "Zetwerk Electronics plant - KIADB Hi-Tech Hardware Park",
+     "address": "KIADB Hi-Tech Hardware Park, Bengaluru (plot not published)",
+     "building": null,
+     "techPark": "KIADB Hardware Park",
+     "locality": "Hardware Park (Devanahalli / Yelahanka taluk)",
+     "lat": 13.151089,
+     "lng": 77.685651,
+     "geocodeSource": "park-centroid",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Machinist (9 Feb 2026) reports Zetwerk Electronics inaugurated a manufacturing facility at the KIADB Hi-Tech Hardware Park, Bengaluru, opened by Ashwini Vaishnaw, with production due in 2026; point is the park centroid: https://machinist.in/2026/02/zetwerk-electronics-inaugurates-defence-automotive-and-it-hardware-manufacturing-unit-in-bengaluru/"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/254900PW7HEU49RCMS53",
+    "https://search.gleif.org/#/record/64887AW810BO8K5MY618",
+    "https://machinist.in/2026/02/zetwerk-electronics-inaugurates-defence-automotive-and-it-hardware-manufacturing-unit-in-bengaluru/",
+    "https://www.openstreetmap.org/node/11237402130"
+   ]
+  },
+  {
+   "name": "Mu Sigma",
+   "aliases": [
+    "Mu Sigma Business Solutions Pvt Ltd"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Decision-sciences and analytics services firm, India's first unicorn in that field (2013), now headquartered in Austin; its Global Innovation Center occupies five floors of the Aviator building at ITPB.",
+   "founded": 2004,
+   "hqCity": "Austin",
+   "hqCountry": "United States",
+   "isUnicorn": true,
+   "website": "https://www.mu-sigma.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Innovation Center - Aviator, ITPB",
+     "address": "10th-14th Floor, Aviator Building, Ascendas ITPL SEZ, Whitefield Road, Bengaluru 560066",
+     "building": "Aviator",
+     "techPark": "International Tech Park Bangalore",
+     "locality": "Whitefield (ITPL)",
+     "lat": 12.983221,
+     "lng": 77.738332,
+     "geocodeSource": "osm-poi",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Mu Sigma's contact page lists 'Mu Sigma Business Solutions Pvt. Ltd., 10th Floor to 14th Floor - Aviator Building, Ascendas - ITPL SEZ, Whitefield Road' as its Global Innovation Center (fetched Oct 2026), and an OSM 'Mu Sigma' POI sits in ITPB: https://www.mu-sigma.com/contact-us/"
+    }
+   ],
+   "sources": [
+    "https://www.mu-sigma.com/contact-us/",
+    "https://www.openstreetmap.org/node/12999157103"
+   ]
+  }
+ ],
+ "coverageNotes": "SCOPE: 63 companies, 89 offices, 28 parks. The lens is Bengaluru-headquartered unicorns and former unicorns, plus the non-unicorn names the brief listed (Myntra, Practo, BlueStone, Navi, Khatabook, Simpl, Ninjacart, Bounce, Dunzo, Gameskraft, Whatfix, MoEngage). isUnicorn means the company reached a $1 bn valuation at some point. Former unicorns (Byju's, Quikr, Mu Sigma) are true, and the description says 'former'. Myntra is false: it was bought by Flipkart in 2014 before reaching $1 bn. Pocket FM (about $750 m in its 2024 Series D), BlueStone (listed just under $1 bn), Gameskraft (some trackers list it, but no priced round supports it), Whatfix and MoEngage are false because I could not establish a $1 bn round. Navi, Khatabook, Simpl, Ninjacart, Bounce, Dunzo and Practo were never unicorns. METHOD AND LIMITS: the shared WebSearch budget (200 per turn) was already used up when this lens started, so I made no web searches. In particular, the unicorn list for 2025-2026 could not be checked against Tracxn, Venture Intelligence or Inc42: the Inc42 tracker returned 404, Tracxn returned 403, and Wikipedia was rate-limited. The list comes from my own knowledge (2025 additions included: Juspay, Jumbotail, Netradyne) and any 2026 unicorn is missing. Addresses were therefore verified primarily against the GLEIF LEI registry API, which gives each Indian entity's MCA-validated legal and headquarters address with a renewal date in 2025-2026 (cited as search.gleif.org record links). I also fetched company pages directly: Swiggy corporate, InMobi, Zerodha and Practo contact pages, Go Digit contact, the Rapido contact page, the verse.in and slice.bank.in footers, apna contact, the cult.fit privacy policy, Mu Sigma contact, brndme.in and Livspace about. OSM POIs from osm-offices.json supplied building points and some secondary offices. Offices evidenced only by an OSM POI are marked low. A few evidence sentences cite another lens's earlier fetch of a company page (marked 'cited by lens E08/G10/G11') together with the LEI record, which I verified myself. LEFT OUT, NO BENGALURU ADDRESS COULD BE SUBSTANTIATED: Hasura (HQ San Francisco; its pages now redirect to PromptQL and list no India address), Drools (LEI registered in Rajnandgaon, Chhattisgarh; its site returned 503), and Jupiter / Amica Financial (LEI and contact page give only Mumbai; the OSM 'Jupiter' on the ORR is a Prestige Tech Park block name). Quess Corp was left to lens E05 because it is a listed MNC, not a startup. LEFT OUT, OUT OF LENS: per the brief, Infra.Market, Darwinbox, Chargebee, Freshworks, Mindtickle, Spinny, Mamaearth, Lenskart and Nykaa. I also excluded Polygon (Mumbai-founded, HQ abroad), Cleartrip (now registered in Mumbai; Flipkart subsidiary), and Bengaluru near-unicorns such as Shadowfax, KreditBee, Fi, Uni, Sarvam AI and Ultrahuman, which E08/E09/G11 cover. LEFT OUT, OUTSIDE THE METRO BOX: Ola Electric's Futurefactory and cell gigafactory (Krishnagiri) and Ather's Hosur factory. OPEN QUESTIONS: (1) Swiggy moved its head office to Sumadhura Capitol Towers, Whitefield, in 2026, but its listed company is still registered at Embassy TechVillage; how much ETV space it keeps is unknown. (2) Cult.fit Ltd is now registered in Chennai; its Bengaluru HSR address comes from its privacy policy. (3) The Livspace, Zeta, DealShare and Quikr locations are low confidence. Livspace and Apna are registered in Gurugram, Zeta's Indian entity in Mumbai, DealShare's in Jaipur, and Quikr's LEI lapsed in 2022. (4) OSM-only secondary offices may be historical: Flipkart at Mantri Commercio and Trifecta Adatto, PhonePe at Aurbis, Myntra at Sattva Eminence, CRED aqua, Unacademy at EGL, Ola at Regent Insignia, CoinSwitch in Electra, NoBroker at Kaikondrahalli, and Bounce. Myntra's former AKR Tech Park / Kudlu Gate HQ, which it left around 2020, is not included because the move predates 2023. Byju's Kalyani Tech Park office is included as closed because Byju's vacated its non-HQ offices in 2024. Dunzo is included as closed; it shut in January 2025. No Bengaluru headcounts are given: I found none that a source states as a Bengaluru-specific number."
+}

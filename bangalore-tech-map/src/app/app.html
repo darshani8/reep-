@@ -1,0 +1,57 @@
+<a class="skip-link" href="#company-list">Skip to the company list</a>
+
+<header class="topbar">
+  <button type="button" class="btn btn-small menu-btn" [attr.aria-expanded]="state.sidebarOpen()" aria-controls="sidebar" (click)="toggleSidebar()">
+    {{ state.sidebarOpen() ? 'Hide list' : 'Companies' }}
+  </button>
+  <div class="brand">
+    <h1>Bengaluru Tech Map</h1>
+    <p class="muted">MNCs, mid-size companies and startups — every branch, every tech park</p>
+  </div>
+  <div class="stats" aria-live="polite">
+    @if (ds.dataset(); as d) {
+      <span><strong>{{ d.companies.length }}</strong> companies</span>
+      <span><strong>{{ ds.officeCount() }}</strong> offices</span>
+      <span><strong>{{ d.techParks.length }}</strong> tech parks</span>
+    } @else if (ds.loading()) {
+      <span class="muted">Loading data…</span>
+    }
+  </div>
+  <button type="button" class="btn btn-small" (click)="openAbout()">About the data</button>
+</header>
+
+<aside id="sidebar" class="sidebar" [attr.aria-hidden]="!state.sidebarOpen()">
+  <app-filter-panel />
+  <div id="company-list" class="list-wrap">
+    <app-company-list />
+  </div>
+</aside>
+
+<main class="map-area">
+  @if (ds.error(); as err) {
+    <div class="load-error" role="alert">
+      <strong>The dataset could not be loaded.</strong>
+      <p>{{ err }}</p>
+    </div>
+  }
+  @defer (on immediate) {
+    <app-map />
+  } @placeholder {
+    <div class="map-placeholder" role="status">Loading the map…</div>
+  }
+  <div class="overlay-legend">
+    <app-legend />
+  </div>
+</main>
+
+@if (hasDetail()) {
+  <aside class="detail" aria-label="Details">
+    @if (state.selectedCompany()) {
+      <app-company-detail />
+    } @else {
+      <app-park-detail />
+    }
+  </aside>
+}
+
+<app-about-dialog />

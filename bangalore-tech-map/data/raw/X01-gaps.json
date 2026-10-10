@@ -1,0 +1,934 @@
+{
+ "key": "X01-gaps",
+ "techParks": [
+  {
+   "name": "Vista Spaces Earth Centre",
+   "aliases": [
+    "The Earth Centre by Vista Spaces",
+    "Vista Earth Centre"
+   ],
+   "locality": "Whitefield",
+   "developer": "Vista Spaces",
+   "lat": 12.985947,
+   "lng": 77.728889,
+   "bbox": [
+    12.98504,
+    12.987199,
+    77.727305,
+    77.730028
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Aon"
+   ],
+   "description": "A LEED-certified office development in Whitefield, owned by Vista Spaces Earth Centre Pvt Ltd. In 2025-26 Aon Consulting leased about 1.99 lakh sq ft across four floors here to expand its Bengaluru global capability centre. The footprint is from OSM; no total area was found.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1135852234",
+    "https://addressadvisors.com/news/aon-consulting-leases-office-space-bengaluru-whitefield",
+    "https://www.aon.com/apac/in-the-press/asia-newsroom/2026/aon-reinforces-india-as-key-global-hub"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "Deutsche Bank",
+   "aliases": [
+    "Deutsche India Private Limited",
+    "Deutsche India",
+    "DBOI Global Services Private Limited",
+    "Deutsche Bank AG"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "German bank whose captive Deutsche India (formerly DBOI Global Services) runs technology centres in Bengaluru and Pune; in Bengaluru it sits at Velankani Tech Park in Electronic City, and Deutsche Bank AG also keeps a retail branch at Raheja Towers on M.G. Road.",
+   "hqCity": "Frankfurt",
+   "hqCountry": "Germany",
+   "founded": 1870,
+   "website": "https://www.db.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Deutsche India technology centre - Velankani Tech Park",
+     "techPark": "Velankani Tech Park",
+     "building": "Block 5 (Mappls) / Block 8 (property listing)",
+     "locality": "Electronic City Phase 1 (Hosur Road)",
+     "address": "Velankani Tech Park, No. 43, Hosur Road, Electronic City Phase 1, Bengaluru 560100",
+     "lat": 12.849226,
+     "lng": 77.659355,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "MapmyIndia (Mappls) lists 'Deutsche Bank, Block 5, Velankani Tech Park, Electronic City Phase 1, Hosur Road, Bengaluru 560100' (pin 12.849226, 77.659355), and a commercial-property listing says Velankani Tech Park Block 8 'is currently occupied by Deutsche India (DBOI Global Services)'; Business Standard (Jul 2023) confirms Deutsche India runs one of its two tech centres in Bengaluru. Two secondary sources, which disagree on the block (https://www.mappls.com/place-deutsche+bank-velankani+tech+park-electronic+city+phase+1-hosur+road-bengaluru-karnataka-560100-6S5AE2 ; https://properties.cityinfoservices.com/velankani-tech-park-block-8-electronic-city-phase-i-bangalore/2rf75aj/pjd).",
+     "geocodeSource": "mappls-poi"
+    },
+    {
+     "label": "Deutsche Bank AG branch - Raheja Towers, M.G. Road",
+     "techPark": "Raheja Towers",
+     "building": "Raheja Towers",
+     "locality": "M.G. Road (CBD)",
+     "address": "No. 26-27, Ground Floor, Raheja Towers, M.G. Road, Bengaluru 560001",
+     "lat": 12.973388,
+     "lng": 77.613879,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Deutsche Bank India's own branch locator lists the Bangalore branch at 'No. 26-27, Ground Floor, Raheja Towers, M.G. Road, Bangalore 560001' (https://forms.deutsche.bank.in/dbMobile/locate_us.html); pin is OSM's Raheja Towers polygon.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://forms.deutsche.bank.in/dbMobile/locate_us.html",
+    "https://www.mappls.com/place-deutsche+bank-velankani+tech+park-electronic+city+phase+1-hosur+road-bengaluru-karnataka-560100-6S5AE2",
+    "https://properties.cityinfoservices.com/velankani-tech-park-block-8-electronic-city-phase-i-bangalore/2rf75aj/pjd",
+    "https://www.business-standard.com/companies/interviews/deutsche-india-expands-tech-operations-plans-to-hire-in-thousands-123071000508_1.html",
+    "https://country.db.com/india/company/contacts"
+   ]
+  },
+  {
+   "name": "Lenovo",
+   "aliases": [
+    "Lenovo (India) Private Limited",
+    "Lenovo India",
+    "Lenovo Global Technology (India) Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "Chinese PC, server and device maker whose India entity is headquartered in Bengaluru at Roach Icon (formerly Ferns Icon) on the Marathahalli Outer Ring Road; it also launched a Bengaluru Shared Support Center (network and security operations, remote infrastructure services) in August 2023 with plans for over 1,000 technical jobs, building not stated.",
+   "hqCity": "Beijing",
+   "hqCountry": "China",
+   "founded": 1984,
+   "website": "https://www.lenovo.com/in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Lenovo India HQ - Roach Icon (formerly Ferns Icon)",
+     "techPark": null,
+     "building": "Roach Icon (formerly Ferns Icon)",
+     "locality": "Doddanekundi (Marathahalli Outer Ring Road)",
+     "address": "Level 2, Roach Icon, Doddanekundi Village, Marathahalli Outer Ring Road, Bengaluru 560037",
+     "lat": 12.979,
+     "lng": 77.693703,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Bloomberg's LEI record for Lenovo (India) Private Limited gives legal and HQ address 'Roach Icon Level 2, Doddenakundi Village, Marathhalli Outer Ring Road, Bangalore 560037' (address change recorded March 2025, record updated July 2026); a directory listing gives the same building as 'Roach Icon (formerly Ferns Icon)'. Pin is OSM's 'Ferns Icon' office building (https://lei.bloomberg.com/leis/view/3358004KPXCZZ14BZF23 ; https://www.industrialautomationindia.in/directory/lenovo-india).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://lei.bloomberg.com/leis/view/3358004KPXCZZ14BZF23",
+    "https://www.industrialautomationindia.in/directory/lenovo-india",
+    "https://channeldrive.in/innovation/lenovo-launches-shared-support-center-in-bengaluru/",
+    "https://www.openstreetmap.org/way/175640222"
+   ]
+  },
+  {
+   "name": "Cigna Health Solutions India",
+   "aliases": [
+    "The Cigna Group",
+    "Cigna",
+    "Cigna Health Solutions India Private Limited",
+    "CHSI"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "The Cigna Group's centre of excellence for data, analytics, operations and technology, set up in Bengaluru in 2011; its corporate office is Building 2, Prestige Technology Park IV on the Outer Ring Road. It is separate from the Evernorth unit in Hyderabad and from the ManipalCigna insurance joint venture.",
+   "hqCity": "Bloomfield, Connecticut",
+   "hqCountry": "United States",
+   "founded": 1982,
+   "website": "https://www.cignainternational.com/chsi",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Cigna Health Solutions India corporate office - Prestige Technology Park IV",
+     "techPark": "Prestige Tech Park",
+     "building": "Building 2 (Prestige Technology Park IV)",
+     "locality": "Kadubeesanahalli / Marathahalli (Outer Ring Road)",
+     "address": "Building 2, 1st Floor, Prestige Technology Park IV, Outer Ring Road, Marathahalli, Bengaluru 560037",
+     "lat": 12.944152,
+     "lng": 77.693894,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "CHSI's own contact page lists the corporate office as 'Building 2, 1st Floor, Prestige Technology Park IV, Outer Ring Road, Marathahalli, Bengaluru-560037' (registered office is in Mumbai), and Tofler/Zauba registry summaries give the same building; OSM maps a 'Signa Health Solutions' office POI inside Prestige Tech Park, used as the pin (https://www.cignainternational.com/chsi/contact-us ; https://www.tofler.in/cigna-health-solutions-india-private-limited/company/U93090KA2011FTC193037).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.cignainternational.com/chsi/contact-us",
+    "https://www.tofler.in/cigna-health-solutions-india-private-limited/company/U93090KA2011FTC193037",
+    "https://www.businessofgcc.com/gcc-data/companies/the-cigna-group-india-bengaluru",
+    "https://www.openstreetmap.org/node/11608263621"
+   ]
+  },
+  {
+   "name": "Merck Group (Merck KGaA)",
+   "aliases": [
+    "Merck KGaA",
+    "Merck Global Capability Centre",
+    "MGCC",
+    "Merck Healthcare R&D India",
+    "EMD (US name)"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "German science and technology group (not the US Merck & Co.). In June 2026 it opened a 17,000 sq m Global Capability Centre in Electronic City for about 3,300 staff, combining its existing India technology and services work (Digital Enterprise Solutions plus Life Science, Healthcare and Electronics tech teams). That makes India the group's fourth-largest workforce hub. Its Healthcare R&D India hub moved from Electronic City to Bagmane Solarium City in January 2026.",
+   "hqCity": "Darmstadt",
+   "hqCountry": "Germany",
+   "founded": 1668,
+   "website": "https://www.merckgroup.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": 3300,
+   "offices": [
+    {
+     "label": "Merck Global Capability Centre (MGCC) - Electronic City",
+     "techPark": "360 Business Park",
+     "building": null,
+     "locality": "Electronic City Phase 1",
+     "address": "360 Business Park, Electronic City Phase 1, Bengaluru 560100",
+     "lat": 12.842384,
+     "lng": 77.65414,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "BioSpectrum and Indian Pharma Post (29-30 Jun 2026) report Merck inaugurated its 17,000 sq m GCC in Electronic City for nearly 3,300 professionals; neither names the building. OSM has a 'Merck' office POI (added Aug 2025) inside 360 Business Park (Bengaluru Lifesciences Park), Electronic City, used as the pin; the park assignment rests on that mapper's POI only (https://biospectrumindia.com/news/104/28039/merck-inaugurates-global-capability-centre-in-bengaluru.html ; https://www.indianpharmapost.com/news/merck-consolidates-india-tech-operations-under-new-bengaluru-gcc-20774 ; https://www.openstreetmap.org/node/13075411578).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Merck Healthcare R&D India hub - Bagmane Solarium City",
+     "techPark": "Bagmane Solarium City",
+     "building": null,
+     "locality": "Kundalahalli / Doddanekundi, Brookefield (ORR-Whitefield)",
+     "address": "Bagmane Solarium City, Whitefield, Bengaluru",
+     "lat": 12.969934,
+     "lng": 77.708425,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "BioVoice News and BioSpectrum (31 Jan 2026) report Merck Healthcare R&D India moved from Electronic City's Software Park to a larger office at Bagmane Solarium City, Whitefield (regulatory affairs, pharmacovigilance, clinical operations and other R&D functions); building not named, pin is the park centroid (https://biovoicenews.com/merck-healthcare-rd-india-unveils-next-gen-office-in-bangalore-to-power-global-innovation/ ; https://biospectrumindia.com/news/16/27254/merck-announces-opening-of-new-healthcare-rd-office-in-bengaluru.html).",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://biospectrumindia.com/news/104/28039/merck-inaugurates-global-capability-centre-in-bengaluru.html",
+    "https://www.indianpharmapost.com/news/merck-consolidates-india-tech-operations-under-new-bengaluru-gcc-20774",
+    "https://biovoicenews.com/merck-healthcare-rd-india-unveils-next-gen-office-in-bangalore-to-power-global-innovation/",
+    "https://biospectrumindia.com/news/16/27254/merck-announces-opening-of-new-healthcare-rd-office-in-bengaluru.html",
+    "https://www.openstreetmap.org/node/13075411578"
+   ]
+  },
+  {
+   "name": "IQVIA",
+   "aliases": [
+    "IQVIA RDS (India) Private Limited",
+    "IQVIA Analytics Services Private Limited",
+    "IMS Health",
+    "Quintiles"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "US health-data, analytics and clinical-research company formed by the 2016 merger of Quintiles and IMS Health. Its Bengaluru entities, IQVIA RDS (India) and IQVIA Analytics Services, both sit in the Omega block of Embassy Tech Square on the Outer Ring Road. The building was formerly IMS Health's Global Delivery Center.",
+   "hqCity": "Durham, North Carolina",
+   "hqCountry": "United States",
+   "founded": 2016,
+   "website": "https://www.iqvia.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "IQVIA - Omega, Embassy Tech Square",
+     "techPark": "Embassy Tech Square",
+     "building": "Omega",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "address": "Omega, Embassy TechSquare, Marathahalli-Sarjapur Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.93509,
+     "lng": 77.693509,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "IQVIA's official India locations page lists both IQVIA RDS (India) Pvt Ltd and IQVIA Analytics Services Pvt Ltd at 'Omega, Embassy TechSquare, Marathahalli-Sarjapur Outer Ring Road, Kadubeesanahalli, Bangalore 560 103'; an older IMS Health contact page gives the same building. Pin is OSM's 'Omega, Embassy Tech Square' POI (https://www.iqvia.com/da/locations/india ; https://companies.naukri.com/imshealth-jobs/contact).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.iqvia.com/da/locations/india",
+    "https://companies.naukri.com/imshealth-jobs/contact",
+    "https://www.openstreetmap.org/node/11056202721"
+   ]
+  },
+  {
+   "name": "Meta",
+   "aliases": [
+    "Meta Platforms",
+    "Facebook",
+    "Facebook India Online Services"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "US parent of Facebook, Instagram and WhatsApp. It booked about 2.2 lakh sq ft at Embassy GolfLinks in 2018 to consolidate its Prestige Trade Tower and UB City teams. In 2025 its Enterprise Engineering group began building a Bengaluru engineering team (internal tools, ML, data-centre chip design) to add to its Gurugram, Hyderabad and Mumbai offices.",
+   "hqCity": "Menlo Park",
+   "hqCountry": "United States",
+   "founded": 2004,
+   "website": "https://about.meta.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Meta (Facebook) Bengaluru office - Embassy GolfLinks",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": null,
+     "locality": "Challaghatta / Domlur (Intermediate Ring Road)",
+     "address": "Embassy GolfLinks Business Park, Off Intermediate Ring Road, Bengaluru 560071",
+     "lat": 12.950254,
+     "lng": 77.644071,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Inc42 (22 Oct 2018) reported Facebook took about 2.2 lakh sq ft at Embassy GolfLinks to replace its Prestige Trade Tower and UB City offices, and NewsKarnataka (23 Feb 2025, citing Moneycontrol) says Meta 'already operates from the Embassy Golf Links area' while setting up its new enterprise-engineering centre; building not named, pin is the park centroid (https://inc42.com/buzz/facebook-books-2-2-lakh-sqft-office-space-in-bengaluru ; https://newskarnataka.com/india/meta-set-to-open-new-office-in-bengaluru-as-it-expands-ai-operations/23022025/).",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://inc42.com/buzz/facebook-books-2-2-lakh-sqft-office-space-in-bengaluru",
+    "https://newskarnataka.com/india/meta-set-to-open-new-office-in-bengaluru-as-it-expands-ai-operations/23022025/",
+    "https://www.siasat.com/meta-to-expand-india-operations-hire-more-for-engineering-and-ai-roles-3184767/"
+   ]
+  },
+  {
+   "name": "Akamai Technologies",
+   "aliases": [
+    "Akamai",
+    "Akamai Technologies India Private Limited",
+    "Akamai Technologies Solutions (India) Private Limited",
+    "Akamai India Networks",
+    "Linode Hosting India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "US content-delivery, cloud and security company. Its India entities are registered at the Augusta building in Embassy GolfLinks, where it opened a facility of about 250,000 sq ft in 2018. The site, then its second-largest worldwide, houses network, security and broadcast operations command centres and was planned for 2,000+ staff.",
+   "hqCity": "Cambridge, Massachusetts",
+   "hqCountry": "United States",
+   "founded": 1998,
+   "website": "https://www.akamai.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Akamai India - Augusta building, Embassy GolfLinks",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Augusta",
+     "locality": "Challaghatta / Domlur (Intermediate Ring Road)",
+     "address": "Augusta Building, Embassy GolfLinks Business Park, Off Intermediate Ring Road, Bengaluru 560071",
+     "lat": 12.9496,
+     "lng": 77.642723,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Akamai's affiliates list registers its four Indian entities at 'Augusta Building, Embassy Golf Links Business Park, Off Intermediate Ring Road, Bengaluru 560071', confirmed by the Bloomberg LEI record (ground floor, Augusta; updated Apr 2026); EE Times India (Oct 2018) reports the ~250,000 sq ft Embassy GolfLinks facility with NOC, SOCC and BOCC. Pin is OSM's 'Augusta' office building (https://akamai.com/company/akamai-affiliates ; https://lei.bloomberg.com/leis/view/335800Z61Y642NS2G687 ; https://www.eetindia.co.in/?p=4494).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://akamai.com/company/akamai-affiliates",
+    "https://lei.bloomberg.com/leis/view/335800Z61Y642NS2G687",
+    "https://www.eetindia.co.in/?p=4494",
+    "https://www.akamai.com/newsroom/press-release/akamai-unveils-new-facility-in-bengaluru",
+    "https://www.openstreetmap.org/way/105322105"
+   ]
+  },
+  {
+   "name": "GlobalLogic",
+   "aliases": [
+    "GlobalLogic India Private Limited",
+    "GlobalLogic (a Hitachi Group company)",
+    "Method (GlobalLogic design studio)"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Digital product-engineering firm owned by Hitachi since 2021. Its Bengaluru centre is on the 4th floor of Block 12, Pritech Park SEZ (Outer Ring Road, Bellandur), shared with its design studio Method. A 2018 expansion announced 75,000 sq ft for 1,000+ staff.",
+   "hqCity": "Santa Clara, California",
+   "hqCountry": "United States",
+   "founded": 2000,
+   "website": "https://www.globallogic.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "GlobalLogic / Method - Pritech Park SEZ Block 12",
+     "techPark": "Pritech Park SEZ",
+     "building": "Block 12",
+     "locality": "Bellandur (Outer Ring Road)",
+     "address": "4th Floor, Wing A & B, Block 12, Pritech Park SEZ, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.922527,
+     "lng": 77.679569,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "GlobalLogic's locations listing and its subsidiary Method's Bengaluru page both give 'Pritech Park SEZ, 4th Floor Wing A & B, Block 12, Survey No. 51-64, Marathalli-Sarjapur Outer Ring Road, Bellandur Village, Bengaluru 560103' (phone +91-80-4257-6000); GlobalLogic's 29 Aug 2018 release announced the 75,000 sq ft Bengaluru expansion without naming the building. Pin is OSM's 'Building 12' inside Pritech Park (https://www.method.com/about/locations/bengaluru/ ; https://globallogic.com/in/?p=43886).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.method.com/about/locations/bengaluru/",
+    "https://globallogic.com/in/?p=43886",
+    "https://www.openstreetmap.org/way/343606157"
+   ]
+  },
+  {
+   "name": "Zeiss",
+   "aliases": [
+    "Carl Zeiss",
+    "Carl Zeiss India (Bangalore) Pvt Ltd",
+    "ZEISS GCC",
+    "ZEISS Global Capability Centre",
+    "ZEISS India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "German optics and medical-technology group. Its India headquarters, also the HQ of its Medical, Metrology, Microscopy, Vision Care and Sports Optics business groups, is a campus at Bommasandra on Jigani Link Road. Its first India GCC (cloud, cybersecurity, network operations, Meditec software) opened in November 2024 at Prestige Tech Park, as part of a plan to double India staff from 2,500 to 5,000 in three years. A Rs 3,000 crore lens plant is planned at Devanahalli.",
+   "website": "https://www.zeiss.co.in",
+   "hqCity": "Oberkochen",
+   "hqCountry": "Germany",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Carl Zeiss India HQ campus - Bommasandra (Jigani Link Road)",
+     "techPark": "Bommasandra Industrial Area",
+     "building": "Plot No. 3",
+     "locality": "Bommasandra Industrial Area (Hosur Road)",
+     "address": "Plot No. 3, Jigani Link Road, Bommasandra Industrial Area, Bengaluru 560099",
+     "lat": 12.81729,
+     "lng": 77.695091,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "ZEISS India's Medical about-us page gives 'Carl Zeiss India (Bangalore) Pvt. Ltd., Plot No. 3, Jigani Link Road, Bommasandra Industrial Area, Bangalore 560099' and says the facility is HQ for the Medical, Industrial Metrology, Microscopy, Vision Care and Sports & Cine Optics groups; the ZEISS metrology production-site page gives the same plot. No building-level map point was found, so the pin is the Bommasandra Industrial Area centroid (https://zeiss.co.in/meditec/about-us.html ; https://www.zeiss.com/metrology/pages/production-sites/bangalore.html).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Devanahalli manufacturing plant - Hi-Tech Defence and Aerospace Park (Chimachanahalli)",
+     "locality": "Chimachanahalli, Devanahalli",
+     "lat": 13.228235,
+     "lng": 77.779295,
+     "techPark": "Hi-Tech Defence and Aerospace Park",
+     "building": null,
+     "address": "Hi-Tech Defence and Aerospace Park, Devanahalli taluk 562135",
+     "isHq": false,
+     "status": "planned",
+     "confidence": "medium",
+     "evidence": "Deccan Herald reported Zeiss will set up a Rs 3,000 crore plant in Devanahalli, its largest investment outside Germany (https://deccanherald.com/business/zeiss-to-set-up-plant-in-b-luru-with-rs-3-000-crore-to-double-workforce-to-5-000-in-3-yrs-3272881); OSM maps a 'Carl Zeiss' industrial site in the Hi-Tech Defence and Aerospace Park (https://www.openstreetmap.org/way/1278497910). Start of production not confirmed.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "ZEISS India Global Capability Centre - Prestige Tech Park",
+     "locality": "Kadubeesanahalli",
+     "lat": 12.942865,
+     "lng": 77.692806,
+     "techPark": "Prestige Tech Park",
+     "building": null,
+     "address": "Prestige Tech Park, Outer Ring Road, Kadubeesanahalli",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Medical Device Developments reports Zeiss's first India GCC (Nov 2024) occupies 43,000 sq ft at Prestige Tech Park, Kadubeesanahalli, with 600+ staff (https://medicaldevice-developments.com/?p=10931); building not named, pin is the park centroid.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://deccanherald.com/business/zeiss-to-set-up-plant-in-b-luru-with-rs-3-000-crore-to-double-workforce-to-5-000-in-3-yrs-3272881",
+    "https://medicaldevice-developments.com/?p=10931",
+    "https://biospectrumindia.com/news/100/25340/zeiss-india-expands-global-capability-center-in-bengaluru.html",
+    "https://www.openstreetmap.org/way/1278497910",
+    "https://zeiss.co.in/meditec/about-us.html",
+    "https://www.zeiss.com/metrology/pages/production-sites/bangalore.html",
+    "https://dig.watch/updates/carl-zeiss-opens-first-global-capability-centre-in-india"
+   ]
+  },
+  {
+   "name": "Stripe",
+   "aliases": [
+    "Stripe India Private Limited",
+    "Stripe Technology India Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Fintech",
+   "description": "US-Irish payments company. Both of its Indian entities, Stripe India and Stripe Technology India, are registered in Building 2 of Prestige Tech Pacific Park, Kadubeesanahalli, where it hires engineers for payments, risk, identity, infrastructure and data.",
+   "hqCity": "South San Francisco",
+   "hqCountry": "United States",
+   "founded": 2010,
+   "website": "https://stripe.com/in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Stripe India - Prestige Tech Pacific Park, Building 2",
+     "techPark": "Prestige Tech Pacific Park",
+     "building": "Building 2 (10th-11th floors)",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "address": "11th Floor, Building 2, Prestige Tech Pacific Park, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.937816,
+     "lng": 77.695832,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The LEI record for Stripe India Pvt Ltd (updated Jan 2026) gives legal and HQ address 'Prestige Tech Pacific Park, 11th Floor, Building 2, Kadubeesanahalli Village, Varthur Hobli, Bangalore 560103', and the separate Stripe Technology India Pvt Ltd LEI gives the 10th floor of the same building; InstaFinancials' MCA summary agrees. No building-level map point, so the pin is the park centroid (https://www.lei-lookup.com/record/335800ELSFFAIAJP1J63/ ; https://www.leikart.com/leicert/9845007B88E46491B514/ ; https://www.instafinancials.com/company/stripe-india-private-limited/U72200KA2016FTC096320).",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.lei-lookup.com/record/335800ELSFFAIAJP1J63/",
+    "https://www.leikart.com/leicert/9845007B88E46491B514/",
+    "https://www.instafinancials.com/company/stripe-india-private-limited/U72200KA2016FTC096320"
+   ]
+  },
+  {
+   "name": "Delta Air Lines (Delta Technology Hub)",
+   "aliases": [
+    "Delta Tech Hub",
+    "DAL Global Technology Hub LLP",
+    "Delta Air Lines"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Other",
+   "description": "Wholly owned technology and TechOps-engineering hub of the US airline Delta Air Lines, registered as DAL Global Technology Hub LLP and headquartered at Manyata Embassy Business Park. Great Place To Work lists about 726 India staff.",
+   "hqCity": "Atlanta",
+   "hqCountry": "United States",
+   "founded": 1925,
+   "website": "https://www.delta.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Delta Technology Hub - Banyan (Block L1), Manyata Embassy Business Park",
+     "techPark": "Manyata Tech Park",
+     "building": "Banyan (Block L1)",
+     "locality": "Nagawara (Hebbal Outer Ring Road)",
+     "address": "2nd Floor, Banyan (Block L1), Manyata Embassy Business Park, Nagawara, Bengaluru 560045",
+     "lat": 13.043858,
+     "lng": 77.618365,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Bloomberg's LEI record for DAL Global Technology Hub LLP (updated Apr 2026) gives legal and HQ address 'Block L1, Banyan, 2nd Floor, Manyata Embassy Business Park, SEZ Nagawara, Bangalore 560045', matched by its Karnataka GST and Zauba records; one aggregator (Credhive) lists floors 17-18 of Block M3 in the same park instead. Pin is OSM's 'Banyan' building (https://lei.bloomberg.com/leis/view/984500BDCA6BP638EK77 ; https://www.knowyourgst.com/gst-number-search/dal-global-technology-hub-llp-29AAQFD6277J1ZN/ ; https://www.greatplacetowork.in/great/company/delta-technology-hub-legal-registration-name-dal-global-technology-hub-llp).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://lei.bloomberg.com/leis/view/984500BDCA6BP638EK77",
+    "https://www.knowyourgst.com/gst-number-search/dal-global-technology-hub-llp-29AAQFD6277J1ZN/",
+    "https://www.zaubacorp.com/DAL-GLOBAL-TECHNOLOGY-HUB-LLP-AAR-0523",
+    "https://www.greatplacetowork.in/great/company/delta-technology-hub-legal-registration-name-dal-global-technology-hub-llp",
+    "https://www.openstreetmap.org/way/491335673"
+   ]
+  },
+  {
+   "name": "Jaguar Land Rover",
+   "aliases": [
+    "JLR",
+    "JLR TBSI",
+    "JLR Technology and Business Services India",
+    "JLRTBSI",
+    "Jaguar Land Rover Technology and Business Services India Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "UK carmaker owned by Tata Motors. Its JLR Technology and Business Services India arm (ADAS, software-defined vehicles, propulsion) holds about 2.04 lakh sq ft at Brigade Tech Gardens. A careers directory also lists an RMZ Ecoworld Campus 3A address. JLR opened its fifth Open Innovation Hub in Bengaluru with Plug and Play in October 2024; that site is not named.",
+   "hqCity": "Coventry",
+   "hqCountry": "United Kingdom",
+   "founded": 2008,
+   "website": "https://www.jaguarlandrover.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "JLR Technology and Business Services India - Brigade Tech Gardens",
+     "locality": "Brookefield / Kundalahalli",
+     "lat": 12.962881,
+     "lng": 77.721786,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "The Realty Today and Indian Startup News (Nov 2025) report JLRTBSI took an extra 1.46 lakh sq ft at Brigade Tech Gardens, Brookefield (ground, first, fifth and eighth floors, leases from May and Dec 2024), taking it to about 2.04 lakh sq ft (https://therealtytoday.com/news/commercial/jaguar-land-rover-expands-bengaluru-office-footprint-with-146-lakh-sq-ft-lease-at-brigade-tech-gardens/).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Brigade Tech Gardens",
+     "building": null,
+     "address": "Brigade Tech Gardens, Brookefield, Bengaluru 560037"
+    },
+    {
+     "label": "JLR Technology and Business Services India - RMZ Ecoworld Campus 3A",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 3A",
+     "locality": "Bellandur / Devarabeesanahalli (Outer Ring Road)",
+     "address": "Campus 3A, RMZ Ecoworld, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.92495,
+     "lng": 77.686807,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only a Careers360 Q&A page lists 'Jaguar Land Rover Technology and Business Services India Private Limited, RMZ Ecoworld, Campus 3A, Outer Ring Road, Bangalore 560103' (tel +91 80 3951 5000); no lease report or JLR page confirms it, and it may predate the Brigade Tech Gardens consolidation. Pin is OSM's 'Campus 3A' building in Ecoworld (https://www.careers360.com/question-how-to-connect-with-hr-team-in-jaguar-land-rover-technology-and-business-services-india-private-limited-bangalore).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://therealtytoday.com/news/commercial/jaguar-land-rover-expands-bengaluru-office-footprint-with-146-lakh-sq-ft-lease-at-brigade-tech-gardens/",
+    "https://indianstartupnews.com/news/tatas-jaguar-land-rover-leases-146-lakh-sq-ft-office-space-in-bengaluru-for-rs-106-crore-10785134",
+    "https://www.careers360.com/question-how-to-connect-with-hr-team-in-jaguar-land-rover-technology-and-business-services-india-private-limited-bangalore",
+    "https://www.tata.com/newsroom/business/jlr-open-innovation-hub-bengaluru",
+    "https://www.business-standard.com/companies/news/jaguar-land-rover-expands-bengaluru-office-space-with-106-cr-5-year-deal-125111700979_1.html"
+   ]
+  },
+  {
+   "name": "Aon",
+   "aliases": [
+    "Aon plc",
+    "Aon Consulting Private Limited",
+    "Aon India Insurance Brokers Private Limited",
+    "Aon Hewitt"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Professional-services and insurance-broking firm whose Indian capability centres are in Bengaluru, Noida and Gurgaon. In June 2026 it expanded the Bengaluru GCC into about 1.99 lakh sq ft at The Earth Centre by Vista Spaces in Whitefield, with leases from Dec 2025 and June 2026. Its India broking arm is registered at Vaishnavi Silicon Terraces, Koramangala.",
+   "hqCity": "Dublin",
+   "hqCountry": "Ireland",
+   "founded": null,
+   "website": "https://www.aon.com/apac/aon-in-india",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Aon GCC - The Earth Centre by Vista Spaces",
+     "techPark": "Vista Spaces Earth Centre",
+     "building": "The Earth Centre (floors 2, 3, 4, 6)",
+     "locality": "Whitefield",
+     "address": "The Earth Centre by Vista Spaces, Whitefield, Bengaluru",
+     "lat": 12.985947,
+     "lng": 77.728889,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Aon's own release (3 Jun 2026) announces the expansion of its Bengaluru GCC with a new facility at The Earth Centre by Vista Spaces, Whitefield, and Propstack registration records reported by Address Advisors show Aon Consulting Pvt Ltd leasing 198,509 sq ft across floors 2, 3, 4 and 6 (phases from Dec 2025 and Jun 2026). Pin is OSM's 'Vista Spaces Earth Centre' site (https://www.aon.com/apac/in-the-press/asia-newsroom/2026/aon-reinforces-india-as-key-global-hub ; https://addressadvisors.com/news/aon-consulting-leases-office-space-bengaluru-whitefield).",
+     "geocodeSource": "osm-landuse-centroid"
+    },
+    {
+     "label": "Aon India Insurance Brokers registered office - Vaishnavi Silicon Terraces",
+     "techPark": null,
+     "building": "Vaishnavi Silicon Terraces",
+     "locality": "Koramangala 5th Block (Hosur Road)",
+     "address": "First Floor, Vaishnavi Silicon Terraces, No. 30/1, Hosur Main Road, Koramangala 5th Block, Bengaluru 560095",
+     "lat": 12.937793,
+     "lng": 77.611084,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Aon's 'Aon in India' page lists Aon India Insurance Brokers Pvt Ltd's registered office at 'Vaishnavi Silicon Terraces, First Floor, No. 30/1, Koramangala 5th Block, Industrial Area, Hosur Main Road, Bengaluru 560095'. Pin is OSM's Vaishnavi Silicon Terraces building (https://www.aon.com/apac/aon-in-india).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Aon Consulting - Xchanging Tower, SJR iPark (legacy listing)",
+     "techPark": "SJR iPark",
+     "building": "Xchanging Tower",
+     "locality": "Whitefield (EPIP Zone Phase 1)",
+     "address": "4th Floor, Xchanging Tower, SJR iPark, EPIP Zone Phase 1, Whitefield, Bengaluru 560066",
+     "lat": 12.981131,
+     "lng": 77.72629,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "An Aon India office-locations page, quoted in search results but returning 404 when fetched, listed Aon Consulting Pvt Ltd at '4th Floor, Xchanging Tower, Plot 13-15, SJR iPark, EPIP Industrial Area Phase 1, Whitefield, Bengaluru 560066'. The page predates the Earth Centre lease, so this site may since have been vacated. Pin is the SJR iPark centroid (https://aon.com/apac/india/office-locations.jsp).",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.aon.com/apac/in-the-press/asia-newsroom/2026/aon-reinforces-india-as-key-global-hub",
+    "https://addressadvisors.com/news/aon-consulting-leases-office-space-bengaluru-whitefield",
+    "https://www.reinsurancene.ws/aon-expands-bengalurus-global-capability-centre-with-new-facility/",
+    "https://www.aon.com/apac/aon-in-india",
+    "https://aon.com/apac/india/office-locations.jsp",
+    "https://www.openstreetmap.org/way/1135852234"
+   ]
+  },
+  {
+   "name": "Chubb Business Services India",
+   "aliases": [
+    "Chubb",
+    "Chubb Business Services India Private Limited",
+    "Chubb India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "The insurer Chubb's technology, digital and analytics capability centre, announced in 2019 for Hyderabad and Bangalore and now also in Bhubaneswar, with about 2,500 India staff. Hyderabad is the HQ. The Bengaluru site's GST principal place of business is B Block, SJR Primeco Union City, Whitefield.",
+   "hqCity": "Zurich",
+   "hqCountry": "Switzerland",
+   "founded": null,
+   "website": "https://www.chubb.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Chubb Business Services India - SJR Primeco Union City, B Block",
+     "techPark": "SJR Primeco Union City",
+     "building": "B Block",
+     "locality": "Sadaramangala / Whitefield",
+     "address": "4th Floor, B Block, SJR Primeco Union City, Sadaramangala Village, Whitefield, Bengaluru 560067",
+     "lat": 12.989057,
+     "lng": 77.732626,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Chubb's Karnataka GST registration (29AAKCC2239G1ZL, registered 8 Apr 2022) gives its principal place of business as 'Primeco Union City, B Block, 4th Floor, Sadaramangala Village, Bengaluru 560067'; Chubb's 2019 release confirms a Bangalore centre (https://knowyourgst.com/gst-number-search/chubb-business-services-india-private-limited-29AAKCC2239G1ZL ; https://news.chubb.com/2019-09-12-Chubb-to-Launch-Business-Services-Center-in-India-to-Provide-Technology-Digital-and-Analytics-Support). Pin is OSM's SJR Primeco Union City complex.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://knowyourgst.com/gst-number-search/chubb-business-services-india-private-limited-29AAKCC2239G1ZL",
+    "https://news.chubb.com/2019-09-12-Chubb-to-Launch-Business-Services-Center-in-India-to-Provide-Technology-Digital-and-Analytics-Support",
+    "https://www.greatplacetowork.in/great/company/chubb-business-services-india-private-limited/"
+   ]
+  },
+  {
+   "name": "Cohesity",
+   "aliases": [
+    "Cohesity India Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "US data-security and backup software company (absorbed Veritas' data-protection business) that announced a $1 billion India investment over five years in December 2025. It has about 2,200 India staff across Bengaluru and Pune. Its Bengaluru office is Elnath B Wing at Prestige Tech Park (Exora); older contact pages gave Salarpuria Touchstone.",
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "founded": 2013,
+   "website": "https://www.cohesity.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Cohesity India - Elnath B Wing, Prestige Tech Park (Exora)",
+     "techPark": "Prestige Tech Park",
+     "building": "Elnath (B Wing, 7th floor)",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "address": "7th Floor, Elnath B Wing, Exora-Prestige Tech Park II, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.941739,
+     "lng": 77.690773,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Cohesity's main contact page, as quoted in search results (the site returned 403 to direct fetches), lists 'Exora-Prestige Tech Park II, ELNATH B Wing, 7th Floor, Kadubeesanahalli, Outer Ring Road, Bengaluru 560103'; Business India describes a new LEED Gold Bengaluru regional office. Pin is OSM's 'Elnath' building (https://www.cohesity.com/contact/ ; https://businessindia.co/amp/story/magazine/technology/cohesity-bets-big-on-india).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Cohesity India - Salarpuria Touchstone, Block A (former address)",
+     "techPark": "Salarpuria Touchstone",
+     "building": "Block A (3rd floor)",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "address": "3rd Floor, A Block, Salarpuria Touchstone, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.9365,
+     "lng": 77.691002,
+     "isHq": false,
+     "status": "closed",
+     "confidence": "low",
+     "evidence": "Several localized cohesity.com contact pages and a third-party profile still list 'Salarpuria Touchstone, A Block, 3rd Floor, Kadubeesanahalli, Outer Ring Road, Bangalore 560103', but the current main contact page lists Elnath instead, so this is treated as a former office. No move date was found. Pin is OSM's 'Salarpuria Block A' (https://www.cohesity.com/fr/contact/ ; https://clay.com/dossier/cohesity-headquarters-office-locations).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.cohesity.com/contact/",
+    "https://www.cohesity.com/fr/contact/",
+    "https://ianslive.in/cohesity-to-invest-1-billion-in-india-over-5-years--20251205114038",
+    "https://businessindia.co/amp/story/magazine/technology/cohesity-bets-big-on-india"
+   ]
+  },
+  {
+   "name": "Pegasystems",
+   "aliases": [
+    "Pega",
+    "Pegasystems Worldwide India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "US low-code and AI decisioning software company. On 25 June 2026 it opened a new Bengaluru office at Ecoworld, building 5B, with an investment of over Rs 60 crore. The office is 1.5 times its previous one, at Pritech Park SEZ Block 9A, and has 350+ seats and Pega's first Executive Briefing Center outside North America.",
+   "hqCity": "Waltham, Massachusetts",
+   "hqCountry": "United States",
+   "founded": 1983,
+   "website": "https://www.pega.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Pega Bengaluru - Ecoworld 5B (Executive Briefing Center)",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 5B (Levels 2-3)",
+     "locality": "Bellandur / Devarabeesanahalli (Outer Ring Road)",
+     "address": "Levels 2 & 3, Ecoworld 5B, Sarjapur-Marathahalli Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.922121,
+     "lng": 77.683626,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Pega's office-locations page lists Bangalore at 'Ecoworld - 5B, Level 02 & 03, Eco world SEZ, Sarjapura Outer Ring Road, Devarabeesanahalli, Bangalore 560103', and its 25 Jun 2026 release (Analytics Insight) announces the new EcoWorld Tech Park office (Rs 60 crore+, 350+ seats, first EBC outside North America). Pin is OSM's 'Campus 5B' in Ecoworld (https://www.pega.com/about/office-locations ; https://www.analyticsinsight.net/press-release/pegasystems-unveils-strategic-india-investment-with-new-bengaluru-executive-briefing-center).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Pega Bengaluru - Pritech Park SEZ Block 9A (former office)",
+     "techPark": "Pritech Park SEZ",
+     "building": "Block 9A",
+     "locality": "Bellandur (Outer Ring Road)",
+     "address": "Ground & First Floor, Block 9A, Pritech Park SEZ, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.923623,
+     "lng": 77.680586,
+     "isHq": false,
+     "status": "closed",
+     "confidence": "medium",
+     "evidence": "An earlier version of Pega's office-locations page (French edition, as indexed) gave 'Block No. 9A, Ground floor & First floor, Pritech Park SEZ, Survey No. 51 to 64/4'; the current page lists only Ecoworld 5B and the June 2026 release calls the new office 1.5 times the size of the previous facility, so this site is treated as vacated. Pin is OSM's 'Block 9A and 9B' inside Pritech Park (https://www.pega.com/fr/about/office-locations).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.pega.com/about/office-locations",
+    "https://www.pega.com/fr/about/office-locations",
+    "https://www.analyticsinsight.net/press-release/pegasystems-unveils-strategic-india-investment-with-new-bengaluru-executive-briefing-center",
+    "https://www.openstreetmap.org/way/639378214"
+   ]
+  },
+  {
+   "name": "Mavenir",
+   "aliases": [
+    "Mavenir Systems",
+    "Mavenir Systems Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Telecom & networking",
+   "description": "US telecom-software vendor (Open RAN, 5G core, IMS/VoLTE, messaging) whose Bengaluru office, opened around 2006, is one of its global Centres of Excellence. Its Indian entity is registered on the 7th floor of the Greenheart building in Manyata Tech Park.",
+   "hqCity": "Richardson, Texas",
+   "hqCountry": "United States",
+   "founded": 2005,
+   "website": "https://www.mavenir.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Mavenir India - Greenheart Phase IV, Manyata Tech Park",
+     "techPark": "Manyata Tech Park",
+     "building": "Greenheart Phase IV (7th floor)",
+     "locality": "Nagawara (Hebbal Outer Ring Road)",
+     "address": "7th Floor, Greenheart Phase IV, Manyata Tech Park, Nagawara, Bengaluru 560045",
+     "lat": 13.045421,
+     "lng": 77.621652,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Bloomberg's LEI record for Mavenir Systems Pvt Ltd (updated Jun 2026) gives legal and HQ address '7th Floor, MFAR Manyata Tech Park, Greenheart Phase IV, Nagawara Village, Bengaluru 560045'; Converge Digest (2014) and Light Reading report its Bangalore R&D centres. Pin is OSM's 'Green Heart' building in Manyata (https://lei.bloomberg.com/leis/view/335800WE1JC8AOEFVH92 ; https://convergedigest.com/mavenir-opens-r-centers-in-bangalore/).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://lei.bloomberg.com/leis/view/335800WE1JC8AOEFVH92",
+    "https://convergedigest.com/mavenir-opens-r-centers-in-bangalore/",
+    "https://www.lightreading.com/network-platforms/mavenir-opens-in-india",
+    "https://builtinbengaluru.in/company/mavenir"
+   ]
+  },
+  {
+   "name": "Renesas Electronics",
+   "aliases": [
+    "Renesas Electronics India Private Limited",
+    "Renesas",
+    "Steradian Semiconductors (acquired 2022)"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "Japanese microcontroller and analog-chip maker. Its India entity moved from Indiranagar to Bagmane Tech Park in C.V. Raman Nagar. Its Bengaluru design centre, inaugurated in May 2025 with Noida for 3 nm chip design, is its largest India site with about 500 staff. It bought Bengaluru radar-chip startup Steradian Semiconductors in 2022.",
+   "hqCity": "Tokyo",
+   "hqCountry": "Japan",
+   "founded": null,
+   "website": "https://www.renesas.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": 500,
+   "offices": [
+    {
+     "label": "Renesas Electronics India - Bagmane Tech Park (Lake View block)",
+     "techPark": "Bagmane Tech Park",
+     "building": "Lake View, Block B",
+     "locality": "C.V. Raman Nagar (Byrasandra)",
+     "address": "Lake View Block B, Bagmane Tech Park, 66/1-4, C.V. Raman Nagar, Bengaluru 560093",
+     "lat": 12.978647,
+     "lng": 77.660676,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bloomberg's LEI record for Renesas Electronics India Pvt Ltd (updated Jul 2026) gives legal and HQ address 'Bagmane Tech Park, Municipal No. 66/1-4, Bangalore 560093', and an indexed version of it names 'Lake View Block B, G-Floor'; Machinist (14 May 2025) says the Bengaluru office is Renesas's largest India site with about 500 employees. Pin is OSM's 'Bagmane Lakeview' building (https://lei.bloomberg.com/leis/view/984500N07D559C53DC75 ; https://machinist.in/2025/05/renesas-opens-new-semiconductor-chip-design-centres-in-noida-and-bengaluru/).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://lei.bloomberg.com/leis/view/984500N07D559C53DC75",
+    "https://machinist.in/2025/05/renesas-opens-new-semiconductor-chip-design-centres-in-noida-and-bengaluru/",
+    "https://www.renesas.com/en/about/newsroom/renesas-electronics-establishes-new-branches-india-and-australia-expand-overseas-business",
+    "https://www.openstreetmap.org/way/323047935"
+   ]
+  },
+  {
+   "name": "Adecco (Adecco GCC)",
+   "aliases": [
+    "Adecco India Private Limited",
+    "Adecco India",
+    "The Adecco Group",
+    "Adecco Global Capability Centre"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Swiss staffing group. Its India arm is headquartered in Bengaluru at Brigade Metropolis and runs a global capability centre for finance, HR operations and IT, serving the group in 60 countries. The GCC had 400+ staff in January 2025, when it opened a second Bengaluru office (location not reported) and targeted 2,500+.",
+   "hqCity": "Zurich",
+   "hqCountry": "Switzerland",
+   "founded": 1996,
+   "website": "https://www.adecco.com/en-in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Adecco India head office - Brigade Metropolis",
+     "techPark": "Brigade Metropolis",
+     "building": "B-9 (13th floor)",
+     "locality": "Garudachar Palya / Mahadevapura (ITPL Main Road)",
+     "address": "13th Floor, B-9, Brigade Metropolis, ITPL Main Road, Garudachar Palya, Mahadevapura, Bengaluru 560048",
+     "lat": 12.9924,
+     "lng": 77.7035,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bloomberg's LEI record for Adecco India Pvt Ltd (updated Jun 2026) gives legal and HQ address 'Brigade Metropolis, B-9, 13th Floor, ITPL Main Road, Garudachar Palya, Mahadevpura, Bengaluru 560048', matching InstaFinancials' MCA data; HR Katha (20 Jan 2025) reports the GCC's 400+ staff and the second Bengaluru office without naming either site. No building-level map point, so the pin is the Brigade Metropolis centroid (https://lei.bloomberg.com/leis/view/335800MJVCZBG4IY6Z18 ; https://www.hrkatha.com/news/adecco-india-to-expand-gcc-workforce-to-over-2500-by-year-end/).",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://lei.bloomberg.com/leis/view/335800MJVCZBG4IY6Z18",
+    "https://www.instafinancials.com/company/adecco-india-private-limited/U72900KA1999PTC051999",
+    "https://www.hrkatha.com/news/adecco-india-to-expand-gcc-workforce-to-over-2500-by-year-end/",
+    "https://www.staffingindustry.com/news/global-daily-news/adecco-india-to-expand-global-capability-centre-add-2500-jobs"
+   ]
+  }
+ ],
+ "coverageNotes": "Gap list X01: 20 names checked, 19 recorded. BEST BUY IS LEFT OUT: its 2024 Bengaluru tech hub (70,000 sq ft, about 350-600 staff, entity BBY Services India LLP, operations reportedly moving to TCS under a Rs 2,000 crore deal) is real. But no source named a building, park or locality, and coordinates were not invented. TWO NAMES ARE ALREADY IN THE DATASET: 'JLR Technology & Business Services India' is the existing 'Jaguar Land Rover' (G08, Brigade Tech Gardens), and the 'ZEISS GCC' is the existing 'Zeiss' (G19, GCC at Prestige Tech Park plus Devanahalli plant). Both are re-emitted under their existing names, with the existing offices carried over unchanged, so they can merge rather than duplicate. New here: Zeiss's India HQ campus at Bommasandra, from a primary ZEISS page (pinned at the industrial-area centroid), and a low-confidence JLR lead at RMZ Ecoworld Campus 3A. Where the critic's hints were wrong or stale: Cohesity's current Bengaluru address is Elnath, Prestige Tech Park, and Salarpuria Touchstone is recorded as a former office at low confidence. Pega's June 2026 office is Ecoworld 5B, with Pritech 9A recorded as closed. Deutsche India's tech centre is at Velankani Tech Park, Electronic City, from two secondary sources that disagree on the block; on M.G. Road only the retail branch (Raheja Towers) was found. Merck KGaA's GCC is pinned on an OSM 'Merck' POI in 360 Business Park, and the park assignment is only that mapper's. Merck's Healthcare R&D hub at Bagmane Solarium City was added. Not placed, said rather than guessed: Lenovo's Shared Support Center building, JLR's Open Innovation Hub, Adecco's second (Jan 2025) office, Meta's exact building in Embassy GolfLinks, and Aon's current status at SJR iPark (low; possibly vacated after the Earth Centre lease). Several addresses rest on LEI/GST registry records (Lenovo, Delta, Mavenir, Renesas, Stripe, Adecco, Chubb, Akamai). These are company-filed, but registered and operating sites can differ, and Chubb's GST address is the only Bengaluru source for that firm. Bengaluru headcounts are given only where a source states a Bengaluru-specific figure (Merck GCC 3,300, Renesas about 500). India-wide figures (Deutsche India about 23,000, IQVIA about 15,000, Delta 726, Chubb 2,500, Cohesity 2,200) are left in descriptions or out. The web-search budget ran out near the end, so JLR's Open Innovation Hub and Best Buy's site could not be pursued further. OSM building POIs were used wherever they matched the named building. Mappls supplied the Deutsche pin. Park centroids are used, at medium confidence, for Meta, Stripe, Adecco, Merck R&D, Aon SJR iPark and Zeiss HQ."
+}

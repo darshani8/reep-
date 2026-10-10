@@ -1,0 +1,1198 @@
+{
+ "key": "Z01-sector-vocabulary",
+ "corrections": [
+  {
+   "company": "abercrombie-and-fitch",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'Apparel retail (global capability centre)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "act-fibernet-atria-convergence-technologies",
+   "verdict": "keep",
+   "set": {
+    "sector": "Telecom & networking"
+   },
+   "note": "Free-text sector 'Telecom (wired broadband ISP)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "aditya-birla-lifestyle-brands",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'Apparel brands (Louis Philippe, Van Heusen, Allen Solly, Peter England)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "albertsons-companies-india",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'Retail (Grocery) - Global Capability Centre' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "alpha-design-technologies",
+   "verdict": "keep",
+   "set": {
+    "sector": "Aerospace & defence"
+   },
+   "note": "Free-text sector 'Defence electronics & aerospace' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "amrut-distilleries",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'Beverages (alcoholic)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "anthropic",
+   "verdict": "keep",
+   "set": {
+    "sector": "AI & deep tech"
+   },
+   "note": "Free-text sector 'Artificial intelligence (frontier AI lab)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "apollo-hospitals",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Hospitals / healthcare services' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "arvind-fashions",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'Apparel & fashion retail' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "aster-dm-healthcare",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Hospitals / healthcare services' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "avery-dennison",
+   "verdict": "keep",
+   "set": {
+    "sector": "Automotive & industrial"
+   },
+   "note": "Free-text sector 'Materials science (labels, RFID and apparel branding)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "bangalore-metro-rail-corporation-bmrcl",
+   "verdict": "keep",
+   "set": {
+    "sector": "Mobility & EV"
+   },
+   "note": "Free-text sector 'Urban rail transit (metro)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "bank-of-baroda",
+   "verdict": "keep",
+   "set": {
+    "sector": "BFSI"
+   },
+   "note": "Free-text sector 'Banking (public-sector bank)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "bescom",
+   "verdict": "keep",
+   "set": {
+    "sector": "Energy"
+   },
+   "note": "Free-text sector 'Power distribution (utility)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "betterplace",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'HR tech (frontline workforce management)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "bharatiya-reserve-bank-note-mudran-brbnmpl",
+   "verdict": "keep",
+   "set": {
+    "sector": "Other"
+   },
+   "note": "Free-text sector 'Banknote printing (Reserve Bank of India subsidiary)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "bharti-airtel",
+   "verdict": "keep",
+   "set": {
+    "sector": "Telecom & networking"
+   },
+   "note": "Free-text sector 'Telecommunications' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "bpl-medical-technologies",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Medical devices' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "broadridge-financial-solutions",
+   "verdict": "keep",
+   "set": {
+    "sector": "Fintech"
+   },
+   "note": "Free-text sector 'Fintech / financial-services technology' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "bureau",
+   "verdict": "keep",
+   "set": {
+    "sector": "Fintech"
+   },
+   "note": "Free-text sector 'Identity verification / fraud-risk intelligence' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "cbre",
+   "verdict": "keep",
+   "set": {
+    "sector": "Real estate & infrastructure"
+   },
+   "note": "Free-text sector 'Commercial real-estate services' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "celonis",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'Enterprise software (process mining / process intelligence)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "check-point-software",
+   "verdict": "keep",
+   "set": {
+    "sector": "Software & internet"
+   },
+   "note": "Free-text sector 'Cybersecurity' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "cipla",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Pharmaceuticals' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "clarivate",
+   "verdict": "keep",
+   "set": {
+    "sector": "Software & internet"
+   },
+   "note": "Free-text sector 'Information services / analytics (IP, scientific and academic data)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "cloudnine-hospitals",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Maternity, neonatal and paediatric hospitals' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "cloudsek",
+   "verdict": "keep",
+   "set": {
+    "sector": "Software & internet"
+   },
+   "note": "Free-text sector 'Cybersecurity / AI threat intelligence and digital-risk protection' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "cme-group",
+   "verdict": "keep",
+   "set": {
+    "sector": "BFSI"
+   },
+   "note": "Free-text sector 'Financial market infrastructure (derivatives exchange)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "computacenter",
+   "verdict": "keep",
+   "set": {
+    "sector": "IT services"
+   },
+   "note": "Free-text sector 'IT services & infrastructure' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "cowrks",
+   "verdict": "keep",
+   "set": {
+    "sector": "Real estate & infrastructure"
+   },
+   "note": "Free-text sector 'Real estate / coworking and managed offices' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "credit-saison-india",
+   "verdict": "keep",
+   "set": {
+    "sector": "Fintech"
+   },
+   "note": "Free-text sector 'Fintech / NBFC lending' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "cropin",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'Agritech SaaS' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "dolby-laboratories",
+   "verdict": "keep",
+   "set": {
+    "sector": "Media & gaming"
+   },
+   "note": "Free-text sector 'Media and audio/imaging technology' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "dover",
+   "verdict": "keep",
+   "set": {
+    "sector": "Automotive & industrial"
+   },
+   "note": "Free-text sector 'Diversified industrial manufacturing (engineering and innovation centre)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "dozee",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Healthtech / medical devices (remote patient monitoring)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "dtdc-express",
+   "verdict": "keep",
+   "set": {
+    "sector": "Logistics"
+   },
+   "note": "Free-text sector 'Courier / express logistics' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "edgeverve-systems",
+   "verdict": "keep",
+   "set": {
+    "sector": "Fintech"
+   },
+   "note": "Free-text sector 'Enterprise and banking software products (Finacle core banking, AssistEdge)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "eightfold-ai",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'HR tech / talent-intelligence AI' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "emergent",
+   "verdict": "keep",
+   "set": {
+    "sector": "AI & deep tech"
+   },
+   "note": "Free-text sector 'AI / agentic app-builder (vibe-coding platform)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "etherealx",
+   "verdict": "keep",
+   "set": {
+    "sector": "Space"
+   },
+   "note": "Free-text sector 'Space / reusable launch vehicles' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "eurofins-advinus",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Pharma & drug-discovery services (CRO)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "first-american-india",
+   "verdict": "keep",
+   "set": {
+    "sector": "BFSI"
+   },
+   "note": "Free-text sector 'Title insurance & settlement services (captive GCC)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "fis",
+   "verdict": "keep",
+   "set": {
+    "sector": "Fintech"
+   },
+   "note": "Free-text sector 'Fintech / Banking & Payments Technology' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "fivetran",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'Data integration / data-movement software' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "flobiz",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'SMB SaaS / GST billing, invoicing and accounting' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "fortis-healthcare",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Hospitals / healthcare services' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "freo",
+   "verdict": "keep",
+   "set": {
+    "sector": "Fintech"
+   },
+   "note": "Free-text sector 'Fintech / consumer credit line and neobanking' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "fujitsu",
+   "verdict": "keep",
+   "set": {
+    "sector": "IT services"
+   },
+   "note": "Free-text sector 'IT services & research' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "giva",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'D2C silver and fine jewellery' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "glean",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'Enterprise AI search / software' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "gnani-ai",
+   "verdict": "keep",
+   "set": {
+    "sector": "AI & deep tech"
+   },
+   "note": "Free-text sector 'AI / voice AI and speech foundation models' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "greythr",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'HR tech / payroll and HRMS SaaS' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "grid-controller-of-india-grid-india",
+   "verdict": "keep",
+   "set": {
+    "sector": "Energy"
+   },
+   "note": "Free-text sector 'Power-system operation (grid load despatch)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "guidewire-software",
+   "verdict": "keep",
+   "set": {
+    "sector": "Software & internet"
+   },
+   "note": "Free-text sector 'Insurance software (P&C core systems, SaaS)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "h-and-m-group",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'Fashion Retail' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "hackerrank",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'HR tech / developer-skills assessment' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "harness",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'DevOps / CI-CD software' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "hasura",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'Developer tools / data APIs (GraphQL) / AI data agents' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "hdfc-bank",
+   "verdict": "keep",
+   "set": {
+    "sector": "BFSI"
+   },
+   "note": "Free-text sector 'Banking & financial services' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "healthplix",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Healthtech (AI-powered EMR for doctors)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "hector-beverages",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'FMCG / packaged beverages and foods' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "henkel",
+   "verdict": "keep",
+   "set": {
+    "sector": "Automotive & industrial"
+   },
+   "note": "Free-text sector 'Chemicals / consumer goods (adhesives, beauty, laundry)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "hevo-data",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'Data infrastructure SaaS / no-code ELT data pipelines' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "hitachi-vantara",
+   "verdict": "keep",
+   "set": {
+    "sector": "Semiconductors & hardware"
+   },
+   "note": "Free-text sector 'Data storage / data infrastructure' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "homelane",
+   "verdict": "keep",
+   "set": {
+    "sector": "Real estate & infrastructure"
+   },
+   "note": "Free-text sector 'Home interiors / proptech' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "hubspot",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'SaaS (CRM / Marketing Software)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "hyperverge",
+   "verdict": "keep",
+   "set": {
+    "sector": "Fintech"
+   },
+   "note": "Free-text sector 'AI identity verification / KYC' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "id-fresh-food",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'Packaged fresh food / FMCG' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "iifl-samasta-finance",
+   "verdict": "keep",
+   "set": {
+    "sector": "BFSI"
+   },
+   "note": "Free-text sector 'Microfinance (NBFC-MFI)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "indegene",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Life-sciences commercialisation / healthcare technology services' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "intuitive-surgical",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Medical devices (robotic-assisted surgery)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "jll",
+   "verdict": "keep",
+   "set": {
+    "sector": "Real estate & infrastructure"
+   },
+   "note": "Free-text sector 'Real estate services' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "john-distilleries",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'Beverages (alcoholic)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "johnson-controls",
+   "verdict": "keep",
+   "set": {
+    "sector": "Automotive & industrial"
+   },
+   "note": "Free-text sector 'Building technology (HVAC, fire, security)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "jubilant-biosys",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Pharma & drug-discovery services (CRO/CRDMO)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "kantar",
+   "verdict": "keep",
+   "set": {
+    "sector": "Consulting & professional services"
+   },
+   "note": "Free-text sector 'Market research / data analytics' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "kapiva",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'Consumer / D2C Ayurvedic nutrition' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "karnataka-antibiotics-and-pharmaceuticals-kapl",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Pharmaceuticals manufacturing' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "karnataka-power-corporation-kpcl",
+   "verdict": "keep",
+   "set": {
+    "sector": "Energy"
+   },
+   "note": "Free-text sector 'Power generation (state utility)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "kenvue",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'Consumer Health - Global Capability Centre' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "keonics-karnataka-state-electronics-development-corporation",
+   "verdict": "keep",
+   "set": {
+    "sector": "IT services"
+   },
+   "note": "Free-text sector 'State electronics / IT development agency' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "kotak-mahindra-bank",
+   "verdict": "keep",
+   "set": {
+    "sector": "BFSI"
+   },
+   "note": "Free-text sector 'Banking & financial services' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "kptcl",
+   "verdict": "keep",
+   "set": {
+    "sector": "Energy"
+   },
+   "note": "Free-text sector 'Power transmission (utility)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "larsen-and-toubro",
+   "verdict": "keep",
+   "set": {
+    "sector": "Real estate & infrastructure"
+   },
+   "note": "Free-text sector 'Engineering, construction & defence conglomerate' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "levi-strauss-and-co",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'Apparel' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "lkq-india",
+   "verdict": "keep",
+   "set": {
+    "sector": "Automotive & industrial"
+   },
+   "note": "Free-text sector 'Automotive parts distribution (captive GCC)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "locus",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'Logistics / route-optimisation SaaS' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "lululemon",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'Apparel Retail - Technology Hub' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "magna-international",
+   "verdict": "keep",
+   "set": {
+    "sector": "Automotive & industrial"
+   },
+   "note": "Free-text sector 'Automotive Components / Electronics' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "mastercard",
+   "verdict": "keep",
+   "set": {
+    "sector": "Fintech"
+   },
+   "note": "Free-text sector 'Payments' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "medibuddy",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Digital health' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "mercari",
+   "verdict": "keep",
+   "set": {
+    "sector": "E-commerce & consumer internet"
+   },
+   "note": "Free-text sector 'E-commerce / C2C marketplace' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "mokobara",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'D2C consumer brand / premium luggage and travel goods' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "mygate",
+   "verdict": "keep",
+   "set": {
+    "sector": "Real estate & infrastructure"
+   },
+   "note": "Free-text sector 'Proptech / community-management app' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "nagarro",
+   "verdict": "keep",
+   "set": {
+    "sector": "IT services"
+   },
+   "note": "Free-text sector 'IT services & digital engineering' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "narayana-nethralaya",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Eye hospitals / ophthalmology' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "natural-remedies",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Herbal health & veterinary products' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "ness-digital-engineering",
+   "verdict": "keep",
+   "set": {
+    "sector": "IT services"
+   },
+   "note": "Free-text sector 'IT services / digital engineering' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "newspace-research-and-technologies",
+   "verdict": "keep",
+   "set": {
+    "sector": "Aerospace & defence"
+   },
+   "note": "Free-text sector 'Aerospace & defence (UAVs, swarm drones, HAPS)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "nielsen",
+   "verdict": "keep",
+   "set": {
+    "sector": "Consulting & professional services"
+   },
+   "note": "Free-text sector 'Audience measurement & media analytics' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "nxtgen-cloud-technologies",
+   "verdict": "keep",
+   "set": {
+    "sector": "IT services"
+   },
+   "note": "Free-text sector 'Data centres & cloud' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "observe-ai",
+   "verdict": "keep",
+   "set": {
+    "sector": "AI & deep tech"
+   },
+   "note": "Free-text sector 'Conversational AI for contact centres' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "okcredit",
+   "verdict": "keep",
+   "set": {
+    "sector": "Fintech"
+   },
+   "note": "Free-text sector 'Fintech / MSME digital ledger and lending' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "orkla-india-mtr-foods",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'Packaged foods' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "paytm-money",
+   "verdict": "keep",
+   "set": {
+    "sector": "Fintech"
+   },
+   "note": "Free-text sector 'Fintech / stock broking and wealth' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "power-grid-corporation-of-india",
+   "verdict": "keep",
+   "set": {
+    "sector": "Energy"
+   },
+   "note": "Free-text sector 'Electricity transmission (central PSU)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "powerschool",
+   "verdict": "keep",
+   "set": {
+    "sector": "EdTech"
+   },
+   "note": "Free-text sector 'Education software (K-12 SaaS)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "propelld",
+   "verdict": "keep",
+   "set": {
+    "sector": "Fintech"
+   },
+   "note": "Free-text sector 'Fintech / education loans' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "qpiai",
+   "verdict": "keep",
+   "set": {
+    "sector": "AI & deep tech"
+   },
+   "note": "Free-text sector 'Quantum computing / AI (deep tech)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "rajesh-exports",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'Gold refining and jewellery manufacturing' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "ralph-lauren",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'Fashion / Luxury Apparel' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "redbus",
+   "verdict": "keep",
+   "set": {
+    "sector": "E-commerce & consumer internet"
+   },
+   "note": "Free-text sector 'Travel tech / online bus ticketing' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "reliance-industries",
+   "verdict": "keep",
+   "set": {
+    "sector": "Telecom & networking"
+   },
+   "note": "Free-text sector 'Conglomerate (telecom, retail, energy)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "rockstar-india",
+   "verdict": "keep",
+   "set": {
+    "sector": "Media & gaming"
+   },
+   "note": "Free-text sector 'Video games (game art and technology studio)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "royal-orchid-hotels",
+   "verdict": "keep",
+   "set": {
+    "sector": "Other"
+   },
+   "note": "Free-text sector 'Hospitality' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "sabic",
+   "verdict": "keep",
+   "set": {
+    "sector": "Energy"
+   },
+   "note": "Free-text sector 'Chemicals and petrochemicals (R&D and technology centre)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "sami-sabinsa-group",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Nutraceuticals & phytochemicals' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "samsara",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'IoT / connected-operations SaaS (fleet telematics)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "seekho",
+   "verdict": "keep",
+   "set": {
+    "sector": "EdTech"
+   },
+   "note": "Free-text sector 'Edtech / vernacular short-video learning' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "setu",
+   "verdict": "keep",
+   "set": {
+    "sector": "Fintech"
+   },
+   "note": "Free-text sector 'Fintech / API infrastructure (UPI, Account Aggregator, BBPS)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "sigmoid",
+   "verdict": "keep",
+   "set": {
+    "sector": "IT services"
+   },
+   "note": "Free-text sector 'Data engineering & AI services' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "sima-ai",
+   "verdict": "keep",
+   "set": {
+    "sector": "Semiconductors & hardware"
+   },
+   "note": "Free-text sector 'Semiconductors / edge-AI chips (MLSoC)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "skylark-drones",
+   "verdict": "keep",
+   "set": {
+    "sector": "Aerospace & defence"
+   },
+   "note": "Free-text sector 'Drones / geospatial data analytics' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "snitch",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'D2C menswear / fashion retail' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "sparsh-hospitals",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Hospitals / healthcare services' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "sprinto",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'SaaS / compliance automation and GRC' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "strand-life-sciences",
+   "verdict": "keep",
+   "set": {
+    "sector": "HealthTech & pharma"
+   },
+   "note": "Free-text sector 'Genomics / bioinformatics / diagnostics' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "stumpp-schuele-and-somappa-springs-sss-defence",
+   "verdict": "keep",
+   "set": {
+    "sector": "Aerospace & defence"
+   },
+   "note": "Free-text sector 'Auto components & small arms' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "sun-mobility",
+   "verdict": "keep",
+   "set": {
+    "sector": "Mobility & EV"
+   },
+   "note": "Free-text sector 'EV battery swapping / energy infrastructure' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "synaptics",
+   "verdict": "keep",
+   "set": {
+    "sector": "Semiconductors & hardware"
+   },
+   "note": "Free-text sector 'Semiconductors' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "t-systems-deutsche-telekom",
+   "verdict": "keep",
+   "set": {
+    "sector": "IT services"
+   },
+   "note": "Free-text sector 'IT services (Deutsche Telekom group)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "table-space",
+   "verdict": "keep",
+   "set": {
+    "sector": "Real estate & infrastructure"
+   },
+   "note": "Free-text sector 'Real estate / managed office space' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "tata-consumer-products",
+   "verdict": "keep",
+   "set": {
+    "sector": "Retail & consumer goods"
+   },
+   "note": "Free-text sector 'Consumer goods (tea, coffee, foods) and coffee plantations' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "tata-hitachi-construction-machinery",
+   "verdict": "keep",
+   "set": {
+    "sector": "Automotive & industrial"
+   },
+   "note": "Free-text sector 'Construction equipment' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "tata-technologies",
+   "verdict": "keep",
+   "set": {
+    "sector": "IT services"
+   },
+   "note": "Free-text sector 'Engineering & product development services' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "tavant-technologies",
+   "verdict": "keep",
+   "set": {
+    "sector": "IT services"
+   },
+   "note": "Free-text sector 'IT services & software (lending/fintech, manufacturing)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "temenos",
+   "verdict": "keep",
+   "set": {
+    "sector": "Fintech"
+   },
+   "note": "Free-text sector 'Banking software' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "toyo-modec-ofs-india",
+   "verdict": "keep",
+   "set": {
+    "sector": "Energy"
+   },
+   "note": "Free-text sector 'Offshore energy engineering (FPSO / FEED and detailed engineering)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "tracxn",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'Market intelligence / private-company data SaaS' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "transunion",
+   "verdict": "keep",
+   "set": {
+    "sector": "BFSI"
+   },
+   "note": "Free-text sector 'Financial services / credit information' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "tredence",
+   "verdict": "keep",
+   "set": {
+    "sector": "Consulting & professional services"
+   },
+   "note": "Free-text sector 'Data science & AI services' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "twilio",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'Cloud Communications (CPaaS)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "urban-ladder",
+   "verdict": "keep",
+   "set": {
+    "sector": "E-commerce & consumer internet"
+   },
+   "note": "Free-text sector 'Online furniture and home decor' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "ust",
+   "verdict": "keep",
+   "set": {
+    "sector": "IT services"
+   },
+   "note": "Free-text sector 'IT Services / Digital Engineering' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "verizon",
+   "verdict": "keep",
+   "set": {
+    "sector": "Telecom & networking"
+   },
+   "note": "Free-text sector 'Telecommunications' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "vyapar",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'SMB SaaS / billing, inventory and accounting' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "vymo",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'Enterprise SaaS / sales and collections engagement for banks and insurers' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "zivame",
+   "verdict": "keep",
+   "set": {
+    "sector": "E-commerce & consumer internet"
+   },
+   "note": "Free-text sector 'Lingerie / intimate-wear e-commerce' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  },
+  {
+   "company": "zoom",
+   "verdict": "keep",
+   "set": {
+    "sector": "SaaS"
+   },
+   "note": "Free-text sector 'Communications Software (SaaS)' mapped onto the fixed list the filter panel offers, following the convention already used for comparable companies."
+  }
+ ],
+ "notes": "The gap-fill slices described sectors in free text. Each is mapped here onto the fixed sector list. Precedents: Finastra, PayPal and Visa are Fintech, so banking-software vendors and payment networks are too. Mu Sigma is Consulting & professional services, so analytics service firms are too. Livspace and NoBroker are Real estate & infrastructure, so home-interiors and proptech apps are too. D2C brands follow BlueStone into Retail & consumer goods, 3M and Honeywell put industrial chemicals and building technology under Automotive & industrial, and petrochemicals and utilities follow Shell into Energy. The file name sorts last, so it applies after every verification pass."
+}

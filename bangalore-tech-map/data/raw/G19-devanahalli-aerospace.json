@@ -1,0 +1,1914 @@
+{
+ "key": "G19-devanahalli-aerospace",
+ "techParks": [
+  {
+   "name": "Bengaluru Aerospace Park",
+   "aliases": [
+    "KIADB Aerospace Park",
+    "Bengaluru Aerospace SEZ",
+    "Aerospace SEZ Devanahalli",
+    "Devanahalli Aerospace Park",
+    "Hi-Tech Defence and Aerospace Park - Aerospace Sector"
+   ],
+   "locality": "Devanahalli (Unachur / Singahalli / Kavadadasanahalli / Budigere)",
+   "developer": "KIADB",
+   "lat": 13.18094,
+   "lng": 77.727459,
+   "bbox": [
+    13.170057,
+    13.192111,
+    77.714523,
+    77.744265
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Boeing",
+    "Collins Aerospace",
+    "Safran",
+    "Eaton",
+    "Dynamatic Technologies",
+    "Centum Electronics",
+    "Rossell Techsys",
+    "Ananth Technologies",
+    "Rakon",
+    "Starrag",
+    "Gleason",
+    "tk accelis",
+    "Magellan Aerospace",
+    "Wipro Infrastructure Engineering",
+    "Tata Advanced Systems",
+    "AXISCADES Technologies"
+   ],
+   "description": "The aerospace sector of KIADB's Hi-Tech, Defence and Aerospace Park beside Kempegowda International Airport, on SH-104 east of the airfield. Brigade and Deccan Herald describe a roughly 1,000-acre industrial park (later quoted at ~2,000 acres with expansion) with about 250 acres notified as an aerospace SEZ. Starrag's 2013 plant was the first factory to start here; it now holds Boeing's 43-acre BIETC campus, Collins Aerospace's 26-acre India Operations Center, the Safran-HAL engine-parts JV, Dynamatic Aerotropolis and a cluster of Indian and foreign aerostructure, avionics and space suppliers. A 1,777-acre expansion across 13 villages was dropped by the state in July 2025 after farmer protests.",
+   "sources": [
+    "https://www.openstreetmap.org/way/172937213",
+    "https://www.brigadegroup.com/blog/general/how-devanahalli-is-emerging-as-a-major-commercial-hub-of-bengaluru",
+    "https://en.wikipedia.org/wiki/Devanahalli",
+    "https://www.freepressjournal.in/amp/india/karnataka-govt-drops-acquisition-of-1777-acres-for-bengaluru-aerospace-park-project-amid-farmers-protest"
+   ]
+  },
+  {
+   "name": "KIADB Hardware Park",
+   "aliases": [
+    "KIADB Hi-Tech Hardware Park",
+    "Bengaluru Hardware Park",
+    "Hi-Tech Defence and Aerospace Park - Hardware Sector"
+   ],
+   "locality": "Mahadeva Kodigehalli / Huvinayakanahalli, Yelahanka taluk",
+   "developer": "KIADB",
+   "lat": 13.151089,
+   "lng": 77.685651,
+   "bbox": [
+    13.146138,
+    13.16031,
+    77.675343,
+    77.708203
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Shell",
+    "Cepheid",
+    "Hengst",
+    "Zetwerk",
+    "ideaForge",
+    "Juki",
+    "Elmeasure"
+   ],
+   "description": "KIADB's electronics-hardware sector of the Hi-Tech, Defence and Aerospace Park, south-west of the airport between Bellary Road and Mahadeva Kodigehalli. Its anchor is Shell's 52-acre Technology Centre Bangalore; it also holds Cepheid's TB-cartridge plant (2023), Hengst Filtration, Zetwerk Electronics' defence/automotive electronics unit (Feb 2026) and smaller electronics, medical and drone makers.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1279894907",
+    "https://machinist.in/2026/02/zetwerk-electronics-inaugurates-defence-automotive-and-it-hardware-manufacturing-unit-in-bengaluru/",
+    "https://biospectrumindia.com/news/90/22799/cepheid-opens-first-manufacturing-unit-in-india-to-make-tb-testing-cartridges.html"
+   ]
+  },
+  {
+   "name": "Hi-Tech Defence and Aerospace Park - IT Sector",
+   "aliases": [
+    "Bengaluru IT Park (KIADB)",
+    "KIADB IT Sector Devanahalli",
+    "Hi-Tech Defence and Aerospace Park (IT Sector)"
+   ],
+   "locality": "Arebinnamangala / B.K. Palya, Jala Hobli",
+   "developer": "KIADB",
+   "lat": 13.160941,
+   "lng": 77.713511,
+   "bbox": [
+    13.146786,
+    13.175724,
+    77.696396,
+    77.729841
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "SAP",
+    "eMudhra",
+    "Autoliv",
+    "Star Air"
+   ],
+   "description": "The IT sector of KIADB's Hi-Tech, Defence and Aerospace Park, mapped in OSM as 'Bengaluru IT Park' (KIADB) between the Hardware Park and the aerospace sector. Company addresses here carry the form 'Hi-Tech Defence and Aerospace Park (IT Sector)'. Tenants include SAP Labs India's 41-acre Innovation Park (Aug 2025), the eMudhra Digital Campus and Autoliv India's safety centre and plant; CDC's Technology Innovation International Park and Jayalakshmi Tech Park are under construction alongside.",
+   "sources": [
+    "https://www.openstreetmap.org/way/157265782",
+    "https://emudhra.com/contact-us",
+    "https://www.autoliv.com/de/node/2023"
+   ]
+  },
+  {
+   "name": "Hi-Tech Defence and Aerospace Park",
+   "aliases": [
+    "Hi-Tech, Defence and Aerospace Park",
+    "HTDAP",
+    "KIADB Hi-Tech Defence & Aerospace Park"
+   ],
+   "locality": "Devanahalli taluk (OSM polygon at Polanahalli / Chimachanahalli)",
+   "developer": "KIADB",
+   "lat": 13.224108,
+   "lng": 77.772805,
+   "bbox": [
+    13.208876,
+    13.23699,
+    77.752763,
+    77.792119
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Exide Energy Solutions",
+    "Zeiss"
+   ],
+   "description": "KIADB's umbrella industrial area north-east of Kempegowda airport; companies in its aerospace, hardware and IT sectors all use the name in their addresses (those sectors are listed here as separate parks). The OSM polygon carrying this exact name maps the newer eastern phase at Polanahalli / Chimachanahalli, where Exide Energy Solutions commissioned a 6 GWh lithium-ion cell plant in Sept 2026 and Zeiss has its announced lens plant. Invest Karnataka quotes ~1,000-2,000 acres for the whole park.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1076391783",
+    "https://investkarnataka.co.in/key-industrie/aerospace-defence/",
+    "https://www.energetica-india.net/news/exide-commissions-6-gwh-phase-i-lithium-ion-cell-manufacturing-facility"
+   ]
+  },
+  {
+   "name": "Boeing India Engineering and Technology Center",
+   "aliases": [
+    "BIETC",
+    "BIETC Devanahalli campus"
+   ],
+   "locality": "Devanahalli (Bhattara Marenahalli)",
+   "developer": "Boeing",
+   "lat": 13.181879,
+   "lng": 77.721898,
+   "bbox": [
+    13.180241,
+    13.184382,
+    77.719209,
+    77.725504
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Boeing"
+   ],
+   "description": "Boeing's 43-acre, Rs 1,600 crore engineering and technology campus inside the Bengaluru Aerospace Park, its largest investment outside the US. PM Modi inaugurated it on 19 Jan 2024 and Building 2 opened in Aug 2024.",
+   "sources": [
+    "https://www.thenewsminute.com/karnataka/pm-modi-inaugurates-bietc-in-bengaluru",
+    "https://www.openstreetmap.org/way/991727364"
+   ]
+  },
+  {
+   "name": "Shell Technology Centre Bangalore",
+   "aliases": [
+    "STCB"
+   ],
+   "locality": "Mahadeva Kodigehalli (KIADB Hardware Park)",
+   "developer": "Shell",
+   "lat": 13.156474,
+   "lng": 77.701876,
+   "bbox": [
+    13.154307,
+    13.158047,
+    77.698673,
+    77.704161
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Shell"
+   ],
+   "description": "A 52-acre custom-built Shell R&D campus for up to 1,500 people inside the KIADB Hardware Park, opened 31 Mar 2017 to consolidate Shell's Bangalore R&D staff; one of Shell's three main global technology hubs.",
+   "sources": [
+    "https://worldoil.com/news/2017/3/31/shell-opens-new-technology-center-in-bangalore-india/",
+    "https://www.openstreetmap.org/way/203058241"
+   ]
+  },
+  {
+   "name": "SAP Labs India Innovation Park",
+   "aliases": [
+    "SAP Devanahalli campus",
+    "SAP BLR11-13"
+   ],
+   "locality": "Devanahalli (KIADB IT Sector)",
+   "developer": "SAP",
+   "lat": 13.161831,
+   "lng": 77.713493,
+   "bbox": [
+    13.160931,
+    13.163453,
+    77.710004,
+    77.715612
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "SAP"
+   ],
+   "description": "SAP Labs India's 41-acre second Bengaluru campus in the KIADB IT sector near the airport, inaugurated 5 Aug 2025; 27 acres built in phase 1, ~15,000 seats at full build-out, phase 2 targeted for 2028.",
+   "sources": [
+    "https://www.theweek.in/wire-updates/national/2025/08/05/mes7-ka-sap-cm.html",
+    "https://www.openstreetmap.org/way/1177291323"
+   ]
+  },
+  {
+   "name": "Prestige Tech Cloud",
+   "aliases": [
+    "Prestige Tech Cloud Park",
+    "Prestige Tech Cloud Devanahalli"
+   ],
+   "locality": "Bettahalasur / Navarathna Agrahara, Bellary Road (NH-44)",
+   "developer": "Prestige",
+   "lat": 13.192924,
+   "lng": 77.643357,
+   "bbox": [
+    13.191174,
+    13.194825,
+    77.64074,
+    77.645321
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Walmart",
+    "NTT DATA",
+    "Agratas"
+   ],
+   "description": "A 33-acre, seven-tower office campus by Prestige on Bellary Road (NH-44) about 7 km south of Kempegowda airport (towers include Cirrus, Cumulus, Altus, Stratus and Arcus). Walmart Global Tech leased ~1 lakh sq ft in Cumulus from March 2026, and NTT's Bengaluru 4 data-centre campus (up to 100 MW) is on the same site.",
+   "sources": [
+    "https://www.openstreetmap.org/way/899211359",
+    "https://therealtytoday.com/news/commercial/walmart-expands-bengaluru-footprint-leases-over-1-lakh-sq-ft-near-airport",
+    "https://www.theweek.in/wire-updates/business/2025/12/03/dcm43-ntt.html"
+   ]
+  },
+  {
+   "name": "Bengaluru Signature Business Park",
+   "aliases": [
+    "BSBP",
+    "Signature Business Park"
+   ],
+   "locality": "Bhuvanahalli, Devanahalli",
+   "developer": "KSIIDC",
+   "lat": 13.21426,
+   "lng": 77.68762,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Applied Materials"
+   ],
+   "description": "A 407-acre KSIIDC business district planned next to Kempegowda airport (business, MICE, design-and-culture and innovation districts plus the Bengaluru International Convention Centre). Foundation stone laid Feb 2018 after a decade in abeyance; in May 2026 the cabinet cleared 140 acres for Applied Materials, with 267 acres left to allot.",
+   "sources": [
+    "https://media.biltrax.com/?p=3489",
+    "https://www.angelone.in/news/economy/karnataka-allots-140-acres-to-applied-materials-at-bengaluru-business-park-for-780-crore"
+   ]
+  },
+  {
+   "name": "Bengaluru Airport City Business Park",
+   "aliases": [
+    "BLR Business Park",
+    "Airport City Business Park"
+   ],
+   "locality": "Airport City, Kempegowda International Airport",
+   "developer": "Bengaluru Airport City Ltd (BIAL)",
+   "lat": 13.196476,
+   "lng": 77.692689,
+   "bbox": [
+    13.194816,
+    13.197588,
+    77.684953,
+    77.69888
+   ],
+   "areaSqFtMillions": 2.0,
+   "notableTenants": [],
+   "description": "A 2 million sq ft, four-block business park on 17.7 acres inside the airport campus, targeting global capability centres. Bengaluru Airport City Ltd, a BIAL subsidiary, broke ground in Oct 2024 and projected first occupancy in 2026; no tenants named yet.",
+   "sources": [
+    "https://www.aci-asiapac.aero/media-centre/news/bengaluru-airport-city-breaks-ground-for-2-million-sq-ft-business-park-targeting-global-capability-centres",
+    "https://www.openstreetmap.org/way/790430696"
+   ]
+  },
+  {
+   "name": "Technology Innovation International Park",
+   "aliases": [
+    "CDC Technology Innovation International Park"
+   ],
+   "locality": "Devanahalli (KIADB IT Sector)",
+   "developer": "CDC Development India",
+   "lat": 13.171208,
+   "lng": 77.706152,
+   "bbox": [
+    13.169138,
+    13.172507,
+    77.703017,
+    77.711911
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "A planned technology park by CDC Development India, approved at Rs 740 crore with 100 acres allotted in the Devanahalli aerospace / hi-tech park area; OSM maps it as a construction site north of SAP's campus. No tenants found.",
+   "sources": [
+    "https://www.thenewsminute.com/atom/boeings-make-india-push-invest-rs-1152-crore-set-facility-bengaluru-73077",
+    "https://www.openstreetmap.org/way/1187739336"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "Boeing",
+   "aliases": [
+    "Boeing India Engineering and Technology Center",
+    "BIETC",
+    "Boeing India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "US aircraft maker; the 43-acre Boeing India Engineering & Technology Center (BIETC) campus in the KIADB aerospace park near Kempegowda airport is its largest investment outside the US.",
+   "website": "https://www.boeing.co.in",
+   "hqCity": "Arlington",
+   "hqCountry": "United States",
+   "founded": 1916,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "BIETC campus - Devanahalli (Buildings B1 and B2)",
+     "locality": "Devanahalli (Bhattara Marenahalli)",
+     "lat": 13.181879,
+     "lng": 77.721898,
+     "techPark": "Boeing India Engineering and Technology Center",
+     "building": "B1 and B2",
+     "address": "KIADB Aerospace Park, Devanahalli, Bengaluru 562149",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "PM Modi inaugurated Boeing's Rs 1,600 crore, 43-acre BIETC campus in the Hi-Tech Defence and Aerospace Park, Devanahalli, on 19 Jan 2024 (https://www.thenewsminute.com/karnataka/pm-modi-inaugurates-bietc-in-bengaluru); OSM maps the campus polygon inside the Bengaluru Aerospace Park (https://www.openstreetmap.org/way/991727364).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.thenewsminute.com/karnataka/pm-modi-inaugurates-bietc-in-bengaluru",
+    "https://ts.yourstory.com/enterprise-story/2024/01/pm-inaugurates-boeing-global-engineering-technology",
+    "https://www.openstreetmap.org/way/991727364"
+   ]
+  },
+  {
+   "name": "Collins Aerospace",
+   "aliases": [
+    "Goodrich Aerospace",
+    "Rockwell Collins",
+    "RTX"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "RTX aerospace systems unit; its Collins India Operations Center is a 26-acre manufacturing campus in the KIADB Aerospace Park (seats, lighting, cargo systems, sensors, evacuation slides).",
+   "website": "https://www.collinsaerospace.com",
+   "hqCity": "Charlotte",
+   "hqCountry": "United States",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Collins India Operations Center - KIADB Aerospace Park",
+     "locality": "Devanahalli",
+     "lat": 13.181406,
+     "lng": 77.729111,
+     "techPark": "Bengaluru Aerospace Park",
+     "building": null,
+     "address": "KIADB Aerospace Park (ex-Goodrich plots 132-167, Aerospace SEZ), Devanahalli, Bengaluru",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "RTX's 11 Nov 2025 release says Collins opened the 26-acre Collins India Operations Center manufacturing facility at KIADB Aerospace Park, Bengaluru, to host 2,200+ staff by 2026 (https://www.rtx.com/news/news-center/2025/11/11/rtxs-collins-aerospace-unveils-new-manufacturing-site-in-bengaluru); OSM office polygon 'Collins Aerospace' sits in the park (https://www.openstreetmap.org/way/991727363).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.rtx.com/news/news-center/2025/11/11/rtxs-collins-aerospace-unveils-new-manufacturing-site-in-bengaluru",
+    "https://www.mobilityoutlook.com/news/collins-aerospace-opens-getc-india-operations-centers-in-bengaluru/",
+    "https://www.openstreetmap.org/way/991727363"
+   ]
+  },
+  {
+   "name": "Safran",
+   "aliases": [
+    "Safran HAL Aircraft Engines",
+    "Safran Electronics & Defense",
+    "Safran Aircraft Engines"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "French aerospace group; Safran HAL Aircraft Engines (50/50 JV with HAL, LEAP/aero-engine pipes) is in the KIADB Aerospace SEZ, and Safran Electronics & Defense is adding an electronics production site in the airport area.",
+   "website": "https://www.safran-group.com",
+   "hqCity": "Paris",
+   "hqCountry": "France",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Safran HAL Aircraft Engines plant - Aerospace SEZ (Kavadadasanahalli sector)",
+     "locality": "Devanahalli (Kavadadasanahalli)",
+     "lat": 13.18094,
+     "lng": 77.727459,
+     "techPark": "Bengaluru Aerospace Park",
+     "building": null,
+     "address": "Plot 93-96 & 47-52, KIADB Aerospace SEZ, Kavadadasanahalli, Devanahalli 562129",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Safran's location page and the Bloomberg LEI record give Safran HAL Aircraft Engines at Plot Nos 93-96 and 47-52, KIADB Aerospace SEZ, Sector Kavadadasanahalli, Devanahalli 562129 (https://www.safran-group.com/locations/india/safran-aircraft-engines-hal-aerospace-pvt-ltd-2077293); plot not mapped, pin is the park centroid.",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Safran Electronics & Defense production site - airport area",
+     "locality": "Devanahalli (airport area)",
+     "lat": 13.18094,
+     "lng": 77.727459,
+     "techPark": null,
+     "building": null,
+     "address": "Airport area, Devanahalli (exact site not published)",
+     "isHq": false,
+     "status": "planned",
+     "confidence": "low",
+     "evidence": "Safran's Feb 2025 release announced a 12,000 m2 electronics production site 'in the airport area of Bengaluru' for ~400 staff with industrial activity from H1 2026 (https://evertiq.com/news/2025-02-13-safran-opens-new-electronics-site-and-an-rd-centre-in-india); exact plot unconfirmed, pin is the aerospace park centroid.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.safran-group.com/locations/india/safran-aircraft-engines-hal-aerospace-pvt-ltd-2077293",
+    "https://lei.bloomberg.com/leis/view/335800ZXD7G69XJSCX55",
+    "https://evertiq.com/news/2025-02-13-safran-opens-new-electronics-site-and-an-rd-centre-in-india",
+    "https://www.theweek.in/wire-updates/business/2025/11/26/dcm54-biz-safran-ld-india.amp.html"
+   ]
+  },
+  {
+   "name": "Eaton",
+   "aliases": [
+    "Eaton Aerospace India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "Power-management and aerospace components maker; its first Indian aerospace plant (hose assemblies and fluid distribution, global Hose Assembly CoE) is on 2.85 acres in the Karnataka Aerospace SEZ.",
+   "website": "https://www.eaton.com",
+   "hqCity": "Dublin",
+   "hqCountry": "Ireland",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Eaton Aerospace India plant - Aerospace SEZ",
+     "locality": "Devanahalli",
+     "lat": 13.178312,
+     "lng": 77.731397,
+     "techPark": "Bengaluru Aerospace Park",
+     "building": null,
+     "address": "KIADB Aerospace SEZ, Devanahalli, Bengaluru",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Business Standard reported Eaton unveiled its first Indian aerospace manufacturing facility, a $10 mn plant on 2.85 acres in the Karnataka Aerospace SEZ, Bengaluru, in Nov 2019 (https://business-standard.com/amp/article/companies/eaton-unveils-its-first-aerospace-manufacturing-facility-in-india-119110501688_1.html); OSM maps 'Eaton Aerospace India' in the park (https://www.openstreetmap.org/way/1240497180).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://business-standard.com/amp/article/companies/eaton-unveils-its-first-aerospace-manufacturing-facility-in-india-119110501688_1.html",
+    "https://www.openstreetmap.org/way/1240497180"
+   ]
+  },
+  {
+   "name": "Dynamatic Technologies",
+   "aliases": [
+    "Dynamatic-Oldland Aerospace",
+    "Dynauton Systems"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "description": "Listed Bengaluru engineering firm (aerostructures for Airbus, Boeing, Dassault; hydraulics); its registered office and aerospace/UAV divisions are at Dynamatic Aerotropolis in the KIADB Aerospace Park.",
+   "website": "https://www.dynamatics.com",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1973,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Dynamatic Aerotropolis - registered office, Dynamatic-Oldland Aerospace, Dynauton UAV",
+     "locality": "Devanahalli",
+     "lat": 13.184946,
+     "lng": 77.717944,
+     "techPark": "Bengaluru Aerospace Park",
+     "building": "JKM Plaza",
+     "address": "55, KIADB Aerospace Park, Bengaluru 562149",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Dynamatic's contact page gives the Registered Office as 'JKM Plaza, Dynamatic Aerotropolis, 55, KIADB Aerospace Park, Bangalore 562149' with the aerospace and UAV divisions at the same site (http://www.dynamatics.com/contact-us/); OSM maps the 'Dynamatic' site (https://www.openstreetmap.org/way/801307395).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "http://www.dynamatics.com/contact-us/",
+    "https://news.dynamatics.com/?p=346",
+    "https://www.openstreetmap.org/way/801307395"
+   ]
+  },
+  {
+   "name": "Centum Electronics",
+   "aliases": [],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Semiconductors & hardware",
+   "description": "Listed Bengaluru electronics system design and manufacturing company for defence, space and aerospace; HQ in Yelahanka New Town and a six-acre plant in the Devanahalli Aerospace Park.",
+   "website": "https://www.centumelectronics.com",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1993,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Aerospace Park plant (Defence automation / Strategic Electronics)",
+     "locality": "Devanahalli",
+     "lat": 13.184007,
+     "lng": 77.726962,
+     "techPark": "Bengaluru Aerospace Park",
+     "building": null,
+     "address": "KIADB Aerospace Park, Devanahalli, Bengaluru",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Centum opened its fourth Bengaluru plant, a six-acre site for ~750 staff, in the Devanahalli Aerospace Park on 15 Feb 2017 (https://www.electronicsb2b.com/industry-buzz/centum-inaugurates-new-facility-devanahalli-aerospace-park-bangalore/); OSM/Nominatim map 'Centum Electronics Limited' there (https://www.openstreetmap.org/way/801916617).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "New 225,000 sq ft Strategic Electronics facility (under construction)",
+     "locality": "Devanahalli",
+     "lat": 13.18094,
+     "lng": 77.727459,
+     "techPark": "Bengaluru Aerospace Park",
+     "building": null,
+     "address": "",
+     "isHq": false,
+     "status": "planned",
+     "confidence": "medium",
+     "evidence": "Machinist reports Centum broke ground on 27 Nov 2025 for a 225,000 sq ft Strategic Electronics Business Unit facility at the Devanahalli Aerospace Park (https://machinist.in/2025/11/centum-electronics-begins-construction-of-new-strategic-electronics-facility-in-bengaluru/); plot not given, pin is the park centroid.",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Head office - KHB Industrial Area, Yelahanka New Town",
+     "locality": "Yelahanka New Town",
+     "lat": 13.105631,
+     "lng": 77.579695,
+     "techPark": null,
+     "building": null,
+     "address": "44, KHB Industrial Area, Yelahanka New Town, Bengaluru 560106",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia gives Centum's headquarters as 44, KHB Industrial Area, Yelahanka Newtown, Bengaluru (https://en.wikipedia.org/wiki/Centum_Electronics); pin is the Yelahanka Industrial Estate polygon from Photon, not the plot.",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Centum_Electronics",
+    "https://www.electronicsb2b.com/industry-buzz/centum-inaugurates-new-facility-devanahalli-aerospace-park-bangalore/",
+    "https://machinist.in/2025/11/centum-electronics-begins-construction-of-new-strategic-electronics-facility-in-bengaluru/"
+   ]
+  },
+  {
+   "name": "Rossell Techsys",
+   "aliases": [
+    "Rossell India - Aerospace division"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "description": "Listed aerospace electronics build-to-print/build-to-spec manufacturer (wire harnesses, avionics) serving global OEMs from a 225,000 sq ft IGBC Gold facility in the Devanahalli aerospace park.",
+   "website": "https://rosselltechsys.com",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Devanahalli facility - Hi-Tech Defence Aerospace Park",
+     "locality": "Devanahalli",
+     "lat": 13.182683,
+     "lng": 77.726061,
+     "techPark": "Bengaluru Aerospace Park",
+     "building": null,
+     "address": "No. 58-C, Road No. 2, Hi-Tech Defence Aerospace Park, Devanahalli 562129",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Rossell Techsys' contact page lists 'No. 58-C, Road No. 2, Hi-Tech Defence Aerospace Park, Devanahalli, Bengaluru 562129' (https://rosselltechsys.com/contact/); OSM maps 'Rossell Techsys' inside the Bengaluru Aerospace Park (https://www.openstreetmap.org/way/1098027810).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://rosselltechsys.com/contact/",
+    "https://rosselltechsys.com/rossell-techsys-unveils-state-of-the-art-calibration-and-metrology-lab/",
+    "https://www.openstreetmap.org/way/1098027810"
+   ]
+  },
+  {
+   "name": "Ananth Technologies",
+   "aliases": [],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Space",
+   "description": "Hyderabad-headquartered space and defence electronics firm; runs a 15,000 sq m spacecraft assembly, integration and test unit in the KIADB Aerospace Park that integrated satellites for ISRO.",
+   "website": "https://www.ananthtech.com",
+   "hqCity": "Hyderabad",
+   "hqCountry": "India",
+   "founded": 1992,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Spacecraft manufacturing and AIT unit - KIADB Aerospace Park",
+     "locality": "Devanahalli",
+     "lat": 13.174573,
+     "lng": 77.7257,
+     "techPark": "Bengaluru Aerospace Park",
+     "building": null,
+     "address": "KIADB Aerospace Park, Devanahalli, Bengaluru",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Ananth Technologies opened a 15,000 sq m spacecraft manufacturing unit at the KIADB Aerospace Park, Bengaluru, on 2 June 2022 (https://www.electronicsforyou.biz/industry-buzz/ananth-technologies-opens-15000-sq-metre-spacecraft-manufacturing-unit-in-bengaluru/); OSM maps 'Ananth Technologies' in the park (https://www.openstreetmap.org/way/1071055553).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.electronicsforyou.biz/industry-buzz/ananth-technologies-opens-15000-sq-metre-spacecraft-manufacturing-unit-in-bengaluru/",
+    "https://www.theweek.in/wire-updates/national/2024/10/18/mds14-ka-isro-satellites.html",
+    "https://www.openstreetmap.org/way/1071055553"
+   ]
+  },
+  {
+   "name": "Rakon",
+   "aliases": [
+    "Rakon India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "New Zealand frequency-control and timing products maker; opened a ~100,000 sq ft research and manufacturing Centre of Excellence in the SEZ Aerospace Park in June 2023 (~500 India staff).",
+   "website": "https://www.rakon.com",
+   "hqCity": "Auckland",
+   "hqCountry": "New Zealand",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": 500,
+   "offices": [
+    {
+     "label": "Rakon India Centre of Excellence - SEZ Aerospace Park",
+     "locality": "Devanahalli",
+     "lat": 13.177605,
+     "lng": 77.728709,
+     "techPark": "Bengaluru Aerospace Park",
+     "building": null,
+     "address": "SEZ, KIADB Aerospace Park, Devanahalli, Bengaluru",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Rakon's NZX announcement says its ~100,000 sq ft Centre of Excellence in the SEZ Aerospace Park, Bengaluru, was inaugurated on 14 June 2023 (https://www.nzx.com/announcements/413283); OSM maps 'Rakon India' in the park (https://www.openstreetmap.org/way/1182153200).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.nzx.com/announcements/413283",
+    "https://www.openstreetmap.org/way/1182153200"
+   ]
+  },
+  {
+   "name": "Starrag",
+   "aliases": [
+    "Starrag India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Swiss machine-tool maker; Starrag India (est. 2009) builds horizontal machining centres and fixtures at plot 66 in the KIADB Bengaluru Aerospace Park, the first factory to start in the park.",
+   "website": "https://www.starrag.com",
+   "hqCity": "Rorschacherberg",
+   "hqCountry": "Switzerland",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Starrag India plant - KIADB Bengaluru Aerospace Park",
+     "locality": "Singahalli, Budigere Post",
+     "lat": 13.17326,
+     "lng": 77.727799,
+     "techPark": "Bengaluru Aerospace Park",
+     "building": null,
+     "address": "No. 66, KIADB Bengaluru Aerospace Park, Singahalli Village, Budigere Post 562129",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Starrag's India page gives 'Starrag India Private Limited, No. 66, KIADB Bengaluru Aerospace Park, Singahalli Village, Budigere Post, Bangalore North Taluk 562129' (https://www.starrag.com/p/company/sales-network/india-1169.html); OSM maps 'Starrag India' there (https://www.openstreetmap.org/way/801307407).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.starrag.com/p/company/sales-network/india-1169.html",
+    "https://equipmentindia.com/construction-machinery-news/top-equipment-news/webexclusive/Starrag-s-new-facility/40537",
+    "https://www.openstreetmap.org/way/801307407"
+   ]
+  },
+  {
+   "name": "Gleason",
+   "aliases": [
+    "Gleason Works (India)"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "US gear-production machinery maker; Gleason Works (India) opened a 65,000 sq ft manufacturing and technology facility in the Aerospace Park, Devanahalli, in August 2017 (hobbing and shaving machines, tools, remanufacturing).",
+   "website": "https://www.gleason.com",
+   "hqCity": "Rochester",
+   "hqCountry": "United States",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Gleason India facility - Aerospace Park, Devanahalli",
+     "locality": "Devanahalli",
+     "lat": 13.170732,
+     "lng": 77.733464,
+     "techPark": "Bengaluru Aerospace Park",
+     "building": null,
+     "address": "Aerospace Park, Devanahalli, Bengaluru",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Gleason's newsroom reports the grand opening of its new facility in Aerospace Park, Devanahalli, Bangalore, on 17-18 Aug 2017 (https://www.gleason.com/es/facts-and-news/news-room/gleason-expands-india-presence-with-new-advanced-manufacturing-and-technology-facility); OSM maps 'Gleason' in the park (https://www.openstreetmap.org/way/991727359).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.gleason.com/es/facts-and-news/news-room/gleason-expands-india-presence-with-new-advanced-manufacturing-and-technology-facility",
+    "https://www.geartechnology.com/gleason-opens-advanced-manufacturing-and-technology-facility-in-bangalore",
+    "https://www.openstreetmap.org/way/991727359"
+   ]
+  },
+  {
+   "name": "tk accelis",
+   "aliases": [
+    "thyssenkrupp Aerospace",
+    "thyssenkrupp Aerospace India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "thyssenkrupp's aerospace materials business (renamed tk accelis); its 3,300 m2 service centre stocks and machines aluminium, titanium and steel for Indian aerostructure suppliers in the Bengaluru Aerospace SEZ.",
+   "website": null,
+   "hqCity": "Essen",
+   "hqCountry": "Germany",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Aerospace materials service centre - Bengaluru Aerospace SEZ (plots 98 & 99)",
+     "locality": "Budigere / Sulibele Post, Devanahalli",
+     "lat": 13.18094,
+     "lng": 77.727459,
+     "techPark": "Bengaluru Aerospace Park",
+     "building": null,
+     "address": "98 & 99 Bengaluru Aerospace SEZ Park, KIADB Industrial Area, Budigere, Sulibele Post, Devanahalli 562129",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "thyssenkrupp commissioned its first Indian site, a ~3,300 m2 aerospace materials service centre in Bangalore, in March 2015 (https://www.thyssenkrupp-materials-services.com/en/newsroom/press-releases/thyssenkrupp-aerospace-commissioning-its-first-location-in-india); Airframer lists it at 98 & 99 Bengaluru Aerospace SEZ Park, KIADB Industrial Area, Budigere, Sulibele Post, Devanahalli 562129 (https://www.airframer.com/news/release/tk-accelis-expands-india-operations-to-support-aerospace-growth); plot not mapped, park centroid.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.thyssenkrupp-materials-services.com/en/newsroom/press-releases/thyssenkrupp-aerospace-commissioning-its-first-location-in-india",
+    "https://www.airframer.com/news/release/tk-accelis-expands-india-operations-to-support-aerospace-growth"
+   ]
+  },
+  {
+   "name": "Magellan Aerospace",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "Canadian aerostructures and aero-engine component maker; its Indian plant (140,000 sq ft building on seven acres, high-speed machining) is in the Aerospace SEZ sector of the Hitech Defence and Aerospace Park.",
+   "website": "https://magellan.aero",
+   "hqCity": "Mississauga",
+   "hqCountry": "Canada",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Magellan India plant - Aerospace SEZ sector",
+     "locality": "Devanahalli",
+     "lat": 13.18094,
+     "lng": 77.727459,
+     "techPark": "Bengaluru Aerospace Park",
+     "building": null,
+     "address": "Aerospace SEZ Sector, Hitech Defence and Aerospace Park, Devanahalli",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Magellan's own release says it broke ground on 15 Nov 2017 for a 140,000 sq ft building on seven acres in the Hitech Defence and Aerospace Park (Aerospace SEZ Sector), Devanahalli (https://magellan.aero/press-release/magellan-breaks-ground-for-new-plant-in-india/), and trade press reported the plant opened at Aero India 2019 (https://www.aerospacemanufacturinganddesign.com/news/magellan-aerospace-opens-manufacturing-plant-india-022219); plot not mapped, park centroid.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://magellan.aero/press-release/magellan-breaks-ground-for-new-plant-in-india/",
+    "https://www.aerospacemanufacturinganddesign.com/news/magellan-aerospace-opens-manufacturing-plant-india-022219"
+   ]
+  },
+  {
+   "name": "Wipro Infrastructure Engineering",
+   "aliases": [
+    "Wipro Aerospace",
+    "Wipro Enterprises",
+    "WIN"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "description": "Engineering arm of Wipro Enterprises (Azim Premji group, not Wipro Ltd); Wipro Aerospace runs an actuator plant (2013) and an aerostructure machining / special-process plant in the Bengaluru Aerospace SEZ, plus hydraulics and 3D printing in Peenya.",
+   "website": "https://www.wiproinfra.com",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Wipro Aerospace Site 1 - Plot 21, Bengaluru Aerospace (SEZ) Park",
+     "locality": "Devanahalli",
+     "lat": 13.18094,
+     "lng": 77.727459,
+     "techPark": "Bengaluru Aerospace Park",
+     "building": null,
+     "address": "Plot No. 21, Bengaluru Aerospace (SEZ) Park, KIADB Industrial Area, Devanahalli 562110",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "WIN's own locations page lists 'Wipro Enterprises Private Limited, Plot No. 21, Bengaluru Aerospace (SEZ) Park, KIADB Industrial Area, Devanahalli 562110' (https://www.wiproinfra.com/globally-connected); plot not mapped, park centroid.",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Wipro Aerospace Site 2 - Kavadadasanahalli (aerostructures)",
+     "locality": "Devanahalli (Kavadadasanahalli)",
+     "lat": 13.18094,
+     "lng": 77.727459,
+     "techPark": "Bengaluru Aerospace Park",
+     "building": null,
+     "address": "Plots 126-131 & 169-176, Kavadadasanahalli, Bengaluru Aerospace (SEZ) Park 562110",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The same page lists Site 2 at 'Plot No. 126 to 131 & 169 to 176, Kavadadasanahalli Village, Bengaluru Aerospace (SEZ) Park' (https://www.wiproinfra.com/globally-connected); the ~10-acre aerostructure plant broke ground in 2019 (https://www.airport-technology.com/news/wipro-aerospace-bengaluru-construction); park centroid.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.wiproinfra.com/globally-connected",
+    "https://www.airport-technology.com/news/wipro-aerospace-bengaluru-construction"
+   ]
+  },
+  {
+   "name": "Tata Advanced Systems",
+   "aliases": [
+    "TASL",
+    "Tata Advanced Systems Limited"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "description": "Tata Group aerospace and defence manufacturer (Lockheed Martin C-130J empennages, Airbus/Boeing assemblies); has an SEZ unit in the KIADB Aerospace Park and is building a C-130J MRO with Lockheed Martin near the airport.",
+   "website": "https://www.tataadvancedsystems.com",
+   "hqCity": "Hyderabad",
+   "hqCountry": "India",
+   "founded": 2007,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "SEZ unit - KIADB Aerospace Park (plots 122-125)",
+     "locality": "Devanahalli (Baladimmanahalli)",
+     "lat": 13.1776516,
+     "lng": 77.7346726,
+     "techPark": "Bengaluru Aerospace Park",
+     "building": null,
+     "address": "Plot 122-125, KIADB Aerospace Park, Devanahalli 562110",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "A TASL recruitment notice gives the venue 'TASL, SEZ Unit, Plot Nos. 122-125, KIADB Aerospace Park, Devanahalli, Bengaluru 562110' (https://careerforfreshers.com/walk-in-jobs/tata-advanced-systems-walk-in-recruitment-drive-2025/); OSM maps 'Tata Advanced Systems' on SH104 inside the park (https://www.openstreetmap.org/way/801307402).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "C-130J MRO facility with Lockheed Martin (under construction)",
+     "locality": "Bhattaramarenahalli, Devanahalli",
+     "lat": 13.1670614,
+     "lng": 77.7364577,
+     "techPark": null,
+     "building": null,
+     "address": "Bhattaramarenahalli, near Kempegowda International Airport",
+     "isHq": false,
+     "status": "planned",
+     "confidence": "medium",
+     "evidence": "Lockheed Martin's release says TASL broke ground on a new defence MRO facility supporting the C-130J, datelined Bengaluru 8 Dec 2025 (https://news.lockheedmartin.com/2025-12-18-Tata-Advanced-Systems-breaks-ground-on-new-Defence-MRO-facility-supporting-Lockheed-Martin-C-130J-operations-in-India); the village (Bhattaramarenahalli, per Wikipedia) is from Photon, not a plot.",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://careerforfreshers.com/walk-in-jobs/tata-advanced-systems-walk-in-recruitment-drive-2025/",
+    "https://news.lockheedmartin.com/2025-12-18-Tata-Advanced-Systems-breaks-ground-on-new-Defence-MRO-facility-supporting-Lockheed-Martin-C-130J-operations-in-India",
+    "https://evertiq.com/news/2026-01-02-tata-advanced-systems-breaks-ground-on-facility-supporting-c-130j",
+    "https://en.wikipedia.org/wiki/Tata_Advanced_Systems"
+   ]
+  },
+  {
+   "name": "AXISCADES Technologies",
+   "aliases": [
+    "AXISCADES",
+    "Mistral Solutions",
+    "AXISCADES Aerospace & Technologies"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "description": "Listed Bengaluru engineering and defence-electronics group (Mistral Solutions); HQ at Kirloskar Business Park, Hebbal, and the newly commissioned Devanahalli Atmanirbhar Complex in the Bangalore Aerospace Park for avionics production.",
+   "website": "https://www.axiscades.com",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Devanahalli Atmanirbhar Complex (DAC) - Bangalore Aerospace Park",
+     "locality": "Devanahalli",
+     "lat": 13.18094,
+     "lng": 77.727459,
+     "techPark": "Bengaluru Aerospace Park",
+     "building": null,
+     "address": "Bangalore Aerospace Park, Devanahalli",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "AXISCADES' Feb 2026 NSE filing says avionics for HAL's LCA Mk1A will be produced at its recently commissioned Devanahalli Atmanirbhar Complex in the Bangalore Aerospace Park near Kempegowda airport (https://nsearchives.nseindia.com/corporate/AXISCADES_23022026071024_ACTLSEIntimationPressRelease23022026.pdf); plot not mapped, park centroid.",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Corporate & registered office - Kirloskar Business Park, Hebbal",
+     "locality": "Hebbal",
+     "lat": 13.051598,
+     "lng": 77.595088,
+     "techPark": "Kirloskar Business Park",
+     "building": "Block C",
+     "address": "Block C, 2nd Floor, Kirloskar Business Park, Hebbal, Bengaluru 560024",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "AXISCADES' contact page lists its Corporate & Registered Office at 'Kirloskar Business Park, Block C, 2nd Floor, Hebbal, Bangalore 560024' (https://www.axiscades.com/contact-us); pin is the park polygon.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.axiscades.com/contact-us",
+    "https://nsearchives.nseindia.com/corporate/AXISCADES_23022026071024_ACTLSEIntimationPressRelease23022026.pdf",
+    "https://machinist.in/2025/06/axiscades-plans-new-devanahalli-facility-as-part-of-broader-strategic-shift/",
+    "https://www.deccanherald.com/business/companies/axiscades-aerospace-to-invest-rs-6000-crore-to-set-up-integrated-manufacturing-hub-in-karnataka-4009985"
+   ]
+  },
+  {
+   "name": "Dedienne Aerospace",
+   "aliases": [
+    "Dedienne Aerospace India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "French aircraft ground-support tooling and composites maker; Dedienne Aerospace India Pvt Ltd has an industrial site south-east of the aerospace park near Budigere.",
+   "website": "https://www.dedienne-aerospace.com",
+   "hqCity": "Mauguio",
+   "hqCountry": "France",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Dedienne Aerospace India site - Budigere side of the aerospace cluster",
+     "locality": "Budigere, Devanahalli",
+     "lat": 13.155024,
+     "lng": 77.722443,
+     "techPark": null,
+     "building": null,
+     "address": "Near Budigere, Devanahalli taluk",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only OSM maps an industrial polygon 'Dedienne Aerospace India Pvt. Ltd.' here (https://www.openstreetmap.org/way/991727365); no company or press source reached in this run.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/991727365"
+   ]
+  },
+  {
+   "name": "Shell",
+   "aliases": [
+    "Shell India",
+    "STCB"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "Anglo-Dutch energy major; Shell Technology Centre Bangalore is a 52-acre purpose-built R&D campus for up to 1,500 people, one of Shell's three main global technology hubs, in the KIADB Hardware Park.",
+   "website": "https://www.shell.in",
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": 1500,
+   "offices": [
+    {
+     "label": "Shell Technology Centre Bangalore - KIADB Hardware Park",
+     "locality": "Mahadeva Kodigehalli",
+     "lat": 13.156474,
+     "lng": 77.701876,
+     "techPark": "Shell Technology Centre Bangalore",
+     "building": null,
+     "address": "KIADB Hardware Park, Mahadeva Kodigehalli, Bengaluru 562149",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Shell opened its 52-acre Bangalore technology centre for up to 1,500 people on 31 Mar 2017 (https://worldoil.com/news/2017/3/31/shell-opens-new-technology-center-in-bangalore-india/); OSM maps the 'Shell Technology Centre Bangalore' campus in the KIADB Hardware Park (https://www.openstreetmap.org/way/203058241).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://worldoil.com/news/2017/3/31/shell-opens-new-technology-center-in-bangalore-india/",
+    "https://www.openstreetmap.org/way/203058241"
+   ]
+  },
+  {
+   "name": "Cepheid",
+   "aliases": [
+    "Cepheid India",
+    "Danaher"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Danaher-owned US molecular diagnostics company; its first Indian plant (77,000 sq ft, Xpert TB cartridges) opened in March 2023 at Mahadeva Kodigehalli in the KIADB Hardware Park.",
+   "website": "https://www.cepheid.com",
+   "hqCity": "Sunnyvale",
+   "hqCountry": "United States",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Cepheid India manufacturing unit - Mahadeva Kodigehalli",
+     "locality": "Mahadeva Kodigehalli",
+     "lat": 13.154905,
+     "lng": 77.694673,
+     "techPark": "KIADB Hardware Park",
+     "building": null,
+     "address": "KIADB Hardware Park, Mahadeva Kodigehalli, Bengaluru 562149",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Cepheid's first Indian manufacturing unit, 77,000 sq ft, was inaugurated at Mahadeva Kodigehalli, Bengaluru, in March 2023 (https://biospectrumindia.com/news/90/22799/cepheid-opens-first-manufacturing-unit-in-india-to-make-tb-testing-cartridges.html); OSM maps 'Cepheid India Pvt. Ltd.' inside the KIADB Hardware Park (https://www.openstreetmap.org/way/1278762155).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://biospectrumindia.com/news/90/22799/cepheid-opens-first-manufacturing-unit-in-india-to-make-tb-testing-cartridges.html",
+    "https://indiamedtoday.com/molecular-diagnostics-co-cepheid-opens-first-manufacturing-unit-in-bengaluru/",
+    "https://www.openstreetmap.org/way/1278762155"
+   ]
+  },
+  {
+   "name": "Hengst",
+   "aliases": [
+    "Hengst Filtration",
+    "Hengst India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "German filtration company; Hengst Filtration's 36,000 sq ft Bengaluru plant (fuel filter clean-room line added later) is mapped in the KIADB Hardware Park.",
+   "website": "https://www.hengst.com",
+   "hqCity": "Muenster",
+   "hqCountry": "Germany",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Hengst Filtration plant - KIADB Hardware Park",
+     "locality": "Yelahanka taluk (Hardware Park)",
+     "lat": 13.152782,
+     "lng": 77.694351,
+     "techPark": "KIADB Hardware Park",
+     "building": null,
+     "address": "KIADB Hardware Park, Bengaluru 562149",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "NBM&CW reports Germany's Hengst Filtration unveiled a 36,000 sq ft facility in Bengaluru (Yelahanka) (https://nbmcw.com/news/germanys-hengst-filtration-unveils-cutting-edge-facility-in-bengaluru.html); OSM maps 'Hengst' inside the KIADB Hardware Park, which lies in Yelahanka taluk (https://www.openstreetmap.org/way/1328149081).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://nbmcw.com/news/germanys-hengst-filtration-unveils-cutting-edge-facility-in-bengaluru.html",
+    "https://equipmentindia.com/construction-machinery-news/top-equipment-news/webexclusive/Hengst-Opens-Fuel-Filter-Line-in-Bengaluru/130623",
+    "https://www.openstreetmap.org/way/1328149081"
+   ]
+  },
+  {
+   "name": "Zetwerk",
+   "aliases": [
+    "Zetwerk Electronics",
+    "Zetwerk Manufacturing Businesses"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "description": "Bengaluru-founded manufacturing marketplace unicorn; Zetwerk Electronics opened a defence, automotive and IT-hardware electronics plant in the KIADB Hi-Tech Hardware Park in February 2026.",
+   "website": "https://www.zetwerk.com",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2018,
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Zetwerk Electronics plant - KIADB Hi-Tech Hardware Park",
+     "locality": "Hardware Park, Yelahanka taluk",
+     "lat": 13.151089,
+     "lng": 77.685651,
+     "techPark": "KIADB Hardware Park",
+     "building": null,
+     "address": "KIADB Hi-Tech Hardware Park, Bengaluru",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Machinist (9 Feb 2026) reports Union Minister Ashwini Vaishnaw inaugurated Zetwerk Electronics' manufacturing unit at the KIADB Hi-Tech Hardware Park, Bengaluru (https://machinist.in/2026/02/zetwerk-electronics-inaugurates-defence-automotive-and-it-hardware-manufacturing-unit-in-bengaluru/), also reported by Swarajya; plot not mapped, park centroid.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://machinist.in/2026/02/zetwerk-electronics-inaugurates-defence-automotive-and-it-hardware-manufacturing-unit-in-bengaluru/",
+    "https://swarajyamag.com/amp/story/tech/new-zetwerk-electronics-facility-for-defence-automotive-and-it-hardware-inaugurated-in-bengaluru"
+   ]
+  },
+  {
+   "name": "ideaForge",
+   "aliases": [
+    "ideaForge Technology"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "description": "Listed Navi Mumbai drone (UAV) maker that runs R&D and manufacturing in Bengaluru; an 'IdeoForge Technology Limited' site is mapped in the KIADB Hardware Park.",
+   "website": "https://ideaforgetech.com",
+   "hqCity": "Navi Mumbai",
+   "hqCountry": "India",
+   "founded": 2007,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru R&D / manufacturing site - KIADB Hardware Park",
+     "locality": "Hardware Park, Yelahanka taluk",
+     "lat": 13.149879,
+     "lng": 77.708034,
+     "techPark": "KIADB Hardware Park",
+     "building": null,
+     "address": "KIADB Hardware Park, Bengaluru 562149",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Aviation & Defence Universe describes ideaForge's R&D and manufacturing centres in Navi Mumbai and Bengaluru (https://www.aviation-defence-universe.com/where-innovation-takes-flight-ideaforges-manufacturing-backbone-powering-next-gen-uavs); OSM maps 'IdeoForge Technology Limited' in the Hardware Park (https://www.openstreetmap.org/way/1161960259) - the address link is OSM-only.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.aviation-defence-universe.com/where-innovation-takes-flight-ideaforges-manufacturing-backbone-powering-next-gen-uavs",
+    "https://www.openstreetmap.org/way/1161960259"
+   ]
+  },
+  {
+   "name": "Juki",
+   "aliases": [
+    "Juki India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Japanese industrial sewing-machine and SMT equipment maker; Juki India Pvt Ltd is mapped with an industrial site in the KIADB Hardware Park.",
+   "website": "https://www.juki.co.jp",
+   "hqCity": "Tokyo",
+   "hqCountry": "Japan",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Juki India site - KIADB Hardware Park",
+     "locality": "Hardware Park, Yelahanka taluk",
+     "lat": 13.149929,
+     "lng": 77.705456,
+     "techPark": "KIADB Hardware Park",
+     "building": null,
+     "address": "KIADB Hardware Park, Bengaluru 562149",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only OSM maps an industrial polygon 'Juki India Pvt. Ltd.' in the KIADB Hardware Park (https://www.openstreetmap.org/way/1161960251); no company or press confirmation reached.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/1161960251"
+   ]
+  },
+  {
+   "name": "Elmeasure",
+   "aliases": [
+    "Elmeasure India"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Energy",
+   "description": "Bengaluru energy-metering and power-monitoring equipment maker; an Elmeasure plant is mapped in the KIADB Hardware Park.",
+   "website": "https://www.elmeasure.com",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Elmeasure plant - KIADB Hardware Park",
+     "locality": "Hardware Park, Yelahanka taluk",
+     "lat": 13.153351,
+     "lng": 77.693446,
+     "techPark": "KIADB Hardware Park",
+     "building": null,
+     "address": "KIADB Hardware Park, Bengaluru 562149",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only OSM maps an industrial polygon 'Elmeasure' in the KIADB Hardware Park (https://www.openstreetmap.org/way/1328149082); not confirmed from the company in this run.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/1328149082"
+   ]
+  },
+  {
+   "name": "eMudhra",
+   "aliases": [],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Software & internet",
+   "description": "Listed digital-signature, PKI and identity company; its eMudhra Digital Campus is in the IT Sector of the Hi-Tech Defence and Aerospace Park, B.K. Palya, Jala Hobli.",
+   "website": "https://emudhra.com",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2008,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "eMudhra Digital Campus - Hi-Tech Defence and Aerospace Park (IT Sector)",
+     "locality": "B.K. Palya, Jala Hobli",
+     "lat": 13.165764,
+     "lng": 77.707643,
+     "techPark": "Hi-Tech Defence and Aerospace Park - IT Sector",
+     "building": "eMudhra Digital Campus",
+     "address": "No 12-P1-A & 12-P1-B, Hi-Tech Defence and Aerospace Park (IT Sector), Jala Hobli, B.K. Palya 562149",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "eMudhra's contact page lists 'eMudhra Digital Campus, No 12-P1-A & 12-P1-B, Hi-Tech Defence and Aerospace Park (IT Sector), Jala Hobli, B.K. Palya, Bengaluru 562149' (https://emudhra.com/contact-us); OSM maps the 'eMudhra' campus (https://www.openstreetmap.org/way/1065507088).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://emudhra.com/contact-us",
+    "https://www.openstreetmap.org/way/1065507088"
+   ]
+  },
+  {
+   "name": "Autoliv",
+   "aliases": [
+    "Autoliv India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Swedish automotive safety supplier; its Bengaluru unit (opened 2010, airbag/seatbelt assembly, safety and tech centre) is in the IT Sector of the Hi-Tech Defence and Aerospace Park.",
+   "website": "https://www.autoliv.com",
+   "hqCity": "Stockholm",
+   "hqCountry": "Sweden",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Autoliv India - Hi-Tech Defence and Aerospace Park (IT Sector)",
+     "locality": "Devanahalli (IT Sector)",
+     "lat": 13.159837,
+     "lng": 77.705046,
+     "techPark": "Hi-Tech Defence and Aerospace Park - IT Sector",
+     "building": null,
+     "address": "Site 31, 32-P, 33-P, Hi-Tech Defence and Aerospace Park (IT Sector), Devanahalli 562149",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Autoliv's India page lists 'Autoliv India Private Limited, Site Nos 31, 32-P, 33-P, Hi-Tech, Defence and Aerospace Park (IT Sector), Devanahalli 562149' (https://www.autoliv.com/de/node/2023); OSM maps 'Autoliv' there (https://www.openstreetmap.org/way/1065507083).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.autoliv.com/de/node/2023",
+    "https://www.autoliv.com/press/autoliv-invests-india-opens-new-engineering-and-production-facility-1165399",
+    "https://www.openstreetmap.org/way/1065507083"
+   ]
+  },
+  {
+   "name": "SAP",
+   "aliases": [
+    "SAP Labs India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "German enterprise-software major; SAP Labs India's 41-acre Innovation Park in Devanahalli (inaugurated Aug 2025, ~15,000 seats at full build) is its second big Bengaluru campus.",
+   "website": "https://www.sap.com",
+   "hqCity": "Walldorf",
+   "hqCountry": "Germany",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "SAP Labs India Innovation Park - Devanahalli (BLR11-13)",
+     "locality": "Devanahalli (IT Sector)",
+     "lat": 13.161831,
+     "lng": 77.713493,
+     "techPark": "SAP Labs India Innovation Park",
+     "building": "BLR11, BLR12, BLR13",
+     "address": "Hi-Tech Defence and Aerospace Park (IT Sector), Devanahalli",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "The MeitY/PIB release and PTI report Karnataka CM Siddaramaiah inaugurated SAP Labs India's 41-acre Innovation Park in Devanahalli on 5 Aug 2025 (https://www.theweek.in/wire-updates/national/2025/08/05/mes7-ka-sap-cm.html); OSM maps the campus and buildings BLR11-13 (https://www.openstreetmap.org/way/1177291323).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.theweek.in/wire-updates/national/2025/08/05/mes7-ka-sap-cm.html",
+    "https://negd.gov.in/wp-content/uploads/2025/08/PIB2152681.pdf",
+    "https://www.deccanherald.com/business/companies/sap-labs-opens-second-campus-in-b-luru-with-eu194-mn-3667022",
+    "https://www.openstreetmap.org/way/1177291323"
+   ]
+  },
+  {
+   "name": "Star Air",
+   "aliases": [],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Other",
+   "description": "Bengaluru-headquartered regional airline of the Sanjay Ghodawat Group, based at Kempegowda International Airport; an office is mapped in the KIADB IT sector near the airport.",
+   "website": "https://www.starair.in",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2017,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Star Air office - KIADB IT sector (OSM)",
+     "locality": "Devanahalli (IT Sector)",
+     "lat": 13.162385,
+     "lng": 77.707392,
+     "techPark": "Hi-Tech Defence and Aerospace Park - IT Sector",
+     "building": null,
+     "address": "Hi-Tech Defence and Aerospace Park (IT Sector), Devanahalli",
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Wikipedia says Star Air is headquartered in Bengaluru with its main base at Kempegowda International Airport (https://en.wikipedia.org/wiki/Star_Air_(India)); only an OSM office node 'Star Air' places an office here (https://www.openstreetmap.org/node/12211501431).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Star_Air_(India)",
+    "https://www.openstreetmap.org/node/12211501431"
+   ]
+  },
+  {
+   "name": "Walmart",
+   "aliases": [
+    "Walmart Global Tech",
+    "WM Global Technology Services India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "US retailer; Walmart Global Tech leased ~1.01 lakh sq ft in Prestige Tech Cloud's Cumulus building (Devanahalli) on a five-year lease from March 2026, reported as a contact centre for US customers.",
+   "website": "https://tech.walmart.com",
+   "hqCity": "Bentonville",
+   "hqCountry": "United States",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Tech Cloud - Building 2 (Cumulus), floors G, 7 and 8",
+     "locality": "Bettahalasur / Navarathna Agrahara, Bellary Road",
+     "lat": 13.19412,
+     "lng": 77.642462,
+     "techPark": "Prestige Tech Cloud",
+     "building": "Cumulus (Building 2)",
+     "address": "Prestige Tech Cloud, Bellary Road (NH-44), Devanahalli",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Registration data reported by The Realty Today shows WM Global Technology Services India leased ~1.01 lakh sq ft at Prestige Tech Cloud Building 2 (Cumulus), Devanahalli, for five years from March 2026 (https://therealtytoday.com/news/commercial/walmart-expands-bengaluru-footprint-leases-over-1-lakh-sq-ft-near-airport); OSM maps the Cumulus building and a 'Walmart' node in it (https://www.openstreetmap.org/node/13325832538).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://therealtytoday.com/news/commercial/walmart-expands-bengaluru-footprint-leases-over-1-lakh-sq-ft-near-airport",
+    "https://www.propnewz.com/blog/walmart-devanahalli-lease-north-bengaluru-resi-2026-05-09",
+    "https://www.openstreetmap.org/way/1189677466"
+   ]
+  },
+  {
+   "name": "NTT DATA",
+   "aliases": [
+    "NTT Global Data Centers",
+    "NTT Ltd",
+    "NTT"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Japanese IT services and data-centre group; its NTT Global Data Centers 'Bengaluru 4' campus (8.5 acres, 100 MW facility / 67.2 MW IT load across 4A-4C) is at Prestige Tech Cloud, Devanahalli.",
+   "website": "https://www.nttdata.com",
+   "hqCity": "Tokyo",
+   "hqCountry": "Japan",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru 4 data centre campus - Prestige Tech Cloud",
+     "locality": "Bettahalasur / Navarathna Agrahara, Bellary Road",
+     "lat": 13.192924,
+     "lng": 77.643357,
+     "techPark": "Prestige Tech Cloud",
+     "building": "Bengaluru 4A/4B/4C",
+     "address": "Prestige Tech Cloud, Devanahalli",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "NTT's 3 Dec 2025 release (PTI) announced the e-launch of Bengaluru 4 at Prestige Tech Cloud, Devanahalli, with 4A ready for commissioning at 22.4 MW (https://www.theweek.in/wire-updates/business/2025/12/03/dcm43-ntt.html); the DC's spot inside the park is not mapped, so the pin is the park centroid.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.theweek.in/wire-updates/business/2025/12/03/dcm43-ntt.html",
+    "https://www.datacenterdynamics.com/en/news/ntt-signs-130mw-of-capacity-leases-with-unnamed-hyperscalers/"
+   ]
+  },
+  {
+   "name": "Agratas",
+   "aliases": [
+    "Agratas Energy Storage Solutions",
+    "TATA Agratas"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Energy",
+   "description": "Tata Sons' EV battery-cell company (gigafactories in Gujarat and the UK); an office node 'TATA Agratas' is mapped at Prestige Tech Cloud.",
+   "website": "https://agratas.com",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 2023,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Tech Cloud office (OSM)",
+     "locality": "Bettahalasur / Navarathna Agrahara, Bellary Road",
+     "lat": 13.194041,
+     "lng": 77.643299,
+     "techPark": "Prestige Tech Cloud",
+     "building": null,
+     "address": "Prestige Tech Cloud, Devanahalli",
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office node 'TATA Agratas' places it at Prestige Tech Cloud (https://www.openstreetmap.org/node/11786282541); Agratas is Bengaluru-linked per its Tata Technologies partnership release (https://agratas.com/news/agratas-partners-with-tata-technologies) but no lease source was found.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11786282541",
+    "https://agratas.com/news/agratas-partners-with-tata-technologies"
+   ]
+  },
+  {
+   "name": "Applied Materials",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "US semiconductor-equipment maker; in May 2026 the Karnataka cabinet cleared allotment of 140 of the 407 acres of the KSIIDC Bengaluru Signature Business Park near the airport to it (lease-cum-sale, Rs 780 crore), subject to clearances.",
+   "website": "https://www.appliedmaterials.com",
+   "hqCity": "Santa Clara",
+   "hqCountry": "United States",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru Signature Business Park site (140 acres, allotment approved)",
+     "locality": "Bhuvanahalli, Devanahalli",
+     "lat": 13.21426,
+     "lng": 77.68762,
+     "techPark": "Bengaluru Signature Business Park",
+     "building": null,
+     "address": "Bengaluru Signature Business Park, Bhuvanahalli, Devanahalli taluk",
+     "isHq": false,
+     "status": "planned",
+     "confidence": "medium",
+     "evidence": "Angel One and Swarajya (1-4 May 2026) report the cabinet approved allotting 140 acres at the Bengaluru Signature Business Park near Kempegowda airport to Applied Materials for ~Rs 780 crore (https://www.angelone.in/news/economy/karnataka-allots-140-acres-to-applied-materials-at-bengaluru-business-park-for-780-crore); pin is the BSBP point from Nominatim (Bhuvanahalli), not a building.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.angelone.in/news/economy/karnataka-allots-140-acres-to-applied-materials-at-bengaluru-business-park-for-780-crore",
+    "https://swarajyamag.com/amp/story/news-brief/karnataka-allots-140-acres-near-bengaluru-airport-to-us-chip-giant-applied-materials-in-rs-780-crore-deal"
+   ]
+  },
+  {
+   "name": "Bangalore International Airport Limited",
+   "aliases": [
+    "BIAL",
+    "Bengaluru Airport",
+    "BLR Airport",
+    "Bengaluru Airport City Limited"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Public-private company (Fairfax India majority, Karnataka govt and AAI) that owns and operates Kempegowda International Airport; its subsidiary Bengaluru Airport City Ltd is building a 2 million sq ft business park in Airport City.",
+   "website": "https://www.bengaluruairport.com",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2000,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Kempegowda International Airport - administration block",
+     "locality": "Kempegowda International Airport, Devanahalli",
+     "lat": 13.200725,
+     "lng": 77.704407,
+     "techPark": null,
+     "building": null,
+     "address": "Administration Block, Kempegowda International Airport, Devanahalli, Bengaluru 560300",
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "BIAL owns and operates Kempegowda International Airport in Devanahalli taluk (https://bangalorerural.nic.in/en/tourist-place/kempegowda-international-airport/) and group entities list the Administration Block, Kempegowda International Airport, Bengaluru 560300 (https://www.infyner.com/company/bengaluru-airport-services-limited/U55100KA2020PLC136939); pin is the airport polygon centroid, not the admin block.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "BLR Airport City Business Park (2 million sq ft, under construction)",
+     "locality": "Airport City, Kempegowda International Airport",
+     "lat": 13.196476,
+     "lng": 77.692689,
+     "techPark": "Bengaluru Airport City Business Park",
+     "building": null,
+     "address": "Airport City, Kempegowda International Airport",
+     "isHq": false,
+     "status": "planned",
+     "confidence": "medium",
+     "evidence": "Bengaluru Airport City Ltd, a BIAL subsidiary, broke ground in Oct 2024 for a four-block, 2 million sq ft business park on 17.7 acres aimed at GCCs (https://www.aci-asiapac.aero/media-centre/news/bengaluru-airport-city-breaks-ground-for-2-million-sq-ft-business-park-targeting-global-capability-centres); OSM maps the construction site 'Business Park' (https://www.openstreetmap.org/way/790430696).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://bangalorerural.nic.in/en/tourist-place/kempegowda-international-airport/",
+    "https://www.aci-asiapac.aero/media-centre/news/bengaluru-airport-city-breaks-ground-for-2-million-sq-ft-business-park-targeting-global-capability-centres",
+    "https://www.openstreetmap.org/way/790430696"
+   ]
+  },
+  {
+   "name": "Air India",
+   "aliases": [
+    "Air India Engineering"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Other",
+   "description": "Tata Group's flag carrier; building a 35-acre, 12-hangar base-maintenance MRO at Kempegowda International Airport with SIA Engineering (Phase I Rs 1,400 crore, groundbreaking Sep 2024).",
+   "website": "https://www.airindia.com",
+   "hqCity": "Gurugram",
+   "hqCountry": "India",
+   "founded": 1932,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Base maintenance MRO facility - Kempegowda International Airport (under construction)",
+     "locality": "Kempegowda International Airport, Devanahalli",
+     "lat": 13.200725,
+     "lng": 77.704407,
+     "techPark": null,
+     "building": null,
+     "address": "Kempegowda International Airport, Devanahalli",
+     "isHq": false,
+     "status": "planned",
+     "confidence": "medium",
+     "evidence": "Air India's newsroom (Sept 2024) says it commenced construction of a mega MRO facility on 35 acres at Bengaluru's Kempegowda airport (https://www.airindia.com/in/en/newsroom/press-release/air-india-commences-construction-of-mega-mro-facility-in-bengalu.html), also reported by Aviation Week; the site within the airport is not mapped, pin is the airport centroid.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.airindia.com/in/en/newsroom/press-release/air-india-commences-construction-of-mega-mro-facility-in-bengalu.html",
+    "https://aviationweek.com/mro/safety-ops-regulation/air-india-breaks-ground-new-bengaluru-mro-facility"
+   ]
+  },
+  {
+   "name": "Worldwide Flight Services",
+   "aliases": [
+    "WFS",
+    "WFS (Bengaluru)",
+    "SATS"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Logistics",
+   "description": "SATS-owned global cargo handler; WFS (Bengaluru), a 74:26 JV with BIAL, has run Kempegowda airport's international cargo terminal and cold-chain facility since May 2023.",
+   "website": "https://wfs.aero",
+   "hqCity": "Paris",
+   "hqCountry": "France",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "International cargo terminal - Cargo Avenue, KIA",
+     "locality": "KIA Cargo District",
+     "lat": 13.20062,
+     "lng": 77.689782,
+     "techPark": null,
+     "building": null,
+     "address": "Plot No C2, Cargo Avenue, Kempegowda International Airport, Devanahalli 560300",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "WFS began operating BLR's international cargo terminal under a 15-year concession on 24 May 2023 (https://www.aviationpros.com/ground-support-worldwide/ground-handling/ground-handlers-service-providers/press-release/53061760/worldwide-flight-services-wfs-opens-air-cargo-terminal-in-india-bengaluru-airport); its JV lists Plot C2, Cargo Avenue, Kempegowda International Airport (https://wfs.aero/locations/bangalore-india); pin is the OSM Cargo District centroid.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://wfs.aero/locations/bangalore-india",
+    "https://www.aviationpros.com/ground-support-worldwide/ground-handling/ground-handlers-service-providers/press-release/53061760/worldwide-flight-services-wfs-opens-air-cargo-terminal-in-india-bengaluru-airport"
+   ]
+  },
+  {
+   "name": "Menzies Aviation",
+   "aliases": [
+    "Menzies Aviation (Bengaluru)",
+    "MABPL"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Logistics",
+   "description": "Global aviation services company; Menzies Aviation (Bengaluru), a JV with BIAL since May 2023, is the sole domestic cargo operator at Kempegowda airport and also handles international cargo.",
+   "website": "https://menziesaviation.com",
+   "hqCity": "Kuwait City",
+   "hqCountry": "Kuwait",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Domestic and international cargo terminal - KIA",
+     "locality": "KIA Cargo District",
+     "lat": 13.20062,
+     "lng": 77.689782,
+     "techPark": null,
+     "building": null,
+     "address": "Cargo area, Kempegowda International Airport, Devanahalli",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "STAT Times reports Menzies Aviation Bengaluru Pvt Ltd became sole domestic cargo provider at BLR from late May 2023 under a 15-year JV with BIAL (https://www.stattimes.com/cargo-airports/menzies-aviation-announces-blr-airport-jv-1349334); pin is the OSM Cargo District centroid.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.stattimes.com/cargo-airports/menzies-aviation-announces-blr-airport-jv-1349334",
+    "https://www.stattimes.com/air-cargo/bengaluru-airport-cargo-handled-up-7-at-439524-tonnes-in-fy2024-1351864"
+   ]
+  },
+  {
+   "name": "ITC",
+   "aliases": [
+    "ITC Limited"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Retail & consumer goods",
+   "description": "Listed Indian conglomerate (FMCG, cigarettes, hotels, paperboards); its long-running Bengaluru cigarette factory is at Meenakunte village off Bellary Road, north of Yelahanka.",
+   "website": "https://www.itcportal.com",
+   "hqCity": "Kolkata",
+   "hqCountry": "India",
+   "founded": 1910,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru cigarette factory - Meenakunte",
+     "locality": "Meenakunte, Jala Hobli",
+     "lat": 13.184908,
+     "lng": 77.638382,
+     "techPark": null,
+     "building": null,
+     "address": "Meenakunte Village, Jala Hobli, Bengaluru North 562157",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "ITC says its cigarettes are made at factories including Bengaluru (https://www.itcportal.com/businesses/fmcg/cigarettes.aspx); a locations listing gives the plant at Meenakunte Village, Jala Hobli, Bengaluru North 562157 (https://voguestock.in/fundamental/locations/itc-ltd) and OSM maps 'ITC Factory' there (https://www.openstreetmap.org/way/133127089).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.itcportal.com/businesses/fmcg/cigarettes.aspx",
+    "https://voguestock.in/fundamental/locations/itc-ltd",
+    "https://www.openstreetmap.org/way/133127089"
+   ]
+  },
+  {
+   "name": "Exide Energy Solutions",
+   "aliases": [
+    "EESL",
+    "Exide Industries"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Energy",
+   "description": "Lithium-ion cell subsidiary of listed Exide Industries; commissioned Phase I (6 GWh) of its cell gigafactory in Devanahalli, Bengaluru, in September 2026 (12 GWh planned).",
+   "website": "https://www.exideindustries.com",
+   "hqCity": "Kolkata",
+   "hqCountry": "India",
+   "founded": 2022,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Lithium-ion cell gigafactory - Hi-Tech Defence and Aerospace Park (Polanahalli)",
+     "locality": "Polanahalli, Devanahalli",
+     "lat": 13.224248,
+     "lng": 77.772751,
+     "techPark": "Hi-Tech Defence and Aerospace Park",
+     "building": null,
+     "address": "Hi-Tech Defence and Aerospace Park, Polanahalli, Devanahalli taluk 562135",
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Energetica India and Angel One report EESL commissioned Phase I (6 GWh) of its lithium-ion cell plant in Devanahalli, Bengaluru, on 23 Sept 2026 (https://www.energetica-india.net/news/exide-commissions-6-gwh-phase-i-lithium-ion-cell-manufacturing-facility); OSM maps 'Exide Energy Solutions Limited' inside the Hi-Tech Defence and Aerospace Park polygon (https://www.openstreetmap.org/way/1151585136).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.energetica-india.net/news/exide-commissions-6-gwh-phase-i-lithium-ion-cell-manufacturing-facility",
+    "https://www.angelone.in/news/stocks/exide-industries-share-price-surges-completes-commissioning-phase-i-of-lithium-ion-cell-facility",
+    "https://www.openstreetmap.org/way/1151585136"
+   ]
+  },
+  {
+   "name": "Zeiss",
+   "aliases": [
+    "Carl Zeiss",
+    "ZEISS India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "German optics and medical-technology group; announced a Rs 3,000 crore lens-manufacturing plant in Devanahalli (its largest investment outside Germany) and runs its India GCC at Prestige Tech Park.",
+   "website": "https://www.zeiss.co.in",
+   "hqCity": "Oberkochen",
+   "hqCountry": "Germany",
+   "founded": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Devanahalli manufacturing plant - Hi-Tech Defence and Aerospace Park (Chimachanahalli)",
+     "locality": "Chimachanahalli, Devanahalli",
+     "lat": 13.228235,
+     "lng": 77.779295,
+     "techPark": "Hi-Tech Defence and Aerospace Park",
+     "building": null,
+     "address": "Hi-Tech Defence and Aerospace Park, Devanahalli taluk 562135",
+     "isHq": false,
+     "status": "planned",
+     "confidence": "medium",
+     "evidence": "Deccan Herald reported Zeiss will set up a Rs 3,000 crore plant in Devanahalli, its largest investment outside Germany (https://deccanherald.com/business/zeiss-to-set-up-plant-in-b-luru-with-rs-3-000-crore-to-double-workforce-to-5-000-in-3-yrs-3272881); OSM maps a 'Carl Zeiss' industrial site in the Hi-Tech Defence and Aerospace Park (https://www.openstreetmap.org/way/1278497910). Start of production not confirmed.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "ZEISS India Global Capability Centre - Prestige Tech Park",
+     "locality": "Kadubeesanahalli",
+     "lat": 12.942865,
+     "lng": 77.692806,
+     "techPark": "Prestige Tech Park",
+     "building": null,
+     "address": "Prestige Tech Park, Outer Ring Road, Kadubeesanahalli",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Medical Device Developments reports Zeiss's first India GCC (Nov 2024) occupies 43,000 sq ft at Prestige Tech Park, Kadubeesanahalli, with 600+ staff (https://medicaldevice-developments.com/?p=10931); building not named, pin is the park centroid.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://deccanherald.com/business/zeiss-to-set-up-plant-in-b-luru-with-rs-3-000-crore-to-double-workforce-to-5-000-in-3-yrs-3272881",
+    "https://medicaldevice-developments.com/?p=10931",
+    "https://biospectrumindia.com/news/100/25340/zeiss-india-expands-global-capability-center-in-bengaluru.html",
+    "https://www.openstreetmap.org/way/1278497910"
+   ]
+  },
+  {
+   "name": "Tata Electronics",
+   "aliases": [
+    "Tata Electronics Private Limited",
+    "Tata Electronics Systems Solutions"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Semiconductors & hardware",
+   "description": "Tata Group electronics manufacturing and semiconductor company; its Bengaluru corporate/R&D office (chip-packaging pilot) is on Sarjapur Main Road, while its iPhone plant (Narasapura) and OSAT (Vemagal) are in Kolar district, outside the metro box.",
+   "website": "https://www.tataelectronics.com",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 2020,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru corporate office - The Hub, Sarjapur Main Road",
+     "locality": "Sarjapur Main Road (Kaikondrahalli)",
+     "lat": 12.9122002,
+     "lng": 77.6818637,
+     "techPark": null,
+     "building": "The Hub, Rear Wing, Unit 4",
+     "address": "Unit No 4, Rear Wing, The Hub, Sarjapur Main Road, Bengaluru 560103",
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Tata Electronics' contact page lists 'Unit No 4, Rear Wing, The Hub, Sarjapur Main Road, Bengaluru 560103' (https://tataelectronics.com/contact-us); The Hub is not in OSM, so the pin is a Photon hit on Sarjapur Main Road near Kaikondrahalli and is approximate.",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://tataelectronics.com/contact-us",
+    "https://www.businesstoday.in/latest/corporate/story/tata-electronics-starts-exporting-semiconductor-chip-samples-from-bengaluru-centre-report-428560-2024-05-07"
+   ]
+  }
+ ],
+ "coverageNotes": "Lens G19 (north Bengaluru towards Kempegowda airport). Every coordinate is inside lat 12.75-13.25 / lng 77.35-77.90; the northernmost office is Zeiss at 13.228. LEFT OUT because it is outside the box: Foxconn's Devanahalli/ITIR iPhone plant (Hon Hai Technology India Mega Development, ~30,000 staff). Nominatim puts 'Foxconn' at 13.3043, 77.6154 (Byadarahalli), and the villages named in press (Doddagollahalli 13.295, Koira 13.303, Aruvanahalli 13.303) are all north of 13.25. Tata Electronics' Narasapura plant and Vemagal OSAT are in Kolar district, also outside, so it carries only its Sarjapur Road office (approximate Photon pin). NOT CONFIRMED, so not included: Aequs (only Belagavi found); Airbus (its 2026 Airbus India Technology Centre is elsewhere in Bengaluru, see E11); Rolls-Royce (Manyata GCC, Bellandur IAMPL JV; nothing in this lens); Lockheed Martin (only as TASL's partner on the C-130J MRO, recorded under TASL); Honeywell (a 30-acre ITTeS allotment at Devanahalli was approved around 2014, but no build was found); Bosch, L&T and Wipro Ltd (no northern site found; Wipro appears only as Wipro Enterprises' WIN aerospace plants); STT GDC and AdaniConneX (no northern data centre found; STT's Bengaluru DCs are in Whitefield); Hical Technologies (headline of a Devanahalli facility launch on 6 Oct 2026, but no park or coordinates); Brigade's WTC Devanahalli (pre-launch, no site point); IFFCO nano-urea plant, Autocrat, Autoplast, OLEO, Advanced Fiber Systems, Poornima Medical, Pramodaya, Altius Aerotech and other small OSM-only units; and the 'Kalyani Tech Park (u/c)' polygon in the aerospace park (Safran's R&D centre 'in Kalyani Tech Park' is in E11 as the K R Puram park, not this one). THE WEB SEARCH BUDGET RAN OUT partway through, so these were confirmed by fetching company pages directly or rest on OSM: Dedienne Aerospace, Juki and Elmeasure are OSM-only (low); Star Air's office node and Agratas' Prestige Tech Cloud node are OSM-only (low). LOCATION CAVEATS: Safran HAL, the Wipro Aerospace sites, tk accelis, Magellan, AXISCADES DAC and Centum's new unit have no mapped plot, so they use the Bengaluru Aerospace Park centroid with confidence medium. Safran Electronics & Defense's 'airport area' plant is also pinned there, at low confidence. Air India's MRO and BIAL use the airport polygon centroid; WFS and Menzies use the OSM Cargo District centroid; NTT's Bengaluru 4 uses the Prestige Tech Cloud centroid. PARK NAMING: KIADB's 'Hi-Tech, Defence and Aerospace Park' is an umbrella name used in addresses across three physically separate sectors, so they are recorded as separate parks: Bengaluru Aerospace Park (aerospace/SEZ sector), KIADB Hardware Park, and 'Hi-Tech Defence and Aerospace Park - IT Sector' (OSM 'Bengaluru IT Park': SAP, eMudhra, Autoliv). The canon 'Hi-Tech Defence and Aerospace Park' entry uses the OSM polygon of that exact name, the eastern Polanahalli phase with Exide and Zeiss. G14 placed Boeing at that polygon's centroid (13.224, 77.773); Boeing's campus is actually at 13.1819, 77.7219 (OSM way/991727364). CATEGORY JUDGEMENTS: BIAL is recorded as Indian MID_SIZE even though Fairfax India (Toronto) holds a majority. Air India is MID_SIZE because no category fits an unlisted Indian firm with more than 10,000 staff. ITC is MNC under the listed Indian, more-than-10,000-staff rule. Wipro Infrastructure Engineering belongs to unlisted Wipro Enterprises, not Wipro Ltd. Zeiss' Devanahalli plant and Applied Materials' BSBP allotment are marked planned. No headcounts were invented; only figures a source states are given (Rakon ~500, Shell 1,500 capacity)."
+}

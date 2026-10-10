@@ -1,0 +1,1345 @@
+{
+ "key": "G12-bellandur-sarjapur-south",
+ "techParks": [
+  {
+   "name": "Wipro SEZ Sarjapur",
+   "aliases": [
+    "Wipro Corporate Office Doddakannelli",
+    "Wipro Doddakannelli campus",
+    "SJP1",
+    "SJP2",
+    "Wipro Sarjapur Development Center"
+   ],
+   "locality": "Doddakannelli / Kaikondrahalli, Sarjapur Road",
+   "developer": "Wipro (owner-occupied)",
+   "lat": 12.914154,
+   "lng": 77.685939,
+   "bbox": [
+    12.911136,
+    12.916366,
+    77.683748,
+    77.688229
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Wipro"
+   ],
+   "description": "Wipro's global corporate headquarters campus on Sarjapur Road at Doddakannelli, about 1 km south of the Sarjapur-ORR junction: the SJP1 corporate office plus the adjoining SJP2 SEZ development centre. Owner-occupied; the Azim Premji Foundation sits next door. Polygon from OSM way/370327479 with SJP2 at way/230229162.",
+   "sources": [
+    "https://www.wipro.com/locations/",
+    "https://www.openstreetmap.org/way/370327479"
+   ]
+  },
+  {
+   "name": "Wipro Kodathi SEZ",
+   "aliases": [
+    "Wipro Kodathi Development Center",
+    "Wipro Sarjapur campus (Kodathi)",
+    "Wipro SEZ Kodathi"
+   ],
+   "locality": "Kodathi, Sarjapur Road",
+   "developer": "Wipro (owner-occupied)",
+   "lat": 12.896911,
+   "lng": 77.71272,
+   "bbox": [
+    12.894539,
+    12.899229,
+    77.709668,
+    77.71483
+   ],
+   "areaSqFtMillions": 2.0,
+   "notableTenants": [
+    "Wipro"
+   ],
+   "description": "Wipro's second Sarjapur Road campus, a 50-acre SEZ at Kodathi village about 6 km south-east of the HQ, planned at ~2 million sq ft for 30,000+ staff when announced in 2018 and listed on Wipro's locations page as the Kodathi Development Center (Survey No. 91/1, 98 & 99). Polygon from OSM way/635317794.",
+   "sources": [
+    "https://www.wipro.com/locations/",
+    "https://www.businesstoday.in/industry/it/story/wipro-to-shift-all-bengaluru-employees-to-new-50-acre-campus-in-2-years-109610-2018-08-06"
+   ]
+  },
+  {
+   "name": "RGA Tech Park",
+   "aliases": [
+    "RGA Tech Park SEZ",
+    "RGA Techpark Sarjapur"
+   ],
+   "locality": "Carmelaram / Chikkanahalli, Sarjapur Main Road",
+   "developer": "RGA (RGA Software Systems Pvt Ltd)",
+   "lat": 12.901265,
+   "lng": 77.704984,
+   "bbox": [
+    12.899683,
+    12.902988,
+    77.703266,
+    77.706211
+   ],
+   "areaSqFtMillions": 2.2,
+   "notableTenants": [
+    "Unisys",
+    "L&T Technology Services",
+    "Accenture",
+    "Uber",
+    "PayPal",
+    "Siemens"
+   ],
+   "description": "A 2.2 million sq ft, four-block IT/SEZ park on Sarjapur Main Road at Chikkanahalli village near Carmelaram (Plot 13-15), developed by the Kolkata-based RGA group. Listings place Uber and PayPal in Blocks 1-2, Siemens in Block 2, Unisys and LTTS in Block 3 and Accenture in Block 4; RGA's own client list adds HP, Intuit, Societe Generale, Capgemini and Genpact without mapping them to blocks. Cerner/Oracle Health and Visa were NOT found here. Polygon from OSM way/460960666.",
+   "sources": [
+    "https://rgafacilities.com/",
+    "https://properties.cityinfoservices.com/rga-tech-park-block-1-sarjapur-main-road-bangalore/yvhc83h/pjd",
+    "https://properties.cityinfoservices.com/rga-tech-park-block-2-sarjapur-main-road-bangalore/5w85lg7/pjd",
+    "https://properties.cityinfoservices.com/rga-tech-park-block-3-sarjapur-main-road-bangalore/x7ip47b/pjd",
+    "https://properties.cityinfoservices.com/rga-tech-park-block-4-sarjapur-main-road-bangalore/c9axh8t/pjd",
+    "https://www.ltts.com/contact-us"
+   ]
+  },
+  {
+   "name": "Prestige Ferns Galaxy",
+   "aliases": [
+    "Ferns Galaxy"
+   ],
+   "locality": "Bellandur, Sarjapur-ORR junction",
+   "developer": "Prestige",
+   "lat": 12.921655,
+   "lng": 77.669033,
+   "bbox": [
+    12.920929,
+    12.922229,
+    77.668123,
+    77.670229
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Microsoft"
+   ],
+   "description": "Prestige Group office complex on the Outer Ring Road at the Sarjapur Road junction, Bellandur, opposite Salarpuria Softzone. OSM maps a Microsoft office and an IndiQube Edge coworking centre inside it; no tenant list could be verified against Prestige's site (403). Polygon from OSM way/639884725.",
+   "sources": [
+    "https://www.openstreetmap.org/way/639884725"
+   ]
+  },
+  {
+   "name": "Salarpuria Sattva Softzone",
+   "aliases": [
+    "Salarpuria Softzone",
+    "Sattva Softzone",
+    "Salarpuria Soft Zone"
+   ],
+   "locality": "Bellandur / Green Glen Layout, Sarjapur-ORR junction",
+   "developer": "Salarpuria Sattva",
+   "lat": 12.924165,
+   "lng": 77.67037,
+   "bbox": [
+    12.923288,
+    12.925219,
+    77.669654,
+    77.671441
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "PhonePe",
+    "JFrog"
+   ],
+   "description": "Multi-block Salarpuria Sattva office complex (Blocks A/B, Nos. 80/1, 81/1, 81/2) on the ORR service road at Green Glen Layout, Bellandur, beside the Sarjapur Road junction. PhonePe's registered HQ (Block A) and JFrog India (B Block) are confirmed from their own sites; OSM additionally tags HSBC, Dell, Genpact, SAP, National Instruments, AT&T and Brocade here, unverified. Polygon from OSM way/232329241.",
+   "sources": [
+    "https://www.phonepe.com/contact-us/",
+    "https://www.jfrog.com/contact-us/",
+    "https://www.openstreetmap.org/way/232329241"
+   ]
+  },
+  {
+   "name": "Vaishnavi Tech Park",
+   "aliases": [
+    "Vaishnavi Techpark Sarjapur"
+   ],
+   "locality": "Bellandur, Sarjapur Main Road",
+   "developer": "Vaishnavi Group",
+   "lat": 12.920256,
+   "lng": 77.671708,
+   "bbox": [
+    12.918249,
+    12.921694,
+    77.670779,
+    77.672613
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Groww"
+   ],
+   "description": "Three-tower (North/Central/South) Vaishnavi Group office park on Sarjapur Main Road just south of the ORR junction at Bellandur Gate; Groww's headquarters is in the South Tower. Polygon from OSM way/1084971895.",
+   "sources": [
+    "https://hyring.com/company/groww",
+    "https://www.openstreetmap.org/way/1084971895"
+   ]
+  },
+  {
+   "name": "Vaishnavi Tech Square",
+   "aliases": [
+    "Vaishnavi Techsquare Iblur"
+   ],
+   "locality": "Iblur, Sarjapur-ORR junction",
+   "developer": "Vaishnavi Group",
+   "lat": 12.926646,
+   "lng": 77.665886,
+   "bbox": [
+    12.926279,
+    12.926907,
+    77.665575,
+    77.666251
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Navi"
+   ],
+   "description": "Vaishnavi Group office building on the ORR at Iblur junction, west of the Sarjapur Road flyover. OSM places Navi Technologies inside it; the developer's site lists no tenants. Polygon from OSM way/1167872058.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1167872058"
+   ]
+  },
+  {
+   "name": "Intel SRR Campus",
+   "aliases": [
+    "Intel India Sarjapur Ring Road campus",
+    "Intel Bengaluru campus",
+    "Intel SRR"
+   ],
+   "locality": "Bellandur / Devarabeesanahalli, Sarjapur-ORR junction",
+   "developer": null,
+   "lat": 12.926615,
+   "lng": 77.68482,
+   "bbox": [
+    12.922469,
+    12.929484,
+    77.683024,
+    77.68583
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Intel"
+   ],
+   "description": "Intel's owner-occupied 44-acre campus on the Outer Ring Road ('Sarjapur Ring Road') between Global Technology Park and RMZ Ecoworld, Bellandur, with buildings SRR1-SRR5; the 620,000 sq ft SRR4 design house (Rs 1,100 crore) opened in 2017 and the site is Intel's largest design centre outside the US. Polygon from OSM way/232892803.",
+   "sources": [
+    "https://www.voicendata.com/intel-to-invest-rs-1100-crore-to-expand-rd-and-innovation-in-bengaluru",
+    "https://www.openstreetmap.org/way/232892803"
+   ]
+  },
+  {
+   "name": "Sattva Spectrum",
+   "aliases": [
+    "Salarpuria Sattva Spectrum"
+   ],
+   "locality": "Kaikondrahalli / Doddakannelli, Sarjapur Road",
+   "developer": "Sattva",
+   "lat": 12.912405,
+   "lng": 77.683604,
+   "bbox": [
+    12.911419,
+    12.913349,
+    77.682821,
+    77.684266
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "New Grade A office tower by Sattva Group 'next to Wipro office on Sarjapura Road' at Kaikondrahalli, listed as an ongoing project on the developer's commercial page; the only 2024-26 Sarjapur Road campus that could be verified. No tenants announced. Polygon from OSM way/1089707942.",
+   "sources": [
+    "https://www.sattvagroup.in/commercial/",
+    "https://www.openstreetmap.org/way/1089707942"
+   ]
+  },
+  {
+   "name": "Bharat IT Park",
+   "aliases": [
+    "Bharath IT Park"
+   ],
+   "locality": "Ambalipura / Haralur, Sarjapur Main Road",
+   "developer": null,
+   "lat": 12.916905,
+   "lng": 77.67146,
+   "bbox": [
+    12.915873,
+    12.917564,
+    77.670694,
+    77.672136
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Zepto"
+   ],
+   "description": "Small office campus on Sarjapur Main Road at Ambalipura (Haralur side), between Bellandur Gate and Kaikondrahalli; OSM names it 'Zepto HQ-Bharat IT Park'. Developer and size unknown. Polygon from OSM way/1389761625.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1389761625"
+   ]
+  },
+  {
+   "name": "Mantri Commercio",
+   "aliases": [
+    "Mantri Commercio Bellandur"
+   ],
+   "locality": "Bellandur, Outer Ring Road",
+   "developer": "Mantri Developers",
+   "lat": 12.932449,
+   "lng": 77.683813,
+   "bbox": [
+    12.931675,
+    12.933694,
+    77.683151,
+    77.684224
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Rapido",
+    "Replicon",
+    "Blue Yonder"
+   ],
+   "description": "Twin-tower Mantri office block on the ORR at Bellandur next to Sobha's corporate office and Sakra hospital. Tenants listed are OSM-mapped only (Rapido Office, Replicon 'Tower B 5th floor', JDA/Blue Yonder, a Flipkart Internet node) and not verified against company pages. Polygon from OSM way/320455185.",
+   "sources": [
+    "https://www.openstreetmap.org/way/320455185"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "Wipro",
+   "aliases": [
+    "Wipro Limited",
+    "Wipro Technologies"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Indian IT-services major; its global corporate headquarters and two SEZ development centres sit on Sarjapur Road (Doddakannelli and Kodathi), with further centres in Electronics City.",
+   "founded": 1945,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "website": "https://www.wipro.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate Office (SJP1), Doddakannelli",
+     "techPark": "Wipro SEZ Sarjapur",
+     "building": "SJP1",
+     "locality": "Doddakannelli, Sarjapur Road",
+     "address": "Doddakannelli, Sarjapur Road, Bengaluru 560035",
+     "lat": 12.914154,
+     "lng": 77.685939,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wipro's own locations page lists 'Wipro Limited, Corporate Office: Doddakannelli, Sarjapur Road, Bengaluru - 560035' (also as SJP1); polygon from OSM way/370327479 'Wipro Corporate Office' (https://www.wipro.com/locations/).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Sarjapur Development Center (SJP2) SEZ",
+     "techPark": "Wipro SEZ Sarjapur",
+     "building": "SJP2",
+     "locality": "Doddakannelli, Sarjapur Road",
+     "address": "SEZ, Doddakannelli, Sarjapur Road, Bengaluru 560035",
+     "lat": 12.915479,
+     "lng": 77.683785,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wipro's locations page lists 'Sarjapur Development Center (SJP2): SEZ Doddakannelli, Sarjapur Road Bengaluru - 560035'; OSM way/230229162 'Wipro SJP2' adjoins the corporate office (https://www.wipro.com/locations/).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Kodathi Development Center (Kodathi SEZ)",
+     "techPark": "Wipro Kodathi SEZ",
+     "building": null,
+     "locality": "Kodathi, Sarjapur Road",
+     "address": "Survey No. 91/1, 98 & 99, Kodathi Village, Varthur Hobli, Sarjapur Road, Bengaluru",
+     "lat": 12.896911,
+     "lng": 77.71272,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wipro's locations page lists 'Kodathi Development Center: Wipro Kodathi SEZ, Survey No.91/1,98 & 99, Kodathi Village, Varthur Hobli, Sarjapur Road'; Business Today (2018) describes it as a 50-acre, ~2 million sq ft SEZ campus for 30,000+ staff ~6 km from HQ; polygon OSM way/635317794 'Wipro SEZ' (https://www.businesstoday.in/industry/it/story/wipro-to-shift-all-bengaluru-employees-to-new-50-acre-campus-in-2-years-109610-2018-08-06).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Electronic City Development Center (EC4)",
+     "techPark": "Electronics City Phase 1",
+     "building": "EC4",
+     "locality": "Electronic City Phase 1",
+     "address": "Electronics City Phase 1, Bengaluru 560100",
+     "lat": 12.838244,
+     "lng": 77.655271,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wipro's locations page lists 'Electronic City Development Center (EC4): Electronics City Phase 1, Bengaluru 560100' (and an SEZ unit EC5 at the same address, not separately mapped); polygon OSM way/231332313 'Wipro EC 4' (https://www.wipro.com/locations/).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.wipro.com/locations/",
+    "https://www.businesstoday.in/industry/it/story/wipro-to-shift-all-bengaluru-employees-to-new-50-acre-campus-in-2-years-109610-2018-08-06",
+    "https://careers.wipro.com/contact-us"
+   ]
+  },
+  {
+   "name": "Intel",
+   "aliases": [
+    "Intel Technology India Pvt Ltd",
+    "Intel India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "US chipmaker; its 44-acre Sarjapur Ring Road (SRR) campus at the Sarjapur-ORR junction in Bellandur is Intel's largest design centre outside the US, with the SRR4 design house opened in 2017.",
+   "founded": 1968,
+   "hqCity": "Santa Clara",
+   "hqCountry": "United States",
+   "website": "https://www.intel.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Intel SRR campus (Sarjapur Ring Road)",
+     "techPark": "Intel SRR Campus",
+     "building": "SRR1-SRR5",
+     "locality": "Bellandur / Devarabeesanahalli, Sarjapur-ORR junction",
+     "address": "Sarjapur Ring Road (Outer Ring Road), Devarabeesanahalli, Bellandur, Bengaluru 560103",
+     "lat": 12.926615,
+     "lng": 77.68482,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "VoicenData (June 2017) reports Intel's Rs 1,100 crore SRR4 design house 'at Intel's 44-acre campus on Sarjapur Ring Road (SRR) in Bengaluru' (~620,000 sq ft); Deccan Herald calls it Intel's largest design centre outside the US; campus polygon OSM way/232892803 'Intel' with buildings SRR3/SRR4/SRR5 (https://www.voicendata.com/intel-to-invest-rs-1100-crore-to-expand-rd-and-innovation-in-bengaluru).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.voicendata.com/intel-to-invest-rs-1100-crore-to-expand-rd-and-innovation-in-bengaluru",
+    "https://www.deccanherald.com/business/intel-invest-rs-1100-cr-2009599",
+    "https://www.fonearena.com/blog/268680/intel-design-facility-bengaluru-1100-crore-investment.html/amp"
+   ]
+  },
+  {
+   "name": "Unisys",
+   "aliases": [
+    "Unisys India Pvt Ltd",
+    "Unisys Global Services India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "US IT-services company; its Bengaluru delivery centre occupies Block 3 of RGA Tech Park on Sarjapur Road.",
+   "founded": 1986,
+   "hqCity": "Blue Bell",
+   "hqCountry": "United States",
+   "website": "https://www.unisys.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RGA Tech Park - Block 3",
+     "techPark": "RGA Tech Park",
+     "building": "Block 3",
+     "locality": "Carmelaram / Chikkanahalli, Sarjapur Road",
+     "address": "Plot 13-15, Sarjapur Main Road, Chikkanahalli Village, Bengaluru 560035",
+     "lat": 12.9007,
+     "lng": 77.70386,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Cityinfo listing for RGA Tech Park Block 3 names Unisys India Pvt Ltd as current tenant, RGA's own client list includes Unisys, and OSM node 'Unisys, Sarjapur Road' sits inside the park (https://properties.cityinfoservices.com/rga-tech-park-block-3-sarjapur-main-road-bangalore/x7ip47b/pjd).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/rga-tech-park-block-3-sarjapur-main-road-bangalore/x7ip47b/pjd",
+    "https://rgafacilities.com/"
+   ]
+  },
+  {
+   "name": "L&T Technology Services",
+   "aliases": [
+    "LTTS"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Listed L&T engineering-services arm; Bengaluru units include an SEZ unit in RGA Tech Park on Sarjapur Road plus the L&T Campus on Bellary Road and Vista Pixel, Jakkur.",
+   "founded": 2012,
+   "hqCity": "Vadodara",
+   "hqCountry": "India",
+   "website": "https://www.ltts.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RGA Tech Park SEZ - Block 3 A Wing",
+     "techPark": "RGA Tech Park",
+     "building": "Block 3, A Wing",
+     "locality": "Carmelaram / Chikkanahalli, Sarjapur Road",
+     "address": "Block 3 A Wing, RGA Tech Park SEZ, Survey No 31/1, Sarjapura Main Road, Bengaluru 560035",
+     "lat": 12.901265,
+     "lng": 77.704984,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LTTS's contact page lists 'Unit VI, Block 3 A Wing, 1st-3rd Floor, RGA Tech Park SEZ, Survey No 31/1, Chikkannalli Village, Sarjapura Main Road, Bengaluru 560035' (https://www.ltts.com/contact-us).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "L&T Campus, Bellary Road (SEZ)",
+     "techPark": "L&T Tech Park",
+     "building": "Tower S1",
+     "locality": "Byatarayanapura, Bellary Road",
+     "address": "L&T Campus, Bellary Road, Byatarayanapura, Bengaluru 560092",
+     "lat": 13.068558,
+     "lng": 77.592108,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "LTTS's contact page lists 'SEZ Unit I-IV Tower S1, L&T Realty Developers Ltd. SEZ, L&T Campus, Bellary Road, Byatarayanapura Village, Bengaluru 560092'; coordinates are the OSM polygon 'L&T Tech Park Phase 1' (https://www.ltts.com/contact-us).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.ltts.com/contact-us"
+   ]
+  },
+  {
+   "name": "Accenture",
+   "aliases": [
+    "Accenture Solutions Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Global consulting and technology firm with many Bengaluru delivery centres; one occupies Block 4 of RGA Tech Park on Sarjapur Road.",
+   "founded": 1989,
+   "hqCity": "Dublin",
+   "hqCountry": "Ireland",
+   "website": "https://www.accenture.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RGA Tech Park - Block 4",
+     "techPark": "RGA Tech Park",
+     "building": "Block 4",
+     "locality": "Carmelaram / Chikkanahalli, Sarjapur Road",
+     "address": "Plot 13-15, Sarjapur Main Road, Chikkanahalli Village, Bengaluru 560035",
+     "lat": 12.90262,
+     "lng": 77.70459,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Cityinfo listing says RGA Tech Park Block 4 (11 storeys) is occupied by Accenture, RGA's client list includes Accenture, and an OSM 'Accenture' node sits inside the park (https://properties.cityinfoservices.com/rga-tech-park-block-4-sarjapur-main-road-bangalore/c9axh8t/pjd).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/rga-tech-park-block-4-sarjapur-main-road-bangalore/c9axh8t/pjd",
+    "https://rgafacilities.com/"
+   ]
+  },
+  {
+   "name": "Uber",
+   "aliases": [
+    "Uber India Support Center Pvt Ltd",
+    "Uber India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "US ride-hailing platform; its Bengaluru support/engineering centre is listed in Blocks 1-2 of RGA Tech Park on Sarjapur Road.",
+   "founded": 2009,
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "website": "https://www.uber.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RGA Tech Park - Blocks 1/2",
+     "techPark": "RGA Tech Park",
+     "building": "Block 1 / Block 2",
+     "locality": "Carmelaram / Chikkanahalli, Sarjapur Road",
+     "address": "Plot 13-15, Sarjapur Main Road, Chikkanahalli Village, Bengaluru 560035",
+     "lat": 12.90147,
+     "lng": 77.70565,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Cityinfo listings for RGA Tech Park Blocks 1 and 2 name 'Uber India Support Center Pvt. Ltd.' as tenant and an OSM 'Uber' node sits inside the park; listing data is landlord-supplied and may be dated (https://properties.cityinfoservices.com/rga-tech-park-block-1-sarjapur-main-road-bangalore/yvhc83h/pjd).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/rga-tech-park-block-1-sarjapur-main-road-bangalore/yvhc83h/pjd",
+    "https://properties.cityinfoservices.com/rga-tech-park-block-2-sarjapur-main-road-bangalore/5w85lg7/pjd"
+   ]
+  },
+  {
+   "name": "PayPal",
+   "aliases": [
+    "PayPal India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Fintech",
+   "description": "US payments company; a Bengaluru technology centre is listed in Blocks 1-2 of RGA Tech Park on Sarjapur Road.",
+   "founded": 1998,
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "website": "https://www.paypal.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RGA Tech Park - Blocks 1/2",
+     "techPark": "RGA Tech Park",
+     "building": "Block 1 / Block 2",
+     "locality": "Carmelaram / Chikkanahalli, Sarjapur Road",
+     "address": "Plot 13-15, Sarjapur Main Road, Chikkanahalli Village, Bengaluru 560035",
+     "lat": 12.901265,
+     "lng": 77.704984,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Cityinfo listings for RGA Tech Park Blocks 1 and 2 name 'PayPal India Pvt Ltd' as tenant and RGA's client list includes PayPal; note OSM separately tags a 'PayPal Bengaluru' node at Pritech Park, Bellandur ORR, so the current PayPal site may differ (https://properties.cityinfoservices.com/rga-tech-park-block-2-sarjapur-main-road-bangalore/5w85lg7/pjd).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/rga-tech-park-block-1-sarjapur-main-road-bangalore/yvhc83h/pjd",
+    "https://properties.cityinfoservices.com/rga-tech-park-block-2-sarjapur-main-road-bangalore/5w85lg7/pjd",
+    "https://rgafacilities.com/"
+   ]
+  },
+  {
+   "name": "Siemens",
+   "aliases": [
+    "Siemens Technology and Services Pvt Ltd",
+    "Siemens Technologies"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "German industrial and technology group; a Siemens technology unit is listed in Block 2 of RGA Tech Park on Sarjapur Road.",
+   "founded": 1847,
+   "hqCity": "Munich",
+   "hqCountry": "Germany",
+   "website": "https://www.siemens.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RGA Tech Park - Block 2",
+     "techPark": "RGA Tech Park",
+     "building": "Block 2",
+     "locality": "Carmelaram / Chikkanahalli, Sarjapur Road",
+     "address": "Plot 13-15, Sarjapur Main Road, Chikkanahalli Village, Bengaluru 560035",
+     "lat": 12.901265,
+     "lng": 77.704984,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Cityinfo listing for RGA Tech Park Block 2 names 'Siemens Technologies' among tenants and RGA's client list includes Siemens; landlord-supplied data, not independently confirmed (https://properties.cityinfoservices.com/rga-tech-park-block-2-sarjapur-main-road-bangalore/5w85lg7/pjd).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/rga-tech-park-block-2-sarjapur-main-road-bangalore/5w85lg7/pjd",
+    "https://rgafacilities.com/"
+   ]
+  },
+  {
+   "name": "PhonePe",
+   "aliases": [
+    "PhonePe Limited",
+    "PhonePe Private Limited"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Walmart-backed UPI payments and financial-services company headquartered in Salarpuria Softzone at the Sarjapur-ORR junction, Bellandur.",
+   "founded": 2015,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "website": "https://www.phonepe.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Salarpuria Softzone",
+     "techPark": "Salarpuria Sattva Softzone",
+     "building": "Block A, Wing A",
+     "locality": "Bellandur, Sarjapur-ORR junction",
+     "address": "Office-2, Wing A, Block A, Salarpuria Softzone, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.924165,
+     "lng": 77.67037,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "PhonePe's contact page gives its registered address as 'Office-2, Floor 5, Wing A, Block A, Salarpuria Softzone, Bellandur Village, Varthur Hobli, Outer Ring Road, Bangalore 560103' (https://www.phonepe.com/contact-us/).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.phonepe.com/contact-us/",
+    "https://en.wikipedia.org/wiki/PhonePe"
+   ]
+  },
+  {
+   "name": "JFrog",
+   "aliases": [
+    "JFrog India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "Israeli-American DevOps software company; its Bengaluru R&D office is in B Block of Salarpuria Softzone, Bellandur.",
+   "founded": 2008,
+   "hqCity": "Sunnyvale",
+   "hqCountry": "United States",
+   "website": "https://jfrog.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Salarpuria Softzone - B Block",
+     "techPark": "Salarpuria Sattva Softzone",
+     "building": "B Block, 4th Floor",
+     "locality": "Bellandur, Sarjapur-ORR junction",
+     "address": "No. 80/1, 81/1 & 81/2, Salarpuria Softzone, Bellandur, Bengaluru 560103",
+     "lat": 12.924165,
+     "lng": 77.67037,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "JFrog's contact page lists 'JFrog India Pvt Ltd, Salarpuria Soft Zone, B Block, 4th Floor, No. 80/1, 81/1 and 81/2, Bellandur, Bangalore 560103' (https://www.jfrog.com/contact-us/).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.jfrog.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Sobha",
+   "aliases": [
+    "Sobha Limited",
+    "Sobha Developers"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Listed real-estate developer headquartered in its own corporate office on the Sarjapur-Marathahalli Outer Ring Road at Devarabisanahalli, Bellandur.",
+   "founded": 1995,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "website": "https://www.sobha.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate Office, Devarabisanahalli ORR",
+     "techPark": null,
+     "building": null,
+     "locality": "Bellandur / Devarabisanahalli, Outer Ring Road",
+     "address": "Sarjapur-Marathahalli Outer Ring Road, Devarabisanahalli, Bellandur Post, Bengaluru 560103",
+     "lat": 12.93233,
+     "lng": 77.68441,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Sobha's contact page gives the Corporate Office as 'Sarjapur - Marthahalli Outer Ring Road (ORR), Devarabisanahalli, Bellandur Post, Bangalore 560103'; OSM node 'Sobha Developers Corporate Office' (https://www.sobha.com/contact-us/).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.sobha.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Groww",
+   "aliases": [
+    "Billionbrains Garage Ventures Limited",
+    "Nextbillion Technology Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Listed (2025) investment and broking platform headquartered in the South Tower of Vaishnavi Tech Park on Sarjapur Main Road, Bellandur.",
+   "founded": 2016,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "website": "https://groww.in",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HQ - Vaishnavi Tech Park, South Tower",
+     "techPark": "Vaishnavi Tech Park",
+     "building": "South Tower, 3rd Floor",
+     "locality": "Bellandur, Sarjapur Main Road",
+     "address": "Vaishnavi Tech Park, South Tower, Sarjapur Main Road, Bellandur, Bengaluru 560103",
+     "lat": 12.91986,
+     "lng": 77.67174,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Groww's careers listing (Hyring) and a Silicon Valley Investclub profile both give 'Vaishnavi Tech Park, South Tower, 3rd Floor, Sarjapur Main Road, Bellandur, Bengaluru 560103'; point is the OSM 'South Tower' building inside the park (https://hyring.com/company/groww).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://hyring.com/company/groww",
+    "https://siliconvalleyinvestclub.com/companies/groww/"
+   ]
+  },
+  {
+   "name": "Meesho",
+   "aliases": [
+    "Meesho Limited",
+    "Fashnear Technologies"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "Social/value e-commerce marketplace headquartered in Bengaluru; directories place its office at Vaishnavi Signature (WeWork) on the Outer Ring Road, Bellandur.",
+   "founded": 2015,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "website": "https://www.meesho.io",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HQ - Vaishnavi Signature (WeWork), ORR",
+     "techPark": null,
+     "building": "Vaishnavi Signature",
+     "locality": "Bellandur, Outer Ring Road",
+     "address": "No. 78/9, Outer Ring Road, Bellandur Village, Varthur Hobli, Bengaluru 560103",
+     "lat": 12.92581,
+     "lng": 77.67456,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Prospeo and Exa directory pages give Meesho's headquarters as 'WeWork, Vaishnavi Signature, 78/9, Outer Ring Road, Bellandur Village, Varthur Hobli, Bengaluru 560103'; Wikipedia confirms HQ Bengaluru but Meesho's own site could not be fetched (https://prospeo.io/c/meesho-email-format).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://prospeo.io/c/meesho-email-format",
+    "https://exa.ai/websets/directory/meesho-offices",
+    "https://en.wikipedia.org/wiki/Meesho"
+   ]
+  },
+  {
+   "name": "Zetwerk",
+   "aliases": [
+    "Zetwerk Manufacturing Businesses Limited"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "description": "Contract-manufacturing marketplace unicorn headquartered in Vaishnavi Sovereign, Green Glen Layout, Bellandur (Sarjapur-ORR junction).",
+   "founded": 2018,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "website": "https://www.zetwerk.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HQ - Vaishnavi Sovereign",
+     "techPark": null,
+     "building": "Vaishnavi Sovereign",
+     "locality": "Bellandur / Green Glen Layout, Sarjapur-ORR junction",
+     "address": "84/1, Vaishnavi Sovereign, Green Glen Layout, Bellandur, Bengaluru 560103",
+     "lat": 12.92791,
+     "lng": 77.66917,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Zetwerk's contact page gives '84/1, Vaishnavi Sovereign, Ground & 1st Floor, Green Glen Layout, Bellandur, Bengaluru 560103'; OSM node 'Zetwerk Manufacturing' at the building (https://www.zetwerk.com/contact-us/).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.zetwerk.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Navi",
+   "aliases": [
+    "Navi Technologies Limited"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Sachin Bansal's lending, insurance and UPI company; OSM maps its office inside Vaishnavi Tech Square at Iblur junction on the Sarjapur ORR (company site blocked fetch).",
+   "founded": 2018,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "website": "https://navi.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Vaishnavi Tech Square, Iblur",
+     "techPark": "Vaishnavi Tech Square",
+     "building": null,
+     "locality": "Iblur / Bellandur, Sarjapur-ORR junction",
+     "address": "Vaishnavi Tech Square, Iblur Village, Sarjapur Outer Ring Road, Bengaluru",
+     "lat": 12.92677,
+     "lng": 77.66603,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM node 'Navi' (office=company) lies inside the Vaishnavi Tech Square footprint (way/1167872058); navi.com returned 403 so the registered address could not be read first-hand (https://www.openstreetmap.org/way/1167872058).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/1167872058"
+   ]
+  },
+  {
+   "name": "Zepto",
+   "aliases": [
+    "Kiranakart Technologies",
+    "Zepto Private Limited"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "Quick-commerce unicorn that moved its base to Bengaluru; OSM maps 'Zepto HQ' at Bharat IT Park on Sarjapur Main Road, Ambalipura/Haralur (company site is JS-only and could not be read).",
+   "founded": 2021,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "website": "https://www.zeptonow.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HQ - Bharat IT Park, Ambalipura",
+     "techPark": "Bharat IT Park",
+     "building": null,
+     "locality": "Haralur / Ambalipura, Sarjapur Main Road",
+     "address": "Bharat IT Park, Sarjapur Main Road, Ambalipura, Haralur, Bengaluru",
+     "lat": 12.916493,
+     "lng": 77.671275,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Two OSM features (building way/159980947 and landuse way/1389761625) are named 'Zepto HQ-Bharat IT Park', addressed 'Sarjapur Main Road Ambalipura, Harlur'; zeptonow.com pages returned no readable footer so unconfirmed first-hand (https://www.openstreetmap.org/way/159980947).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/159980947",
+    "https://www.openstreetmap.org/way/1389761625"
+   ]
+  },
+  {
+   "name": "Microsoft",
+   "aliases": [
+    "Microsoft India",
+    "Microsoft India Development Center"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "US software major; OSM maps a Microsoft office inside Prestige Ferns Galaxy at the Sarjapur-ORR junction, Bellandur (unverified against a Microsoft page).",
+   "founded": 1975,
+   "hqCity": "Redmond",
+   "hqCountry": "United States",
+   "website": "https://www.microsoft.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Ferns Galaxy",
+     "techPark": "Prestige Ferns Galaxy",
+     "building": null,
+     "locality": "Bellandur, Sarjapur-ORR junction",
+     "address": "Prestige Ferns Galaxy, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.92162,
+     "lng": 77.66883,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM node 'Microsoft' (office=company) lies inside the Prestige Ferns Galaxy footprint (way/639884725); Microsoft's India office-locations page returned 404, so this rests on OSM alone (https://www.openstreetmap.org/way/639884725).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/639884725"
+   ]
+  },
+  {
+   "name": "NoBroker",
+   "aliases": [
+    "NoBroker Technologies Solutions Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Proptech unicorn; OSM maps a NoBroker office on Sarjapur Main Road at Kaikondrahalli (company footer carries no address).",
+   "founded": 2014,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "website": "https://www.nobroker.in",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Kaikondrahalli office, Sarjapur Main Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Kaikondrahalli, Sarjapur Road",
+     "address": "Sarjapur Main Road, Kaikondrahalli, Bengaluru",
+     "lat": 12.91445,
+     "lng": 77.67736,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM node 'NoBroker' (office=it) at Kaikondrahalli on Sarjapur Main Road; nobroker.in's footer shows only the company name, so the address is not confirmed first-hand (https://www.openstreetmap.org/).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/",
+    "https://www.nobroker.in/"
+   ]
+  },
+  {
+   "name": "Würth India",
+   "aliases": [
+    "Wuerth India Pvt Ltd",
+    "Würth Group"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Indian arm of the German Würth fastener and assembly-products group; OSM maps its office on Sarjapur Road near Doddakannelli (company site blocked fetch).",
+   "founded": 1945,
+   "hqCity": "Künzelsau",
+   "hqCountry": "Germany",
+   "website": "https://www.wuerth.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Sarjapur Road office",
+     "techPark": null,
+     "building": null,
+     "locality": "Doddakannelli / Halanayakanahalli, Sarjapur Road",
+     "address": "Sarjapur Road, Doddakannelli, Bengaluru",
+     "lat": 12.90559,
+     "lng": 77.69075,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM node 'Wuerth India Pvt. Ltd.' (office=company) off Sarjapur Road near Doddakannelli; eshop.wuerth.in returned 403 so unconfirmed first-hand (https://www.openstreetmap.org/).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/"
+   ]
+  },
+  {
+   "name": "Quess Corp",
+   "aliases": [
+    "Quess Corp Limited",
+    "IKYA Human Capital Solutions"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Consulting & professional services",
+   "description": "Listed staffing and business-services group (500,000+ associates, operations in several countries); headquartered at Quess Tower on Hosur Road, with its earlier 'Quess House' at Bellandur Gate on Sarjapur Road.",
+   "founded": 2007,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "website": "https://www.quesscorp.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HQ - Quess Tower, Hosur Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Bommanahalli / Roopena Agrahara, Hosur Road",
+     "address": "Quess Tower, 32/4 Hosur Road, Roopena Agrahara, Bommanahalli, Bengaluru 560068",
+     "lat": 12.9149263,
+     "lng": 77.6240183,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Quess Corp's contact page gives its headquarters as 'Quess Tower, Sky Walk Avenue, 32/4, Hosur Road, Roopena Agrahara, Bommanahalli, Bangalore 560068' (https://www.quesscorp.com/contact-us/).",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Quess House, Bellandur Gate",
+     "techPark": null,
+     "building": "Quess House",
+     "locality": "Bellandur Gate, Sarjapur Main Road",
+     "address": "3/3/2, Bellandur Gate, Sarjapur Main Road, Bengaluru 560103",
+     "lat": 12.92059,
+     "lng": 77.66741,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM maps the building 'Quess House' at Bellandur Gate on Sarjapur Main Road (the company's former registered office); Quess's contact page now lists only Quess Tower, so current occupancy is unconfirmed (https://www.openstreetmap.org/).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.quesscorp.com/contact-us/",
+    "https://www.openstreetmap.org/"
+   ]
+  },
+  {
+   "name": "Rapido",
+   "aliases": [
+    "Roppen Transportation Services Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Mobility & EV",
+   "description": "Bike-taxi and ride-hailing unicorn; its contact page gives an HSR Layout city office, while OSM maps a 'Rapido Office' in Mantri Commercio on the Bellandur ORR.",
+   "founded": 2015,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "website": "https://rapido.bike",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "City Office, HSR Layout Sector 6",
+     "techPark": null,
+     "building": null,
+     "locality": "HSR Layout Sector 6",
+     "address": "648, 1st Main Road, Sector 6, HSR Layout, Bengaluru 560102",
+     "lat": 12.9155838,
+     "lng": 77.6252951,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Rapido's contact page lists 'Rapido office, 648, 1st Main Rd, Muneswara Nagar, Sector 6, HSR Layout, Bengaluru 560102'; point is a street-level geocode (https://rapido.bike/Contact).",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Mantri Commercio office, Bellandur ORR",
+     "techPark": "Mantri Commercio",
+     "building": null,
+     "locality": "Bellandur, Outer Ring Road",
+     "address": "Mantri Commercio, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.93213,
+     "lng": 77.68368,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM node 'Rapido Office' (office=company) inside the Mantri Commercio footprint (way/320455185); not listed on Rapido's contact page (https://www.openstreetmap.org/way/320455185).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://rapido.bike/Contact",
+    "https://www.openstreetmap.org/way/320455185"
+   ]
+  },
+  {
+   "name": "Simple Energy",
+   "aliases": [
+    "Simple Energy Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Mobility & EV",
+   "description": "Electric-scooter maker (Simple One); its office is in North Gate Business Park Phase 2, Yelahanka, not on Sarjapur Road as sometimes assumed.",
+   "founded": 2019,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "website": "https://www.simpleenergy.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Office - North Gate Business Park Phase 2, Yelahanka",
+     "techPark": "North Gate Business Park",
+     "building": "Phase 2, Wing A, 9th floor",
+     "locality": "Venkatala, Yelahanka",
+     "address": "No. 2/2, North Gate Phase-2, Venkatala, Yelahanka, Bengaluru 560064",
+     "lat": 13.116369,
+     "lng": 77.606515,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "simpleenergy.in's footer gives '9th floor, Wing A, No.2/2, North Gate Phase-2 Hobli, Venkatala, Yelahanka, Bengaluru 560064'; point is the OSM polygon 'North Gate Business Park - Phase 2' (https://www.simpleenergy.in/).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.simpleenergy.in/"
+   ]
+  },
+  {
+   "name": "Wipro Enterprises",
+   "aliases": [
+    "Wipro Consumer Care & Lighting",
+    "Wipro Enterprises (P) Limited"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Retail & consumer goods",
+   "description": "Unlisted Premji-group FMCG, lighting and infrastructure-engineering company (10,000+ employees globally) registered at Wipro House, Koramangala.",
+   "founded": 2013,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "website": "https://www.wiproenterprises.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office - Wipro House, Koramangala",
+     "techPark": null,
+     "building": "Wipro House",
+     "locality": "Koramangala 1st Block",
+     "address": "No. 8, 7th Main, 80 Feet Road, Koramangala 1st Block, Bengaluru 560034",
+     "lat": 12.928355,
+     "lng": 77.632762,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "wiproenterprises.com gives the registered address 'Wipro House, No. 8, 7th Main 80 Feet Road, Koramangala 1st Block, Bangalore 560034'; point is the OSM polygon 'Wipro House' (https://www.wiproenterprises.com/wipro-enterprises/).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.wiproenterprises.com/wipro-enterprises/"
+   ]
+  },
+  {
+   "name": "eMudhra",
+   "aliases": [
+    "eMudhra Limited"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "SaaS",
+   "description": "Listed digital-identity and PKI company; headquartered at its eMudhra Digital Campus in the Hi-Tech Defence and Aerospace Park, with an older office OSM still maps at Devarabeesanahalli on the Bellandur ORR.",
+   "founded": 2008,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "website": "https://www.emudhra.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HQ - eMudhra Digital Campus, Aerospace Park",
+     "techPark": "Hi-Tech Defence and Aerospace Park",
+     "building": "eMudhra Digital Campus",
+     "locality": "Hi-Tech Defence and Aerospace Park, Jala Hobli",
+     "address": "No 12-P1-A & 12-P1-B, Hi-Tech Defence and Aerospace Park, Jala Hobli, Bengaluru 562149",
+     "lat": 13.224108,
+     "lng": 77.772805,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "eMudhra's contact page lists 'eMudhra Digital Campus, No 12-P1-A & 12-P1-B, Hi-Tech Defence And Aerospace Park (IT Sector), Jala Hobli, B.K. Palya, Bengaluru 562149'; point is the park's OSM centroid (https://www.emudhra.com/contact-us).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Devarabeesanahalli office, Bellandur ORR",
+     "techPark": null,
+     "building": null,
+     "locality": "Bellandur / Devarabeesanahalli, Outer Ring Road",
+     "address": "Outer Ring Road, Devarabeesanahalli, Bellandur, Bengaluru 560103",
+     "lat": 12.93029,
+     "lng": 77.68417,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM node 'eMudhra' (office=it) near Devarabeesanahalli on the ORR, the company's earlier Sai Arcade address; eMudhra's contact page now lists only the Aerospace Park campus, so this may have closed (https://www.openstreetmap.org/).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.emudhra.com/contact-us",
+    "https://www.openstreetmap.org/"
+   ]
+  },
+  {
+   "name": "Narayana Health",
+   "aliases": [
+    "Narayana Hrudayalaya Limited",
+    "NH"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "HealthTech & pharma",
+   "description": "Listed hospital chain (19,214 employees, 2024) founded by Dr Devi Shetty; headquartered at its Narayana Health City campus in Bommasandra Industrial Area, south of Electronic City.",
+   "founded": 2000,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "website": "https://www.narayanahealth.org",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HQ - Narayana Health City, Bommasandra",
+     "techPark": null,
+     "building": "Narayana Health City",
+     "locality": "Bommasandra Industrial Area, Hosur Road",
+     "address": "Bommasandra Industrial Area, Hosur Road, Bengaluru 560099",
+     "lat": 12.8064933,
+     "lng": 77.6946443,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia records the company as headquartered in Bangalore, founded 2000, listed on BSE/NSE; the Bommasandra campus point is the OSM building 'Mazumdar Shaw Medical Center' on Hosur Road, Bommasandra; the corporate-office street address could not be read from narayanahealth.org (https://en.wikipedia.org/wiki/Narayana_Health).",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Narayana_Health",
+    "https://www.narayanahealth.org/contact-us"
+   ]
+  },
+  {
+   "name": "Flipkart",
+   "aliases": [
+    "Flipkart Internet Private Limited",
+    "Flipkart Group"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "E-commerce & consumer internet",
+   "description": "Walmart-majority-owned e-commerce group (holding company registered in Singapore) headquartered in Embassy TechVillage on the Bellandur ORR; included here because it was asked for, though ETV belongs to the ORR-parks lens.",
+   "founded": 2007,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "website": "https://www.flipkart.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HQ - Embassy TechVillage (Alyssa, Begonia & Clover)",
+     "techPark": "Embassy TechVillage",
+     "building": "Alyssa, Begonia & Clover",
+     "locality": "Bellandur / Devarabeesanahalli, Outer Ring Road",
+     "address": "Embassy Tech Village, Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.92694,
+     "lng": 77.69264,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Flipkart's terms page gives the registered office as 'Buildings Alyssa, Begonia & Clover, Embassy Tech Village, Outer Ring Road, Devarabeesanahalli Village, Bengaluru 560103'; point is the OSM 'Flipkart' node inside ETV (https://www.flipkart.com/pages/terms).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.flipkart.com/pages/terms"
+   ]
+  }
+ ],
+ "coverageNotes": "Search budget: the shared WebSearch quota ran out after about ten queries, so verification after that was by direct fetch of company/developer pages and offline OSM data; several company sites blocked fetches (Meesho, Navi, Zepto, Prestige, Vaishnavi commercial, Würth, IndiQube, NoBroker footer), which is why those entries are marked low or medium. Lens items NOT confirmed and left out: Oracle Health/Cerner and Visa are not at RGA Tech Park (OSM puts Cerner at Mountain Ash, Manyata and Visa at Bagmane WTC - other lenses); Byju's, Ather Energy (IBC Knowledge Park, Bannerghatta Rd per OSM) and Ola Electric (Koramangala/HSR per OSM) have no substantiated Sarjapur-side office; Infosys has no verified Sarjapur Road campus; L&T Tech Park is on Bellary Road in north Bengaluru, not in this lens (covered via LTTS's office); Swiggy's ETV address could not be read first-hand so it is omitted; Honeywell appears in OSM beside Intel/RMZ Ecoworld but no company page confirmed it. OSM-only tags deliberately not promoted to companies: HSBC, Dell, Genpact, SAP, National Instruments, AT&T and Brocade at Salarpuria Softzone; Safran Engineering Services at Primeco The Hub (Sarjapur Rd, Iblur); Replicon, Blue Yonder and a Flipkart node at Mantri Commercio; Uber and Instakart nodes on Sarjapur Road/ORR; Azim Premji Foundation (NGO) next to Wipro. PayPal: listings put it in RGA Blocks 1-2 but OSM tags 'PayPal Bengaluru' at Pritech Park on the Bellandur ORR, so its current site is uncertain. Quess House (Bellandur Gate) and eMudhra's Devarabeesanahalli office may no longer be occupied since both companies now list other HQs. Geography: no substantiated corporate offices were found in Haralur (other than Bharat IT Park), Kasavanahalli, Carmelaram (other than RGA), Dommasandra, Gunjur or Varthur; OSM maps a 'Prestige Tech Habitat' commercial plot at Varthur (12.931,77.740) and coworking centres (discourse.work at Sarjapur, BuzzWorks at Varthur) that could not be verified and were left out of techParks. New 2024-26 campuses: only Sattva Spectrum (next to Wipro, Kaikondrahalli) is confirmed from the developer; Prestige, Embassy and Bagmane Sarjapur Road plans could not be checked. Wipro's EC5 SEZ unit is listed by Wipro but has no separate geometry so only EC4 is mapped. Flipkart (ETV), Simple Energy (Yelahanka), Quess Tower, Rapido HSR, Wipro Enterprises (Koramangala), eMudhra (Aerospace Park), LTTS Bellary Road and Narayana Health (Bommasandra) are outside this lens's geography but were learned en route and included per rule 7; Narayana is classed MID_SIZE as the brief instructed despite 19,000+ employees. Flipkart's origin is given as Foreign because its parent (Walmart) is US-headquartered. Headcounts: no source stated a Bengaluru-specific headcount for any company, so bengaluruEmployeesApprox is null throughout."
+}

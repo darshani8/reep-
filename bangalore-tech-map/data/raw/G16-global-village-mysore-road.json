@@ -1,0 +1,1157 @@
+{
+ "key": "G16-global-village-mysore-road",
+ "techParks": [
+  {
+   "name": "Global Village Tech Park",
+   "aliases": [
+    "Sattva Global City",
+    "Global Technology Village SEZ",
+    "Global Village SEZ",
+    "GVTP",
+    "Global TechVillage"
+   ],
+   "locality": "Pattanagere / Mylasandra, Rajarajeshwari Nagar - Kengeri, off Mysore Road (behind RV College of Engineering)",
+   "developer": "Tanglin Developments (Coffee Day Group); owned since 2019 by Blackstone (80%) and Sattva Group (20%)",
+   "lat": 12.919521,
+   "lng": 77.501354,
+   "bbox": [
+    12.916013,
+    12.923039,
+    77.495271,
+    77.50546
+   ],
+   "areaSqFtMillions": 3.3,
+   "notableTenants": [
+    "LTIMindtree",
+    "Mphasis",
+    "Sonata Software",
+    "Textron",
+    "NTT DATA",
+    "Tietoevry",
+    "Northern Trust",
+    "Torry Harris Business Solutions",
+    "Sagility",
+    "Magnasoft",
+    "Wipfli",
+    "ZIV Automation",
+    "Hinduja Global Solutions"
+   ],
+   "description": "A 120-acre IT/ITES SEZ-plus-non-SEZ campus off Mysore Road beside Pattanagere metro station, built from 2005 by Cafe Coffee Day's realty arm Tanglin Developments and sold in September 2019 for about Rs 2,700 crore to a Blackstone (80%) / Salarpuria Sattva (20%) consortium, which renamed it Sattva Global City. Wikipedia and the sale reports give ~3.3 million sq ft built up across Towers A-F, Mindtree's Phases 1-5, the DRC and Ivega buildings and production blocks PB2-PB4 (the 'Texas Block' recalls an earlier Texas Instruments tenancy); Sattva's own page quotes 78.3 acres, 12.1 M sq ft leasable and 81.2% committed occupancy as of March 2025, figures that do not reconcile with the others and are flagged rather than adopted. OSM maps it as 'Sattva Global City'.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Global_Village_Tech_Park",
+    "https://sattvagroup.com/commercial/sattva-global-city/",
+    "https://thenewsminute.com/amp/story/money/coffee-day-sells-global-village-techpark-bengaluru-rs-2700-crore-109101",
+    "https://www.mphasis.com/home/corporate/contactus.html",
+    "https://www.sonata-software.com/contact-us",
+    "https://properties.cityinfoservices.com/sattva-global-city-tower-e-tower-4-mysore-road-bangalore/gfbc9no/pjd",
+    "https://sezindia.gov.in/hi/node/2698",
+    "https://www.openstreetmap.org/way/614208152"
+   ]
+  },
+  {
+   "name": "Bidadi Industrial Area",
+   "aliases": [
+    "KIADB Bidadi Industrial Area",
+    "Bidadi Industrial Estate",
+    "Toyota Kirloskar estate"
+   ],
+   "locality": "Bidadi, Ramanagara (Bengaluru South district), Bengaluru-Mysuru highway",
+   "developer": "KIADB",
+   "lat": 12.782,
+   "lng": 77.418217,
+   "bbox": [
+    12.76833,
+    12.793028,
+    77.403261,
+    77.434215
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Toyota Kirloskar Motor",
+    "Toyota Kirloskar Auto Parts",
+    "Bosch",
+    "Hindustan Coca-Cola Beverages",
+    "Britannia Industries"
+   ],
+   "description": "A roughly 1,500-acre KIADB manufacturing estate about 30 km south-west of Bengaluru on the Mysuru highway, anchored since 1997-98 by Toyota Kirloskar Motor and its group companies, which hold about 60% of the land and most of its exports; the Bidadi Industries Association counted 114-140 member units in 2016, mostly auto-component and food manufacturers, with Bosch, Hindustan Coca-Cola Beverages and Britannia the other large names. A third Toyota plant was approved in 2024. OSM maps the core estate polygon; Coca-Cola's plant sits in the Phase 2 extension to the north near Hejjala.",
+   "sources": [
+    "https://www.maritimegateway.com/bidadi-industrial-area-meet-the-role-model/",
+    "https://www.addressofchoice.com/bangalore/bidadi/guide",
+    "https://en.wikipedia.org/wiki/Bidadi",
+    "https://en.wikipedia.org/wiki/Toyota_Kirloskar_Motor",
+    "https://www.openstreetmap.org/way/124778550"
+   ]
+  },
+  {
+   "name": "Kumbalgodu Industrial Area",
+   "aliases": [
+    "Kumbalagodu Industrial Area",
+    "KIADB Kumbalgodu"
+   ],
+   "locality": "Kumbalgodu, Mysore Road, between Kengeri and Bidadi",
+   "developer": null,
+   "lat": 12.871692,
+   "lng": 77.444243,
+   "bbox": [
+    12.865907,
+    12.876854,
+    77.438801,
+    77.448327
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "A small industrial estate on the Bengaluru-Mysuru road at Kumbalgodu, west of Kengeri, mapped in OSM as 'Kumbalagodu Industrial Area'. No notable MNC, mid-size or startup tenant could be substantiated for it in this pass (no company page, press report or OSM office POI inside the polygon), so it is recorded for its footprint only.",
+   "sources": [
+    "https://www.openstreetmap.org/way/124785869",
+    "https://en.wikipedia.org/wiki/Kumbalgodu"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "LTIMindtree",
+   "aliases": [
+    "LTM Limited",
+    "Mindtree",
+    "L&T Infotech",
+    "LTI"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "L&T group IT-services major formed by the 2022 LTI-Mindtree merger (renamed LTM Limited in 2026); Mindtree's former global headquarters and largest campus is the multi-phase Global Village complex on Mysore Road.",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 1996,
+   "isUnicorn": false,
+   "website": "https://www.ltm.com/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Village campus - Phases 1-3",
+     "techPark": "Global Village Tech Park",
+     "building": "Phase 1, Phase 2 and Phase 3 blocks",
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "Survey No. 13 & 14, Global Village, Mylasandra, RVCE Post, Mysore Road, Bengaluru 560059",
+     "lat": 12.91807,
+     "lng": 77.502569,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LTIMindtree's global-presence list gives 'Survey No. 13 & 14, Global Village, Mylasandra, Kengeri' as a Bengaluru location (https://investorsarchive.ltimindtree.com/annual-report-2021-2022/pdf/Global%20Presence.pdf); OSM maps 'Mindtree Global Village' Phases 1, 2 and 3 here (https://www.openstreetmap.org/node/3485260900) and the broker listings for Phase 1-3 name Mindtree/LTI Mindtree as current tenant (https://properties.cityinfoservices.com/sattva-global-city-phase-2-mysore-road-bangalore/ua2uis2/pjd).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Global Village campus - Phase 5",
+     "techPark": "Global Village Tech Park",
+     "building": "Phase 5 (B+G+9, ~360,000 sq ft)",
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "Survey No. 29 & 31, Global Village, Mylasandra, RVCE Post, Mysore Road, Bengaluru 560059",
+     "lat": 12.918899,
+     "lng": 77.500545,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LTIMindtree's global-presence list gives 'Phase 5, Survey No. 29 & 31, Global Village, Mylasandra, Kengeri' (https://investorsarchive.ltimindtree.com/annual-report-2021-2022/pdf/Global%20Presence.pdf); OSM node 'Mindtree Global Village, Phase 5' (https://www.openstreetmap.org/node/3485270356) and the Phase 5 broker listing naming Mindtree as tenant (https://properties.cityinfoservices.com/sattva-global-city-phase-5-mysore-road-bangalore/j269jfd/pjd).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Hebbal S2 office",
+     "techPark": null,
+     "building": null,
+     "locality": "Hebbal, Bellary Road",
+     "address": "274, Bellary Road, Hebbal, Bengaluru 560092",
+     "lat": 13.068802,
+     "lng": 77.592011,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'LTIMindtree S2 Hebbal', 274 Bellary Road, 560092 (https://www.openstreetmap.org/node/12047380769); not cross-checked against a company page.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://investorsarchive.ltimindtree.com/annual-report-2021-2022/pdf/Global%20Presence.pdf",
+    "https://en.wikipedia.org/wiki/Mindtree",
+    "https://en.wikipedia.org/wiki/LTIMindtree",
+    "https://en.wikipedia.org/wiki/Global_Village_Tech_Park",
+    "https://properties.cityinfoservices.com/sattva-global-city-phase-5-mysore-road-bangalore/j269jfd/pjd"
+   ]
+  },
+  {
+   "name": "Mphasis",
+   "aliases": [
+    "Mphasis Limited",
+    "MphasiS BFL"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Blackstone-controlled, NSE/BSE-listed IT services company (~31,600 staff) headquartered in Bengaluru; runs a large SEZ delivery campus plus Tower E and Tower F floors at Global Village on Mysore Road.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1998,
+   "isUnicorn": false,
+   "website": "https://www.mphasis.com/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Laurel HQ",
+     "techPark": "Bagmane Tech Park",
+     "building": "Bagmane Laurel, Tower A",
+     "locality": "C V Raman Nagar",
+     "address": "Bagmane Laurel, 1st Floor, Tower A, Bagmane Technology Park, C V Raman Nagar, Bengaluru 560093",
+     "lat": 12.978397,
+     "lng": 77.664855,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Mphasis's own contact page lists 'Bagmane Laurel, 1st Floor, Tower A, Bagmane Technology Park, C V Raman Nagar' (https://www.mphasis.com/home/corporate/contactus.html); building footprint from OSM way 201986089.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Global Village SEZ campus",
+     "techPark": "Global Village Tech Park",
+     "building": null,
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "Survey Nos. 12/1, 12/2, 29 & 30, Global Technology Village SEZ, Mylasandra & Pattanagere Villages, RVCE Post, Bengaluru 560059",
+     "lat": 12.919521,
+     "lng": 77.501354,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Mphasis's own contact page lists 'Global Technology Village SEZ, Survey Nos. 12/1, 12/2, 29 & 30, Mylasandra & Patanegere Villages, RVCE post, Kengeri Hobli, Bangalore 560059' (https://www.mphasis.com/home/corporate/contactus.html).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Global Village - Tower E",
+     "techPark": "Global Village Tech Park",
+     "building": "Tower E / Tower 4, floors 1-2",
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "Tower E, Global Village SEZ, Off Bengaluru-Mysuru Expressway, RVCE Post, Bengaluru 560059",
+     "lat": 12.919521,
+     "lng": 77.501354,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Mphasis's own contact page lists 'Tower E, 1 & 2nd Floor, Global Village SEZ, Off Bangalore Mysore Express Way, RVCE Post, 560059' (https://www.mphasis.com/home/corporate/contactus.html); the Tower E broker listing also names Mphasis (https://properties.cityinfoservices.com/sattva-global-city-tower-e-tower-4-mysore-road-bangalore/gfbc9no/pjd).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Global Village - Tower F",
+     "techPark": "Global Village Tech Park",
+     "building": "Tower F, 3rd floor",
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "Tower F, Global Village SEZ, RVCE Post, Mysore Road, Bengaluru 560059",
+     "lat": 12.919478,
+     "lng": 77.499421,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Mphasis's own contact page lists 'Tower F, 3rd Floor, Global Village SEZ, RVCE Post, 560059' (https://www.mphasis.com/home/corporate/contactus.html); Tower F footprint from OSM way 347439021; the Tower F broker listing names Mphasis (https://properties.cityinfoservices.com/sattva-global-city-tower-f-mysore-road-bangalore/9fy9ryn/pjd).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Bagmane World Technology Center",
+     "techPark": "Bagmane World Technology Center",
+     "building": "WTC 2 & 4",
+     "locality": "Mahadevapura, Outer Ring Road",
+     "address": "Bagmane World Technology Center, Marathahalli Outer Ring Road, Doddanakundi, Bengaluru 560048",
+     "lat": 12.985291,
+     "lng": 77.694672,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Mphasis's own contact page lists 'Bagmane World Technology Center, Marathahalli Outer Ring Road' and 'World Technology Center 2 & 4, SEZ, Level 4' (https://www.mphasis.com/home/corporate/contactus.html); park centroid from OSM way 91237236.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.mphasis.com/home/corporate/contactus.html",
+    "https://en.wikipedia.org/wiki/Mphasis",
+    "https://en.wikipedia.org/wiki/Global_Village_Tech_Park"
+   ]
+  },
+  {
+   "name": "Sonata Software",
+   "aliases": [
+    "Sonata Software Limited",
+    "Sonata Information Technology Limited",
+    "Sonata Software Solutions Limited"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "NSE/BSE-listed IT services and Microsoft-partner firm (~6,400 staff) whose corporate headquarters, Sonata Towers, is inside Global Village on Mysore Road, with two more group entities in Tower F and the DRC Building.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1986,
+   "isUnicorn": false,
+   "website": "https://www.sonata-software.com/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate HQ - Sonata Towers, Tower A",
+     "techPark": "Global Village Tech Park",
+     "building": "Sonata Towers, Tower A",
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "Tower A, Sonata Towers, Global Village (Sattva Global City), RVCE Post, Mysore Road, Bengaluru 560059",
+     "lat": 12.919521,
+     "lng": 77.501354,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Sonata's own contact page: 'Corporate Office: Tower-A, Sonata Towers, Global Village (Sattva Global City), RVCE Post, Kengeri Hobli, Mysore Road, Bengaluru 560059' (https://www.sonata-software.com/contact-us).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Tower F - Sonata Software Solutions",
+     "techPark": "Global Village Tech Park",
+     "building": "Tower F",
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "Tower F, Global Village (Sattva Global City), RVCE Post, Mysore Road, Bengaluru 560059",
+     "lat": 12.919478,
+     "lng": 77.499421,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Sonata's own contact page: 'Sonata Software Solutions Limited, Tower F, Global Village (Sattva Global City), RVCE Post, Kengeri Hobli, Mysore Road, Bengaluru 560059' (https://www.sonata-software.com/contact-us); Tower F footprint from OSM way 347439021.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "DRC Building - Sonata Information Technology",
+     "techPark": "Global Village Tech Park",
+     "building": "DRC Building, 1st floor",
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "First Floor, DRC Building, Mylasandra and Pattanagere Village, RVCE Post, Bengaluru 560059",
+     "lat": 12.919521,
+     "lng": 77.501354,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Sonata's own contact page: 'Sonata Information Technology Limited, First Floor, DRC Building, Mylasandra and Pattanagere Village, RVCE Post, Kengeri Hobli, Bengaluru 560059' (https://www.sonata-software.com/contact-us).",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.sonata-software.com/contact-us",
+    "https://en.wikipedia.org/wiki/Sonata_Software",
+    "https://en.wikipedia.org/wiki/Global_Village_Tech_Park"
+   ]
+  },
+  {
+   "name": "Textron",
+   "aliases": [
+    "Textron India Private Limited",
+    "Textron India Technology Center"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "US aerospace/defence and industrial conglomerate (Bell, Cessna, Beechcraft, E-Z-GO); its Indian engineering subsidiary's registered office is in Block B (Tower 2) of the Sattva Global City SEZ campus on Mysore Road.",
+   "hqCity": "Providence",
+   "hqCountry": "United States",
+   "founded": 1923,
+   "isUnicorn": false,
+   "website": "https://www.textron.in/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Textron India - Block B (Tower 2)",
+     "techPark": "Global Village Tech Park",
+     "building": "Tower B / Tower 2 (Block B), floors 1-2",
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "Floor 1 & 2, Block B (Tower 2), SEZ Campus, Sattva Global City, Off Mysore Road, RVCE Post, Mylasandra, Bengaluru 560059",
+     "lat": 12.919521,
+     "lng": 77.501354,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Textron India's own contact page gives its registered office as 'Floor 1 & 2, Block B (Tower 2), SEZ Campus Sattva Global City, Off Mysore Road RVCE Post, Mylasandra Bangalore 560 059' (https://www.textron.in/Contact-India); the Tower B broker listing also names Textron India (https://properties.cityinfoservices.com/sattva-global-city-tower-b-tower-2-mysore-road-bangalore/ut37ikj/pjd).",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.textron.in/Contact-India",
+    "https://en.wikipedia.org/wiki/Textron",
+    "https://en.wikipedia.org/wiki/Global_Village_Tech_Park"
+   ]
+  },
+  {
+   "name": "NTT DATA",
+   "aliases": [
+    "NTT DATA Global Delivery Services",
+    "NTT DATA Inc",
+    "Keane India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Japanese IT-services multinational; its Global Delivery Services arm (ex-Keane) occupies floors in Tower A and Tower E of Global Village on Mysore Road, with further Bengaluru offices in Whitefield and Bhartiya City.",
+   "hqCity": "Tokyo",
+   "hqCountry": "Japan",
+   "founded": 1988,
+   "isUnicorn": false,
+   "website": "https://www.nttdata.com/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Village - Tower A",
+     "techPark": "Global Village Tech Park",
+     "building": "Tower A / Tower 1",
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "Tower A, Global Village, RVCE Post, Mysore Road, Bengaluru 560059",
+     "lat": 12.919521,
+     "lng": 77.501354,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Broker listing for Sattva Global City Tower A / Tower 1 names NTT DATA Global Delivery Services among tenants (https://properties.cityinfoservices.com/sattva-global-city-tower-a-tower-1-mysore-road-bangalore/vsvmo2g/pjd); Wikipedia's park article also lists NTT Data (https://en.wikipedia.org/wiki/Global_Village_Tech_Park).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Global Village - Tower E",
+     "techPark": "Global Village Tech Park",
+     "building": "Tower E / Tower 4",
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "Tower E, Global Village, RVCE Post, Mysore Road, Bengaluru 560059",
+     "lat": 12.919521,
+     "lng": 77.501354,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Broker listing for Sattva Global City Tower E / Tower 4 names NTT DATA Global Delivery Services among tenants (https://properties.cityinfoservices.com/sattva-global-city-tower-e-tower-4-mysore-road-bangalore/gfbc9no/pjd).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Whitefield office",
+     "techPark": null,
+     "building": null,
+     "locality": "Whitefield (ITPL 2nd Road)",
+     "address": "2nd Road, Whitefield, Bengaluru",
+     "lat": 12.97468,
+     "lng": 77.720179,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'NTT DATA Global Delivery Services Pvt. Ltd.', 2nd Road, Whitefield (https://www.openstreetmap.org/node/10276021137); not cross-checked against a company page.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Bhartiya City office",
+     "techPark": "Bhartiya Centre of Information Technology",
+     "building": "Block 2, South Wing",
+     "locality": "Thanisandra, Bhartiya City",
+     "address": "Block 2, South Wing, Bhartiya City, Thanisandra, Bengaluru 560064",
+     "lat": 13.083816,
+     "lng": 77.640897,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'NTT Data Inc', Block 2, South Wing, Bhartiya City Road, 560064 (https://www.openstreetmap.org/node/13355835370); not cross-checked against a company page.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/sattva-global-city-tower-a-tower-1-mysore-road-bangalore/vsvmo2g/pjd",
+    "https://properties.cityinfoservices.com/sattva-global-city-tower-e-tower-4-mysore-road-bangalore/gfbc9no/pjd",
+    "https://en.wikipedia.org/wiki/Global_Village_Tech_Park"
+   ]
+  },
+  {
+   "name": "Tietoevry",
+   "aliases": [
+    "Tieto",
+    "EVRY India",
+    "TietoEVRY India",
+    "Tieto Corporation"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Nordic IT-services and software company (Espoo, Finland) whose Indian delivery arm, the former EVRY India, sits in Tower E of Global Village on Mysore Road and in Brigade Software Park, Banashankari.",
+   "hqCity": "Espoo",
+   "hqCountry": "Finland",
+   "founded": 1968,
+   "isUnicorn": false,
+   "website": "https://www.tietoevry.com/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Village - Tower E",
+     "techPark": "Global Village Tech Park",
+     "building": "Tower E / Tower 4",
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "Tower E, Global Village, RVCE Post, Mysore Road, Bengaluru 560059",
+     "lat": 12.919521,
+     "lng": 77.501354,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Broker listing for Sattva Global City Tower E / Tower 4 names 'Evry India (TietoEVRY India)' among tenants (https://properties.cityinfoservices.com/sattva-global-city-tower-e-tower-4-mysore-road-bangalore/gfbc9no/pjd); Wikipedia's park article lists Tietoevry (https://en.wikipedia.org/wiki/Global_Village_Tech_Park).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Brigade Software Park office",
+     "techPark": "Brigade Software Park",
+     "building": null,
+     "locality": "Banashankari 2nd Stage",
+     "address": "Brigade Software Park, 27th Cross, Banashankari 2nd Stage, Bengaluru 560070",
+     "lat": 12.920526,
+     "lng": 77.572615,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps two 'Evry India' office buildings inside Brigade Software Park, Banashankari (https://www.openstreetmap.org/way/307097128); not cross-checked against a company page.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/sattva-global-city-tower-e-tower-4-mysore-road-bangalore/gfbc9no/pjd",
+    "https://en.wikipedia.org/wiki/Tieto",
+    "https://en.wikipedia.org/wiki/Global_Village_Tech_Park"
+   ]
+  },
+  {
+   "name": "Northern Trust",
+   "aliases": [
+    "Northern Operating Services Pvt Ltd",
+    "Northern Trust Corporation"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "Chicago custody bank and asset manager whose Indian captive, Northern Operating Services, runs a 5,000-plus-person Bengaluru operation; it occupies the DRC Building at Global Village on Mysore Road and space at RMZ Ecospace, Bellandur.",
+   "hqCity": "Chicago",
+   "hqCountry": "United States",
+   "founded": 1889,
+   "isUnicorn": false,
+   "website": "https://www.northerntrust.com/",
+   "bengaluruEmployeesApprox": 5600,
+   "offices": [
+    {
+     "label": "Global Village - DRC Building",
+     "techPark": "Global Village Tech Park",
+     "building": "DRC Building (G+3, ~100,000 sq ft)",
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "DRC Building, Global Village Tech Park, Mysore Road, RVCE Post, Mylasandra, RR Nagar, Bengaluru 560059",
+     "lat": 12.919521,
+     "lng": 77.501354,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Broker listing for Sattva Global City's DRC Building names 'Northern Operating Services (Northern Trust)' as tenant (https://properties.cityinfoservices.com/sattva-global-city-drc-building-mysore-road-bangalore/lpye2tz/pjd); Wikipedia's park article lists Northern Trust (https://en.wikipedia.org/wiki/Global_Village_Tech_Park); Northern Trust job postings describe a 5,600-person Bangalore office established 2005 (https://jobs.garp.org/job/senior-analyst-market-risk/85584568/).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "RMZ Ecospace office",
+     "techPark": "RMZ Ecospace",
+     "building": null,
+     "locality": "Bellandur, Outer Ring Road",
+     "address": "Second Floor, RMZ Ecospace, Marathahalli-Sarjapur Outer Ring Road, Bellandur, Bengaluru 560037",
+     "lat": 12.925744,
+     "lng": 77.680468,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Northern Operating Services Pvt Ltd', Second Floor, RMZ Ecospace, Outer Ring Road, Bellandur (https://www.openstreetmap.org/node/4446629338); not cross-checked against a company page.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/sattva-global-city-drc-building-mysore-road-bangalore/lpye2tz/pjd",
+    "https://jobs.garp.org/job/senior-analyst-market-risk/85584568/",
+    "https://en.wikipedia.org/wiki/Northern_Trust",
+    "https://en.wikipedia.org/wiki/Global_Village_Tech_Park"
+   ]
+  },
+  {
+   "name": "Torry Harris Business Solutions",
+   "aliases": [
+    "Torry Harris",
+    "THBS",
+    "Torry Harris Integration Solutions"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "US-headquartered (New Jersey) integration, API and data services firm founded 1998 whose main delivery operations are in Bengaluru, including the 6th floor of Tower E in the Global Village SEZ.",
+   "hqCity": "Edison",
+   "hqCountry": "United States",
+   "founded": 1998,
+   "isUnicorn": false,
+   "website": "https://www.torryharris.com/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Village - Tower E, 6th floor",
+     "techPark": "Global Village Tech Park",
+     "building": "Tower E / Tower 4, 6th floor",
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "Tower E, 6th Floor, Global Village SEZ, Mysore Road, Bengaluru 560059",
+     "lat": 12.919521,
+     "lng": 77.501354,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Torry Harris's own locations page lists 'Global TechVillage SEZ, Tower E, 6th floor, Mysore Road, Bangalore-560059' (https://www.torryharris.com/torry-harris-global-locations); the Tower E broker listing also names Torry Harris (https://properties.cityinfoservices.com/sattva-global-city-tower-e-tower-4-mysore-road-bangalore/gfbc9no/pjd).",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.torryharris.com/torry-harris-global-locations",
+    "https://properties.cityinfoservices.com/sattva-global-city-tower-e-tower-4-mysore-road-bangalore/gfbc9no/pjd"
+   ]
+  },
+  {
+   "name": "Sagility",
+   "aliases": [
+    "Sagility India Limited",
+    "HGS Healthcare",
+    "Hinduja Global Solutions Healthcare",
+    "Berkmeer India"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Consulting & professional services",
+   "description": "Bengaluru-headquartered, NSE/BSE-listed (Nov 2024) US-healthcare BPM company carved out of HGS's healthcare business in 2022; its Bengaluru sites include the 9th floor of SEZ Tower F at Global Village and AMR Tech Park on Hosur Road.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2022,
+   "isUnicorn": false,
+   "website": "https://sagility.com/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Village - SEZ Tower F, 9th floor",
+     "techPark": "Global Village Tech Park",
+     "building": "Tower F, 9th floor",
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "SEZ Tower F, 9th Floor, Global Village IT SEZ, Pattanagere/Mylasandra, RVCE Post, Bengaluru 560059",
+     "lat": 12.919478,
+     "lng": 77.499421,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Sagility's own locations page lists 'SEZ Tower #F, 9th Floor, Global Village, IT Sector SEZ, Pattanagere/Mylasandra, RVCE Post, Bangalore 560059' (https://sagility.com/about/locations/); Tower F footprint from OSM way 347439021.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "AMR Tech Park",
+     "techPark": "AMR Tech Park",
+     "building": "Buildings 1 and 2A",
+     "locality": "Hongasandra, Bommanahalli, Hosur Road",
+     "address": "23 & 24, AMR Tech Park, Hongasandra Village, Off Hosur Road, Bommanahalli, Bengaluru 560068",
+     "lat": 12.900378,
+     "lng": 77.630903,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Sagility's own locations page lists 'Bldg 2A (1st & 3rd Floor) and Bldg 1 (2nd Floor), AMR Tech Park, Hongasandra Village, Off Hosur Road, Bommanahalli, Bengaluru 560068' (https://sagility.com/about/locations/); OSM office POI 'Sagility Health' at this spot (https://www.openstreetmap.org/node/12969032575).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://sagility.com/about/locations/",
+    "https://properties.cityinfoservices.com/sattva-global-city-tower-f-mysore-road-bangalore/9fy9ryn/pjd"
+   ]
+  },
+  {
+   "name": "Hinduja Global Solutions",
+   "aliases": [
+    "HGS",
+    "HGS Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Consulting & professional services",
+   "description": "Hinduja-group BPM/CX and digital-media company listed in India and headquartered at HGS House on Hosur Road; a broker listing still names it in Tower A at Global Village, where its former healthcare unit (now Sagility) sat.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2000,
+   "isUnicorn": false,
+   "website": "https://hgs.com/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HGS House (registered office)",
+     "techPark": null,
+     "building": "HGS House",
+     "locality": "Bommanahalli, Hosur Road",
+     "address": "No. 614, Vajpayee Nagar, Bommanahalli, Hosur Road, Bengaluru 560068",
+     "lat": 12.899046,
+     "lng": 77.63331,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM building 'HGS House', No 614 Vajpayee Nagar, Bommanahalli, Hosur Road 560068 (https://www.openstreetmap.org/way/201989328); company page could not be fetched to cross-check.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Global Village - Tower A",
+     "techPark": "Global Village Tech Park",
+     "building": "Tower A / Tower 1",
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "Tower A, Global Village, RVCE Post, Mysore Road, Bengaluru 560059",
+     "lat": 12.919521,
+     "lng": 77.501354,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Broker listing for Sattva Global City Tower A names 'Hinduja Global Solutions (HGS)' beside 'Sagility India (HGS Healthcare)' (https://properties.cityinfoservices.com/sattva-global-city-tower-a-tower-1-mysore-road-bangalore/vsvmo2g/pjd); since the healthcare business there became Sagility in 2022, HGS's continued presence is unconfirmed.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/sattva-global-city-tower-a-tower-1-mysore-road-bangalore/vsvmo2g/pjd",
+    "https://en.wikipedia.org/wiki/Hinduja_Group"
+   ]
+  },
+  {
+   "name": "Magnasoft",
+   "aliases": [
+    "Magnasoft Consulting India Pvt Ltd"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Software & internet",
+   "description": "Bengaluru-based geospatial services (GeoSaaS) company founded in 2000 serving telecom, utilities and autonomous-navigation clients; a broker listing places it in Tower A of Global Village on Mysore Road.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2000,
+   "isUnicorn": false,
+   "website": "https://magnasoft.com/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Village - Tower A",
+     "techPark": "Global Village Tech Park",
+     "building": "Tower A / Tower 1",
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "Tower A, Global Village, RVCE Post, Mysore Road, Bengaluru 560059",
+     "lat": 12.919521,
+     "lng": 77.501354,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Broker listing for Sattva Global City Tower A / Tower 1 names Magnasoft Consulting India among tenants (https://properties.cityinfoservices.com/sattva-global-city-tower-a-tower-1-mysore-road-bangalore/vsvmo2g/pjd); Magnasoft's own site confirms the company and its 2000 founding but prints no street address (https://magnasoft.com/).",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/sattva-global-city-tower-a-tower-1-mysore-road-bangalore/vsvmo2g/pjd",
+    "https://magnasoft.com/"
+   ]
+  },
+  {
+   "name": "Wipfli",
+   "aliases": [
+    "Wipfli India LLP",
+    "Wipfli LLP"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "US accounting and consulting firm (Milwaukee, Wisconsin) whose India delivery centre, Wipfli India LLP, sits in Tower B of Global Village on Mysore Road.",
+   "hqCity": "Milwaukee",
+   "hqCountry": "United States",
+   "founded": 1930,
+   "isUnicorn": false,
+   "website": "https://www.wipfli.com/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Village - Tower B",
+     "techPark": "Global Village Tech Park",
+     "building": "Tower B / Tower 2",
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "Tower B, Global Village, RVCE Post, Mysore Road, Bengaluru 560059",
+     "lat": 12.919521,
+     "lng": 77.501354,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Broker listing for Sattva Global City Tower B / Tower 2 names Wipfli India LLP among tenants (https://properties.cityinfoservices.com/sattva-global-city-tower-b-tower-2-mysore-road-bangalore/ut37ikj/pjd); Wipfli's own locations page could not be fetched (HTTP 429).",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/sattva-global-city-tower-b-tower-2-mysore-road-bangalore/ut37ikj/pjd"
+   ]
+  },
+  {
+   "name": "ZIV Automation",
+   "aliases": [
+    "ZIV Automation India Pvt Ltd",
+    "ZIV Aplicaciones y Tecnología"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "Spanish (Bilbao/Zamudio) grid-automation and protection-relay maker; its Indian engineering subsidiary is listed in the DRC Building at Global Village on Mysore Road.",
+   "hqCity": "Zamudio",
+   "hqCountry": "Spain",
+   "founded": 1993,
+   "isUnicorn": false,
+   "website": "https://www.zivautomation.com/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Village - DRC Building",
+     "techPark": "Global Village Tech Park",
+     "building": "DRC Building",
+     "locality": "Pattanagere / Mylasandra, RR Nagar (Kengeri Hobli), Mysore Road",
+     "address": "DRC Building, Global Village Tech Park, Mysore Road, RVCE Post, Mylasandra, Bengaluru 560059",
+     "lat": 12.919521,
+     "lng": 77.501354,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Broker listing for Sattva Global City's DRC Building names ZIV Automation India as a tenant (https://properties.cityinfoservices.com/sattva-global-city-drc-building-mysore-road-bangalore/lpye2tz/pjd); no company page was reachable to confirm.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/sattva-global-city-drc-building-mysore-road-bangalore/lpye2tz/pjd"
+   ]
+  },
+  {
+   "name": "Toyota Kirloskar Motor",
+   "aliases": [
+    "TKM",
+    "Toyota Kirloskar Motor Private Limited",
+    "Toyota India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Toyota's Indian car maker (Toyota 89% / Kirloskar 11%), headquartered at its 850-acre Bidadi complex with two assembly plants (~320,000 units/yr, ~7,000 staff) and a third plant approved in 2024.",
+   "hqCity": "Bidadi (Bengaluru)",
+   "hqCountry": "India",
+   "founded": 1997,
+   "isUnicorn": false,
+   "website": "https://www.toyotabharat.com/",
+   "bengaluruEmployeesApprox": 7000,
+   "offices": [
+    {
+     "label": "Bidadi plant complex and HQ (Plants 1 & 2)",
+     "techPark": "Bidadi Industrial Area",
+     "building": "Plant 1 and Plant 2",
+     "locality": "Bidadi Industrial Area, Ramanagara",
+     "address": "Plot No. 1, Bidadi Industrial Area, Ramanagara (Bengaluru South) 562109",
+     "lat": 12.785843,
+     "lng": 77.420008,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wikipedia records TKM's headquarters and 850-acre plant at Bidadi with two units totalling 320,000 vehicles/yr and ~7,000 employees (https://en.wikipedia.org/wiki/Toyota_Kirloskar_Motor); OSM maps the 'Toyota Kirloskar' industrial polygon here (https://www.openstreetmap.org/way/796362875); a Bidadi area guide confirms HQ since 1997 and a third plant planned for 2026 (https://www.addressofchoice.com/bangalore/bidadi/guide).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Toyota_Kirloskar_Motor",
+    "https://www.addressofchoice.com/bangalore/bidadi/guide",
+    "https://www.maritimegateway.com/bidadi-industrial-area-meet-the-role-model/",
+    "https://en.wikipedia.org/wiki/Bidadi"
+   ]
+  },
+  {
+   "name": "Toyota Kirloskar Auto Parts",
+   "aliases": [
+    "TKAP",
+    "Toyota Kirloskar Auto Parts Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Toyota-Aisin-Kirloskar joint venture making transmissions, axles and powertrain parts on a 60-acre site in the same Bidadi estate as Toyota Kirloskar Motor.",
+   "hqCity": "Bidadi (Bengaluru)",
+   "hqCountry": "India",
+   "founded": 2002,
+   "isUnicorn": false,
+   "website": null,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bidadi transmission and powertrain plant",
+     "techPark": "Bidadi Industrial Area",
+     "building": null,
+     "locality": "Bidadi Industrial Area, Ramanagara",
+     "address": "Bidadi Industrial Area, Ramanagara (Bengaluru South) 562109",
+     "lat": 12.785843,
+     "lng": 77.420008,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "A Bidadi area guide describes TKAP's 60-acre transmission and powertrain facility 'in the same estate as Toyota Kirloskar Motor' with Aisin and Kirloskar Systems as partners (https://www.addressofchoice.com/bangalore/bidadi/guide); Wikipedia's TKM article names the company (https://en.wikipedia.org/wiki/Toyota_Kirloskar_Motor). Coordinates are the Toyota Kirloskar estate polygon, not TKAP's own building.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.addressofchoice.com/bangalore/bidadi/guide",
+    "https://en.wikipedia.org/wiki/Toyota_Kirloskar_Motor"
+   ]
+  },
+  {
+   "name": "Bosch",
+   "aliases": [
+    "Bosch Limited",
+    "Bosch India",
+    "Robert Bosch",
+    "MICO"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "German engineering group (38,655 associates in India, flagship Bosch Limited headquartered at Adugodi, Bengaluru) with a manufacturing plant in the KIADB Bidadi Industrial Area.",
+   "hqCity": "Gerlingen",
+   "hqCountry": "Germany",
+   "founded": 1886,
+   "isUnicorn": false,
+   "website": "https://www.bosch.in/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bidadi plant",
+     "techPark": "Bidadi Industrial Area",
+     "building": null,
+     "locality": "Bidadi Industrial Area, Ramanagara",
+     "address": "Bidadi Industrial Area, Ramanagara (Bengaluru South) 562109",
+     "lat": 12.782,
+     "lng": 77.418217,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bosch India's own location page lists Bidadi with functional area 'Manufacturing' (https://www.bosch.in/our-company/bosch-in-india/bidadi/); the Bidadi Industries Association names Bosch among the area's bigger companies (https://www.maritimegateway.com/bidadi-industrial-area-meet-the-role-model/) and a Bidadi area guide places it in the KIADB industrial area (https://www.addressofchoice.com/bangalore/bidadi/guide). Coordinates are the Bidadi Industrial Area centroid.",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Adugodi campus (Bosch Limited HQ)",
+     "techPark": "Bosch Adugodi Campus",
+     "building": null,
+     "locality": "Adugodi, Hosur Road",
+     "address": "Hosur Road, Adugodi, Bengaluru 560030",
+     "lat": 12.936006,
+     "lng": 77.612364,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps the 'Bosch RBEI' campus at Adugodi/Hosur Road, Bosch Limited's long-standing Bengaluru headquarters (https://www.openstreetmap.org/way/28110531); Bosch India's page gives headline India facts (https://www.bosch.in/our-company/bosch-in-india/).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.bosch.in/our-company/bosch-in-india/bidadi/",
+    "https://www.bosch.in/our-company/bosch-in-india/",
+    "https://www.maritimegateway.com/bidadi-industrial-area-meet-the-role-model/",
+    "https://www.addressofchoice.com/bangalore/bidadi/guide"
+   ]
+  },
+  {
+   "name": "Hindustan Coca-Cola Beverages",
+   "aliases": [
+    "HCCB",
+    "Coca-Cola India bottler",
+    "Hindustan Coca-Cola Beverages Pvt. Ltd."
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "The Coca-Cola Company's Indian company-owned bottler (Jubilant Bhartia 40% since 2025), established in Bengaluru in 1997 with 5,000+ staff; its Karnataka factory is at Bidadi off Mysore Road.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1997,
+   "isUnicorn": false,
+   "website": "https://www.hccb.in/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bidadi bottling plant",
+     "techPark": "Bidadi Industrial Area",
+     "building": null,
+     "locality": "Bidadi (Hejjala), Ramanagara",
+     "address": "KIADB Industrial Area, Bidadi, Ramanagara (Bengaluru South) 562109",
+     "lat": 12.816924,
+     "lng": 77.410581,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "HCCB's own contact page lists 'Bidadi' under Karnataka among its factories (https://www.hccb.in/contact-us); OSM maps a 'Coca-Cola' industrial polygon at Bidadi (https://www.openstreetmap.org/way/796362858); the Bidadi Industries Association names Coca-Cola among the area's bigger companies (https://www.maritimegateway.com/bidadi-industrial-area-meet-the-role-model/).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.hccb.in/contact-us",
+    "https://www.hccb.in/about-us",
+    "https://www.maritimegateway.com/bidadi-industrial-area-meet-the-role-model/",
+    "https://www.addressofchoice.com/bangalore/bidadi/guide",
+    "https://en.wikipedia.org/wiki/Coca-Cola_India"
+   ]
+  },
+  {
+   "name": "Britannia Industries",
+   "aliases": [
+    "Britannia"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Retail & consumer goods",
+   "description": "Wadia-group biscuits and bakery major (founded 1892, ~4,500 employees, corporate HQ in Whitefield, Bengaluru) with a factory and its 2016 R&D centre in the Bidadi Industrial Area.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1892,
+   "isUnicorn": false,
+   "website": "https://www.britannia.co.in/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bidadi factory and R&D centre",
+     "techPark": "Bidadi Industrial Area",
+     "building": null,
+     "locality": "Bidadi Industrial Area, Ramanagara",
+     "address": "Bidadi Industrial Area, Ramanagara (Bengaluru South) 562109",
+     "lat": 12.782,
+     "lng": 77.418217,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "A Bidadi area guide lists Britannia among companies operating in the KIADB Bidadi Industrial Area (https://www.addressofchoice.com/bangalore/bidadi/guide); Wikipedia's Bidadi article names Britannia among the area's major industries, citing the 2016 New Indian Express report on Britannia's Bengaluru R&D centre (https://en.wikipedia.org/wiki/Bidadi). Coordinates are the industrial-area centroid.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.addressofchoice.com/bangalore/bidadi/guide",
+    "https://en.wikipedia.org/wiki/Bidadi",
+    "https://en.wikipedia.org/wiki/Britannia_Industries"
+   ]
+  },
+  {
+   "name": "BHEL Electronics Division",
+   "aliases": [
+    "BHEL EDN",
+    "Bharat Heavy Electricals Limited - Electronics Division",
+    "BHEL Bengaluru"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Energy",
+   "description": "Bharat Heavy Electricals' Bengaluru complex on Mysore Road making power-plant control electronics, traction converters (Vande Bharat), solar equipment and space-grade electrical systems; the city's second BHEL unit (ESD) sits in Electronics City.",
+   "hqCity": "New Delhi",
+   "hqCountry": "India",
+   "founded": 1964,
+   "isUnicorn": false,
+   "website": "https://www.bhel.com/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Electronics Division (EDN), Mysore Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Nayandahalli / Deepanjali Nagar, Mysore Road",
+     "address": "BHEL Electronics Division, Mysore Road, Bengaluru 560026",
+     "lat": 12.949533,
+     "lng": 77.534502,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps the 'Bharath Heavy Electricals' industrial polygon on Mysore Road at Nayandahalli (https://www.openstreetmap.org/way/55684596); Wikipedia's BHEL article describes the Bengaluru complex as making electronics, transportation systems, solar and space equipment (https://en.wikipedia.org/wiki/Bharat_Heavy_Electricals_Limited). bhel.com was unreachable (503) so the street address is from the OSM footprint.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Electronics Systems Division (ESD), Electronics City",
+     "techPark": "Electronics City Phase 1",
+     "building": null,
+     "locality": "Electronic City Phase 1",
+     "address": "Electronics City, Hosur Road, Bengaluru 560100",
+     "lat": 12.84588,
+     "lng": 77.659891,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM maps a 'BHEL' commercial area in Electronics City (https://www.openstreetmap.org/way/231559725); attribution to BHEL's Electronics Systems Division is unconfirmed by a BHEL page.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Bharat_Heavy_Electricals_Limited",
+    "https://www.openstreetmap.org/way/55684596"
+   ]
+  },
+  {
+   "name": "Kennametal India",
+   "aliases": [
+    "Widia India",
+    "Kennametal Widia India",
+    "Kennametal India Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "BSE-listed Indian subsidiary of US tooling group Kennametal (Pittsburgh), formerly Widia India; its cutting-tool and machine-tool plant is on Tumkur Road near Jalahalli, not on the Mysore Road belt.",
+   "hqCity": "Pittsburgh",
+   "hqCountry": "United States",
+   "founded": 1964,
+   "isUnicorn": false,
+   "website": "https://www.kennametal.com/in/en.html",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Tumkur Road plant and registered office",
+     "techPark": null,
+     "building": null,
+     "locality": "Jalahalli West / 8th Mile, Tumkur Road",
+     "address": "8/9th Mile, Tumkur Road, Bengaluru 560073",
+     "lat": 13.051078,
+     "lng": 77.499172,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps the 'Kennametal' industrial polygon at 8th-9th Mile, Tumkur Road (https://www.openstreetmap.org/way/45919485); Kennametal's Wikipedia article records the 2002 Widia acquisition and the BSE listing 505890 (https://en.wikipedia.org/wiki/Kennametal). Kennametal's India pages returned no text, so the street address is not primary-confirmed.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Kennametal",
+    "https://www.openstreetmap.org/way/45919485"
+   ]
+  },
+  {
+   "name": "Honda Motorcycle & Scooter India",
+   "aliases": [
+    "HMSI",
+    "Honda 2Wheelers India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Honda's Indian two-wheeler subsidiary (plants at Narsapura/Kolar and elsewhere, none in Bidadi); its South Regional Office is in Rajajinagar, Bengaluru.",
+   "hqCity": "Tokyo",
+   "hqCountry": "Japan",
+   "founded": 1999,
+   "isUnicorn": false,
+   "website": "https://www.honda2wheelersindia.com/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "South Regional Office",
+     "techPark": null,
+     "building": null,
+     "locality": "Rajajinagar 4th M Block",
+     "address": "59th C Cross, 4th M Block, Rajajinagar, Bengaluru 560010",
+     "lat": 12.982786,
+     "lng": 77.559509,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Honda Motorcycle & Scooter India Pvt Ltd South Regional Office', 59th C Cross, 4th M Block, Rajajinagar 560010 (https://www.openstreetmap.org/node/12301552846); not cross-checked against a company page.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12301552846",
+    "https://www.maritimegateway.com/bidadi-industrial-area-meet-the-role-model/"
+   ]
+  }
+ ],
+ "coverageNotes": "VERIFIED: Global Village Tech Park (Sattva Global City) with primary-source tenants Mphasis (own contact page: SEZ campus, Tower E, Tower F), Sonata Software (own page: Tower A HQ, Tower F, DRC Building), Textron India (own page: Block B/Tower 2 registered office), Torry Harris (own page: Tower E 6th floor), Sagility (own page: Tower F 9th floor), LTIMindtree (own global-presence list + OSM Phase 1/2/3/5 POIs); broker-listing (cityinfoservices, one secondary source, so medium) tenants NTT DATA (Towers A, E), Tietoevry/Evry India (Tower E), Northern Trust (DRC Building), Wipfli India (Tower B), Magnasoft (Tower A), ZIV Automation (DRC), HGS (Tower A, low). Bidadi: Toyota Kirloskar Motor (Wikipedia + OSM polygon + area guide), TKAP (area guide), Bosch (bosch.in location page), HCCB (hccb.in lists Bidadi + OSM Coca-Cola polygon), Britannia (area guide + Wikipedia Bidadi). BHEL EDN from the OSM polygon on Mysore Road plus Wikipedia; Kennametal from the OSM Tumkur Road polygon (it is NOT on Mysore Road). COULD NOT CONFIRM / LEFT OUT: Accenture at Global Village - the 2019 sale article does not name it and no current tower listing or Accenture page does, so omitted (its Bengaluru sites are Pritech Park, Whitefield, IBC Knowledge Park, other lenses). Texas Instruments - the 'Texas Block (PB3)' name points to a past TI tenancy but the block's current tenant is listed as GlobalEdge, TI's campus is Bagmane Tech Park and the location of its new 550,000 sq ft R&D centre (opened Feb 2026) was not stated in any fetched report; omitted. Capgemini - Wikipedia-only lead, omitted. Wipro, Infosys, Tech Mahindra, L&T - no Mysore Road / Kengeri / Bidadi office found (Infosys and Wipro's Mysuru campuses are outside the bbox). Honda - no Bidadi plant; only the HMSI South Regional Office in Rajajinagar (OSM) is recorded. Wipro Infrastructure Engineering, Hitachi Energy/ABB - nothing found on this belt. GlobalEdge Software (listed as tenant of PB3/PB4) omitted because its domain is now parked for sale, so current status is unknown. Toyota Industries Engine India is at Jigani per its own site, not Bidadi, and had no coordinates, so omitted; Toyota Boshoku, Denso Kirloskar, Toyota Tsusho Techno Park at Bidadi could not be verified (company pages 403/404). Hino (OSM industrial polygon at Bidadi) omitted because Hino Motors Sales India's own location page lists no Karnataka site; Trinity Beverages (OSM polygon beside Coca-Cola) and Paramount Nutritions omitted as unverified/small. An OSM 'Rexroth' building in RR Nagar near the park could not be tied to Bosch Rexroth India (its site shows no addresses). NICE Ltd HQ and Texport Garments (OSM-only, RR Nagar/Kengeri) omitted. Composite Technology Park (RV-TIFAC, Kengeri) omitted as a research park with no verifiable corporate tenants. Kumbalgodu Industrial Area is recorded with no tenants. Offices named on primary pages but dropped for lack of coordinates: Mphasis Pritech Park, Torry Harris Millers Road and RMZ Ecoworld 4C, Sagility Surya Wave (Electronic City Ph 2). METHOD NOTES: the shared WebSearch budget was exhausted after the first batch, so verification relied on direct fetches of company, Wikipedia and broker pages plus the offline OSM extracts; several official pages were unreachable (northerntrust.com 503, wipfli.com 429, bhel.com 503, britannia.co.in 404, newindianexpress blocked, kennametal.com empty), which is why those entries sit at medium. All Global Village offices without their own OSM footprint use the park centroid (medium by rule); Phase 1-3/5 and Tower F use OSM building POIs. Park size is given as 3.3 M sq ft (Wikipedia/sale reports); Sattva's own 78.3-acre / 12.1 M sq ft figures conflict and are noted in the park description. Bidadi lies in Ramanagara (Bengaluru South) district but inside the metro bbox."
+}

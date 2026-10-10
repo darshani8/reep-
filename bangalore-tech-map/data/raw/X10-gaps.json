@@ -1,0 +1,1123 @@
+{
+ "key": "X10-gaps",
+ "techParks": [],
+ "companies": [
+  {
+   "name": "QpiAI",
+   "aliases": [
+    "QpiAI India Private Limited",
+    "QpiAI Tech"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Quantum computing / AI (deep tech)",
+   "description": "Bengaluru quantum-computing and AI startup, one of the companies selected under India's National Quantum Mission; it built the full-stack 'QpiAI-Indus' superconducting quantum computer and in August 2026 opened a quantum-chip (QPU) foundry on its 70,000 sq ft R&D campus in Jakkur. Raised a $32M Series A in 2025; also has entities in the US, Finland and Singapore.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2019,
+   "website": "https://www.qpiai.tech",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HQ - Hub 1 SEZ Tower, Karle Town Centre",
+     "techPark": "Karle Town Centre SEZ",
+     "building": "Hub 1 SEZ Tower",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Hub 1 SEZ Tower, Karle Town Centre, Karle Infra SEZ, Nagavara, Bengaluru 560045",
+     "lat": 13.043675,
+     "lng": 77.616592,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi (Karle Town Centre Hub 1, from the dataset's Vervent record)",
+     "evidence": "QpiAI's own contact page lists 'Hub 1 SEZ Tower, Karle Town Centre, Karle Infra SEZ, Nagavara, Bengaluru - 560045' first among its two Bengaluru addresses, and CB Insights gives the same building as the headquarters (https://www.qpiai.tech/contact ; https://www.cbinsights.com/company/qpiai). Point is the OSM pin for Karle Town Centre Hub 1."
+    },
+    {
+     "label": "R&D campus and quantum-chip foundry - Jakkur",
+     "techPark": null,
+     "building": null,
+     "locality": "Jakkur (Yashoda Nagar)",
+     "address": "4/10, Yashoda Nagar, Jakkur, Bengaluru, Karnataka 560065",
+     "lat": 13.0782791,
+     "lng": 77.5921065,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "nominatim (locality node: Yashoda Nagar, Byatarayanapura)",
+     "evidence": "QpiAI's contact page lists '4/10, Yashoda Nagar, Jakkur, Bengaluru, Karnataka - 560065', and The Quantum Insider / YourStory (Aug 2026) report the company's 70,000 sq ft R&D campus and newly inaugurated quantum-chip foundry are in Jakkur, Bengaluru (https://www.qpiai.tech/contact ; https://thequantuminsider.com/2026/08/17/qpiai-opens-quantum-chip-foundry-in-india-targets-10000-qubit-processors/). The pin is the Yashoda Nagar locality node, not the building."
+    }
+   ],
+   "sources": [
+    "https://www.qpiai.tech/contact",
+    "https://www.cbinsights.com/company/qpiai",
+    "https://thequantuminsider.com/2026/08/17/qpiai-opens-quantum-chip-foundry-in-india-targets-10000-qubit-processors/",
+    "https://yourstory.com/2026/08/qpiai-asia-largest-quantum-chip-foundry-targets-10000-qubit-processors",
+    "https://inc42.com/?p=523171"
+   ]
+  },
+  {
+   "name": "NewSpace Research & Technologies",
+   "aliases": [
+    "NewSpace Research and Technologies Pvt Ltd",
+    "NRT",
+    "NewSpace R&T"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Aerospace & defence (UAVs, swarm drones, HAPS)",
+   "description": "Bengaluru defence-tech startup building unmanned systems: swarm drones and a solar High Altitude Pseudo Satellite (HAPS) under the iDEX programme, with HAL as a partner on the full-scale HAPS. Founded 2017-18 (sources differ); reported a ~$73M Series B in 2024. Not to be confused with the ISRO PSU NewSpace India Ltd (NSIL), which is a separate entry.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": null,
+   "website": "https://www.newspace.co.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office / HQ - Sahakar Nagar",
+     "techPark": null,
+     "building": null,
+     "locality": "Sahakar Nagar",
+     "address": "2385, 1st Floor, E-Block, 60 Feet Road, Sahakar Nagar, Bengaluru, Karnataka 560092",
+     "lat": 13.0621474,
+     "lng": 77.5800614,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "photon (locality: Sahakara Nagar C Block park; the E-Block building was not geocodable)",
+     "evidence": "The company's own website lists its 'Registered Office: 2385, 1st Floor, E-Block, 60 Feet Road, Sahakar Nagar, Bengaluru, Karnataka 560092', and PitchBook gives the same address as its corporate office (https://www.newspace.co.in/ ; https://pitchbook.com/profiles/company/459912-61). The pin is locality-level (Sahakara Nagar), not the building."
+    }
+   ],
+   "sources": [
+    "https://www.newspace.co.in/",
+    "https://pitchbook.com/profiles/company/459912-61",
+    "https://industrialautomationindia.in/directory/newspace-research-technologies",
+    "https://thedefensepost.com/2026/07/13/high-altitude-pseudo-satellite/"
+   ]
+  },
+  {
+   "name": "Skylark Drones",
+   "aliases": [
+    "Skylark Drones Private Limited"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Drones / geospatial data analytics",
+   "description": "Bengaluru drone-data company whose software turns drone surveys into analytics for mining, infrastructure and other enterprise clients. Earlier based at IKP Eden in Koramangala; current listings and OSM place it in an UrbanVault building in HSR Layout.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2014,
+   "website": "https://www.skylarkdrones.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HQ - UrbanVault 1090C, HSR Layout Sector 3",
+     "techPark": null,
+     "building": "UrbanVault 1090C",
+     "locality": "HSR Layout Sector 3",
+     "address": "UrbanVault, 1090C, 18th Cross Road, Sector 3, HSR Layout, Bengaluru 560102",
+     "lat": 12.911828,
+     "lng": 77.641634,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi (node/11862768873 'Skylark Drones Private Limited')",
+     "evidence": "Geospatial World's company profile and Plunkett Research both give 'UrbanVault, 1090c, 18th Cross Rd, Sector 3, HSR Layout, Bengaluru 560102', and OpenStreetMap carries a 'Skylark Drones Private Limited' office node at 1090C 18th Cross Road with the company's website (https://resource.geospatialworld.net/company/skylark-drones ; https://www.openstreetmap.org/node/11862768873). Older sources (HuffPost India, CB Insights) give IKP Eden, Koramangala, which is not recorded."
+    }
+   ],
+   "sources": [
+    "https://resource.geospatialworld.net/company/skylark-drones",
+    "https://www.plunkettresearch.com/?p=1948726",
+    "https://www.openstreetmap.org/node/11862768873",
+    "https://www.cbinsights.com/company/skylark-drones",
+    "https://www.huffingtonpost.in/entry/from-startup-hubs-to-government-corridors-indias-drone-industry-takes-flight_in_5c516b3de4b0d9f9be6ab7ad"
+   ]
+  },
+  {
+   "name": "Dozee",
+   "aliases": [
+    "Turtle Shell Technologies Private Limited",
+    "Turtle Shell Technologies",
+    "Dozee Health"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Healthtech / medical devices (remote patient monitoring)",
+   "description": "Bengaluru medtech startup (legal entity Turtle Shell Technologies, incorporated Oct 2015) making contactless under-mattress sensors and an AI platform for remote patient monitoring in hospital wards and homes.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2015,
+   "website": "https://dozeehealth.ai",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HQ - City Centre, CMH Road, Indiranagar",
+     "techPark": null,
+     "building": "City Centre (Nomads Daily Huddle)",
+     "locality": "Indiranagar",
+     "address": "#40, Ground and Mezzanine Floor, City Centre, Nomads Daily Huddle, Chinmaya Mission Hospital Road, Indiranagar, Bengaluru 560038",
+     "lat": 12.978,
+     "lng": 77.633961,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-building (way/349813162 'City Centre', CMH Road)",
+     "evidence": "PitchBook, Glassdoor and Bitscale (updated Dec 2025) all list Dozee at '#40, City Centre, Nomads Daily Huddle, CMH Road, Indiranagar, Bengaluru 560038'; Dozee's own site gives no street address, only the entity name Turtle Shell Technologies Pvt Ltd (https://pitchbook.com/profiles/company/267129-73 ; https://bitscale.ai/directory/dozee ; https://www.glassdoor.com/Location/Dozee-Bengaluru-Location-EI_IE1643826.0,5_IL.6,15_IC2940587.htm). Point is the OSM 'City Centre' building on CMH Road."
+    }
+   ],
+   "sources": [
+    "https://pitchbook.com/profiles/company/267129-73",
+    "https://bitscale.ai/directory/dozee",
+    "https://www.glassdoor.com/Location/Dozee-Bengaluru-Location-EI_IE1643826.0,5_IL.6,15_IC2940587.htm",
+    "https://www.thecompanycheck.com/company/b/dozee/u1bmhfhjy8g10ob5n",
+    "https://dozeehealth.ai/"
+   ]
+  },
+  {
+   "name": "HealthPlix",
+   "aliases": [
+    "HealthPlix Technologies Private Limited"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Healthtech (AI-powered EMR for doctors)",
+   "description": "Bengaluru healthtech startup whose AI-assisted electronic-medical-records and clinical-decision-support software is used by outpatient doctors across India.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2014,
+   "website": "https://healthplix.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - AWFIS, Vajram Esteva, Outer Ring Road",
+     "techPark": null,
+     "building": "Vajram Esteva (AWFIS)",
+     "locality": "Devarabeesanahalli, Bellandur (Outer Ring Road)",
+     "address": "AWFIS, Vajram Esteva, 2nd floor, No. 57/4, Devarabisanahalli, Outer Ring Road, Bellandur, Bengaluru, Karnataka 560103",
+     "lat": 12.9301121,
+     "lng": 77.6862687,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "photon (OSM way/1124597756 'Vajram Esteva')",
+     "evidence": "HealthPlix's own contact page gives 'HealthPlix Corporate Office: HealthPlix Technologies Private Limited, AWFIS, Vajram Esteva, 2nd floor, No-57/4, Devarabisanahalli, Outer Ring Road, Bellandur, Bengaluru, Karnataka 560103', and CB Insights lists the same building as HQ (https://healthplix.com/contact-us ; https://www.cbinsights.com/company/healthplix-technologies)."
+    }
+   ],
+   "sources": [
+    "https://healthplix.com/contact-us",
+    "https://www.cbinsights.com/company/healthplix-technologies",
+    "https://yourstory.com/companies/healthplix"
+   ]
+  },
+  {
+   "name": "Betterplace",
+   "aliases": [
+    "BetterPlace",
+    "Betterplace Safety Solutions Private Limited",
+    "BetterPlace Safety Solutions"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "HR tech (frontline workforce management)",
+   "description": "Bengaluru-headquartered frontline-workforce platform (hiring, onboarding, background verification, payroll and upskilling for blue-collar staff), with regional operations in the UAE and South-East Asia (Troopers, MyRobin).",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2015,
+   "website": "https://www.betterplace.co.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global HQ - Shubharam Complex, M.G. Road",
+     "techPark": null,
+     "building": "Shubharam Complex",
+     "locality": "M.G. Road (near Trinity metro)",
+     "address": "144, 144/1, Shubharam Complex, M.G. Road, Bengaluru 560001",
+     "lat": 12.972905,
+     "lng": 77.615477,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi (node/9981998144 'BetterPlace')",
+     "evidence": "BetterPlace's contact page names 'Bangalore, India' as its Global Headquarters; registry-based profiles (Tracxn, Tofler, Zauba) give the registered office as '144, 144/1, Shubharam Complex, M.G. Road, Bengaluru 560001' (floors differ between listings), and OpenStreetMap has a 'BetterPlace' office node with the company website at that spot on M.G. Road (https://www.betterplace.co.in/contact.html ; https://tracxn.com/d/legal-entities/india/betterplace-safety-solutions-private-limited/__VYhRu30QU_TPrqf7kLRKiPITokelGCH7ON5EAU1dLHA ; https://www.openstreetmap.org/node/9981998144)."
+    }
+   ],
+   "sources": [
+    "https://www.betterplace.co.in/contact.html",
+    "https://tracxn.com/d/legal-entities/india/betterplace-safety-solutions-private-limited/__VYhRu30QU_TPrqf7kLRKiPITokelGCH7ON5EAU1dLHA",
+    "https://www.tofler.in/betterplace-safety-solutions-private-limited/company/U74900KA2015PTC078053",
+    "https://www.openstreetmap.org/node/9981998144"
+   ]
+  },
+  {
+   "name": "Seekho",
+   "aliases": [
+    "Keyaro Edutech Private Limited",
+    "Seekho App"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Edtech / vernacular short-video learning",
+   "description": "Bengaluru-run short-video 'edutainment' app teaching practical skills in Hindi and other Indian languages; legal entity Keyaro Edutech Pvt Ltd (registered in Rajasthan), which raised a $28M Series B. Its operating office is in Bellandur.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2020,
+   "website": "https://seekho.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Office - IndiQube Lakeside, Bellandur",
+     "techPark": null,
+     "building": "IndiQube Lakeside (Sri Venkateshwara Tower)",
+     "locality": "Green Glen Layout, Bellandur (Outer Ring Road)",
+     "address": "3rd Floor, Sri Venkateshwara Tower, IndiQube Lakeside, Outer Ring Road, Green Glen Layout, Bellandur, Bengaluru 560103",
+     "lat": 12.9269039,
+     "lng": 77.6701877,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "nominatim (IndiQube Lakeside, from the dataset's Observe.AI record)",
+     "evidence": "Keyaro Edutech's GST registration (29AAICK3203A1Z1, registered Jun 2023) gives the principal place of business as '3rd Floor, Sri Venkateshwara Tower, IndiQube Lakeside, Outer Ring Road, Green Glen Layout, Bellandur, Bengaluru 560103'; Glassdoor gives the same building and Seekho's own contact page footer says 'Bellandur, Bengaluru, 560103' (https://piceapp.com/gst-number-search/seekho-app-29aaick3203a1z1/ ; https://www.glassdoor.com/Location/Seekho-Bengaluru-Location-EI_IE8540714.0,6_IL.7,16_IC2940587.htm ; https://seekho.in/contact-us/)."
+    }
+   ],
+   "sources": [
+    "https://seekho.in/contact-us/",
+    "https://piceapp.com/gst-number-search/seekho-app-29aaick3203a1z1/",
+    "https://www.glassdoor.com/Location/Seekho-Bengaluru-Location-EI_IE8540714.0,6_IL.7,16_IC2940587.htm",
+    "https://builtinbengaluru.in/company/seekho",
+    "https://www.instafinancials.com/company/keyaro-edutech-private-limited-U72900RJ2020PTC071142"
+   ]
+  },
+  {
+   "name": "Table Space",
+   "aliases": [
+    "Tablespace Technologies Limited",
+    "Table Space Technologies Pvt Ltd",
+    "TableSpace"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Real estate / managed office space",
+   "description": "Bengaluru-headquartered enterprise managed-office operator (founded 2017, Hillhouse-backed, IPO approved/DRHP stage in 2026) running about 11.5 million sq ft across 80+ centres in nine cities, with 908 permanent employees nationally as of March 2026. It lists 28 Bengaluru centres (two of them the same MFAR 2B building, merged here); the centres house client companies, not only Table Space staff.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2017,
+   "website": "https://tablespace.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate HQ and centre - Prestige Trade Tower, Palace Road",
+     "techPark": "Prestige Trade Tower",
+     "building": "Prestige Trade Tower (Level 5)",
+     "locality": "High Grounds, Sampangi Rama Nagar (CBD)",
+     "address": "46, Level 5, Prestige Trade Tower, Palace Road, High Grounds, Sampangi Rama Nagar, Bengaluru 560001",
+     "lat": 12.985811,
+     "lng": 77.58782,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-building polygon centroid (Prestige Trade Tower)",
+     "evidence": "Table Space's website footer gives its registered office as '46, Level 5, Prestige Trade Tower, Palace Road, High Ground, Sampangi Nagar, Bengaluru 560 001', its schema.org Organization record gives the same building as the company address, and the centre list includes 'Table Space Prestige Trade Towers' (https://www.tablespace.com/contact-us ; https://tablespace.com/locations/bengaluru/prestige-trade-towers). Point is the OSM footprint of Prestige Trade Tower."
+    },
+    {
+     "label": "Centre - Bagmane Luxor, Bagmane Capital",
+     "techPark": "Bagmane Capital",
+     "building": "Bagmane Luxor",
+     "locality": "Doddanekundi, Mahadevapura (Outer Ring Road)",
+     "address": "Bagmane Luxor, Outer Ring Road, Ferns City, Mahadevapura, Doddanekkundi, Bengaluru 560048",
+     "lat": 12.984991,
+     "lng": 77.702489,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid (Bagmane Capital)",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'Bagmane Luxor, Outer Ring Road, Ferns City, Mahadevapura, Doddanekkundi, Bengaluru 560048' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/bagmane-luxor). Luxor has a North and a South tower and the page does not say which, so the point is the Bagmane Capital park centroid."
+    },
+    {
+     "label": "Centre - Embassy Onyx, Embassy TechVillage",
+     "techPark": "Embassy TechVillage",
+     "building": "Embassy Onyx",
+     "locality": "Devarabeesanahalli, Bellandur (Outer Ring Road)",
+     "address": "Embassy Onyx, Embassy Tech Village, Outer Ring Road, Devarabisanahalli, Bellandur, Bengaluru 560103",
+     "lat": 12.93004,
+     "lng": 77.690611,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid (Embassy TechVillage)",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'Embassy Onyx, Embassy Tech Village, Outer Ring Road, Devarabisanahalli, Bellandur, Bengaluru 560103' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/embassy-onyx). The Onyx block is not mapped in OSM, so the point is the Embassy TechVillage centroid."
+    },
+    {
+     "label": "Centre - Gopalan Fortune City, Mahadevapura",
+     "techPark": "Gopalan Fortune City",
+     "building": "Gopalan Fortune City",
+     "locality": "Mahadevapura (Outer Ring Road)",
+     "address": "Gopalan Fortune City, 6, Chinappa Layout, Laxmi Sagar Layout, Mahadevapura, Bengaluru 560048",
+     "lat": 12.982397,
+     "lng": 77.689291,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-landuse centroid (way/888606702 'Gopalan Fortune City')",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'Gopalan Fortune City, 6, Chinappa Layout, Laxmi Sagar Layout, Mahadevapura, Bengaluru 560048' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/gopalan-fortune-city). Realty n More (Mar 2026) reports Table Space adding about 2.83 lakh sq ft here. Point is the OSM outline of the Gopalan Fortune City development."
+    },
+    {
+     "label": "Centre - Manyata L6, Embassy Manyata Business Park",
+     "techPark": "Manyata Tech Park",
+     "building": "Manyata L6",
+     "locality": "Nagavara (Outer Ring Road)",
+     "address": "Manyata L6, Nagawara, Outer Ring Road, Bengaluru 560045",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid (Manyata Tech Park)",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'Manyata L6, Nagawara, Outer Ring Road, Bengaluru 560045' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/manyata-embassy-business-park-l6). Block L6 is not mapped in OSM, so the point is the Manyata Tech Park centroid."
+    },
+    {
+     "label": "Centre - MFAR Greenheart 2B, Embassy Manyata Business Park",
+     "techPark": "Manyata Tech Park",
+     "building": "MFAR Greenheart 2B",
+     "locality": "Nagavara (Outer Ring Road)",
+     "address": "MFAR Greenheart 2B, Outer Ring Road, MS Ramaiah North City, Manyata Tech Park, Nagavara, Bengaluru 560045",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid (Manyata Tech Park)",
+     "evidence": "Table Space lists both 'Table Space MFAR Manyata Greenheart 2B' and 'Table Space MFAR 2B Embassy Manyata Business Park' (two pages, both 'MS Ramaiah North City, Manyata Tech Park, Nagavara, Bengaluru-45'), recorded here as one centre; Realty n More reported the 180,000 sq ft, six-floor MFAR 2B centre launching in June 2025 (https://tablespace.com/locations/bengaluru/mfar-manyata-tech-park ; https://tablespace.com/locations/bengaluru/mfar-2b-embassy-manyata-business-park ; https://realtynmore.com/table-space-launches-new-180000-sq-ft-centre-at-embassy-manyata-business-park-in-bengaluru/). Greenheart 2B is not mapped in OSM, so the point is the Manyata Tech Park centroid."
+    },
+    {
+     "label": "Centre - Valence block, Prestige Tech Park",
+     "techPark": "Prestige Tech Park",
+     "building": "Valence (Block 3)",
+     "locality": "Kadubeesanahalli (Marathahalli-Sarjapur Outer Ring Road)",
+     "address": "Valence Block 3, Prestige Tech Park, Marathahalli-Sarjapur Outer Ring Road, Bengaluru 560103",
+     "lat": 12.940087,
+     "lng": 77.689469,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-building (way/493372406 'Valence')",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'Valence Block 3, Prestige Tech Park, Marathahalli-Sarjapur Outer Ring Road, Bengaluru 560103' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/valence-ptp). Point is the OSM footprint of the Valence building."
+    },
+    {
+     "label": "Centre - Zonasha Frontier, Doddanekundi",
+     "techPark": null,
+     "building": "Zonasha Frontier",
+     "locality": "Doddanekundi, Mahadevapura",
+     "address": "Zonasha Frontier, Doddanekundi Village, Mahadevapura, Bengaluru 560048",
+     "lat": 12.9752478,
+     "lng": 77.695879,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "photon (OSM way/1299038401 'Zonasha Corner (u/c)', Doddanekundi - a nearby Zonasha project, not confirmed to be the same building)",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'Zonasha Frontier, Doddanekundi Village, Mahadevapura, Bengaluru 560048' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/zonasha-frontier). Zonasha Frontier itself could not be geocoded; the point is an under-construction 'Zonasha Corner' building on the same Doddanekundi stretch, which may or may not be the same building."
+    },
+    {
+     "label": "Centre - Table Space Towers Whitefield (Kalyani Camellia)",
+     "techPark": null,
+     "building": "Table Space Towers Whitefield (inferred to be Kalyani Camellia)",
+     "locality": "Garudacharapalya / Mahadevapura (Whitefield Main Road)",
+     "address": "Table Space Towers Whitefield, 4th Cross Road, Kaveri Nagar, Krishnarajapuram, Bengaluru 560048",
+     "lat": 12.996921,
+     "lng": 77.702209,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-landuse centroid (way/804883128 'Kalyani Camellia') - building identity inferred",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'Table Space Towers Whitefield, 4th Cross Road, Kaveri Nagar, Krishnarajapuram, Bengaluru 560048' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/ts-towers-whitefield). The page puts it 0.6 km from Garudacharapalya metro and 1.2 km from Phoenix Marketcity; Table Space bought the 5 lakh sq ft Kalyani Camellia building on Whitefield Main Road (Dyavasandra Industrial Area, 560048) in Sept 2024 as its second owned asset (https://www.outlookbusiness.com/news/table-space-buys-5-lakh-sq-ft-office-space-in-bengaluru-for-about-rs-500-crore), so the point is Kalyani Camellia; that the 'TS Towers' name refers to it is an inference."
+    },
+    {
+     "label": "Centre - ITPL, Whitefield",
+     "techPark": "International Tech Park Bangalore",
+     "building": null,
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "International Tech Park (ITPL), Whitefield, Pattandur Agrahara, Bengaluru 560066",
+     "lat": 12.985228,
+     "lng": 77.736825,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid (International Tech Park Bangalore)",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'International Tech Park (ITPL), Whitefield, Pattandur Agrahara, Bengaluru 560066' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/itpl). The block is not named, so the point is the ITPL centroid."
+    },
+    {
+     "label": "Centre - Prestige Shantiniketan, Crescent 4",
+     "techPark": "Prestige Shantiniketan",
+     "building": "Crescent 4",
+     "locality": "Whitefield (ITPL Main Road)",
+     "address": "Crescent 4, Prestige Shantiniketan, Thigalarapalya Road, Krishnarajapuram, Bengaluru 560067",
+     "lat": 12.992412,
+     "lng": 77.727955,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "photon (Crescent 4, Prestige Shantiniketan - from the dataset's Tata Elxsi record)",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'Crescent 4, Prestige Shantiniketan, Thigalarapalya Road, Krishnarajapuram, Bengaluru 560067' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/prestige-shantiniketan). Point is the geocoded Crescent 4 building."
+    },
+    {
+     "label": "Centre - Bagmane Solarium City",
+     "techPark": "Bagmane Solarium City",
+     "building": null,
+     "locality": "Kundalahalli Colony, Brookefield",
+     "address": "Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037",
+     "lat": 12.969934,
+     "lng": 77.708425,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid (Bagmane Solarium City)",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/bagmane-solarium). The tower is not named, so the point is the Bagmane Solarium City centroid."
+    },
+    {
+     "label": "Centre - Etamin block, Prestige Tech Park",
+     "techPark": "Prestige Tech Park",
+     "building": "Etamin (Block 9)",
+     "locality": "Kadubeesanahalli (Marathahalli-Sarjapur Outer Ring Road)",
+     "address": "9 Etamin Block, Prestige Tech Park II, Varthur Hobli, Bengaluru 560103",
+     "lat": 12.943597,
+     "lng": 77.690874,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-building (way/346473739 'Etamin')",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address '9 Etamin Block, Prestige Tech Park II, Varthur Hobli, Bengaluru 560103' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/exora-etamin). Point is the OSM footprint of the Etamin building."
+    },
+    {
+     "label": "Centre - SJR Primeco Union City, Whitefield",
+     "techPark": "SJR Primeco Union City",
+     "building": "SJR Primeco Union City",
+     "locality": "Kadugodi / Whitefield (ITPL Main Road)",
+     "address": "SJR Primeco Union City, ITPL Main Road, Sadaramangala Industrial Area, Kadugodi, Bengaluru 560067",
+     "lat": 12.98964,
+     "lng": 77.732402,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi (node/13816579184 'Table Space', inside the SJR Primeco Union City outline)",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'SJR Primeco Union City, ITPL Main Road, Sadaramangala Industrial Area, Kadugodi, Bengaluru 560067' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/sjr-union-city). OpenStreetMap has a 'Table Space' office node inside the Union City complex; that is the point."
+    },
+    {
+     "label": "Centre - Bren Optimus, Adugodi",
+     "techPark": null,
+     "building": "Bren Optimus",
+     "locality": "Adugodi (Dairy Colony)",
+     "address": "Bren Optimus, 8/2, Dr. M.H. Marigowda Road, Dairy Colony, Adugodi, Bengaluru 560029",
+     "lat": 12.93734,
+     "lng": 77.60695,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi (Bren Optimus, from the dataset's Zscaler record)",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'Bren Optimus, 8/2, Dr. M.H. Marigowda Road, Dairy Colony, Adugodi, Bengaluru 560029' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/bren-optimus). Point is the OSM pin for Bren Optimus."
+    },
+    {
+     "label": "Centre - Divyasree Greens, Domlur",
+     "techPark": "Divyasree Greens",
+     "building": "Divyasree Greens",
+     "locality": "Challaghatta, Domlur (Intermediate Ring Road)",
+     "address": "Divyasree Greens, 12/1, 12/2A, Intermediate Ring Road, Embassy Golf Links Business Park, Domlur, Bengaluru 560071",
+     "lat": 12.95308,
+     "lng": 77.641638,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-landuse centroid (Divyasree Greens)",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'Divyasree Greens, 12/1, 12/2A, Intermediate Ring Road, Embassy Golf Links Business Park, Domlur, Bengaluru 560071' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/divyasree-greens). Point is the OSM outline of Divyasree Greens."
+    },
+    {
+     "label": "Centre - Godrej Centre Indiranagar, Old Madras Road",
+     "techPark": null,
+     "building": "Godrej Centre",
+     "locality": "Old Baiyappanahalli (Old Madras Road)",
+     "address": "Godrej Indiranagar, Old Madras Road, Old Bayyapanahalli, Bengaluru 560038",
+     "lat": 12.987643,
+     "lng": 77.646906,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-landuse centroid (way/998192575 'Godrej Centre')",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'Godrej Indiranagar, Old Madras Road, Old Bayyapanahalli, Bengaluru 560038' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/godrej-indiranagar). Point is the OSM outline of Godrej Centre on Old Madras Road."
+    },
+    {
+     "label": "Centre - Pebble Beach, Embassy GolfLinks",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Pebble Beach",
+     "locality": "Challaghatta, Domlur (Intermediate Ring Road)",
+     "address": "Pebble Beach, Intermediate Ring Road, Embassy Golf Links Business Park, Challaghatta, Domlur, Bengaluru 560071",
+     "lat": 12.953072,
+     "lng": 77.643248,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-building (way/119925850 'Pebble Beach')",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'Pebble Beach, Intermediate Ring Road, Embassy Golf Links Business Park, Challaghatta, Domlur, Bengaluru 560071' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/egl). Point is the OSM footprint of Pebble Beach."
+    },
+    {
+     "label": "Centre - Vaswani Augusta, Embassy GolfLinks",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Augusta (Vaswani)",
+     "locality": "Challaghatta, Domlur",
+     "address": "Vaswani Augusta, Embassy Golf Links Road, Domlur, Challaghatta, Bengaluru 560071",
+     "lat": 12.9496,
+     "lng": 77.642723,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-building (way/105322105 'Augusta')",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'Vaswani Augusta, Embassy Golf Links Road, Domlur, Challaghatta, Bengaluru 560071' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/vaswani-augusta). Point is the OSM footprint of the Augusta building."
+    },
+    {
+     "label": "Centre - Vaswani Oakmont, Embassy GolfLinks",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Oakmont (Vaswani)",
+     "locality": "Challaghatta, Domlur",
+     "address": "EGL Campus, Vaswani Oakmont Building, Domlur, Challaghatta, Bengaluru 560071",
+     "lat": 12.950254,
+     "lng": 77.644071,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid (Embassy GolfLinks Business Park)",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'EGL Campus, Vaswani Oakmont Building, Domlur, Challaghatta, Bengaluru 560071' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/vaswani-oakmont). Oakmont is not mapped in OSM, so the point is the Embassy GolfLinks centroid."
+    },
+    {
+     "label": "Centre - Table Space Towers, Vittal Mallya Road",
+     "techPark": null,
+     "building": "Table Space Towers (next to Coffee Day Square)",
+     "locality": "Vittal Mallya Road (CBD)",
+     "address": "Table Space Towers, next to Cafe Coffee Day Square, Vittal Mallya Road, near Cubbon Park, Bengaluru 560001",
+     "lat": 12.97178,
+     "lng": 77.59582,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "photon (Coffee Day Square, Vittal Mallya Road - from the dataset's Snowflake record)",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'Table Space Towers, next to Cafe Coffee Day Square, Vittal Mallya Road, near Cubbon Park, Bengaluru 560001' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/ts-towers-vmr). The point is the geocoded Coffee Day Square, which the page names as the adjoining landmark; Snowflake's Bengaluru hub is listed at 'Table Space, 23/2 Coffee Day Square, Vittal Mallya Road' (https://builtinbengaluru.in/company/snowflake/offices)."
+    },
+    {
+     "label": "Centre - SOBHA 1, St. Mark's Road",
+     "techPark": null,
+     "building": "SOBHA 1",
+     "locality": "Ashok Nagar (St. Mark's Road)",
+     "address": "SOBHA 1, St. Marks Road, Ashok Nagar, Bengaluru 560001",
+     "lat": 12.969222,
+     "lng": 77.6001631,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "photon (street-level: St. Mark's Road, Ashok Nagar)",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'SOBHA 1, St. Marks Road, Ashok Nagar, Bengaluru 560001' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/sobha-1). The building could not be geocoded; the point is a street-level hit on St. Mark's Road."
+    },
+    {
+     "label": "Centre - UB City",
+     "techPark": "UB City",
+     "building": null,
+     "locality": "Vittal Mallya Road (CBD)",
+     "address": "UB City, Vittal Mallya Road, Ashok Nagar, Bengaluru 560001",
+     "lat": 12.972557,
+     "lng": 77.595772,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-landuse centroid (UB City)",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'UB City, Vittal Mallya Road, Ashok Nagar, Bengaluru 560001' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/ub-city). Point is the OSM outline of UB City."
+    },
+    {
+     "label": "Centre - Prestige Obelisk, Kasturba Road",
+     "techPark": null,
+     "building": "Prestige Obelisk",
+     "locality": "Kasturba Road (CBD)",
+     "address": "Prestige Obelisk, Kasturba Road, Sampangi Rama Nagar, Bengaluru 560001",
+     "lat": 12.975726,
+     "lng": 77.597427,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm (Prestige Obelisk, from the dataset's Titan record)",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'Prestige Obelisk, Kasturba Road, Sampangi Rama Nagar, Bengaluru 560001' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/prestige-obelisk). Point is the OSM outline of Prestige Obelisk."
+    },
+    {
+     "label": "Centre - Prestige Khoday Tower, Raj Bhavan Road",
+     "techPark": null,
+     "building": "Prestige Khoday Tower",
+     "locality": "Vasanth Nagar (Raj Bhavan Road)",
+     "address": "Prestige Khoday Tower, Vasanth Nagar, Bengaluru 560001",
+     "lat": 12.982714,
+     "lng": 77.594017,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-building (way/325773309 'Prestige Khoday Tower')",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'Prestige Khoday Tower, Vasanth Nagar, Bengaluru 560001' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/prestige-khoday-tower). Point is the OSM footprint of Prestige Khoday Tower."
+    },
+    {
+     "label": "Centre - SJR Primeco Towers, Bannerghatta Road",
+     "techPark": null,
+     "building": "SJR Primeco Towers",
+     "locality": "Arekere Gate (Bannerghatta Road)",
+     "address": "SJR Primeco Towers, Panduranga Nagar, Arekere Gate, Bengaluru 560076",
+     "lat": 12.891607,
+     "lng": 77.59636,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-landuse centroid (way/1149959379 'SJR Primeco Towers')",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'SJR Primeco Towers, Panduranga Nagar, Arekere Gate, Bengaluru 560076' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/sjr-prime). Point is the OSM outline of SJR Primeco Towers."
+    },
+    {
+     "label": "Centre - Table Space Senate, Ulsoor Road",
+     "techPark": null,
+     "building": "The Senate (IBC) - inferred",
+     "locality": "Halasuru / Ulsoor Road (near Trinity metro)",
+     "address": "Table Space Senate, 3, CR Street, Halasuru, Yellappa Chetty Layout, Sivanchetti Gardens, Bengaluru",
+     "lat": 12.974944,
+     "lng": 77.617574,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-landuse centroid (way/1307896620 'IBC The Senate') - building identity inferred",
+     "evidence": "Table Space's Bengaluru centre list and the centre's own page give this centre and the address 'Table Space Senate, 3, CR Street, Halasuru, Yellappa Chetty Layout, Sivanchetti Gardens, Bengaluru' (https://tablespace.com/locations/bengaluru ; https://tablespace.com/locations/bengaluru/table-space-senate). The page places it 400 m from Trinity metro and 500 m from Taj MG Road, and Realty n More (Mar 2026) describes 'Table Space Senate on Ulsoor Road' as a ~1.86 lakh sq ft CBD addition (https://realtynmore.com/table-space-adds-460000-sq-ft-in-bengaluru/); the point is OSM's 'IBC The Senate' on Ulsoor Road, matched by name and distance, which is an inference."
+    }
+   ],
+   "sources": [
+    "https://tablespace.com/locations/bengaluru",
+    "https://www.tablespace.com/contact-us",
+    "https://choiceindia.com/ipo/tablespace-ipo",
+    "https://www.outlookbusiness.com/news/table-space-buys-5-lakh-sq-ft-office-space-in-bengaluru-for-about-rs-500-crore",
+    "https://realtynmore.com/table-space-adds-460000-sq-ft-in-bengaluru/",
+    "https://realtynmore.com/table-space-launches-new-180000-sq-ft-centre-at-embassy-manyata-business-park-in-bengaluru/",
+    "https://startup.outlookindia.com/investors/table-space-raises-300-million-from-hill-house-capital-report-news-6774",
+    "https://www.openstreetmap.org/node/13816579184"
+   ]
+  },
+  {
+   "name": "CoWrks",
+   "aliases": [
+    "COWRKS",
+    "Cowrks India Private Limited",
+    "CoWorks"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Real estate / coworking and managed offices",
+   "description": "Coworking and managed-office operator launched in 2016 by Bengaluru developer RMZ Corp and funded by its promoters rather than venture capital (hence MID_SIZE, not STARTUP); its first and flagship centre is in RMZ Ecoworld and most of its Bengaluru centres are in RMZ campuses. Ten Bengaluru centres are recorded from its own site; the corporate-office address is reported inconsistently (PitchBook: Basavanagudi; CB Insights: The Millenia, Murphy Road) and is not recorded.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2016,
+   "website": "https://www.cowrks.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Centre - RMZ Ecoworld Campus 7",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 7 (Unit 804, 8th floor)",
+     "locality": "Devarabeesanahalli, Bellandur (Outer Ring Road)",
+     "address": "Unit No. 804, 8th Floor, Campus 7, Ecoworld, Sarjapur-Marathahalli Outer Ring Road, Bengaluru 560103",
+     "lat": 12.920942,
+     "lng": 77.683266,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-building (way/536911311 'Campus 7')",
+     "evidence": "CoWrks' own Bengaluru locations page lists this centre (page slug 'ecoworld') at 'Unit No. 804, 8th Floor, Campus 7, Ecoworld, Sarjapur-Marathahalli Outer Ring Road, Bengaluru 560103' (https://www.cowrks.com/locations/bengaluru). Point is the OSM footprint of Ecoworld Campus 7."
+    },
+    {
+     "label": "Centre - RMZ Ecoworld Tower 4D",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 4D (10th floor)",
+     "locality": "Devarabeesanahalli, Bellandur (Outer Ring Road)",
+     "address": "Ecoworld, Tower 4D, 10th Floor, Survey No 4, Sarjapur-Marathahalli Outer Ring Road, Bengaluru 560103",
+     "lat": 12.927099,
+     "lng": 77.688278,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-building (way/1062502140 'Campus 4D')",
+     "evidence": "CoWrks' own Bengaluru locations page lists this centre (page slug 'ecoworld-4d') at 'Ecoworld, Tower 4D, 10th Floor, Survey No 4, Sarjapur-Marathahalli Outer Ring Road, Bengaluru 560103' (https://www.cowrks.com/locations/bengaluru). Point is the OSM footprint of Ecoworld Campus 4D."
+    },
+    {
+     "label": "Centre - RMZ Ecoworld Block 6A (Bellandur flagship)",
+     "techPark": "RMZ Ecoworld",
+     "building": "Block 6A (ground and 1st floor)",
+     "locality": "Devarabeesanahalli, Bellandur (Outer Ring Road)",
+     "address": "Block 6A, Ground Floor and 1st Floor, Ecoworld, Outer Ring Road, Devarabeesanahalli Village, Bengaluru 560103",
+     "lat": 12.921143,
+     "lng": 77.684473,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-building (relation/7722136 'Campus 6A and 6B')",
+     "evidence": "CoWrks' own Bengaluru locations page lists this centre (page slug 'bellandur-ecoworld') at 'Block 6A, Ground Floor and 1st Floor, Ecoworld, Outer Ring Road, Devarabeesanahalli Village, Bengaluru 560103' (https://www.cowrks.com/locations/bengaluru). Deccan Herald describes RMZ Ecoworld as CoWrks' first and flagship centre (https://www.deccanherald.com/business/cowrks-expand-operations-2092680). Point is the OSM footprint of Campus 6A/6B."
+    },
+    {
+     "label": "Centre - RMZ Ecospace Campus 3B",
+     "techPark": "RMZ Ecospace",
+     "building": "Campus 3B (1st floor)",
+     "locality": "Bellandur (Outer Ring Road, near Adarsh Palm Retreat)",
+     "address": "1st Floor, Campus 3B, Outer Ring Road, Adarsh Palm Retreat, Bellandur, Bengaluru 560103",
+     "lat": 12.923868,
+     "lng": 77.681327,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid (RMZ Ecospace)",
+     "evidence": "CoWrks' own Bengaluru locations page lists this centre (page slug 'cowrks-ecospace-3b') at '1st Floor, Campus 3B, Outer Ring Road, Adarsh Palm Retreat, Bellandur, Bengaluru 560103' (https://www.cowrks.com/locations/bengaluru). The slug names RMZ Ecospace, so the point is the Ecospace centroid; note that OSM's only building tagged 'Campus 3B' sits inside the neighbouring Ecoworld outline, so the exact building is uncertain."
+    },
+    {
+     "label": "Centre - RMZ Centennial, Campus D",
+     "techPark": "RMZ Centennial",
+     "building": "Campus D",
+     "locality": "Kundalahalli / EPIP Zone, Whitefield",
+     "address": "Campus D Centennial, 7th Cross Road, Whitefield, EPIP Zone, Brookfield, Bengaluru 560066",
+     "lat": 12.975857,
+     "lng": 77.711657,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid (RMZ Centennial)",
+     "evidence": "CoWrks' own Bengaluru locations page lists this centre (page slug 'centennial-3') at 'Campus D Centennial, 7th Cross Road, Whitefield, EPIP Zone, Brookfield, Bengaluru 560066' (https://www.cowrks.com/locations/bengaluru). Campus D is not mapped separately, so the point is the RMZ Centennial centroid; the July 2024 launch coverage names 'Ecoworld and Centennial' as new Bengaluru centres (https://realtynmore.com/cowrks-expands-its-footprint-in-india-with-4-new-centres-in-mumbai-bengaluru/)."
+    },
+    {
+     "label": "Centre - RMZ Centennial, C Block",
+     "techPark": "RMZ Centennial",
+     "building": "C Block (5th floor)",
+     "locality": "Kundalahalli / EPIP Zone, Whitefield",
+     "address": "5th floor, C-Block, Centennial, EPIP Zone, Bengaluru 560066",
+     "lat": 12.975857,
+     "lng": 77.711657,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid (RMZ Centennial)",
+     "evidence": "CoWrks' own Bengaluru locations page lists this centre (page slug 'centennial') at '5th floor, C-Block, Centennial, EPIP Zone, Bengaluru 560066' (https://www.cowrks.com/locations/bengaluru). C Block is not mapped separately, so the point is the RMZ Centennial centroid (same point as the Campus D centre)."
+    },
+    {
+     "label": "Centre - Whitefield NXT (RMZ NXT, EPIP)",
+     "techPark": "RMZ NXT",
+     "building": "RMZ NXT (inferred from the 'whitefield-nxt' slug)",
+     "locality": "EPIP Zone, Whitefield (near SAP Labs)",
+     "address": "EPIP Industrial Area, Whitefield Road, K.R. Puram Hobli, near SAP Labs, Bengaluru 560066",
+     "lat": 12.978994,
+     "lng": 77.713338,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid (RMZ NXT) - building identity inferred",
+     "evidence": "CoWrks' own Bengaluru locations page lists this centre (page slug 'whitefield-nxt') at 'EPIP Industrial Area, Whitefield Road, K.R. Puram Hobli, near SAP Labs, Bengaluru 560066' (https://www.cowrks.com/locations/bengaluru). The address names no building; the slug 'whitefield-nxt' and the 'near SAP Labs, EPIP' description match RMZ NXT, so the point is its centroid (an inference)."
+    },
+    {
+     "label": "Centre - New Indiranagar (RMZ Infinity Tower B)",
+     "techPark": "RMZ Infinity",
+     "building": "Tower B (5th floor)",
+     "locality": "Benniganahalli (Old Madras Road)",
+     "address": "COWRKS New Indiranagar, Tower B, Fifth Floor, Infinity, 3, Old Madras Road, Sadanandanagar, Bennigana Halli, Bengaluru 560016",
+     "lat": 12.994884,
+     "lng": 77.661201,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi (RMZ Infinity Tower B, from the dataset's Calix record)",
+     "evidence": "CoWrks' own Bengaluru locations page lists this centre (page slug 'New Indiranagar') at 'COWRKS New Indiranagar, Tower B, Fifth Floor, Infinity, 3, Old Madras Road, Sadanandanagar, Bennigana Halli, Bengaluru 560016' (https://www.cowrks.com/locations/bengaluru). Point is the OSM pin for RMZ Infinity Tower B."
+    },
+    {
+     "label": "Centre - RMZ Galleria, Yelahanka",
+     "techPark": "RMZ Galleria",
+     "building": "RMZ Galleria",
+     "locality": "Yelahanka (Ambedkar Colony)",
+     "address": "Galleria, Ambedkar Colony, Yelahanka, Bengaluru 560064",
+     "lat": 13.0943051,
+     "lng": 77.595118,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "nominatim (RMZ Galleria, from the dataset's Comviva record)",
+     "evidence": "CoWrks' own Bengaluru locations page lists this centre (page slug 'yelahanka-galleria') at 'Galleria, Ambedkar Colony, Yelahanka, Bengaluru 560064' (https://www.cowrks.com/locations/bengaluru). Office-hub also lists a CoWrks office at 'RMZ Galleria, Ambedkar Colony, Yelahanka' (https://www.office-hub.com/in/listings/1-person-private-office-rmz-galleria-ambedkar-colony-yelahanka-bengaluru-karnataka-560064-a0tQg00000IzvmzIAB)."
+    },
+    {
+     "label": "Centre - Purva Premiere, Residency Road",
+     "techPark": null,
+     "building": "Purva Premiere",
+     "locality": "Residency Road (CBD)",
+     "address": "No 135/1, Purva Premier, Residency Road, Ward No 76, Bengaluru 560025",
+     "lat": 12.966112,
+     "lng": 77.599065,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi (node/12678060786 'Cowrks Residency Road')",
+     "evidence": "CoWrks' own Bengaluru locations page lists this centre (page slug 'residency-road-premiere') at 'No 135/1, Purva Premier, Residency Road, Ward No 76, Bengaluru 560025' (https://www.cowrks.com/locations/bengaluru). OpenStreetMap also carries a 'Cowrks Residency Road' coworking node operated by CoWrks at this spot; that is the point."
+    }
+   ],
+   "sources": [
+    "https://www.cowrks.com/locations/bengaluru",
+    "https://www.deccanherald.com/business/cowrks-expand-operations-2092680",
+    "https://realtynmore.com/cowrks-expands-its-footprint-in-india-with-4-new-centres-in-mumbai-bengaluru/",
+    "https://en.wikipedia.org/wiki/RMZ",
+    "https://mnacritique.mergersindia.com/?p=34305",
+    "https://www.openstreetmap.org/node/12678060786",
+    "https://pitchbook.com/profiles/company/741079-90"
+   ]
+  },
+  {
+   "name": "Tracxn",
+   "aliases": [
+    "Tracxn Technologies Limited",
+    "Tracxn Technologies"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Market intelligence / private-company data SaaS",
+   "description": "Bengaluru startup-and-private-company data platform founded in 2012 by ex-Sequoia/Accel investors Neha Singh and Abhishek Goyal; venture-backed and listed on NSE/BSE since October 2022. Headcount estimates range from roughly 500 to 1,400.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2012,
+   "website": "https://tracxn.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office / HQ - L-248, HSR Layout Sector 6",
+     "techPark": null,
+     "building": null,
+     "locality": "HSR Layout Sector 6",
+     "address": "L-248, 2nd Floor, 17th Cross, Sector 6, HSR Layout, Bengaluru, Karnataka 560102",
+     "lat": 12.9124874,
+     "lng": 77.6326587,
+     "isHq": true,
+     "confidence": "medium",
+     "geocodeSource": "photon (street-level: 17th Cross Road, HSR Layout)",
+     "evidence": "Tracxn Technologies Ltd's BSE filings (2022-2024) and its website footer give the registered office as 'L-248, 2nd Floor, 17th Cross, Sector 6, HSR Layout, Bengaluru, Karnataka 560102' (CIN L72200KA2012PLC065294) (https://bseindia.com/xml-data/corpfiling/AttachHis/35486fa1-cb8f-4c57-ac5f-d8a6944e386a.pdf ; https://www.infyner.com/company/tracxn/L72200KA2012PLC065294). The building was not geocodable; the point is a street-level hit on 17th Cross Road, HSR Layout.",
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://bseindia.com/xml-data/corpfiling/AttachHis/35486fa1-cb8f-4c57-ac5f-d8a6944e386a.pdf",
+    "https://www.infyner.com/company/tracxn/L72200KA2012PLC065294",
+    "https://pitchbook.com/profiles/company/62445-70",
+    "https://inc42.com/company/tracxn/"
+   ]
+  },
+  {
+   "name": "Kapiva",
+   "aliases": [
+    "Adret Retail Private Limited",
+    "Kapiva Ayurveda"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Consumer / D2C Ayurvedic nutrition",
+   "description": "Bengaluru D2C Ayurvedic food and nutrition brand (legal entity Adret Retail Pvt Ltd, incorporated December 2015); raised a $60M Series D.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2015,
+   "website": "https://www.kapiva.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HQ - Vaishnavi Tech Park, Sarjapur Main Road",
+     "techPark": "Vaishnavi Tech Park",
+     "building": "Vaishnavi Tech Park (1st floor)",
+     "locality": "Ambalipura, Bellandur (Sarjapur Main Road)",
+     "address": "Adret Retail Pvt. Ltd., 1st floor, Vaishnavi Tech Park, No 16-1 and 17-2, Ambalipura Village, Sarjapur Main Road, Bellandur, Bengaluru, Karnataka 560103",
+     "lat": 12.920256,
+     "lng": 77.671708,
+     "isHq": true,
+     "confidence": "medium",
+     "geocodeSource": "park-centroid (Vaishnavi Tech Park)",
+     "evidence": "Kapiva's own contact page gives 'Adret Retail Pvt. Ltd. 1st floor Vaishnavi Tech Park, Sarjapur Main Rd, Bellandur, Bengaluru, Karnataka 560103' and its footer 'No 16-1 and 17-2, Vaishnavi Tech Park, Ambalipura Village, Varthur Hobli' (https://www.kapiva.in/contact-us). The tower is not named, so the point is the Vaishnavi Tech Park centroid.",
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.kapiva.in/contact-us",
+    "https://www.barandbench.com/dealstreet/jsa-cms-induslaw-act-on-kapiva-60-million-series-d-fundraise",
+    "https://www.thecompanycheck.com/company/b/kapiva/jd0flgbwu8b2eea1d"
+   ]
+  },
+  {
+   "name": "Glean",
+   "aliases": [
+    "Glean Technologies",
+    "Glean Search Technologies India Private Limited"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "Enterprise AI search / software",
+   "description": "Palo Alto-based enterprise AI search and agents unicorn. Its India entity was incorporated in Bengaluru in May 2022, and in July 2024 it formally opened a ~26,000 sq ft Bengaluru office (sales, finance, R&D and operations) with about 150 staff, targeting 450.",
+   "hqCity": "Palo Alto",
+   "hqCountry": "United States",
+   "founded": 2019,
+   "website": "https://www.glean.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India office - IndiQube Techpoint (Oasis Centre), Koramangala 100 Feet Road",
+     "techPark": null,
+     "building": "IndiQube Techpoint, Oasis Centre (7th floor)",
+     "locality": "Koramangala / Ejipura (100 Feet Road, Srinivagilu)",
+     "address": "30, Seventh Floor, IndiQube Tech Point (Oasis Centre), 100 Feet Road, Srinivagilu, Kathalipalya, Ejipura, Bengaluru, Karnataka 560068",
+     "lat": 12.9382731,
+     "lng": 77.632838,
+     "isHq": true,
+     "confidence": "medium",
+     "geocodeSource": "nominatim (locality node: Srinivagilu, Ejipura)",
+     "evidence": "The GLEIF/Bloomberg LEI record for Glean Search Technologies India Pvt Ltd (updated June 2026) gives both its legal and headquarters address as 'Seventh Floor, IndiQube Tech Point, 100 Feet Road, Ejipura area, Bangalore 560068', and myHQ lists IndiQube Techpoint at 'Oasis Centre, 7th floor, 100 Feet Rd, Srinivagilu Main Rd, AVS Layout, Koramangala' (https://lei.bloomberg.com/leis/view/984500E3CA4O31D1A368 ; https://myhq.in/meeting-room/indiqube-koramangala-3). Launch coverage of the 26,000 sq ft office names no building, so that this is the same office is not confirmed (https://www.verdict.co.uk/glean-enters-indian-market/). The point is the Srinivagilu locality node, not the building.",
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://lei.bloomberg.com/leis/view/984500E3CA4O31D1A368",
+    "https://myhq.in/meeting-room/indiqube-koramangala-3",
+    "https://www.verdict.co.uk/glean-enters-indian-market/",
+    "https://startupstorymedia.com/insights-glean-technologies-expands-to-india-with-new-bengaluru-office/",
+    "https://www.instafinancials.com/company/glean-search-technologies-india-private-limited-U72900KA2022FTC161348",
+    "https://www.businessofgcc.com/gcc-data/companies/glean-technologies-inc-india-bengaluru"
+   ]
+  },
+  {
+   "name": "Fivetran",
+   "aliases": [
+    "Fivetran India Private Limited",
+    "Fivetran Inc."
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "Data integration / data-movement software",
+   "description": "Oakland, California-based data-integration unicorn. It opened its first Bengaluru office in 2020 and on 11 Feb 2025 opened a 12,500 sq ft India headquarters in RMZ Ecoworld, said to support nearly 300 employees.",
+   "hqCity": "Oakland",
+   "hqCountry": "United States",
+   "founded": 2012,
+   "website": "https://www.fivetran.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India HQ - RMZ Ecoworld",
+     "techPark": "RMZ Ecoworld",
+     "building": null,
+     "locality": "Devarabeesanahalli, Bellandur (Outer Ring Road)",
+     "address": "RMZ Ecoworld (Ecoworld Tech Park), Sarjapur-Marathahalli Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.922737,
+     "lng": 77.686326,
+     "isHq": true,
+     "confidence": "medium",
+     "geocodeSource": "park-centroid (RMZ Ecoworld)",
+     "evidence": "Fivetran's own press release (Bengaluru, 11 Feb 2025) announces 'the opening of its new India headquarters in Bengaluru's Ecoworld Tech Park', a 12,500 sq ft office in RMZ Ecoworld supporting nearly 300 employees (https://www.fivetran.com/press/fivetran-expands-apac-presence-with-new-india-headquarters). No building is named, so the point is the RMZ Ecoworld centroid.",
+     "status": "active"
+    },
+    {
+     "label": "Registered office - IndiQube Lakeside, Bellandur",
+     "techPark": null,
+     "building": "IndiQube Lakeside",
+     "locality": "Green Glen Layout, Bellandur (Outer Ring Road)",
+     "address": "Indiqube Lakeside, 80/2, BBMP Khatha No. 820/835/915/80/2, Bellandur Village, Varthur Hobli, Bengaluru, Karnataka 560103",
+     "lat": 12.9269039,
+     "lng": 77.6701877,
+     "isHq": false,
+     "confidence": "medium",
+     "geocodeSource": "nominatim (IndiQube Lakeside, from the dataset's Observe.AI record)",
+     "evidence": "The GLEIF/Bloomberg LEI record for Fivetran India Pvt Ltd (status ACTIVE, updated Dec 2025) gives this as both legal and headquarters address (https://lei.bloomberg.com/leis/view/254900S54RMC222YV642); it probably dates from before the Feb 2025 Ecoworld move, and whether staff still work here is not confirmed.",
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.fivetran.com/press/fivetran-expands-apac-presence-with-new-india-headquarters",
+    "https://www.fivetran.com/press/fivetran-expands-in-india-extends-record-growth",
+    "https://lei.bloomberg.com/leis/view/254900S54RMC222YV642",
+    "https://www.registrationwala.com/company/fivetran-india-private-limited/U72900KA2017FTC100751"
+   ]
+  },
+  {
+   "name": "SiMa.ai",
+   "aliases": [
+    "SiMa.ai India Private Limited",
+    "SiMa Technologies"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "Semiconductors / edge-AI chips (MLSoC)",
+   "description": "San Jose-based edge-AI chip startup (MLSoC platform). It announced its Bengaluru design centre in January 2021 (India entity incorporated Sept 2020), covering silicon, board development, software and operations.",
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "founded": 2018,
+   "website": "https://sima.ai",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India design centre - Bagmane Tech Park, CV Raman Nagar",
+     "techPark": "Bagmane Tech Park",
+     "building": "B Wing (Unit 02, 2nd floor)",
+     "locality": "CV Raman Nagar",
+     "address": "Bagmane Tech Park, Unit 02, 2nd Floor, B Wing, CV Raman Nagar, Bengaluru 560093",
+     "lat": 12.978694,
+     "lng": 77.662447,
+     "isHq": true,
+     "confidence": "medium",
+     "geocodeSource": "park-centroid (Bagmane Tech Park)",
+     "evidence": "SiMa.ai's own 'Our Story' page lists its India office as 'Bagmane Tech Park, Unit 02, 2nd Floor, B Wing, CV Raman Nagar, Bengaluru - 560093', and Business Wire (27 Jan 2021) announced the Bengaluru design centre (https://sima.ai/our-story/ ; https://www.businesswire.com/news/home/20210127006084/en). The wing's building is not identified, so the point is the Bagmane Tech Park centroid.",
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://sima.ai/our-story/",
+    "https://www.businesswire.com/news/home/20210127006084/en",
+    "https://iot.electronicsforu.com/headlines/sima-ai-announces-new-design-centre-in-bengaluru/",
+    "https://www.InstaFinancials.com/company/sima-ai-india-private-limited/U72900KA2020FTC138787"
+   ]
+  },
+  {
+   "name": "EtherealX",
+   "aliases": [
+    "Ethereal Exploration Guild Private Limited",
+    "Ethereal Exploration Guild"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Space / reusable launch vehicles",
+   "description": "Bengaluru space startup founded in 2022 developing a fully reusable medium-lift launch vehicle; its office is on Bellary Road and its rocket-engine test facility (700,000 sq ft) is in Cuddalore, Tamil Nadu, outside the map area.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2022,
+   "website": "https://etherealx.space",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HQ - Urban Vault Citrine, Bellary Road",
+     "techPark": null,
+     "building": "Urban Vault Citrine (1st floor)",
+     "locality": "Byatarayanapura / Hebbal (Bellary Road)",
+     "address": "1st Floor, Urban Vault Citrine, Sy No. 43/4, Bellary Road, Bengaluru, Karnataka 560092",
+     "lat": 13.0569897,
+     "lng": 77.5936645,
+     "isHq": true,
+     "confidence": "high",
+     "geocodeSource": "photon (Urban Vault Citrine, from the dataset's Captain Fresh record)",
+     "evidence": "EtherealX's own website gives its office as '1st Floor, Urban Vault Citrine, Sy No. 43/4, Bellary Road Bengaluru, Karnataka - 560092 India' and its test facility as being in Cuddalore, Tamil Nadu (https://etherealx.space/).",
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://etherealx.space/",
+    "https://dbpedia.org/page/EtherealX",
+    "https://cednc.dealroom.co/companies/etherealx"
+   ]
+  }
+ ],
+ "coverageNotes": "X10 gap-fill: all 15 critic-named companies placed, 52 Bengaluru offices (Table Space 27 centres, CoWrks 10, QpiAI 2, Fivetran 2, the rest 1 each). DUPLICATE CHECK: none of the 15 was already in the dataset under any name or alias (every raw file's names/aliases were searched); Table Space and CoWrks appear only as buildings/landlords inside other companies' offices (Snowflake's Coffee Day Square floor, Cashfree's and Twilio's CoWrks floors in RMZ Ecoworld). NewSpace Research & Technologies is a private defence startup and is NOT the ISRO PSU NewSpace India Ltd already in E10. CATEGORY CHANGE: CoWrks is MID_SIZE, not STARTUP - it was launched in 2016 by developer RMZ Corp and funded by its promoters (a 2019 plan to raise external equity is reported, no completed VC round), matching how WeWork India (Embassy-promoted) is classed elsewhere. Table Space stays STARTUP (founded 2017, $300M from Hillhouse in 2022; IPO only at DRHP stage, 908 employees nationally at Mar 2026). Tracxn stays STARTUP although listed since Oct 2022 (venture-funded, founded 2012), consistent with how listed ex-startups such as Swiggy are classed. FLEX OPERATORS: Table Space and CoWrks offices are the centres each operator lists on its own website (Table Space: 28 pages, two of them for the same MFAR Greenheart 2B building, merged); these buildings house client companies, not only the operator's staff. CoWrks' corporate-office address is reported inconsistently (PitchBook: Basavanagudi; CB Insights: The Millenia, Murphy Road) and is not recorded. PIN QUALITY: building-level for most offices; park centroids (confidence medium) where the tower is not named (several Table Space/CoWrks centres, Kapiva, Fivetran Ecoworld, SiMa.ai Bagmane Tech Park); locality/street-level pins for NewSpace (Sahakara Nagar), QpiAI Jakkur (Yashoda Nagar), Tracxn (17th Cross Road, HSR), Glean (Srinivagilu) and Table Space SOBHA 1 (St. Mark's Road). Two Table Space building identities are inferences, flagged in the evidence: 'Table Space Towers Whitefield' pinned at Kalyani Camellia (which Table Space bought in 2024) and 'Table Space Senate' pinned at OSM's IBC The Senate on Ulsoor Road; Zonasha Frontier is pinned at a nearby under-construction Zonasha building and is confidence low. UNCERTAINTIES: Glean's 26,000 sq ft July-2024 office is not named in launch coverage; the recorded address is the GLEIF legal/HQ address of its Indian entity (updated June 2026). Fivetran's GLEIF address (IndiQube Lakeside) likely predates its Feb-2025 Ecoworld India HQ and is kept as the registered office. Dozee's address comes from aggregators (PitchBook, Glassdoor, Bitscale) because its own site gives none. Skylark Drones' older IKP Eden (Koramangala) address was not recorded. EtherealX's test facility is in Cuddalore (Tamil Nadu) and is outside the map. No headcounts were entered: the figures found are company-wide, dated, or capacity statements (Fivetran 'nearly 300', Glean 150 targeting 450)."
+}

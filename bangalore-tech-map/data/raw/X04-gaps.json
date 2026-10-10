@@ -1,0 +1,1195 @@
+{
+ "key": "X04-gaps",
+ "techParks": [
+  {
+   "name": "L&T Tech Park",
+   "locality": "Hebbal (Byatarayanapura)",
+   "lat": 13.068558,
+   "lng": 77.592108,
+   "notableTenants": [
+    "LTIMindtree",
+    "Larsen & Toubro (L&T campus)"
+   ],
+   "description": "L&T Realty's IT park on Bellary Road at Byatarayanapura, north of Hebbal: Phase 1 is operational (LTIMindtree's 'S2' campus) and Phase 2 is under construction per OSM.",
+   "aliases": [
+    "L&T Tech Park Hebbal",
+    "LTIMindtree Hebbal"
+   ],
+   "developer": "L&T Realty",
+   "areaSqFtMillions": null,
+   "bbox": [
+    13.06738,
+    13.072161,
+    77.591252,
+    77.592662
+   ],
+   "sources": []
+  },
+  {
+   "name": "Kirloskar Business Park",
+   "locality": "Hebbal (Byatarayanapura)",
+   "lat": 13.051598,
+   "lng": 77.595088,
+   "notableTenants": [
+    "Comviva",
+    "Tata Consumer Products (Tata Coffee)"
+   ],
+   "description": "Mid-rise business park on Bellary Road beside the Hebbal flyover, developed on Kirloskar group land. OSM maps the park (way/265565391) and a Mahindra Comviva POI inside it; Comviva's current address list does not include it. The lens brief's guesses of Rolls-Royce, Dell, Siemens and Volvo here could not be substantiated: Rolls-Royce's own site places its Bengaluru centre at Manyata, and no source was reached for the others.",
+   "aliases": [
+    "KBP Hebbal"
+   ],
+   "developer": "Kirloskar Systems",
+   "areaSqFtMillions": null,
+   "bbox": [
+    13.050937,
+    13.052355,
+    77.593583,
+    77.596237
+   ],
+   "sources": [
+    "https://www.rolls-royce.com/country-sites/india/contacts.aspx"
+   ]
+  },
+  {
+   "name": "DivyaSree Towers",
+   "aliases": [
+    "Divyasree Towers"
+   ],
+   "locality": "Bannerghatta Road / BTM Layout 1st Stage",
+   "developer": "DivyaSree",
+   "lat": 12.919114,
+   "lng": 77.600694,
+   "bbox": [
+    12.918674,
+    12.919541,
+    77.600185,
+    77.601526
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Bharti Airtel (Karnataka circle office)"
+   ],
+   "description": "DivyaSree office building at 55 Bannerghatta Main Road; OSM shows Convergys (now Concentrix), CSG, WinWire and V2Soft nodes around it and Cleartrip and Valtech just south, none confirmed from a company source, so no tenants are asserted.",
+   "sources": [
+    "https://www.openstreetmap.org/#map=18/12.919114/77.600694"
+   ]
+  },
+  {
+   "name": "Diamond District",
+   "aliases": [
+    "Diamond District Commercial Block"
+   ],
+   "locality": "Kodihalli (HAL Old Airport Road)",
+   "lat": 12.959952,
+   "lng": 77.643379,
+   "developer": "IBC Group",
+   "bbox": [
+    12.959701,
+    12.960375,
+    77.642658,
+    77.644249
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Simpl",
+    "Zeta",
+    "Bharti Airtel (Xtelify)"
+   ],
+   "description": "Mixed-use complex on HAL Old Airport Road whose commercial towers (A, B, ...) house fintech and SaaS tenants; One Sigma Technologies (Simpl) lists Tower B and an OSM POI places Zeta here. Coordinates and bbox are the OSM commercial-block polygon.",
+   "sources": [
+    "https://www.leikart.com/leicert/335800IB93TD492C9Z13",
+    "https://www.openstreetmap.org/node/13563559848"
+   ]
+  },
+  {
+   "name": "EPIP Zone Whitefield",
+   "aliases": [
+    "Export Promotion Industrial Park",
+    "EPIP Industrial Area",
+    "EPIP Brookefield"
+   ],
+   "locality": "Whitefield / Brookefield (Kundalahalli-Hoodi)",
+   "developer": "KIADB",
+   "lat": 12.978,
+   "lng": 77.723,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Qualcomm",
+    "AMD",
+    "Microchip Technology",
+    "Broadridge Financial Solutions",
+    "Nielsen",
+    "Nagarro",
+    "Bharti Airtel (Nxtra Data DC)"
+   ],
+   "description": "KIADB's export-promotion industrial estate between Kundalahalli and ITPL; the plot-numbered campuses of Qualcomm (Plot 24, Block 1), AMD (Plot 102-103) and Microchip (Plot 149-B) make it the oldest chip-design cluster in Whitefield.",
+   "sources": [
+    "https://www.openstreetmap.org/node/3743283303",
+    "https://www.openstreetmap.org/node/1821738998",
+    "https://www.openstreetmap.org/node/3440420564"
+   ]
+  },
+  {
+   "name": "Divyasree Technopolis",
+   "aliases": [
+    "DivyaSree Technopolis"
+   ],
+   "locality": "Yemalur / Old Airport Road",
+   "developer": "DivyaSree",
+   "lat": 12.94725,
+   "lng": 77.69439,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Sprinklr",
+    "Aditya Birla Lifestyle Brands (Madura Fashion & Lifestyle)"
+   ],
+   "description": "DivyaSree Developers' office campus on Old Airport Road at Yemalur (near its 77 East and 77 Town Centre projects); Sprinklr's Bengaluru office is the 3rd-floor East Wing. The point is a geocode of the adjacent DivyaSree 77 East, so treat it as approximate.",
+   "sources": [
+    "https://builtinbengaluru.in/company/sprinklr/offices"
+   ]
+  },
+  {
+   "name": "Aurbis Business Park",
+   "aliases": [],
+   "locality": "Devarabeesanahalli (Outer Ring Road)",
+   "developer": null,
+   "lat": 12.930081,
+   "lng": 77.68686,
+   "bbox": [
+    12.929594,
+    12.930422,
+    77.686611,
+    77.687026
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "eBay",
+    "Tata Technologies"
+   ],
+   "description": "Office building on the ORR at Devarabeesanahalli, west of Embassy TechVillage; OSM maps an eBay office inside it.",
+   "sources": []
+  },
+  {
+   "name": "Prestige Shantiniketan",
+   "aliases": [
+    "Prestige Shantiniketan Business Precinct",
+    "Shantiniketan Crescent"
+   ],
+   "locality": "Whitefield (Hoodi / Whitefield Main Road)",
+   "developer": "Prestige",
+   "lat": 12.988903,
+   "lng": 77.731042,
+   "bbox": null,
+   "areaSqFtMillions": 3.2,
+   "notableTenants": [
+    "ExxonMobil",
+    "Baxter International",
+    "Thermo Fisher Scientific",
+    "Hindustan Unilever",
+    "GE Digital",
+    "Britannia",
+    "TCS",
+    "Capgemini",
+    "Alcon",
+    "Caterpillar",
+    "Nielsen"
+   ],
+   "description": "Prestige Group's 105-acre township in Whitefield whose business precinct holds about 3.2 million sq ft across seven towers, six of them in one crescent-shaped building (Crescent 1 and 2 are ExxonMobil's) and Tower C beside the Nexus mall.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Prestige_Shantiniketan",
+    "https://therealtytoday.com/news/exxonmobil-renews-5-year-lease-for-531-lakh-sq-ft-office-in-bengalurus-whitefield-it-hub",
+    "https://www.openstreetmap.org/way/194740174"
+   ]
+  },
+  {
+   "name": "International Tech Park Bangalore",
+   "aliases": [
+    "ITPL",
+    "ITPB",
+    "International Tech Park Bengaluru"
+   ],
+   "locality": "Whitefield (Pattandur Agrahara, ITPL Main Road)",
+   "developer": "CapitaLand (KIADB-Ascendas)",
+   "lat": 12.985228,
+   "lng": 77.736825,
+   "bbox": [
+    12.981491,
+    12.987764,
+    77.733699,
+    77.739693
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "ExxonMobil",
+    "TCS",
+    "Oracle",
+    "Huawei",
+    "Atos",
+    "Unisys",
+    "Societe Generale",
+    "Mu Sigma",
+    "Applied Materials",
+    "Fujitsu (semiconductor liaison office)"
+   ],
+   "description": "The 1994 India-Singapore joint-venture park (KIADB/Ascendas, now CapitaLand-managed) with buildings named Discoverer, Innovator, Creator, Explorer, Inventor, Navigator, Voyager, Aviator, Pioneer, Victor and Anchor; ExxonMobil leased seven floors of Inventor in July 2026.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/International_Tech_Park,_Bangalore",
+    "https://en.channeliam.com/2026/07/09/exxonmobil-bengaluru-whitefield-office-lease-itpb/",
+    "https://www.openstreetmap.org/way/26399624"
+   ]
+  },
+  {
+   "name": "Embassy GolfLinks Business Park",
+   "aliases": [
+    "EGL",
+    "Embassy Golf Links"
+   ],
+   "locality": "Challaghatta / Domlur (Intermediate Ring Road)",
+   "developer": "Embassy",
+   "lat": 12.950254,
+   "lng": 77.644071,
+   "bbox": [
+    12.945593,
+    12.95396,
+    77.63981,
+    77.647252
+   ],
+   "areaSqFtMillions": 3.4,
+   "notableTenants": [
+    "Dell Technologies",
+    "IBM",
+    "Goldman Sachs",
+    "CBRE"
+   ],
+   "description": "Embassy's 3.4 msf park off the Intermediate Ring Road; Dell's India corporate office is the Crystal Downs building.",
+   "sources": [
+    "https://www.dell.com/en-in/lp/contact-us",
+    "https://www.openstreetmap.org/way/28453683"
+   ]
+  },
+  {
+   "name": "RMZ Ecoworld",
+   "aliases": [
+    "Ecoworld",
+    "RMZ Eco World",
+    "Pritech Park SEZ"
+   ],
+   "locality": "Bellandur / Devarabeesanahalli (Sarjapur-Marathahalli Outer Ring Road)",
+   "developer": "RMZ (Brookfield India REIT)",
+   "lat": 12.9298067,
+   "lng": 77.6846292,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Chevron",
+    "Optum",
+    "Shell",
+    "Honeywell",
+    "Morgan Stanley",
+    "KPMG",
+    "BT",
+    "Fujitsu Research of India"
+   ],
+   "description": "RMZ's Outer Ring Road campus (its SEZ half is registered as Pritech Park SEZ), acquired by Brookfield India REIT in 2021; Chevron's 312,000 sq ft ENGINE centre opened here in October 2025 and Optum's largest Bengaluru site is Campus 5B.",
+   "sources": [
+    "https://news.ventureintelligence.com/private-equity/brookfield-india-reit-to-acquire-bengaluru-office-property-%E2%80%98ecoworld%E2%80%99-for-rs.13%2C125-cr",
+    "https://themachinemaker.com/news/chevron-india-marks-one-year-milestone-of-engine-with-launch-of-new-bengaluru-center/",
+    "https://www.optum.in/contact.html"
+   ]
+  },
+  {
+   "name": "Divyasree 77 Town Centre",
+   "aliases": [
+    "Divyasree 77 Town Center",
+    "77 Town Centre"
+   ],
+   "locality": "Yemalur / Kadubeesanahalli",
+   "developer": "DivyaSree",
+   "lat": 12.949653,
+   "lng": 77.69086,
+   "bbox": [
+    12.946169,
+    12.95203,
+    77.688409,
+    77.692613
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Deloitte",
+    "Thomson Reuters",
+    "Fujitsu Consulting India"
+   ],
+   "description": "DivyaSree's mixed-use office campus at Yemalur between the Outer Ring Road and the airport road; OpenStreetMap records Deloitte and Thomson Reuters offices inside it (unconfirmed elsewhere).",
+   "sources": [
+    "https://www.openstreetmap.org/node/9828082757"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "Larsen & Toubro",
+   "aliases": [
+    "L&T",
+    "Larsen and Toubro Limited",
+    "L&T Precision Engineering & Systems",
+    "L&T Construction"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Engineering, construction & defence conglomerate",
+   "description": "India's largest engineering and construction conglomerate (parent of LTIMindtree and LTTS). In Bengaluru it owns the 65-acre L&T campus on Bellary Road at Byatarayanapura (home to L&T Realty's Tech Park and group companies) and keeps state offices for its infrastructure (L&T Construction) and Precision Engineering & Systems verticals; its Strategic Electronics Centre and the new L&T Electronic Products & Systems vertical (announced April 2026) are also Bengaluru-based.",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 1938,
+   "website": "https://www.larsentoubro.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "L&T Campus, Bellary Road (L&T Tech Park / group campus)",
+     "techPark": "L&T Tech Park",
+     "building": null,
+     "locality": "Byatarayanapura (Bellary Road, Hebbal)",
+     "address": "L&T Campus, Bellary Road, Byatarayanapura Village (next to GKVK), Bengaluru 560092",
+     "lat": 13.068558,
+     "lng": 77.592108,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "L&T Realty says Tech Park 1 is 'situated within the expansive 65-acre L&T campus in Hebbal, North Bangalore' (https://www.lntrealty.com/offices/lt-tech-park-1/); an SEZ notification for L&T Realty Developers names 'L & T Campus, Bellary Road, Byatarayanapura Village, Next to GKVK' (https://sezindia.gov.in/hi/node/1244) and a second SEZ was notified for L&T Construction Equipment Ltd (Realty Division) in Byatarayanapura (https://sezindia.gov.in/node/1251). Coordinates are the OSM L&T Tech Park Phase 1 polygon, not a specific L&T Ltd building.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Infrastructure vertical (L&T Construction) Karnataka office",
+     "techPark": null,
+     "building": null,
+     "locality": "High Grounds (Kumara Krupa Road)",
+     "address": "1st & 2nd Floor, No. 19-4/5, Kumarakrupa Road, High Grounds, Bengaluru 560001",
+     "lat": 12.991208,
+     "lng": 77.5826267,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "A GST-registry aggregator lists Larsen and Toubro Limited - Infrastructure Vertical (GSTIN 29AAACL0140P3ZD, active since 1 Jul 2017) at '1st and 2nd Floor, No.19-4/5, Kumarakrupa Road, Bangalore 560001' (https://piceapp.com/gst-number-search/larsen-and-toubro-limited-infrastructure-vertical-29aaacl0140p3zd/); coordinates are the Nominatim centroid of Kumara Krupa Road, not the building.",
+     "geocodeSource": "nominatim (street centroid)"
+    },
+    {
+     "label": "L&T Precision Engineering & Systems office (Komarla Solitaire)",
+     "techPark": null,
+     "building": "Komarla Solitaire",
+     "locality": "C V Raman Nagar / Nagavarapalya (Old Madras Road)",
+     "address": "2nd Floor, 145/2, Komarla Solitaire, Old Madras Road (near Shell petrol pump), C V Raman Nagar, Bengaluru 560093",
+     "lat": 12.9856478,
+     "lng": 77.6649767,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "A GST-registry aggregator lists Larsen & Toubro Limited - L&T Precision Engineering & Systems (GSTIN 29AAACL0140P4ZC, active) at '2nd Floor, 145/2, Komarla Solitaire, Old Madras Road, Shell Petrol Pump, CV Raman Nagar, Bengaluru 560093' (https://piceapp.com/gst-number-search/larsen-toubro-limited-lt-precision-engineering-systems-29aaacl0140p4zc/); coordinates are the Nominatim point for Nagavarapalya, C V Raman Nagar (the building is not in OSM).",
+     "geocodeSource": "nominatim (locality)"
+    }
+   ],
+   "sources": [
+    "https://www.lntrealty.com/offices/lt-tech-park-1/",
+    "https://sezindia.gov.in/hi/node/1244",
+    "https://sezindia.gov.in/node/1251",
+    "https://piceapp.com/gst-number-search/larsen-and-toubro-limited-infrastructure-vertical-29aaacl0140p3zd/",
+    "https://piceapp.com/gst-number-search/larsen-toubro-limited-lt-precision-engineering-systems-29aaacl0140p4zc/",
+    "https://www.larsentoubro.com/pressreleases/2026/2026-04-24-lt-enters-industrial-electronics-segment"
+   ]
+  },
+  {
+   "name": "Kotak Mahindra Bank",
+   "aliases": [
+    "Kotak",
+    "ING Vysya Bank (merged 2015)"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Banking & financial services",
+   "description": "One of India's four largest private-sector banks; it absorbed the Bengaluru-headquartered ING Vysya Bank on 1 April 2015 and keeps ING Vysya's old M G Road building as a branch, with its Karnataka state registration on Lavelle Road.",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 1985,
+   "website": "https://www.kotak.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Karnataka state office (Umiya Landmark, Lavelle Road)",
+     "techPark": null,
+     "building": "Umiya Landmark",
+     "locality": "Lavelle Road (Ashok Nagar, CBD)",
+     "address": "Umiya Landmark, 10/7 Lavelle Road, Bengaluru 560001",
+     "lat": 12.9760251,
+     "lng": 77.5993272,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Kotak's own GST registration list gives Karnataka GSTIN 29AAACK4409J1ZG at 'Umiya Landmark, 10/7, Lavelle Rd, Bangalore' (https://www.kotak.com/content/dam/Kotak/Customer-Service/Important-Customer-Information/Goods-Services-Tax-GST/list-of-our-gst-registration-number.pdf); coordinates are the OSM Umiya Landmark building.",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "ING Vysya House, M G Road (former ING Vysya Bank head office; M G Road branch)",
+     "techPark": null,
+     "building": "ING Vysya House",
+     "locality": "M G Road (CBD)",
+     "address": "22, Ground Floor, ING Vysya House, M G Road, Bengaluru 560001",
+     "lat": 12.9748439,
+     "lng": 77.6083535,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "IFSC directories list Kotak's M G Road branch (KKBK0008066) at '22 Ground Floor, ING Vysya House, M G Road, Bangalore 560001' (https://ifsc.codes.in/ifsccode/KKBK0008066) and Kotak's own ATM list includes 'M G Road 22, Ground Floor, M.G.Road, Bangalore - 560001' (https://kotak.com/content/dam/Kotak/Customer-Service/Important-Customer-Information/list-of-atms/list-of-atm-with-ramp.pdf); coordinates are the OSM 'Kotak Mahindra Bank' node on M G Road, assumed to be this branch.",
+     "geocodeSource": "nominatim (OSM branch node)"
+    }
+   ],
+   "sources": [
+    "https://www.kotak.com/content/dam/Kotak/Customer-Service/Important-Customer-Information/Goods-Services-Tax-GST/list-of-our-gst-registration-number.pdf",
+    "https://kotak.com/content/dam/Kotak/Customer-Service/Important-Customer-Information/list-of-atms/list-of-atm-with-ramp.pdf",
+    "https://ifsc.codes.in/ifsccode/KKBK0008066"
+   ]
+  },
+  {
+   "name": "HDFC Bank",
+   "aliases": [
+    "HDFC Bank Limited",
+    "HDFC House"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Banking & financial services",
+   "description": "India's largest private-sector bank. Its Bengaluru landmark is HDFC House on Kasturba Road, which carries the Kasturba Gandhi Marg branch and a home-loan office; its subsidiary HDFC Securities opened a technology centre in Bengaluru in September 2024 (location not published).",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 1994,
+   "website": "https://www.hdfc.bank.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HDFC House, Kasturba Road (Kasturba Gandhi Marg branch and home-loan office)",
+     "techPark": null,
+     "building": "HDFC House",
+     "locality": "Kasturba Road (CBD)",
+     "address": "24/3 HDFC House, No. 51 Kasturba Road, Bengaluru 560001",
+     "lat": 12.973396,
+     "lng": 77.595562,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "OSM maps an office building tagged brand 'HDFC Bank' at 24/3, 51 Kasturba Road, 560001 (https://www.openstreetmap.org/way/52060141); IFSC listings place branch HDFC0000009 'Bangalore - Kasturba Gandhi Marg' at '24/3 HDFC House, No. 51 Kasturba Road, Bangalore 560001' (https://www.bankbazaar.com/ifsc-code/hdfc-bank/karnataka/bangalore-urban/bangalore-kasturba-gandhi-marg-branch.html), and HDFC Bank's own locator lists a 'Kasturba Road Home Loan' office (https://www.hdfc.bank.in/branch-locator/karnataka/bengaluru/hdfcbank-branch-kasturbaroadhomeloan).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/52060141",
+    "https://www.bankbazaar.com/ifsc-code/hdfc-bank/karnataka/bangalore-urban/bangalore-kasturba-gandhi-marg-branch.html",
+    "https://www.hdfc.bank.in/branch-locator/karnataka/bengaluru/hdfcbank-branch-kasturbaroadhomeloan",
+    "https://cxotoday.com/media-coverage/hdfc-securities-unveils-technology-centre-in-bengaluru-to-drive-innovation-and-digital-transformation/"
+   ]
+  },
+  {
+   "name": "Tata Consumer Products",
+   "aliases": [
+    "TCPL",
+    "Tata Coffee",
+    "Tata Global Beverages"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Consumer goods (tea, coffee, foods) and coffee plantations",
+   "description": "Tata group's listed food and beverage company (Tata Tea, Tetley, Tata Salt, Eight O'Clock). Tata Coffee, long headquartered in Bengaluru, merged into it on 1 January 2024; Tata Coffee's office and TCPL's Karnataka regional office now share Kirloskar Business Park in Hebbal, with the coffee estates run from Pollibetta in Kodagu.",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": null,
+   "website": "https://www.tataconsumer.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Karnataka regional office and Tata Coffee office (Kirloskar Business Park)",
+     "techPark": "Kirloskar Business Park",
+     "building": "Block C",
+     "locality": "Hebbal (Bellary Road)",
+     "address": "3rd & 4th Floor, Block C, Kirloskar Business Park, Hebbal, Bengaluru 560024",
+     "lat": 13.051598,
+     "lng": 77.595088,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Tata Consumer's 'Regional Office - Karnataka' page gives '3rd and 4th floor, Kirloskar Business Park, Hebbal, Bangalore 560 024' (https://www.tataconsumer.com/regional-office-karnataka) and Tata Coffee's contact page lists its registered office at 'Kirloskar Business Park, 3rd & 4th Floor, Block C, Hebbal, Hebbal Kempapura, Bengaluru 560024' (https://www.tatacoffee.com/contact-us); Tata Coffee's earlier HQ at 57 Railway Parallel Road, Kumara Park West (2019 filing) is no longer listed. Coordinates are the OSM Kirloskar Business Park polygon.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.tataconsumer.com/regional-office-karnataka",
+    "https://www.tatacoffee.com/contact-us",
+    "https://en.wikipedia.org/wiki/Tata_Coffee",
+    "https://www.tatacoffee.com/sites/default/files/collaterals/investors/Press_Release_22102019.pdf"
+   ]
+  },
+  {
+   "name": "Reliance Industries",
+   "aliases": [
+    "Reliance",
+    "Reliance Jio Infocomm",
+    "Jio Platforms",
+    "Reliance Retail",
+    "AJIO",
+    "Reliance Trends"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Conglomerate (telecom, retail, energy)",
+   "description": "India's largest company by market value. In Bengaluru its Jio telecom business keeps a Karnataka office at RMZ Icon on Palace Cross Road, and its online fashion store AJIO (Reliance Retail) is Bengaluru-headquartered; the exact AJIO office is reported inconsistently by third-party directories.",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 1973,
+   "website": "https://www.ril.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Reliance Jio Infocomm - Karnataka office (RMZ Icon)",
+     "techPark": null,
+     "building": "RMZ Icon",
+     "locality": "Vasanth Nagar (Palace Cross Road)",
+     "address": "RMZ Icon Building, No. 51, Palace Cross Road, Bengaluru 560052",
+     "lat": 12.9903809,
+     "lng": 77.5881978,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "TRAI's consumer-contact directory lists Reliance Jio Infocomm Limited (Karnataka) at 'RCITPL. RMZ Icon Building, No. 51, Palace Cross Road, Bengaluru- 560052' (https://www.trai.gov.in/taxonomy/term/3767?page=3); coordinates are the OSM RMZ Icon building.",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "AJIO headquarters (Reliance Retail online fashion)",
+     "techPark": null,
+     "building": "SS Plaza",
+     "locality": "BTM Layout 1st Stage (Outer Ring Road)",
+     "address": "3rd Floor, SS Plaza, 74/2 Outer Ring Road, 29th Main Road, BTM 1st Stage, Bengaluru (unconfirmed)",
+     "lat": 12.9168654,
+     "lng": 77.6003044,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "CB Insights gives AJIO's headquarters as '3rd Floor, SS Plaza, 74/2 Outer Ring Road, 29th Main Road, BTM 1st Stage, BTM Layout, Bangalore' (https://www.cbinsights.com/company/ajio/financials), but Datanyze instead gives 'Prestige Feroze Building, Cunningham Rd, Fl 1, No 74, Bengaluru 560002' (https://www.datanyze.com/companies/ajio/384778625) and Reliance's own pages name no address; coordinates are a BTM 1st Stage / ORR point, not the building.",
+     "geocodeSource": "nominatim (locality)"
+    }
+   ],
+   "sources": [
+    "https://www.trai.gov.in/taxonomy/term/3767?page=3",
+    "https://www.cbinsights.com/company/ajio/financials",
+    "https://www.datanyze.com/companies/ajio/384778625",
+    "https://relianceretail.com/ajio.html"
+   ]
+  },
+  {
+   "name": "Bharti Airtel",
+   "aliases": [
+    "Airtel",
+    "Xtelify",
+    "Nxtra Data"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Telecommunications",
+   "description": "India's second-largest telecom operator. Its Karnataka circle office is in Divyashree Towers on Bannerghatta Road, its digital arm Xtelify (formerly Airtel Digital) is registered there and at Diamond District on HAL Airport Road, and its data-centre subsidiary Nxtra runs a Bengaluru facility in the EPIP Zone.",
+   "hqCity": "New Delhi",
+   "hqCountry": "India",
+   "founded": 1995,
+   "website": "https://www.airtel.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Karnataka circle office (Divyashree Towers)",
+     "techPark": "DivyaSree Towers",
+     "building": null,
+     "locality": "Bannerghatta Road / BTM Layout 1st Stage",
+     "address": "No. 55, Divyashree Towers, Bannerghatta Main Road, Bengaluru 560029",
+     "lat": 12.919114,
+     "lng": 77.600694,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Airtel's own broadband appellate page lists the Karnataka office as 'Bharti Airtel Limited, No 55, divyashree towers, Bannerghatta Road Bangalore - 560029' (https://www.airtel.in/broadband-appellate/) and TRAI's directory gives the same address (https://trai.gov.in/taxonomy/term/3722); coordinates are the OSM DivyaSree Towers footprint.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Xtelify (Airtel digital) office, Diamond District Tower B",
+     "techPark": "Diamond District",
+     "building": "Tower B",
+     "locality": "Kodihalli (HAL Old Airport Road)",
+     "address": "Corporate Tower B, No. 150, Diamond District, HAL Airport Road, Kodihalli, Bengaluru 560008",
+     "lat": 12.959952,
+     "lng": 77.643379,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "A GST-registry aggregator lists Xtelify Limited (GSTIN 29AABCW6047M1ZR, registered 13 Jul 2020) with its principal place at 55 DivyaSree Towers and an additional place at 'corporate tower B-9, No 150, Diamond District, HAL Airport Road, Kodihalli, Bengaluru 560008' (https://piceapp.com/gst-number-search/xtelify-limited-29aabcw6047m1zr/); coordinates are the Diamond District complex.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Nxtra Data Bangalore DC 1 (Airtel data-centre subsidiary)",
+     "techPark": "EPIP Zone Whitefield",
+     "building": "Nxtra Data Bangalore DC 1",
+     "locality": "EPIP Zone, Whitefield",
+     "address": "Plot 111 & 112, Vijayanagar, EPIP Zone, Whitefield, Bengaluru 560066",
+     "lat": 12.979886,
+     "lng": 77.725227,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "PeeringDB facility 2500, 'Nxtra Data Bangalore DC 1', operated by Nxtra Data Ltd, is at 'Plot No: 111 & 112, Vijayanagar, EPIP Zone, Whitefield, Bengaluru 560066' with the listed coordinates used here (https://www.peeringdb.com/api/fac/2500).",
+     "geocodeSource": "peeringdb"
+    }
+   ],
+   "sources": [
+    "https://www.airtel.in/broadband-appellate/",
+    "https://trai.gov.in/taxonomy/term/3722",
+    "https://piceapp.com/gst-number-search/xtelify-limited-29aabcw6047m1zr/",
+    "https://www.peeringdb.com/api/fac/2500"
+   ]
+  },
+  {
+   "name": "Aditya Birla Lifestyle Brands",
+   "aliases": [
+    "ABLBL",
+    "Madura Fashion & Lifestyle",
+    "Aditya Birla Fashion & Retail (Madura division)",
+    "ABFRL"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Apparel brands (Louis Philippe, Van Heusen, Allen Solly, Peter England)",
+   "description": "The Aditya Birla group's branded-apparel company, formerly the Madura Fashion & Lifestyle division of Aditya Birla Fashion & Retail, which owns Louis Philippe, Van Heusen, Allen Solly and Peter England; its corporate office is in Bengaluru and its registered office in Mumbai.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": null,
+   "website": "https://www.ablbl.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office (Divyashree Technopolis, Building 2)",
+     "techPark": "Divyasree Technopolis",
+     "building": "Building 2",
+     "locality": "Yemalur (off HAL Old Airport Road)",
+     "address": "Kh No. 118/110/1, Building 2, Divyashree Technopolis, Yemalur Main Road, off HAL Airport Road, Bengaluru 560037",
+     "lat": 12.94725,
+     "lng": 77.69439,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "ABLBL's contact page gives 'Aditya Birla Lifestyle Brands Limited Corporate Office: Kh No. 118/110/1, Building 2, Divyashree Technopolis, Yemalur Main Rd, off HAL Airport Road, Bengaluru- 560037' with the registered office at Piramal Agastya Corporate Park, Mumbai (https://ablbl.in/contact-us); a business directory gives the same Divyasree Technopolis address for ABFRL. Madura's older Regent Gateway (ITPL Road) address dates from c.2015. Coordinates are the Divyasree Technopolis campus point.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://ablbl.in/contact-us",
+    "https://www.abfrl.com/contact-us/",
+    "https://www.fibre2fashion.com/services/promotion/enhanced-sustainability/madurafnl.asp"
+   ]
+  },
+  {
+   "name": "Tata Technologies",
+   "aliases": [
+    "Tata Technologies Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Engineering & product development services",
+   "description": "Pune-headquartered, listed engineering-services company of the Tata group (automotive and aerospace product engineering, digital manufacturing); it runs two Bengaluru delivery offices on the Outer Ring Road side of east Bengaluru.",
+   "hqCity": "Pune",
+   "hqCountry": "India",
+   "founded": 1989,
+   "website": "https://www.tatatechnologies.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru - Aurbis Business Park",
+     "techPark": "Aurbis Business Park",
+     "building": null,
+     "locality": "Devarabeesanahalli (Outer Ring Road)",
+     "address": "1st Floor, Aurbis Business Park, #283/58/7, Devarabeesanahalli Village, Varthur Hobli, Bengaluru 560103",
+     "lat": 12.930081,
+     "lng": 77.68686,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Tata Technologies' contact page lists 'India - Bengaluru, Aurbis business park: Tata Technologies Ltd. 1st Floor, Aurbis Business Park, #283/58/7, Devarabeesanahalli Village, Varthur Hobli, Bengaluru East - 560 103, Tel +91 80 49022700' (https://www.tatatechnologies.com/contact-us/); coordinates are the OSM Aurbis Business Park building.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Bengaluru - Salarpuria Supreme",
+     "techPark": null,
+     "building": "Salarpuria Supreme",
+     "locality": "Munnekolalu / Panathur (Marathahalli)",
+     "address": "Ground & 3rd Floor, Salarpuria Supreme, Khata No. 137, Survey No. 92/5, Munnekolalu Village, Varthur Hobli, Bengaluru 560037",
+     "lat": 12.9528274,
+     "lng": 77.6986647,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Tata Technologies' contact page lists 'India - Bengaluru, Salarpuria Supreme: Tata Technologies Ltd. Ground & 3rd Floor, Salarpuria Supreme, Khata No. 137, Survey No. 92/5, Munnekolalu Village, Varthur Hobli, Bengaluru South Taluk - 560 037' (https://www.tatatechnologies.com/contact-us/); coordinates are the OSM Salarpuria Supreme building.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.tatatechnologies.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Cipla",
+   "aliases": [
+    "Cipla Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Pharmaceuticals",
+   "description": "One of India's three largest pharmaceutical companies; it manufactures in Bengaluru at a US FDA-inspected plant in Virgonagar on Old Madras Road and lists a second Bengaluru plant on the Bommasandra-Jigani Link Road.",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 1935,
+   "website": "https://www.cipla.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Virgonagar manufacturing facility",
+     "techPark": null,
+     "building": null,
+     "locality": "Virgonagar (Old Madras Road)",
+     "address": "Virgonagar Industrial Estate, 10th Main, Old Madras Road, Bengaluru 560049",
+     "lat": 13.032047,
+     "lng": 77.7314567,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Cipla told the BSE that the USFDA inspected 'the Company's manufacturing facility in Virgonagar, Bengaluru' from 7-13 Nov 2024 (https://medicaldialogues.in/news/industry/pharma/cipla-gets-8-usfda-observations-for-virgonagar-facility-138060); Cipla's plant list gives 'Virgonagar, Old Madras Road, Bengaluru 560049' (https://voguestock.in/fundamental/locations/cipla-ltd). Coordinates are the OSM 'Cipla' node in Virgonagar.",
+     "geocodeSource": "nominatim (OSM node)"
+    },
+    {
+     "label": "Bommasandra-Jigani Link Road plant (KIADB 4th Phase)",
+     "techPark": null,
+     "building": null,
+     "locality": "Bommasandra-Jigani Link Road (KIADB 4th Phase)",
+     "address": "Bommasandra-Jigani Link Road, KIADB Industrial Area 4th Phase, Bengaluru 560105",
+     "lat": 12.8010236,
+     "lng": 77.6617985,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Cipla's plant list on a stock-data site includes a factory at 'Bommasandra-Jigani Link Road, Industrial Area, KIADB 4th Phase, Bengaluru, Pincode 560105' (https://voguestock.in/fundamental/locations/cipla-ltd); coordinates are a Nominatim point on the Jigani industrial road, not the plant itself.",
+     "geocodeSource": "nominatim (road)"
+    }
+   ],
+   "sources": [
+    "https://medicaldialogues.in/news/industry/pharma/cipla-gets-8-usfda-observations-for-virgonagar-facility-138060",
+    "https://voguestock.in/fundamental/locations/cipla-ltd",
+    "https://indiainfoline.com/news/business/ciplas-bengaluru-plant-gets-usfda-vai-status"
+   ]
+  },
+  {
+   "name": "Broadridge Financial Solutions",
+   "aliases": [
+    "Broadridge",
+    "Broadridge India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Fintech / financial-services technology",
+   "description": "US Fortune 500 provider of investor-communications and capital-markets technology whose technology centres are in India; its Bangalore office is in DivyaSree NR Enclave in the EPIP Zone, alongside offices in Hyderabad and Mumbai.",
+   "hqCity": "Lake Success, New York",
+   "hqCountry": "United States",
+   "founded": 2007,
+   "website": "https://www.broadridge.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bangalore office (DivyaSree NR Enclave)",
+     "techPark": "EPIP Zone Whitefield",
+     "building": "DivyaSree NR Enclave",
+     "locality": "EPIP Zone, Whitefield",
+     "address": "Divyasree NR Enclave, Plot No. 1, EPIP Industrial Area, Whitefield, Bengaluru 560066",
+     "lat": 12.986681,
+     "lng": 77.730731,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Broadridge's contact page lists 'India Bangalore: Divyasree NR Enclave, Plot No-1, EPIP Industrial Area, Whitefield, Bangalore - 560066, Karnataka, +91 8061462450' (https://www.broadridge.com/contact-us); OSM has a 'Broadridge' office node in that building, whose coordinates are used.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.broadridge.com/contact-us",
+    "https://www.openstreetmap.org/node/12060903980",
+    "https://builtinbengaluru.in/company/broadridge"
+   ]
+  },
+  {
+   "name": "First American (India)",
+   "aliases": [
+    "First American Financial Corporation",
+    "First American India Pvt Ltd",
+    "FAI"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Title insurance & settlement services (captive GCC)",
+   "description": "India capability centre of US Fortune 500 title insurer First American Financial; Bengaluru is the first of its three Indian campuses (with Hyderabad and Salem), doing software development and back-office work for the US, UK, Australia and Canada.",
+   "hqCity": "Santa Ana, California",
+   "hqCountry": "United States",
+   "founded": 1889,
+   "website": "https://www.firstam.co.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Campus 1 - Aveda Meta Building (India headquarters)",
+     "techPark": null,
+     "building": "Aveda Meta",
+     "locality": "Indiranagar (Old Madras Road)",
+     "address": "1st Floor, Aveda Meta Building, No. 184 Old Madras Road, Indiranagar, Bengaluru 560038",
+     "lat": 12.9859128,
+     "lng": 77.6449072,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "First American India's site lists 'CAMPUS 1 First American (India) Pvt Ltd, 1st floor, Aveda Meta Building, No 184 BBMP PID No 82-105-8/1 Old Madras Road, Indira Nagar PO, Bengaluru 560038' (https://www.firstam.co.in/contact-us); the building is opposite Swami Vivekananda Road metro station, whose OSM point is used as an approximate coordinate.",
+     "geocodeSource": "nominatim (adjacent metro station)"
+    }
+   ],
+   "sources": [
+    "https://www.firstam.co.in/contact-us",
+    "https://www.firstam.co.in/",
+    "https://www.greatplacetowork.in/great/company/first-american-india-pvt-ltd"
+   ]
+  },
+  {
+   "name": "Nielsen",
+   "aliases": [
+    "The Nielsen Company",
+    "Nielsen India",
+    "Nielsen Media"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Audience measurement & media analytics",
+   "description": "US audience-measurement and media-analytics company (separate from NielsenIQ since 2021); in March 2025 it opened a 1,36,000 sq ft Whitefield office leased from Chalet Hotels, alongside its existing Prestige Shantiniketan office.",
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "founded": 1923,
+   "website": "https://www.nielsen.com/india",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Shantiniketan, Crescent 4",
+     "techPark": "Prestige Shantiniketan",
+     "building": "Crescent 4",
+     "locality": "Whitefield (ITPL Main Road)",
+     "address": "1st Floor, Crescent 4, Prestige Shantiniketan, ITPL Main Road, Whitefield, Bengaluru 560048",
+     "lat": 12.988903,
+     "lng": 77.731042,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Nielsen's India locations page lists 'Bangalore Crescent 4, 1st floor, Prestige Shantiniketan, ITPL main road, Whitefield, 560048' (https://www.nielsen.com/india); coordinates are the Prestige Shantiniketan campus point.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Cignus 2, EPIP Zone (opened March 2025)",
+     "techPark": "EPIP Zone Whitefield",
+     "building": "Cignus 2 (CIGNUS Whitefield)",
+     "locality": "EPIP Zone, Whitefield",
+     "address": "Cignus 2, Plot No. 75, 8th Road, EPIP Zone, Whitefield, Bengaluru 560066",
+     "lat": 12.9795584,
+     "lng": 77.7281774,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Nielsen's India page lists 'Cignus 2, Plot No.75, 8th Rd, near Bus Stop, EPIP Zone, Whitefield, Bengaluru 560066' (https://www.nielsen.com/india), and Nielsen announced on 10 Mar 2025 a Whitefield office of 1,36,000 sq ft leased from Chalet Hotels (https://realtynmore.com/nielsen-inaugurates-new-offices-in-india-eyes-growth-and-tech-innovation); coordinates are the OSM Marriott hotel on the same Chalet plot on 8th Road, EPIP.",
+     "geocodeSource": "nominatim (adjacent building on plot)"
+    }
+   ],
+   "sources": [
+    "https://www.nielsen.com/india",
+    "https://realtynmore.com/nielsen-inaugurates-new-offices-in-india-eyes-growth-and-tech-innovation",
+    "https://cxotoday.com/press-release/nielsen-inaugurates-new-offices-in-india-eying-growth-and-tech-innovation/"
+   ]
+  },
+  {
+   "name": "Fujitsu",
+   "aliases": [
+    "Fujitsu Consulting India",
+    "FCIPL",
+    "Fujitsu Research of India",
+    "Fujitsu Solutions India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services & research",
+   "description": "Japanese Fortune Global 500 IT company. In Bengaluru it runs its India Global Delivery Unit (Fujitsu Consulting India) at 77 Town Centre in Yemalur, the Fujitsu Research of India lab in the Ecoworld campus, a semiconductor liaison office at ITPL and a Fujitsu Solutions India office on Residency Road.",
+   "hqCity": "Tokyo",
+   "hqCountry": "Japan",
+   "founded": 1935,
+   "website": "https://global.fujitsu/en-apac/local/about/india",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Fujitsu Consulting India - India Global Delivery Unit (77 Town Centre, Building N)",
+     "techPark": "Divyasree 77 Town Centre",
+     "building": "Building N",
+     "locality": "Yemalur (Old HAL Airport Road)",
+     "address": "Building N, 77 Town Center, Old HAL Airport Road, Yemalur, Bengaluru 560037",
+     "lat": 12.949653,
+     "lng": 77.69086,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Fujitsu's India page says FCIPL is 'home to Fujitsu's India Global Delivery Unit' and lists its Bangalore office at 'Building N, 77 Town Center, Old HAL Airport Road, Bellandur, Bangalore 560037', and Fujitsu's India contact page gives the same address (https://global.fujitsu/en-apac/local/about/india, https://global.fujitsu/en-apac/support/india; read via search-result extracts because direct fetches were rate-limited). Coordinates are the Divyasree 77 Town Centre campus.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Fujitsu Research of India (Ecoworld 30)",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 32 (Ecoworld 30)",
+     "locality": "Bhoganahalli / Bellandur (Outer Ring Road)",
+     "address": "Campus 32, Ecoworld 30 Series, Bhoganahalli, Varthur Hobli, Bengaluru 560103",
+     "lat": 12.9298067,
+     "lng": 77.6846292,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Fujitsu's India page lists Fujitsu Research of India at 'Campus 32, Ecoworld 30 Series, Bhoganahalli, Varthur Hobli, Bengaluru East 560103' (https://global.fujitsu/en-apac/local/about/india, read via a search-result extract); coordinates are the RMZ Ecoworld campus point, not the building.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Fujitsu semiconductor liaison office (ITPL)",
+     "techPark": "International Tech Park Bangalore",
+     "building": null,
+     "locality": "Whitefield (ITPL)",
+     "address": "International Tech Park, Whitefield Road, Bengaluru 560066",
+     "lat": 12.985228,
+     "lng": 77.736825,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Fujitsu's India page lists a Fujitsu Semiconductors liaison office at International Tech Park, Whitefield Road, Bengaluru 560066 (https://global.fujitsu/en-apac/local/about/india, read via a search-result extract); coordinates are the ITPB campus centroid.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Fujitsu Solutions India (WeWork, Residency Road)",
+     "techPark": null,
+     "building": "WeWork Galaxy",
+     "locality": "Residency Road (Ashok Nagar, CBD)",
+     "address": "WeWork, Residency Road, Bengaluru 560025",
+     "lat": 12.9735712,
+     "lng": 77.6087644,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Fujitsu's India page lists Fujitsu Solutions India in a WeWork space on Residency Road, Bengaluru 560025 (https://global.fujitsu/en-apac/local/about/india, read via a search-result extract); coordinates are the OSM WeWork Galaxy, 43 Residency Road, assumed to be that WeWork.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://global.fujitsu/en-apac/local/about/india",
+    "https://global.fujitsu/en-apac/support/india"
+   ]
+  },
+  {
+   "name": "CBRE",
+   "aliases": [
+    "CBRE South Asia",
+    "CBRE Group"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Commercial real-estate services",
+   "description": "US Fortune 500 commercial real-estate services firm; its Bengaluru office for CBRE South Asia is in the Sunriver building at Embassy GolfLinks.",
+   "hqCity": "Dallas",
+   "hqCountry": "United States",
+   "founded": 1906,
+   "website": "https://www.cbre.co.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office (Sunriver, Embassy GolfLinks)",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Sunriver",
+     "locality": "Challaghatta / Domlur (Intermediate Ring Road)",
+     "address": "5th Floor, Wing A, Sunriver Building, Embassy GolfLinks Business Park, off Intermediate Ring Road, Bengaluru 560071",
+     "lat": 12.950254,
+     "lng": 77.644071,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "A customer-care directory lists CBRE South Asia at 'Embassy Golf Links Business Park, Sunriver Building, 5th Floor - Wing A, Off Intermediate Ring Road, Bengaluru 560071, 080-40740000' (https://www.indiacustomercare.com/cbre-customer-care-no), and a May 2025 CBRE walk-in drive used the same 5th floor, Sunriver block (https://careerforfreshers.com/jobs/cbre-walk-in-drive-2025-3rd-may-2025/); coordinates are the EGL campus point.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.indiacustomercare.com/cbre-customer-care-no",
+    "https://careerforfreshers.com/jobs/cbre-walk-in-drive-2025-3rd-may-2025/"
+   ]
+  },
+  {
+   "name": "LKQ India",
+   "aliases": [
+    "LKQ Corporation",
+    "LKQ India Pvt Ltd",
+    "Keystone Automotive Operations"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive parts distribution (captive GCC)",
+   "description": "Knowledge hub of US Fortune 500 alternative auto-parts distributor LKQ Corporation, a subsidiary of its Keystone Automotive arm; started in 2008, it has 1,100+ staff in Bengaluru doing IT infrastructure, security operations, development and business services.",
+   "hqCity": "Chicago",
+   "hqCountry": "United States",
+   "founded": 1998,
+   "website": "https://lkqcorp.com/blog/global-presence/brand/lkq-india/",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": 1100,
+   "offices": [
+    {
+     "label": "LKQ India (Primeco Towers, Bannerghatta Road)",
+     "techPark": null,
+     "building": "SJR Primeco Towers",
+     "locality": "Arekere / Bilekahalli (Bannerghatta Road)",
+     "address": "7th Floor, SJR Primeco Towers, Bilekahalli, Bannerghatta Main Road, Bengaluru 560076",
+     "lat": 12.8916815,
+     "lng": 77.5963728,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "LKQ's own page says 'the India operations at Bengaluru today has 1100+ strong ... with a state-of-the-art facility at Primero Towers, Bannerghatta Main Road, Bengaluru' (https://lkqcorp.com/blog/global-presence/brand/lkq-india/), and the entity's LEI record gives 'PrimeCo Towers 7th Floor, Bilekehalli Village, Begur Hobli, Bangalore 560076' (https://lei.bloomberg.com/leis/view/254900CYZ1UH22ERRY58); coordinates are the OSM SJR Primeco Towers building.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://lkqcorp.com/blog/global-presence/brand/lkq-india/",
+    "https://lei.bloomberg.com/leis/view/254900CYZ1UH22ERRY58"
+   ]
+  },
+  {
+   "name": "Nagarro",
+   "aliases": [
+    "Nagarro SE"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services & digital engineering",
+   "description": "Munich-headquartered, Frankfurt-listed digital-engineering company with most of its workforce in India; its Bengaluru office is a COWRKS managed space in the EPIP Zone, Whitefield.",
+   "hqCity": "Munich",
+   "hqCountry": "Germany",
+   "founded": 1996,
+   "website": "https://www.nagarro.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office (COWRKS, Block 1B, EPIP)",
+     "techPark": "EPIP Zone Whitefield",
+     "building": "COWRKS Block 1B",
+     "locality": "EPIP Zone, Whitefield",
+     "address": "COWRKS, Block 1B, EPIP Industrial Area, Whitefield Road (near SAP Labs), Bengaluru 560066",
+     "lat": 12.9793161,
+     "lng": 77.7154616,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Nagarro's contact page lists 'Bengaluru Cowrks - Block 1B, EPIP Industrial Area Whitefield Road, Hobli, near SAP Labs, Krishnarajapuram, Bengaluru, KA 560066' (https://nagarro.com/en/contact-us, fetched Oct 2026; an earlier indexed version gave WeWork, RMZ Latitude Commercial, Bellary Road); coordinates are the OSM SAP Labs EPIP campus the address cites as a landmark, not the building.",
+     "geocodeSource": "nominatim (landmark)"
+    }
+   ],
+   "sources": [
+    "https://nagarro.com/en/contact-us",
+    "https://builtinbengaluru.in/company/nagarro"
+   ]
+  },
+  {
+   "name": "Computacenter",
+   "aliases": [
+    "Computacenter India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services & infrastructure",
+   "description": "UK-headquartered, FTSE-listed IT infrastructure and services company; in May 2024 it opened its India headquarters and a 3,300+ seat service centre in Bren Artimus on Hosur Road, Bengaluru.",
+   "hqCity": "Hatfield",
+   "hqCountry": "United Kingdom",
+   "founded": 1981,
+   "website": "https://www.computacenter.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India headquarters and Service Center (Bren Artimus)",
+     "techPark": null,
+     "building": "Bren Artimus",
+     "locality": "Adugodi / S G Palya (Hosur Road)",
+     "address": "Bren Artimus, Hosur Road (opposite Christ University), Dairy Colony, Adugodi, Bengaluru 560029",
+     "lat": 12.937299,
+     "lng": 77.60585,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Computacenter announced on 20 May 2024 'its new India headquarters and state-of-the-art Service Center in Bengaluru ... located at Bren Artimus, a 3,300+ seat facility' (https://www.computacenter.com/en/who-we-are/news/computacenter-inaugurates-new-office-in-bengaluru-kormangala), and its locations page gives 'Computacenter India, Bren Artimus, Hosur Rd, opposite Christ University, Dairy Colony, Adugodi, Bengaluru 560029' (https://www.computacenter.com/en/who-we-are/locations); coordinates are the OSM Computacenter office node at Bren Artimus.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.computacenter.com/en/who-we-are/news/computacenter-inaugurates-new-office-in-bengaluru-kormangala",
+    "https://www.computacenter.com/en/who-we-are/locations",
+    "https://www.openstreetmap.org/node/12020031293"
+   ]
+  },
+  {
+   "name": "Johnson Controls",
+   "aliases": [
+    "Johnson Controls (India) Pvt Ltd",
+    "JCI"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Building technology (HVAC, fire, security)",
+   "description": "Ireland-domiciled building-technology major; in Bengaluru it has a branch and sales office in Indiranagar. Its own India page lists its engineering and R&D centres in Pune, Gurugram, Hyderabad and Mumbai, not Bengaluru.",
+   "hqCity": "Cork",
+   "hqCountry": "Ireland",
+   "founded": 1885,
+   "website": "https://www.johnsoncontrols.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bangalore branch / sales office (Delphina Building)",
+     "techPark": null,
+     "building": "Delphina Building",
+     "locality": "Indiranagar 1st Stage (CMH Road)",
+     "address": "Delphina Building, No. 507, CMH Road, Indiranagar 1st Stage, Bengaluru 560038",
+     "lat": 12.9785334,
+     "lng": 77.6437489,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Johnson Controls India's contact page lists, under Branch/Sales Offices, 'Bangalore Johnson Controls (I) Pvt. Ltd 080-67736700 Delphina Building, No 507, CMH Road, Indiranagar 1st Stage, Bangalore 560038' (https://www.johnsoncontrols.in/contact-us); coordinates are the Nominatim centroid of CMH Road, not the building.",
+     "geocodeSource": "nominatim (street centroid)"
+    }
+   ],
+   "sources": [
+    "https://www.johnsoncontrols.in/contact-us"
+   ]
+  }
+ ],
+ "coverageNotes": "X04 gap-fill: 18 of the 20 named companies placed with 30 offices; 2 left out. LEFT OUT: (1) Atos / Eviden - Atos's own worldwide-locations page lists only Mumbai (Supremus, Kanjurmarg) and Pune (Baner) for India, with no Bengaluru office; Eviden IT Services Pvt Ltd (ex-XBS IT Services) was incorporated in Karnataka in 2015 but its registered office is now Mumbai, and no current Bengaluru delivery centre could be confirmed. (2) Netcracker Technology - its contact page lists only the Waltham HQ and its careers page mentions India staff without a city; no Bengaluru R&D address could be substantiated before the shared web-search budget ran out. NOT PLACED within a placed company: NielsenIQ (NIQ) is a separate company from Nielsen since 2021 and no NIQ Bengaluru address was found, so only Nielsen (media) is recorded. For L&T, the Strategic Electronics Centre (L&T Precision Engineering & Systems) and the new L&T Electronic Products & Systems vertical (announced 24 Apr 2026) are both Bengaluru-based, but no source gave their site. L&T's two state offices come only from GST-registry aggregators. For Kotak, the 2,000+ technology workforce has no published Bengaluru site. HDFC Bank's zonal/operations campus was not found; only HDFC House on Kasturba Road is recorded, and the HDFC Securities technology centre (Sep 2024) has no published address. AJIO's head office is low confidence: CB Insights and Datanyze give conflicting addresses. Broadridge job posts also show 'Industrial Area SSI, Rajaji Nagar' (perhaps WTC Bengaluru), which is unverified and not recorded. CBRE's Bengaluru GBS teams were not found separately. Johnson Controls' own page puts its engineering centres outside Bengaluru, so only its Indiranagar branch is recorded. Tata Coffee's earlier HQ at 57 Railway Parallel Road, Kumara Park West is superseded by Kirloskar Business Park. Madura's c.2015 Regent Gateway address is superseded by ABLBL's Divyashree Technopolis corporate office. Fujitsu's India pages returned HTTP 429 on direct fetch, so their addresses come from search-result extracts of the official pages. Category notes: Indian listed groups with more than 10,000 staff (L&T, Kotak, HDFC Bank, Reliance, Airtel, Cipla, Tata Technologies) are MNC. Tata Consumer Products and Aditya Birla Lifestyle Brands are kept as MNC as the critic had them, but their total headcounts were not verified against the 10,000 threshold. Tech-park entries are copied unchanged from earlier lenses, with these companies added as tenants."
+}

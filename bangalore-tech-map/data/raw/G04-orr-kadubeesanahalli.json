@@ -1,0 +1,1795 @@
+{
+ "key": "G04-orr-kadubeesanahalli",
+ "techParks": [
+  {
+   "name": "Prestige Tech Park",
+   "aliases": [
+    "Prestige Technology Park",
+    "Prestige Tech Park I",
+    "Prestige Tech Park II",
+    "Prestige Tech Park III",
+    "Prestige Tech Park IV",
+    "Exora Business Park"
+   ],
+   "locality": "Kadubeesanahalli",
+   "developer": "Prestige",
+   "lat": 12.942865,
+   "lng": 77.692806,
+   "bbox": [
+    12.939183,
+    12.94534,
+    77.688172,
+    77.697502
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "JPMorgan Chase",
+    "Adobe",
+    "Confluent",
+    "Juniper Networks",
+    "Nutanix",
+    "Oracle",
+    "Deloitte",
+    "KnowBe4",
+    "Amadeus",
+    "Altair Engineering",
+    "Capgemini Engineering",
+    "CoinSwitch"
+   ],
+   "description": "Prestige Group's flagship office campus on the Sarjapur-Marathahalli stretch of the Outer Ring Road at Kadubeesanahalli, built in four phases (I-IV) of roughly twelve towers; the first phase (Building 1, East and West Wings) was built to JPMorgan Chase's specification and is still JPMorgan's main Bengaluru building, and the later star-named blocks (Etamin, Elnath, Electra, Mercury, Venus, Jupiter) were marketed as Exora Business Park. Phase IV (Cosmos, Vector, Velocity, Valence) sits on the western edge beside Helios Business Park. Sizes quoted by secondary sources conflict (about 9 acres across phases vs a '45-acre ecosystem' for phase IV), so no area is recorded.",
+   "sources": [
+    "https://www.innov8.work/blog/?p=2241",
+    "https://fiabciprix.com/past-winner/?id=96",
+    "https://www.scconline.com/blog/?p=372352",
+    "https://realtynmore.com/prestige-plans-to-buy-out-foreign-investors-from-exora-bengaluru/",
+    "https://www.knowbe4.com/careers/blogs/culture/new-bangalore-office-2025",
+    "https://www.openstreetmap.org/way/233001388"
+   ]
+  },
+  {
+   "name": "Cessna Business Park",
+   "aliases": [
+    "Prestige Cessna Business Park",
+    "Cessna Park SEZ"
+   ],
+   "locality": "Kadubeesanahalli",
+   "developer": "Prestige",
+   "lat": 12.934801,
+   "lng": 77.694818,
+   "bbox": [
+    12.931463,
+    12.937623,
+    77.691418,
+    77.697597
+   ],
+   "areaSqFtMillions": 4.5,
+   "notableTenants": [
+    "Cisco",
+    "Walmart Global Tech",
+    "Micron Technology",
+    "Sapiens",
+    "HCLTech",
+    "Sixt",
+    "Salesforce"
+   ],
+   "description": "A 22-acre, roughly 4.5 million sq ft IT SEZ campus of 11 towers on the Outer Ring Road at Kadubeesanahalli, developed by Prestige Estates and now managed by Nucleus Office Parks. Cisco's Bengaluru campus (its Globalisation Centre East, buildings BGL 11-18 in OSM) takes up most of the SEZ; Walmart Global Tech, Micron and Sapiens occupy the numbered SEZ buildings 10-11, and the Aloft hotel and the three-block Prestige Tech Pacific Park sit inside the precinct. Property sites also name HCL, Cargill, Sixt R&D, Zensar and Xavient; only those with corroboration are listed.",
+   "sources": [
+    "https://www.businessparkcenter.com/cessna-business-park/",
+    "https://thebusinessestate.com/cisco-cessna-business-park-kadubeesanahalli-bengaluru/",
+    "https://properties.cityinfoservices.com/prestige-cessna-business-park-building-a-b1-marathahalli-sarjapur-outer-ring-road-bangalore/smzrjvn/pjd",
+    "https://www.businessescolumn.com/walmart-cessna-business-park/",
+    "https://www.businessbelong.com/cessna-business-park-kadubeesanahalli-bengaluru/",
+    "https://www.pajasaapartments.com/blog/business-parks-in-bangalore/",
+    "https://in.micron.com/about/locations",
+    "https://sapiens.com/contact-us/",
+    "https://www.openstreetmap.org/way/232972967"
+   ]
+  },
+  {
+   "name": "Embassy Tech Square",
+   "aliases": [
+    "Embassy Signet",
+    "Embassy Tech Square - Omega/Alpha/Delta/Signet"
+   ],
+   "locality": "Kadubeesanahalli",
+   "developer": "Embassy",
+   "lat": 12.9354,
+   "lng": 77.6942,
+   "bbox": null,
+   "areaSqFtMillions": 2.2,
+   "notableTenants": [
+    "InMobi",
+    "LG Soft India",
+    "Wissen Technology",
+    "Cenduit (IQVIA)",
+    "Syniverse",
+    "Ribbon Communications"
+   ],
+   "description": "Embassy Group's ~8-acre, 2.2 million sq ft non-SEZ office park at Kaverappa Layout, Kadubeesanahalli, on the inner side of the ORR between Cessna Business Park and Embassy TechVillage. Its four blocks are Omega, Alpha, Delta and Signet, so 'Embassy Signet' is a block here rather than a separate park. InMobi's headquarters is on the 7th floor of Delta; LG Soft India has its own building. A 2011-vintage listing also named Xiaomi India in Delta, but Xiaomi has since consolidated at Embassy TechVillage so it is not recorded as a current tenant. Coordinates are the mean of the Omega, InMobi and LG Soft OSM features; no park polygon exists in OSM.",
+   "sources": [
+    "https://www.prestigeevergreenvarthur.in/blog/embassy-tech-square.html",
+    "https://properties.cityinfoservices.com/embassy-tech-square-delta-block-kadubeesanahalli-road-bangalore/9yk2l3n/pjd",
+    "https://www.inmobi.com/company/contact",
+    "https://www.openstreetmap.org/node/11056202721",
+    "https://www.openstreetmap.org/way/348080119",
+    "https://www.openstreetmap.org/way/232973309"
+   ]
+  },
+  {
+   "name": "Prestige Ferns Galaxy",
+   "aliases": [
+    "Ferns Galaxy",
+    "Prestige Ferns Galaxy, Ambalipura"
+   ],
+   "locality": "Ambalipura (Bellandur Gate)",
+   "developer": "Prestige",
+   "lat": 12.921655,
+   "lng": 77.669033,
+   "bbox": [
+    12.920929,
+    12.922229,
+    77.668123,
+    77.670229
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Microsoft"
+   ],
+   "description": "A single-tenant Prestige office building at Sy. No. 7/1, 7/2, 8/1A Ambalipura, on the Outer Ring Road at the Bellandur Gate / Sarjapur Road junction, occupied by Microsoft India (R&D). It is the address Microsoft prints on Bengaluru offer letters and is Microsoft's largest ORR site; IndiQube Edge and Primeco The Hub are the neighbouring buildings.",
+   "sources": [
+    "https://www.electronics.org/de/member-directory/771807/company-details",
+    "https://www.openstreetmap.org/way/639884725",
+    "https://www.openstreetmap.org/node/5984858240"
+   ]
+  },
+  {
+   "name": "Helios Business Park",
+   "aliases": [
+    "Helios Business Park, 150 Outer Ring Road"
+   ],
+   "locality": "Kadubeesanahalli",
+   "developer": null,
+   "lat": 12.937403,
+   "lng": 77.689719,
+   "bbox": [
+    12.935185,
+    12.939717,
+    77.687917,
+    77.690748
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Goldman Sachs",
+    "Volkswagen Group",
+    "Meesho",
+    "MakeMyTrip",
+    "The Executive Centre"
+   ],
+   "description": "A LEED Platinum office campus at No. 150 Outer Ring Road, Kadubeesanahalli, immediately west of Prestige Tech Park IV and north of Salarpuria Touchstone. The Executive Centre's listing for its Towers C, D and E names Goldman Sachs and the Volkswagen Group as fellow occupiers; OSM places Meesho (Wing E) and MakeMyTrip inside the park. Goldman Sachs' owned Bengaluru campus is widely reported here but its own locations page could not be fetched, so the developer and size are left null.",
+   "sources": [
+    "https://www.executivecentre.com/en-in/office-space/helios-business-park/",
+    "https://www.openstreetmap.org/way/779346494",
+    "https://www.openstreetmap.org/node/11546284235",
+    "https://www.openstreetmap.org/node/12997655807"
+   ]
+  },
+  {
+   "name": "Prestige Tech Platina",
+   "aliases": [
+    "Prestige Platina Technology Park",
+    "Prestige Platina Tech Park",
+    "Prestige Tech Platina Block 1/2"
+   ],
+   "locality": "Kadubeesanahalli",
+   "developer": "Prestige",
+   "lat": 12.944,
+   "lng": 77.6962,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Adobe"
+   ],
+   "description": "Prestige's two-block office development on the Outer Ring Road frontage at the north-east corner of the Prestige Tech Park campus (Cushman & Wakefield lists Block 2 as about 457,000 sq ft, completed 2015). Adobe's own offices page gives 'Prestige Platina Technology Park, Building 1, Block A, Bangalore 560103' as one of its two Bengaluru addresses. Coordinates are the mid-point of the two unnamed 'Block 1'/'Block 2' office footprints on Outer Ring Road in OSM that carry the Adobe POIs; the block-to-footprint mapping is inferred, not mapped.",
+   "sources": [
+    "https://www.adobe.com/about-adobe/contact/offices.html",
+    "https://www.openstreetmap.org/node/11608263635",
+    "https://www.openstreetmap.org/way/381171222"
+   ]
+  },
+  {
+   "name": "Prestige Tech Pacific Park",
+   "aliases": [
+    "Prestige Tech Pacific",
+    "Tech Pacific Park"
+   ],
+   "locality": "Kadubeesanahalli",
+   "developer": "Prestige",
+   "lat": 12.937816,
+   "lng": 77.695832,
+   "bbox": [
+    12.936675,
+    12.938936,
+    77.693798,
+    77.697293
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Walmart Global Tech",
+    "Bazaarvoice"
+   ],
+   "description": "A three-block Prestige office cluster beside the Aloft hotel inside the Cessna Business Park precinct, mapped in OSM as Prestige Tech Pacific Park (Blocks 1-3). Walmart Labs / Walmart Global Tech POIs sit in Block 1 and Bazaarvoice Technology India in Block 3; Walmart job postings name 'Pardhanani Wilshire II, Cessna Business Park', which is likely this frontage. No primary source for the park itself could be fetched, so tenants here are OSM-evidenced.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1070105447",
+    "https://www.openstreetmap.org/node/3797616140",
+    "https://www.openstreetmap.org/node/13649203601",
+    "https://builtinbengaluru.in/job/software-engineer-iii/4210236"
+   ]
+  },
+  {
+   "name": "Salarpuria Touchstone",
+   "aliases": [
+    "Salarpuria Sattva Touchstone",
+    "Sattva Touchstone"
+   ],
+   "locality": "Kadubeesanahalli",
+   "developer": "Salarpuria Sattva",
+   "lat": 12.93613,
+   "lng": 77.690608,
+   "bbox": [
+    12.935339,
+    12.938171,
+    77.690265,
+    77.690922
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Walmart Global Tech",
+    "Lumen Technologies",
+    "Riverbed",
+    "Smartworks"
+   ],
+   "description": "Two-block (A and B) Sattva office building at 15/1A Outer Ring Road, Kadubeesanahalli, wedged between Helios Business Park and the Aricent/Capgemini campus. Walmart Global Tech lists '3rd Floor, Block B, Salarpuria Touchstone' as a Bengaluru office; OSM records Lumen (and its CenturyLink/Savvis predecessors), Riverbed and a Smartworks coworking centre here.",
+   "sources": [
+    "https://builtinbengaluru.in/job/software-engineer-iii/4210236",
+    "https://www.openstreetmap.org/way/232973995",
+    "https://www.openstreetmap.org/node/9835106868",
+    "https://www.openstreetmap.org/node/9903335727"
+   ]
+  },
+  {
+   "name": "Salarpuria Sattva Knowledge Court",
+   "aliases": [
+    "Sattva Knowledge Court",
+    "Salarpuria Knowledge Court"
+   ],
+   "locality": "Marathahalli (Brookefield)",
+   "developer": "Salarpuria Sattva",
+   "lat": 12.974023,
+   "lng": 77.711898,
+   "bbox": [
+    12.972548,
+    12.975202,
+    77.711013,
+    77.712971
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Harman International",
+    "WNS",
+    "Netskope"
+   ],
+   "description": "Sattva Group office campus on the Marathahalli-Brookefield side of the Outer Ring Road, just north of the Marathahalli bridge (Sattva's own site files it under Brookefield). OSM records Harman's India corporate headquarters, WNS and Netskope India inside the campus; none of the three companies' location pages could be fetched, so these tenants are OSM-evidenced only.",
+   "sources": [
+    "https://www.sattvagroup.in/commercial/",
+    "https://www.openstreetmap.org/way/414838097",
+    "https://www.openstreetmap.org/node/10702472536",
+    "https://www.openstreetmap.org/node/10702472537",
+    "https://www.openstreetmap.org/node/10978033374"
+   ]
+  },
+  {
+   "name": "Vaishnavi Tech Park",
+   "aliases": [
+    "Vaishnavi Tech Park, Sarjapur Road"
+   ],
+   "locality": "Bellandur Gate (Sarjapur Road)",
+   "developer": "Vaishnavi",
+   "lat": 12.920256,
+   "lng": 77.671708,
+   "bbox": [
+    12.918249,
+    12.921694,
+    77.670779,
+    77.672613
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "Vaishnavi Group's three-tower (North, Central, South) office park on Sarjapur Road at Bellandur Gate, a few hundred metres from Prestige Ferns Galaxy and the ORR junction. Vaishnavi's website renders its project list client-side and no tenant could be verified from a fetchable source; OSM has only small firms (Odessa, Khosla Labs) and an Uber POI on the park's southern edge, none confirmed, so the tenant list is left empty rather than guessed.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1084971895",
+    "https://www.openstreetmap.org/way/1363272825",
+    "https://www.openstreetmap.org/way/1188254668"
+   ]
+  },
+  {
+   "name": "Vaishnavi Tech Square",
+   "aliases": [
+    "Vaishnavi Tech Square, Iblur"
+   ],
+   "locality": "Iblur",
+   "developer": "Vaishnavi",
+   "lat": 12.926593,
+   "lng": 77.665913,
+   "bbox": [
+    12.9262785,
+    12.9269073,
+    77.6655745,
+    77.6662511
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Navi"
+   ],
+   "description": "A single Vaishnavi office building off 6th Main Road, Iblur, on the Sarjapur-side service road of the ORR near the Iblur junction. OSM records Navi (Sachin Bansal's Navi Technologies) here, consistent with Navi's published registered address; Navi's site refused the fetch, so this remains OSM-evidenced.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1167872058",
+    "https://www.openstreetmap.org/node/11237374568"
+   ]
+  },
+  {
+   "name": "AKR Tech Park",
+   "aliases": [
+    "AKR Tech Park, Krishna Reddy Industrial Area",
+    "AKR Tech Park, Kudlu Gate"
+   ],
+   "locality": "Bommanahalli (Kudlu Gate, Hosur Road)",
+   "developer": null,
+   "lat": 12.892385,
+   "lng": 77.642356,
+   "bbox": [
+    12.891578,
+    12.892864,
+    77.64188,
+    77.642672
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Myntra",
+    "BHIVE Workspace"
+   ],
+   "description": "A small office park in the Krishna Reddy Industrial Area off Hosur Road at Kudlu Gate, Bommanahalli (not on the ORR). It is best known as Myntra's former headquarters; OSM still carries a building named 'Myntra Designs Pvt Ltd' here, but Myntra moved its head office to Embassy TechVillage well before 2023, so no Myntra office is recorded at AKR in the companies list. A BHIVE coworking centre operates on the Hosur Road frontage.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1071061035",
+    "https://www.openstreetmap.org/way/335578196",
+    "https://www.openstreetmap.org/node/9828625308",
+    "https://en.wikipedia.org/wiki/Myntra"
+   ]
+  },
+  {
+   "name": "SJR iPark",
+   "aliases": [
+    "SJR i-Park",
+    "SJR iPark, EPIP Zone"
+   ],
+   "locality": "EPIP Zone, Whitefield",
+   "developer": "SJR Prime Corporation",
+   "lat": 12.981131,
+   "lng": 77.72629,
+   "bbox": [
+    12.980343,
+    12.982145,
+    77.725543,
+    77.727494
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "SJR Prime Corporation's office park in the EPIP Zone, Whitefield (Mobius and Warp towers in OSM), near the Kundalahalli ORR junction. It lies in the Whitefield belt rather than the Kadubeesanahalli stretch; the developer's domain is now parked and no tenant could be verified from a fetchable source, so the tenant list is left empty.",
+   "sources": [
+    "https://www.openstreetmap.org/way/123613244",
+    "https://www.openstreetmap.org/way/354223318",
+    "https://www.openstreetmap.org/way/181331914"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "JPMorgan Chase",
+   "aliases": [
+    "J.P. Morgan",
+    "JPMorgan Chase & Co.",
+    "J.P. Morgan Services India Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "US bank whose Bengaluru technology and operations centre is one of its largest outside the US; its main Bengaluru building is Prestige Tech Park Building 1 and it is consolidating into a 1.1 million sq ft built-to-suit campus at Embassy TechVillage.",
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "founded": 2000,
+   "website": "https://www.jpmorganchase.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Tech Park - Building 1 (East & West Wing)",
+     "techPark": "Prestige Tech Park",
+     "building": "Building 1 (East & West Wing)",
+     "locality": "Kadubeesanahalli",
+     "address": "Prestige Tech Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.942949,
+     "lng": 77.695997,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Court filing summarised by SCC Online records J.P. Morgan Services India's leases of Building No. 1 (East Wing phases plus West Wing floors 1-6, ~614,000 sq ft) at Prestige Technology Park, and the FIABCI award entry says the first phase was built to JP Morgan Chase's specification; a GCC profile adds a new tower opened in 2023 (https://www.scconline.com/blog/?p=372352 ; https://www.businessofgcc.com/gcc-data/companies/jpmorgan-chase-india-bangalore).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Embassy TechVillage build-to-suit campus",
+     "techPark": "Embassy TechVillage",
+     "building": null,
+     "locality": "Devarabeesanahalli",
+     "address": "Embassy TechVillage, Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.932251,
+     "lng": 77.689132,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Embassy Group's 8 Aug 2018 release announces a long-term lease for a 1.1 million sq ft built-to-suit facility at Embassy TechVillage, with J.P. Morgan saying it would consolidate most of its Bengaluru offices there; OSM maps the completed 'JP Morgan Chase & Co.' building beside ETV Block 9 (https://embassygroup.com/press-release/embassy-signs-real-estate-lease-deal-in-bengaluru-with-j-p-morgan/).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.scconline.com/blog/?p=372352",
+    "https://www.businessofgcc.com/gcc-data/companies/jpmorgan-chase-india-bangalore",
+    "https://fiabciprix.com/past-winner/?id=96",
+    "https://embassygroup.com/press-release/embassy-signs-real-estate-lease-deal-in-bengaluru-with-j-p-morgan/",
+    "https://www.openstreetmap.org/way/148325529",
+    "https://www.openstreetmap.org/way/1212112583"
+   ]
+  },
+  {
+   "name": "Cisco",
+   "aliases": [
+    "Cisco Systems",
+    "Cisco Systems India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Telecom & networking",
+   "description": "US networking major; its Bengaluru campus at Cessna Business Park (the Globalisation Centre East) is Cisco's largest site outside the US, with a second SEZ office at Pritech Park, Bellandur.",
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "founded": 1984,
+   "website": "https://www.cisco.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Cessna Business Park campus (Globalisation Centre East)",
+     "techPark": "Cessna Business Park",
+     "building": "SEZ buildings BGL 11-18",
+     "locality": "Kadubeesanahalli",
+     "address": "Cessna Business Park, Sarjapur-Marathahalli Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.934494,
+     "lng": 77.696042,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "A property listing for Cessna Building A says the tower 'is currently occupied by Cisco Systems India', and three further park profiles name Cisco as the anchor tenant of the SEZ (https://properties.cityinfoservices.com/prestige-cessna-business-park-building-a-b1-marathahalli-sarjapur-outer-ring-road-bangalore/smzrjvn/pjd ; https://thebusinessestate.com/cisco-cessna-business-park-kadubeesanahalli-bengaluru/).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Pritech Park SEZ - Block 9A & 9B",
+     "techPark": "Pritech Park SEZ",
+     "building": "Block 9A & 9B",
+     "locality": "Bellandur",
+     "address": "Pritech Park SEZ, Survey No 51-64/4, Sarjapur Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.923801,
+     "lng": 77.68049,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM POI 'Cisco Video Technology India Pvt. Ltd.' carries the address Block 9A & 9B, Pritech Park SEZ, Sarjapur Outer Ring Road, Bellandur (https://www.openstreetmap.org/node/3671350511).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/prestige-cessna-business-park-building-a-b1-marathahalli-sarjapur-outer-ring-road-bangalore/smzrjvn/pjd",
+    "https://thebusinessestate.com/cisco-cessna-business-park-kadubeesanahalli-bengaluru/",
+    "https://www.businessparkcenter.com/cessna-business-park/",
+    "https://www.businessbelong.com/cessna-business-park-kadubeesanahalli-bengaluru/",
+    "https://en.wikipedia.org/wiki/Kadubeesanahalli_metro_station",
+    "https://www.openstreetmap.org/way/1248882471"
+   ]
+  },
+  {
+   "name": "Adobe",
+   "aliases": [
+    "Adobe Systems",
+    "Adobe Systems India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "US software company (Creative Cloud, Document Cloud, Experience Cloud); its Bengaluru engineering offices are two buildings in the Prestige Tech Park / Prestige Tech Platina cluster on the ORR, alongside its larger Noida campus.",
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "founded": 1982,
+   "website": "https://www.adobe.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Platina Technology Park - Building 1, Block A",
+     "techPark": "Prestige Tech Platina",
+     "building": "Building 1, Block A",
+     "locality": "Kadubeesanahalli",
+     "address": "Prestige Platina Technology Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.943753,
+     "lng": 77.696784,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Adobe's own worldwide offices page lists 'Prestige Platina Technology Park, Building 1, Block A, Bangalore, India 560103'; OSM has an Adobe POI in the ORR-front block footprint (https://www.adobe.com/about-adobe/contact/offices.html).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Prestige Tech Park IV - Block 1",
+     "techPark": "Prestige Tech Park",
+     "building": "Prestige Tech Park IV, Block 1",
+     "locality": "Kadubeesanahalli",
+     "address": "Prestige Tech Park IV, Outer Ring Road, Kadubeesanahalli, Bengaluru 560087",
+     "lat": 12.944826,
+     "lng": 77.69561,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Adobe's own offices page lists 'Prestige Tech Park IV Block-1, Outer Ring Road Marathahalli, Boghanahalli Village, Kadubeesanahalli, Varthur, Bangalore 560087'; the second Adobe POI in OSM is used for the point, the block-to-footprint match being inferred (https://www.adobe.com/about-adobe/contact/offices.html).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.adobe.com/about-adobe/contact/offices.html",
+    "https://www.assetzproperty.com/blogpost/navigating-bangalores-it-landscape-10-top-it-parks-in-bangalore",
+    "https://www.openstreetmap.org/node/11608263622",
+    "https://www.openstreetmap.org/node/11608263635"
+   ]
+  },
+  {
+   "name": "Confluent",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "US data-streaming company (Apache Kafka); its Bengaluru engineering office is in Etamin Block, Prestige Tech Park.",
+   "hqCity": "Mountain View",
+   "hqCountry": "United States",
+   "founded": 2014,
+   "website": "https://www.confluent.io",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Tech Park - Etamin Block, Wing B, 9th Floor",
+     "techPark": "Prestige Tech Park",
+     "building": "Etamin Block, Wing B",
+     "locality": "Kadubeesanahalli",
+     "address": "9th Floor, Etamin Block, Prestige Tech Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.943707,
+     "lng": 77.691075,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Confluent's contact page gives '9th Floor, Etamin Block, Wing B, Prestige Tech Park, ORR, Kadubeesanahalli, Bengaluru 560103'; OSM has a Confluent POI at the Etamin footprint (https://www.confluent.io/contact/).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.confluent.io/contact/",
+    "https://www.openstreetmap.org/node/9891898729"
+   ]
+  },
+  {
+   "name": "Juniper Networks",
+   "aliases": [
+    "HPE Juniper Networking",
+    "Juniper Networks India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Telecom & networking",
+   "description": "US networking vendor (acquired by Hewlett Packard Enterprise in 2025, now HPE Juniper Networking); its large Bengaluru R&D campus is the Elnath block of Prestige Tech Park's Exora phase.",
+   "hqCity": "Sunnyvale",
+   "hqCountry": "United States",
+   "founded": 1996,
+   "website": "https://www.juniper.net",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Tech Park (Exora) - Elnath block",
+     "techPark": "Prestige Tech Park",
+     "building": "Elnath",
+     "locality": "Kadubeesanahalli",
+     "address": "Elnath, Exora Business Park / Prestige Tech Park III, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.941739,
+     "lng": 77.690773,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "A December 2015 Prestige release on Exora Business Park names Juniper Networks among the park's tenants with JPMorgan, LinkedIn, PwC, Schneider Electric and Bosch, and Assetz's IT-park guide lists Juniper at Prestige Tech Park; the point is the OSM 'Elnath' building (https://realtynmore.com/prestige-plans-to-buy-out-foreign-investors-from-exora-bengaluru/ ; https://www.assetzproperty.com/blogpost/navigating-bangalores-it-landscape-10-top-it-parks-in-bangalore).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://realtynmore.com/prestige-plans-to-buy-out-foreign-investors-from-exora-bengaluru/",
+    "https://www.assetzproperty.com/blogpost/navigating-bangalores-it-landscape-10-top-it-parks-in-bangalore",
+    "https://www.openstreetmap.org/way/466082614"
+   ]
+  },
+  {
+   "name": "Nutanix",
+   "aliases": [
+    "Nutanix Technologies India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "US hybrid-cloud infrastructure software company; its Bengaluru R&D centre is in Prestige Tech Park.",
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "founded": 2009,
+   "website": "https://www.nutanix.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Tech Park",
+     "techPark": "Prestige Tech Park",
+     "building": null,
+     "locality": "Kadubeesanahalli",
+     "address": "Prestige Tech Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.94395,
+     "lng": 77.693971,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Innov8's Prestige Tech Park profile lists Nutanix Technologies India among the park's tenants and OSM has a Nutanix POI inside the park; Nutanix's own contact page returned 404 (https://www.innov8.work/blog/?p=2241 ; https://www.openstreetmap.org/node/12055268757).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.innov8.work/blog/?p=2241",
+    "https://www.openstreetmap.org/node/12055268757"
+   ]
+  },
+  {
+   "name": "Oracle",
+   "aliases": [
+    "Oracle India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "US enterprise software and cloud company; besides its long-standing Bannerghatta Road campus it occupies a three-block 'Oracle Tech Hub' sub-campus inside Prestige Tech Park on the ORR.",
+   "hqCity": "Austin",
+   "hqCountry": "United States",
+   "founded": 1977,
+   "website": "https://www.oracle.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Tech Park - Oracle Tech Hub (Blocks A, B, C)",
+     "techPark": "Prestige Tech Park",
+     "building": "Blocks A, B, C",
+     "locality": "Kadubeesanahalli",
+     "address": "Prestige Tech Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.94103,
+     "lng": 77.694319,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps a commercial area named 'Oracle Tech Hub' with Blocks A-C between Prestige Tech Park's Jupiter block and Tech Pacific Park, and Innov8's park profile lists Oracle India as a tenant; Oracle's India contact pages returned 404 (https://www.openstreetmap.org/way/688600223 ; https://www.innov8.work/blog/?p=2241).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Oracle Technology Park, Bannerghatta Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Bannerghatta Road",
+     "address": "Oracle Technology Park, Bannerghatta Road, Bengaluru 560029",
+     "lat": 12.934307,
+     "lng": 77.602251,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps the office building 'Oracle Technology Park' on Bannerghatta Road, Oracle's established Bengaluru campus (https://www.openstreetmap.org/way/131609429).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.innov8.work/blog/?p=2241",
+    "https://www.openstreetmap.org/way/688600223",
+    "https://www.openstreetmap.org/way/131609429"
+   ]
+  },
+  {
+   "name": "Deloitte",
+   "aliases": [
+    "Deloitte Touche Tohmatsu",
+    "Deloitte US-India Offices"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Global professional-services network; Deloitte US-India's Bengaluru offices include the Velocity tower of Prestige Tech Park IV.",
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "founded": 1845,
+   "website": "https://www.deloitte.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Tech Park IV - Velocity",
+     "techPark": "Prestige Tech Park",
+     "building": "Velocity",
+     "locality": "Kadubeesanahalli",
+     "address": "Velocity, Prestige Tech Park IV, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.940087,
+     "lng": 77.688657,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Deloitte's office locator carried a Bengaluru entry titled 'Prestige Tech Park Velocity' (the page now redirects to a JavaScript locator); the point is OSM's 'Velocity' building on the park's western edge (https://www2.deloitte.com/ui/en/footerlinks/office-locator/bengaluru/prestige-velocity.html).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www2.deloitte.com/ui/en/footerlinks/office-locator/bengaluru/prestige-velocity.html",
+    "https://www.openstreetmap.org/way/347475365"
+   ]
+  },
+  {
+   "name": "KnowBe4",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "US security-awareness-training software company; opened a Bengaluru office in Cosmos Tower, Prestige Tech Park IV, announced November 2025.",
+   "hqCity": "Clearwater",
+   "hqCountry": "United States",
+   "founded": 2010,
+   "website": "https://www.knowbe4.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Tech Park IV - Cosmos Tower",
+     "techPark": "Prestige Tech Park",
+     "building": "Cosmos Tower",
+     "locality": "Kadubeesanahalli",
+     "address": "Cosmos Tower, Prestige Tech Park IV, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.942865,
+     "lng": 77.692806,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "KnowBe4's careers blog (21 Nov 2025) says 'we're located in Cosmos Tower at Prestige Tech Park IV' in Marathahalli; Cosmos is not mapped in OSM so the park centroid is used (https://www.knowbe4.com/careers/blogs/culture/new-bangalore-office-2025).",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.knowbe4.com/careers/blogs/culture/new-bangalore-office-2025"
+   ]
+  },
+  {
+   "name": "Amadeus",
+   "aliases": [
+    "Amadeus Labs",
+    "Amadeus Software Labs India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Spanish travel-technology company; Amadeus Labs Bengaluru, opened 2008, is its largest R&D site with more than 4,000 staff, located in Prestige Tech Park.",
+   "hqCity": "Madrid",
+   "hqCountry": "Spain",
+   "founded": 1987,
+   "website": "https://amadeus.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": 4000,
+   "offices": [
+    {
+     "label": "Prestige Tech Park (Amadeus Labs)",
+     "techPark": "Prestige Tech Park",
+     "building": null,
+     "locality": "Kadubeesanahalli",
+     "address": "Prestige Tech Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.941624,
+     "lng": 77.690799,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Amadeus's careers page says it opened in Bengaluru in 2008 and employs 'more than 4,000 talented professionals' there; OSM places the Amadeus office in the Elnath/Etamin cluster of Prestige Tech Park (https://amadeus.com/en/careers/locations/bengaluru ; https://www.openstreetmap.org/node/4672131190).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://amadeus.com/en/careers/locations/bengaluru",
+    "https://www.openstreetmap.org/node/4672131190"
+   ]
+  },
+  {
+   "name": "Altair Engineering",
+   "aliases": [
+    "Altair Engineering India Pvt Ltd",
+    "Altair (Siemens)"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "US simulation and HPC software company (acquired by Siemens in 2025); its India headquarters has been in Prestige Tech Park since the park's first phase.",
+   "hqCity": "Troy",
+   "hqCountry": "United States",
+   "founded": 1985,
+   "website": "https://altair.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Tech Park",
+     "techPark": "Prestige Tech Park",
+     "building": null,
+     "locality": "Kadubeesanahalli",
+     "address": "Prestige Tech Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.942865,
+     "lng": 77.692806,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The FIABCI award entry for Prestige Technology Park records the first-phase buildings leased to JP Morgan Chase, Nokia India and Altair Engineering India, and Innov8's current profile still lists Altair Engineering India; no building is mapped, so the park centroid is used (https://fiabciprix.com/past-winner/?id=96 ; https://www.innov8.work/blog/?p=2241).",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://fiabciprix.com/past-winner/?id=96",
+    "https://www.innov8.work/blog/?p=2241"
+   ]
+  },
+  {
+   "name": "Capgemini Engineering",
+   "aliases": [
+    "Aricent",
+    "Altran",
+    "Aricent Technologies"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Engineering-services arm of France's Capgemini, formed from Altran and Aricent; the former Aricent campus on the ORR beside Prestige Tech Park is its main Bengaluru site.",
+   "hqCity": "Paris",
+   "hqCountry": "France",
+   "founded": 1967,
+   "website": "https://www.capgemini.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Aricent campus, Prestige Tech Park",
+     "techPark": "Prestige Tech Park",
+     "building": null,
+     "locality": "Kadubeesanahalli",
+     "address": "Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.938258,
+     "lng": 77.692906,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps a commercial area named 'Aricent Group' between Prestige Tech Park and Salarpuria Touchstone, and Innov8's Prestige Tech Park profile lists Capgemini Engineering among the park's tenants (https://www.openstreetmap.org/way/233003773 ; https://www.innov8.work/blog/?p=2241).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.innov8.work/blog/?p=2241",
+    "https://www.openstreetmap.org/way/233003773"
+   ]
+  },
+  {
+   "name": "CoinSwitch",
+   "aliases": [
+    "CoinSwitch Kuber",
+    "Bitcipher Labs",
+    "PeepalCo"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Bengaluru crypto and wealth-tech platform (unicorn since 2021); OSM places its office in the Electra block of Prestige Tech Park.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2017,
+   "website": "https://coinswitch.co",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Tech Park - Electra block",
+     "techPark": "Prestige Tech Park",
+     "building": "Electra",
+     "locality": "Kadubeesanahalli",
+     "address": "Prestige Tech Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.943111,
+     "lng": 77.692348,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM POI 'Coinswitch / Peepalco' on Outer Ring Road sits in the Electra footprint of Prestige Tech Park; no corporate page could be fetched, so this is OSM-evidenced only (https://www.openstreetmap.org/node/11948821069).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11948821069"
+   ]
+  },
+  {
+   "name": "Walmart Global Tech",
+   "aliases": [
+    "Walmart Labs",
+    "WM Global Technology Services India Pvt Ltd",
+    "Walmart India Development Center"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "Technology arm of the US retailer (formerly Walmart Labs); its India hub is spread over several buildings on the Kadubeesanahalli stretch of the ORR, anchored in the Cessna Business Park SEZ.",
+   "hqCity": "Bentonville",
+   "hqCountry": "United States",
+   "founded": 1962,
+   "website": "https://tech.walmart.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Cessna Business Park SEZ - Buildings 10 & 11",
+     "techPark": "Cessna Business Park",
+     "building": "Buildings 10 & 11 (SEZ)",
+     "locality": "Kadubeesanahalli",
+     "address": "Building 10/11, SEZ, Cessna Business Park, Kadubeesanahalli Village, Varthur Hobli, Outer Ring Road, Bengaluru 560087",
+     "lat": 12.934801,
+     "lng": 77.694818,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "A park profile gives WM Global Technology Services India's registered address as 'Building 11, 1st Floor, SEZ - Cessna Business Park', and a Built In job posting lists '4,5,6,7 Floor, Building 10, SEZ, Cessna Business Park'; the numbered SEZ buildings are not mapped, so the park centroid is used (https://www.businessescolumn.com/walmart-cessna-business-park/ ; https://builtinbengaluru.in/job/software-engineer-iii/4210236).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Prestige Tech Pacific Park - Block 1 (Walmart Labs)",
+     "techPark": "Prestige Tech Pacific Park",
+     "building": "Block 1",
+     "locality": "Kadubeesanahalli",
+     "address": "Prestige Tech Pacific Park, Cessna Business Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.937706,
+     "lng": 77.696307,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM has 'Walmart Labs' and 'Walmart' POIs in Block 1 of Prestige Tech Pacific Park inside the Cessna precinct; Walmart's postings name 'Pardhanani Wilshire II, Cessna Business Park' as a primary location, probably this frontage (https://www.openstreetmap.org/node/3797616140 ; https://builtinbengaluru.in/job/software-engineer-iii/4210236).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Salarpuria Touchstone - Block B, 3rd Floor",
+     "techPark": "Salarpuria Touchstone",
+     "building": "Block B",
+     "locality": "Kadubeesanahalli",
+     "address": "3rd Floor, Block B, Salarpuria Touchstone, 15/1A Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.937499,
+     "lng": 77.69103,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Walmart Global Tech's Built In job listing gives '3rd Floor, Block B, Salarpuria Touchstone 15/1A, 14P7, Kadubeesanahalli, Outer Ring Road' as a Bangalore office; the point is OSM's Salarpuria Block B (https://builtinbengaluru.in/job/software-engineer-iii/4210236).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.businessescolumn.com/walmart-cessna-business-park/",
+    "https://builtinbengaluru.in/job/software-engineer-iii/4210236",
+    "https://www.businessparkcenter.com/cessna-business-park/",
+    "https://www.businessbelong.com/cessna-business-park-kadubeesanahalli-bengaluru/",
+    "https://www.openstreetmap.org/node/3797616140",
+    "https://www.openstreetmap.org/node/12287928395"
+   ]
+  },
+  {
+   "name": "Micron Technology",
+   "aliases": [
+    "Micron Technology Operations India LLP"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "US memory and storage chipmaker; Micron Technology Operations India's Bengaluru design centre is in Cessna Business Park, with a second India site in Hyderabad and the Sanand assembly plant.",
+   "hqCity": "Boise",
+   "hqCountry": "United States",
+   "founded": 1978,
+   "website": "https://www.micron.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Cessna Business Park",
+     "techPark": "Cessna Business Park",
+     "building": null,
+     "locality": "Kadubeesanahalli",
+     "address": "Cessna Business Park, Kadubeesanahalli Village, Varthur Hobli, Outer Ring Road, Bengaluru 560103",
+     "lat": 12.932638,
+     "lng": 77.693674,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Micron's own locations page lists 'Micron Technology Operations India LLP, Cessna Business Park, Kadubeesanahalli Village, Varthur hobli, Outer Ring Road, Bengaluru 560103'; OSM has a Micron POI in the park's southern SEZ block (https://in.micron.com/about/locations).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://in.micron.com/about/locations",
+    "https://www.openstreetmap.org/node/10792859847"
+   ]
+  },
+  {
+   "name": "Sapiens",
+   "aliases": [
+    "Sapiens International",
+    "Sapiens Technologies (1982) India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Israeli insurance-software company (NASDAQ/TASE listed); Sapiens Technologies (1982) India's Bengaluru centre is on the 7th floor of Building 11 in the Cessna Business Park SEZ.",
+   "hqCity": "Holon",
+   "hqCountry": "Israel",
+   "founded": 1982,
+   "website": "https://sapiens.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Cessna Business Park SEZ - Building 11, 7th Floor",
+     "techPark": "Cessna Business Park",
+     "building": "Building 11",
+     "locality": "Kadubeesanahalli",
+     "address": "7th Floor, Building 11, Gate 2, SEZ Cessna Business Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560087",
+     "lat": 12.934801,
+     "lng": 77.694818,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Sapiens's contact page lists '7th Floor, Building 11, Gate Number 2, SEZ-CESSNA Park, Kadubeesanahalli, Varthur Hobli, Outer Ring Rd, Bangalore East 560087'; Building 11 is not mapped, so the park centroid is used (https://sapiens.com/contact-us/).",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://sapiens.com/contact-us/",
+    "https://www.businessparkcenter.com/cessna-business-park/"
+   ]
+  },
+  {
+   "name": "HCLTech",
+   "aliases": [
+    "HCL Technologies"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Noida-headquartered Indian IT-services major (>200,000 employees); one of its many Bengaluru delivery sites is in the Cessna Business Park SEZ.",
+   "hqCity": "Noida",
+   "hqCountry": "India",
+   "founded": 1991,
+   "website": "https://www.hcltech.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Cessna Business Park",
+     "techPark": "Cessna Business Park",
+     "building": null,
+     "locality": "Kadubeesanahalli",
+     "address": "Cessna Business Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.932735,
+     "lng": 77.693752,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Three park profiles list HCL Technologies among Cessna Business Park's tenants and OSM has an 'HCL Technologies' POI in the park's southern SEZ block (https://www.businessparkcenter.com/cessna-business-park/ ; https://www.openstreetmap.org/node/10792859848).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.businessparkcenter.com/cessna-business-park/",
+    "https://www.businessbelong.com/cessna-business-park-kadubeesanahalli-bengaluru/",
+    "https://www.pajasaapartments.com/blog/business-parks-in-bangalore/",
+    "https://www.openstreetmap.org/node/10792859848"
+   ]
+  },
+  {
+   "name": "Sixt",
+   "aliases": [
+    "SIXT Research & Development India Pvt Ltd",
+    "Sixt SE"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Mobility & EV",
+   "description": "German car-rental and mobility group; SIXT Research & Development India, its technology centre, sits in Cessna Business Park.",
+   "hqCity": "Pullach",
+   "hqCountry": "Germany",
+   "founded": 1912,
+   "website": "https://www.sixt.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Cessna Business Park (SIXT R&D India)",
+     "techPark": "Cessna Business Park",
+     "building": null,
+     "locality": "Kadubeesanahalli",
+     "address": "Cessna Business Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.93273,
+     "lng": 77.693902,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM POI 'SIXT Research & Development India Private Limited' is in Cessna Business Park's southern block and a property blog's tenant list for the park names Sixt R&D (https://www.openstreetmap.org/node/10792859846 ; https://www.pajasaapartments.com/blog/business-parks-in-bangalore/).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/10792859846",
+    "https://www.pajasaapartments.com/blog/business-parks-in-bangalore/"
+   ]
+  },
+  {
+   "name": "Bazaarvoice",
+   "aliases": [
+    "Bazaarvoice Technology India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "US ratings-and-reviews SaaS company with a large Bengaluru engineering office in the Cessna / Prestige Tech Pacific Park precinct.",
+   "hqCity": "Austin",
+   "hqCountry": "United States",
+   "founded": 2005,
+   "website": "https://www.bazaarvoice.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Tech Pacific Park - Block 3",
+     "techPark": "Prestige Tech Pacific Park",
+     "building": "Block 3",
+     "locality": "Kadubeesanahalli",
+     "address": "Prestige Tech Pacific Park, Cessna Business Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.937216,
+     "lng": 77.696967,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM POI 'Bazaarvoice Technology India' sits in Block 3 of Prestige Tech Pacific Park beside the Aloft hotel; Bazaarvoice's contact page refused the fetch, so this is OSM-evidenced only (https://www.openstreetmap.org/node/13649203601).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13649203601"
+   ]
+  },
+  {
+   "name": "Salesforce",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "US CRM/cloud software company; its listed Bengaluru office is Torrey Pines at Embassy GolfLinks, and OSM records a second Salesforce office in Umiya Business Bay at the Cessna / Embassy Tech Square corner.",
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "founded": 1999,
+   "website": "https://www.salesforce.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Embassy GolfLinks - Torrey Pines, 3rd Floor",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Torrey Pines",
+     "locality": "Domlur (Challaghatta)",
+     "address": "Torrey Pines, 3rd Floor, Embassy GolfLinks Business Park, Challaghatta, Bengaluru 560071",
+     "lat": 12.950254,
+     "lng": 77.644071,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Salesforce's India locations page lists 'Torrey Pines, Third Floor, Embassy Golf Links Business Park, Varthur Hobli, Challaghatta Village, Bangalore 560071'; the Torrey Pines building is not mapped so the EGL park centroid is used (https://www.salesforce.com/in/company/locations/).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Umiya Business Bay 1, Cessna Business Park",
+     "techPark": "Cessna Business Park",
+     "building": "Umiya Business Bay 1",
+     "locality": "Kadubeesanahalli",
+     "address": "Umiya Business Bay, Cessna Business Park, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.934578,
+     "lng": 77.694355,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM POI 'Salesforce' is inside the Umiya Business Bay 1 footprint on Embassy Tech Square Main Road; it does not appear on Salesforce's own locations page, so this is OSM-evidenced only (https://www.openstreetmap.org/node/10792859853).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.salesforce.com/in/company/locations/",
+    "https://www.openstreetmap.org/node/10792859853"
+   ]
+  },
+  {
+   "name": "InMobi",
+   "aliases": [
+    "InMobi Technology Services",
+    "mKhoj"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Software & internet",
+   "description": "Mobile advertising-technology company founded in Bengaluru in 2007 (as mKhoj), India's first unicorn in 2011 and about 2,500 staff; its headquarters is the 7th floor of Delta Block, Embassy Tech Square.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2007,
+   "website": "https://www.inmobi.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Embassy Tech Square - Delta Block, 7th Floor",
+     "techPark": "Embassy Tech Square",
+     "building": "Delta Block",
+     "locality": "Kadubeesanahalli",
+     "address": "7th Floor, Delta Block, Embassy Tech Square, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.93518,
+     "lng": 77.694509,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "InMobi's contact page gives '7th Floor, Delta Block, Embassy Tech Square, Kadubeesanahalli, Marathahalli-Sarjapur Outer Ring Rd, Bengaluru 560103' as its Bangalore (corporate) office; OSM maps the 'InMobi Technologies' building (https://www.inmobi.com/company/contact).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.inmobi.com/company/contact",
+    "https://en.wikipedia.org/wiki/InMobi",
+    "https://properties.cityinfoservices.com/embassy-tech-square-delta-block-kadubeesanahalli-road-bangalore/9yk2l3n/pjd",
+    "https://www.openstreetmap.org/way/348080119"
+   ]
+  },
+  {
+   "name": "LG Soft India",
+   "aliases": [
+    "LGSI",
+    "LG Electronics"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Software R&D subsidiary of South Korea's LG Electronics (founded 1996); its Bengaluru development centre occupies its own building in Embassy Tech Square.",
+   "hqCity": "Seoul",
+   "hqCountry": "South Korea",
+   "founded": 1996,
+   "website": "https://www.lgsi.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Embassy Tech Square (LG Soft India building)",
+     "techPark": "Embassy Tech Square",
+     "building": null,
+     "locality": "Kadubeesanahalli",
+     "address": "Embassy Tech Square, Kadubeesanahalli, Outer Ring Road, Bengaluru 560103",
+     "lat": 12.935956,
+     "lng": 77.694537,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "A park blog lists LG Soft India among Embassy Tech Square's companies and OSM maps an 'LG Soft India' building in the park; the company's contact page returned 503 (https://www.prestigeevergreenvarthur.in/blog/embassy-tech-square.html ; https://www.openstreetmap.org/way/232973309).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.prestigeevergreenvarthur.in/blog/embassy-tech-square.html",
+    "https://www.assetzproperty.com/blogpost/navigating-bangalores-it-landscape-10-top-it-parks-in-bangalore",
+    "https://www.openstreetmap.org/way/232973309"
+   ]
+  },
+  {
+   "name": "Microsoft",
+   "aliases": [
+    "Microsoft India (R&D) Pvt Ltd",
+    "Microsoft Research India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "US software and cloud company; Microsoft India (R&D)'s main ORR site is the single-tenant Prestige Ferns Galaxy at Bellandur Gate, with Microsoft Research India on Lavelle Road and further offices at Embassy GolfLinks.",
+   "hqCity": "Redmond",
+   "hqCountry": "United States",
+   "founded": 1975,
+   "website": "https://www.microsoft.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Ferns Galaxy",
+     "techPark": "Prestige Ferns Galaxy",
+     "building": null,
+     "locality": "Ambalipura (Bellandur Gate)",
+     "address": "Prestige Ferns Galaxy, Sy. No. 7/1, 7/2, 8/1A, Ambalipura, Outer Ring Road, Bengaluru 560103",
+     "lat": 12.921624,
+     "lng": 77.66883,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "The IPC/Global Electronics Association member directory lists Microsoft India (R&D) Pvt. Ltd. at 'Prestige Ferns Galaxy, Sy. No. 7/1, 7/2, 8/1A in Ambalipura, Bengaluru 560103', and OSM has a Microsoft POI inside the building (https://www.electronics.org/de/member-directory/771807/company-details).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Microsoft Research India, 9 Lavelle Road",
+     "techPark": null,
+     "building": "Vigyan",
+     "locality": "Lavelle Road",
+     "address": "9 Lavelle Road, Bengaluru 560001",
+     "lat": 12.966136,
+     "lng": 77.596297,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps the office building 'Microsoft Research and Development' at 9 Lavelle Road, Bengaluru 560001, the long-standing Microsoft Research India lab (https://www.openstreetmap.org/way/174496298).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Embassy GolfLinks",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": null,
+     "locality": "Domlur (Challaghatta)",
+     "address": "Embassy GolfLinks Business Park, Off Intermediate Ring Road, Bengaluru 560071",
+     "lat": 12.951057,
+     "lng": 77.644159,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM has 'Microsoft India' and 'Microsoft' POIs inside Embassy GolfLinks Business Park; no primary source was fetched for this site (https://www.openstreetmap.org/node/11527324054).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.electronics.org/de/member-directory/771807/company-details",
+    "https://www.openstreetmap.org/node/5984858240",
+    "https://www.openstreetmap.org/way/174496298",
+    "https://www.openstreetmap.org/node/11527324054"
+   ]
+  },
+  {
+   "name": "Goldman Sachs",
+   "aliases": [
+    "Goldman Sachs Services Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "US investment bank; its Bengaluru operation, one of its largest offices worldwide, is based at Helios Business Park on the ORR, with an older presence at Embassy GolfLinks.",
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "founded": 1869,
+   "website": "https://www.goldmansachs.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Helios Business Park campus",
+     "techPark": "Helios Business Park",
+     "building": null,
+     "locality": "Kadubeesanahalli",
+     "address": "Helios Business Park, No. 150 Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.937403,
+     "lng": 77.689719,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The Executive Centre's listing for its Helios Business Park centre (No. 150 Outer Ring Road, Kadubeesanahalli) says 'Companies such as Goldman Sachs and the Volkswagen Group also call the park home'; Goldman's own Bengaluru page returned 403, so the park centroid is used (https://www.executivecentre.com/en-in/office-space/helios-business-park/).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Embassy GolfLinks",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": null,
+     "locality": "Domlur (Challaghatta)",
+     "address": "Embassy GolfLinks Business Park, Bengaluru 560071",
+     "lat": 12.950125,
+     "lng": 77.641768,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM POI 'Goldman Sachs' inside Embassy GolfLinks Business Park; Goldman's earlier Bengaluru offices were in this park (https://www.openstreetmap.org/node/11527323996).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.executivecentre.com/en-in/office-space/helios-business-park/",
+    "https://www.openstreetmap.org/node/11527323996",
+    "https://www.openstreetmap.org/way/779346494"
+   ]
+  },
+  {
+   "name": "Volkswagen Group",
+   "aliases": [
+    "Volkswagen Group Technology Solutions India",
+    "VW ITS"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "German automotive group; a Volkswagen Group technology office is reported at Helios Business Park on the ORR (the operating entity, likely Volkswagen Group Technology Solutions India, could not be confirmed).",
+   "hqCity": "Wolfsburg",
+   "hqCountry": "Germany",
+   "founded": 1937,
+   "website": "https://www.volkswagen-group.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Helios Business Park",
+     "techPark": "Helios Business Park",
+     "building": null,
+     "locality": "Kadubeesanahalli",
+     "address": "Helios Business Park, No. 150 Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.937403,
+     "lng": 77.689719,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "The Executive Centre's Helios Business Park listing names 'the Volkswagen Group' as a fellow occupier of the park; no Volkswagen source could be fetched and no OSM POI exists, so the park centroid is used (https://www.executivecentre.com/en-in/office-space/helios-business-park/).",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.executivecentre.com/en-in/office-space/helios-business-park/"
+   ]
+  },
+  {
+   "name": "Meesho",
+   "aliases": [
+    "Fashnear Technologies Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "Bengaluru social-commerce marketplace (Fashnear Technologies, unicorn since 2021); its headquarters is Wing E of Helios Business Park on the ORR.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2015,
+   "website": "https://www.meesho.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Helios Business Park - Wing E",
+     "techPark": "Helios Business Park",
+     "building": "Wing E",
+     "locality": "Kadubeesanahalli",
+     "address": "3rd Floor, Wing E, Helios Business Park, No. 150 Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.938512,
+     "lng": 77.690305,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Two OSM 'Meesho' POIs sit inside Helios Business Park, one beside the building mapped as 'WING E', matching Meesho's published registered address at 150 Outer Ring Road; Meesho's own pages refused the fetch (https://www.openstreetmap.org/node/13345701701 ; https://www.openstreetmap.org/node/11546284235).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13345701701",
+    "https://www.openstreetmap.org/node/11546284235",
+    "https://www.openstreetmap.org/way/1066915248"
+   ]
+  },
+  {
+   "name": "MakeMyTrip",
+   "aliases": [
+    "MakeMyTrip India Pvt Ltd",
+    "MMT"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "Gurugram-headquartered, NASDAQ-listed online travel company (about 3,500 staff); OSM records a Bengaluru office in Helios Business Park.",
+   "hqCity": "Gurugram",
+   "hqCountry": "India",
+   "founded": 2000,
+   "website": "https://www.makemytrip.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Helios Business Park",
+     "techPark": "Helios Business Park",
+     "building": null,
+     "locality": "Kadubeesanahalli",
+     "address": "Helios Business Park, No. 150 Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.938674,
+     "lng": 77.690217,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM POI 'MakeMyTrip India Pvt. Ltd' on Outer Ring Road inside Helios Business Park; no corporate source was fetched (https://www.openstreetmap.org/node/12997655807).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12997655807"
+   ]
+  },
+  {
+   "name": "Lumen Technologies",
+   "aliases": [
+    "CenturyLink",
+    "Savvis"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Telecom & networking",
+   "description": "US telecom and network-services company (formerly CenturyLink, which absorbed Savvis); its Bengaluru office is in Salarpuria Touchstone on the ORR.",
+   "hqCity": "Monroe",
+   "hqCountry": "United States",
+   "founded": 1930,
+   "website": "https://www.lumen.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Salarpuria Touchstone",
+     "techPark": "Salarpuria Touchstone",
+     "building": null,
+     "locality": "Kadubeesanahalli",
+     "address": "Salarpuria Touchstone, 15/1A Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.936291,
+     "lng": 77.690951,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM carries 'Lumen', 'Century Link' and 'Savvis' POIs (three names of one company) at Salarpuria Touchstone, the Savvis entry giving '2nd floor, 15/1A & 14B7 Sarjapura Ring Road, Kadubisenahalli' (https://www.openstreetmap.org/node/9835106868 ; https://www.openstreetmap.org/node/4447118958).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/9835106868",
+    "https://www.openstreetmap.org/node/3797616142",
+    "https://www.openstreetmap.org/node/4447118958"
+   ]
+  },
+  {
+   "name": "Harman International",
+   "aliases": [
+    "Harman Connected Services",
+    "Harman India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Samsung-owned US audio and connected-car technology company; OSM records its India corporate headquarters at Salarpuria Sattva Knowledge Court, Marathahalli, with a second office in the Prestige Tech Park cluster.",
+   "hqCity": "Stamford",
+   "hqCountry": "United States",
+   "founded": 1980,
+   "website": "https://www.harman.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Salarpuria Sattva Knowledge Court (Harman India HQ)",
+     "techPark": "Salarpuria Sattva Knowledge Court",
+     "building": null,
+     "locality": "Marathahalli (Brookefield)",
+     "address": "Salarpuria Sattva Knowledge Court, Outer Ring Road, Marathahalli, Bengaluru 560037",
+     "lat": 12.974465,
+     "lng": 77.711589,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM POI 'Harman Corporate Headquarters' inside Salarpuria Sattva Knowledge Court; Harman's locations page returned 503 twice, so this is OSM-evidenced only (https://www.openstreetmap.org/node/10702472536).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Prestige Tech Park cluster",
+     "techPark": "Prestige Tech Park",
+     "building": null,
+     "locality": "Kadubeesanahalli",
+     "address": "Prestige Tech Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.942331,
+     "lng": 77.694909,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM POI 'Harman International (india) Pvt. Ltd.' between the Jupiter block of Prestige Tech Park and the Platina blocks; a second Harman POI sits at Salarpuria Sattva Eminence on the Panathur side (https://www.openstreetmap.org/node/3546632356).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/10702472536",
+    "https://www.openstreetmap.org/node/3546632356",
+    "https://www.openstreetmap.org/node/5963688137"
+   ]
+  },
+  {
+   "name": "Netskope",
+   "aliases": [
+    "Netskope India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "US cloud-security (SASE) company whose Bengaluru engineering centre is in Salarpuria Sattva Knowledge Court.",
+   "hqCity": "Santa Clara",
+   "hqCountry": "United States",
+   "founded": 2012,
+   "website": "https://www.netskope.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Salarpuria Sattva Knowledge Court",
+     "techPark": "Salarpuria Sattva Knowledge Court",
+     "building": null,
+     "locality": "Marathahalli (Brookefield)",
+     "address": "Salarpuria Sattva Knowledge Court, Outer Ring Road, Marathahalli, Bengaluru 560037",
+     "lat": 12.973723,
+     "lng": 77.711811,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM POI 'Netskope India' inside Salarpuria Sattva Knowledge Court; Netskope's contact page returned 404, so this is OSM-evidenced only (https://www.openstreetmap.org/node/10978033374).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/10978033374"
+   ]
+  },
+  {
+   "name": "WNS",
+   "aliases": [
+    "WNS Global Services",
+    "WNS (Holdings)",
+    "WNS, a Capgemini company"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Consulting & professional services",
+   "description": "Mumbai-headquartered business-process-management company (>60,000 staff, acquired by Capgemini in 2025); OSM records a Bengaluru delivery centre in Salarpuria Sattva Knowledge Court.",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 1996,
+   "website": "https://www.wns.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Salarpuria Sattva Knowledge Court",
+     "techPark": "Salarpuria Sattva Knowledge Court",
+     "building": null,
+     "locality": "Marathahalli (Brookefield)",
+     "address": "Salarpuria Sattva Knowledge Court, Outer Ring Road, Marathahalli, Bengaluru 560037",
+     "lat": 12.975352,
+     "lng": 77.711304,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM POI 'WNS' inside Salarpuria Sattva Knowledge Court; WNS's contact page lists only its Mumbai headquarters, so this is OSM-evidenced only (https://www.openstreetmap.org/node/10702472537).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/10702472537"
+   ]
+  },
+  {
+   "name": "Myntra",
+   "aliases": [
+    "Myntra Designs Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "Flipkart-owned fashion e-commerce company founded in Bengaluru in 2007; headquartered at Embassy TechVillage (the Alyssa, Begonia and Clover buildings) after leaving its original AKR Tech Park campus at Kudlu Gate.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2007,
+   "website": "https://www.myntra.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Embassy TechVillage HQ (Alyssa, Begonia & Clover)",
+     "techPark": "Embassy TechVillage",
+     "building": "Alyssa, Begonia & Clover",
+     "locality": "Devarabeesanahalli",
+     "address": "Buildings Alyssa, Begonia & Clover, Embassy TechVillage, Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.93004,
+     "lng": 77.690611,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia records Myntra as Bengaluru-headquartered and a property site's Embassy TechVillage page lists Myntra among the park's occupiers; Myntra's own site was in maintenance, so the ETV park centroid is used (https://en.wikipedia.org/wiki/Myntra ; https://www.bangaloreoffices.com/embassy-tech-village/).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Salarpuria Sattva Eminence (Panathur)",
+     "techPark": "Salarpuria Sattva Eminence",
+     "building": null,
+     "locality": "Panathur",
+     "address": "Salarpuria Sattva Eminence, Panathur Main Road, Bengaluru 560103",
+     "lat": 12.943754,
+     "lng": 77.698762,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM has a 'Myntra' office POI inside Salarpuria Sattva Eminence on the Panathur side of Prestige Tech Park; its function is unknown and no other source confirms it (https://www.openstreetmap.org/node/13342712936).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Myntra",
+    "https://www.bangaloreoffices.com/embassy-tech-village/",
+    "https://www.openstreetmap.org/node/13342712936",
+    "https://www.openstreetmap.org/way/335578196"
+   ]
+  },
+  {
+   "name": "Navi",
+   "aliases": [
+    "Navi Technologies",
+    "BACQ Acquisitions"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Sachin Bansal's Bengaluru lending, insurance and mutual-fund fintech (Navi Technologies, founded 2018); headquartered in Vaishnavi Tech Square at Iblur on the ORR.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2018,
+   "website": "https://navi.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Vaishnavi Tech Square",
+     "techPark": "Vaishnavi Tech Square",
+     "building": null,
+     "locality": "Iblur",
+     "address": "Vaishnavi Tech Square, Iblur Village, Sarjapur Outer Ring Road, Bengaluru 560103",
+     "lat": 12.92677,
+     "lng": 77.666028,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM POI 'Navi' inside the Vaishnavi Tech Square building at Iblur, matching Navi's published registered address; Navi's contact page refused the fetch (https://www.openstreetmap.org/node/11237374568).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11237374568",
+    "https://www.openstreetmap.org/way/1167872058"
+   ]
+  }
+ ],
+ "coverageNotes": "Web search was exhausted early in this run (shared per-turn budget), so verification leaned on direct fetches of company pages plus OSM features; several corporate domains (Goldman Sachs, Walmart Tech, Akamai, Nutanix, Juniper/HPE, Harman, LG Soft, Oracle, Myntra, Meesho, Navi, Xiaomi, Cargill, Rubrik, Bazaarvoice, Netskope) returned 403/404/503 or rate-limited safety checks, and those offices are recorded at medium/low confidence with the reason stated. Primary (company-page) confirmations were obtained for Adobe (both buildings), Confluent, InMobi, Micron, Sapiens, KnowBe4, Amadeus (city only), Salesforce and Microsoft (via the IPC member directory). Lens tenants deliberately LEFT OUT because the evidence places their Bengaluru offices outside this stretch: Yahoo (Embassy GolfLinks), Akamai (locations page renders client-side; no address obtained), Qualcomm (Bagmane Constellation and EPIP Brookefield), Nokia (Manyata; it was a first-phase Prestige Tech Park tenant per the FIABCI entry but left long before 2023), Swiggy (not found on this stretch), Amazon (Bagmane WTC/Constellation), Intuit (Pritech Park/Ecospace, Bellandur), Palo Alto Networks and Lam Research (Bagmane Tech Park), Arm and Visa (Bagmane WTC), Applied Materials (ITPB, Whitefield), Pure Storage (no verifiable Bengaluru address), Oracle Health/Cerner (Manyata). Kalyani Platina is at Kundalahalli (Whitefield), not here, and is omitted; 'Embassy Signet' is a block of Embassy Tech Square and is recorded as an alias. Xiaomi India appeared only on a 2011-vintage Embassy Tech Square Delta listing and has since consolidated at Embassy TechVillage, so it is not recorded. LinkedIn, PwC, Schneider Electric and Bosch were named as Exora/Prestige Tech Park tenants in a 2015 release but OSM now places their Bengaluru offices elsewhere (RMZ Ecoworld, EGL/Bagmane, Brookefield, Ecospace), so they are omitted rather than recorded as closed (the moves predate 2023). Cargill is listed at Cessna by property sites but OSM places Cargill Business Services at Adarsh Palm Retreat, Bellandur; omitted. Myntra's former AKR Tech Park campus is described on the park entry but not recorded as a company office because the move to Embassy TechVillage predates 2023. Vaishnavi Tech Park and SJR iPark carry empty tenant lists because no tenant could be verified from a fetchable source (Uber and Odessa POIs near Vaishnavi Tech Park were not confirmed). Tower-level coordinates come from OSM building footprints where a named tower exists (Etamin, Elnath, Electra, Mercury, Velocity, Block 1); Cosmos, Cessna SEZ Buildings 10/11 and Torrey Pines are not mapped and use park centroids. The Prestige Tech Platina block-to-footprint mapping is inferred from the two Adobe POIs. Headcounts are null except Amadeus (4,000+, own careers page); no headcount was invented."
+}

@@ -1,0 +1,1154 @@
+{
+ "key": "X06-gaps",
+ "techParks": [],
+ "companies": [
+  {
+   "name": "Bank of Baroda",
+   "aliases": [
+    "BoB",
+    "Vijaya Bank (merged into Bank of Baroda, 1 April 2019)",
+    "Dena Bank (merged 2019)"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Banking (public-sector bank)",
+   "description": "Vadodara-headquartered public-sector bank (Government of India ~64%) that absorbed Bengaluru-headquartered Vijaya Bank and Dena Bank on 1 April 2019; Vijaya Bank's former head-office building at 41/2 MG Road now carries a Bank of Baroda International Banking Branch.",
+   "founded": 1908,
+   "hqCity": "Vadodara",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://bankofbaroda.bank.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "International Banking Branch - former Vijaya Bank Head Office, MG Road",
+     "techPark": null,
+     "building": "Vijaya Bank Building (41/2 MG Road)",
+     "locality": "MG Road (Trinity Circle end)",
+     "address": "Vijaya Bank Building, 41/2 Mahatma Gandhi Road, near Trinity Circle, Bengaluru 560001",
+     "lat": 12.972629,
+     "lng": 77.6197459,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia's Bank of Baroda article carries a photo captioned 'Bank of Baroda International Banking Branch at MG Road, Bengaluru formerly Vijaya Bank Head Office', and the Vijaya Bank article gives that head office as 'No. 41/2, M G Road, Bangalore' (inaugurated 26 Oct 1984): https://en.wikipedia.org/wiki/Bank_of_Baroda and https://en.wikipedia.org/wiki/Vijaya_Bank . The building is not mapped in OSM, so the point is the Trinity Circle junction at the east end of MG Road (approximate, within ~200 m); Bank of Baroda's own zonal-office page could not be fetched.",
+     "geocodeSource": "nominatim: Trinity Circle junction (osm way/1246412856), approximate"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Bank_of_Baroda",
+    "https://en.wikipedia.org/wiki/Vijaya_Bank"
+   ]
+  },
+  {
+   "name": "Indegene",
+   "aliases": [
+    "Indegene Limited",
+    "Indegene Lifesystems (former name)"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Life-sciences commercialisation / healthcare technology services",
+   "description": "Bengaluru-headquartered provider of commercialisation, medical and regulatory technology services to pharma and life-sciences companies; founded 1998, listed on BSE/NSE since its May 2024 IPO, 5,081 employees as of March 2024.",
+   "founded": 1998,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.indegene.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Headquarters / registered office - Aspen Block G4, Manyata Embassy Business Park",
+     "techPark": "Manyata Tech Park",
+     "building": "Aspen (Block G4)",
+     "locality": "Nagawara (Manyata Tech Park, Outer Ring Road)",
+     "address": "Aspen Block G4, 3rd Floor, Manyata Embassy Business Park, Outer Ring Road, Nagawara, Bengaluru 560045",
+     "lat": 13.048887,
+     "lng": 77.622358,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Indegene's contact page lists 'Aspen Block G4, 3rd Floor Manyata Embassy Business Park Outer Ring Road, Nagawara Bengaluru - 560 045' with the company's CIN L73100KA1998PLC102040 (i.e. the registered office); coordinates are the OSM footprint of the 'Aspen' office building inside Manyata (way/456555150): https://www.indegene.com/contact-us and https://www.openstreetmap.org/way/456555150",
+     "geocodeSource": "osm-building"
+    },
+    {
+     "label": "Brunton Road office",
+     "techPark": null,
+     "building": null,
+     "locality": "Brunton Road (Ashok Nagar, off MG Road)",
+     "address": "7/6, Brunton Road, Bengaluru 560025",
+     "lat": 12.9719382,
+     "lng": 77.6148314,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Indegene's contact page lists a second Bengaluru office at '7/6, Brunton Road Bengaluru - 560 025' (Tel +91 80 4644 6000); coordinate is the Brunton Road street centroid, the building itself is not mapped: https://www.indegene.com/contact-us",
+     "geocodeSource": "nominatim street centroid (Brunton Road, osm way/180375723)"
+    }
+   ],
+   "sources": [
+    "https://www.indegene.com/contact-us",
+    "https://en.wikipedia.org/wiki/Indegene",
+    "https://www.openstreetmap.org/way/456555150"
+   ]
+  },
+  {
+   "name": "Rajesh Exports",
+   "aliases": [
+    "Rajesh Exports Limited",
+    "REL"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Gold refining and jewellery manufacturing",
+   "description": "Bengaluru-headquartered, BSE/NSE-listed gold refiner and jewellery maker (owner of Swiss refiner Valcambi since 2015); very large revenue but a small permanent workforce - 160 permanent workers in its FY2024-25 BRSR, below the usual mid-size headcount but it fits no other category.",
+   "founded": 1989,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.rajeshindia.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - 1 Brunton Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Brunton Road (off MG Road)",
+     "address": "#1, Brunton Road, Off MG Road, Opp. Old Passport Office, Bengaluru 560001",
+     "lat": 12.9722497,
+     "lng": 77.6146022,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Rajesh Exports' contact page gives its Corporate Office as '#1, Brunton Road, Off MG Road, Opp Old Passport Office, Bangalore - 560001'; coordinate is the OSM 'Old Passport Office' building on Brunton Road (way/53264749), which the address says is opposite: https://www.rajeshindia.com/contact-us",
+     "geocodeSource": "osm-building (Old Passport Office, opposite; approximate)"
+    },
+    {
+     "label": "Registered office - Batavia Chambers, Kumara Park East",
+     "techPark": null,
+     "building": "Batavia Chambers",
+     "locality": "Kumara Park East",
+     "address": "No 4, Batavia Chambers, Kumara Krupa Road, Kumara Park East, Bengaluru 560001",
+     "lat": 12.9880897,
+     "lng": 77.5807009,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Rajesh Exports' contact page gives its Registered Office as 'No 4, Batavia Chambers, Kumara Krupa Road, Kumara Park East, Bangalore - 560001'; coordinate is the Kumara Krupa Road street geocode (building not mapped): https://www.rajeshindia.com/contact-us",
+     "geocodeSource": "photon street centroid (Kumara Krupa Road, osm way/1549068558)"
+    }
+   ],
+   "sources": [
+    "https://www.rajeshindia.com/contact-us",
+    "https://www.rajeshindia.com/",
+    "https://en.wikipedia.org/wiki/Rajesh_Exports"
+   ]
+  },
+  {
+   "name": "EdgeVerve Systems",
+   "aliases": [
+    "EdgeVerve Systems Limited",
+    "Infosys Finacle",
+    "Finacle",
+    "EdgeVerve"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Enterprise and banking software products (Finacle core banking, AssistEdge)",
+   "description": "Wholly owned software-products subsidiary of Infosys; Infosys merged its Finacle core-banking business into EdgeVerve in 2015. Its Bengaluru base is the Infosys Electronics City campus, but EdgeVerve's own site refused automated fetches, so the address is unconfirmed.",
+   "founded": null,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.edgeverve.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office - Infosys campus, Electronics City Phase 1",
+     "techPark": "Electronics City Phase 1",
+     "building": null,
+     "locality": "Electronics City Phase 1 (Hosur Road)",
+     "address": "Infosys campus, Plot 44 & 97A, Electronics City, Hosur Road, Bengaluru 560100 (unconfirmed)",
+     "lat": 12.848969,
+     "lng": 77.666134,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Wikipedia's Finacle article says Finacle 'has been a part of Infosys' subsidiary EdgeVerve Systems since 2015' (https://en.wikipedia.org/wiki/Finacle); placing EdgeVerve's registered office on the Infosys Electronics City campus follows the brief's hint and could not be confirmed because edgeverve.com and finacle.com return 403. Coordinate is the OSM 'Infosys Technologies Limited' campus polygon centroid (way/364872809).",
+     "geocodeSource": "osm-landuse centroid (Infosys campus, way/364872809)"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Finacle",
+    "https://en.wikipedia.org/wiki/Infosys",
+    "https://www.openstreetmap.org/way/364872809"
+   ]
+  },
+  {
+   "name": "Bangalore Metro Rail Corporation (BMRCL)",
+   "aliases": [
+    "BMRCL",
+    "Bengaluru Metro Rail Corporation Limited",
+    "Namma Metro",
+    "Bangalore Mass Rapid Transit Ltd (BMRTL, predecessor)"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Urban rail transit (metro)",
+   "description": "Joint venture of the Government of India and the Government of Karnataka that builds and operates Namma Metro; head office in the BMTC complex on K H Road, Shanthinagar, with operations at the Baiyappanahalli depot and depot-cum-workshops at Peenya, Kadugodi (Whitefield) and Hebbagodi.",
+   "founded": null,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://english.bmrc.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - BMTC Complex, K H Road, Shanthinagar",
+     "techPark": null,
+     "building": "BMTC Complex (Sarige Sadana)",
+     "locality": "Shanthinagar (K H Road)",
+     "address": "3rd Floor, BMTC Complex, K.H. Road, Shanthinagar, Bengaluru 560027",
+     "lat": 12.953972,
+     "lng": 77.591959,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "BMRCL's website footer gives the corporate office as '3rd Floor, BMTC Complex, K.H. Road, Shanthinagar, Bengaluru - 560 027' (in Kannada) and OSM maps 'Bangalore Metro Rail Corporation Limited' on K H Road (node/13350579871): https://english.bmrc.co.in/ and https://www.openstreetmap.org/node/13350579871",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Operations office - Baiyappanahalli depot",
+     "techPark": null,
+     "building": null,
+     "locality": "Baiyappanahalli (Old Madras Road)",
+     "address": "BMRCL Operations Office, Baiyappanahalli Depot, Bengaluru",
+     "lat": 12.987981,
+     "lng": 77.648951,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "BMRCL's website names the Byappanahalli Depot as its address for travel-related queries, Wikipedia says the Baiyappanahalli depot hosts the operations control centre and training centre, and OSM maps the 'BMRCL Operations Office' building there (way/150214754): https://english.bmrc.co.in/ , https://en.wikipedia.org/wiki/Namma_Metro and https://www.openstreetmap.org/way/150214754",
+     "geocodeSource": "osm-building"
+    },
+    {
+     "label": "Peenya depot-cum-workshop",
+     "techPark": null,
+     "building": null,
+     "locality": "Peenya",
+     "address": "Peenya Metro Depot, Peenya, Bengaluru",
+     "lat": 13.043611,
+     "lng": 77.530218,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wikipedia lists Peenya (100 acres) as an operational depot-cum-workshop; OSM maps the 'Peenya Metro Depot' with operator BMRCL (way/135267126): https://en.wikipedia.org/wiki/Namma_Metro and https://www.openstreetmap.org/way/135267126",
+     "geocodeSource": "osm-landuse centroid"
+    },
+    {
+     "label": "Kadugodi (Whitefield) depot-cum-workshop",
+     "techPark": null,
+     "building": null,
+     "locality": "Kadugodi (Whitefield)",
+     "address": "Whitefield Metro Depot, Kadugodi, Bengaluru",
+     "lat": 12.9892722,
+     "lng": 77.7538801,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wikipedia lists Kadugodi (44.8 acres) as the Purple Line depot-cum-workshop; OSM maps 'Whitefield Metro Depot, Kadugodi' (way/452475466): https://en.wikipedia.org/wiki/Namma_Metro and https://www.openstreetmap.org/way/452475466",
+     "geocodeSource": "photon (osm way/452475466)"
+    },
+    {
+     "label": "Hebbagodi depot-cum-workshop",
+     "techPark": null,
+     "building": null,
+     "locality": "Hebbagodi (Hosur Road, Yellow Line)",
+     "address": "Hebbagodi Metro Depot, Hebbagodi, Anekal Taluk, Bengaluru",
+     "lat": 12.8288774,
+     "lng": 77.677858,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wikipedia lists Hebbagodi (39.3 acres) as the Yellow Line depot-cum-workshop; OSM maps 'Hebbagodi Metro Depot' (way/170333760): https://en.wikipedia.org/wiki/Namma_Metro and https://www.openstreetmap.org/way/170333760",
+     "geocodeSource": "nominatim (osm way/170333760)"
+    }
+   ],
+   "sources": [
+    "https://english.bmrc.co.in/",
+    "https://en.wikipedia.org/wiki/Namma_Metro",
+    "https://www.openstreetmap.org/node/13350579871"
+   ]
+  },
+  {
+   "name": "Bangalore Electricity Supply Company (BESCOM)",
+   "aliases": [
+    "BESCOM",
+    "Bangalore Electricity Supply Company Limited"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Electricity distribution (state utility)",
+   "description": "Government of Karnataka power-distribution company for Bengaluru and surrounding districts, carved out of the Karnataka Electricity Board; corporate office at K R Circle, plus dozens of division and sub-division offices across the city.",
+   "founded": 2002,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://bescom.karnataka.gov.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - K R Circle",
+     "techPark": null,
+     "building": null,
+     "locality": "K R Circle (Central Bengaluru)",
+     "address": "BESCOM Corporate Office, K.R. Circle, Bengaluru 560001",
+     "lat": 12.975675,
+     "lng": 77.588106,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps a government office named 'BESCOM' immediately beside K R Circle (node/663484943), matching the brief's corporate-office location; BESCOM's own site (bescom.karnataka.gov.in) returned 503 so the address could not be read from it: https://www.openstreetmap.org/node/663484943",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "BESCOM Integrated Control Center",
+     "techPark": null,
+     "building": null,
+     "locality": "Rajajinagar / Malleswaram west",
+     "address": "BESCOM Integrated Control Center, Bengaluru",
+     "lat": 12.990525,
+     "lng": 77.551878,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps an office building named 'BESCOM Integrated Control Center' (way/820135308); single secondary source: https://www.openstreetmap.org/way/820135308",
+     "geocodeSource": "osm-building"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/663484943",
+    "https://www.openstreetmap.org/way/820135308"
+   ]
+  },
+  {
+   "name": "Karnataka Power Transmission Corporation (KPTCL)",
+   "aliases": [
+    "KPTCL",
+    "Karnataka Power Transmission Corporation Limited",
+    "Karnataka Electricity Board (predecessor)"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Electricity transmission (state utility)",
+   "description": "Karnataka state government's transmission utility, formed when the Karnataka Electricity Board was broken up; corporate office in Kaveri Bhavan on K G Road.",
+   "founded": 1999,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://kptcl.karnataka.gov.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - Kaveri Bhavan, K G Road",
+     "techPark": null,
+     "building": "Kaveri Bhavan",
+     "locality": "K G Road (Kempegowda Road)",
+     "address": "Kaveri Bhavan, K.G. Road, Bengaluru 560009",
+     "lat": 12.972807,
+     "lng": 77.582583,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia gives KPTCL's headquarters as Bengaluru (https://en.wikipedia.org/wiki/Karnataka_Power_Transmission_Corporation_Limited) and OSM maps the 'Kaveri Bhavan' building on K G Road (way/52244619, https://www.openstreetmap.org/way/52244619); the street address is the brief's and could not be read from kptcl.karnataka.gov.in (503).",
+     "geocodeSource": "osm-building"
+    },
+    {
+     "label": "Indhana Bhavan (KPTCL)",
+     "techPark": null,
+     "building": null,
+     "locality": "Race Course Road / Ananda Rao Circle area",
+     "address": "Indhana Bhavan, Race Course Road area, Bengaluru",
+     "lat": 12.983261,
+     "lng": 77.576456,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps a government office 'Indhana Bhawan' with operator KPTCL beside the SRLDC compound (way/1217383750); single secondary source: https://www.openstreetmap.org/way/1217383750",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Karnataka_Power_Transmission_Corporation_Limited",
+    "https://www.openstreetmap.org/way/52244619"
+   ]
+  },
+  {
+   "name": "Karnataka Power Corporation (KPCL)",
+   "aliases": [
+    "KPCL",
+    "Karnataka Power Corporation Limited"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Power generation (state utility)",
+   "description": "Government of Karnataka's power-generation company (hydro, thermal and solar plants across the state), started in 1970; corporate office at Shakti Bhavan on Race Course Road (now Devaraj Urs Road). Wikipedia gives 4,429 employees company-wide, undated.",
+   "founded": 1970,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://kpcl.karnataka.gov.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - Shakti Bhavan, Race Course Road",
+     "techPark": null,
+     "building": "Shakti Bhavan",
+     "locality": "Race Course Road (Devaraj Urs Road)",
+     "address": "Shakti Bhavan, 82 Race Course Road (Devaraj Urs Road), Bengaluru 560001",
+     "lat": 12.984207,
+     "lng": 77.586078,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps 'Karnataka Power Corporation Limited' (node/12686350445) inside the 'Shakti Bhavana' building at 87 Devaraj Urs Road (way/346501410); Wikipedia confirms the Bengaluru headquarters: https://www.openstreetmap.org/way/346501410 and https://en.wikipedia.org/wiki/Karnataka_Power_Corporation_Limited (kpcl.karnataka.gov.in returned 503).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "KPCL HRD Centre",
+     "techPark": null,
+     "building": null,
+     "locality": "Race Course Road / Madhav Nagar",
+     "address": "KPCL HRD Center, Race Course Road, Madhav Nagar, Bengaluru 560001",
+     "lat": 12.984076,
+     "lng": 77.579848,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps a government office 'KPCL HRD Center, Shakti Bhavan' on Race Course Road, Madhav Nagar (node/4578593390); single secondary source: https://www.openstreetmap.org/node/4578593390",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Karnataka_Power_Corporation_Limited",
+    "https://www.openstreetmap.org/way/346501410",
+    "https://www.openstreetmap.org/node/12686350445"
+   ]
+  },
+  {
+   "name": "KEONICS (Karnataka State Electronics Development Corporation)",
+   "aliases": [
+    "KEONICS",
+    "Karnataka State Electronics Development Corporation Limited"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "State electronics / IT development agency",
+   "description": "Karnataka state PSU that established Electronic City on 332 acres at Konappana Agrahara and Doddathogur in 1978 (handing its upkeep to ELCITA in 1997); now runs IT training and e-governance services from a head office in Kumara Park West, Seshadripuram.",
+   "founded": null,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.keonics.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Head office - Railway Parallel Road, Kumara Park West",
+     "techPark": null,
+     "building": null,
+     "locality": "Kumara Park West (Seshadripuram)",
+     "address": "#59, 1st Floor, Railway Parallel Road, 4th Block, Kumara Park West, Seshadripuram, Bengaluru 560020",
+     "lat": 12.9928137,
+     "lng": 77.5805566,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "KEONICS's own website gives its head office (in Kannada) as '#59, 1st Floor, Railway Parallel Road, 4th Block, Kumara Park West, Sheshadripuram, Bengaluru - 560020' (tel 080-22225645), not the Shanthinagar location in the brief: https://www.keonics.in/ ; coordinate is the Railway Parallel Road street centroid (building not mapped).",
+     "geocodeSource": "photon street centroid (Railway Parallel Road, osm way/188340331)"
+    }
+   ],
+   "sources": [
+    "https://www.keonics.in/",
+    "https://en.wikipedia.org/wiki/Electronic_City"
+   ]
+  },
+  {
+   "name": "Karnataka Antibiotics & Pharmaceuticals (KAPL)",
+   "aliases": [
+    "KAPL",
+    "Karnataka Antibiotics & Pharmaceuticals Limited"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Pharmaceuticals manufacturing",
+   "description": "Joint-sector pharma PSU (Government of India 59.17%, Government of Karnataka 40.83% via KSIIDC) started in 1984; registered and corporate office and its main 10-acre factory are in Peenya Industrial Area, with an Ayush plant at Dharwad.",
+   "founded": 1984,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.kaplindia.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered & corporate office - ARKA The Business Centre, Peenya",
+     "techPark": "Peenya Industrial Area",
+     "building": "ARKA - The Business Centre",
+     "locality": "Peenya Industrial Area 2nd Phase (NTTF Main Road)",
+     "address": "'ARKA - The Business Centre', Plot No. 37, Site No. 34/4, NTTF Main Road, Peenya Industrial Area 2nd Phase, Bengaluru 560058",
+     "lat": 13.0250233,
+     "lng": 77.5085311,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "KAPL's contact page lists its Registered & Corporate Office as 'ARKA - THE BUSINESS CENTRE, Plot No. 37, Site No. 34/4, NTTF Main Road, Peenya Industrial Area, 2nd Phase, Bangalore-560 058' (the brief's Rajajinagar/Yeshwanthpur location is outdated): https://www.kaplindia.com/contact-us ; coordinate is the NTTF campus on NTTF Main Road (osm way via nominatim), approximate.",
+     "geocodeSource": "nominatim (NTTF, NTTF Main Road, Peenya 2nd Stage) - approximate"
+    },
+    {
+     "label": "Factory - Plot 14, Peenya II Phase",
+     "techPark": "Peenya Industrial Area",
+     "building": null,
+     "locality": "Peenya Industrial Area II Phase",
+     "address": "Plot No. 14, II Phase, Peenya Industrial Area, Bengaluru 560058",
+     "lat": 13.0160478,
+     "lng": 77.5045057,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "KAPL's contact and About pages give the factory as 'Plot No.14, II Phase, Peenya Industrial Area, Bangalore-560 058' on 10 acres: https://www.kaplindia.com/contact-us and https://www.kaplindia.com/about-kapl ; the plot is not mapped, so the point is the Peenya Industrial Area centroid.",
+     "geocodeSource": "nominatim area centroid (Peenya Industrial Area, relation/17570284)"
+    }
+   ],
+   "sources": [
+    "https://www.kaplindia.com/contact-us",
+    "https://www.kaplindia.com/about-kapl"
+   ]
+  },
+  {
+   "name": "Bharatiya Reserve Bank Note Mudran (BRBNMPL)",
+   "aliases": [
+    "BRBNMPL",
+    "Bharatiya Reserve Bank Note Mudran Private Limited"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Banknote printing (Reserve Bank of India subsidiary)",
+   "description": "Wholly owned subsidiary of the Reserve Bank of India, set up in 1995, that prints banknotes at presses in Mysuru and Salboni; its registered and corporate office is in BTM Layout 1st Stage, Bengaluru.",
+   "founded": 1995,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.brbnmpl.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered & corporate office - BTM Layout",
+     "techPark": null,
+     "building": null,
+     "locality": "BTM Layout 1st Stage (Bannerghatta Road)",
+     "address": "No. 3 & 4, 1st Phase, 1st Stage, BTM Layout, Bannerghatta Road, Bengaluru 560029",
+     "lat": 12.925123,
+     "lng": 77.600104,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "BRBNMPL's contact page gives its Registered and Corporate Office as 'No. 3 & 4, Ist Phase, Ist Stage, BTM Layout Bannerghatta Road, Bangalore - 560 029' and OSM maps the 'Bharatiya Reserve Bank Note Mudran Private Limited' building there (way/347520111): https://www.brbnmpl.co.in/contact-us and https://www.openstreetmap.org/way/347520111",
+     "geocodeSource": "osm-building"
+    }
+   ],
+   "sources": [
+    "https://www.brbnmpl.co.in/contact-us",
+    "https://en.wikipedia.org/wiki/Bharatiya_Reserve_Bank_Note_Mudran",
+    "https://www.openstreetmap.org/way/347520111"
+   ]
+  },
+  {
+   "name": "Power Grid Corporation of India",
+   "aliases": [
+    "POWERGRID",
+    "PGCIL",
+    "Power Grid Corporation of India Limited"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Electricity transmission (central PSU)",
+   "description": "Central-government transmission utility headquartered in Gurugram; its Southern Region Transmission System-II regional headquarters is at Singanayakanahalli on the Yelahanka-Doddaballapur Road side of north Bengaluru.",
+   "founded": 1989,
+   "hqCity": "Gurugram",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.powergrid.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Southern Region Transmission System-II regional HQ, Singanayakanahalli",
+     "techPark": null,
+     "building": null,
+     "locality": "Singanayakanahalli (Yelahanka Hobli)",
+     "address": "POWERGRID SRTS-II RHQ, Near RTO Driving Test Track, Singanayakanahalli, Yelahanka Hobli, Bengaluru 560064",
+     "lat": 13.151392,
+     "lng": 77.556683,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "POWERGRID's contact page gives 'Southern Region Transmission System-II RHQ, Near RTO Driving Test Track, Singanayakanahalli, Yelahanka Hobli, Bengaluru- 560 064' and OSM maps 'Powergrid Corporation of India' there (node/4643960001, postcode 560064): https://www.powergrid.in/en/contact-us and https://www.openstreetmap.org/node/4643960001",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.powergrid.in/en/contact-us",
+    "https://www.openstreetmap.org/node/4643960001"
+   ]
+  },
+  {
+   "name": "Grid Controller of India (Grid-India)",
+   "aliases": [
+    "GRID-INDIA",
+    "Grid Controller of India Limited",
+    "Power System Operation Corporation (POSOCO, renamed 9 Nov 2022)",
+    "Southern Regional Load Despatch Centre (SRLDC)"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Power-system operation (grid load despatch)",
+   "description": "Wholly government-owned operator of India's national and regional load despatch centres (renamed from POSOCO in November 2022, headquartered in New Delhi); runs the Southern Regional Load Despatch Centre in Bengaluru.",
+   "founded": 2009,
+   "hqCity": "New Delhi",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://grid-india.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Southern Regional Load Despatch Centre (SRLDC)",
+     "techPark": null,
+     "building": null,
+     "locality": "Race Course Cross Road (Ananda Rao Circle area)",
+     "address": "SRLDC, 29 Race Course Cross Road, Bengaluru 560009",
+     "lat": 12.9837,
+     "lng": 77.575492,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia lists the Southern RLDC as located in Bengaluru (https://en.wikipedia.org/wiki/Power_System_Operation_Corporation) and OSM maps the 'SRLDC' compound off Race Course Road (way/1217383748, https://www.openstreetmap.org/way/1217383748); the street address is the brief's, as grid-india.in and srldc.in returned 503.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Power_System_Operation_Corporation",
+    "https://www.openstreetmap.org/way/1217383748"
+   ]
+  },
+  {
+   "name": "Aster DM Healthcare",
+   "aliases": [
+    "Aster DM Healthcare Limited",
+    "Aster DM Quality Care Limited (name given after the 2024-25 merger with Quality Care India)",
+    "Aster Hospitals",
+    "Aster CMI Hospital",
+    "Aster RV Hospital"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Hospitals / healthcare services",
+   "description": "BSE/NSE-listed hospital chain founded by Azad Moopen in 1987; after selling control of its GCC business in April 2024 it is registered in Bengaluru, which became the HQ of its India operations, and it announced a merger with Quality Care India in November 2024. Bengaluru hospitals: Aster CMI (Hebbal), Aster RV (JP Nagar), Aster Whitefield and Aster Women & Children (Whitefield). Post-split India headcount not found, so the >10,000 MNC test could not be applied.",
+   "founded": 1987,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.asterhospitals.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Aster CMI Hospital, Hebbal",
+     "techPark": null,
+     "building": null,
+     "locality": "Hebbal / Sahakara Nagar (Bellary Road, NH 44)",
+     "address": "No. 43/2, New Airport Road, NH 44, Sahakar Nagar, Hebbal, Bengaluru 560092",
+     "lat": 13.0545589,
+     "lng": 77.5916468,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Aster's hospitals page lists Aster CMI Bangalore at 'No. 43/2, New Airport Road, NH 44, Sahakar Nagar, Hebbal, Bengaluru 560092', and OSM maps Aster CMI Hospital on Bellary Road (way/1040899005): https://www.asterhospitals.in/hospitals ; the brief names this campus as the India HQ, but no source fetched confirms the corporate office's street address.",
+     "geocodeSource": "photon (osm way/1040899005)"
+    },
+    {
+     "label": "Aster RV Hospital, JP Nagar",
+     "techPark": null,
+     "building": null,
+     "locality": "JP Nagar 1st Phase",
+     "address": "CA-37, 24th Main, 1st Phase, J.P. Nagar, Bengaluru 560078",
+     "lat": 12.9114172,
+     "lng": 77.5850266,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Aster's hospitals page lists Aster RV Bangalore at 'CA-37, 24th Main, 1st Phase, J.P.Nagar, Bengaluru 560078'; OSM maps Aster RV Hospital at CA-37 (way/32258435): https://www.asterhospitals.in/hospitals",
+     "geocodeSource": "nominatim (osm way/32258435)"
+    },
+    {
+     "label": "Aster Whitefield Hospital",
+     "techPark": null,
+     "building": null,
+     "locality": "Whitefield (Sadaramangala Industrial Area, ITPL Main Road)",
+     "address": "Plot No. 2, 3 & 4, Survey No. 76, Sadaramangala Industrial Area, Opp. ITPL Main Road, Whitefield, Bengaluru 560066",
+     "lat": 12.9891166,
+     "lng": 77.7338119,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Aster's Whitefield page gives 'Plot No. 2,3 & 4 Survey No. - 76, Sadaramangala Industrial Area, Opp. ITPL Main Rd, Whitefield, Karnataka, 560066' (opened 2023 per Wikipedia); OSM maps Aster Whitefield Hospital on Sadarmangala Road (way/1511814372): https://www.asterhospitals.in/hospitals/aster-whitefield-bangalore",
+     "geocodeSource": "photon (osm way/1511814372)"
+    }
+   ],
+   "sources": [
+    "https://www.asterhospitals.in/hospitals",
+    "https://www.asterhospitals.in/hospitals/aster-whitefield-bangalore",
+    "https://en.wikipedia.org/wiki/Aster_DM_Healthcare"
+   ]
+  },
+  {
+   "name": "Apollo Hospitals",
+   "aliases": [
+    "Apollo Hospitals Enterprise Limited",
+    "Apollo Hospitals Bangalore"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Hospitals / healthcare services",
+   "description": "Chennai-headquartered, listed hospital group founded by Prathap C. Reddy in 1983 (62,939 employees in 2020, hence MNC under the Indian+listed+>10,000 rule); its large Bengaluru hospitals include Bannerghatta Road (opposite IIM-B) and Seshadripuram.",
+   "founded": 1983,
+   "hqCity": "Chennai",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.apollohospitals.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Apollo Hospitals, Bannerghatta Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Bannerghatta Road (Arekere / Panduranga Nagar)",
+     "address": "Apollo Hospitals, Bannerghatta Road, Arekere, Bengaluru 560076",
+     "lat": 12.8962983,
+     "lng": 77.5982851,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps 'Apollo Hospital' on Bannerghatta Road at Arekere (way/44091445), beside the Fortis campus; Wikipedia's Apollo article pictures the 'Apollo Cancer Hospital & Research Centre, Bengaluru'. apollohospitals.com returned 403, so the street address is not from the company: https://www.openstreetmap.org/way/44091445 and https://en.wikipedia.org/wiki/Apollo_Hospitals",
+     "geocodeSource": "nominatim (osm way/44091445)"
+    },
+    {
+     "label": "Apollo Hospital, Seshadripuram",
+     "techPark": null,
+     "building": null,
+     "locality": "Seshadripuram",
+     "address": "Apollo Hospital, Seshadripuram, Bengaluru 560020",
+     "lat": 12.988342,
+     "lng": 77.572698,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps a building named 'Apollo Hospital' in Seshadripuram (way/347485349), matching the brief; single secondary source as apollohospitals.com returned 403: https://www.openstreetmap.org/way/347485349",
+     "geocodeSource": "osm-building"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Apollo_Hospitals",
+    "https://www.openstreetmap.org/way/44091445",
+    "https://www.openstreetmap.org/way/347485349"
+   ]
+  },
+  {
+   "name": "Fortis Healthcare",
+   "aliases": [
+    "Fortis Hospitals",
+    "Fortis Healthcare Limited",
+    "Fortis Hospital Bannerghatta Road"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Hospitals / healthcare services",
+   "description": "Gurugram-headquartered listed hospital chain (founded 1996 as an offshoot of Ranbaxy; ~23,000 employees in 2023) controlled since 2018 by Malaysia's IHH Healthcare with a 31.1% controlling stake, hence origin Foreign; Bengaluru hospitals at Bannerghatta Road, Cunningham Road, Rajajinagar and Nagarbhavi.",
+   "founded": 1996,
+   "hqCity": "Gurugram",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.fortishealthcare.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Fortis Hospital, Bannerghatta Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Bannerghatta Road (Arekere / Panduranga Nagar)",
+     "address": "Fortis Hospital, Bannerghatta Road, Arekere, Bengaluru 560076",
+     "lat": 12.8947508,
+     "lng": 77.5986762,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps 'Fortis Hospitals, Bannerghatta Road' (way/44091443); fortishealthcare.com returned 403: https://www.openstreetmap.org/way/44091443",
+     "geocodeSource": "nominatim (osm way/44091443)"
+    },
+    {
+     "label": "Fortis Hospital, Cunningham Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Cunningham Road (Vasanth Nagar)",
+     "address": "Fortis Hospital, Cunningham Road, Vasanth Nagar, Bengaluru 560052",
+     "lat": 12.9885488,
+     "lng": 77.5945745,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps 'Fortis Hospitals Limited' on Cunningham Road, Vasanth Nagar (way/325436710): https://www.openstreetmap.org/way/325436710",
+     "geocodeSource": "nominatim (osm way/325436710)"
+    },
+    {
+     "label": "Fortis Hospital, Rajajinagar",
+     "techPark": null,
+     "building": null,
+     "locality": "Rajajinagar 3rd Block",
+     "address": "Fortis Hospital, 111, 46th A Cross Road, Rajajinagar 3rd Block, Bengaluru 560010",
+     "lat": 12.9881648,
+     "lng": 77.5548179,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps 'Fortis Hospital, 111, 46th A Cross Road, Rajajinagar 3rd Block' (node/4446664412): https://www.openstreetmap.org/node/4446664412",
+     "geocodeSource": "nominatim (osm node/4446664412)"
+    },
+    {
+     "label": "Fortis Hospital, Nagarbhavi",
+     "techPark": null,
+     "building": null,
+     "locality": "Nagarbhavi (NGEF Layout, Mallathahalli)",
+     "address": "Fortis Hospital, 2nd Cross Road, NGEF Layout, Nagarbhavi, Bengaluru 560072",
+     "lat": 12.9596032,
+     "lng": 77.5112481,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps 'Fortis Hospital, Nagarbhavi' on 2nd Cross Road, NGEF Layout (node/11385217932): https://www.openstreetmap.org/node/11385217932",
+     "geocodeSource": "nominatim (osm node/11385217932)"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Fortis_Healthcare",
+    "https://www.openstreetmap.org/way/44091443",
+    "https://www.openstreetmap.org/way/325436710"
+   ]
+  },
+  {
+   "name": "Sparsh Hospitals",
+   "aliases": [
+    "SPARSH Hospital",
+    "Shiva & Shiva Orthopaedic Hospital Pvt Ltd"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Hospitals / healthcare services",
+   "description": "Bengaluru-headquartered multi-specialty hospital chain founded in 2006 by orthopaedic surgeon Dr Sharan Patil (legal entity Shiva & Shiva Orthopaedic Hospital Pvt Ltd); seven Bengaluru hospitals (Infantry Road plus a women & children unit, Yeshwanthpur, Yelahanka, Hennur Road, RR Nagar, Sarjapur Road) and one in Davanagere.",
+   "founded": 2006,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.sparshhospital.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "SPARSH Hospital, Infantry Road (flagship; women & children unit at No. 147)",
+     "techPark": null,
+     "building": "Prestige Opal",
+     "locality": "Infantry Road (Vasanth Nagar)",
+     "address": "No. 146, Prestige Opal, Infantry Road, Opp. Police Commissioner's Office, Bengaluru 560001",
+     "lat": 12.9832468,
+     "lng": 77.5947771,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Sparsh's contact page lists 'SPARSH Hospital, Infantry Road: Opp Police Commissioner's office, No 146, Prestige Opal, Infantry Road, Bengaluru 560001' and the Hospital for Women and Children at 147 Infantry Rd; OSM maps Prestige Opal on Infantry Road (way/1041871109): https://www.sparshhospital.com/contact-us/ . Marked HQ as the flagship per the brief; no separate corporate-office address is published.",
+     "geocodeSource": "nominatim (Prestige Opal, osm way/1041871109)"
+    },
+    {
+     "label": "SPARSH Hospital, Yeshwanthpur",
+     "techPark": null,
+     "building": null,
+     "locality": "Yeshwanthpur / Goraguntepalya (Tumkur Road)",
+     "address": "4/1, Tumkur Road, Yeswanthpur, Bengaluru 560022",
+     "lat": 13.0277635,
+     "lng": 77.542997,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Sparsh's contact page lists 'SPARSH Hospital, Yeswanthpur: 4/1, Tumkur Road, Yeswanthpur Bangalore 560022'; OSM maps Sparsh Hospital on Tumkur Road at Goraguntepalya (way/674362377): https://www.sparshhospital.com/contact-us/",
+     "geocodeSource": "photon (osm way/674362377)"
+    },
+    {
+     "label": "SPARSH Hospital, Yelahanka",
+     "techPark": null,
+     "building": null,
+     "locality": "Yelahanka (Kogilu Cross, Airport Road)",
+     "address": "No. 1474/138, International Airport Road, Kogilu Cross, Yelahanka, Bengaluru 560064",
+     "lat": 13.0949131,
+     "lng": 77.598793,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Sparsh's contact page lists 'SPARSH Hospital, Yelahanka: No. 1474/138, International Airport Road, Kogilu Cross, Yelahanka, Bangalore - 560 064'; OSM maps it on the Airport Road service road (way/1110808778): https://www.sparshhospital.com/contact-us/",
+     "geocodeSource": "nominatim (osm way/1110808778)"
+    },
+    {
+     "label": "SPARSH Hospital, Hennur Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Hennur / HBR Layout",
+     "address": "HBR Layout, Hennur Road, Bengaluru 560043",
+     "lat": 13.040171,
+     "lng": 77.6406847,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Sparsh's contact page lists 'SPARSH Hospital, Hennur Road: HBR Layout, Hennur Road, Bengaluru - 560 043'; OSM maps Sparsh Hospital, Hennur (way/1148876100): https://www.sparshhospital.com/contact-us/",
+     "geocodeSource": "nominatim (osm way/1148876100)"
+    }
+   ],
+   "sources": [
+    "https://www.sparshhospital.com/contact-us/",
+    "https://en.wikipedia.org/wiki/Sparsh_Hospital"
+   ]
+  },
+  {
+   "name": "Narayana Nethralaya",
+   "aliases": [
+    "Narayana Nethralaya Eye Hospital",
+    "Narayana Nethralaya Foundation"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Eye hospitals / ophthalmology",
+   "description": "Bengaluru super-speciality eye-hospital group founded by Dr K. Bhujang Shetty (began as a clinic in Srirampuram in 1982; unrelated to Narayana Health); main campus on Chord Road, Rajajinagar, with campuses at Bommasandra, Bannerghatta Road (Hulimavu), Indiranagar and Whitefield (opened 2025) and a satellite centre in Electronic City.",
+   "founded": 1982,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.narayananethralaya.org",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Main campus - Rajajinagar (Chord Road)",
+     "techPark": null,
+     "building": null,
+     "locality": "Rajajinagar 1st R Block (Chord Road)",
+     "address": "#121/C, Chord Road, 1st 'R' Block, Rajajinagar, Bengaluru 560010",
+     "lat": 13.0115204,
+     "lng": 77.5521069,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Narayana Nethralaya's contact page lists '#121/C Chord Road, 1st R Block, Rajaji Nagar, Bangalore - 560 010' first, and Wikipedia calls Rajajinagar the main campus; OSM maps Narayana Nethralaya on Chord Road (way/133117380): https://www.narayananethralaya.org/contact-us/ and https://en.wikipedia.org/wiki/Narayana_Nethralaya",
+     "geocodeSource": "photon (osm way/133117380)"
+    },
+    {
+     "label": "Bommasandra campus (Narayana Health City)",
+     "techPark": null,
+     "building": null,
+     "locality": "Bommasandra (Hosur Road)",
+     "address": "#258/A, Bommasandra, Hosur Road, Bengaluru 560099",
+     "lat": 12.8065432,
+     "lng": 77.693904,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Contact page lists '# 258/A, Bommasandra, Hosur Road, Bangalore - 560 099'; OSM maps Narayana Nethralaya there (way/608640667): https://www.narayananethralaya.org/contact-us/",
+     "geocodeSource": "nominatim (osm way/608640667)"
+    },
+    {
+     "label": "Bannerghatta Road campus (Hulimavu)",
+     "techPark": null,
+     "building": null,
+     "locality": "Hulimavu (Bannerghatta Road)",
+     "address": "No. 63, next to Royal Meenakshi Mall, Bannerghatta Road, Hulimavu, Bengaluru 560076",
+     "lat": 12.8745867,
+     "lng": 77.5951803,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Contact page lists 'No.63, Next to Royal Meenakshi Mall, Bannerghatta Road, Hulimavu, Bangalore - 560 076'; OSM maps Narayana Nethralaya at Hulimavu (way/668612935): https://www.narayananethralaya.org/contact-us/",
+     "geocodeSource": "nominatim (osm way/668612935)"
+    },
+    {
+     "label": "Indiranagar campus",
+     "techPark": null,
+     "building": null,
+     "locality": "Indiranagar / Defence Colony (100 Feet Road)",
+     "address": "#1/1, 1st Main, Binnamangala, Defence Colony, 100 Feet Road, Indiranagar, Bengaluru 560038",
+     "lat": 12.977022,
+     "lng": 77.6412175,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Contact page lists '#1/1, 1st main, Binnamangala, Defence Colony, 100 feet road, Indiranagar, Bangalore 560038'; OSM maps 'Narayan Nethralaya, 1st Main Road' there (node/11637653603): https://www.narayananethralaya.org/contact-us/",
+     "geocodeSource": "photon (osm node/11637653603)"
+    },
+    {
+     "label": "Whitefield campus",
+     "techPark": null,
+     "building": null,
+     "locality": "Doddanekkundi Industrial Area (Seetharampalya)",
+     "address": "Plot 3-C, Phase I, Doddenakkundi Industrial Area, Mahadevapura P.O., next to Seetharamapalya Metro Station, Bengaluru 560048",
+     "lat": 12.9808558,
+     "lng": 77.7087854,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Contact page lists 'Plot 3-C, Phase I; Doddenakkundi Industrial Area; Mahadevapura P.O.; Next to Seetharamapalya Metro Station, Bengaluru - 560048' (opened Feb 2025 per Wikipedia): https://www.narayananethralaya.org/contact-us/ ; building not mapped, point is the Seetharampalya locality node (approximate).",
+     "geocodeSource": "nominatim locality node (Seetharampalya, node/5760197757) - approximate"
+    }
+   ],
+   "sources": [
+    "https://www.narayananethralaya.org/contact-us/",
+    "https://en.wikipedia.org/wiki/Narayana_Nethralaya"
+   ]
+  },
+  {
+   "name": "Cloudnine Hospitals",
+   "aliases": [
+    "Cloudnine",
+    "Kids Clinic India Pvt Ltd",
+    "Cloud Nine Hospital"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Maternity, neonatal and paediatric hospitals",
+   "description": "Bengaluru-headquartered maternity and children's hospital chain (operating company Kids Clinic India) with 49 centres in 16 cities; registered office in Jayanagar, corporate office at M Square Legacy on the Outer Ring Road, Bellandur, and 15 Bengaluru centres.",
+   "founded": 2007,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.cloudninecare.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - M Square Legacy, Outer Ring Road, Bellandur",
+     "techPark": null,
+     "building": "M Square Legacy",
+     "locality": "Bellandur (Outer Ring Road)",
+     "address": "2nd & 3rd Floor, M Square Legacy, Outer Ring Road, opp. Cloud Nine Hospital, Bellandur, Bengaluru 560103",
+     "lat": 12.923878,
+     "lng": 77.672908,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Cloudnine's contact page gives its Corporate Office as '2nd & 3rd Floor, M Square Legacy, Outer Ring Rd, opp. Cloud Nine Hospital, Bellandur, Bengaluru, Karnataka 560103'; OSM maps the 'M Square' building there (way/1070107462): https://www.cloudninecare.com/contact-us",
+     "geocodeSource": "osm-building"
+    },
+    {
+     "label": "Registered office & Jayanagar hospital",
+     "techPark": null,
+     "building": null,
+     "locality": "Jayanagar 3rd Block (Bairasandra Extension)",
+     "address": "#1533, 9th Main, 3rd Block, Jayanagar, Bengaluru 560011",
+     "lat": 12.9348064,
+     "lng": 77.583973,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Cloudnine's contact page gives the Registered Office as '# 1533, 9th Main, 3rd Block, Jayanagar, Bengaluru 560011' and its Jayanagar centre page puts the hospital at '1st Floor, 1533, 9th Main Rd, Bairasandra Extension ... Jayanagar 3rd Block': https://www.cloudninecare.com/contact-us and https://www.cloudninecare.com/centre/jayanagar ; point is the 9th Main Road (Jayanagar 3rd Block) street geocode.",
+     "geocodeSource": "nominatim street centroid (9th Main Road, Jayanagar 3rd Block, osm way/23075309)"
+    },
+    {
+     "label": "Cloudnine Hospital, Bellandur",
+     "techPark": null,
+     "building": null,
+     "locality": "Bellandur (Outer Ring Road service road)",
+     "address": "1/79/4, Service Road, Bellandur, Varthur Hobli, Bengaluru 560103",
+     "lat": 12.9243141,
+     "lng": 77.6723849,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Centre page: 'Varthur Hobli, Bengaluru East Taluk, 1/79/4, Service Rd, Bellandur, Bengaluru 560103'; OSM maps 'Cloudnine' on the Outer Ring Road at Bellandur (way/1071044455): https://www.cloudninecare.com/centre/bellandur",
+     "geocodeSource": "nominatim (osm way/1071044455)"
+    },
+    {
+     "label": "Cloudnine Hospital, Old Airport Road",
+     "techPark": null,
+     "building": null,
+     "locality": "HAL Old Airport Road (Jeevan Bima Nagar)",
+     "address": "115, HAL Old Airport Road, opposite Kemp Fort / Total Mall, Nanja Reddy Colony, Jeevan Bima Nagar, Bengaluru 560017",
+     "lat": 12.9597752,
+     "lng": 77.6569127,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Centre page: '115, HAL Old Airport Rd, Nanja Reddy Colony, Jeevan Bima Nagar, Bengaluru 560017', opposite Kemp Fort; OSM maps 'Cloudnine Hospital Pvt. Ltd.' there (node/5106809421): https://www.cloudninecare.com/centre/old-airport-road",
+     "geocodeSource": "nominatim (osm node/5106809421)"
+    },
+    {
+     "label": "Cloudnine Hospital, Malleswaram",
+     "techPark": null,
+     "building": null,
+     "locality": "Malleswaram (11th Main Road)",
+     "address": "47, 11th Main Road, near MES Kishora Kendra, Malleswaram, Bengaluru 560055",
+     "lat": 13.0008367,
+     "lng": 77.5638246,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Centre page: '47, 11th Main Rd, near Mes Kishora Kendra, Malleswaram, Bengaluru 560055': https://www.cloudninecare.com/centre/malleshwaram ; point is the 11th Main Road (Malleswaram) street geocode, building not mapped.",
+     "geocodeSource": "photon street centroid (11th Main Road, Malleshwaram, osm way/94433650)"
+    }
+   ],
+   "sources": [
+    "https://www.cloudninecare.com/contact-us",
+    "https://www.cloudninecare.com/",
+    "https://www.cloudninecare.com/centre/bellandur",
+    "https://www.cloudninecare.com/centre/old-airport-road",
+    "https://www.cloudninecare.com/centre/malleshwaram",
+    "https://www.cloudninecare.com/centre/jayanagar"
+   ]
+  },
+  {
+   "name": "DTDC Express",
+   "aliases": [
+    "DTDC Express Limited",
+    "DTDC Courier & Cargo Ltd (original name)",
+    "DTDC"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Courier / express logistics",
+   "description": "Bengaluru-headquartered, franchise-based express courier and logistics company founded on 26 July 1990; France's Geopost (La Poste group) holds about 42%. Wikipedia gives 13,000 employees - above the mid-size band, but it is unlisted, so it does not meet the MNC rule either.",
+   "founded": 1990,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.dtdc.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Headquarters - DTDC House, Victoria Road",
+     "techPark": null,
+     "building": "DTDC House",
+     "locality": "Victoria Road (Ashok Nagar / Austin Town)",
+     "address": "DTDC House, No. 3, Victoria Road, Bengaluru 560047",
+     "lat": 12.967039,
+     "lng": 77.612657,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia says DTDC is headquartered in Bengaluru and OSM maps a commercial building named 'DTDC House' just off Victoria Road (way/346752569); dtdc.com does not print the address, which is the brief's: https://en.wikipedia.org/wiki/DTDC and https://www.openstreetmap.org/way/346752569",
+     "geocodeSource": "osm-building"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/DTDC",
+    "https://www.dtdc.com/about-us/",
+    "https://www.openstreetmap.org/way/346752569"
+   ]
+  }
+ ],
+ "coverageNotes": "SCOPE. Gap-fill for the 20 critic-named companies. None was already in the raw dataset under another name (checked by name/alias regex over every E*/G*/X05 file; Vijaya Bank's MG Road head office had been deliberately dropped by G13, and Indegene was only mentioned in G09's notes as belonging to another lens). All 20 are recorded. METHOD. The shared web-search budget was already exhausted when this task started, so no web searches were run; evidence comes from direct fetches of official pages (Indegene, Rajesh Exports, KAPL, BRBNMPL, POWERGRID, KEONICS, BMRCL, Aster, Sparsh, Narayana Nethralaya, Cloudnine), Wikipedia, and OpenStreetMap objects (osm_lookup + Nominatim/Photon geocoder). Coordinates are OSM building/POI positions where mapped; street centroids or area centroids where only a street/area is known (said so in geocodeSource and evidence). CORRECTIONS TO THE BRIEF. KEONICS's head office is #59 Railway Parallel Road, Kumara Park West, Seshadripuram (its own site), not Shanthinagar. KAPL's registered/corporate office and factory are in Peenya Industrial Area 2nd Phase (its own site), not Rajajinagar/Yeshwanthpur. Narayana Nethralaya began in 1982 (Wikipedia), not 1993. CATEGORY CALLS. Apollo Hospitals (62,939 employees, listed) and Fortis (~23,000, listed) are MNC under the Indian+listed+>10,000 rule; Fortis's origin is Foreign because Malaysia's IHH Healthcare holds the 31.1% controlling stake. Aster DM Healthcare stays MID_SIZE because its post-April-2024 India-only headcount could not be found (the 32,400 figure is from 2022 and includes the divested GCC business). DTDC (13,000 employees, unlisted) and Rajesh Exports (160 permanent workers, listed) sit outside the MID_SIZE headcount band but fit no other category. WEAK SPOTS. EdgeVerve is LOW confidence: edgeverve.com and finacle.com refuse automated fetches, so its placement on the Infosys Electronics City campus rests on the brief plus Wikipedia's statement that Finacle has belonged to EdgeVerve since 2015. Bank of Baroda's office is the International Banking Branch in the former Vijaya Bank head office (41/2 MG Road) per a Wikipedia caption; the building is not in OSM, so the point is the Trinity Circle junction (approximate); BoB's Bengaluru zonal-office address could not be fetched. The Karnataka government sites (bescom/kptcl/kpcl .karnataka.gov.in) and grid-india.in/srldc.in all returned 503, so BESCOM (K R Circle), KPTCL (Kaveri Bhavan), KPCL (Shakti Bhavan) and SRLDC rest on named OSM objects (medium). apollohospitals.com and fortishealthcare.com returned 403, so their hospitals rest on OSM objects (medium). NOT RECORDED. BESCOM's ~30 OSM-mapped division/sub-division/O&M section offices (customer-service points, not distinct employers); KPTCL's minor OSM offices (Executive Engineer office, 'KPTCL MEI'); Apollo Hospital Jayanagar and Apollo Cradle (no reliable point/confirmation), Fortis Richmond Road (could not be geocoded); Aster Women & Children Whitefield (no address on the page fetched); Sparsh RR Nagar and Sarjapur Road (listed on Sparsh's page but neither geocoded to the right building); Narayana Nethralaya's Electronic City satellite centre; eleven further Cloudnine centres (Aurobindo Marg, Bannerghatta Road, Electronic City, HRBR Layout, Kanakapura Road, Nagarbhavi, Sahakarnagar, Sarjapur Road, Thanisandra, Varthur Road, Whitefield) whose addresses were not fetched; Rajesh Exports' Bengaluru jewellery plant (built 2001 per Wikipedia; no address found); BMRCL depots still under construction (Challaghatta, Kothanur, Shettigere, Anjanapura)."
+}

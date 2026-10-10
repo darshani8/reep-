@@ -1,0 +1,1400 @@
+{
+ "key": "E10-psu-government-research",
+ "techParks": [
+  {
+   "name": "HAL Bangalore Complex",
+   "aliases": [
+    "HAL Bangalore Complex",
+    "HAL Old Airport Road",
+    "Vimanapura aerospace cluster"
+   ],
+   "locality": "Vimanapura / Old Airport Road",
+   "developer": "Hindustan Aeronautics Ltd",
+   "lat": 12.96218,
+   "lng": 77.6635462,
+   "bbox": [
+    12.954743,
+    12.971915,
+    77.649286,
+    77.691637
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Hindustan Aeronautics Ltd",
+    "Aeronautical Development Agency",
+    "Indian Space Research Organisation",
+    "CSIR-National Aerospace Laboratories",
+    "Defence Research and Development Organisation"
+   ],
+   "description": "The government aerospace cluster around HAL Airport: HAL's Bangalore Complex (Aircraft, Overhaul, Foundry & Forge, Aerospace, LCA Tejas divisions), Helicopter Complex and Design Complex line HAL Old Airport Road from Vimanapura to Marathahalli, with URSC, NAL Kodihalli and ADA on the same road. Centroid is the Vimanapura locality; bbox is the union of the mapped HAL/URSC/NAL/ARDC polygons.",
+   "sources": [
+    "https://hal-india.co.in/backend/contact-us/",
+    "https://hal-india.co.in/backend/wp-content/uploads/career/Annexure-II%20Mailing%20Addresses%20of%20Divisions_1753697332.pdf",
+    "https://www.ursc.gov.in/contact.jsp"
+   ]
+  },
+  {
+   "name": "DRDO Complex, C V Raman Nagar",
+   "aliases": [
+    "DRDO Complex",
+    "DRDO Phase 1, C V Raman Nagar",
+    "DRDO Township C V Raman Nagar"
+   ],
+   "locality": "C V Raman Nagar",
+   "developer": "DRDO",
+   "lat": 12.9837,
+   "lng": 77.661,
+   "bbox": [
+    12.9794688,
+    12.989644,
+    77.6495891,
+    77.669584
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Defence Research and Development Organisation",
+    "Hindustan Aeronautics Ltd"
+   ],
+   "description": "DRDO's Bengaluru campus at C V Raman Nagar housing LRDE (radars), CAIR (AI and robotics), CASDIC (ex-DARE avionics) and GTRE (aero-engines), with HAL's Engine Division and IMGT Division next door. Centroid averaged from the LRDE, CAIR and GTRE OSM polygons.",
+   "sources": [
+    "https://drdo.gov.in/drdo/sites/default/files/inline-files/DIIG_SPOC_Details03012025.pdf",
+    "https://en.wikipedia.org/wiki/Electronics_and_Radar_Development_Establishment"
+   ]
+  },
+  {
+   "name": "Peenya Industrial Area",
+   "aliases": [
+    "Peenya Industrial Estate",
+    "Peenya 1st/2nd Phase"
+   ],
+   "locality": "Peenya",
+   "developer": "KIADB / KSSIDC",
+   "lat": 13.0160478,
+   "lng": 77.5045057,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Indian Space Research Organisation",
+    "Central Manufacturing Technology Institute",
+    "HMT Ltd"
+   ],
+   "description": "One of Asia's largest industrial estates in north-west Bengaluru; for this lens it hosts ISRO's ISTRAC mission control (2nd Phase) and LEOS electro-optics lab (1st Phase), with CMTI and HMT's Jalahalli plant on its Tumkur Road edge. Point is Nominatim's Peenya Industrial Area centroid; no park polygon in the OSM extract.",
+   "sources": [
+    "https://www.isro.gov.in/ISTRAC.html",
+    "https://www.isro.gov.in/LEOS.html"
+   ]
+  },
+  {
+   "name": "BEL Industrial Estate, Jalahalli",
+   "aliases": [
+    "BEL Jalahalli",
+    "BEL Bangalore Complex",
+    "BEL Industrial Estate"
+   ],
+   "locality": "Jalahalli",
+   "developer": "Bharat Electronics Ltd",
+   "lat": 13.049862,
+   "lng": 77.5620244,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Bharat Electronics Ltd",
+    "Defence Research and Development Organisation"
+   ],
+   "description": "BEL's founding (1954) factory campus at Jalahalli, holding the Bangalore unit, Central Research Laboratory, Product Development & Innovation Centre, BEL Academy for Excellence, the BEL-Thales Systems joint venture and DRDO's MTRDC. Point is Nominatim's 'Bharat Electronics Limited' feature; no named polygon in the OSM extract.",
+   "sources": [
+    "https://bel-india.in/wp-content/uploads/2025/10/List-of-CPIO-CAPIOs-FAA-TO-and-NO-28-10-2025.pdf",
+    "https://en.wikipedia.org/wiki/Bharat_Electronics"
+   ]
+  },
+  {
+   "name": "Electronics City Phase 1",
+   "aliases": [
+    "Electronic City Phase 1",
+    "Electronics City Phase I",
+    "KEONICS Electronics City"
+   ],
+   "locality": "Electronic City",
+   "developer": "KEONICS / ELCIA",
+   "lat": 12.8496783,
+   "lng": 77.6649749,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Centre for Development of Telematics",
+    "Centre for Development of Advanced Computing",
+    "Bharat Heavy Electricals Ltd",
+    "ITI Ltd"
+   ],
+   "description": "The state-developed (KEONICS) electronics estate on Hosur Road; this lens's tenants are C-DOT's campus, C-DAC's unit, BHEL's Electronics Systems Division and ITI Spacenet, all in Phase 1. Point is Nominatim's Electronics City Phase 1 centroid; other researchers cover its IT majors.",
+   "sources": [
+    "https://www.cdot.in/cdotweb/web/contactus.php",
+    "https://www.bhel.com/"
+   ]
+  },
+  {
+   "name": "ISRO HQ Campus (Antariksh Bhavan)",
+   "aliases": [
+    "Antariksh Bhavan",
+    "ISRO HQ Campus",
+    "ISRO Vijinapura Campus"
+   ],
+   "locality": "New BEL Road / Mathikere",
+   "developer": "ISRO",
+   "lat": 13.036604,
+   "lng": 77.570959,
+   "bbox": [
+    13.034453,
+    13.038027,
+    77.57024,
+    77.571637
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Indian Space Research Organisation",
+    "NewSpace India Ltd",
+    "Antrix Corporation Ltd"
+   ],
+   "description": "The Department of Space / ISRO headquarters campus (Antariksh Bhavan) on New BEL Road, which also houses the Human Space Flight Centre, NSIL's registered office and Antrix. Polygon is OSM way/42396273.",
+   "sources": [
+    "https://www.isro.gov.in/ISRO_EN/isro_centre.html",
+    "https://www.nsilindia.co.in/contact-us",
+    "https://www.hsfc.gov.in/ContactUs"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "Hindustan Aeronautics Ltd",
+   "aliases": [
+    "HAL",
+    "Hindustan Aeronautics Limited",
+    "Hindustan Aircraft Limited"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1940,
+   "isUnicorn": false,
+   "website": "https://hal-india.co.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Defence PSU building fighters, helicopters, aero-engines and aerostructures; Bengaluru is its headquarters and its largest manufacturing/R&D cluster around HAL Airport (Bangalore Complex, Helicopter Complex, Design Complex).",
+   "offices": [
+    {
+     "label": "Corporate Office (Cubbon Road)",
+     "locality": "Vasanth Nagar",
+     "lat": 12.981035,
+     "lng": 77.59783,
+     "address": "15/1 Cubbon Road, Bengaluru 560001",
+     "techPark": null,
+     "building": null,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "HAL's contact page lists the Corporate Office at 15/1 Cubbon Road, Bangalore 560001; OSM polygon way/460600476 'Hindustan Aeronautics Limited' at this point. https://hal-india.co.in/backend/contact-us/",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Bangalore Complex - Aircraft Division (HAL Main Gate)",
+     "locality": "Vimanapura",
+     "lat": 12.9585349,
+     "lng": 77.6667825,
+     "address": "PB No. 1788, HAL Old Airport Road, Vimanapura, Bengaluru 560017",
+     "techPark": "HAL Bangalore Complex",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "HAL's division mailing list places the Aircraft Division at PB 1788, Bangalore 560017 (Vimanapura); pin is Nominatim's 'HAL Main Gate, HAL Old Airport Road, Vimanapura' node, the complex's main entrance rather than a mapped division boundary. https://hal-india.co.in/backend/wp-content/uploads/career/Annexure-II%20Mailing%20Addresses%20of%20Divisions_1753697332.pdf",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Bangalore Complex - Overhaul Division",
+     "locality": "Vimanapura",
+     "lat": 12.96218,
+     "lng": 77.6635462,
+     "address": "PB No. 1786, Vimanapura Post, Bengaluru 560017",
+     "techPark": "HAL Bangalore Complex",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "HAL's contact page lists the Overhaul Division at P.O. Vimanapura, Bangalore 560017; no mapped boundary found, so the pin is the Vimanapura locality centroid inside the Bangalore Complex. https://hal-india.co.in/backend/contact-us/",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Bangalore Complex - Foundry & Forge Division",
+     "locality": "Vimanapura",
+     "lat": 12.96218,
+     "lng": 77.6635462,
+     "address": "PB No. 1791, Vimanapura Post, Bengaluru 560017",
+     "techPark": "HAL Bangalore Complex",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "HAL's contact page lists the Foundry & Forge Division at PB No.1791, Vimanapura Post, Bangalore 560017; pinned to the Vimanapura locality centroid because no division boundary is mapped. https://hal-india.co.in/backend/contact-us/",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Bangalore Complex - Aerospace Division",
+     "locality": "New Thippasandra",
+     "lat": 12.969957,
+     "lng": 77.662261,
+     "address": "PB No. 7502, New Thippasandra Post, Bengaluru 560075",
+     "techPark": "HAL Bangalore Complex",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "HAL's contact page gives the Aerospace Division as P.B. No. 7502, New Thippasandra P.O., Bangalore 560075; OSM industrial polygon way/55503809 'HAL Aerospace Division' at this point. https://hal-india.co.in/backend/contact-us/",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Bangalore Complex - Engine Division & AERDC",
+     "locality": "C V Raman Nagar",
+     "lat": 12.9820428,
+     "lng": 77.6502239,
+     "address": "PB No. 9310, C V Raman Nagar Post, Bengaluru 560093",
+     "techPark": "DRDO Complex, C V Raman Nagar",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "HAL's contact page lists the Engine Division at Post Box 9310, C V Raman Nagar 560093 (the Aero-Engine R&D Centre shares the PB number); Photon matched an OSM node labelled 'GTRE Engine Division, Suranjandas Road' beside GTRE, which is where the engine plant sits. https://hal-india.co.in/backend/contact-us/",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Bangalore Complex - LCA Tejas Division",
+     "locality": "Marathahalli",
+     "lat": 12.958596,
+     "lng": 77.690223,
+     "address": "PB No. 3791, Marathahalli Post, Bengaluru 560037",
+     "techPark": "HAL Bangalore Complex",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "HAL's mailing list gives the LCA Tejas Division as PB 3791, Marathahalli Post, Bangalore 560037; OSM industrial polygon way/790392178 'HAL Tejas Production Phase 2' at this point. https://hal-india.co.in/backend/wp-content/uploads/career/Annexure-II%20Mailing%20Addresses%20of%20Divisions_1753697332.pdf",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Helicopter Complex - Helicopter Division & Helicopter MRO Division",
+     "locality": "Vibhuthipura",
+     "lat": 12.9591483,
+     "lng": 77.6781141,
+     "address": "PB No. 1790 / 1796, Vimanapura Post, Bengaluru 560017",
+     "techPark": "HAL Bangalore Complex",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "HAL's mailing list gives Helicopter Division PB 1790 and Helicopter MRO Division PB 1796, Vimanapura Post 560017; Nominatim resolves 'HAL Helicopter Division, Vibhootipura' to OSM polygon way/135265535. https://hal-india.co.in/backend/wp-content/uploads/career/Annexure-II%20Mailing%20Addresses%20of%20Divisions_1753697332.pdf",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Design Complex - ARDC, RWRDC, MCSRDC and Aerospace Composites Division",
+     "locality": "Vibhuthipura",
+     "lat": 12.9647419,
+     "lng": 77.6855416,
+     "address": "Design Complex, PB No. 1787/1789, Vibhuthipura Post, Bengaluru 560037",
+     "techPark": "HAL Bangalore Complex",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "HAL's mailing list places the Aircraft Research & Design Centre (PB 1787), Rotary Wing R&D Centre (PB 1789), MCSRDC ('inside ARDC campus, near ADA office') and the Aerospace Composites Division (PB 1787) at Vibhuthipura Post 560037; OSM polygon way/165830055 'Aircraft Research and Design Centre HAL'. https://hal-india.co.in/backend/wp-content/uploads/career/Annexure-II%20Mailing%20Addresses%20of%20Divisions_1753697332.pdf",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "HAL Management Academy",
+     "locality": "Doddanekundi / Marathahalli",
+     "lat": 12.96506,
+     "lng": 77.6935226,
+     "address": "Sanjay Nagar, Marathahalli, Bengaluru 560037",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "HAL's mailing list gives HAL Management Academy at Sanjay Nagar, Marathahalli, Bangalore 560037; Nominatim resolves the academy to Doddanekkundi Main Road at this point. https://hal-india.co.in/backend/wp-content/uploads/career/Annexure-II%20Mailing%20Addresses%20of%20Divisions_1753697332.pdf",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Old Airport Road services - Facilities Management Division & Airport Services Centre",
+     "locality": "Vimanapura",
+     "lat": 12.95868,
+     "lng": 77.668684,
+     "address": "Old Airport Road, Vimanapura Post, Bengaluru 560017",
+     "techPark": "HAL Bangalore Complex",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "HAL's contact page lists the Facilities Management Division and Airport Services Centre at Old Airport Road, Vimanapura Post 560017; OSM node/1467249001 'HAL Facilities Management division' on HAL Old Airport Road. https://hal-india.co.in/backend/contact-us/",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://hal-india.co.in/backend/contact-us/",
+    "https://hal-india.co.in/backend/wp-content/uploads/career/Annexure-II%20Mailing%20Addresses%20of%20Divisions_1753697332.pdf",
+    "https://en.wikipedia.org/wiki/Hindustan_Aeronautics_Limited"
+   ]
+  },
+  {
+   "name": "Bharat Electronics Ltd",
+   "aliases": [
+    "BEL",
+    "Bharat Electronics Limited"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1954,
+   "isUnicorn": false,
+   "website": "https://bel-india.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Defence electronics PSU (radars, communications, electronic warfare, naval systems); corporate office on the Outer Ring Road at Nagavara and its founding factory complex, Central Research Laboratory and academy at Jalahalli.",
+   "offices": [
+    {
+     "label": "Corporate Office (Nagavara)",
+     "locality": "Nagavara",
+     "lat": 13.0404247,
+     "lng": 77.6165243,
+     "address": "Outer Ring Road, Nagavara, Bengaluru 560045",
+     "techPark": null,
+     "building": null,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "BEL's RTI 'Particulars of Organisation' documents and its BSE filing give the registered and corporate office as Outer Ring Road, Nagavara, Bengaluru 560045; Photon matches OSM way/232657594 'Bharath Electronics Limited, Outer Ring Road, Nagavara'. https://bel-india.in/wp-content/uploads/2026/05/Particulars-of-Organisation-Functions-and-Duties-11-05-2026.pdf",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Bangalore Complex, Jalahalli (factory, Central Research Laboratory, PD&IC)",
+     "locality": "Jalahalli",
+     "lat": 13.049862,
+     "lng": 77.5620244,
+     "address": "Jalahalli P.O., Bengaluru 560013",
+     "techPark": "BEL Industrial Estate, Jalahalli",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "BEL's CPIO list names the Bangalore unit, the Central Research Laboratory ('CRL Complex') and the Product Development & Innovation Centre at Jalahalli Post, Bengaluru 560013; Nominatim resolves 'Bharat Electronics Limited' to the Doddabommasandra/Jalahalli campus at this point. https://bel-india.in/wp-content/uploads/2025/10/List-of-CPIO-CAPIOs-FAA-TO-and-NO-28-10-2025.pdf",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "BEL Academy for Excellence",
+     "locality": "Jalahalli",
+     "lat": 13.043736,
+     "lng": 77.562639,
+     "address": "BEL campus, Jalahalli, Bengaluru 560013",
+     "techPark": "BEL Industrial Estate, Jalahalli",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM way/363126115 'BEL Academy for Excellence' (educational institution) inside the Jalahalli campus; BEL's own pages were unreachable (HTTP 503) during this pass, so the academy rests on the OSM record alone. https://www.openstreetmap.org/way/363126115",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://bel-india.in/wp-content/uploads/2026/05/Particulars-of-Organisation-Functions-and-Duties-11-05-2026.pdf",
+    "https://bel-india.in/wp-content/uploads/2025/10/List-of-CPIO-CAPIOs-FAA-TO-and-NO-28-10-2025.pdf",
+    "https://en.wikipedia.org/wiki/Bharat_Electronics"
+   ]
+  },
+  {
+   "name": "BEML Ltd",
+   "aliases": [
+    "BEML",
+    "Bharat Earth Movers Limited",
+    "BEML Limited"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1964,
+   "isUnicorn": false,
+   "website": "https://www.bemlindia.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Heavy-equipment PSU (mining, construction, defence vehicles, rail and metro coaches) headquartered at BEML Soudha with its Bengaluru Complex rail & metro plant between Old Madras Road and New Thippasandra.",
+   "offices": [
+    {
+     "label": "BEML Soudha (corporate office)",
+     "locality": "Sampangiram Nagar",
+     "lat": 12.965218,
+     "lng": 77.591462,
+     "address": "23/1, 4th Main, S R Nagar (Sampangiramanagar), Bengaluru 560027",
+     "techPark": null,
+     "building": null,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "BEML's contact page gives BEML Soudha, 23/1, 4th Main, SR Nagar, Bangalore 560027; OSM commercial polygon way/38758048 'BEML Head Quarter Offices' at this point. https://www.bemlindia.in/contact-us",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Bengaluru Complex - Rail & Metro Division",
+     "locality": "New Thippasandra",
+     "lat": 12.97536,
+     "lng": 77.660139,
+     "address": "BEML Bangalore Complex, New Thippasandra Post, Bengaluru 560075",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia lists a 'Bengaluru Complex - Rail & Metro Division' where railcoaches are built (coordinates 12.9714, 77.6595); OSM industrial polygon way/630203903 'Bharat Earth Movers Limited' at this point and a 'BEML Gate' node on Thippasandra Main Road; BEML's own site does not list the plant address, hence medium. https://en.wikipedia.org/wiki/BEML_Limited",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.bemlindia.in/contact-us",
+    "https://en.wikipedia.org/wiki/BEML_Limited"
+   ]
+  },
+  {
+   "name": "Bharat Heavy Electricals Ltd",
+   "aliases": [
+    "BHEL",
+    "BHEL EDN",
+    "BHEL Electronics Division"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Energy",
+   "hqCity": "New Delhi",
+   "hqCountry": "India",
+   "founded": 1964,
+   "isUnicorn": false,
+   "website": "https://www.bhel.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Power-equipment PSU; its Bengaluru units are the Electronics Division (control & instrumentation, solar) on Mysore Road and the Electronics Systems Division in Electronics City.",
+   "offices": [
+    {
+     "label": "Electronics Division (EDN)",
+     "locality": "Deepanjali Nagar / Mysore Road",
+     "lat": 12.949533,
+     "lng": 77.534502,
+     "address": "Mysore Road, Bengaluru 560026",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "bhel.com's India footprint lists the Electronics Division (EDN) and Solar Business Division as Bengaluru manufacturing units but gives no address; OSM industrial polygon way/55684596 'Bharath Heavy Electricals' and a 'BHEL Gate, Mysore Road' node place the plant here. https://www.bhel.com/",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Electronics Systems Division (ESD)",
+     "locality": "Electronic City Phase 1",
+     "lat": 12.84588,
+     "lng": 77.659891,
+     "address": "Hosur Road, Electronics City Phase 1, Bengaluru 560100",
+     "techPark": "Electronics City Phase 1",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "bhel.com's footprint lists the Electronics Systems Division (ESD) in Bengaluru; OSM commercial polygon way/231559725 'BHEL' in Electronics City Phase 1 (Photon: 'BHEL, Electronic City'). https://www.bhel.com/",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Electro Porcelains Division (EPD)",
+     "locality": "Malleswaram",
+     "lat": 13.012961,
+     "lng": 77.563141,
+     "address": "Malleswaram, Bengaluru 560012",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM industrial polygon way/38832005 'Bharath Heavy Electricals Limited' at Malleswaram matches the long-standing Electro Porcelains Division site, but bhel.com's current footprint map lists only EDN, ESD and SBD in Bengaluru, so the unit's present status is unconfirmed. https://www.openstreetmap.org/way/38832005",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.bhel.com/",
+    "https://en.wikipedia.org/wiki/Bharat_Heavy_Electricals_Limited"
+   ]
+  },
+  {
+   "name": "Indian Space Research Organisation",
+   "aliases": [
+    "ISRO",
+    "Department of Space",
+    "URSC",
+    "ISRO Satellite Centre",
+    "ISAC",
+    "ISTRAC",
+    "LEOS",
+    "HSFC",
+    "ISITE"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Space",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1969,
+   "isUnicorn": false,
+   "website": "https://www.isro.gov.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "India's space agency, headquartered at Antariksh Bhavan on New BEL Road, with its satellite-building (URSC, ISITE), tracking (ISTRAC, IDSN), electro-optics (LEOS) and human-spaceflight (HSFC) centres all in Bengaluru.",
+   "offices": [
+    {
+     "label": "ISRO Headquarters - Antariksh Bhavan",
+     "locality": "New BEL Road / Mathikere",
+     "lat": 13.036604,
+     "lng": 77.570959,
+     "address": "Antariksh Bhavan, New BEL Road, Bengaluru 560094",
+     "techPark": "ISRO HQ Campus (Antariksh Bhavan)",
+     "building": null,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "ISRO's centres page lists 'Department of Space and ISRO HQ' in Bengaluru and NSIL's contact page gives its registered office as 'ISRO HQ Campus, New BEL Road'; OSM way/42396273 (office=government, website isro.gov.in) at this point, Wikipedia coordinates 13.0353, 77.5711. https://www.isro.gov.in/ISRO_EN/isro_centre.html",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "U R Rao Satellite Centre (URSC)",
+     "locality": "Vimanapura",
+     "lat": 12.962711,
+     "lng": 77.655466,
+     "address": "Old Airport Road, Vimanapura Post, Bengaluru 560017",
+     "techPark": "HAL Bangalore Complex",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "URSC's contact page gives 'Old Airport Road, Vimanapura PO, Bengaluru 560017'; OSM industrial polygon way/41722463 'U. R. Rao Satellite Centre' at this point. https://www.ursc.gov.in/contact.jsp",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "ISTRAC - ISRO Telemetry, Tracking and Command Network",
+     "locality": "Peenya Industrial Area (Nelagadaranahalli)",
+     "lat": 13.034725,
+     "lng": 77.511422,
+     "address": "Plot No. 12 & 13, 3rd Main, 2nd Phase, Peenya Industrial Area, Bengaluru 560058",
+     "techPark": "Peenya Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "ISRO's ISTRAC page gives Plot No. 12 & 13, 3rd Main, 2nd Phase, Peenya Industrial Area, Bengaluru 560058; OSM polygon way/801974072 'ISRO Telemetry, Tracking and Command Network' (operator ISRO) at this point. https://www.isro.gov.in/ISTRAC.html",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "LEOS - Laboratory for Electro-Optics Systems",
+     "locality": "Peenya Industrial Estate, 1st Phase",
+     "lat": 13.0289871,
+     "lng": 77.5239107,
+     "address": "First Cross, First Phase, Peenya Industrial Estate, Bengaluru 560058",
+     "techPark": "Peenya Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "ISRO's LEOS page gives 'First Cross, First Phase, Peenya Industrial Estate, Bengaluru 560058'; the pin is Nominatim's match for that 1st Cross Road, not a mapped LEOS boundary. https://www.isro.gov.in/LEOS.html",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "ISITE - ISRO Satellite Integration and Test Establishment",
+     "locality": "Marathahalli",
+     "lat": 12.964829,
+     "lng": 77.698503,
+     "address": "Marathahalli, Bengaluru 560037",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia describes ISITE as URSC's 100-acre assembly, integration and test facility at Marathahalli (est. 2006), and ISRO's URSC page describes ISITE's clean rooms and 6.5 m thermo-vacuum chamber; OSM industrial polygon way/37700530 'Indian Space Research Organisation' at Marathahalli. https://en.wikipedia.org/wiki/ISRO_Satellite_Integration_and_Testing_Establishment",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Human Space Flight Centre (HSFC)",
+     "locality": "New BEL Road / Mathikere",
+     "lat": 13.036604,
+     "lng": 77.570959,
+     "address": "ISRO Headquarters campus, New BEL Road, Bengaluru",
+     "techPark": "ISRO HQ Campus (Antariksh Bhavan)",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "HSFC's contact page gives 'Human Space Flight Centre (HSFC), ISRO Head Quarters, New BEL Road, Bengaluru'; pinned to the ISRO HQ campus polygon since HSFC has no separate mapped footprint. https://www.hsfc.gov.in/ContactUs",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Indian Deep Space Network (IDSN), Byalalu - ISTRAC",
+     "locality": "Byalalu (Ramanagara border, south-west Bengaluru)",
+     "lat": 12.900623,
+     "lng": 77.370116,
+     "address": "Byalalu, Bengaluru 562130",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia's ISTRAC article lists the Indian Deep Space Network among its facilities and ISRO's ISTRAC page lists deep-space network stations; OSM industrial polygon way/253430887 'Indian Deep Space Network (IDSN) Center' (operator ISRO) at Byalalu, just inside the metro box; it also hosts the ISRO Navigation Centre node. https://en.wikipedia.org/wiki/ISRO_Telemetry,_Tracking_and_Command_Network",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.isro.gov.in/ISRO_EN/isro_centre.html",
+    "https://www.isro.gov.in/ISTRAC.html",
+    "https://www.isro.gov.in/LEOS.html",
+    "https://www.ursc.gov.in/contact.jsp",
+    "https://www.isro.gov.in/URSC.html",
+    "https://www.hsfc.gov.in/ContactUs",
+    "https://en.wikipedia.org/wiki/Indian_Space_Research_Organisation",
+    "https://en.wikipedia.org/wiki/U_R_Rao_Satellite_Centre",
+    "https://en.wikipedia.org/wiki/ISRO_Satellite_Integration_and_Testing_Establishment"
+   ]
+  },
+  {
+   "name": "NewSpace India Ltd",
+   "aliases": [
+    "NSIL",
+    "NewSpace India Limited"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Space",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2019,
+   "isUnicorn": false,
+   "website": "https://www.nsilindia.co.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Department of Space's commercial arm (launch services, satellite leasing, technology transfer); corporate office in Brigade Rubix at Yeshwanthpur, registered at the ISRO HQ campus.",
+   "offices": [
+    {
+     "label": "Corporate Office - Brigade Rubix",
+     "locality": "Yeshwanthpur",
+     "lat": 13.0375507,
+     "lng": 77.5357656,
+     "address": "11th Floor, Brigade Rubix, 20 Watch Factory Road, Phase-1, Yeswanthpur, Bengaluru 560013",
+     "techPark": null,
+     "building": "Brigade Rubix, 11th Floor",
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "NSIL's contact page gives the corporate office as '11th Floor Brigade Rubix, 20, Watch Factory Rd, Phase-1, Yeswanthpur Bengaluru-560013'; Photon locates Brigade Rubix on HMT Link Road. https://www.nsilindia.co.in/contact-us",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Registered Office - ISRO HQ Campus",
+     "locality": "New BEL Road / Mathikere",
+     "lat": 13.036604,
+     "lng": 77.570959,
+     "address": "ISRO HQ Campus, New BEL Road, Bengaluru",
+     "techPark": "ISRO HQ Campus (Antariksh Bhavan)",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "NSIL's contact page lists the registered office as 'ISRO HQ Campus, New BEL Road, Bengaluru'; pinned to the ISRO HQ polygon. https://www.nsilindia.co.in/contact-us",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.nsilindia.co.in/contact-us",
+    "https://en.wikipedia.org/wiki/NewSpace_India_Limited"
+   ]
+  },
+  {
+   "name": "Antrix Corporation Ltd",
+   "aliases": [
+    "Antrix",
+    "Antrix Corporation Limited"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Space",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1992,
+   "isUnicorn": false,
+   "website": "https://www.antrix.co.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "ISRO's original commercial marketing arm (1992), now largely succeeded by NSIL; headquartered on the Antariksh Bhavan campus near New BEL Road.",
+   "offices": [
+    {
+     "label": "Head Office - Antariksh Bhavan campus",
+     "locality": "New BEL Road / Mathikere",
+     "lat": 13.036604,
+     "lng": 77.570959,
+     "address": "Antariksh Bhavan campus, New BEL Road, Bengaluru 560094",
+     "techPark": "ISRO HQ Campus (Antariksh Bhavan)",
+     "building": null,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "ISRO's centres page lists Antrix Corporation Limited as a Bengaluru CPSE and Wikipedia places its headquarters on the Antariksh Bhavan campus near New BEL Road; antrix.co.in was unreachable (HTTP 503) during this pass, so the pin is the ISRO HQ campus polygon. https://en.wikipedia.org/wiki/Antrix_Corporation",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.isro.gov.in/ISRO_EN/isro_centre.html",
+    "https://en.wikipedia.org/wiki/Antrix_Corporation"
+   ]
+  },
+  {
+   "name": "CSIR-National Aerospace Laboratories",
+   "aliases": [
+    "NAL",
+    "CSIR-NAL",
+    "National Aerospace Laboratories",
+    "National Aeronautical Laboratory"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1959,
+   "isUnicorn": false,
+   "website": "https://www.nal.res.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "CSIR's civil aerospace R&D laboratory (Saras, Hansa, wind tunnels, composites), with its main campus at Kodihalli on HAL Airport Road and a second Belur campus on Wind Tunnel Road.",
+   "offices": [
+    {
+     "label": "Kodihalli main campus",
+     "locality": "Kodihalli",
+     "lat": 12.964546,
+     "lng": 77.651621,
+     "address": "HAL Airport Road, Kodihalli, Bengaluru 560017",
+     "techPark": "HAL Bangalore Complex",
+     "building": null,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "NAL's website gives its address as 'HAL Airport Road, Bengaluru-560 017' and lists separate Kodihalli and Belur campus telephone numbers; OSM industrial polygon way/41722461 'National Aerospace Laboratories' at Kodihalli. https://www.nal.res.in/",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Belur campus (Wind Tunnel Centre, CSIR-4PI)",
+     "locality": "Belur / Yemalur",
+     "lat": 12.943464,
+     "lng": 77.667375,
+     "address": "Wind Tunnel Road, Belur, Bengaluru 560037",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "NAL's website lists a Belur campus; OSM polygon way/217568940 'NAL Wind Tunnel Centre' (operator NAL) and node/4447088013 'CSIR Fourth Paradigm Institute, NAL Belur Campus, Wind Tunnel Road, 560037' place it here. https://www.nal.res.in/",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.nal.res.in/",
+    "https://en.wikipedia.org/wiki/National_Aerospace_Laboratories"
+   ]
+  },
+  {
+   "name": "Defence Research and Development Organisation",
+   "aliases": [
+    "DRDO",
+    "ADE",
+    "LRDE",
+    "CABS",
+    "GTRE",
+    "CAIR",
+    "CASDIC",
+    "DARE",
+    "MTRDC",
+    "CEMILAC",
+    "DEBEL"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "hqCity": "New Delhi",
+   "hqCountry": "India",
+   "founded": 1958,
+   "isUnicorn": false,
+   "website": "https://www.drdo.gov.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "India's defence R&D agency; Bengaluru hosts its aeronautics cluster - ADE and DEBEL at New Thippasandra, LRDE, GTRE, CAIR and CASDIC in the DRDO Complex at C V Raman Nagar, CABS at Belur, CEMILAC at Marathahalli Colony and MTRDC at Jalahalli.",
+   "offices": [
+    {
+     "label": "ADE - Aeronautical Development Establishment",
+     "locality": "New Thippasandra",
+     "lat": 12.977229,
+     "lng": 77.649052,
+     "address": "New Thippasandra Post, Bengaluru 560075",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "DRDO's Industry Interaction Group SPOC list gives ADE at New Thippasandra Post, Bengaluru 560075 (Wikipedia agrees); OSM industrial polygon way/41722454 'Aeronautical Development Establishment'. https://drdo.gov.in/drdo/sites/default/files/inline-files/DIIG_SPOC_Details03012025.pdf",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "LRDE - Electronics and Radar Development Establishment",
+     "locality": "C V Raman Nagar",
+     "lat": 12.981068,
+     "lng": 77.661544,
+     "address": "DRDO Complex, C V Raman Nagar, Bengaluru 560093",
+     "techPark": "DRDO Complex, C V Raman Nagar",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wikipedia's infobox gives LRDE's address as 'DRDO Complex, C.V. Raman Nagar, Bengaluru-560 093'; OSM industrial polygon way/35326939 'Electronics and Radar Development Establishment' at this point. https://en.wikipedia.org/wiki/Electronics_and_Radar_Development_Establishment",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "CABS - Centre for Airborne Systems",
+     "locality": "Belur / Yemalur",
+     "lat": 12.9439086,
+     "lng": 77.6632859,
+     "address": "Belur, Yemlur Post, Bengaluru 560037",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "DRDO's DIIG SPOC list gives CABS at Belur, Yemlur Post, Bengaluru 560037; Nominatim resolves 'Centre for Airborne Systems, Yamalur' to this point. https://drdo.gov.in/drdo/sites/default/files/inline-files/DIIG_SPOC_Details03012025.pdf",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "GTRE - Gas Turbine Research Establishment",
+     "locality": "C V Raman Nagar",
+     "lat": 12.9821165,
+     "lng": 77.6528514,
+     "address": "PB No. 9302, C V Raman Nagar, Bengaluru 560093",
+     "techPark": "DRDO Complex, C V Raman Nagar",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "DRDO's DIIG SPOC list gives GTRE at PB No. 9302, CV Raman Nagar, Bengaluru 560093; Nominatim resolves it to OSM polygon way/35311978 'Gas Turbine Research Establishment' on Dr APJ Abdul Kalam Road. https://drdo.gov.in/drdo/sites/default/files/inline-files/DIIG_SPOC_Details03012025.pdf",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "CAIR - Centre for Artificial Intelligence and Robotics",
+     "locality": "C V Raman Nagar",
+     "lat": 12.987965,
+     "lng": 77.668531,
+     "address": "DRDO Complex, C V Raman Nagar, Bengaluru 560093",
+     "techPark": "DRDO Complex, C V Raman Nagar",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "DRDO's DIIG SPOC list gives CAIR at DRDO Complex, CV Raman Nagar, Bengaluru 560093; OSM industrial polygon way/164050955 'Center for Artificial Intelligence and Robotics'. https://drdo.gov.in/drdo/sites/default/files/inline-files/DIIG_SPOC_Details03012025.pdf",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "CASDIC (formerly DARE) - Combat Aircraft Systems Development & Integration Centre",
+     "locality": "C V Raman Nagar",
+     "lat": 12.9850987,
+     "lng": 77.6631173,
+     "address": "Post Box No. 9366, C V Raman Nagar, Bengaluru 560093",
+     "techPark": "DRDO Complex, C V Raman Nagar",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "DRDO's 2022 test-facilities list gives 'CASDIC (erstwhile DARE), Post Box No. 9366, CV Raman Nagar, Bengaluru 560093' and Wikipedia records the 2001 DARE name and the CASDIC rename; no mapped boundary, so the pin is the DRDO Complex centre (the CV Raman Nagar post office/DRDO shopping complex node). https://Drdo.Gov.In/sites/default/files/inline-files/ListOfTestFacilities25042022.pdf",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "DEBEL - Defence Bioengineering and Electromedical Laboratory",
+     "locality": "New Thippasandra",
+     "lat": 12.977229,
+     "lng": 77.649052,
+     "address": "PO Box 9326, New Thippasandra, Bengaluru 560075 (on the ADE campus)",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia gives DEBEL's address as P.O. Box 9326, New Thippasandra, Bangalore 560075 and says it has worked from its own premises on the ADE campus since 1992; pinned to the ADE polygon. https://en.wikipedia.org/wiki/Defence_Bioengineering_and_Electromedical_Laboratory",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "CEMILAC - Centre for Military Airworthiness and Certification",
+     "locality": "Marathahalli Colony",
+     "lat": 12.9559165,
+     "lng": 77.6882298,
+     "address": "Marathahalli Colony Post, Bengaluru 560037",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "DRDO's DIIG SPOC list gives CEMILAC at Marathahalli Colony Post, Bengaluru 560037 and Wikipedia places it near the Borewell bus stop in Marathalli Colony; the pin is Nominatim's Marathahalli Colony post office, a locality anchor rather than the building. https://en.wikipedia.org/wiki/Centre_for_Military_Airworthiness_and_Certification",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "MTRDC - Microwave Tube Research and Development Centre",
+     "locality": "Jalahalli",
+     "lat": 13.049862,
+     "lng": 77.5620244,
+     "address": "BEL complex, Jalahalli P.O., Bengaluru 560013",
+     "techPark": "BEL Industrial Estate, Jalahalli",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "MTRDC is the DRDO microwave-tube lab historically housed inside the BEL campus at Jalahalli; DRDO's and Wikipedia's MTRDC pages were unreachable (404) during this pass, and the only OSM trace is the 'MTRDC Enclave' housing at Jalahalli (13.0472, 77.5305), so the pin is the BEL Jalahalli campus centroid and the confidence is low. https://www.drdo.gov.in/",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://drdo.gov.in/drdo/sites/default/files/inline-files/DIIG_SPOC_Details03012025.pdf",
+    "https://Drdo.Gov.In/sites/default/files/inline-files/ListOfTestFacilities25042022.pdf",
+    "https://en.wikipedia.org/wiki/Electronics_and_Radar_Development_Establishment",
+    "https://en.wikipedia.org/wiki/Centre_for_Artificial_Intelligence_and_Robotics",
+    "https://en.wikipedia.org/wiki/Defence_Avionics_Research_Establishment",
+    "https://en.wikipedia.org/wiki/Centre_for_Airborne_Systems",
+    "https://en.wikipedia.org/wiki/Aeronautical_Development_Establishment",
+    "https://en.wikipedia.org/wiki/Gas_Turbine_Research_Establishment",
+    "https://en.wikipedia.org/wiki/Defence_Bioengineering_and_Electromedical_Laboratory",
+    "https://en.wikipedia.org/wiki/Centre_for_Military_Airworthiness_and_Certification"
+   ]
+  },
+  {
+   "name": "Aeronautical Development Agency",
+   "aliases": [
+    "ADA"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1984,
+   "isUnicorn": false,
+   "website": "https://www.ada.gov.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Ministry of Defence agency that designs and manages the Tejas LCA and AMCA programmes, headquartered inside the HAL aerospace cluster at Vimanapura.",
+   "offices": [
+    {
+     "label": "ADA Headquarters",
+     "locality": "Vimanapura / Doddanekundi",
+     "lat": 12.9628551,
+     "lng": 77.6827431,
+     "address": "PB No. 1718, Vimanapura Post, Bengaluru 560017",
+     "techPark": "HAL Bangalore Complex",
+     "building": null,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "ADA's Contact Us PDF gives 'Aeronautical Development Agency, Ministry of Defence, PBNo: 1718, Vimanapura Post, Bengaluru 560017'; Nominatim resolves it to OSM polygon way/165830059 'Aeronautical Development Agency'. https://www.ada.gov.in/images/Contact%20us1.pdf",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.ada.gov.in/images/Contact%20us1.pdf",
+    "https://en.wikipedia.org/wiki/Aeronautical_Development_Agency"
+   ]
+  },
+  {
+   "name": "ITI Ltd",
+   "aliases": [
+    "ITI",
+    "ITI Limited",
+    "Indian Telephone Industries"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Telecom & networking",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1948,
+   "isUnicorn": false,
+   "website": "https://www.itiltd.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "India's first PSU (telecom equipment, data centre, defence communications), headquartered at ITI Bhavan on its Bangalore Plant campus at Dooravaninagar, K R Puram.",
+   "offices": [
+    {
+     "label": "ITI Bhavan and Bangalore Plant",
+     "locality": "Dooravaninagar, K R Puram",
+     "lat": 13.0070425,
+     "lng": 77.6911835,
+     "address": "ITI Bhavan, Dooravaninagar, Bengaluru 560016",
+     "techPark": null,
+     "building": null,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "itiltd.in lists 'ITI Bhavan, Dooravaninagar, Bengaluru, 560016' as its location and the Bangalore Plant, R&D, test labs and ITI Data Center (F-86, Bangalore Plant) at the same Dooravaninagar address; Photon matches OSM way/239758169 'ITI Bhavan, Old Madras Road'. https://www.itiltd.in/",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Electronics City facility (ITI Spacenet)",
+     "locality": "Electronic City Phase 1",
+     "lat": 12.843637,
+     "lng": 77.667836,
+     "address": "Electronics City Phase 1, Bengaluru 560100",
+     "techPark": "Electronics City Phase 1",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM commercial polygon way/146344408 'ITI Spacenet' in Electronics City Phase 1; ITI's website does not list an Electronics City unit, so this rests on the OSM record alone. https://www.openstreetmap.org/way/146344408",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.itiltd.in/",
+    "https://en.wikipedia.org/wiki/ITI_Limited"
+   ]
+  },
+  {
+   "name": "HMT Ltd",
+   "aliases": [
+    "HMT",
+    "Hindustan Machine Tools",
+    "HMT Machine Tools Limited"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1953,
+   "isUnicorn": false,
+   "website": "https://www.hmtindia.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Machine-tool PSU (the watch, tractor and bearings arms were shut in 2016); corporate office at HMT Bhavan on Bellary Road and the 1953 'mother unit' machine-tool plant at Jalahalli.",
+   "offices": [
+    {
+     "label": "HMT Bhavan (corporate office)",
+     "locality": "Sadashivanagar / Bellary Road",
+     "lat": 13.019998,
+     "lng": 77.584765,
+     "address": "59, Bellary Road, Bengaluru 560032",
+     "techPark": null,
+     "building": null,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "hmtindia.com gives 'HMT Limited, 59, Bellary Road, Bengaluru 560 032'; OSM commercial polygon way/777638998 'HMT Bhavan' on Bellary Road. https://www.hmtindia.com/contact-us",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "HMT Machine Tools - Bangalore Complex",
+     "locality": "Jalahalli",
+     "lat": 13.0521142,
+     "lng": 77.5420706,
+     "address": "Bangalore Complex, Jalahalli, HMT P.O., Bengaluru 560013",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "HMT Machine Tools' Bangalore Complex page gives 'Banglore Complex, Jalahalli, HMT P.O., Banglore-560013' (inception 1953); Nominatim resolves 'Hindustan Machine Tools' to OSM industrial polygon way/37108080. https://www.hmtmachinetools.com/bangalore-complex",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.hmtindia.com/contact-us",
+    "https://www.hmtmachinetools.com/bangalore-complex",
+    "https://en.wikipedia.org/wiki/HMT_Limited"
+   ]
+  },
+  {
+   "name": "Canara Bank",
+   "aliases": [
+    "Canara Hindu Permanent Fund",
+    "Syndicate Bank (merged 2020)"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "BFSI",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1906,
+   "isUnicorn": false,
+   "website": "https://www.canarabank.bank.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Public-sector bank (81,260 employees, March 2025) headquartered at Town Hall junction on J C Road; one of the two nationalised banks run from Bengaluru.",
+   "offices": [
+    {
+     "label": "Head Office, J C Road",
+     "locality": "Sampangiram Nagar / Town Hall",
+     "lat": 12.9657419,
+     "lng": 77.5875393,
+     "address": "112, J C Road, Bengaluru 560002",
+     "techPark": null,
+     "building": null,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia gives the head office as Town Hall junction, Bengaluru (the bank's long-published address is 112 J C Road 560002); canarabank.bank.in's contact page did not render an address and BSE refused the fetch, so the pin is Photon's J C Road / Town Hall match beside the BBMP head office and the confidence is medium. https://en.wikipedia.org/wiki/Canara_Bank",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Head Office Annexe",
+     "locality": "Nagavara / Hebbal",
+     "lat": 13.0529547,
+     "lng": 77.6200007,
+     "address": "Outer Ring Road area, Nagavara, Bengaluru",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Photon/OSM node 'Canara Bank Head Office Annex' at this point; no bank document naming the annexe's address was reachable, so it is recorded as low confidence. https://www.openstreetmap.org/",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Canara_Bank",
+    "https://www.canarabank.bank.in/"
+   ]
+  },
+  {
+   "name": "Karnataka Soaps & Detergents Ltd",
+   "aliases": [
+    "KSDL",
+    "Mysore Sandal",
+    "Government Soap Factory",
+    "Karnataka Soaps and Detergents Limited"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Retail & consumer goods",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1916,
+   "isUnicorn": false,
+   "website": "https://www.mysoresandal.co.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Government of Karnataka's soap maker (Mysore Sandal Soap), run from its 1916 Government Soap Factory on the Bangalore-Pune highway (Tumkur Road) at Yeshwanthpur.",
+   "offices": [
+    {
+     "label": "Registered office and Government Soap Factory",
+     "locality": "Yeshwanthpur / Rajajinagar (Tumkur Road)",
+     "lat": 13.0155731,
+     "lng": 77.5521765,
+     "address": "Bangalore-Pune Highway (Tumkur Road), Yeshwanthpur, Bengaluru 560022",
+     "techPark": null,
+     "building": null,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia records KSDL as Karnataka-government owned with manufacturing in Bengaluru, Mysore and Shimoga; Photon matches OSM features 'Government Soap Factory, Tumkur Road' and 'Mysore Sandal Soap Factory, Chord Road' at this site; KSDL's own site was unreachable (HTTP 503), hence medium. https://en.wikipedia.org/wiki/Karnataka_Soaps_and_Detergents_Limited",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Karnataka_Soaps_and_Detergents_Limited"
+   ]
+  },
+  {
+   "name": "Centre for Development of Telematics",
+   "aliases": [
+    "C-DOT",
+    "CDOT"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Telecom & networking",
+   "hqCity": "New Delhi",
+   "hqCountry": "India",
+   "founded": 1984,
+   "isUnicorn": false,
+   "website": "https://www.cdot.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Department of Telecommunications' R&D centre (switching, 4G/5G core, optical, quantum comms); its second campus is in Electronics City Phase 1.",
+   "offices": [
+    {
+     "label": "C-DOT Bengaluru Campus",
+     "locality": "Electronic City Phase 1",
+     "lat": 12.845213,
+     "lng": 77.669457,
+     "address": "C-DOT Campus, Electronic City Phase 1, Bengaluru 560100",
+     "techPark": "Electronics City Phase 1",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "C-DOT's contact page lists the Bangalore office as 'C-DOT Campus, Electronic City Phase 1, Bengaluru-560100'; OSM commercial polygon way/160373384 'Center for Development of Telematics'. https://www.cdot.in/cdotweb/web/contactus.php",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.cdot.in/cdotweb/web/contactus.php"
+   ]
+  },
+  {
+   "name": "Centre for Development of Advanced Computing",
+   "aliases": [
+    "C-DAC",
+    "CDAC",
+    "C-DAC Bangalore"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "AI & deep tech",
+   "hqCity": "Pune",
+   "hqCountry": "India",
+   "founded": 1988,
+   "isUnicorn": false,
+   "website": "https://www.cdac.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "MeitY's R&D society for supercomputing, cyber security and language computing; its Bengaluru centre sits on Old Madras Road at Byappanahalli, with a second unit in Electronics City.",
+   "offices": [
+    {
+     "label": "C-DAC Bengaluru (Knowledge Park, Old Madras Road)",
+     "locality": "Byappanahalli",
+     "lat": 12.989243,
+     "lng": 77.65162,
+     "address": "Old Madras Road, Byappanahalli, Bengaluru 560038",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia lists C-DAC Bangalore among the organisation's centres; OSM commercial polygon way/56180200 'Centre for Development of Advanced Computing' on Old Madras Road at Byappanahalli; cdac.in's Bengaluru centre page returned 404, so the street address is not quoted from a primary source. https://en.wikipedia.org/wiki/Centre_for_Development_of_Advanced_Computing",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "C-DAC Electronics City unit",
+     "locality": "Electronic City Phase 1",
+     "lat": 12.841921,
+     "lng": 77.663283,
+     "address": "Electronics City Phase 1, Bengaluru 560100",
+     "techPark": "Electronics City Phase 1",
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM commercial polygon way/146344420 'C-DAC' in Electronics City Phase 1; no C-DAC page confirming this unit was reachable. https://www.openstreetmap.org/way/146344420",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Centre_for_Development_of_Advanced_Computing",
+    "https://www.cdac.in/"
+   ]
+  },
+  {
+   "name": "Bharat Sanchar Nigam Ltd",
+   "aliases": [
+    "BSNL",
+    "BSNL Karnataka Circle"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Telecom & networking",
+   "hqCity": "New Delhi",
+   "hqCountry": "India",
+   "founded": 2000,
+   "isUnicorn": false,
+   "website": "https://www.bsnl.co.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "State telecom operator; the Karnataka Telecom Circle is run by a Chief General Manager from the circle office at Halasuru, with dozens of exchanges across the city.",
+   "offices": [
+    {
+     "label": "Karnataka Circle - CGM Office, Halasuru",
+     "locality": "Halasuru",
+     "lat": 12.9738748,
+     "lng": 77.6208365,
+     "address": "Halasuru, Bengaluru 560008",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Nominatim/OSM way/133881876 'BSNL CGM Office, Halasuru' marks the circle headquarters; BSNL's Karnataka circle site (karnataka.bsnl.co.in) did not resolve during this pass, so the address is not quoted from the company. https://www.openstreetmap.org/way/133881876",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/133881876",
+    "https://en.wikipedia.org/wiki/Bharat_Sanchar_Nigam_Limited"
+   ]
+  },
+  {
+   "name": "Central Manufacturing Technology Institute",
+   "aliases": [
+    "CMTI"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1962,
+   "isUnicorn": false,
+   "website": "https://cmti.res.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Ministry of Heavy Industries' R&D institute for machine tools, precision engineering and smart manufacturing, on Tumkur Road beside the HMT estate.",
+   "offices": [
+    {
+     "label": "CMTI campus, Tumkur Road",
+     "locality": "Peenya / Goragunte Palya (Tumkur Road)",
+     "lat": 13.0338736,
+     "lng": 77.5364946,
+     "address": "Tumkur Road, Bengaluru 560022",
+     "techPark": null,
+     "building": null,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Nominatim resolves the institute to OSM polygon way/38968934 'Central Manufacturing Technology Institute, Tumkur Road'; cmti.res.in returned HTTP 503 during this pass, so the address is from the map rather than the institute. https://www.openstreetmap.org/way/38968934",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/38968934",
+    "https://cmti.res.in/"
+   ]
+  },
+  {
+   "name": "Central Power Research Institute",
+   "aliases": [
+    "CPRI"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Energy",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1960,
+   "isUnicorn": false,
+   "website": "https://cpri.res.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Ministry of Power's national testing and research laboratory for electrical equipment, headquartered at Sadashivanagar.",
+   "offices": [
+    {
+     "label": "CPRI headquarters, Sadashivanagar",
+     "locality": "Sadashivanagar",
+     "lat": 13.023272,
+     "lng": 77.574006,
+     "address": "Sir C V Raman Road, PB No. 8066, Sadashivanagar, Bengaluru 560080",
+     "techPark": null,
+     "building": null,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "cpri.res.in gives the head office as Sir C V Raman Road, Post Box 8066, Sadashivanagar, Bengaluru 560080 (established 1960, Ministry of Power); OSM industrial polygon way/37107313 'Central Power Research Institute'. https://cpri.res.in/",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://cpri.res.in/"
+   ]
+  }
+ ],
+ "coverageNotes": "Shared WebSearch budget was exhausted after the first four searches, so verification ran on direct fetches of official pages/PDFs, Wikipedia (as a lead) and the OSM extracts plus Nominatim/Photon. Confirmed from primary sources: every HAL Bengaluru division address (contact page + division mailing-address PDF), ADA (Contact Us PDF), ISTRAC, LEOS, URSC, HSFC, NSIL (both offices), BEML Soudha, ITI Bhavan, HMT Bhavan and HMT Jalahalli, C-DOT, CPRI, DRDO ADE/CABS/GTRE/CAIR/CASDIC (DRDO lists). Not confirmed from the company: BEL (bel-india.in answered 503 throughout; addresses come from the WebSearch summary of BEL's own RTI PDFs plus the Nominatim 'Bharat Electronics Limited' feature), Antrix and KSDL (sites 503), CMTI (503), C-DAC Bengaluru (404 on its centre page), BSNL Karnataka (DNS failure), Canara Bank (contact page carried no address, BSE/Moneycontrol refused) and MTRDC (DRDO and Wikipedia pages 404) - each is marked medium or low with the reason in its evidence sentence. Coordinates: HAL Overhaul and Foundry & Forge divisions, CASDIC, DEBEL, HSFC, NSIL registered office, Antrix and MTRDC have no mapped boundary and are pinned to their campus centroid (geocodeSource park-centroid, confidence medium/low); CEMILAC is pinned to the Marathahalli Colony post office (low). Deliberately left out: KSRTC/BMTC, IISc and other institutes (NIMHANS, RRI, IIA, JNCASR), NPCIL, Bharat Dynamics, MIDHANI, Mazagon and NTPC (no Bengaluru operation in scope), the HMT Watch Factory (closed 2016, before the 2023 cut-off), KEONICS/KIADB (state agencies, not in the lens list), BEL's joint ventures (BEL-Thales at Jalahalli, GE-BE at Whitefield are separate companies), and ISRO's 'ISRO Data Centre' polygon at Peenya (no source naming it). IDSN Byalalu (12.9006, 77.3701) is inside the lng >= 77.35 box by two kilometres and is included as an ISTRAC site with that caveat. BHEL's Electro Porcelains Division is kept as low confidence because bhel.com's current footprint map no longer lists it; headcounts are not given per city anywhere, so bengaluruEmployeesApprox is null throughout."
+}

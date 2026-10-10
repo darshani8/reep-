@@ -1,0 +1,1888 @@
+{
+ "key": "G10-egl-domlur-indiranagar",
+ "techParks": [
+  {
+   "name": "Embassy GolfLinks Business Park",
+   "aliases": [
+    "EGL",
+    "Embassy Golf Links",
+    "Embassy Golf Links Business Park",
+    "Embassy GolfLinks"
+   ],
+   "locality": "Challaghatta / Domlur, Koramangala-Indiranagar Intermediate Ring Road",
+   "developer": "Embassy Group (Embassy Office Parks REIT holds a 50% interest)",
+   "lat": 12.950254,
+   "lng": 77.644071,
+   "bbox": [
+    12.945593,
+    12.95396,
+    77.63981,
+    77.647252
+   ],
+   "areaSqFtMillions": 3.4,
+   "notableTenants": [
+    "IBM",
+    "Dell Technologies",
+    "Fidelity Investments",
+    "Target",
+    "Roku",
+    "Cushman & Wakefield",
+    "McAfee",
+    "OpenText",
+    "Goldman Sachs",
+    "PwC",
+    "Truecaller",
+    "Unacademy",
+    "WeWork"
+   ],
+   "description": "A 37.11-acre low-rise campus beside the Karnataka Golf Association course at Challaghatta, off the Intermediate Ring Road between Domlur and Koramangala. Its blocks are named after golf courses (Augusta, Cherry Hills, Cinnabar Hills, Crystal Downs, Cypress Point, Pacific Dunes, Pebble Beach, Pine Valley, Pinehurst, St. Andrews / Signature, Sunningdale, Sunriver, Torrey Pines) and OSM records them individually. Embassy REIT reports 3.4 msf of leasable area (3.1 msf completed), 100% occupancy and 30 occupiers; a Hilton hotel sits inside the park. WeWork runs centres in Cherry Hills, Sunriver and GolfLinks blocks. Yahoo (R&D closed 2014) and Microsoft (now at Ferns Galaxy, Vigyan and Bagmane Capital per its own page) were historic occupiers and are not listed as current tenants.",
+   "sources": [
+    "https://www.embassyofficeparks.com/ourportfolio/bangalore/embassy-golf-links-business-park/",
+    "https://www.openstreetmap.org/way/28453683",
+    "https://www.weareroku.com/locations",
+    "https://www.dell.com/en-in/lp/contact-us",
+    "https://jobs.fidelity.com/in/"
+   ]
+  },
+  {
+   "name": "Diamond District",
+   "aliases": [
+    "Diamond District Commercial Block",
+    "Diamond District Towers"
+   ],
+   "locality": "Kodihalli, HAL Old Airport Road",
+   "developer": null,
+   "lat": 12.959952,
+   "lng": 77.643379,
+   "bbox": [
+    12.959701,
+    12.960375,
+    77.642658,
+    77.644249
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Gojek",
+    "Zeta",
+    "NASSCOM 10,000 Startups",
+    "BHive Workspace"
+   ],
+   "description": "A late-1990s mixed-use estate on HAL Old Airport Road at Kodihalli: residential towers around a commercial block (Towers A-D) that has long housed startups and tech offices. OSM records Gojek's India engineering centre, Zeta, the NASSCOM 10,000 Startups warehouse (Tower D) and a BHive coworking centre here; Zoomcar's registered office was Tower B, 7th floor before it moved to Anjaneya Techno Park next door, and apna was recorded here before listing an Ejipura address. OSM tags the operator as IBC Group, which could not be verified.",
+   "sources": [
+    "https://www.openstreetmap.org/way/323629916",
+    "https://www.openstreetmap.org/way/135262279",
+    "https://www.openstreetmap.org/node/6746625204",
+    "https://www.openstreetmap.org/node/13563559848",
+    "https://www.openstreetmap.org/node/3355462598",
+    "https://www.openstreetmap.org/node/6070145685"
+   ]
+  },
+  {
+   "name": "Divyasree Greens",
+   "aliases": [
+    "DivyaSree Greens"
+   ],
+   "locality": "Challaghatta / Yemalur, Intermediate Ring Road (Domlur)",
+   "developer": "DivyaSree Developers",
+   "lat": 12.9530111,
+   "lng": 77.6414689,
+   "bbox": [
+    12.9522356,
+    12.953948,
+    77.6404937,
+    77.6423461
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Atlassian",
+    "Dell Technologies"
+   ],
+   "description": "A mid-size office campus on the Intermediate Ring Road immediately west of Embassy GolfLinks, on survey numbers 12/1, 12/2A and 13/1A of Challaghatta village. Atlassian's own contact page places its Bengaluru office on the 4th and 5th floors; OSM also records a Dell India office in the compound.",
+   "sources": [
+    "https://www.atlassian.com/company/contact",
+    "https://www.openstreetmap.org/way/217566878"
+   ]
+  },
+  {
+   "name": "RMZ Titanium",
+   "aliases": [
+    "Titanium, Old Airport Road"
+   ],
+   "locality": "Kodihalli, 135 HAL Old Airport Road",
+   "developer": "RMZ Corp",
+   "lat": 12.958952,
+   "lng": 77.648102,
+   "bbox": [
+    12.9583712,
+    12.95958,
+    77.6479046,
+    77.6484913
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "FICO",
+    "GKN Aerospace"
+   ],
+   "description": "A single RMZ office tower at 135 HAL Old Airport Road opposite Manipal Hospital. OSM records FICO (Fair Isaac India), GKN Aerospace, Hyder Consulting, InterCall, AmiCorp and (historically) CA Technologies here; none of these tenancies could be confirmed on a company page, so they are low-confidence.",
+   "sources": [
+    "https://www.openstreetmap.org/way/135262282",
+    "https://www.openstreetmap.org/node/3797621212"
+   ]
+  },
+  {
+   "name": "Anjaneya Techno Park",
+   "aliases": [],
+   "locality": "Kodihalli, HAL Old Airport Road",
+   "developer": null,
+   "lat": 12.959743,
+   "lng": 77.645123,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Zoomcar"
+   ],
+   "description": "A small commercial building (No. 147) on HAL Old Airport Road beside Diamond District. Zoomcar Holdings' SEC filings give 'Anjaneya Techno Park, No. 147, 1st Floor, Kodihalli' as its business address.",
+   "sources": [
+    "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001854275&type=10-K",
+    "https://www.openstreetmap.org/way/346528417"
+   ]
+  },
+  {
+   "name": "Golf View Campus",
+   "aliases": [
+    "IndiQube Golf View Homes",
+    "Golf View Corporate Towers"
+   ],
+   "locality": "Murugeshpalya, NAL Wind Tunnel Road",
+   "developer": null,
+   "lat": 12.952937,
+   "lng": 77.650543,
+   "bbox": [
+    12.951843,
+    12.954255,
+    77.648754,
+    77.65199
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Enphase Energy",
+    "nference",
+    "Ipsos",
+    "DDB Mudra",
+    "ansrsource"
+   ],
+   "description": "A cluster of three office towers plus an IndiQube managed-office centre on NAL Wind Tunnel Road at Murugeshpalya, behind the HAL Old Airport Road frontage. Enphase Energy's India office is at IndiQube Golf View Homes per its own contact page; OSM also records nference, Ipsos, DDB Mudra, ansrsource and (historically) Omega Healthcare here.",
+   "sources": [
+    "https://enphase.com/en-in/contact",
+    "https://www.openstreetmap.org/way/35279855"
+   ]
+  },
+  {
+   "name": "Prestige Terminus",
+   "aliases": [
+    "Prestige Terminus 1",
+    "Prestige Terminus 2"
+   ],
+   "locality": "Konena Agrahara, HAL Old Airport Road (opposite HAL)",
+   "developer": "Prestige Group",
+   "lat": 12.957923,
+   "lng": 77.662744,
+   "bbox": [
+    12.957764,
+    12.95814,
+    77.662109,
+    77.66331
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "Two Prestige office blocks on the Airport Arrival Road spur off HAL Old Airport Road, next to the old HAL airport terminal. Recorded in OSM; no tenant could be substantiated in this pass.",
+   "sources": [
+    "https://www.openstreetmap.org/way/348134966"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "IBM",
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "hqCity": "Armonk",
+   "hqCountry": "United States",
+   "founded": 1911,
+   "website": "https://www.ibm.com/in-en",
+   "aliases": [
+    "IBM India",
+    "International Business Machines"
+   ],
+   "description": "US technology and consulting group; Bengaluru hosts IBM India software labs, consulting and delivery, with a long-standing multi-block presence at Embassy GolfLinks and a larger campus at Manyata.",
+   "offices": [
+    {
+     "label": "Embassy GolfLinks blocks",
+     "locality": "Domlur / Challaghatta",
+     "lat": 12.952137,
+     "lng": 77.643927,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OpenStreetMap records five separate IBM office POIs across EGL (Cinnabar Hills / Pebble Beach / Pacific Dunes area), mapped between 2016 and 2023 (https://www.openstreetmap.org/node/4308351911); not confirmed on an IBM page.",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": null,
+     "address": "Embassy GolfLinks Business Park, Off Intermediate Ring Road, Domlur 560071",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Manyata campus",
+     "locality": "Nagavara",
+     "lat": 13.042421,
+     "lng": 77.621513,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'IBM' inside Manyata Tech Park (https://www.openstreetmap.org/node/338524869); IBM's Manyata campus is widely reported but not verified on an IBM page here.",
+     "techPark": "Manyata Tech Park",
+     "building": null,
+     "address": "Embassy Manyata Business Park, Nagavara 560045",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4308351911",
+    "https://www.openstreetmap.org/node/338524869"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Dell Technologies",
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "hqCity": "Round Rock",
+   "hqCountry": "United States",
+   "founded": 1984,
+   "website": "https://www.dell.com/en-in",
+   "aliases": [
+    "Dell International Services India",
+    "Dell EMC",
+    "Dell India"
+   ],
+   "description": "US PC, server and storage maker; Dell International Services India's corporate address is Crystal Downs at Embassy GolfLinks, with the former EMC engineering towers in Mahadevapura.",
+   "offices": [
+    {
+     "label": "Crystal Downs, Embassy GolfLinks (India corporate office)",
+     "locality": "Domlur / Challaghatta",
+     "lat": 12.95006,
+     "lng": 77.644233,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Dell's India contact page gives the corporate address as 'Crystal Downs, Survey no. 7/1, 7/2, 7/3, Embassy Golf Links Business Park, Off-Intermediate Ring Road, Domlur, Challaghatta Village, Bengaluru 560071' (https://www.dell.com/en-in/lp/contact-us).",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Crystal Downs",
+     "address": "Crystal Downs, Embassy Golf Links Business Park, Off Intermediate Ring Road, Domlur 560071",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Divyasree Greens",
+     "locality": "Challaghatta / Domlur",
+     "lat": 12.953024,
+     "lng": 77.641864,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'DELL India Limited' inside the Divyasree Greens compound (https://www.openstreetmap.org/node/13013034413); not on Dell's own page.",
+     "techPark": "Divyasree Greens",
+     "building": null,
+     "address": "Divyasree Greens, Intermediate Ring Road, Challaghatta",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Dell EMC Towers, Mahadevapura",
+     "locality": "Mahadevapura",
+     "lat": 12.981896,
+     "lng": 77.694102,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps 'Dell EMC Tower A' and 'Tower B' as named office buildings in Mahadevapura (https://www.openstreetmap.org/way/150582724); the former EMC India COE.",
+     "techPark": null,
+     "building": null,
+     "address": "Dell EMC Towers, Mahadevapura 560048",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.dell.com/en-in/lp/contact-us",
+    "https://www.openstreetmap.org/way/105322155",
+    "https://www.openstreetmap.org/node/13013034413",
+    "https://www.openstreetmap.org/way/150582724"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Fidelity Investments",
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "hqCity": "Boston",
+   "hqCountry": "United States",
+   "founded": 1946,
+   "website": "https://jobs.fidelity.com/in/",
+   "aliases": [
+    "Fidelity Business Services India",
+    "FMR"
+   ],
+   "description": "US asset manager; its India global capability centre (set up 2003) has its registered office at Embassy GolfLinks, in the Pinehurst block.",
+   "offices": [
+    {
+     "label": "Embassy GolfLinks (India registered office)",
+     "locality": "Domlur / Challaghatta",
+     "lat": 12.949382,
+     "lng": 77.644745,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Fidelity's India careers site lists the registered office as 'Fidelity Business Services India Pvt. Ltd., Embassy Golf Links Business Park, Intermediate Ring Rd, Challaghatta, Bengaluru 560071' (https://jobs.fidelity.com/in/); OSM places the office at the Pinehurst block (https://www.openstreetmap.org/node/11527323944).",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Pinehurst",
+     "address": "Embassy Golf Links Business Park, Intermediate Ring Road, Challaghatta 560071",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://jobs.fidelity.com/in/",
+    "https://www.openstreetmap.org/node/11527323944",
+    "https://www.openstreetmap.org/way/105322136"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Target",
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "hqCity": "Minneapolis",
+   "hqCountry": "United States",
+   "founded": 1902,
+   "website": "https://india.target.com/",
+   "aliases": [
+    "Target Corporation India",
+    "Target in India"
+   ],
+   "description": "US retailer whose Bengaluru technology and operations centre (since 2005) is split between Embassy GolfLinks and Manyata.",
+   "offices": [
+    {
+     "label": "Embassy GolfLinks office",
+     "locality": "Domlur / Challaghatta",
+     "lat": 12.947459,
+     "lng": 77.645801,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Target Corporation India Ltd.' on Embassy Golf Links Road with website india.target.com (https://www.openstreetmap.org/node/5008585321); Target's India site is a JS app and could not be read.",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": null,
+     "address": "Embassy Golf Links Business Park, Domlur 560071",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Manyata campus",
+     "locality": "Nagavara",
+     "lat": 13.045561,
+     "lng": 77.620356,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POIs 'Target India' and 'Target' inside Manyata Tech Park (https://www.openstreetmap.org/node/5383668674).",
+     "techPark": "Manyata Tech Park",
+     "building": null,
+     "address": "Embassy Manyata Business Park, Nagavara 560045",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/5008585321",
+    "https://www.openstreetmap.org/node/5383668674"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Roku",
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Media & gaming",
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "founded": 2002,
+   "website": "https://www.weareroku.com/locations",
+   "aliases": [
+    "Roku India"
+   ],
+   "description": "US streaming-platform company; its Bengaluru engineering office is on the ground floor of the St. Andrews (Signature) block at Embassy GolfLinks.",
+   "offices": [
+    {
+     "label": "St. Andrews (Signature Block), Embassy GolfLinks",
+     "locality": "Domlur / Challaghatta",
+     "lat": 12.951036,
+     "lng": 77.644137,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Roku's locations page: 'Ground Floor, Office 00-1000, Embassy Golf Links Business Park No 15, St. Andrews (Signature Block), Challaghatta Village, Bengaluru 560071' (https://www.weareroku.com/locations).",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "St. Andrews (Signature Block)",
+     "address": "No 15, St. Andrews, Embassy Golf Links Business Park, Challaghatta 560071",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.weareroku.com/locations",
+    "https://www.openstreetmap.org/way/119924857",
+    "https://www.openstreetmap.org/node/13991675704"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Atlassian",
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "hqCity": "Sydney",
+   "hqCountry": "Australia",
+   "founded": 2002,
+   "website": "https://www.atlassian.com/company/contact",
+   "aliases": [
+    "Atlassian India"
+   ],
+   "description": "Australian collaboration-software maker (Jira, Confluence); its Bengaluru R&D office occupies two floors of Divyasree Greens on the Intermediate Ring Road.",
+   "offices": [
+    {
+     "label": "Divyasree Greens, 4th & 5th floors",
+     "locality": "Challaghatta / Domlur",
+     "lat": 12.9530111,
+     "lng": 77.6414689,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Atlassian's contact page lists Bengaluru as '4th Floor, 5th Floor, Divyasree Greens, Sy No 12/1, 12/2A, 13/1A, Chalaghatta Village, Bengaluru 560071' (https://www.atlassian.com/company/contact).",
+     "techPark": "Divyasree Greens",
+     "building": "Divyasree Greens",
+     "address": "Divyasree Greens, Challaghatta Village 560071",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.atlassian.com/company/contact",
+    "https://www.openstreetmap.org/way/217566878",
+    "https://www.openstreetmap.org/node/11821504019"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Cushman & Wakefield",
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Real estate & infrastructure",
+   "hqCity": "Chicago",
+   "hqCountry": "United States",
+   "founded": 1917,
+   "website": "https://www.cushmanwakefield.com/en/india/offices/bengaluru",
+   "description": "Global commercial real-estate services firm; its Bengaluru office is on the 4th floor of Pine Valley at Embassy GolfLinks.",
+   "offices": [
+    {
+     "label": "Pine Valley, Embassy GolfLinks",
+     "locality": "Domlur / Challaghatta",
+     "lat": 12.946624,
+     "lng": 77.646465,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Company office page: 'Inner Road, Pine Valley, 4th Floor, Embassy Golf Links Business Park, Bengaluru 560071' (https://www.cushmanwakefield.com/en/india/offices/bengaluru).",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Pine Valley",
+     "address": "4th Floor, Pine Valley, Embassy Golf Links Business Park 560071",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.cushmanwakefield.com/en/india/offices/bengaluru",
+    "https://www.openstreetmap.org/node/4445088999",
+    "https://www.openstreetmap.org/way/124079084"
+   ],
+   "aliases": [],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "OpenText",
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "hqCity": "Waterloo",
+   "hqCountry": "Canada",
+   "founded": 1991,
+   "website": "https://www.opentext.com/about/office-locations",
+   "aliases": [
+    "Open Text Technologies India",
+    "Micro Focus (acquired 2023)"
+   ],
+   "description": "Canadian enterprise information-management vendor; after absorbing Micro Focus it runs four Bengaluru offices, two of them in the Domlur/EGL belt.",
+   "offices": [
+    {
+     "label": "Infinity #436, Intermediate Ring Road, Domlur",
+     "locality": "Domlur / Challaghatta",
+     "lat": 12.9593296,
+     "lng": 77.6413771,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OpenText office list: '3rd and 4th Floors, Infinity #436, Off Koramangala Indiranagar Intermediate Ring Road, Challanghatta, Domlur, Bengaluru 560071' (https://www.opentext.com/about/office-locations); point is the geocoder's road-level hit.",
+     "techPark": null,
+     "building": "Infinity #436",
+     "address": "Infinity #436, Intermediate Ring Road, Challaghatta, Domlur 560071",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "WeWork Cherry Hills, Embassy GolfLinks",
+     "locality": "Domlur / Challaghatta",
+     "lat": 12.95009,
+     "lng": 77.641712,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "OpenText office list: 'WeWork, 1st floor - Cherry Hills, Embassy Golf Links Business Park, Bengaluru 560071' (https://www.opentext.com/about/office-locations).",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Cherry Hills (WeWork)",
+     "address": "1st Floor, Cherry Hills, Embassy Golf Links Business Park 560071",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Laurel Building, Bagmane Tech Park",
+     "locality": "CV Raman Nagar",
+     "lat": 12.978397,
+     "lng": 77.664855,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "OpenText office list: '3rd & 5th floor, Laurel Building, A Block, 65/2, Bagmane Tech Park, CV Raman Nagar, Byrasandra 560093' (https://www.opentext.com/about/office-locations).",
+     "techPark": "Bagmane Tech Park",
+     "building": "Laurel, A Block",
+     "address": "65/2 Bagmane Tech Park, CV Raman Nagar 560093",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Olympia Building, Bagmane Tech Park",
+     "locality": "CV Raman Nagar",
+     "lat": 12.978938,
+     "lng": 77.658768,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "OpenText office list: '66/1, 6th Floor, Olympia Building, Bagmane Tech Park, Byrasandra, Sir CV Raman Nagar 560093' (https://www.opentext.com/about/office-locations).",
+     "techPark": "Bagmane Tech Park",
+     "building": "Olympia",
+     "address": "66/1 Bagmane Tech Park, CV Raman Nagar 560093",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.opentext.com/about/office-locations",
+    "https://www.openstreetmap.org/way/589587840",
+    "https://www.openstreetmap.org/way/105322121"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "McAfee",
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "founded": 1987,
+   "website": "https://www.mcafee.com/en-in/",
+   "aliases": [
+    "McAfee Software India",
+    "Trellix (enterprise business, split 2022)"
+   ],
+   "description": "US consumer-security company; its long-standing Bengaluru engineering office is in Pine Valley at Embassy GolfLinks. Since the 2022 split the enterprise half trades as Trellix, which may be the actual occupant of part of this space.",
+   "offices": [
+    {
+     "label": "Pine Valley, Embassy GolfLinks",
+     "locality": "Domlur / Challaghatta",
+     "lat": 12.946739,
+     "lng": 77.646495,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'McAfee Software India Pvt. Ltd' with address '2nd floor Pine Valley, Embassy Golf Link Business Park, Off Intermediate Ring Road, Domlur' and website mcafee.com (https://www.openstreetmap.org/node/4445089987); not confirmed on a McAfee/Trellix page (both blocked fetches).",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Pine Valley",
+     "address": "2nd Floor, Pine Valley, Embassy Golf Links Business Park, Domlur 560071",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4445089987"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Microsoft",
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "hqCity": "Redmond",
+   "hqCountry": "United States",
+   "founded": 1975,
+   "website": "https://www.microsoft.com/en-in/about/contact-us",
+   "aliases": [
+    "Microsoft India (R&D)",
+    "Microsoft Corporation India"
+   ],
+   "description": "Microsoft's own India contact page lists three Bengaluru offices (Prestige Ferns Galaxy, Vigyan on Lavelle Road, Bagmane Capital); its earlier Embassy GolfLinks office is no longer listed and is treated as historic.",
+   "offices": [
+    {
+     "label": "Prestige Ferns Galaxy",
+     "locality": "Ambalipura / Bellandur, Outer Ring Road",
+     "lat": 12.921655,
+     "lng": 77.669033,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Microsoft India contact page: 'Prestige Ferns Galaxy, Sy. No. 7/1, 7/2, 8/1A in Ambalipura, Varthur Hobli, Outer Ring Road, Bengaluru 560103' (https://www.microsoft.com/en-in/about/contact-us).",
+     "techPark": "Prestige Ferns Galaxy",
+     "building": null,
+     "address": "Prestige Ferns Galaxy, Ambalipura, Outer Ring Road 560103",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Vigyan (Salarpuria Sattva Cosmo Lavelle)",
+     "locality": "Lavelle Road / Richmond Circle",
+     "lat": 12.966065,
+     "lng": 77.596253,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Microsoft India contact page: 'Salarpuria Sattva Cosmo Lavelle (Vigyan), #9, Lavelle Road - Residency Road, Richmond Circle, Bengaluru 560025' (https://www.microsoft.com/en-in/about/contact-us).",
+     "techPark": null,
+     "building": "Salarpuria Sattva Cosmo Lavelle (Vigyan)",
+     "address": "#9 Lavelle Road, Richmond Circle 560025",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Luxor North Tower, Bagmane Capital",
+     "locality": "Mahadevapura",
+     "lat": 12.9845398,
+     "lng": 77.704025,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Microsoft India contact page: '4-8th floor, Luxor North Tower, Bagmane Capital Campus, Mahadevapura Village, KR Puram Hobli, Bengaluru 560048' (https://www.microsoft.com/en-in/about/contact-us).",
+     "techPark": "Bagmane Capital",
+     "building": "Luxor North Tower",
+     "address": "Luxor North Tower, Bagmane Capital, Mahadevapura 560048",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.microsoft.com/en-in/about/contact-us",
+    "https://www.openstreetmap.org/node/11527324054"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Goldman Sachs",
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "founded": 1869,
+   "website": "https://www.goldmansachs.com/",
+   "description": "US investment bank with one of its largest offices worldwide in Bengaluru. Its main campus (opened 2019) is on the Outer Ring Road at Bellandur, outside this lens; EGL was its original Bengaluru home and an OSM mapper still recorded it at Cherry Hills in 2023.",
+   "offices": [
+    {
+     "label": "Embassy GolfLinks (historic / possibly residual)",
+     "locality": "Domlur / Challaghatta",
+     "lat": 12.950125,
+     "lng": 77.641768,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Goldman Sachs' at the Cherry Hills block, added in 2023 (https://www.openstreetmap.org/node/11527323996); the same mapper also recorded Yahoo, which left in 2014, so this may reflect stale signage. Goldman's own site blocked fetching.",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Cherry Hills",
+     "address": "Embassy Golf Links Business Park, Domlur 560071",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11527323996"
+   ],
+   "aliases": [],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Enphase Energy",
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "hqCity": "Fremont",
+   "hqCountry": "United States",
+   "founded": 2006,
+   "website": "https://enphase.com/en-in/contact",
+   "aliases": [
+    "Enphase Solar Energy Pvt Ltd"
+   ],
+   "description": "US solar microinverter and battery maker; its India engineering and support centre is at IndiQube Golf View Homes on NAL Wind Tunnel Road, Murugeshpalya.",
+   "offices": [
+    {
+     "label": "IndiQube Golf View Homes, Wind Tunnel Road",
+     "locality": "Murugeshpalya",
+     "lat": 12.9528,
+     "lng": 77.64972,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Enphase India contact page: 'Enphase Solar Energy Pvt. Ltd., IndiQube Golf View Homes, Ward No.73 Airport, NAL Wind Tunnel Main Road, Murugeshpalaya, Bangalore 560017' (https://enphase.com/en-in/contact).",
+     "techPark": "Golf View Campus",
+     "building": "IndiQube Golf View Homes",
+     "address": "IndiQube Golf View Homes, NAL Wind Tunnel Main Road, Murugeshpalya 560017",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://enphase.com/en-in/contact",
+    "https://www.openstreetmap.org/node/9875763823"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "[24]7.ai",
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "hqCity": "Campbell",
+   "hqCountry": "United States",
+   "founded": 2000,
+   "website": "https://www.247.ai/",
+   "aliases": [
+    "24/7 Customer Pvt Ltd",
+    "24/7 Inc"
+   ],
+   "description": "Conversational-AI and customer-experience company founded by Indian entrepreneurs and headquartered in California; its Bengaluru operations are at Prestige Tech Platina on the Outer Ring Road (an earlier EGL office appears only in OSM).",
+   "offices": [
+    {
+     "label": "Prestige Tech Platina 2",
+     "locality": "Kadubeesanahalli, Outer Ring Road",
+     "lat": 12.943952,
+     "lng": 77.695861,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Company contact page lists '24/7 Customer Pvt. Ltd., Prestige Tech Platina 2, Outer Ring Road, Kadubeesanahalli Village, Varthur Hobli, Bengaluru 560103' (https://www.247.ai/about/contact-us); point from OSM POI '[24]7 Inc' (https://www.openstreetmap.org/node/3844121788).",
+     "techPark": "Prestige Tech Platina",
+     "building": "Prestige Tech Platina 2",
+     "address": "Prestige Tech Platina 2, Outer Ring Road, Kadubeesanahalli 560103",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.247.ai/about/contact-us",
+    "https://www.openstreetmap.org/node/3844121788"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "PwC",
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "founded": 1998,
+   "website": "https://www.pwc.in/",
+   "aliases": [
+    "PricewaterhouseCoopers",
+    "PwC Acceleration Center Bangalore"
+   ],
+   "description": "Big Four professional-services network; OSM records a PwC (US) acceleration-centre office in Pine Valley at EGL. PwC India's main Bengaluru office is at The Millenia, Murphy Road (not verified here, outside this lens).",
+   "offices": [
+    {
+     "label": "Pine Valley, Embassy GolfLinks",
+     "locality": "Domlur / Challaghatta",
+     "lat": 12.946403,
+     "lng": 77.646654,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'PriceWaterhouseCoopers(US) Ltd' with address 'Inner Rd, Embassy Golf Links Business Park, Challaghatta' and website pwc.com (https://www.openstreetmap.org/node/4445102215); pwc.in blocked fetching.",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Pine Valley",
+     "address": "Pine Valley, Embassy Golf Links Business Park, Challaghatta 560071",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4445102215"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "FICO",
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "hqCity": "Bozeman",
+   "hqCountry": "United States",
+   "founded": 1956,
+   "website": "https://www.fico.com/",
+   "aliases": [
+    "Fair Isaac Corporation",
+    "Fair Isaac India Software"
+   ],
+   "description": "US analytics and credit-scoring software company; OSM places Fair Isaac India at RMZ Titanium on Old Airport Road. FICO's contact page lists India as a region without an address, so this is unconfirmed.",
+   "offices": [
+    {
+     "label": "RMZ Titanium",
+     "locality": "Kodihalli, HAL Old Airport Road",
+     "lat": 12.95914,
+     "lng": 77.648164,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Fair Isaac India Software Pvt Ltd;FICO' at RMZ Titanium (https://www.openstreetmap.org/node/3797621212); FICO's own contact page names no Bengaluru address (https://www.fico.com/en/contact-us).",
+     "techPark": "RMZ Titanium",
+     "building": "RMZ Titanium",
+     "address": "135 HAL Old Airport Road, Kodihalli 560017",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.fico.com/en/contact-us",
+    "https://www.openstreetmap.org/way/135262282"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Truecaller",
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "hqCity": "Stockholm",
+   "hqCountry": "Sweden",
+   "founded": 2009,
+   "website": "https://www.truecaller.com/",
+   "description": "Swedish caller-ID company (Nasdaq Stockholm) whose largest market is India; it has had a Bengaluru engineering office since 2019, recorded by OSM in the Sunriver / WeWork block at EGL.",
+   "offices": [
+    {
+     "label": "Embassy GolfLinks (Sunriver / WeWork)",
+     "locality": "Domlur / Challaghatta",
+     "lat": 12.951272,
+     "lng": 77.641188,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Truecaller' with website truecaller.com beside the Sunriver block (https://www.openstreetmap.org/node/10763268846); truecaller.com refused fetching, so unconfirmed.",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Sunriver (WeWork)",
+     "address": "Embassy Golf Links Business Park, Domlur 560071",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/10763268846"
+   ],
+   "aliases": [],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Gojek",
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "hqCity": "Jakarta",
+   "hqCountry": "Indonesia",
+   "founded": 2010,
+   "website": "https://www.gojek.io/",
+   "aliases": [
+    "GoTo Group",
+    "Gojek Tech India"
+   ],
+   "description": "Indonesian super-app (GoTo Group) that built a product-and-engineering centre in Bengaluru in 2016 after acquiring C42 Engineering and CodeIgnition; OSM places it in Diamond District.",
+   "offices": [
+    {
+     "label": "Diamond District engineering centre",
+     "locality": "Kodihalli, HAL Old Airport Road",
+     "lat": 12.960133,
+     "lng": 77.644152,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia records the Bengaluru development centre set up in 2016 (https://en.wikipedia.org/wiki/Gojek); OSM office POI 'Go-Jek' with website gojek.io in Diamond District (https://www.openstreetmap.org/node/6746625204). Current headcount after GoTo's 2022-24 cuts is unknown.",
+     "techPark": "Diamond District",
+     "building": null,
+     "address": "Diamond District, HAL Old Airport Road, Kodihalli 560008",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Gojek",
+    "https://www.openstreetmap.org/node/6746625204"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Sasken Technologies",
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1989,
+   "website": "https://www.sasken.com/",
+   "aliases": [
+    "Sasken Communication Technologies"
+   ],
+   "description": "Listed product-engineering and semiconductor-software services company; its global headquarters is its own campus at 139/25 Ring Road, Domlur.",
+   "offices": [
+    {
+     "label": "Bengaluru HQ, 139/25 Ring Road, Domlur",
+     "locality": "Domlur (Amarjyoti Layout)",
+     "lat": 12.954088,
+     "lng": 77.638744,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Sasken's contact page gives the corporate headquarters as '139/25, Ring Road, 7th Main Rd, Krishna Reddy Layout, Amarjyoti Layout, Domlur, Bengaluru 560071' (https://www.sasken.com/contact-us); OSM maps the campus (https://www.openstreetmap.org/way/105322106).",
+     "techPark": null,
+     "building": "Sasken campus",
+     "address": "139/25 Ring Road, Domlur 560071",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.sasken.com/contact-us"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Mistral Solutions",
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Semiconductors & hardware",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1997,
+   "website": "https://www.mistralsolutions.com/",
+   "aliases": [
+    "Mistral Solutions Pvt Ltd (AXISCADES subsidiary)"
+   ],
+   "description": "Embedded product-design and defence-electronics company, a subsidiary of AXISCADES; its India headquarters is in Adarsh Regent on the 100 Feet Ring Road, Domlur.",
+   "offices": [
+    {
+     "label": "India HQ, Adarsh Regent, Domlur",
+     "locality": "Domlur Extension",
+     "lat": 12.9593332,
+     "lng": 77.6412237,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Company contact page: 'Mistral Solutions Pvt. Ltd. No.60, Adarsh Regent, 100 Feet Ring Road, Domlur Extension, Bangalore 560071' (https://www.mistralsolutions.com/contact/).",
+     "techPark": null,
+     "building": "Adarsh Regent",
+     "address": "No. 60, Adarsh Regent, 100 Feet Ring Road, Domlur 560071",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.mistralsolutions.com/contact/",
+    "https://www.openstreetmap.org/node/958109470"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Accord Software & Systems",
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1991,
+   "website": "https://www.accord-soft.com/",
+   "description": "Bengaluru avionics, GNSS and embedded-software house working with ISRO, HAL and global aerospace OEMs; both its registered office and branch are in Domlur.",
+   "offices": [
+    {
+     "label": "Registered office, K.R. Colony, Domlur Layout",
+     "locality": "Domlur Layout",
+     "lat": 12.9615855,
+     "lng": 77.6386388,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Company contact page: registered office '72, 73, 2nd Floor, K.R. Colony, Domlur layout, Bangalore 560071' (https://www.accord-soft.com/contact.html); point is the geocoder's Domlur Layout hit, not the plot.",
+     "techPark": null,
+     "building": null,
+     "address": "72/73 K.R. Colony, Domlur Layout 560071",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Branch office, 100 Feet Road, Domlur I Stage",
+     "locality": "Domlur I Stage",
+     "lat": 12.9629602,
+     "lng": 77.6415964,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Company contact page: branch office '4/1, 100 Feet Rd, Ground - 3rd Floor, Domlur I Stage, Domlur, Bengaluru 560071' (https://www.accord-soft.com/contact.html); point is the geocoder's road hit.",
+     "techPark": null,
+     "building": null,
+     "address": "4/1, 100 Feet Road, Domlur I Stage 560071",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.accord-soft.com/contact.html",
+    "https://www.openstreetmap.org/node/3851862910"
+   ],
+   "aliases": [],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Manipal Health Enterprises",
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "HealthTech & pharma",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1991,
+   "website": "https://www.manipalhospitals.com/",
+   "aliases": [
+    "Manipal Hospitals"
+   ],
+   "description": "India's largest hospital chain by beds (49 hospitals, Temasek-controlled), headquartered in Bengaluru; its flagship hospital and corporate annexe are on HAL Old Airport Road.",
+   "offices": [
+    {
+     "label": "Corporate office, Old Airport Road campus",
+     "locality": "Kodihalli, HAL Old Airport Road",
+     "lat": 12.9596781,
+     "lng": 77.6492376,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Wikipedia gives Bengaluru as HQ and Old Airport Road as the first hospital (https://en.wikipedia.org/wiki/Manipal_Hospitals); the corporate office is understood to be the annexe at 98 HAL Airport Road but the company site blocked fetching, so this is unconfirmed. Point is the hospital's OSM node.",
+     "techPark": null,
+     "building": null,
+     "address": "98 HAL Airport Road, Kodihalli 560017",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Manipal_Hospitals"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Hindustan Aeronautics Limited",
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1940,
+   "website": "https://hal-india.co.in/",
+   "aliases": [
+    "HAL"
+   ],
+   "description": "State-owned aircraft, engine and helicopter manufacturer (24,457 employees in 2023); its Bangalore Complex of production divisions and the HAL airport line the Old Airport Road at Vimanapura, with the corporate office on Cubbon Road (outside this lens).",
+   "offices": [
+    {
+     "label": "Bangalore Complex (Aircraft, Engine, Overhaul, Foundry & Forge divisions)",
+     "locality": "Vimanapura, HAL Old Airport Road",
+     "lat": 12.9585349,
+     "lng": 77.6667825,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia confirms HAL's Bengaluru HQ, Engine Division and the HAL airport (https://en.wikipedia.org/wiki/Hindustan_Aeronautics_Limited); point is the OSM 'HAL Main Gate' on Old Airport Road (https://www.openstreetmap.org/node/1467246058).",
+     "techPark": null,
+     "building": null,
+     "address": "HAL Old Airport Road, Vimanapura Post 560017",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Aerospace Division",
+     "locality": "Vimanapura / New Thippasandra",
+     "lat": 12.969957,
+     "lng": 77.662261,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM industrial landuse polygon 'HAL Aerospace Division' (https://www.openstreetmap.org/way/55503809).",
+     "techPark": null,
+     "building": null,
+     "address": "HAL Aerospace Division, Vimanapura 560017",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Helicopter Division",
+     "locality": "Vimanapura (towards Marathahalli)",
+     "lat": 12.958593,
+     "lng": 77.677971,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia names the Helicopter Division at the HAL complex (https://en.wikipedia.org/wiki/Hindustan_Aeronautics_Limited); OSM industrial polygon 'HAL Helicopter Division' (https://www.openstreetmap.org/way/135265535).",
+     "techPark": null,
+     "building": null,
+     "address": "HAL Helicopter Complex, Vimanapura 560017",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Hindustan_Aeronautics_Limited",
+    "https://www.openstreetmap.org/node/1467246058"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "ISRO",
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Space",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1969,
+   "website": "https://www.isro.gov.in/",
+   "aliases": [
+    "Indian Space Research Organisation",
+    "U R Rao Satellite Centre",
+    "ISAC",
+    "LPSC Bengaluru"
+   ],
+   "description": "India's space agency, headquartered in Bengaluru (Antariksh Bhavan, outside this lens). Two of its centres sit in this lens: the U R Rao Satellite Centre at Vimanapura, where every ISRO satellite is built, and the Bengaluru unit of the Liquid Propulsion Systems Centre at HAL II Stage.",
+   "offices": [
+    {
+     "label": "U R Rao Satellite Centre (URSC)",
+     "locality": "Vimanapura, Old Airport Road",
+     "lat": 12.962711,
+     "lng": 77.655466,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wikipedia: URSC 'situated in Vimanapura Post', founded 1972, lead centre for all ISRO satellites (https://en.wikipedia.org/wiki/U_R_Rao_Satellite_Centre); OSM industrial polygon 'U. R. Rao Satellite Centre' (https://www.openstreetmap.org/way/41722463).",
+     "techPark": null,
+     "building": null,
+     "address": "Old Airport Road, Vimanapura Post 560017",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "LPSC Bengaluru unit",
+     "locality": "HAL II Stage, Indiranagar",
+     "lat": 12.966327,
+     "lng": 77.645726,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia confirms LPSC's Bengaluru unit (spacecraft propulsion, transducers, precision fabrication) (https://en.wikipedia.org/wiki/Liquid_Propulsion_Systems_Centre); OSM industrial polygon 'Liquid Propulsions Systems Centre' in HAL II Stage (https://www.openstreetmap.org/way/343842762).",
+     "techPark": null,
+     "building": null,
+     "address": "LPSC, HAL II Stage, Bengaluru 560008",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/U_R_Rao_Satellite_Centre",
+    "https://en.wikipedia.org/wiki/Liquid_Propulsion_Systems_Centre"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "CSIR-National Aerospace Laboratories",
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1959,
+   "website": "https://www.nal.res.in/",
+   "aliases": [
+    "NAL",
+    "National Aerospace Laboratories"
+   ],
+   "bengaluruEmployeesApprox": 2500,
+   "description": "CSIR's civil aerospace R&D laboratory (about 2,500 staff), with its headquarters campus at Kodihalli on HAL Airport Road and the wind-tunnel and computing campus at Belur / Wind Tunnel Road.",
+   "offices": [
+    {
+     "label": "Kodihalli campus (HQ)",
+     "locality": "Kodihalli, HAL Airport Road",
+     "lat": 12.964546,
+     "lng": 77.651621,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "NAL's site gives the postal address 'National Aerospace Laboratories, HAL Airport Road, Bengaluru 560017' and names the Kodihalli campus (https://www.nal.res.in/); OSM industrial polygon 'National Aerospace Laboratories' (https://www.openstreetmap.org/way/41722461).",
+     "techPark": null,
+     "building": null,
+     "address": "HAL Airport Road, Kodihalli 560017",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Belur campus (Wind Tunnel Centre)",
+     "locality": "Murugeshpalya / Belur, Wind Tunnel Road",
+     "lat": 12.943464,
+     "lng": 77.667375,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "NAL's site names a Belur campus (https://www.nal.res.in/); OSM polygon 'NAL Wind Tunnel Centre' and the CSIR-4PI POI at 'NAL Belur Campus, Wind Tunnel Road' (https://www.openstreetmap.org/node/4447088013).",
+     "techPark": null,
+     "building": null,
+     "address": "NAL Belur Campus, Wind Tunnel Road 560037",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.nal.res.in/",
+    "https://en.wikipedia.org/wiki/National_Aerospace_Laboratories"
+   ],
+   "isUnicorn": false
+  },
+  {
+   "name": "BEML",
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1964,
+   "website": "https://www.bemlindia.in/",
+   "aliases": [
+    "Bharat Earth Movers Limited"
+   ],
+   "description": "Government-owned maker of mining, construction, defence and rail/metro equipment (6,973 employees); the Bengaluru Complex (Rail & Metro Division) lies east of HAL at New Thippasandra, with the corporate office at BEML Soudha, Sampangiramanagar (outside this lens).",
+   "offices": [
+    {
+     "label": "Bengaluru Complex (Rail & Metro Division)",
+     "locality": "New Thippasandra / Old Airport Road east",
+     "lat": 12.97536,
+     "lng": 77.660139,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia lists the 'Bengaluru Complex - Rail & Metro Division' (https://en.wikipedia.org/wiki/BEML); OSM maps two industrial tracts named 'Bharat Earth Movers Limited' beside HAL, of which this is the New Thippasandra one (https://www.openstreetmap.org/way/630203903).",
+     "techPark": null,
+     "building": null,
+     "address": "BEML Bengaluru Complex, New Thippasandra Post 560075",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/BEML",
+    "https://www.bemlindia.in/contact-us"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "CRED",
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2018,
+   "isUnicorn": true,
+   "website": "https://cred.club/",
+   "aliases": [
+    "Dreamplug Technologies"
+   ],
+   "description": "Kunal Shah's credit-card payments and rewards app (valued around US$4-6 bn); headquartered in Indiranagar, where it occupies several low-rise buildings along 12th Main, HAL 2nd Stage, named aero, terra and aqua.",
+   "offices": [
+    {
+     "label": "CRED aero (HQ), 12th Main, HAL 2nd Stage",
+     "locality": "HAL 2nd Stage, Indiranagar",
+     "lat": 12.969965,
+     "lng": 77.641036,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia gives Bengaluru as HQ (https://en.wikipedia.org/wiki/CRED); OSM maps the building 'CRED aero' at 769/770, 12th Main Road with website cred.club (https://www.openstreetmap.org/way/346526047). CRED's site carries no postal address.",
+     "techPark": null,
+     "building": "CRED aero",
+     "address": "769/770, 12th Main Road, HAL 2nd Stage, Indiranagar 560008",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "CRED terra, 12th Main",
+     "locality": "HAL 2nd Stage, Indiranagar",
+     "lat": 12.968713,
+     "lng": 77.641078,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps the building 'CRED terra' at No. 777 with website cred.club (https://www.openstreetmap.org/way/346526055).",
+     "techPark": null,
+     "building": "CRED terra",
+     "address": "777, 12th Main Road, HAL 2nd Stage, Indiranagar 560008",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "CRED aqua, 100 Feet Road side",
+     "locality": "Indiranagar / Domlur, 100 Feet Road",
+     "lat": 12.963781,
+     "lng": 77.641341,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'CRED aqua' with website cred.club near Salarpuria Landmark on 100 Feet Road (https://www.openstreetmap.org/node/10012574395).",
+     "techPark": null,
+     "building": "CRED aqua",
+     "address": "100 Feet Road, Indiranagar 560071",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/CRED",
+    "https://www.openstreetmap.org/way/346526047",
+    "https://www.openstreetmap.org/way/346526055",
+    "https://www.openstreetmap.org/node/10012574395"
+   ],
+   "bengaluruEmployeesApprox": null
+  },
+  {
+   "name": "Postman",
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "founded": 2014,
+   "isUnicorn": true,
+   "website": "https://www.postman.com/",
+   "aliases": [
+    "Postdot Technologies"
+   ],
+   "description": "API development platform founded in Bengaluru and now headquartered in San Francisco (valued US$5.6 bn in 2021); its India office, run by Postdot Technologies, is on 6th Main Road, Indiranagar.",
+   "offices": [
+    {
+     "label": "Bengaluru office, 6th Main Road, Indiranagar",
+     "locality": "Indiranagar (Old Thippasandra side)",
+     "lat": 12.9737631,
+     "lng": 77.6444008,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Postman's contact page: 'Postdot Technologies Private Limited, No. 310, 6th Main Road, Indiranagar, Bangalore 560038' (https://www.postman.com/company/contact-us/); Nominatim resolves the building.",
+     "techPark": null,
+     "building": null,
+     "address": "No. 310, 6th Main Road, Indiranagar 560038",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.postman.com/company/contact-us/",
+    "https://www.openstreetmap.org/node/9689541269"
+   ],
+   "bengaluruEmployeesApprox": null
+  },
+  {
+   "name": "Zoomcar",
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Mobility & EV",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2013,
+   "website": "https://www.zoomcar.com/",
+   "aliases": [
+    "Zoomcar Holdings, Inc. (NASDAQ: ZCAR)",
+    "Zoomcar India"
+   ],
+   "description": "Self-drive car-sharing marketplace, Nasdaq-listed since its 2023 SPAC merger; its business address in SEC filings is Anjaneya Techno Park on HAL Old Airport Road, having earlier been in Tower B of Diamond District next door.",
+   "offices": [
+    {
+     "label": "HQ, Anjaneya Techno Park, Old Airport Road",
+     "locality": "Kodihalli, HAL Old Airport Road",
+     "lat": 12.959743,
+     "lng": 77.645123,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "SEC EDGAR company record lists the business and mailing address as 'Anjaneya Techno Park, No. 147, 1st Floor, Kodihalli, Bangalore 560008' (https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001854275&type=10-K); OSM maps the building.",
+     "techPark": "Anjaneya Techno Park",
+     "building": "Anjaneya Techno Park",
+     "address": "No. 147, 1st Floor, Anjaneya Techno Park, HAL Old Airport Road, Kodihalli 560008",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001854275&type=10-K",
+    "https://www.openstreetmap.org/way/346528417",
+    "https://www.openstreetmap.org/node/6070145685"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Pixxel",
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Space",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2019,
+   "website": "https://www.pixxel.space/",
+   "aliases": [
+    "Pixxel Space India"
+   ],
+   "description": "Hyperspectral earth-imaging satellite startup (Firefly constellation, Aurora platform) with an Indiranagar office and a satellite facility in HBR Layout, plus a US office in El Segundo.",
+   "offices": [
+    {
+     "label": "Indiranagar office, Chinmaya Mission Hospital Road",
+     "locality": "Indiranagar 2nd Stage",
+     "lat": 12.97827,
+     "lng": 77.645201,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Pixxel's contact page: 'Third Floor, 722, Chinmaya Mission Hospital road, Stage 2, Indiranagar, Bengaluru 560038' (https://www.pixxel.space/contact); OSM POI at the same number (https://www.openstreetmap.org/node/3370054595).",
+     "techPark": null,
+     "building": null,
+     "address": "3rd Floor, 722 Chinmaya Mission Hospital Road, Indiranagar 2nd Stage 560038",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "HBR Layout facility",
+     "locality": "HBR Layout 3rd Block",
+     "lat": 13.0281,
+     "lng": 77.6304,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Pixxel's contact page: '2JHJ+756, Swami Narayani Clinic Rd, 3rd Block, HBR Layout, Bengaluru 560043' (https://www.pixxel.space/contact); point decoded from the company's own plus code.",
+     "techPark": null,
+     "building": null,
+     "address": "Swami Narayani Clinic Road, 3rd Block, HBR Layout 560043",
+     "geocodeSource": "manual-known"
+    }
+   ],
+   "sources": [
+    "https://www.pixxel.space/contact"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Niqo Robotics",
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "AI & deep tech",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2015,
+   "website": "https://www.niqorobotics.com/",
+   "aliases": [
+    "TartanSense",
+    "Tartan Aerial Sense Tech Pvt Ltd"
+   ],
+   "description": "AI-driven precision spot-spraying farm robots (formerly TartanSense); headquartered on 11th Main Road, Indiranagar.",
+   "offices": [
+    {
+     "label": "HQ, 11th Main Road, Indiranagar",
+     "locality": "Indiranagar (Motappanapalya)",
+     "lat": 12.9703604,
+     "lng": 77.637648,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Company contact page: 'Tartan Aerial Sense Tech Private Limited, 1074-A, 8th Cross, 11th Main Road, Indiranagar, Bengaluru 560038' (https://www.niqorobotics.com/contact); Nominatim resolves the plot.",
+     "techPark": null,
+     "building": null,
+     "address": "1074-A, 8th Cross, 11th Main Road, Indiranagar 560038",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.niqorobotics.com/contact",
+    "https://www.openstreetmap.org/node/12190347823"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "HealthifyMe",
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "HealthTech & pharma",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2012,
+   "website": "https://www.healthifyme.com/",
+   "description": "AI nutrition and fitness-coaching app (raised a US$45 m round in 2024 to expand to the US); headquartered in Bengaluru, with OSM placing the office on 80 Feet Road, HAL 2nd Stage.",
+   "offices": [
+    {
+     "label": "HQ, 80 Feet Road, HAL 2nd Stage",
+     "locality": "HAL 2nd Stage, Indiranagar",
+     "lat": 12.970617,
+     "lng": 77.647096,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia gives Bangalore as HQ (https://en.wikipedia.org/wiki/HealthifyMe); OSM office POI 'Healthify Me' on 80 Feet Road, HAL 2nd Stage (https://www.openstreetmap.org/node/4315678619). The company site blocked fetching.",
+     "techPark": null,
+     "building": null,
+     "address": "80 Feet Road, HAL 2nd Stage, Indiranagar 560008",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/HealthifyMe",
+    "https://www.openstreetmap.org/node/4315678619"
+   ],
+   "aliases": [],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Dunzo",
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2014,
+   "website": null,
+   "aliases": [
+    "Dunzo Digital"
+   ],
+   "description": "Reliance-backed hyperlocal delivery startup headquartered in Indiranagar; it laid off most staff through 2023-24, went offline in January 2025 and was dissolved on 14 January 2025.",
+   "offices": [
+    {
+     "label": "Indiranagar HQ (closed)",
+     "locality": "Indiranagar",
+     "lat": 12.9732913,
+     "lng": 77.6404672,
+     "isHq": true,
+     "status": "closed",
+     "confidence": "low",
+     "evidence": "Wikipedia gives Indiranagar, Bengaluru as the headquarters and records the January 2025 dissolution (https://en.wikipedia.org/wiki/Dunzo); the building is not named, so the point is Nominatim's Indiranagar centroid.",
+     "techPark": null,
+     "building": null,
+     "address": "Indiranagar, Bengaluru 560038",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Dunzo"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Unacademy",
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "EdTech",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2015,
+   "isUnicorn": true,
+   "website": "https://unacademy.com/",
+   "aliases": [
+    "Sorting Hat Technologies"
+   ],
+   "description": "Test-prep edtech unicorn headquartered in Bengaluru; in March 2026 upGrad signed a term sheet to acquire it in an all-stock deal. OSM places an Unacademy office at the western edge of Embassy GolfLinks, which could not be confirmed.",
+   "offices": [
+    {
+     "label": "Embassy GolfLinks office (unconfirmed)",
+     "locality": "Domlur / Challaghatta",
+     "lat": 12.951847,
+     "lng": 77.640765,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Wikipedia gives Bengaluru as HQ with no address (https://en.wikipedia.org/wiki/Unacademy); OSM office POI 'Unacademy' beside the Sunriver block (https://www.openstreetmap.org/node/11684157869).",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": null,
+     "address": "Embassy Golf Links Business Park, Domlur 560071",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Unacademy",
+    "https://www.openstreetmap.org/node/11684157869"
+   ],
+   "bengaluruEmployeesApprox": null
+  },
+  {
+   "name": "Zeta",
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "Fintech",
+   "hqCity": "San Ramon",
+   "hqCountry": "United States",
+   "founded": 2015,
+   "isUnicorn": true,
+   "website": "https://www.zeta.tech/",
+   "aliases": [
+    "Zeta Services India",
+    "Directi / Bhavin Turakhia's Zeta"
+   ],
+   "description": "Banking-technology unicorn (SoftBank-backed, HQ San Ramon) founded by Bhavin Turakhia with most of its engineering in India; OSM records its Bengaluru office in Diamond District, but zeta.tech lists only the US HQ.",
+   "offices": [
+    {
+     "label": "Diamond District office",
+     "locality": "Kodihalli, HAL Old Airport Road",
+     "lat": 12.960069,
+     "lng": 77.643373,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Zeta' in Diamond District (https://www.openstreetmap.org/node/13563559848); not on the company site (https://www.zeta.tech/).",
+     "techPark": "Diamond District",
+     "building": null,
+     "address": "Diamond District, HAL Old Airport Road, Kodihalli 560008",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13563559848",
+    "https://www.zeta.tech/"
+   ],
+   "bengaluruEmployeesApprox": null
+  },
+  {
+   "name": "nference",
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "AI & deep tech",
+   "hqCity": "Cambridge",
+   "hqCountry": "United States",
+   "founded": 2013,
+   "website": "https://nference.com/",
+   "aliases": [
+    "nference Labs"
+   ],
+   "description": "Biomedical AI company (Mayo Clinic-backed) headquartered in Cambridge, Massachusetts, with a large Bengaluru engineering team; OSM places it at Murugeshpalya's Golf View Campus.",
+   "offices": [
+    {
+     "label": "Bengaluru office, Golf View Campus",
+     "locality": "Murugeshpalya",
+     "lat": 12.953509,
+     "lng": 77.650113,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'nference' tagged Murugeshpalya with website nference.ai (https://www.openstreetmap.org/node/9197178850); the company site carries no address.",
+     "techPark": "Golf View Campus",
+     "building": null,
+     "address": "Wind Tunnel Road, Murugeshpalya 560017",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/9197178850",
+    "https://nference.com/"
+   ],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Ather Energy",
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Mobility & EV",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2013,
+   "website": "https://www.atherenergy.com/",
+   "description": "Electric-scooter maker, listed in 2025; its head office is Tower D of IBC Knowledge Park on Bannerghatta Road (not Indiranagar, where it only runs an experience centre), with the factory at Hosur.",
+   "offices": [
+    {
+     "label": "Head office, IBC Knowledge Park",
+     "locality": "Bannerghatta Road",
+     "lat": 12.932711,
+     "lng": 77.603596,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Ather's contact page: head office '3rd Floor Tower D, IBC Knowledge Park, Bannerghatta Main Road, Bengaluru 560029' (https://www.atherenergy.com/contact); OSM POI (https://www.openstreetmap.org/node/5764956349).",
+     "techPark": "IBC Knowledge Park",
+     "building": "Tower D",
+     "address": "3rd Floor, Tower D, IBC Knowledge Park, Bannerghatta Main Road 560029",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.atherenergy.com/contact",
+    "https://www.openstreetmap.org/node/5764956349"
+   ],
+   "aliases": [],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Scripbox",
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2012,
+   "website": "https://scripbox.com/",
+   "description": "Digital wealth-management platform; its registered office is MFAR Wilshire III in Mahadevapura, not Indiranagar as sometimes listed.",
+   "offices": [
+    {
+     "label": "Registered office, MFAR Wilshire III",
+     "locality": "Mahadevapura",
+     "lat": 12.9952405,
+     "lng": 77.6939298,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Scripbox contact page: 'Wilshire III by MFAR, 5th Floor, 492, RHB Colony, Mahadevapura, Bengaluru 560048' (https://scripbox.com/contact-us/); Photon resolves the building.",
+     "techPark": null,
+     "building": "MFAR Wilshire III",
+     "address": "5th Floor, Wilshire III by MFAR, RHB Colony, Mahadevapura 560048",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://scripbox.com/contact-us/"
+   ],
+   "aliases": [],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "Vedantu",
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "EdTech",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2014,
+   "isUnicorn": true,
+   "website": "https://www.vedantu.com/",
+   "aliases": [
+    "Vedantu Innovations"
+   ],
+   "description": "Live online-tutoring edtech (unicorn in 2021); registered corporate office is Vistar Arcade in HSR Layout.",
+   "offices": [
+    {
+     "label": "Registered office, Vistar Arcade, HSR Layout",
+     "locality": "HSR Layout Sector 3",
+     "lat": 12.9138684,
+     "lng": 77.6383591,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Vedantu contact page: 'D. No. 1081, 3rd Floor, Vistar Arcade, 14th Main Rd, Sector 3, HSR Layout, Bangalore 560102' (https://www.vedantu.com/v/contacts); point is the geocoder's nearest hit on 14th Main.",
+     "techPark": null,
+     "building": "Vistar Arcade",
+     "address": "1081, 14th Main Road, Sector 3, HSR Layout 560102",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.vedantu.com/v/contacts"
+   ],
+   "bengaluruEmployeesApprox": null
+  },
+  {
+   "name": "Plivo",
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "hqCity": "Austin",
+   "hqCountry": "United States",
+   "founded": 2011,
+   "website": "https://www.plivo.com/",
+   "description": "Cloud communications (CPaaS) company founded in Bengaluru and now headquartered in Austin; its Bengaluru office moved from Jeevan Bhima Nagar (still in OSM) to Mahalakshmipuram.",
+   "offices": [
+    {
+     "label": "Bengaluru office, Mahalakshmipuram",
+     "locality": "Mahalakshmipuram, West of Chord Road",
+     "lat": 13.0053656,
+     "lng": 77.5404653,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Plivo contact page: '1st Floor, No. 386, 4th D Main, 12th Cross West of Chord Road, Mahalakshmipuram, Bengaluru 560086' (https://www.plivo.com/contact/); point is the geocoder's road hit.",
+     "techPark": null,
+     "building": null,
+     "address": "386, 4th D Main, 12th Cross, Mahalakshmipuram 560086",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.plivo.com/contact/",
+    "https://www.openstreetmap.org/node/3755324929"
+   ],
+   "aliases": [],
+   "bengaluruEmployeesApprox": null,
+   "isUnicorn": false
+  },
+  {
+   "name": "apna",
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Software & internet",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2019,
+   "isUnicorn": true,
+   "website": "https://apna.co/",
+   "aliases": [
+    "Apna Time Tech"
+   ],
+   "description": "Blue- and grey-collar jobs and networking platform (unicorn 2021); its contact address is a building on the 100 Feet Road at Ejipura, with an earlier office recorded by OSM in Diamond District.",
+   "offices": [
+    {
+     "label": "Office, Akemps Building, 100 Feet Road, Ejipura",
+     "locality": "Ejipura (Koramangala side)",
+     "lat": 12.9383287,
+     "lng": 77.6310323,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "apna contact page: '1st Floor, Akemps building, No. 28, 3rd Main Road, 1st Cross, Ashwini Layout, 100 feet road, Ejipura, Bengaluru 560047' (https://apna.co/contact-us); point is the geocoder's nearest hit on that road.",
+     "techPark": null,
+     "building": null,
+     "address": "1st Floor, Akemps Building, No. 28, Ashwini Layout, 100 Feet Road, Ejipura 560047",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://apna.co/contact-us",
+    "https://www.openstreetmap.org/node/13563559849"
+   ],
+   "bengaluruEmployeesApprox": null
+  }
+ ],
+ "coverageNotes": "Method: the shared WebSearch budget was exhausted before this lens started, so verification relied on the offline OSM extracts (484 office POIs and 90 commercial/industrial tracts inside lat 12.94-12.99, lng 77.62-77.68), the geocoder, and direct WebFetch of company contact/location pages, Embassy REIT's EGL page, SEC EDGAR and Wikipedia. CONFIRMED on a primary page: EGL (3.4 msf, 37.11 acres, 30 occupiers, 100% occupied), Dell (Crystal Downs), Fidelity, Roku (St. Andrews), Cushman & Wakefield (Pine Valley), OpenText (Infinity Domlur + WeWork Cherry Hills + two Bagmane blocks), Atlassian (Divyasree Greens), Enphase (IndiQube Golf View), Sasken, Mistral, Accord, Postman, Pixxel, Niqo Robotics, Zoomcar (SEC), NAL, Microsoft (three offices, none at EGL), [24]7.ai, Ather, Scripbox, Vedantu, Plivo, apna. OSM-only (medium/low): IBM, Target, McAfee, PwC, FICO, Truecaller, Goldman Sachs, Unacademy, Zeta, nference, Gojek (plus Wikipedia), CRED's three buildings, HealthifyMe. A single OSM mapper in late 2023 added company nodes across EGL including Yahoo (gone since 2014), so those 2023 nodes (Goldman, Microsoft, [24]7, IBM, Fidelity) were treated as stale unless a company page agreed; Microsoft's page lists no EGL office, so Microsoft EGL is excluded as a pre-2023 exit, and Goldman is kept only as low confidence. LEFT OUT from the lens hint because no office in the lens could be substantiated or the company's own page places it elsewhere: Yahoo (Bengaluru R&D closed 2014), SuperValu (exited), ANZ, Lowe's, Nokia/Alcatel-Lucent (all Manyata, other lens), Mercedes-Benz R&D and Tesco (Whitefield), Mphasis and Mindtree/LTIMindtree (Mahadevapura / Global Village), Visa and LinkedIn (ORR/Whitefield), Fiserv, Swiggy (Embassy TechVillage), Bounce (JP Nagar per OSM), Simpl (getsimpl.com now a parking page), Yulu (HQ Bengaluru but no address found), Licious (no address found). Scripbox, Vedantu, Plivo and Ather were in the hint but their verified offices are outside the lens; they are included as overlap. Also left out: VC firms Peak XV/Sequoia (OSM: 278 100 Feet Road, Indiranagar), Lightspeed and Elevation Capital (Ecoworld) because none of the four categories fits a fund; Omega Healthcare (OSM at Golf View Campus, but its own site now gives Chennai as India HQ); Moonfrog, YourStory, Routematic, Knolskape, Stylumia, Hasgeek, DeepSource, Zapr (site dead) and other small Indiranagar firms; DRDO labs (GTRE, LRDE, ADE, CAIR), C-DAC, Britannia's old Old Airport Road HQ (moved 2020), and coworking operators (WeWork, IndiQube, 91springboard, BHive, 315Work Avenue). Bagmane Tech Park tenants and Koramangala 6th Block firms (Juspay) that fell inside the bounding box belong to other lenses and were skipped. Coordinates: EGL blocks and Diamond District use OSM building POIs; HAL/ISRO/NAL/BEML use OSM landuse polygons; Dunzo uses the Indiranagar locality centroid; Pixxel's HBR Layout point is decoded from the company's own plus code. HAL's Cubbon Road corporate office, BEML Soudha, ISRO's Antariksh Bhavan and Goldman's Bellandur campus could not be geocoded and are omitted. No headcounts by city were found except NAL's ~2,500 staff."
+}

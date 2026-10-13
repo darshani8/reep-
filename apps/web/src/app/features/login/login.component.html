@@ -86,7 +86,13 @@
         </div>
       }
 
-      @if (available()) {
+      @if (native) {
+        <!-- No Google button inside the phone app. Google refuses to sign
+             anybody in from inside an app's built-in browser (it calls that
+             an "embedded webview" and answers 403 disallowed_useragent), and
+             the redirect back would land on the phone, not the server. The
+             email + password form below works in the app. -->
+      } @else if (available()) {
         <!-- A real full-page navigation, not fetch: OAuth needs a top-level
              redirect out to Google and back. `next` rides in the query string
              because the SPA's own URL does not survive it. -->

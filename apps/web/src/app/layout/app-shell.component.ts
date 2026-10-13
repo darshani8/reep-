@@ -39,6 +39,8 @@ import { AuthService } from '../core/auth.service';
 import type { Role } from '../core/session';
 import { AgentDockComponent } from './agent-dock.component';
 import { AgentOrbComponent } from './agent-orb.component';
+import { MobileShellComponent } from './mobile-shell.component';
+import { isNativeApp } from '../native/platform';
 
 /** One row in the sidebar. */
 export interface NavigationItem {
@@ -490,6 +492,7 @@ const CONSOLE_NAME: Record<Role, string> = {
     UpperCasePipe,
     AgentOrbComponent,
     AgentDockComponent,
+    MobileShellComponent,
   ],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.scss',
@@ -500,6 +503,8 @@ export class AppShellComponent {
   private readonly title = inject(Title);
 
   readonly session = this.auth.session;
+  /** Inside the phone app? Then the Ionic frame is drawn instead of this one. */
+  readonly native = isNativeApp();
   readonly roleLabel = computed(() => ROLE_LABEL[this.session()?.role as Role] ?? 'Student');
   readonly consoleName = computed(() => CONSOLE_NAME[this.session()?.role as Role] ?? 'Student');
 

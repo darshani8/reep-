@@ -15,7 +15,20 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../environments/environment';
+import { nativeSessionHook } from '../native/session-hook';
 import type { LoginChallenge, SessionPayload } from './session';
+
+/// What /auth/login and /auth/login/code answer. `session_token` is filled in
+/// only for the phone app (the API decides by the request's Origin); a browser
+/// always gets null and keeps its httpOnly cookie. See native/token-store.ts.
+type SignedIn = SessionPayload & { session_token?: string | null };
+
+/// Hand the phone app its token, and keep it out of the session signal.
+function keepToken(result: SignedIn): SessionPayload {
+  const { session_token, ...session } = result;
+  if (session_token) nativeSessionHook.onToken?.(session_token);
+  return session;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -36,25 +49,28 @@ export class AuthService {
     next?: string,
   ): Promise<SessionPayload | LoginChallenge> {
     const result = await firstValueFrom(
-      this.http.post<SessionPayload | LoginChallenge>(
+      this.http.post<SignedIn | LoginChallenge>(
         `${environment.apiBase}/auth/login`,
         { email, password, next },
         { withCredentials: true },
       ),
     );
     if ('otp_required' in result) return result;
-    this._session.set(result);
-    return result;
+    const session = keepToken(result);
+    this._session.set(session);
+    return session;
   }
 
   /// The second step: post the six-digit code the server emailed. On success
   /// the backend sets the same session cookie `login` would have.
   async loginWithCode(email: string, code: string): Promise<SessionPayload> {
-    const session = await firstValueFrom(
-      this.http.post<SessionPayload>(
-        `${environment.apiBase}/auth/login/code`,
-        { email, code },
-        { withCredentials: true },
+    const session = keepToken(
+      await firstValueFrom(
+        this.http.post<SignedIn>(
+          `${environment.apiBase}/auth/login/code`,
+          { email, code },
+          { withCredentials: true },
+        ),
       ),
     );
     this._session.set(session);
@@ -88,6 +104,9 @@ export class AuthService {
       return session;
     } catch (err) {
       this._session.set(null);
+      // A 401 means the phone app's saved token is dead (expired, or retired
+      // by a sign-in elsewhere): forget it so the next launch asks to sign in.
+      if (err instanceof HttpErrorResponse && err.status === 401) nativeSessionHook.onToken?.(null);
       this.retiredElsewhere.set(
         err instanceof HttpErrorResponse && err.headers.get('X-Reep-Session') === 'retired',
       );
@@ -96,9 +115,15 @@ export class AuthService {
   }
 
   async logout(): Promise<void> {
-    await firstValueFrom(
-      this.http.post(`${environment.apiBase}/auth/logout`, {}, { withCredentials: true }),
-    );
-    this._session.set(null);
+    try {
+      await firstValueFrom(
+        this.http.post(`${environment.apiBase}/auth/logout`, {}, { withCredentials: true }),
+      );
+    } finally {
+      // The phone app forgets its token even when the request fails (no
+      // signal), or the student is left signed in on a shared phone.
+      nativeSessionHook.onToken?.(null);
+      this._session.set(null);
+    }
   }
 }

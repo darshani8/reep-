@@ -42,6 +42,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth.service';
 import { HOME_FOR_ROLE } from '../../core/session';
+import { isNativeApp } from '../../native/platform';
 
 /**
  * `GET /api/auth/sso/status` — the capability probe.
@@ -333,6 +334,8 @@ export class LoginComponent {
 
   /** Fail-open: the button works unless the API positively says it cannot. */
   readonly available = signal(true);
+  /** Inside the phone app: no Google button (see the template). */
+  readonly native = isNativeApp();
   readonly unavailableReason = signal<string | null>(null);
   readonly domain = signal(DEFAULT_DOMAIN_LABEL);
 

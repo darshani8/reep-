@@ -57,20 +57,23 @@ to open the record.
 
 from datetime import date, datetime, timezone
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ..architecture_events import record_change
+from ..clock import local_today
 from ..db import get_db
 from ..governance import has_capability, require_capability
 from ..identity import get_current_session
 from ..leave_mail import (
     announce_if_on_leave_today,
     notify_approvers_in_background,
+    notify_decision_changed,
     notify_transition,
 )
-from ..leave_policy import submit_refusal
+from ..leave_policy import overlapping_request, submit_refusal
 from ..scope_views import SCOPE_HEADER
 from ..models.leave import (
     SIGNED_AS_DELEGATE,
@@ -176,6 +179,15 @@ class LeaveOut(BaseModel):
     first_signed_as: str | None = None
     second_signed_as: str | None = None
 
+    # A DECISION CHANGED AFTER IT WAS MADE (2026-10-13), at the end for the
+    # same reason. The LATEST change only — REVOKED or REOPENED — with who,
+    # when and the reason the approver had to give. The applicant reads the
+    # reason on their own screen; it is written to them.
+    decision_change_kind: str | None = None
+    decision_changed_at: datetime | None = None
+    decision_change_reason: str | None = None
+    decision_changed_by_name: str | None = None
+
 
 #: The reduced projection's field set, pinned here and asserted in
 #: `tests/test_leave_chain.py`. A field added to `LeaveBrief` without a line in
@@ -254,9 +266,12 @@ def _leave_out(lr: LeaveRequest, db: Session) -> LeaveOut:
     # decision. A first-of-two approval is a step, not a sanction, and printing a
     # name against it would show the form as signed off when it is not.
     director = None
-    if lr.status in (LeaveStatus.APPROVED, LeaveStatus.REJECTED):
+    # REVOKED keeps its block: the sanction was given, by that person, at that
+    # time, and then withdrawn — both halves are the record.
+    if lr.status in (LeaveStatus.APPROVED, LeaveStatus.REJECTED, LeaveStatus.REVOKED):
         approver_id = lr.second_approver_user_id or lr.first_approver_user_id
         director = db.get(User, approver_id) if approver_id else None
+    changer = db.get(User, lr.decision_changed_by_user_id) if lr.decision_changed_by_user_id else None
     return LeaveOut(
         id=lr.id,
         from_date=lr.from_date,
@@ -276,6 +291,10 @@ def _leave_out(lr: LeaveRequest, db: Session) -> LeaveOut:
         director_note=lr.second_note or lr.first_note,
         first_signed_as=lr.first_signed_as,
         second_signed_as=lr.second_signed_as,
+        decision_change_kind=lr.decision_change_kind,
+        decision_changed_at=lr.decision_changed_at,
+        decision_change_reason=lr.decision_change_reason,
+        decision_changed_by_name=changer.name if changer else None,
     )
 
 
@@ -523,6 +542,9 @@ HISTORY_STATUSES: dict[str, LeaveStatus] = {
     LeaveStatus.APPROVED.value: LeaveStatus.APPROVED,
     LeaveStatus.REJECTED.value: LeaveStatus.REJECTED,
     LeaveStatus.CANCELLED.value: LeaveStatus.CANCELLED,
+    # Like CANCELLED, reachable only by asking: the default answer is the pair
+    # it has always been, and the console reads revocations as their own tab.
+    LeaveStatus.REVOKED.value: LeaveStatus.REVOKED,
 }
 
 
@@ -532,7 +554,7 @@ def decided_leaves(
     status_filter: str | None = Query(
         default=None,
         alias="status",
-        description="APPROVED, REJECTED or CANCELLED. Omit for the settled queue (approved and rejected).",
+        description="APPROVED, REJECTED, CANCELLED or REVOKED. Omit for the settled queue (approved and rejected).",
     ),
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
@@ -582,6 +604,7 @@ def decided_leaves(
             # withdrawal, which is the last thing that happened to it.
             func.coalesce(
                 LeaveRequest.cancelled_at,
+                LeaveRequest.decision_changed_at,
                 LeaveRequest.second_decided_at,
                 LeaveRequest.first_decided_at,
             ).desc(),
@@ -673,4 +696,204 @@ def decide_leave(
         # otherwise reach it until tomorrow. A leave approved ahead of time
         # sends nothing here.
         background.add_task(announce_if_on_leave_today, lr.id)
+    return _leave_out(lr, db)
+
+
+# --------------------------------------------------------------------------- #
+# CHANGING A DECISION AFTER IT WAS MADE (2026-10-13)
+# --------------------------------------------------------------------------- #
+
+CHANGE_REVOKE = "REVOKE"
+CHANGE_REOPEN = "REOPEN"
+#: Where each change may start from. REVOKE undoes a sanction; REOPEN puts a
+#: refusal — or a revocation, when the office changes its mind a second time —
+#: back in the queue for a fresh decision. Nothing else moves: a pending
+#: request is decided with `/decision`, and a CANCELLED one was the applicant's
+#: own act, which the office does not undo for them.
+CHANGE_FROM: dict[str, tuple[LeaveStatus, ...]] = {
+    CHANGE_REVOKE: (LeaveStatus.APPROVED,),
+    CHANGE_REOPEN: (LeaveStatus.REJECTED, LeaveStatus.REVOKED),
+}
+#: What the row's `decision_change_kind` reads after each.
+CHANGE_KIND = {CHANGE_REVOKE: "REVOKED", CHANGE_REOPEN: "REOPENED"}
+
+
+class LeaveDecisionChangeIn(BaseModel):
+    action: str  # "REVOKE" | "REOPEN"
+    #: Required, in words. Six months later somebody will ask why a sanctioned
+    #: leave was pulled, and the row is the only place the answer can live.
+    reason: str = Field(min_length=1, max_length=2000)
+    #: Revoking a leave that has already begun turns those days into absence
+    #: without sanction. The office must say it means that; see below.
+    confirm_started: bool = False
+
+
+def _decision_image(lr: LeaveRequest) -> dict:
+    """The decision as it stood, for the audit row's before/after. Dates, the
+    state and who signed — NEVER `reason`, which is the applicant's free text
+    and routinely medical."""
+
+    def stamp(value: datetime | None) -> str | None:
+        return value.isoformat() if value else None
+
+    return {
+        "status": lr.status.value,
+        "from_date": lr.from_date.isoformat(),
+        "to_date": lr.to_date.isoformat(),
+        "first_approver_user_id": lr.first_approver_user_id,
+        "first_decision": lr.first_decision.value if lr.first_decision else None,
+        "first_decided_at": stamp(lr.first_decided_at),
+        "first_note": lr.first_note,
+        "first_signed_as": lr.first_signed_as,
+        "second_approver_user_id": lr.second_approver_user_id,
+        "second_decision": lr.second_decision.value if lr.second_decision else None,
+        "second_decided_at": stamp(lr.second_decided_at),
+        "second_note": lr.second_note,
+        "second_signed_as": lr.second_signed_as,
+        "decision_revision": lr.decision_revision or 0,
+    }
+
+
+def _clear_decision(lr: LeaveRequest) -> None:
+    """A REOPENED request is a pending request: no signature on it, so the next
+    `/decision` writes `first_*` onto a clean row and the paper and console —
+    which read `second or first` — cannot print a stale legacy second signer
+    over the new decider. The cleared stamps survive in the audit row."""
+    lr.first_approver_user_id = None
+    lr.first_decision = None
+    lr.first_decided_at = None
+    lr.first_note = None
+    lr.first_signed_as = None
+    lr.second_approver_user_id = None
+    lr.second_decision = None
+    lr.second_decided_at = None
+    lr.second_note = None
+    lr.second_signed_as = None
+
+
+@router.post("/{leave_id}/change-decision", response_model=LeaveOut)
+def change_decision(
+    leave_id: str,
+    body: LeaveDecisionChangeIn,
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> LeaveOut:
+    """Take back a decision: REVOKE a sanction, or REOPEN a refusal or a
+    revocation for a fresh decision.
+
+    THE SAME PEOPLE WHO DECIDE MAY CHANGE A DECISION, AND NOBODY ELSE — the
+    gate is `decide_leave`'s, in the same order (role first, before any id is
+    read, then `_assert_can_decide`'s flattened 404), and nobody changes a
+    decision on their own request.
+
+    A REASON IN WORDS, ALWAYS. It is stamped on the row (the applicant reads it
+    on their screen) and the decision it undid is written to the audit trail
+    as a before-image — the row keeps only the LATEST change, and a reopen
+    clears the signatures so the next decision lands on a clean row.
+
+    REVOKING A LEAVE THAT HAS ALREADY BEGUN is a different act from revoking
+    one that has not: the applicant may already be away on the office's word,
+    and those days become absence without sanction. So once the first day has
+    arrived (in the college's zone, `local_today`), only the Main Admin may do
+    it — a delegate is refused in words — and only with `confirm_started`;
+    without it the answer is a 409 naming the days, which is what the console
+    draws as its confirmation.
+
+    The leave balance is NOT touched: `consumed_days` is the office's own
+    number and nothing writes it on approval either, so nothing un-writes it
+    here. REOPEN refuses a request whose days now clash with another live
+    request of the same applicant, `submit_refusal`'s overlap rule, because two
+    live requests for one day is the state that rule exists to prevent.
+    """
+    _require_leave_approver(db, session)
+    lr = db.get(LeaveRequest, leave_id)
+    if lr is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Leave request not found.")
+    _assert_can_decide(session, lr, db)
+    uid = session["userId"]
+    if lr.requester_user_id == uid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot change a decision on your own leave.",
+        )
+    action = body.action.strip().upper()
+    if action not in CHANGE_FROM:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="action must be REVOKE or REOPEN.",
+        )
+    reason = body.reason.strip()
+    if not reason:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Say why the decision is being changed. The applicant reads it.",
+        )
+    if lr.status not in CHANGE_FROM[action]:
+        allowed = " or ".join(s.value for s in CHANGE_FROM[action])
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Leave is {lr.status.value}; only a {allowed} request can be "
+            + ("revoked." if action == CHANGE_REVOKE else "reopened."),
+        )
+
+    if action == CHANGE_REVOKE and local_today() >= lr.from_date:
+        span = (
+            lr.from_date.isoformat()
+            if lr.from_date == lr.to_date
+            else f"{lr.from_date.isoformat()} to {lr.to_date.isoformat()}"
+        )
+        if session.get("role") != "ADMIN":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"This leave ({span}) has already begun. Only the Main Admin can "
+                "revoke a leave once its first day has arrived.",
+            )
+        if not body.confirm_started:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"This leave ({span}) has already begun. Revoking it now leaves "
+                "the days already taken without a sanction. Confirm to revoke anyway.",
+            )
+
+    if action == CHANGE_REOPEN:
+        clash = overlapping_request(
+            db, lr.requester_user_id, lr.from_date, lr.to_date, exclude_id=lr.id
+        )
+        if clash is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "The applicant already has another live request for "
+                    f"{clash.from_date.isoformat()} to {clash.to_date.isoformat()}, which "
+                    "overlaps these days. That one must be settled first."
+                ),
+            )
+
+    before = _decision_image(lr)
+    if action == CHANGE_REVOKE:
+        lr.status = LeaveStatus.REVOKED
+    else:
+        lr.status = LeaveStatus.SUBMITTED
+        _clear_decision(lr)
+    lr.decision_change_kind = CHANGE_KIND[action]
+    lr.decision_changed_at = datetime.now(timezone.utc)
+    lr.decision_changed_by_user_id = uid
+    lr.decision_change_reason = reason
+    lr.decision_revision = (lr.decision_revision or 0) + 1
+    after = _decision_image(lr)
+    after["change_reason"] = reason
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type="leave_request", entity_id=lr.id,
+        action=f"DECISION_{CHANGE_KIND[action]}",
+        before=before, after=after,
+        event_type=f"leave.decision_{CHANGE_KIND[action].lower()}",
+        payload={"leave_id": lr.id, "status": lr.status.value},
+    )
+    db.commit()
+    db.refresh(lr)
+    # After the commit, like every leave mail: a message about a change that
+    # has not landed is worse than a late one.
+    notify_decision_changed(db, lr)
     return _leave_out(lr, db)

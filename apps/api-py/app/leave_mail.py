@@ -213,8 +213,17 @@ _BODIES: dict[LeaveStatus, Callable[[User, LeaveRequest], tuple[str, str]]] = {
 
 def dedupe_key(lr: LeaveRequest) -> str:
     """`leave:{id}:{status}` — stable per transition, different per transition.
-    Exported so a test can assert the key without composing a message."""
-    return f"leave:{lr.id}:{lr.status.value}"
+    Exported so a test can assert the key without composing a message.
+
+    A row whose decision has been CHANGED (`decision_revision` > 0) carries the
+    revision as a suffix, `leave:{id}:{status}:r{n}`: a request sanctioned,
+    revoked, reopened and sanctioned again must be told about the second
+    sanction, and the bare key would find the first one's row and send nothing.
+    Revision 0 keeps the bare key, so every row written before 2026-10-13 keys
+    exactly as it did."""
+    base = f"leave:{lr.id}:{lr.status.value}"
+    revision = lr.decision_revision or 0
+    return base if revision == 0 else f"{base}:r{revision}"
 
 
 def notify_transition(db: Session, lr: LeaveRequest) -> MailLog | None:
@@ -522,3 +531,117 @@ def announce_if_on_leave_today(leave_id: str) -> None:
     days. A leave approved ahead of time sends nothing here; the morning job
     sends it on the day."""
     _in_own_session("on leave today", leave_id, lambda db, lr: announce_on_leave(db, lr, local_today()))
+
+
+# ---------------------------------------------------------------------------
+# A decision changed after it was made (2026-10-13).
+# ---------------------------------------------------------------------------
+
+#: `kind` on the rows below, so the Email delivery screen tells a changed
+#: decision apart from the first one.
+CHANGE_MAIL_KIND = "leave-decision-changed"
+
+
+def change_dedupe_key(lr: LeaveRequest, recipient: User) -> str:
+    """`leave-change:{id}:r{revision}:{recipient}` — one message per person per
+    change, however often the request is retried."""
+    return f"leave-change:{lr.id}:r{lr.decision_revision}:{recipient.id}"
+
+
+def _revoked_for_applicant(lr: LeaveRequest) -> tuple[str, str]:
+    # Names nobody, like the applicant's other three mails, and carries NOT the
+    # reason for the change: that is read on the screen, in context, where the
+    # applicant can see the request it belongs to.
+    return (
+        "The sanction on your leave request has been withdrawn",
+        f"{_GREETING}"
+        f"The sanction on your leave request for {_kind_phrase(lr)} covering "
+        f"{_span(lr)} has been withdrawn. You can see why on your Leave Requests "
+        f"screen.\n",
+    )
+
+
+def _reopened_for_applicant(lr: LeaveRequest) -> tuple[str, str]:
+    return (
+        "Your leave request has been reopened",
+        f"{_GREETING}"
+        f"Your leave request for {_kind_phrase(lr)} covering {_span(lr)} has been "
+        f"reopened and is waiting for a fresh decision. You can follow it on your "
+        f"Leave Requests screen.\n",
+    )
+
+
+def _no_longer_covering(recipient: User, applicant: User, lr: LeaveRequest) -> tuple[str, str]:
+    # The colleague who agreed to cover reads the name and the dates, as they
+    # did when they were asked — never the printed option, never the reason.
+    return (
+        f"{applicant.name}'s leave is no longer sanctioned",
+        f"Hello {recipient.name},\n\n"
+        f"The leave {applicant.name} asked you to cover ({_span(lr)}) is no longer "
+        f"sanctioned, so the cover you agreed to is not needed for now. If it is "
+        f"sanctioned again you will see it on your Leave Requests screen.\n",
+    )
+
+
+def _covering_colleagues(db: Session, lr: LeaveRequest) -> list[User]:
+    """Every account named on an Alternate Arrangements row, once each, minus
+    the applicant. Rows typed as a bare name (no `user_id`) reach nobody: there
+    is no account behind them to write to."""
+    seen: set[str] = set()
+    people: list[User] = []
+    for row in lr.alt_rows or []:
+        user_id = (row or {}).get("user_id") if isinstance(row, dict) else None
+        if not user_id or user_id in seen or user_id == lr.requester_user_id:
+            continue
+        seen.add(user_id)
+        user = db.get(User, user_id)
+        if _is_active(user):
+            people.append(user)
+    return people
+
+
+def notify_decision_changed(db: Session, lr: LeaveRequest) -> list[MailLog]:
+    """Tell the applicant that a decision on their request was changed, and —
+    on a revocation — tell every colleague named to cover that the cover is
+    off. Off with the rest of leave mail (`leave_mail_enabled`), never raises,
+    and is called AFTER the change's own commit, for `notify_transition`'s
+    reasons.
+
+    The "on leave today" broadcast needs nothing here: the morning job reads
+    APPROVED rows only, so a revoked leave simply stops being announced."""
+    if not settings.leave_mail_enabled:
+        return []
+    if lr.status is LeaveStatus.REVOKED:
+        applicant_mail = _revoked_for_applicant(lr)
+    elif lr.status is LeaveStatus.SUBMITTED and lr.decision_change_kind == "REOPENED":
+        applicant_mail = _reopened_for_applicant(lr)
+    else:
+        return []
+    rows: list[MailLog] = []
+    applicant = db.get(User, lr.requester_user_id)
+    if applicant is not None and (applicant.email or "").strip():
+        subject, text = applicant_mail
+        rows.append(
+            deliver_once(
+                db,
+                kind=CHANGE_MAIL_KIND,
+                recipient=applicant.email,
+                dedupe_key=change_dedupe_key(lr, applicant),
+                subject=subject,
+                send=lambda to, subj, text=text: transport_send(to, subj or "", text),
+            )
+        )
+    if lr.status is LeaveStatus.REVOKED and applicant is not None:
+        for colleague in _covering_colleagues(db, lr):
+            subject, text = _no_longer_covering(colleague, applicant, lr)
+            rows.append(
+                deliver_once(
+                    db,
+                    kind=CHANGE_MAIL_KIND,
+                    recipient=colleague.email,
+                    dedupe_key=change_dedupe_key(lr, colleague),
+                    subject=subject,
+                    send=lambda to, subj, text=text: transport_send(to, subj or "", text),
+                )
+            )
+    return rows

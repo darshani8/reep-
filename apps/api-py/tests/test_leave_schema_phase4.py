@@ -311,17 +311,23 @@ def test_cancelled_was_in_the_leave_status_enum_before_this_migration():
         "type is now built elsewhere, re-point this test at that revision "
         "rather than adding an ALTER TYPE"
     )
-    # Nobody has since added the value a second time.
+    # Nobody has since added the value a second time. (daaeb23b750e alters
+    # the type for REVOKED, a different value, which is why the pattern names
+    # CANCELLED rather than any ALTER at all.)
     adders = [
         p.name
         for p in versions.glob("*.py")
-        if re.search(r"ALTER\s+TYPE\s+leave_status", p.read_text(encoding="utf-8"), re.I)
+        if re.search(
+            r"ALTER\s+TYPE\s+leave_status\s+ADD\s+VALUE[^'\n]*'CANCELLED'",
+            p.read_text(encoding="utf-8"),
+            re.I,
+        )
     ]
-    assert not adders, f"leave_status is altered by {adders}; it was complete from the start"
+    assert not adders, f"CANCELLED is added to leave_status again by {adders}"
 
 
 @requires_db
-def test_the_database_agrees_that_leave_status_has_all_five_values():
+def test_the_database_agrees_that_leave_status_has_all_six_values():
     with SessionLocal() as db:
         labels = set(
             db.execute(
@@ -341,6 +347,8 @@ def test_the_database_agrees_that_leave_status_has_all_five_values():
         "APPROVED",
         "REJECTED",
         "CANCELLED",
+        # daaeb23b750e: the office took back a sanction it had given.
+        "REVOKED",
     }
 
 
@@ -421,6 +429,14 @@ def test_nothing_else_was_added_to_leave_requests():
         "created_at",
         "signed_at",
         "cancelled_at",
+        # daaeb23b750e: the stamps of a decision changed after it was made.
+        # The approver writes these from the console; the applicant's form
+        # did not grow a field.
+        "decision_change_kind",
+        "decision_changed_at",
+        "decision_changed_by_user_id",
+        "decision_change_reason",
+        "decision_revision",
         "updated_at",
     }
 

@@ -362,6 +362,16 @@
           <p class="reason-text">{{ request.reason }}</p>
         </div>
 
+        @if (request.decision_change_reason) {
+          <div class="reason">
+            <div class="eyebrow">
+              {{ request.decision_change_kind === 'REVOKED' ? 'Why the sanction was revoked' : 'Why it was reopened' }}
+              · the applicant reads this
+            </div>
+            <p class="reason-text">{{ request.decision_change_reason }}</p>
+          </div>
+        }
+
         @if (hasApproverRemarks(request)) {
           <div class="reason">
             <div class="eyebrow">{{ remarksLabel(request) }}</div>
@@ -471,11 +481,113 @@
             }
           }
         } @else {
-          <div class="panel-actions">
-            <a class="btn ghost sm paper-link" [href]="paperUrl(request)" download>
-              <span class="icon" aria-hidden="true">picture_as_pdf</span> Open the signed form (PDF)
-            </a>
-          </div>
+          @switch (decisionMode()) {
+            @case ('revoke') {
+              <div class="field panel-remarks">
+                <label for="leave-change-reason">Why is the sanction being revoked?</label>
+                <textarea
+                  id="leave-change-reason"
+                  class="ctrl multi"
+                  rows="3"
+                  placeholder="Required · the applicant reads this"
+                  [value]="changeReason()"
+                  [attr.aria-describedby]="changeError() ? 'leave-change-error' : null"
+                  [attr.aria-invalid]="changeError() ? 'true' : null"
+                  (input)="onChangeReasonInput($event)"
+                ></textarea>
+              </div>
+              @if (selectedHasBegun()) {
+                <label class="confirm-started">
+                  <input
+                    type="checkbox"
+                    [checked]="confirmStarted()"
+                    (change)="onConfirmStartedChange($event)"
+                  />
+                  This leave has already begun. Revoke it anyway — the days already taken lose
+                  their sanction.
+                </label>
+              }
+              @if (changeError()) {
+                <span class="err" id="leave-change-error" role="alert">
+                  <span class="icon" aria-hidden="true">error</span>{{ changeError() }}
+                </span>
+              }
+              <p class="confirm-note" role="status">
+                The applicant and any colleague who agreed to cover are emailed that the sanction
+                was withdrawn. Their allowance is not changed — adjust it under Leave policy if you
+                counted these days.
+              </p>
+              <div class="panel-actions">
+                <button type="button" class="btn secondary" (click)="cancelDecision()">Cancel</button>
+                <button
+                  type="button"
+                  class="btn danger"
+                  [disabled]="deciding()"
+                  (click)="confirmChange()"
+                >
+                  <span class="icon" aria-hidden="true">undo</span>
+                  {{ deciding() ? 'Working…' : 'Confirm revoke' }}
+                </button>
+              </div>
+            }
+            @case ('reopen') {
+              <div class="field panel-remarks">
+                <label for="leave-change-reason">Why is it being reopened?</label>
+                <textarea
+                  id="leave-change-reason"
+                  class="ctrl multi"
+                  rows="3"
+                  placeholder="Required · the applicant reads this"
+                  [value]="changeReason()"
+                  [attr.aria-describedby]="changeError() ? 'leave-change-error' : null"
+                  [attr.aria-invalid]="changeError() ? 'true' : null"
+                  (input)="onChangeReasonInput($event)"
+                ></textarea>
+              </div>
+              @if (changeError()) {
+                <span class="err" id="leave-change-error" role="alert">
+                  <span class="icon" aria-hidden="true">error</span>{{ changeError() }}
+                </span>
+              }
+              <p class="confirm-note" role="status">
+                It goes back to Pending with no signature on it, and you decide it again from there.
+              </p>
+              <div class="panel-actions">
+                <button type="button" class="btn secondary" (click)="cancelDecision()">Cancel</button>
+                <button
+                  type="button"
+                  class="btn primary"
+                  [disabled]="deciding()"
+                  (click)="confirmChange()"
+                >
+                  <span class="icon" aria-hidden="true">undo</span>
+                  {{ deciding() ? 'Working…' : 'Confirm reopen' }}
+                </button>
+              </div>
+            }
+            @default {
+              @if (changeAction() === 'revoke' && !mayRevokeSelected()) {
+                <p class="panel-hint">
+                  This leave has already begun. Only the Main Admin can revoke it now.
+                </p>
+              }
+              <div class="panel-actions">
+                @if (changeAction() === 'revoke' && mayRevokeSelected()) {
+                  <button type="button" class="btn danger" (click)="openChange()">
+                    <span class="icon" aria-hidden="true">undo</span> Revoke sanction
+                  </button>
+                }
+                @if (changeAction() === 'reopen') {
+                  <button type="button" class="btn secondary" (click)="openChange()">
+                    <span class="icon" aria-hidden="true">undo</span> Reopen
+                  </button>
+                }
+                <a class="btn ghost sm paper-link" [href]="paperUrl(request)" download>
+                  <span class="icon" aria-hidden="true">picture_as_pdf</span> Open the signed form (PDF)
+                </a>
+              </div>
+            }
+          }
         }
       } @else {
         <div class="panel-empty">

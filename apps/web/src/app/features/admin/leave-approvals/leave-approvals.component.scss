@@ -465,3 +465,20 @@
   font-size: 11px;
   color: var(--faint);
 }
+
+/* "This leave has already begun" — the office's explicit yes before a
+   revocation that takes back days already taken. */
+.confirm-started {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink);
+  margin: 4px 0 8px;
+
+  input {
+    margin-top: 2px;
+    flex: none;
+  }
+}

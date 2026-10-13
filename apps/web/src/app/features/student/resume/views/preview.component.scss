@@ -42,6 +42,23 @@
 }
 
 /* rendered markdown blocks inside the global .preview surface */
+.preview .ptable {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 4px 0 8px;
+  font-size: 12px;
+}
+.preview .ptable th,
+.preview .ptable td {
+  border: 1px solid var(--hairline);
+  padding: 4px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+.preview .ptable th {
+  background: var(--tint-2);
+  font-weight: 700;
+}
 .preview .ppara {
   margin: 6px 0;
 }

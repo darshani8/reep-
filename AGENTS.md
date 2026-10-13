@@ -1406,6 +1406,29 @@ do not add a remote renderer), and `POST /mentor-meetings/request`, which writes
 a **mentor note** rather than inventing a requests table: that is already the
 mentor's instrument for this student and already on their screen.
 
+## The resume template and the builder's versions (2026-10-13)
+
+**Every resume the builder composes follows ONE layout**, `RESUME_TEMPLATE_SECTIONS`
+in `routers/student.py` (id `reep-standard-v1`, stamped into `resumes.content`):
+name and a centred contact line, then Career Objective, Education (a table, the
+current programme from the spine first, then earlier qualifications newest
+first), Experience, Internships, Projects, Verified Skills, Key Expertise
+(self-reported), Certifications (self-reported), Positions of Responsibility,
+Achievements, Awards, Publications, Seminars, Activities, Languages, References,
+Declaration. Empty sections still drop out. The AI polish is told to keep the
+headings and the Education table and is DISCARDED when it changes either
+(`_polish_keeps_template`), so a model cannot give one student a different
+layout from their batch, nor print a CGPA or an institution REEP does not hold. A saved
+version is CRUD: `POST /resume/generate` creates, `GET /resume[/{id}]` reads,
+`PATCH /resume/{id}` renames / sets the target role / finalises,
+`POST /resume/{id}/regenerate` recomposes it in the template from the builder as
+it is now (same id and version), and `DELETE /resume/{id}` removes it. A
+FINALISED version refuses regenerate and delete (409) until it is unlocked.
+**There is no endpoint that edits the markdown as text, on purpose**: the
+"Verified Skills" heading is a mentor's claim, and free text would let anything
+be printed under it. `tests/test_resume_template.py` pins the order and the
+CRUD walk.
+
 ## The Skills & Badge dashboard (2026-08)
 
 Implements the "REEP Student Skills & Badge Dashboard Developer Framework"

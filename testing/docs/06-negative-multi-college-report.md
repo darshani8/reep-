@@ -1,7 +1,7 @@
 # Negative-scenario test: 10 colleges, different branches
 
 **Date:** 2026-10-13 · **Build:** `main` at `dedc2b8` · **Stack:** local dev (PostgreSQL 16 + pgvector, API on :3300, `ENV=dev`, dev seed)
-**Harness:** [`testing/api/negative_multi_college.py`](../api/negative_multi_college.py) · **Raw results:** [`testing/results/api/negative-multi-college-results.json`](../results/api/negative-multi-college-results.json)
+**Harnesses:** [`negative_multi_college.py`](../api/negative_multi_college.py) (round 1) and [`data_isolation_multi_college.py`](../api/data_isolation_multi_college.py) (round 2), both in `testing/api/` · **Raw results:** `testing/results/api/negative-multi-college-results.json` and `data-isolation-results.json`
 
 ## What was run
 
@@ -99,6 +99,71 @@ This is the same root cause as BUG-3, listed separately because it is the first 
 * **Mentors:** assigning another college's faculty member is refused, as are a missing or whitespace-only reason and a student or admin account given as the mentor.
 * **Deleting a college with people under it** is refused and names what is still attached. A wrong code, a short code, a missing reason, and a non-admin caller are all refused. `POST` and `DELETE` on `/admin/students` return 405.
 * **Leave:** dates that run backwards, or a missing reason, are refused.
+
+## Round 2: data isolation between individuals, storage and logs
+
+### Data isolation: 155 of 155 probes passed
+
+The setup has two colleges. College X has students A and B, faculty member FX (A's mentor) and faculty member FZ (mentors nobody). College Y has student C and faculty member FY (C's mentor). The seeded alumnus and an anonymous caller are added as further outsiders. A first creates real records: an upload, a resume version and a leave request. FX writes a meeting note about A. Every other account then tries to read, change or delete those records by id.
+
+* **Students (B in the same college, C in the other college), the alumnus and an anonymous caller** were all refused (401/403/404) on every one of these:
+  * A's upload file, and deleting it;
+  * A's resume: read, PDF, rename, regenerate and delete;
+  * A's leave: paper, attachments, cancel, decide and balance;
+  * A's application CV and photo;
+  * all nine `/mentor/students/A/*` views, and `/admin/students/A/360`.
+* **List endpoints do not leak.** B's upload, resume and leave lists do not contain A's records. Neither college's leaderboard shows the other college's student.
+* **Faculty from the other college (FY), and faculty with no mentees (FZ),** were refused (403/404) on every one of these:
+  * all ten mentee views and the notebook;
+  * writing a note, and deleting FX's note;
+  * reading or reviewing A's upload;
+  * awarding a badge and recording an assessment;
+  * A's leave paper, the 360 view and the application CV.
+
+  A is not in either mentee list.
+* **Positive controls passed.** A reads their own records, FX reads their mentee A, and FY sees their own mentee C. So the refusals above are real fence decisions and not a broken setup.
+* **A student cannot open staff screens.** All five tried were refused.
+* **One device per account.** Signing in again retires the older session (401, with `X-Reep-Session: retired`).
+
+The four write probes that first came back as 422 were resent with valid bodies, so they reached the permission check. All four were then refused by it.
+
+### Storage: consistent
+
+* **Files on disk match the database.** Every file in `var/uploads` has a random `uuid4().hex` name with no personal data in it, and is mode 644 in one flat folder. Every live row in the six document tables (130) has its file, and none is missing.
+* **The document archive index (`archived_documents`) is kept up to date.** Every file saved through the API has a row in it. The only 3 live rows without one are seed fixtures (`up_*.pdf`), which the seed writes directly; this is by design, since the index has no backfill.
+* **Approval re-owns application files correctly.** 17 approvals re-owned exactly 34 files (CV and photo each) to the new student (`STUDENT_UPLOAD`, `owner_id` = the student). The 90 rows with no owner all belong to applications that are still pending, held or rejected, which is correct.
+* **The 15 files on disk with no row** came from the pytest run. Its database was separate (`reep_test`), but it wrote into the same `var/uploads` folder and left its files there. That is a test-hygiene issue, not a product bug: tests should point `UPLOAD_DIR` at a temporary folder.
+
+### Bugs found in round 2
+
+#### BUG-7 (medium): a second access log records full query strings, including Google sign-in's `code` and `state`
+
+`app/traceability.py`'s `reep.access` log deliberately leaves out the query string, the body and the cookie. However, uvicorn's own access log is still on: the Dockerfile `CMD` has no `--no-access-log`. Every request is therefore logged twice, and the uvicorn copy has the full URL. A request to `/api/register/hierarchy?token=SECRETTOKEN456` appeared in the log verbatim. `GET /api/auth/google/callback?code=…&state=…` is a real endpoint that carries a one-time OAuth code in its query string, so that code would reach CloudWatch. Fix: add `--no-access-log` to the Dockerfile `CMD`. `reep.access` already records every request, with a request id.
+
+#### BUG-8 (medium): with no mail transport, sign-in links go into the log and `mail_logs` says SENT
+
+When `SES_FROM_ADDRESS` is blank, `mail_transport.send` logs the **whole message body** at INFO (`mail_transport.py:227`). That body includes the onboarding, activation and reset links, and each link is a bearer token. `mailer` then records the message as `SENT` (39 SENT rows in this run, delivered to nobody). Nothing stops this on `ENV=prod`: `production_boot_failures()` does not check mail. Today's production task has SES set. A new deployment, or a task definition that loses the variable, would write every student's setup link into CloudWatch while the office's mail screen says the mail went out. Fix: refuse to boot on prod with no transport, or never log the body outside dev/CI and record `FAILED` instead of `SENT`.
+
+#### BUG-9 (medium): changes to the institution tree leave no audit trail
+
+In this run, 73 colleges were created and some were archived, and departments, courses, specializations and batches were created and edited. None of these wrote a `redesign_audit_events` row. In `routers/admin.py`, only `appoint_college_admin` calls `record_change`. That gap includes `PUT /api/admin/students/{id}/cohort`, the move in BUG-1. A student can be seated into another college's batch and nothing records who did it or when. Registration decisions, faculty creation, mentor assignment, student edits and bulk moves are audited, and all of those rows carry a `request_id`.
+
+#### BUG-10 (low): personal data and multi-line entries in the application log
+
+* `app.routers.registration` logs `application <id> from <applicant email> is PENDING_REVIEW` at INFO, and the mail line logs `to=<address>`. Elsewhere this codebase keeps addresses out of logs on purpose (the SES suppression code).
+* Log entries are not always one per line. The console mail body spans many lines (216 continuation lines in this run).
+* The log mixes two formats: uvicorn's `INFO:     …` and `timestamp LEVEL logger: …`. A CloudWatch metric filter or Logs Insights query cannot parse both reliably.
+
+Fix: log the application id only, and log the mail body (in dev) as one escaped field.
+
+### What held up in logs
+
+* The `reep.access` lines are well structured: `method= path= status= duration_ms= rid=`, with no query string, and the `rid` links them to audit rows.
+* No password, password hash, `scrypt:` string or session cookie appeared anywhere in about 3,400 log lines.
+
+### Existing backend suite
+
+`pytest` on its own database finished with exit code 0 (no failures, a few skipped).
 
 ## Notes for whoever re-runs this
 

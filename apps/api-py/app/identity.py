@@ -1,4 +1,5 @@
-"""Request dependencies: read the session from the reep_session cookie."""
+"""Request dependencies: read the session from the reep_session cookie, or
+from an `Authorization: Bearer` header sent by the phone app."""
 
 from fastapi import HTTPException, Request, WebSocket, WebSocketException, status
 
@@ -34,8 +35,30 @@ def _with_live_mentor_id(payload: dict) -> dict:
     return payload
 
 
-def get_current_session(request: Request) -> dict:
+def session_token_from(request: Request) -> str | None:
+    """The session token this request carries: the cookie first, then a Bearer
+    header.
+
+    THE BEARER IS THE SAME TOKEN AS THE COOKIE, not a second kind of
+    credential. The phone app (Ionic + Capacitor) runs on its own origin, so
+    the httpOnly cookie never reaches it; /auth/login hands it the very JWT
+    the cookie would have held, and it sends that back here. It goes through
+    `verify_session_token` exactly like the cookie does, so revocation,
+    single-device retirement and disabled accounts apply unchanged. The cookie
+    wins when both are present, so a browser's behaviour does not move.
+    """
     token = request.cookies.get(SESSION_COOKIE)
+    if token:
+        return token
+    header = request.headers.get("authorization", "")
+    scheme, _, value = header.partition(" ")
+    if scheme.lower() == "bearer" and value.strip():
+        return value.strip()
+    return None
+
+
+def get_current_session(request: Request) -> dict:
+    token = session_token_from(request)
     payload = verify_session_token(token) if token else None
     if not payload:
         # WHY, when the answer is knowable. Under one device at a time a student

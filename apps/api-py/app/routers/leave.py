@@ -776,6 +776,7 @@ def change_decision(
     leave_id: str,
     body: LeaveDecisionChangeIn,
     request: Request,
+    background: BackgroundTasks,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> LeaveOut:
@@ -899,4 +900,9 @@ def change_decision(
     # After the commit, like every leave mail: a message about a change that
     # has not landed is worse than a late one.
     notify_decision_changed(db, lr)
+    if lr.status is LeaveStatus.SUBMITTED:
+        # A reopened request is waiting again: tell whoever can decide it, as
+        # a fresh application does (`notify_approvers` keeps it to faculty
+        # requests and to the mail switch, and keys it by revision).
+        background.add_task(notify_approvers_in_background, lr.id)
     return _leave_out(lr, db)

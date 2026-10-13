@@ -126,6 +126,21 @@
                       </span>
                     </div>
                   }
+                  @case ('table') {
+                    <table class="ptable">
+                      @for (row of b.rows; track $index; let first = $first) {
+                        <tr>
+                          @for (c of row; track $index) {
+                            @if (first) {
+                              <th scope="col">{{ c }}</th>
+                            } @else {
+                              <td>{{ c }}</td>
+                            }
+                          }
+                        </tr>
+                      }
+                    </table>
+                  }
                   @default {
                     <p class="ppara">
                       @for (s of b.segs; track $index) {

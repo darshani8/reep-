@@ -44,6 +44,50 @@
   color: var(--muted);
   margin-top: 2px;
 }
+.version-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 6px;
+}
+.link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand-purple);
+  cursor: pointer;
+}
+.link-btn .icon {
+  font-size: 15px;
+}
+.link-btn.danger {
+  color: var(--risk);
+}
+.link-btn:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+.rename {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.rename input {
+  flex: 1 1 180px;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+}
 .use-btn {
   flex: none;
   padding: 7px 13px;

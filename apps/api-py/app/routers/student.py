@@ -1789,18 +1789,115 @@ def _contact_line(profile, contact: dict) -> str:
     return " · ".join(parts)
 
 
-def _compose_resume_markdown(name, profile, skill_names, cgpa, quals, builder=None) -> str:
-    """The deterministic resume, composed on this machine from what REEP holds.
+#: THE ONE TEMPLATE EVERY GENERATED RESUME FOLLOWS (2026-10-13). A student's
+#: resume reaches a recruiter beside thirty others from the same batch, and a
+#: placement office reads them side by side; the conventional campus-placement
+#: layout is what both expect, so every version the builder creates or
+#: regenerates is laid out in this order and nothing else decides it. The ids
+#: are stamped into `resumes.content["template"]` so a version made under a
+#: later revision of this list is distinguishable from one made under this.
+#:
+#:   header (name, then one contact line) · Career Objective · Education (a
+#:   table, current programme first) · Professional Experience · Internships ·
+#:   Projects · Verified Skills · Key Expertise (self-reported) · Certifications
+#:   (self-reported) · Positions of Responsibility · Achievements · Awards &
+#:   Scholarships · Publications & Research · Seminars & Trainings · Activities
+#:   · Languages · References · Declaration
+#:
+#: Education leads because a fresher's resume is read for the programme first,
+#: and the AI polish is told to keep every heading in this order and is
+#: discarded when it does not (`_polish_keeps_template`).
+RESUME_TEMPLATE_ID = "reep-standard-v1"
+RESUME_TEMPLATE_SECTIONS = (
+    "Career Objective",
+    "Education",
+    "Professional Experience",
+    "Internships",
+    "Projects",
+    "Verified Skills",
+    "Key Expertise (self-reported)",
+    "Certifications (self-reported)",
+    "Positions of Responsibility",
+    "Achievements",
+    "Awards & Scholarships",
+    "Publications & Research",
+    "Seminars & Trainings",
+    "Activities",
+    "Languages",
+    "References",
+    "Declaration",
+)
+
+_QUAL_LABELS = {
+    "TENTH": "Class X",
+    "TWELFTH": "Class XII",
+    "DIPLOMA": "Diploma",
+    "UNDERGRAD": "Graduation",
+    "POSTGRAD": "Post-graduation",
+}
+
+
+def _cell(value) -> str:
+    """A table cell: a `|` in the data would split the row, so it is replaced."""
+    return str(value).replace("|", "/").strip() if value is not None else ""
+
+
+def _education_table(cgpa, quals, programme: dict | None) -> list[str]:
+    """The Education section as one markdown table, most recent first.
+
+    The current programme is the first row, read from the institutional spine
+    (course, college, batch) and scored by the latest CGPA; the earlier
+    qualifications follow newest first. A row with no programme and no CGPA is
+    still printed, because "not yet assessed" is a fact a reader needs where an
+    empty section is a question.
+    """
+    rows: list[list[str]] = []
+    p = programme or {}
+    course = _rt(p.get("course"))
+    if course or cgpa is not None:
+        rows.append(
+            [
+                course or "Current programme",
+                _rt(p.get("college")),
+                _rt(p.get("batch")) or "Pursuing",
+                f"CGPA {cgpa}" if cgpa is not None else "Not yet assessed",
+            ]
+        )
+    for q in sorted(quals, key=lambda q: q.year, reverse=True):
+        pct = round(100 * q.marks / q.max_marks) if q.max_marks else 0
+        level = q.level.value if hasattr(q.level, "value") else str(q.level)
+        institution = ", ".join(x for x in (_rt(q.institution), _rt(q.board)) if x)
+        rows.append([_QUAL_LABELS.get(level, level.title()), institution, str(q.year), f"{pct}%"])
+    if not rows:
+        rows.append(["Current programme", "", "Pursuing", "Not yet assessed"])
+    out = ["| Qualification | Institution / Board | Year | Score |", "| --- | --- | --- | --- |"]
+    out += ["| " + " | ".join(_cell(c) for c in r) + " |" for r in rows]
+    return out + [""]
+
+
+def _compose_resume_markdown(
+    name, profile, skill_names, cgpa, quals, builder=None, programme: dict | None = None
+) -> str:
+    """The deterministic resume, laid out in `RESUME_TEMPLATE_SECTIONS` order.
 
     `builder` is `resume_profiles.data` — the fifteen-section map the Resume
     Builder writes. It is optional so the signature stays callable with the
     older five arguments, but a caller that omits it publishes a document
     missing everything the student typed, which is the bug this parameter fixed.
+    `programme` is the current course / college / batch for the Education
+    table's first row; absent, that row says "Current programme".
     """
     b = builder if isinstance(builder, dict) else {}
     other = _rmap(b.get("other"))
 
     lines = [f"# {name or 'REEP Student'}", ""]
+
+    # The header block: everything between the name and the first `##` is
+    # drawn centred under the name by `app/resume_pdf.py`, so it holds the
+    # contact line and nothing else.
+    contact = _contact_line(profile, _rmap(b.get("contact")))
+    if contact:
+        lines += [contact.replace(" · ", " | "), ""]
 
     # The objective the student wrote for THIS document outranks the one-line
     # career summary on their profile row: it is the more recent statement of
@@ -1809,12 +1906,8 @@ def _compose_resume_markdown(name, profile, skill_names, cgpa, quals, builder=No
     objective = _rt(other.get("career_objective")) or _rt(
         profile.career_summary if profile is not None else ""
     )
-    if objective:
-        lines += [objective, ""]
-
-    contact = _contact_line(profile, _rmap(b.get("contact")))
-    if contact:
-        lines += [f"**Contact:** {contact}", ""]
+    lines += _section("Career Objective", [objective, ""] if objective else [])
+    lines += _section("Education", _education_table(cgpa, quals, programme))
 
     lines += _section("Professional Experience", _roles_block(_rrows(b.get("experience"))))
     lines += _section("Internships", _roles_block(_rrows(b.get("internship"))))
@@ -1834,25 +1927,29 @@ def _compose_resume_markdown(name, profile, skill_names, cgpa, quals, builder=No
         "Certifications (self-reported)", _external_certs_block(_rrows(b.get("external_certs")))
     )
 
-    lines += _section("Publications & Research", _publications_block(_rrows(b.get("publications"))))
-    lines += _section("Seminars & Trainings", _seminars_block(_rrows(b.get("seminars"))))
     lines += _section("Positions of Responsibility", _positions_block(_rrows(b.get("por"))))
     lines += _section("Achievements", _bullets(_rstrs(other.get("achievements"))))
     lines += _section("Awards & Scholarships", _bullets(_rstrs(other.get("awards"))))
+    lines += _section("Publications & Research", _publications_block(_rrows(b.get("publications"))))
+    lines += _section("Seminars & Trainings", _seminars_block(_rrows(b.get("seminars"))))
     lines += _section(
         "Activities",
         _bullets(_rstrs(other.get("co_curricular")) + _rstrs(other.get("extra_curricular"))),
     )
 
-    academics = [f"- Latest CGPA: {cgpa}" if cgpa is not None else "- CGPA: not yet assessed"]
-    for q in quals:
-        pct = round(100 * q.marks / q.max_marks) if q.max_marks else 0
-        academics.append(f"- {q.level.value.title()}: {q.institution} ({q.year}) — {pct}%")
-    lines += _section("Academics", academics + [""])
-
     languages = _rstrs(_rmap(b.get("basic")).get("languages"))
     lines += _section("Languages", [", ".join(languages), ""] if languages else [])
     lines += _section("References", _references_block(_rrows(b.get("references"))))
+    lines += _section(
+        "Declaration",
+        [
+            "I hereby declare that the information furnished above is true to the best "
+            "of my knowledge and belief.",
+            "",
+            f"**{name or 'REEP Student'}**",
+            "",
+        ],
+    )
 
     # Trailing blanks are free in markdown and cost a page break in the PDF.
     while lines and not lines[-1].strip():
@@ -1860,27 +1957,32 @@ def _compose_resume_markdown(name, profile, skill_names, cgpa, quals, builder=No
     return "\n".join(lines)
 
 
-class ResumeGenerateIn(BaseModel):
-    title: str | None = None
-    target_role: str | None = None
+def _headings(markdown: str) -> list[str]:
+    return [ln[3:].strip() for ln in (markdown or "").splitlines() if ln.startswith("## ")]
 
 
-@router.post("/resume/generate", dependencies=[Depends(llm_rate_limited)])
-def generate_resume(
-    body: ResumeGenerateIn,
-    session: dict = Depends(get_current_session),
-    db: Session = Depends(get_db),
-) -> dict:
-    """Compose a resume from the student's REEP data. The prompt carries student
-    PII, so a model is used ONLY when it is local or explicitly allowed; otherwise
-    it composes deterministically and says so (the AGENTS.md egress rule)."""
-    student_id = _require_student(session)
-    # Gated here and not on GET /student/resume or the PDF: a switched-off
-    # Resume Builder stops the student MAKING a new document, and does not take
-    # away the ones they already made. See require_feature's docstring for the
-    # rule; it is the same one that keeps DELETE /uploads/{id} open.
-    require_feature(db, student_id, "student.resume")
-    name = session.get("name", "")
+def _polish_keeps_template(draft: str, polished: str) -> bool:
+    """Did the model keep the standard template's headings, in order?
+
+    The polish is told to, and a model that drops Education or reorders the
+    sections has produced a resume that no longer follows the one template every
+    other student's does — so it is discarded and the deterministic draft kept.
+    """
+    return bool(polished.strip()) and _headings(polished) == _headings(draft)
+
+
+def _programme_for(db: Session, student_id: str) -> dict:
+    """Course, college and batch for the Education table's first row."""
+    inst = _institution_for(db, db.get(Student, student_id))
+    return {
+        "course": inst.course_name or "",
+        "college": inst.college_name or "",
+        "batch": inst.batch_label or "",
+    }
+
+
+def _compose_for_student(db: Session, student_id: str, name: str) -> str:
+    """Everything one student's resume is made of, laid out in the template."""
     profile = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student_id))
     # ONLY VERIFIED SKILLS REACH THE DOCUMENT. A resume is a claim made to an
     # employer, and an unverified StudentSkill is a claim still with the mentor
@@ -1901,9 +2003,9 @@ def generate_resume(
     included = ((resume_state or {}).get("evidence_skills") or {}).get("included") or []
     if included:
         chosen = set(included)
-        skill_names = [name for slug, name in verified_rows if slug in chosen]
+        skill_names = [n for slug, n in verified_rows if slug in chosen]
     else:
-        skill_names = [name for _slug, name in verified_rows]
+        skill_names = [n for _slug, n in verified_rows]
     latest = db.scalar(
         select(SemesterResult)
         .where(SemesterResult.student_id == student_id)
@@ -1916,31 +2018,31 @@ def generate_resume(
         .where(AcademicQualification.student_id == student_id)
         .order_by(AcademicQualification.year)
     ).all()
+    return _compose_resume_markdown(
+        name, profile, skill_names, cgpa, quals, resume_state, _programme_for(db, student_id)
+    )
 
-    # `resume_state` — the builder's fifteen sections — was already read above
-    # for the curated skill list. It is the same map the document is composed
-    # from, so it is passed rather than re-queried.
-    markdown = _compose_resume_markdown(name, profile, skill_names, cgpa, quals, resume_state)
-    generated_by, model, used_ai, note = "fallback", None, False, None
 
-    # Release the pooled connection BEFORE the model call. The SELECTs above
-    # opened a transaction that pins one of the pool's connections, and
-    # complete_chat below can legally take LLM_TIMEOUT_MS — the 2026-08 audit's
-    # arithmetic: ~15 concurrent generations against a slow provider held the
-    # ENTIRE pool and 500'd every other request in the app. Every ORM attribute
-    # this handler needs has been read into plain values by this line, so
-    # expire_on_commit costs nothing; the version query below simply re-acquires
-    # a connection when the model is done.
+def _polish(db: Session, markdown: str) -> tuple[str, str, str | None, bool, str | None]:
+    """The optional AI polish, behind rule 1's gate, keeping the template.
+
+    Returns (markdown, generated_by, model, used_ai, note). Commits first: the
+    SELECTs that composed the draft opened a transaction that pins one of the
+    pool's connections, and complete_chat can legally take LLM_TIMEOUT_MS — the
+    2026-08 audit's arithmetic: ~15 concurrent generations against a slow
+    provider held the ENTIRE pool and 500'd every other request in the app.
+    """
     db.commit()
-
     cfg = llm_config()
     if cfg is not None and student_data_egress_allowed(cfg.base_url):
         prompt = (
-            "Rewrite this into a crisp one-page markdown resume for an MBA student. "
-            "Keep every fact; invent nothing.\n\n" + markdown
+            "Polish the wording of this one-page markdown resume for an MBA student. "
+            "Keep every fact; invent nothing. Keep the '# ' name line, every '## ' "
+            "heading with its exact text and order, and the Education table rows "
+            "unchanged; rewrite only the sentences and bullets under them.\n\n" + markdown
         )
         try:
-            markdown = complete_chat(
+            polished = complete_chat(
                 [
                     {"role": "system", "content": "You are a concise resume writer."},
                     {"role": "user", "content": prompt},
@@ -1953,23 +2055,64 @@ def generate_resume(
                 # have got for free.
                 max_tokens=3000,
             )
-            generated_by, model, used_ai = cfg.provider, cfg.model, True
         except Exception as exc:  # keep the deterministic draft on any failure
-            note = f"AI polish failed ({exc}); kept the deterministic draft."
-    elif cfg is None:
+            return markdown, "fallback", None, False, f"AI polish failed ({exc}); kept the deterministic draft."
+        if not _polish_keeps_template(markdown, polished):
+            return (
+                markdown,
+                "fallback",
+                None,
+                False,
+                "AI polish changed the standard resume layout, so the deterministic "
+                "draft was kept.",
+            )
+        return polished, cfg.provider, cfg.model, True, None
+    if cfg is None:
         # Two different facts used to share one sentence: "no model configured"
         # was reported as "the configured model runs off this machine", which
         # sends the reader looking for a setting that is not the reason.
-        note = (
+        return (
+            markdown,
+            "fallback",
+            None,
+            False,
             "No language model is configured, so the resume was composed on this "
-            "machine from your saved REEP records."
+            "machine from your saved REEP records.",
         )
-    else:
-        note = (
-            "AI generation skipped: the resume carries student data and the configured "
-            "model runs off this machine. Composed deterministically. Set "
-            "LLM_ALLOW_REMOTE_STUDENT_DATA=true or use a local model to enable AI."
-        )
+    return (
+        markdown,
+        "fallback",
+        None,
+        False,
+        "AI generation skipped: the resume carries student data and the configured "
+        "model runs off this machine. Composed deterministically. Set "
+        "LLM_ALLOW_REMOTE_STUDENT_DATA=true or use a local model to enable AI.",
+    )
+
+
+class ResumeGenerateIn(BaseModel):
+    title: str | None = None
+    target_role: str | None = None
+
+
+@router.post("/resume/generate", dependencies=[Depends(llm_rate_limited)])
+def generate_resume(
+    body: ResumeGenerateIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> dict:
+    """CREATE: compose a new resume version from the student's REEP data, in the
+    standard template. The prompt carries student PII, so a model is used ONLY
+    when it is local or explicitly allowed; otherwise it composes
+    deterministically and says so (the AGENTS.md egress rule)."""
+    student_id = _require_student(session)
+    # Gated here and not on GET /student/resume or the PDF: a switched-off
+    # Resume Builder stops the student MAKING a new document, and does not take
+    # away the ones they already made. See require_feature's docstring for the
+    # rule; it is the same one that keeps DELETE /uploads/{id} open.
+    require_feature(db, student_id, "student.resume")
+    markdown = _compose_for_student(db, student_id, session.get("name", ""))
+    markdown, generated_by, model, used_ai, note = _polish(db, markdown)
 
     version = (
         db.scalar(select(func.max(Resume.version)).where(Resume.student_id == student_id)) or 0
@@ -1977,10 +2120,10 @@ def generate_resume(
     resume = Resume(
         student_id=student_id,
         version=version,
-        title=body.title or "REEP Resume",
-        target_role=body.target_role,
+        title=_clean_title(body.title) or "REEP Resume",
+        target_role=_rt(body.target_role) or None,
         status=ResumeStatus.GENERATED,
-        content={},
+        content={"template": RESUME_TEMPLATE_ID},
         markdown=markdown,
         generated_by=generated_by,
         model=model,
@@ -1991,6 +2134,7 @@ def generate_resume(
     return {
         "id": resume.id,
         "version": version,
+        "template": RESUME_TEMPLATE_ID,
         "generated_by": generated_by,
         "model": model,
         "used_ai": used_ai,
@@ -2009,28 +2153,179 @@ class ResumeOut(BaseModel):
     # When this version was composed — the "Updated …" line on the Export &
     # share step's version list. Additive; nothing else reads it.
     created_at: datetime | None = None
+    # Additive (2026-10-13): what the update and delete controls need.
+    updated_at: datetime | None = None
+    target_role: str | None = None
+    #: The layout the version was composed in; None for a version made before
+    #: the standard template existed, which "Regenerate" brings onto it.
+    template: str | None = None
+
+
+class ResumeDetailOut(ResumeOut):
+    markdown: str
+
+
+def _resume_out(r: Resume) -> ResumeOut:
+    return ResumeOut(
+        id=r.id,
+        version=r.version,
+        title=r.title,
+        status=r.status.value,
+        generated_by=r.generated_by,
+        model=r.model,
+        created_at=r.created_at,
+        updated_at=r.updated_at,
+        target_role=r.target_role,
+        template=(r.content or {}).get("template") if isinstance(r.content, dict) else None,
+    )
 
 
 @router.get("/resume", response_model=list[ResumeOut])
 def list_resumes(
     session: dict = Depends(get_current_session), db: Session = Depends(get_db)
 ) -> list[ResumeOut]:
+    """READ: the student's own versions, newest first."""
     student_id = _require_student(session)
     rows = db.scalars(
         select(Resume).where(Resume.student_id == student_id).order_by(Resume.created_at.desc())
     ).all()
-    return [
-        ResumeOut(
-            id=r.id,
-            version=r.version,
-            title=r.title,
-            status=r.status.value,
-            generated_by=r.generated_by,
-            model=r.model,
-            created_at=r.created_at,
+    return [_resume_out(r) for r in rows]
+
+
+#: A title is a label on the student's own list, not a document field; a cap
+#: keeps a pasted paragraph from becoming one.
+RESUME_TITLE_MAX = 120
+
+
+def _clean_title(value) -> str:
+    return _rt(value)[:RESUME_TITLE_MAX]
+
+
+def _own_resume(db: Session, student_id: str, resume_id: str) -> Resume:
+    """The caller's own resume, or the same 404 whether it is absent or another's."""
+    resume = db.get(Resume, resume_id)
+    if resume is None or resume.student_id != student_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found.")
+    return resume
+
+
+def _refuse_if_finalised(resume: Resume, act: str) -> None:
+    """A FINALISED version is the copy the student has decided to send; it is
+    not rewritten or deleted underneath them. Un-finalising is one PATCH."""
+    if resume.status == ResumeStatus.FINALISED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"This resume is finalised. Mark it as a draft again before you {act} it.",
         )
-        for r in rows
-    ]
+
+
+@router.get("/resume/{resume_id}", response_model=ResumeDetailOut)
+def get_resume(
+    resume_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> ResumeDetailOut:
+    """READ one version, with its document."""
+    student_id = _require_student(session)
+    r = _own_resume(db, student_id, resume_id)
+    return ResumeDetailOut(**_resume_out(r).model_dump(), markdown=r.markdown or "")
+
+
+class ResumeUpdateIn(BaseModel):
+    """What a student may change on a saved version without recomposing it.
+
+    The DOCUMENT is not here on purpose: its "Verified Skills" heading is a
+    claim a mentor checked, and a free-text edit of the markdown would let any
+    line be printed under it. The way to change what a version says is to edit
+    the builder and press Regenerate, which composes it again from the record.
+    """
+
+    title: str | None = None
+    target_role: str | None = None
+    #: GENERATED or FINALISED. DRAFT is the model's default for a row nothing
+    #: has composed yet, which a saved version never is.
+    status: str | None = None
+
+
+@router.patch("/resume/{resume_id}", response_model=ResumeOut)
+def update_resume(
+    resume_id: str,
+    body: ResumeUpdateIn,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> ResumeOut:
+    """UPDATE a version's label, target role or finalised state."""
+    student_id = _require_student(session)
+    r = _own_resume(db, student_id, resume_id)
+    if body.status is not None:
+        if body.status not in (ResumeStatus.GENERATED.value, ResumeStatus.FINALISED.value):
+            raise HTTPException(
+                status_code=422, detail="Status must be GENERATED or FINALISED."
+            )
+        r.status = ResumeStatus(body.status)
+    if body.title is not None:
+        title = _clean_title(body.title)
+        if not title:
+            raise HTTPException(status_code=422, detail="A resume needs a name.")
+        r.title = title
+    if body.target_role is not None:
+        r.target_role = _rt(body.target_role)[:RESUME_TITLE_MAX] or None
+    db.commit()
+    db.refresh(r)
+    return _resume_out(r)
+
+
+@router.post(
+    "/resume/{resume_id}/regenerate",
+    response_model=ResumeDetailOut,
+    dependencies=[Depends(llm_rate_limited)],
+)
+def regenerate_resume(
+    resume_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> ResumeDetailOut:
+    """UPDATE a version's document: compose it again, in the standard template,
+    from what the builder and the record hold NOW. Same id, same version number,
+    so the student's list keeps its shape; a version made before the template
+    existed is brought onto it this way."""
+    student_id = _require_student(session)
+    require_feature(db, student_id, "student.resume")
+    r = _own_resume(db, student_id, resume_id)
+    _refuse_if_finalised(r, "regenerate")
+    resume_pk = r.id
+    markdown = _compose_for_student(db, student_id, session.get("name", ""))
+    markdown, generated_by, model, _used_ai, _note = _polish(db, markdown)
+    # Re-read and re-check: the model call can take LLM_TIMEOUT_MS, and the
+    # student may have finalised this version from another tab meanwhile.
+    r = _own_resume(db, student_id, resume_pk)
+    _refuse_if_finalised(r, "regenerate")
+    r.markdown = markdown
+    r.generated_by = generated_by
+    r.model = model
+    r.status = ResumeStatus.GENERATED
+    r.content = {**(r.content if isinstance(r.content, dict) else {}), "template": RESUME_TEMPLATE_ID}
+    db.commit()
+    db.refresh(r)
+    return ResumeDetailOut(**_resume_out(r).model_dump(), markdown=r.markdown or "")
+
+
+@router.delete("/resume/{resume_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_resume(
+    resume_id: str,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> Response:
+    """DELETE one of the student's own versions. The builder's saved sections
+    are untouched — a version is a composed copy, and the record it was composed
+    from stays — so a deleted version can always be generated again. Not
+    feature-gated, for the same reason DELETE /uploads/{id} is not."""
+    student_id = _require_student(session)
+    r = _own_resume(db, student_id, resume_id)
+    _refuse_if_finalised(r, "delete")
+    db.delete(r)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 def _evidence_proofs(db: Session, student_id: str) -> list[EvidenceProof]:
@@ -2114,9 +2409,7 @@ def resume_pdf(
     student's own cookie, so a recruiter following one reaches a login page.
     """
     student_id = _require_student(session)
-    resume = db.get(Resume, resume_id)
-    if resume is None or resume.student_id != student_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found.")
+    resume = _own_resume(db, student_id, resume_id)
     pdf = render_resume_pdf(resume.markdown or "", fallback_title=resume.title or "REEP Resume")
     if appendix:
         pdf = append_evidence(pdf, _evidence_proofs(db, student_id))

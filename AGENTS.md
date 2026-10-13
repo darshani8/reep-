@@ -1416,8 +1416,9 @@ first), Experience, Internships, Projects, Verified Skills, Key Expertise
 (self-reported), Certifications (self-reported), Positions of Responsibility,
 Achievements, Awards, Publications, Seminars, Activities, Languages, References,
 Declaration. Empty sections still drop out. The AI polish is told to keep the
-headings and is DISCARDED when it does not (`_polish_keeps_template`), so a
-model cannot give one student a different layout from their batch. A saved
+headings and the Education table and is DISCARDED when it changes either
+(`_polish_keeps_template`), so a model cannot give one student a different
+layout from their batch, nor print a CGPA or an institution REEP does not hold. A saved
 version is CRUD: `POST /resume/generate` creates, `GET /resume[/{id}]` reads,
 `PATCH /resume/{id}` renames / sets the target role / finalises,
 `POST /resume/{id}/regenerate` recomposes it in the template from the builder as

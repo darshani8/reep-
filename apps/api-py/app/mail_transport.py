@@ -223,8 +223,18 @@ def send(to: str, subject: str, text: str) -> None:
     this module that looks exactly like success, on every path a student has.
     """
     if not configured():
+        if not settings.env_is_dev:
+            # OUTSIDE DEV AND CI THERE IS NO CONSOLE TRANSPORT (2026-10-13). The
+            # body is an onboarding, activation or reset link, each a bearer
+            # token, and on a deployed host this log line is CloudWatch. And a
+            # normal return here is recorded SENT by `deliver_once` for a
+            # message that reached nobody. So: say so without the address or
+            # the body, and raise, which `deliver_once` records as FAILED.
+            log.warning("MAIL NOT SENT: no transport configured (SES_FROM_ADDRESS blank) subject=%r", subject)
+            raise RuntimeError("no mail transport is configured on this environment")
         outbox.append(OutboxEntry(to=to, subject=subject, text=text))
-        log.info("MAIL (no transport configured) to=%s subject=%r\n%s", to, subject, text)
+        # One line: a multi-line entry is several events to every log reader.
+        log.info("MAIL (no transport configured) to=%s subject=%r body=%r", to, subject, text)
         return
 
     # Imported here, not at module scope: boto3 is on every install (the resume

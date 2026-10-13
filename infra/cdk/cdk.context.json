@@ -31,7 +31,7 @@
   "liveAllocatedStorage": 20,
   "liveBackupRetentionDays": 1,
   "liveDbMultiAz": false,
-  "novaSonicRegion": "ap-northeast-1",
+  "novaSonicRegion": "eu-north-1",
   "restrictAlbToCloudfront": true,
   "wafWebAclArn": "arn:aws:wafv2:us-east-1:445363794125:global/webacl/reep-edge/452a8dc8-6b3e-4ea8-a24f-b6aca6c9abc2",
   "webBucketName": "reep-web-20260827213147410900000003"

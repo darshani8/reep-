@@ -65,8 +65,8 @@ box(40, 152, 362, 122, "ANGULAR 22.1 · TYPESCRIPT 6.0", [
 ], C_CLIENT, body=10, lh=13)
 box(40, 286, 362, 110, "SCREEN MAP", [
     "/student/* — 19 routes (badges, ledger, jobs, resume, …)",
-    "/mentor/* — mentees · leave · badge-centre · upskilling",
-    "/director/* — analytics · catalogue · exports",
+    "/mentor/* — Faculty (MENTOR): mentees · leave · upskilling",
+    "/admin/* — Main Admin (ADMIN): setup · people · exports",
     "/alumni · /alumni/jobs · /login · /register",
     "!'' → homeRedirectGuard sends each role to its own home",
 ], C_CLIENT, body=10, lh=13)
@@ -127,7 +127,7 @@ PIPE = [
         "~Password path (dev/CI only): scrypt N=16384 r=8 p=1 dklen=64",
     ]),
     (582, 78, "5. SCOPE GATES — THE TWO RULES, IN CODE", [
-        "_require_student · require_mentor · require_director",
+        "_require_student · require_mentor · require_admin",
         "!_assert_can_access_student — ONE implementation, imported",
         "Out-of-scope ids flatten to 404, never 403 (no membership oracle)",
     ]),

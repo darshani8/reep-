@@ -23,7 +23,7 @@
 <text x="32" y="114" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#ffffff" text-anchor="start" letter-spacing="0.9">1 · PEOPLE &amp; ROLES</text>
 <rect x="22" y="138" width="259" height="136" rx="9" fill="#ffffff" stroke="#1d4ed8" stroke-width="1.7"/>
 <path d="M31 138 H272 A9 9 0 0 1 281 147 V164 H22 V147 A9 9 0 0 1 31 138 Z" fill="#1d4ed8"/>
-<text x="33" y="156" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="start" letter-spacing="0.5">STUDENT</text>
+<text x="33" y="156" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="start" letter-spacing="0.5">STUDENT · role STUDENT</text>
 <text x="33" y="180" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Google SSO · must exist on the roster</text>
 <text x="33" y="192.6" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Programme map · Reboot→Excel→Elevate</text>
 <text x="33" y="205.2" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Skills &amp; Badge profile — 48 badges</text>
@@ -33,28 +33,28 @@
 <text x="33" y="255.59999999999997" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">AI mock interview + practice reports</text>
 <rect x="295" y="138" width="259" height="136" rx="9" fill="#ffffff" stroke="#1d4ed8" stroke-width="1.7"/>
 <path d="M304 138 H545 A9 9 0 0 1 554 147 V164 H295 V147 A9 9 0 0 1 304 138 Z" fill="#1d4ed8"/>
-<text x="306" y="156" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="start" letter-spacing="0.5">FACULTY / MENTOR</text>
-<text x="306" y="180" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Mentee log — 1:1 notes students read</text>
-<text x="306" y="192.6" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Leave — submit + two-approver queue</text>
-<text x="306" y="205.2" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Badge Centre — verify evidence, award</text>
-<text x="306" y="217.79999999999998" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Capability assessments T0 → T4</text>
+<text x="306" y="156" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="start" letter-spacing="0.5">FACULTY · role MENTOR</text>
+<text x="306" y="180" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="700" fill="#1d4ed8" text-anchor="start">A mentor only once assigned a mentee</text>
+<text x="306" y="192.6" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Mentee log — 1:1 notes students read</text>
+<text x="306" y="205.2" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Leave — apply; the Main Admin sanctions</text>
+<text x="306" y="217.79999999999998" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Badge Centre · assessments T0 → T4</text>
 <text x="306" y="230.39999999999998" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Upskilling — own certificates</text>
 <text x="306" y="242.99999999999997" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Scope: their own mentee group ONLY</text>
 <text x="306" y="255.59999999999997" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="700" fill="#1d4ed8" text-anchor="start">No group ⇒ sees NOBODY (rule 2)</text>
 <rect x="568" y="138" width="259" height="136" rx="9" fill="#ffffff" stroke="#1d4ed8" stroke-width="1.7"/>
 <path d="M577 138 H818 A9 9 0 0 1 827 147 V164 H568 V147 A9 9 0 0 1 577 138 Z" fill="#1d4ed8"/>
-<text x="579" y="156" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="start" letter-spacing="0.5">DIRECTOR / ADMIN</text>
-<text x="579" y="180" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">All a mentor sees, programme-wide</text>
-<text x="579" y="192.6" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Approved Certification Catalogue</text>
-<text x="579" y="205.2" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Manual award · revoke badges</text>
-<text x="579" y="217.79999999999998" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Cohort growth view + CSV export</text>
+<text x="579" y="156" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="start" letter-spacing="0.5">MAIN ADMIN · role ADMIN</text>
+<text x="579" y="180" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="700" fill="#1d4ed8" text-anchor="start">The placement office (TPO) — ONE account</text>
+<text x="579" y="192.6" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">All a mentor sees, programme-wide</text>
+<text x="579" y="205.2" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Approved Certification Catalogue</text>
+<text x="579" y="217.79999999999998" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Manual award · revoke badges</text>
 <text x="579" y="230.39999999999998" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Placement criteria · offers · intake</text>
 <text x="579" y="242.99999999999997" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Interview audio (consented only)</text>
-<text x="579" y="255.59999999999997" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Roster seeding · access grants</text>
+<text x="579" y="255.59999999999997" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Grants console screens to faculty</text>
 <rect x="841" y="138" width="259" height="136" rx="9" fill="#ffffff" stroke="#1d4ed8" stroke-width="1.7"/>
 <path d="M850 138 H1091 A9 9 0 0 1 1100 147 V164 H841 V147 A9 9 0 0 1 850 138 Z" fill="#1d4ed8"/>
-<text x="852" y="156" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="start" letter-spacing="0.5">ALUMNI</text>
-<text x="852" y="180" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">A role with no Student/Mentor row</text>
+<text x="852" y="156" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="start" letter-spacing="0.5">ALUMNI · role ALUMNI</text>
+<text x="852" y="180" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">A role with no student or mentor row</text>
 <text x="852" y="192.6" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">First login ⇒ create profile</text>
 <text x="852" y="205.2" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Company + current resume (required)</text>
 <text x="852" y="217.79999999999998" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="400" fill="#111827" text-anchor="start">Resume kept if omitted on update</text>
@@ -119,7 +119,7 @@
 <text x="51" y="654" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" fill="#111827" text-anchor="start">badges · badge_verification — 48-badge engine, evidence, growth</text>
 <text x="51" y="668" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" fill="#111827" text-anchor="start">mentor · mentee_records — mentee scope enforced (rule 2)</text>
 <text x="51" y="682" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" fill="#111827" text-anchor="start">alumni · staff_upskilling · leave — alumni + faculty surfaces</text>
-<text x="51" y="696" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" fill="#111827" text-anchor="start">director · registration · health</text>
+<text x="51" y="696" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" fill="#111827" text-anchor="start">console · admin_* (the Main Admin) · registration · health</text>
 <text x="51" y="710" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" fill="#111827" text-anchor="start">interview — WebSocket /api/interview, the realtime relay</text>
 <text x="51" y="724" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" fill="#111827" text-anchor="start">voice · agent — retained rollback path, no UI caller</text>
 <text x="51" y="738" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="700" fill="#64748b" text-anchor="start">SERVICE LAYER</text>
@@ -277,7 +277,7 @@
 <path d="M1161 1102 H1627 A9 9 0 0 1 1636 1111 V1128 H1152 V1111 A9 9 0 0 1 1161 1102 Z" fill="#7c2d12"/>
 <text x="1163" y="1120" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="start" letter-spacing="0.5">CONSENT IS A ROW, NOT A SETTING</text>
 <text x="1163" y="1144" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10.2" font-weight="700" fill="#7c2d12" text-anchor="start">Two switches: the deployment flag AND the student's own</text>
-<text x="1163" y="1157" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10.2" font-weight="400" fill="#111827" text-anchor="start">store-audio tick · DIRECTOR/ADMIN only · deleted after 180 days</text>
+<text x="1163" y="1157" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="10.2" font-weight="400" fill="#111827" text-anchor="start">store-audio tick · Main Admin only (faculty by grant) · 180-day clock</text>
 <polyline points="1100,600 1130,600" fill="none" stroke="#be123c" stroke-width="2.8" marker-end="url(#a-be123c)" stroke-linejoin="round"/>
 <polyline points="1100,726 1130,726" fill="none" stroke="#0369a1" stroke-width="2.8" marker-end="url(#a-0369a1)" stroke-linejoin="round"/>
 <line x1="22" y1="1178" x2="1658" y2="1178" stroke="#64748b" stroke-width="1"/>

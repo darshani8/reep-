@@ -3,10 +3,12 @@
  * verified or a submitted document stops being "in review".
  *
  * A student files a claim on Skilling; it lands here, for their assigned mentor
- * and nobody else. There is no admin queue, no escalation and no second
- * approver: `GET /mentor/badge-evidence/pending` narrows to the mentor's own
- * group server-side, and the review endpoint re-checks scope, so the routing is
- * a property of the API rather than of this screen.
+ * AND for anybody holding a Governance grant of "Verify skills & evidence"
+ * whose scope covers that student (2026-10-13 — verification no longer depends
+ * on mentoring, so a student without a mentor is not a student nobody can
+ * review). `GET /mentor/badge-evidence/pending` does that narrowing
+ * server-side and the review endpoint re-checks it, so the routing is a
+ * property of the API rather than of this screen.
  *
  * THIS SCREEN READS THE QUEUE THE CLAIM FORM FILES INTO (2026-09-17). The
  * Skilling claim card stores the certificate and posts

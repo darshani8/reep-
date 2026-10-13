@@ -245,10 +245,11 @@ def test_an_empty_section_leaves_no_empty_heading() -> None:
         "## Verified Skills",
     ):
         assert heading not in md, f"{heading} was printed with nothing under it"
-    # The name and the academics line still stand: a document with neither is
+    # The name and the education table still stand: a document with neither is
     # not a resume, and "not yet assessed" is a fact rather than an empty slot.
     assert md.startswith("# Test Student")
-    assert "## Academics" in md
+    assert "## Education" in md
+    assert "Not yet assessed" in md
 
 
 def test_a_row_the_student_never_named_is_not_a_claim() -> None:

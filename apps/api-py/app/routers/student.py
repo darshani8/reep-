@@ -1961,14 +1961,39 @@ def _headings(markdown: str) -> list[str]:
     return [ln[3:].strip() for ln in (markdown or "").splitlines() if ln.startswith("## ")]
 
 
+def _table_rows(markdown: str) -> list[tuple[str, ...]]:
+    """The content rows of every `| … |` table, cells trimmed, separators skipped.
+
+    Normalised so a model that only re-pads the cells or rewrites `| --- |` as
+    `|:---|` is not counted as having changed anything.
+    """
+    rows = []
+    for ln in (markdown or "").splitlines():
+        ln = ln.strip()
+        if not ln.startswith("|"):
+            continue
+        cells = tuple(c.strip() for c in ln.strip("|").split("|"))
+        if all(c and set(c) <= set("-: ") for c in cells):
+            continue
+        rows.append(cells)
+    return rows
+
+
 def _polish_keeps_template(draft: str, polished: str) -> bool:
-    """Did the model keep the standard template's headings, in order?
+    """Did the model keep the standard template's headings and its Education table?
 
     The polish is told to, and a model that drops Education or reorders the
     sections has produced a resume that no longer follows the one template every
     other student's does — so it is discarded and the deterministic draft kept.
+    The table rows are compared too: they are the student's record (programme,
+    institution, year, CGPA or percentage), and a polish that rewrote a score or
+    an institution would put a figure on the document that REEP does not hold.
     """
-    return bool(polished.strip()) and _headings(polished) == _headings(draft)
+    return (
+        bool(polished.strip())
+        and _headings(polished) == _headings(draft)
+        and _table_rows(polished) == _table_rows(draft)
+    )
 
 
 def _programme_for(db: Session, student_id: str) -> dict:
@@ -2063,8 +2088,8 @@ def _polish(db: Session, markdown: str) -> tuple[str, str, str | None, bool, str
                 "fallback",
                 None,
                 False,
-                "AI polish changed the standard resume layout, so the deterministic "
-                "draft was kept.",
+                "AI polish changed the standard resume layout or the Education table, "
+                "so the deterministic draft was kept.",
             )
         return polished, cfg.provider, cfg.model, True, None
     if cfg is None:

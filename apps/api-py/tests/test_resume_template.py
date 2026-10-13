@@ -95,6 +95,29 @@ def test_a_polish_that_moves_a_section_is_refused() -> None:
     assert not _polish_keeps_template(draft, "")
 
 
+def test_a_polish_that_changes_the_education_table_is_refused() -> None:
+    """A score or an institution the model rewrote is not on the student's record."""
+    draft = _full()
+    assert "CGPA 8.4" in draft and "Christ University" in draft
+    assert not _polish_keeps_template(draft, draft.replace("CGPA 8.4", "CGPA 9.4"))
+    assert not _polish_keeps_template(draft, draft.replace("Christ University", "IIM Bangalore"))
+    # A dropped row is a change too.
+    no_tenth = "\n".join(ln for ln in draft.splitlines() if "Class X |" not in ln)
+    assert not _polish_keeps_template(draft, no_tenth)
+
+
+def test_a_polish_that_only_repads_the_table_is_kept() -> None:
+    """Whitespace and separator style are formatting, not facts."""
+    draft = _full()
+    repadded = draft.replace("| --- | --- | --- | --- |", "|:---|:---|:---|:---|").replace(
+        "| General MBA | BGSCET |", "|  General MBA  |  BGSCET  |"
+    )
+    assert repadded != draft
+    assert _polish_keeps_template(draft, repadded)
+    # And prose outside the table may change freely.
+    assert _polish_keeps_template(draft, draft.replace("MARKEROBJECTIVE", "A sharper objective"))
+
+
 def test_a_line_of_only_separators_is_text_not_a_crash() -> None:
     """A student's own `|---|` line must not 500 the download."""
     for md in ("# T\n|---|\n", "# T\n|-|\n|:-:|\nAfter\n"):

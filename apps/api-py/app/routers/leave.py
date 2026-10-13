@@ -807,7 +807,10 @@ def change_decision(
     live requests for one day is the state that rule exists to prevent.
     """
     _require_leave_approver(db, session)
-    lr = db.get(LeaveRequest, leave_id)
+    # FOR UPDATE: two approvers pressing Revoke at the same moment would both
+    # pass the status check on an unlocked read and write two audit rows. The
+    # second now waits, re-reads REVOKED, and is answered 409.
+    lr = db.get(LeaveRequest, leave_id, with_for_update=True)
     if lr is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Leave request not found.")
     _assert_can_decide(session, lr, db)

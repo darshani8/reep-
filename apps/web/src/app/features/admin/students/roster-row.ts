@@ -329,42 +329,44 @@ export function trackColourOf(specializationCode: string | null): string {
   return track.colour;
 }
 
+/** One entry of the roster's Batch select: a YEAR, and the batches it covers. */
+export interface BatchYear {
+  /** "2025-27", or "2025-27 · Section B" for a batch the office named. */
+  label: string;
+  batchIds: string[];
+  /** False only when every batch of that year has ended. */
+  isRunning: boolean;
+}
+
 /**
- * How one Batch option is written in the roster's filter row: the spine rungs
- * the selects ABOVE it have not already pinned, then the batch itself.
+ * The roster's Batch select, drawn the way `/register` draws it: each year
+ * ONCE (2026-10-06).
  *
- * THE RULE IS NOT "NEVER SHOW THE SPINE", AND THAT DISTINCTION SHIPPED BROKEN
- * ONCE. Dropping it entirely is right about the duplication — Course and
- * Specialization are two selects to the left — and wrong about the state the
- * screen OPENS in. `seed_catalogue.batch_name` returns the label unchanged and
- * the setup screen's `batchName` is `label.trim()`, so every batch a
- * deployment writes has `name === batch_label === "2026-28"`. BGSCET's one
- * department has six leaves, so with Course and Specialization on "All" the
- * select listed six options reading exactly "2026-28" and picking one was a
- * guess.
- *
- * So a rung is spelled out exactly while the reader has not fixed it. At the
- * bottom of the cascade both are fixed and the option is the year alone, which
- * is what the owner asked for and also the only point at which the year alone
- * identifies anything.
- *
- * Pure, and separate from the component, so the case above is a unit test
- * rather than a thing somebody has to open the screen to see.
+ * It used to print one option per batch with the course and specialization
+ * spelled in front ("General MBA - Finance · 2025-27"), which repeated the
+ * Course and Specialization selects beside it and listed one year six times.
+ * A batch IS a year; WHICH course and specialization is what the selects to
+ * the left say. So a year here may cover several batches, and the component
+ * resolves it to ONE only when the selects above narrow it that far -- which
+ * is what the batch actions need, because each one writes to exactly one
+ * batch. Keyed on `yearLabel`, so two sections of one year stay two options.
  */
-export function batchPickerLabel(
-  batch: Pick<BatchOption, 'courseName' | 'specializationName' | 'name' | 'batchLabel'>,
-  pinned: { course: boolean; specialization: boolean },
-  compose: (
-    courseName: string | null,
-    specializationName: string | null,
-    name: string,
-    batchLabel: string,
-  ) => string,
-): string {
-  return compose(
-    pinned.course ? null : batch.courseName,
-    pinned.specialization ? null : batch.specializationName,
-    batch.name,
-    batch.batchLabel,
-  );
+export function batchYears(
+  batches: readonly Pick<BatchOption, 'id' | 'yearLabel' | 'isRunning'>[],
+): BatchYear[] {
+  const byLabel = new Map<string, BatchYear>();
+  for (const batch of batches) {
+    const entry = byLabel.get(batch.yearLabel);
+    if (entry === undefined) {
+      byLabel.set(batch.yearLabel, {
+        label: batch.yearLabel,
+        batchIds: [batch.id],
+        isRunning: batch.isRunning,
+      });
+    } else {
+      entry.batchIds.push(batch.id);
+      entry.isRunning ||= batch.isRunning;
+    }
+  }
+  return [...byLabel.values()];
 }

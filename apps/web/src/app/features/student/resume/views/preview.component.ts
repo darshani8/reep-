@@ -47,8 +47,10 @@ interface Segment {
 
 /** A rendered markdown block. */
 interface Block {
-  kind: 'title' | 'section' | 'bullet' | 'para';
+  kind: 'title' | 'section' | 'bullet' | 'para' | 'table';
   segs: Segment[];
+  /** For a `table` block: the header row, then the body rows. */
+  rows?: string[][];
 }
 
 /**
@@ -73,11 +75,38 @@ function segmentsOf(text: string): Segment[] {
     .filter((s) => s.text.length > 0);
 }
 
-/** A tiny markdown reader: headings, bullets and paragraphs with inline bold. */
+/** The cells of one `| a | b |` table line. */
+function cellsOf(line: string): string[] {
+  return line
+    .replace(/^\|/, '')
+    .replace(/\|$/, '')
+    .split('|')
+    .map((c) => c.trim());
+}
+
+/** A `| --- | --- |` line, which separates a table's header from its body. */
+function isSeparator(line: string): boolean {
+  return cellsOf(line).every((c) => c.length > 0 && /^[-:\s]+$/.test(c));
+}
+
+/**
+ * A tiny markdown reader: headings, bullets, paragraphs with inline bold, and
+ * the `| … |` table the standard template draws Education as.
+ */
 function parseMarkdown(md: string): Block[] {
   const blocks: Block[] = [];
+  let table: string[][] | null = null;
   for (const raw of md.split('\n')) {
     const line = raw.trim();
+    if (line.startsWith('|')) {
+      if (!table) {
+        table = [];
+        blocks.push({ kind: 'table', segs: [], rows: table });
+      }
+      if (!isSeparator(line)) table.push(cellsOf(line));
+      continue;
+    }
+    table = null;
     if (!line) continue;
     if (line.startsWith('# ')) blocks.push({ kind: 'title', segs: segmentsOf(line.slice(2)) });
     else if (line.startsWith('## '))

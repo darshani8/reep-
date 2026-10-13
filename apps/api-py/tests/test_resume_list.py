@@ -65,6 +65,10 @@ def test_resume_list_rows_carry_created_at(client, two_resumes):
             "generated_by",
             "model",
             "created_at",
+            # Additive (2026-10-13), for the builder's update and delete controls.
+            "updated_at",
+            "target_role",
+            "template",
         }
         # A real timestamp, parseable, never null for a stored row.
         assert row["created_at"] is not None

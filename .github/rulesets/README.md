@@ -26,6 +26,16 @@ and every gate the process documents in this repository stands behind that one
 open door. Read anything in `CONTRIBUTING.md` that speaks of `main` being
 protected as describing the state *after* this file is applied.
 
+## Three rulesets now, one per long-lived branch
+
+`main.json`, `stage.json` and `dev.json` implement `docs/branching-strategy.md`.
+All three demand a PR, the five CI checks, no force push and no deletion.
+`main` and `stage` additionally require **Branch policy (promotion path)**
+(`.github/workflows/branch-policy.yml`) and allow **merge commits only**. Apply
+each the same way, substituting the file name; `stage` and `dev` must exist as
+branches first, or the ruleset applies to nothing. `tests/test_codebase_guards.py`
+§34 compares all three against `ci.yml`.
+
 ## Applying it
 
 ```bash

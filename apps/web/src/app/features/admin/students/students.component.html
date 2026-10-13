@@ -92,23 +92,19 @@
       </select>
     </div>
 
-    <!-- Batch sits LAST of the four because it is narrowed by all three above
-         it, and a cascade drawn out of order asks the reader to work backwards.
-         An option spells out only what the selects above have NOT pinned, so at
-         the bottom of the cascade it is the year alone and at the top it still
-         says which course — see `batchPickerOptions`, and the six identical
-         "2026-28"s that got it there. The two sentinels are not batches and
-         must stay reachable at every narrowing: "Every student" is how the
-         reader gets back out. -->
+    <!-- Batch sits LAST because the three selects above narrow it. It lists
+         each YEAR once, the way /register does (2026-10-06): which course and
+         specialization is what the selects above say, and a year resolves to
+         one batch once they narrow it that far — see `resolveYear`. -->
     <div class="select batch-select">
       <span class="lbl">Batch</span>
       <span class="val">{{ batchFilterLabel() }}</span>
-      <select aria-label="Batch" (change)="setBatchFilter(selectValue($event))">
-        <option value="" [selected]="batchFilter() === ''">Every student</option>
+      <select aria-label="Batch" (change)="setBatchYear(selectValue($event))">
+        <option value="" [selected]="batchFilter() === '' && yearFilter() === ''">Every student</option>
         <option value="unseated" [selected]="batchFilter() === 'unseated'">No batch yet</option>
-        @for (option of batchPickerOptions(); track option.batch.id) {
-          <option [value]="option.batch.id" [selected]="option.batch.id === batchFilter()">
-            {{ option.label }}{{ option.batch.isRunning ? '' : ' (ended)' }}
+        @for (year of batchYearOptions(); track year.label) {
+          <option [value]="year.label" [selected]="year.label === yearFilter()">
+            {{ year.label }}{{ year.isRunning ? '' : ' (ended)' }}
           </option>
         }
       </select>

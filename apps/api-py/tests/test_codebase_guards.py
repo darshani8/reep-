@@ -1702,10 +1702,22 @@ def test_the_five_required_check_names_agree_across_all_four_files() -> None:
         f"independently of the other: {sorted(jobs.items())}"
     )
 
-    ruleset = json.loads((REPO / ".github" / "rulesets" / "main.json").read_text(encoding="utf-8"))
-    checks = [r for r in ruleset["rules"] if r["type"] == "required_status_checks"]
-    assert len(checks) == 1, "main.json declares no single required_status_checks rule"
-    ruleset_names = {c["context"] for c in checks[0]["parameters"]["required_status_checks"]}
+    # main and stage also require the promotion-path check, which lives in its
+    # own workflow (.github/workflows/branch-policy.yml) and is pinned by
+    # tests/test_branch_policy.py; it is not a ci.yml job, so it is set aside here.
+    branch_policy = "Branch policy (promotion path)"
+    rulesets: dict[str, set[str]] = {}
+    for branch in ("main", "stage", "dev"):
+        ruleset = json.loads((REPO / ".github" / "rulesets" / f"{branch}.json").read_text(encoding="utf-8"))
+        checks = [r for r in ruleset["rules"] if r["type"] == "required_status_checks"]
+        assert len(checks) == 1, f"{branch}.json declares no single required_status_checks rule"
+        rulesets[branch] = {c["context"] for c in checks[0]["parameters"]["required_status_checks"]} - {branch_policy}
+    ruleset_names = rulesets["main"]
+    for branch, names in rulesets.items():
+        assert names == ruleset_names, (
+            f"{branch}.json requires different CI checks from main.json: "
+            f"{sorted(names ^ ruleset_names)}. Every protected branch is gated by the same five."
+        )
 
     protect = (REPO / "tools" / "ci" / "protect-main.sh").read_text(encoding="utf-8")
     block = re.search(r"^REQUIRED_CHECKS=\((.*?)^\)", protect, re.S | re.M)
@@ -1715,7 +1727,7 @@ def test_the_five_required_check_names_agree_across_all_four_files() -> None:
 
     assert ruleset_names == ci_names, (
         "the committed ruleset and ci.yml disagree about the required checks.\n"
-        f"  only in .github/rulesets/main.json: {sorted(ruleset_names - ci_names)}\n"
+        f"  only in .github/rulesets/*.json:   {sorted(ruleset_names - ci_names)}\n"
         f"  only in ci.yml:                     {sorted(ci_names - ruleset_names)}\n"
         "A required check no job reports is never reported, and GitHub does not "
         "wait for a check it has never seen on that branch."

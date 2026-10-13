@@ -53,6 +53,8 @@ from sqlalchemy.orm import Session
 from fastapi.responses import RedirectResponse
 
 from .. import account_links, batch_labels, dual_specialization
+from ..clock import local_today
+from ..semester_bounds import semester_on
 from ..config import settings
 from ..db import get_db
 from ..identity import get_current_session
@@ -2335,6 +2337,10 @@ def _provision_student(db: Session, reg: Registration) -> Student:
             # because a stored application is not a human contradicting
             # themselves, so this derives and never refuses an approval.
             department_id=_provisioned_department(db, cohort_id, reg.department_id),
+            # THE SEMESTER COMES FROM THE BATCH (2026-10-06). The form never asks
+            # for one, and the column's default of 1 put every student who
+            # registered mid-programme in semester 1 on every screen and export.
+            current_semester=semester_on(db, cohort_id, local_today()),
             # THE DUAL SPECIALIZATION TRAVELS WITH THE STUDENT (2026-09-23).
             # The batch is the first of the two; the application's other tick
             # is written here, so the roster editor shows what the applicant

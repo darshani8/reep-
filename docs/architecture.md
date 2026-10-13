@@ -3,7 +3,7 @@
 > **PARTLY STALE — last verified against the code 2026-08. Read `AGENTS.md` first
 > where the two disagree.** It was generated from the repository rather than a
 > whiteboard, and that is exactly why it rots: it describes what was there on the
-> day it was read. Four things have changed underneath it since, each of which
+> day it was read. Three things have changed underneath it since, each of which
 > appears in the diagrams below as if it still existed:
 >
 > - **The LiveKit voice stack is gone** (2026-09). No `voice-worker` service, no
@@ -12,12 +12,16 @@
 >   WebSocket inside the API process speaking to Amazon Nova 2 Sonic.
 > - **The `worker-imports` CI job went with it.** CI has five jobs: `api`,
 >   `pii-gate`, `api-imports`, `web`, `cdk`.
-> - **DIRECTOR is not a role** (2026-09-10). One office account, role ADMIN;
->   `require_director` and `/api/director/*` are gone.
 > - **The `openai` interview engine is gone** (2026-09). `interview_relay.py` was
 >   deleted; nothing reads `OPENAI_API_KEY`. The reasoning survives in
 >   `docs/interview-engine-v3.md`, which is a design record, not a description of
 >   running code. `apps/interview-realtime/` was deleted too.
+>
+> A fourth — **DIRECTOR is not a role** (2026-09-10) — was corrected in place on
+> 2026-10-08 rather than banner'd: every diagram below now says Main Admin (role
+> ADMIN, the placement office) and Faculty (role MENTOR), the vocabulary of
+> `AGENTS.md` "Who is who" (repeated in §5), with `/api/admin/*` and `require_admin`
+> where `/api/director/*` and `require_director` stood.
 >
 > Everything else was accurate when written and most of it still is. Corrected in
 > place rather than banner'd: `docs/deployment-env.md`.
@@ -45,7 +49,7 @@ uploads, resume PDF rendering, the knowledge base — lives in the one API proce
 
 ```mermaid
 flowchart TB
-    subgraph browser["🖥️ BROWSER — student / mentor / director"]
+    subgraph browser["🖥️ BROWSER — Student · Faculty (role MENTOR) · Main Admin (role ADMIN) · Alumni"]
         SPA["<b>Angular 22.1 SPA</b><br/>standalone components · signals · ReactiveForms<br/>@angular/build (esbuild) · TypeScript 6.0<br/>lazy routes → ~142 kB initial<br/>apexcharts · ng-apexcharts · livekit-client · rxjs 7.8"]
         AW["<b>AudioWorklet</b> 'pcm-recorder'<br/>mic → PCM16 LE mono 24 kHz<br/>resample 44.1k→24k, 20 ms chunks"]
         PB["<b>PCM playback scheduler</b><br/>AudioContext @24 kHz<br/>jitter buffer + underrun tracking"]
@@ -60,7 +64,7 @@ flowchart TB
     subgraph api["⚙️ PROCESS 1 — REEP API  (python:3.14-slim, uvicorn :3300, UID 10001)"]
         direction TB
         MW["CORS middleware (allow_origins=[WEB_ORIGIN], credentials)<br/>lifespan: boot guard → voice-secret warning → orphan sweep"]
-        R1["<b>Routers</b> /api/auth · /api/student · /api/mentor<br/>/api/director · /api/leaves · /api/register<br/>/api/agent · /api/voice · /api/interview · /health /ready"]
+        R1["<b>Routers</b> /api/auth · /api/student · /api/mentor<br/>/api/admin · /api/leaves · /api/register<br/>/api/agent · /api/voice · /api/interview · /health /ready"]
         REL["<b>app/interview_relay.py</b><br/>in-process WS relay (NOT a 5th process)"]
         SVC["<b>Services</b> conversations · knowledge · document_store<br/>retention · mailer · redaction · resume_pdf<br/>security · google_auth · interview_audio · interview_matrix"]
         AI["<b>app/ai/</b> llm.py (egress gate) · embeddings.py<br/>orchestrator.py · adk.py · agents.py"]
@@ -150,8 +154,8 @@ flowchart LR
     subgraph feats["features/ — every route lazy via loadComponent"]
         L["login · register"]
         ST["student/: overview · academics · certifications · skilling ·<br/>time-log · courses · records · leaderboards · uploads ·<br/>resume (17 section components + preview + all-resumes) ·<br/>jobs · offers · profile · <b>interviews</b>"]
-        AST["assistant/ — ONE chunk shared by<br/>/student/assistant, /mentor/assistant, /director/assistant"]
-        PH["placeholder/ — mentor/* and director/* nav stubs"]
+        AST["assistant/ — /student/assistant, the mock interviewer<br/>agent/ — ONE chat chunk for /student/agent, /mentor/agent, /admin/agent"]
+        AD["admin/ — the Main Admin console (was director/)"]
     end
     subgraph shared["shared/ + styles"]
         KIT["kit.components.ts · tone.ts · icon.component<br/>charts/bar-chart · voice-visualizer"]
@@ -195,7 +199,7 @@ flowchart TB
         A["auth.py /api/auth · login(403 in prod) · sso/status<br/>sso/google · sso/google/callback · me · logout"]
         S["student.py /api/student — 43 endpoints"]
         ME["mentor.py /api/mentor — mentees, notes, alerts,<br/>offers, focus, uploads, skill-claims"]
-        D["director.py /api/director — overview, cohorts,<br/>criteria, mail, alert-rules, job-imports"]
+        D["console.py + admin_*.py /api/admin — the Main Admin console:<br/>overview, cohorts, criteria, mail, alert-rules, job-imports"]
         LV["leave.py /api/leaves"]
         RG["registration.py /api/register"]
         AGR["agent.py /api/agent — chat, chat/stream, ask,<br/>history, runs, knowledge/search, feedback, metrics"]
@@ -395,18 +399,34 @@ sequenceDiagram
 | Roster | `python -m app.seed_roster` derives `1MP25MDM01` → `1mp25mdm01@bgscet.ac.in` (`ROSTER_EMAIL_DOMAIN`, alias `COLLEGE_EMAIL_DOMAIN`, `--rekey-domain` to move a batch) |
 | Allowlist | the `users` table itself. `GOOGLE_ALLOWED_DOMAIN` is a **label, not a fence**. |
 
+### Who is who — the role vocabulary every diagram here uses
+
+| On screen | Stored role | Gate | Reach |
+|---|---|---|---|
+| Student | `STUDENT` | `_require_student` | their own records |
+| Faculty | `MENTOR` | `require_mentor` | their own mentee group, and **nobody** without one (rule 2) |
+| a student's mentor | `MENTOR` plus a `mentors` row (`students.mentor_id`) | `require_mentor` + `_assert_can_access_student` | that student |
+| Alumni | `ALUMNI` | — | their own profile and the jobs sheet |
+| Main Admin — the placement office | `ADMIN` | `require_admin` (the one console gate) | every student; one account per deployment |
+
+"Mentor" is a stored value and a relationship, never the name of an account kind —
+the account is Faculty, and it mentors nobody until the Main Admin assigns it a
+student. "Placement office", "placement cell" and "TPO" on the screens all mean the
+Main Admin. DIRECTOR is not a role (2026-09-10). `AGENTS.md` "Who is who" is the
+reference.
+
 ### Rule 2 — staff scope is decided by role, never by a missing field
 
 ```mermaid
 flowchart LR
     RQ["request + reep_session"] --> DP["deps.get_current_session<br/>(HTTP) / get_ws_session (WS)"]
     DP --> RM{"require_mentor"}
-    RM -->|"MENTOR ✓ DIRECTOR ✓ ADMIN ✓"| SC["_assert_can_access_student()<br/>in routers/mentor.py"]
+    RM -->|"MENTOR (Faculty) ✓ ADMIN (Main Admin) ✓"| SC["_assert_can_access_student()<br/>in routers/mentor.py"]
     RM -->|"STUDENT ✗"| F403["403"]
     SC --> M1{"role"}
-    M1 -->|MENTOR| G1["only students in their OWN Mentor group<br/><b>no group ⇒ NOBODY</b> (never 'whole programme')"]
-    M1 -->|DIRECTOR / ADMIN| G2["all students"]
-    RD{"require_director"} -->|"DIRECTOR ✓ ADMIN ✓"| G2
+    M1 -->|"MENTOR — a faculty member"| G1["only students in their OWN Mentor group<br/><b>no group ⇒ NOBODY</b> (never 'whole programme')"]
+    M1 -->|"ADMIN — the Main Admin"| G2["all students"]
+    RD{"require_admin"} -->|"ADMIN ✓ only — the one console gate"| G2
 ```
 
 ---
@@ -567,7 +587,8 @@ Neither is true in a default deployment. Then `app/interview_audio.py` writes
 time-aligned) — RIFF/WAVE around the PCM16 LE mono 24 kHz already crossing the relay,
 stdlib `wave`, no encoder, no transcode. Capped at `INTERVIEW_RECORDING_MAX_BYTES`
 (64 MB) with a **truncation flag rather than a silent cut**. Retrievable only by
-DIRECTOR/ADMIN. Deleted on the same **180-day** clock (`INTERVIEW_RETENTION_DAYS`).
+the Main Admin (role ADMIN) — a faculty member only by an explicit
+`admin.interview_audio` grant. Deleted on the same **180-day** clock (`INTERVIEW_RETENTION_DAYS`).
 **Branch on `interview_sessions.audio_recorded`, never on `audio_path IS NOT NULL`** —
 a NULL path collapses four different facts into one.
 
@@ -659,7 +680,7 @@ never binds a port** and the log names every problem it found. It fires on:
 - `DATABASE_URL` still carrying this repo's dev password.
 
 It is a **refusal, not a warning**: `AUTH_SECRET` signs `reep_session`, so a production
-host on the repo default is one forged `{"role":"DIRECTOR"}` cookie away from every
+host on the repo default is one forged `{"role":"ADMIN"}` cookie away from every
 student's marks, attendance and USN — no login, no database row involved. On every
 development `ENV` it returns nothing at all, and `tests/test_boot_guard.py` pins that
 as hard as it pins the refusal: **a guard that trips on a laptop gets deleted by
@@ -747,7 +768,7 @@ and turn a recoverable blip into an outage.
 | # | Invariant | Enforced by |
 |---|---|---|
 | 1 | Student PII never reaches a remote model unbidden | `student_data_egress_allowed()` in `app/ai/llm.py`; `/student/resume/generate` degrades to `used_ai=false` |
-| 2 | Staff scope is role-decided; a MENTOR with no group sees **nobody** | `require_mentor` / `require_director` / `_assert_can_access_student` |
+| 2 | Staff scope is role-decided; a MENTOR with no group sees **nobody** | `require_mentor` / `require_admin` / `_assert_can_access_student` |
 | 3 | Exactly **one** `response.create` call site after the handshake | `app/interview_relay.py` — a second site kills "one open question at a time" and no test would notice |
 | 4 | No student transcript is ever composed into model instructions | relay builds persona + specialization block + phase directive **only** |
 | 5 | A `running` interview row is always closed | three idempotent layers, one `AND status='running'` predicate |

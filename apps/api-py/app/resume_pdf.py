@@ -6,8 +6,14 @@ and streamed straight back to the authenticated owner. Keep it that way; do not
 add any remote call to this module.
 
 The markdown we render is what `_compose_resume_markdown` / the AI-polish step
-produces: `# Name`, `## Section`, `- bullet`, and plain paragraphs, with simple
-`**bold**` inline emphasis. Anything richer degrades gracefully to plain text.
+produces: `# Name`, `## Section`, `- bullet`, `| a | b |` tables and plain
+paragraphs, with simple `**bold**` inline emphasis. Anything richer degrades
+gracefully to plain text.
+
+The standard template (`RESUME_TEMPLATE_SECTIONS` in `routers/student.py`) is
+drawn the conventional campus-placement way: the name centred, the paragraphs
+between it and the first section (the contact line) centred under it, each
+section heading in small capitals over a rule, and Education as a table.
 """
 
 import html
@@ -16,13 +22,23 @@ import re
 from dataclasses import dataclass
 
 from pypdf import PdfReader, PdfWriter
-from reportlab.lib.enums import TA_LEFT
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
-from reportlab.platypus import HRFlowable, ListFlowable, ListItem, Paragraph, SimpleDocTemplate, Spacer
+from reportlab.platypus import (
+    HRFlowable,
+    ListFlowable,
+    ListItem,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
 
 def _inline(md: str) -> str:
@@ -36,7 +52,7 @@ def _inline(md: str) -> str:
 def _styles() -> dict:
     base = getSampleStyleSheet()
     name = ParagraphStyle(
-        "ResumeName", parent=base["Title"], fontSize=20, spaceAfter=2, leading=24, alignment=TA_LEFT
+        "ResumeName", parent=base["Title"], fontSize=20, spaceAfter=2, leading=24, alignment=TA_CENTER
     )
     section = ParagraphStyle(
         "ResumeSection",
@@ -49,7 +65,61 @@ def _styles() -> dict:
     )
     body = ParagraphStyle("ResumeBody", parent=base["BodyText"], fontSize=10, leading=14, spaceAfter=3)
     bullet = ParagraphStyle("ResumeBullet", parent=body, spaceAfter=1)
-    return {"name": name, "section": section, "body": body, "bullet": bullet}
+    header = ParagraphStyle("ResumeHeader", parent=body, fontSize=9.5, alignment=TA_CENTER)
+    cell = ParagraphStyle("ResumeCell", parent=body, fontSize=9, leading=11, spaceAfter=0)
+    return {
+        "name": name,
+        "section": section,
+        "body": body,
+        "bullet": bullet,
+        "header": header,
+        "cell": cell,
+    }
+
+
+_RULE = "#1a3c5e"
+
+
+def _row_cells(line: str) -> list[str]:
+    return [c.strip() for c in line.strip().strip("|").split("|")]
+
+
+def _is_separator(line: str) -> bool:
+    cells = _row_cells(line)
+    return bool(cells) and all(c and set(c) <= set("-: ") for c in cells)
+
+
+def _table(lines: list[str], styles: dict, width: float) -> Table | None:
+    """A markdown table as a ReportLab table: header row shaded, grid ruled.
+
+    None when every line was a separator: a student's own text can hold a line
+    such as `|---|`, and a table with no rows is not a table.
+    """
+    rows = [_row_cells(ln) for ln in lines if not _is_separator(ln)]
+    if not rows:
+        return None
+    ncols = max(len(r) for r in rows)
+    rows = [r + [""] * (ncols - len(r)) for r in rows]
+    data = [
+        [Paragraph(("<b>%s</b>" if i == 0 else "%s") % _inline(c), styles["cell"]) for c in r]
+        for i, r in enumerate(rows)
+    ]
+    # The standard template's Education table is four columns and the
+    # institution is the long one; any other table splits evenly.
+    weights = [0.26, 0.4, 0.14, 0.2] if ncols == 4 else [1 / ncols] * ncols
+    table = Table(data, colWidths=[width * w for w in weights], repeatRows=1)
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e8eef5")),
+                ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#9fb1c6")),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ]
+        )
+    )
+    return table
 
 
 def render_resume_pdf(markdown: str, *, fallback_title: str = "Resume") -> bytes:
@@ -71,24 +141,53 @@ def render_resume_pdf(markdown: str, *, fallback_title: str = "Resume") -> bytes
             pending_bullets.clear()
 
     saw_name = False
+    in_header = False  # between the `# ` name and the first `## ` section
+    pending_table: list[str] = []
+    width = A4[0] - 36 * mm
+
+    def flush_table() -> None:
+        if pending_table:
+            table = _table(pending_table, styles, width)
+            if table is None:
+                # Not a table after all: print the lines as the text they were.
+                for ln in pending_table:
+                    story.append(Paragraph(_inline(ln), styles["body"]))
+            else:
+                story.append(table)
+                story.append(Spacer(1, 2 * mm))
+            pending_table.clear()
+
     for raw in (markdown or "").splitlines():
         line = raw.rstrip()
+        if line.lstrip().startswith("|"):
+            flush_bullets()
+            pending_table.append(line.strip())
+            continue
+        flush_table()
         if not line.strip():
             flush_bullets()
             continue
         if line.startswith("# "):
             flush_bullets()
             story.append(Paragraph(_inline(line[2:].strip()), styles["name"]))
-            story.append(HRFlowable(width="100%", thickness=1, color="#1a3c5e", spaceAfter=4))
             saw_name = True
+            in_header = True
         elif line.startswith("## "):
             flush_bullets()
-            story.append(Paragraph(_inline(line[3:].strip()), styles["section"]))
+            if in_header:
+                story.append(HRFlowable(width="100%", thickness=1, color=_RULE, spaceAfter=4))
+                in_header = False
+            story.append(Paragraph(_inline(line[3:].strip().upper()), styles["section"]))
+            story.append(HRFlowable(width="100%", thickness=0.5, color=_RULE, spaceAfter=3))
         elif line.lstrip().startswith(("- ", "* ")):
             pending_bullets.append(_inline(line.lstrip()[2:].strip()))
         else:
             flush_bullets()
-            story.append(Paragraph(_inline(line.strip()), styles["body"]))
+            style = styles["header"] if in_header else styles["body"]
+            story.append(Paragraph(_inline(line.strip()), style))
+    flush_table()
+    if in_header:
+        story.append(HRFlowable(width="100%", thickness=1, color=_RULE, spaceAfter=4))
     flush_bullets()
 
     if not saw_name:

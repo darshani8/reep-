@@ -356,6 +356,18 @@ def test_the_mail_reaches_the_applicant_and_the_cover_and_carries_no_reason(
     _decide(client, office.headers, leave_id, "APPROVE")
     subjects = [m.subject for m in mail_transport.outbox if m.to == applicant.email]
     assert "Your leave request has been reopened" in subjects
+    # Whoever can decide it is told it is waiting again, under the revision's
+    # own key: the submission already wrote `leave-approval:{id}:{approver}`.
+    approver_mail = [m for m in mail_transport.outbox if m.to == office.email]
+    assert any("has been reopened" in m.text for m in approver_mail)
+    assert all(PURPOSE not in m.text and CHANGE_REASON not in m.text for m in approver_mail)
+    with SessionLocal() as db:
+        reopened_keys = db.scalars(
+            select(MailLog.dedupe_key).where(
+                MailLog.dedupe_key.like(f"leave-approval:{leave_id}:%:r2")
+            )
+        ).all()
+    assert reopened_keys, "the approvers' reopen mail is keyed by revision"
     assert "Your leave request has been sanctioned" in subjects
     with SessionLocal() as db:
         assert dedupe_key(db.get(LeaveRequest, leave_id)) == f"leave:{leave_id}:APPROVED:r2"

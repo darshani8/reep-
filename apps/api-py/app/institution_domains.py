@@ -33,6 +33,41 @@ from .models.cohort import Cohort
 from .models.institution import College, Department
 
 
+import re
+
+#: Domains that hand an address to anybody who asks, so one of them is never a
+#: college's. Only the big providers, and deliberately not a complete list: the
+#: point is the common mistake, not a directory of free mail. Read by the
+#: registration form's college-email box and by a college's own domain list,
+#: which must agree: a list holding gmail.com would admit every Gmail address
+#: as that college's.
+PUBLIC_MAIL_DOMAINS = frozenset(
+    {
+        "gmail.com", "googlemail.com", "yahoo.com", "yahoo.co.in", "yahoo.in",
+        "outlook.com", "hotmail.com", "live.com", "msn.com", "icloud.com",
+        "me.com", "rediffmail.com", "proton.me", "protonmail.com", "aol.com",
+    }
+)
+
+#: A bare hostname: dot-separated labels of letters, digits and inner hyphens,
+#: ending in a letter-only top-level label. No scheme, path, port or space.
+_HOSTNAME = re.compile(r"^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
+
+
+def domain_problem(domain: str) -> str | None:
+    """Why a normalised domain cannot be a college's, or None.
+
+    `normalise_domain` only lowercases and strips the `@`, so a list could hold
+    "not a domain" or "http://x.com/" (entries that match no address and say
+    nothing) or a public mail provider (an entry that matches everybody's).
+    """
+    if not _HOSTNAME.match(domain):
+        return f"{domain!r} is not a domain. Enter it as it appears after the @, for example bgscet.ac.in."
+    if domain in PUBLIC_MAIL_DOMAINS:
+        return f"{domain} is a public mail provider, not a college's own domain."
+    return None
+
+
 def normalise_domain(value: str) -> str:
     """`@BGSCET.ac.in ` -> `bgscet.ac.in`. The shape stored and compared."""
     return value.strip().lstrip("@").lower()

@@ -53,7 +53,12 @@ from ..db import get_db
 from ..identity import get_current_session
 
 from ..architecture_events import record_change
-from ..governance import ancestry_of_student, ancestry_of_user, require_capability
+from ..governance import (
+    ancestry_of_cohort,
+    ancestry_of_student,
+    ancestry_of_user,
+    require_capability,
+)
 # The one writer of `mentor_assignments`, and the one minter of the handover
 # grant. Read its module docstring before changing anything in here that moves
 # `students.mentor_id`.
@@ -717,6 +722,41 @@ def _assert_same_college(db: Session, student: Student, mentor_user_id: str) -> 
             "This student and this faculty account are filed under different "
             "colleges — pick a faculty member from the student's college, or "
             "file the account under it first."
+        ),
+    )
+
+
+def assert_move_keeps_mentor_in_college(db: Session, student: Student, cohort_id: str | None) -> None:
+    """B1.5 FROM THE OTHER SIDE: moving the STUDENT must not cross the fence either.
+
+    `_assert_same_college` runs when a mentor is ASSIGNED. Until 2026-10-13
+    nothing ran when the student MOVED, so seating a C1 student in a C2 batch
+    (`PUT /admin/students/{id}/cohort`, `PATCH /admin/students/{id}`, the bulk
+    `move`) left a C1 faculty member mentoring a C2 student, reading their
+    marks, attendance and USN through rule 2: exactly the pair B1.5 refuses.
+
+    REFUSE, NOT RELEASE. Silently releasing the mentor would change who may
+    read the student's records as a side effect of a batch edit, with no
+    reason given, which is what B9.2 made a reasoned act on its own endpoint.
+    So the move is refused in words and the office releases or reassigns the
+    mentor first, on the assignment screen, with a reason. Same tolerance as
+    `_assert_same_college`: refused only when BOTH sides resolve to a college.
+    """
+    if cohort_id is None or student.mentor_id is None:
+        return
+    mentor = db.get(Mentor, student.mentor_id)
+    if mentor is None:
+        return
+    destination = dict(ancestry_of_cohort(db, cohort_id)).get(ScopeLevel.COLLEGE)
+    mentor_college = _college_of_faculty(db, mentor.user_id)
+    if not destination or not mentor_college or destination == mentor_college:
+        return
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        detail=(
+            "This batch is in a different college from the student's faculty mentor, "
+            "and a faculty member can only mentor students in their own college. "
+            "Release or reassign the mentor first, then move the student."
         ),
     )
 

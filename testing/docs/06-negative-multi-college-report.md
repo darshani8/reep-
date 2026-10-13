@@ -165,6 +165,29 @@ Fix: log the application id only, and log the mail body (in dev) as one escaped 
 
 `pytest` on its own database finished with exit code 0 (no failures, a few skipped).
 
+## Status after the fixes (2026-10-13, same day)
+
+All ten bugs are fixed in the same PR. `apps/api-py/tests/test_multi_college_negative_fixes.py` pins each one. All 12 of its tests fail on the code before the fix and pass after it.
+
+| Bug | Fix |
+|---|---|
+| 1 | `admin_mentoring.assert_move_keeps_mentor_in_college` is called by `PUT /admin/students/{id}/cohort`, by `PATCH /admin/students/{id}` (unless the same request names a new mentor, which the mentor branch then judges), and by the bulk `move`, which checks every student before moving any. **A move that would leave a student with a mentor from another college is refused (422)**, and the office releases or reassigns the mentor first, with a reason. I chose refusing over silently releasing the mentor, because a batch edit should not change who can read a student's records as a side effect. |
+| 2 | `_resolve_claim`'s `load()` refuses a college, department, course or specialization that is not ACTIVE. Batches are not judged, because the public hierarchy serves batches of every lifecycle status and the form and the API must agree. |
+| 3 | The institution models use `StringConstraints(strip_whitespace=True, min_length=1)`, so text is stripped before the length check, on POST and PATCH alike. On `/register`, `name` joins the blank check. |
+| 4 | `institution_domains.domain_problem` refuses anything that is not a bare hostname, and the public-mail list (moved there from the registration router, so both use one list). |
+| 5 | The phone number may contain only digits and `+ - ( ) . space`, with 7–15 digits. |
+| 6 | Follows from bug 3. Rows already saved blank before the fix must be renamed on screen; a fresh database has none. |
+| 7 | `--no-access-log` in the Dockerfile `CMD`. |
+| 8 | Outside dev/CI, with no transport, `mail_transport.send` logs a warning without the address or the body, then raises, so `deliver_once` records FAILED instead of SENT. In dev the line is a single line. |
+| 9 | `_audit_institution` writes a before/after audit row on every create and edit of a college, department, course, specialization and batch, and on `PUT /students/{id}/cohort` (`COHORT_SET`). |
+| 10 | The registration INFO and WARNING lines name the application id, not the address. |
+
+**Retest on a fresh database after the fixes:**
+* round 1: **276 of 276** probes pass (it was 254 of 276);
+* round 2: **155 of 155** probes pass;
+* the audit table now shows `college/department/academic_course/academic_specialization/cohort CREATED|UPDATED` and `student COHORT_SET` rows;
+* the log has one line per event.
+
 ## Notes for whoever re-runs this
 
 * **The registration limit is per address:** 20 attempts per 10 minutes. A run from one machine is cut off after 20 `/register` calls, which caused this run's first false failures. The harness now sends a random `X-Forwarded-For` (uvicorn trusts it from 127.0.0.1). In production `FORWARDED_ALLOW_IPS` is set in the Dockerfile, so real client addresses are used. A whole campus behind one NAT still shares one budget of 20.

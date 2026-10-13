@@ -129,6 +129,14 @@ EXPOSE 3300
 #                             loop that also relays the interviewer's voice, on
 #                             half a vCPU -- work that bought nothing and
 #                             competed with the downlink the student hears.
+#   --no-access-log           uvicorn's OWN access log prints the full URL,
+#                             query string included -- the Google sign-in
+#                             callback's one-time `code` and `state` among
+#                             them -- and duplicated every request in a second
+#                             format. `reep.access` (app/traceability.py) already
+#                             writes one line per request with method, path,
+#                             status, duration and request id, and deliberately
+#                             no query string, body or cookie (2026-10-13).
 # NEVER --reload (AGENTS.md: it wedges a stale worker on this platform).
 ENV FORWARDED_ALLOW_IPS="10.42.0.0/16"
 
@@ -147,4 +155,5 @@ CMD ["python", "-m", "uvicorn", "app.main:app", \
      "--host", "0.0.0.0", "--port", "3300", \
      "--proxy-headers", \
      "--timeout-graceful-shutdown", "110", \
-     "--ws-per-message-deflate", "false"]
+     "--ws-per-message-deflate", "false", \
+     "--no-access-log"]

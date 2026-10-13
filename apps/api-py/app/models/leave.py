@@ -9,7 +9,7 @@ import enum
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, Index, String, func
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, Index, Integer, String, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -26,6 +26,9 @@ class LeaveStatus(str, enum.Enum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     CANCELLED = "CANCELLED"
+    #: The office took back a sanction it had given (2026-10-13). Not LIVE —
+    #: the days are free again — and reachable only from APPROVED.
+    REVOKED = "REVOKED"
 
 
 class LeaveDecision(str, enum.Enum):
@@ -161,6 +164,26 @@ class LeaveRequest(Base):
     # cannot answer "when was this withdrawn" on a row somebody touched
     # afterwards. Nullable, and NULL on every row that was never cancelled.
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # --- a decision changed after it was made (2026-10-13) ------------------
+    # The LATEST change only: REVOKED (APPROVED -> REVOKED) or REOPENED
+    # (REJECTED or REVOKED -> SUBMITTED, back in the queue). The full history,
+    # including the decision each change undid, is the before-image written to
+    # `redesign_audit_events` by `change_decision` — a reopen clears the
+    # decision columns above so the next decision lands on a clean row, and
+    # the audit row is where the old one survives. NULL on every row whose
+    # decision was never changed.
+    decision_change_kind: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    decision_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    decision_changed_by_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    #: Required in words when the change is made, and shown to the applicant.
+    decision_change_reason: Mapped[str | None] = mapped_column(String, nullable=True)
+    #: How many times a decision on this row has been changed. Part of the mail
+    #: dedupe key, so a request sanctioned, revoked, reopened and sanctioned
+    #: again is told about the second sanction too.
+    decision_revision: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

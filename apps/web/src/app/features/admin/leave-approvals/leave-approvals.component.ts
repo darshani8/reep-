@@ -145,6 +145,13 @@ interface LeaveRow {
    *  is today would put a claim about authority onto an old form. */
   first_signed_as: string | null;
   second_signed_as: string | null;
+  /** The LATEST change to a decision after it was made (2026-10-13):
+   *  REVOKED or REOPENED, with who, when and the reason that had to be given.
+   *  All null on a request whose decision was never changed. */
+  decision_change_kind: 'REVOKED' | 'REOPENED' | null;
+  decision_changed_at: string | null;
+  decision_change_reason: string | null;
+  decision_changed_by_name: string | null;
 }
 
 /** One paper attached to a request (B10.3). */
@@ -225,9 +232,11 @@ const NO_DEPARTMENT = '';
  *  exactly on it says so instead of quietly dropping the 201st request. */
 const HISTORY_SERVER_CAP = 200;
 
-type QueueTab = 'pending' | 'approved' | 'rejected' | 'cancelled';
+type QueueTab = 'pending' | 'approved' | 'rejected' | 'revoked' | 'cancelled';
 
-type DecisionMode = 'idle' | 'approve' | 'reject';
+/** `revoke` and `reopen` change a decision already made — `POST
+ *  /leaves/{id}/change-decision`, always with a reason. */
+type DecisionMode = 'idle' | 'approve' | 'reject' | 'revoke' | 'reopen';
 
 /** One row of the panel's approval chain. `refused` is the rejected end of it —
  *  a step that happened and stopped the form, which is neither done nor next. */
@@ -248,6 +257,7 @@ const EMPTY_NOTE: Record<QueueTab, string> = {
   pending: 'No requests waiting on your signature.',
   approved: 'Nothing sanctioned yet.',
   rejected: 'No rejected requests.',
+  revoked: 'No sanction has been revoked.',
   cancelled: 'Nobody has withdrawn a request.',
 };
 
@@ -269,6 +279,7 @@ export class AdminLeaveApprovalsComponent {
     { key: 'pending', label: 'Pending' },
     { key: 'approved', label: 'Approved' },
     { key: 'rejected', label: 'Rejected' },
+    { key: 'revoked', label: 'Revoked' },
     { key: 'cancelled', label: 'Cancelled' },
   ];
 
@@ -283,6 +294,9 @@ export class AdminLeaveApprovalsComponent {
   /** `GET /leaves/history?status=CANCELLED` — its own read, because the default
    *  history deliberately does NOT include withdrawn requests. */
   readonly cancelled = signal<LeaveRow[] | null>(null);
+  /** `GET /leaves/history?status=REVOKED`, its own read for Cancelled's reason:
+   *  the default history is approved and refused only. */
+  readonly revoked = signal<LeaveRow[] | null>(null);
   readonly error = signal<string | null>(null);
   readonly flash = signal<string | null>(null);
   readonly selectedId = signal<string | null>(null);
@@ -290,6 +304,11 @@ export class AdminLeaveApprovalsComponent {
   readonly remarks = signal<string>('');
   readonly remarksError = signal<string | null>(null);
   readonly deciding = signal<boolean>(false);
+  /** Changing a decision: the reason (required) and, for a leave already under
+   *  way, the office's explicit yes. */
+  readonly changeReason = signal<string>('');
+  readonly changeError = signal<string | null>(null);
+  readonly confirmStarted = signal<boolean>(false);
 
   /** What the panel's three extra reads answered for the SELECTED request.
    *  `null` means "not answered", which is never rendered as "none recorded". */
@@ -308,7 +327,11 @@ export class AdminLeaveApprovalsComponent {
   readonly isMainAdmin = computed(() => this.auth.session()?.role === 'ADMIN');
 
   readonly isLoading = computed(
-    () => this.pending() === null || this.history() === null || this.cancelled() === null,
+    () =>
+      this.pending() === null ||
+      this.history() === null ||
+      this.cancelled() === null ||
+      this.revoked() === null,
   );
 
   readonly counts = computed(() => {
@@ -317,6 +340,7 @@ export class AdminLeaveApprovalsComponent {
       pending: (this.pending() ?? []).length,
       approved: decided.filter((row) => row.status === 'APPROVED').length,
       rejected: decided.filter((row) => row.status === 'REJECTED').length,
+      revoked: (this.revoked() ?? []).length,
       cancelled: (this.cancelled() ?? []).length,
     };
   });
@@ -356,7 +380,12 @@ export class AdminLeaveApprovalsComponent {
   );
 
   private everyLoadedRow(): LeaveRow[] {
-    return [...(this.pending() ?? []), ...(this.history() ?? []), ...(this.cancelled() ?? [])];
+    return [
+      ...(this.pending() ?? []),
+      ...(this.history() ?? []),
+      ...(this.revoked() ?? []),
+      ...(this.cancelled() ?? []),
+    ];
   }
 
   readonly departmentFilterLabel = computed(() => {
@@ -445,7 +474,15 @@ export class AdminLeaveApprovalsComponent {
   readonly chainSteps = computed<ChainStep[]>(() => {
     const request = this.selectedRequest();
     if (request === null) return [];
-    return [this.applicantStep(request), this.sanctionStep(request)];
+    const steps = [this.applicantStep(request), this.sanctionStep(request)];
+    const change = this.changeStep(request);
+    if (change !== null) {
+      // A reopen comes BEFORE the decision that followed it (or is awaited);
+      // a revocation comes after the sanction it took back.
+      if (request.decision_change_kind === 'REOPENED') steps.splice(1, 0, change);
+      else steps.push(change);
+    }
+    return steps;
   });
 
   readonly canDecide = computed(() => {
@@ -453,6 +490,28 @@ export class AdminLeaveApprovalsComponent {
     if (request === null) return false;
     return this.isAwaitingSignature(request);
   });
+
+  /** Which change the selected request can take: a sanction can be revoked; a
+   *  refusal or a revocation can be reopened. `null` for anything else — a
+   *  pending request is decided, and a withdrawn one was the applicant's act. */
+  readonly changeAction = computed<'revoke' | 'reopen' | null>(() => {
+    const request = this.selectedRequest();
+    if (request === null) return null;
+    if (request.status === 'APPROVED') return 'revoke';
+    if (request.status === 'REJECTED' || request.status === 'REVOKED') return 'reopen';
+    return null;
+  });
+
+  /** Has the selected leave's first day arrived? The server decides with the
+   *  college's own date; this only chooses what to draw, and a disagreement
+   *  near midnight comes back as the server's sentence. */
+  readonly selectedHasBegun = computed(() => {
+    const request = this.selectedRequest();
+    return request !== null && request.from_date <= this.todayIso();
+  });
+
+  /** A leave under way is the Main Admin's alone to revoke. */
+  readonly mayRevokeSelected = computed(() => !this.selectedHasBegun() || this.isMainAdmin());
 
   /** The button's own words: one signature, and it is the sanction. */
   readonly approveButtonLabel = computed(() => 'Sanction');
@@ -472,7 +531,12 @@ export class AdminLeaveApprovalsComponent {
   readonly historyCapped = computed(() => {
     const tab = this.tab();
     if (tab === 'pending') return false;
-    const served = tab === 'cancelled' ? (this.cancelled() ?? []) : (this.history() ?? []);
+    const served =
+      tab === 'cancelled'
+        ? (this.cancelled() ?? [])
+        : tab === 'revoked'
+          ? (this.revoked() ?? [])
+          : (this.history() ?? []);
     return served.length >= HISTORY_SERVER_CAP;
   });
 
@@ -517,6 +581,7 @@ export class AdminLeaveApprovalsComponent {
     this.decisionMode.set('idle');
     this.remarks.set('');
     this.remarksError.set(null);
+    this.resetChange();
     this.clearPanelReads();
     void this.loadPanel(id);
   }
@@ -526,6 +591,7 @@ export class AdminLeaveApprovalsComponent {
     this.decisionMode.set('idle');
     this.remarks.set('');
     this.remarksError.set(null);
+    this.resetChange();
     this.clearPanelReads();
   }
 
@@ -745,7 +811,12 @@ export class AdminLeaveApprovalsComponent {
         return { label: 'Sanction pending', tone: 'warn' };
       case 'CANCELLED':
         return { label: 'Withdrawn', tone: 'neutral' };
+      case 'REVOKED':
+        return { label: 'Sanction revoked', tone: 'risk' };
       default:
+        if (row.decision_change_kind === 'REOPENED') {
+          return { label: 'Reopened · awaiting your decision', tone: 'warn' };
+        }
         return { label: 'Awaiting your decision', tone: 'warn' };
     }
   }
@@ -761,7 +832,12 @@ export class AdminLeaveApprovalsComponent {
         return 'Signed once under the old chain → your decision completes it';
       case 'CANCELLED':
         return 'Withdrawn by the applicant';
+      case 'REVOKED':
+        return `Sanction revoked by ${row.decision_changed_by_name || 'an approver'}`;
       default:
+        if (row.decision_change_kind === 'REOPENED') {
+          return `Reopened by ${row.decision_changed_by_name || 'an approver'} → your decision`;
+        }
         return 'Your one signature sanctions or refuses it';
     }
   }
@@ -773,6 +849,7 @@ export class AdminLeaveApprovalsComponent {
    *  worse than no heading. */
   remarksLabel(row: LeaveRow): string {
     if (row.status === 'REJECTED') return 'Rejected — remarks';
+    if (row.status === 'REVOKED') return 'Sanctioned — remarks, before it was revoked';
     if (row.status === 'FIRST_APPROVED') return 'Earlier signature — remarks';
     return 'Sanctioned — remarks';
   }
@@ -783,7 +860,8 @@ export class AdminLeaveApprovalsComponent {
     return (
       row.status === 'FIRST_APPROVED' ||
       row.status === 'APPROVED' ||
-      row.status === 'REJECTED'
+      row.status === 'REJECTED' ||
+      row.status === 'REVOKED'
     );
   }
 
@@ -833,6 +911,89 @@ export class AdminLeaveApprovalsComponent {
   cancelDecision(): void {
     this.decisionMode.set('idle');
     this.remarksError.set(null);
+    this.resetChange();
+  }
+
+  // ------------------------------------------- changing a decision made --
+
+  openChange(): void {
+    const action = this.changeAction();
+    if (action === null) return;
+    this.resetChange();
+    this.decisionMode.set(action);
+  }
+
+  onChangeReasonInput(event: Event): void {
+    const target = event.target as HTMLTextAreaElement;
+    this.changeReason.set(target.value);
+    this.changeError.set(null);
+  }
+
+  onConfirmStartedChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.confirmStarted.set(target.checked);
+    this.changeError.set(null);
+  }
+
+  async confirmChange(): Promise<void> {
+    const request = this.selectedRequest();
+    const mode = this.decisionMode();
+    if (request === null || (mode !== 'revoke' && mode !== 'reopen')) return;
+    const reason = this.changeReason().trim();
+    if (reason.length === 0) {
+      this.changeError.set('A reason is required. The applicant reads it.');
+      return;
+    }
+    const startedLeave = mode === 'revoke' && this.selectedHasBegun();
+    if (startedLeave && !this.confirmStarted()) {
+      this.changeError.set('Tick the box to confirm revoking a leave that has already begun.');
+      return;
+    }
+    this.deciding.set(true);
+    this.error.set(null);
+    try {
+      const response = await fetch(`${environment.apiBase}/leaves/${request.id}/change-decision`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: mode === 'revoke' ? 'REVOKE' : 'REOPEN',
+          reason,
+          confirm_started: startedLeave,
+        }),
+      });
+      if (!response.ok) {
+        this.changeError.set(await this.detailOf(response));
+        return;
+      }
+      this.flash.set(
+        mode === 'revoke'
+          ? `Sanction revoked for ${request.requester_name}. They read your reason on their Leave Requests screen.`
+          : `Reopened for ${request.requester_name}. It is back in Pending for a fresh decision.`,
+      );
+      this.clearSelection();
+      await this.loadQueues();
+    } catch {
+      this.changeError.set('Could not reach the server.');
+    } finally {
+      this.deciding.set(false);
+    }
+  }
+
+  private resetChange(): void {
+    this.changeReason.set('');
+    this.changeError.set(null);
+    this.confirmStarted.set(false);
+  }
+
+  /** Today as YYYY-MM-DD in the browser's own zone, for comparing against a
+   *  leave's ISO dates — never through `toISOString()`, which is UTC and is a
+   *  day behind for the first five and a half hours of an Indian morning. */
+  private todayIso(): string {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${now.getFullYear()}-${month}-${day}`;
   }
 
   async confirmApprove(): Promise<void> {
@@ -922,6 +1083,7 @@ export class AdminLeaveApprovalsComponent {
     const tab = this.tab();
     if (tab === 'pending') return this.pending() ?? [];
     if (tab === 'cancelled') return this.cancelled() ?? [];
+    if (tab === 'revoked') return this.revoked() ?? [];
     const wantedStatus = tab === 'approved' ? 'APPROVED' : 'REJECTED';
     return (this.history() ?? []).filter((row) => row.status === wantedStatus);
   }
@@ -954,6 +1116,13 @@ export class AdminLeaveApprovalsComponent {
         detail: `${row.director_name || 'Approver'}${asPhrase} · ${this.stampOf(row.director_decided_at)}`,
       };
     }
+    if (row.status === 'REVOKED') {
+      return {
+        label: 'Sanctioned',
+        state: 'done',
+        detail: `${row.director_name || 'Approver'}${asPhrase} · ${this.stampOf(row.director_decided_at)}`,
+      };
+    }
     if (row.status === 'CANCELLED') {
       return {
         label: 'Withdrawn',
@@ -972,6 +1141,19 @@ export class AdminLeaveApprovalsComponent {
     return { label: 'Sanction', state: 'active', detail: 'Your one signature decides it.' };
   }
 
+  /** The change to a decision, as a step of the chain, or `null` when none
+   *  was ever made. Only the latest change is on the row; the earlier ones are
+   *  on the audit trail. */
+  private changeStep(row: LeaveRow): ChainStep | null {
+    if (row.decision_change_kind === null) return null;
+    const who = row.decision_changed_by_name || 'An approver';
+    const when = this.stampOf(row.decision_changed_at);
+    if (row.decision_change_kind === 'REVOKED') {
+      return { label: 'Sanction revoked', state: 'refused', detail: `${who} · ${when}` };
+    }
+    return { label: 'Reopened', state: 'done', detail: `${who} · ${when}` };
+  }
+
   private stampOf(value: string | null): string {
     if (value === null) return 'time not recorded';
     const stamp = new Date(value);
@@ -987,7 +1169,7 @@ export class AdminLeaveApprovalsComponent {
 
   private async loadQueues(): Promise<void> {
     try {
-      const [pendingResponse, historyResponse, cancelledResponse] = await Promise.all([
+      const [pendingResponse, historyResponse, cancelledResponse, revokedResponse] = await Promise.all([
         fetch(`${environment.apiBase}/leaves/pending`, { credentials: 'include' }),
         fetch(`${environment.apiBase}/leaves/history`, { credentials: 'include' }),
         // The withdrawn queue is a THIRD read and not a filter over the second:
@@ -996,24 +1178,35 @@ export class AdminLeaveApprovalsComponent {
         fetch(`${environment.apiBase}/leaves/history?status=CANCELLED`, {
           credentials: 'include',
         }),
+        fetch(`${environment.apiBase}/leaves/history?status=REVOKED`, {
+          credentials: 'include',
+        }),
       ]);
-      if (!pendingResponse.ok || !historyResponse.ok || !cancelledResponse.ok) {
+      if (
+        !pendingResponse.ok ||
+        !historyResponse.ok ||
+        !cancelledResponse.ok ||
+        !revokedResponse.ok
+      ) {
         this.error.set('Could not load the approvals queue.');
         this.pending.set([]);
         this.history.set([]);
         this.cancelled.set([]);
+        this.revoked.set([]);
         return;
       }
       this.scope.set(this.readScope(pendingResponse) ?? this.readScope(historyResponse));
       this.pending.set((await pendingResponse.json()) as LeaveRow[]);
       this.history.set((await historyResponse.json()) as LeaveRow[]);
       this.cancelled.set((await cancelledResponse.json()) as LeaveRow[]);
+      this.revoked.set((await revokedResponse.json()) as LeaveRow[]);
     } catch {
       this.error.set('Could not reach the server.');
       this.scope.set(null);
       this.pending.set([]);
       this.history.set([]);
       this.cancelled.set([]);
+      this.revoked.set([]);
     }
   }
 

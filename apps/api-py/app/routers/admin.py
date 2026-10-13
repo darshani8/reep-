@@ -36,10 +36,10 @@ to prevent.
 """
 
 from datetime import date, datetime, time, timedelta, timezone
-from typing import ClassVar, NamedTuple
+from typing import Annotated, ClassVar, NamedTuple
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, StringConstraints, model_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
@@ -69,7 +69,7 @@ from ..models.governance import (
     ScopeLevel,
     SubjectKind,
 )
-from ..institution_domains import normalise_domain
+from ..institution_domains import domain_problem, normalise_domain
 # B1.3 appoints college admins by writing capability GRANTS, so it answers to
 # the gate that owns grants rather than to this module's `admin.institution`.
 # `require_governance` and `_reason` are imported from the router that
@@ -145,6 +145,17 @@ def _as_utc_midnight(value: date) -> datetime:
 # ----------------------------------------------------------------- colleges --
 
 
+#: Stripped BEFORE the length check (2026-10-13). Every create here used to
+#: check `min_length=1` and then call `.strip()`, so "   " passed and was stored
+#: as "": a college, department, course, specialization or batch with no code
+#: or no name, drawn as an empty option on the public application form, and a
+#: second one refused with "A college with code  already exists.". PATCH did not
+#: strip at all. One type per bound, so every rung refuses blank the same way.
+_Text32 = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=32)]
+_Text64 = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=64)]
+_Text200 = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+
+
 class CollegeOut(BaseModel):
     id: str
     code: str
@@ -161,8 +172,8 @@ class CollegeOut(BaseModel):
 
 
 class CollegeIn(BaseModel):
-    code: str = Field(min_length=1, max_length=32)
-    name: str = Field(min_length=1, max_length=200)
+    code: _Text32
+    name: _Text200
     campus: str | None = None
     contact: str | None = None
     email_domains: list[str] | None = None
@@ -180,8 +191,8 @@ class CollegePatchIn(PatchModel):
     # is how they are cleared. code, name and status are NOT NULL. See PatchModel.
     NON_NULLABLE: ClassVar[frozenset[str]] = frozenset({"code", "name", "status"})
 
-    code: str | None = Field(default=None, min_length=1, max_length=32)
-    name: str | None = Field(default=None, min_length=1, max_length=200)
+    code: _Text32 | None = None
+    name: _Text200 | None = None
     campus: str | None = None
     contact: str | None = None
     status: str | None = None
@@ -190,6 +201,46 @@ class CollegePatchIn(PatchModel):
     #: non-nullable field. Emptying it restores the deployment fallback, which
     #: is a real thing an admin may want and is not the same as sending null.
     email_domains: list[str] | None = None
+
+
+def _row_snapshot(row: object | None) -> dict | None:
+    """The row's own columns, JSON-safe, for an audit before/after image."""
+    if row is None:
+        return None
+    out: dict = {}
+    for col in row.__table__.columns:  # type: ignore[attr-defined]
+        value = getattr(row, col.key, None)
+        if isinstance(value, (datetime, date)):
+            value = value.isoformat()
+        elif hasattr(value, "value"):  # an enum member
+            value = value.value
+        elif isinstance(value, (list, tuple)):
+            value = list(value)
+        out[col.key] = value
+    return out
+
+
+def _audit_institution(
+    db: Session, session: dict, request: Request, entity_type: str, entity_id: str,
+    action: str, before: dict | None, after: dict | None,
+) -> None:
+    """One audit row for a change to the institution tree (2026-10-13).
+
+    Until this, creating, editing or archiving a college, department, course,
+    specialization or batch, and seating a student in a batch, wrote nothing to
+    `audit_events`: only `appoint_college_admin` in this module did. Those are
+    the acts that decide which college a student belongs to, and through it
+    which faculty may read them, so "who moved this, and when" must be on the
+    trail the console already reads. Flushed by the caller's commit, so the row
+    and the change land together.
+    """
+    record_change(
+        db, session=session, request=request, tenant_id=None,
+        entity_type=entity_type, entity_id=entity_id, action=action,
+        before=before, after=after,
+        event_type=f"institution.{entity_type}.{action.lower()}",
+        payload={"id": entity_id},
+    )
 
 
 def _clean_domains(values: list[str] | None) -> list[str]:
@@ -204,7 +255,14 @@ def _clean_domains(values: list[str] | None) -> list[str]:
     seen: list[str] = []
     for value in values or []:
         domain = normalise_domain(value)
-        if domain and domain not in seen:
+        if not domain:
+            continue
+        # A malformed entry matches no address and says nothing; a public mail
+        # provider matches everybody's (2026-10-13). Both are refused in words.
+        problem = domain_problem(domain)
+        if problem is not None:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=problem)
+        if domain not in seen:
             seen.append(domain)
     return seen
 
@@ -238,6 +296,7 @@ def list_colleges(
 @router.post("/colleges", response_model=CollegeOut, status_code=status.HTTP_201_CREATED)
 def create_college(
     body: CollegeIn,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> CollegeOut:
@@ -257,6 +316,8 @@ def create_college(
         created_by_user_id=session["userId"],
     )
     db.add(college)
+    db.flush()
+    _audit_institution(db, session, request, "college", college.id, "CREATED", None, _row_snapshot(college))
     db.commit()
     db.refresh(college)
     return _college_out(db, college)
@@ -266,11 +327,13 @@ def create_college(
 def update_college(
     college_id: str,
     body: CollegePatchIn,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> CollegeOut:
     require_capability(db, session, "admin.institution")
     college = db.get(College, college_id)
+    before = _row_snapshot(college)
     if college is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="College not found.")
     fields = body.model_dump(exclude_unset=True)
@@ -293,6 +356,8 @@ def update_college(
         fields["email_domains"] = _clean_domains(fields["email_domains"])
     for field, value in fields.items():
         setattr(college, field, value)
+    db.flush()
+    _audit_institution(db, session, request, "college", college.id, "UPDATED", before, _row_snapshot(college))
     db.commit()
     db.refresh(college)
     return _college_out(db, college)
@@ -650,8 +715,8 @@ class DepartmentOut(BaseModel):
 
 
 class DepartmentIn(BaseModel):
-    code: str = Field(min_length=1, max_length=32)
-    name: str = Field(min_length=1, max_length=200)
+    code: _Text32
+    name: _Text200
     head: str | None = None
 
 
@@ -660,8 +725,8 @@ class DepartmentPatchIn(PatchModel):
     # it currently has no head. See PatchModel.
     NON_NULLABLE: ClassVar[frozenset[str]] = frozenset({"code", "name", "status"})
 
-    code: str | None = Field(default=None, min_length=1, max_length=32)
-    name: str | None = Field(default=None, min_length=1, max_length=200)
+    code: _Text32 | None = None
+    name: _Text200 | None = None
     head: str | None = None
     status: str | None = None
 
@@ -751,6 +816,7 @@ def list_departments(
 def create_department(
     college_id: str,
     body: DepartmentIn,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> DepartmentOut:
@@ -775,6 +841,8 @@ def create_department(
         created_by_user_id=session["userId"],
     )
     db.add(department)
+    db.flush()
+    _audit_institution(db, session, request, "department", department.id, "CREATED", None, _row_snapshot(department))
     db.commit()
     db.refresh(department)
     return _department_out(db, department)
@@ -784,11 +852,13 @@ def create_department(
 def update_department(
     department_id: str,
     body: DepartmentPatchIn,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> DepartmentOut:
     require_capability(db, session, "admin.institution")
     department = db.get(Department, department_id)
+    before = _row_snapshot(department)
     if department is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Department not found.")
     fields = body.model_dump(exclude_unset=True)
@@ -813,6 +883,8 @@ def update_department(
             )
     for field, value in fields.items():
         setattr(department, field, value)
+    db.flush()
+    _audit_institution(db, session, request, "department", department.id, "UPDATED", before, _row_snapshot(department))
     db.commit()
     db.refresh(department)
     return _department_out(db, department)
@@ -879,16 +951,16 @@ class AcademicCourseOut(BaseModel):
 
 
 class AcademicCourseIn(BaseModel):
-    code: str = Field(min_length=1, max_length=32)
-    name: str = Field(min_length=1, max_length=200)
+    code: _Text32
+    name: _Text200
     duration_months: int | None = Field(default=None, ge=1, le=120)
 
 
 class AcademicCoursePatchIn(PatchModel):
     NON_NULLABLE: ClassVar[frozenset[str]] = frozenset({"code", "name", "status"})
 
-    code: str | None = Field(default=None, min_length=1, max_length=32)
-    name: str | None = Field(default=None, min_length=1, max_length=200)
+    code: _Text32 | None = None
+    name: _Text200 | None = None
     duration_months: int | None = Field(default=None, ge=1, le=120)
     status: str | None = None
 
@@ -935,6 +1007,7 @@ def list_academic_courses(
 def create_academic_course(
     department_id: str,
     body: AcademicCourseIn,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> AcademicCourseOut:
@@ -961,6 +1034,8 @@ def create_academic_course(
         created_by_user_id=session["userId"],
     )
     db.add(course)
+    db.flush()
+    _audit_institution(db, session, request, "academic_course", course.id, "CREATED", None, _row_snapshot(course))
     db.commit()
     db.refresh(course)
     return _academic_course_out(db, course)
@@ -970,11 +1045,13 @@ def create_academic_course(
 def update_academic_course(
     course_id: str,
     body: AcademicCoursePatchIn,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> AcademicCourseOut:
     require_capability(db, session, "admin.institution")
     course = db.get(AcademicCourse, course_id)
+    before = _row_snapshot(course)
     if course is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found.")
     fields = body.model_dump(exclude_unset=True)
@@ -1002,6 +1079,8 @@ def update_academic_course(
         fields["name"] = fields["name"].strip()
     for field, value in fields.items():
         setattr(course, field, value)
+    db.flush()
+    _audit_institution(db, session, request, "academic_course", course.id, "UPDATED", before, _row_snapshot(course))
     db.commit()
     db.refresh(course)
     return _academic_course_out(db, course)
@@ -1023,15 +1102,15 @@ class AcademicSpecializationOut(BaseModel):
 
 
 class AcademicSpecializationIn(BaseModel):
-    code: str = Field(min_length=1, max_length=32)
-    name: str = Field(min_length=1, max_length=200)
+    code: _Text32
+    name: _Text200
 
 
 class AcademicSpecializationPatchIn(PatchModel):
     NON_NULLABLE: ClassVar[frozenset[str]] = frozenset({"code", "name", "status"})
 
-    code: str | None = Field(default=None, min_length=1, max_length=32)
-    name: str | None = Field(default=None, min_length=1, max_length=200)
+    code: _Text32 | None = None
+    name: _Text200 | None = None
     status: str | None = None
 
 
@@ -1079,6 +1158,7 @@ def list_academic_specializations(
 def create_academic_specialization(
     course_id: str,
     body: AcademicSpecializationIn,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> AcademicSpecializationOut:
@@ -1103,6 +1183,8 @@ def create_academic_specialization(
         created_by_user_id=session["userId"],
     )
     db.add(spec)
+    db.flush()
+    _audit_institution(db, session, request, "academic_specialization", spec.id, "CREATED", None, _row_snapshot(spec))
     db.commit()
     db.refresh(spec)
     return _academic_specialization_out(db, spec)
@@ -1114,11 +1196,13 @@ def create_academic_specialization(
 def update_academic_specialization(
     specialization_id: str,
     body: AcademicSpecializationPatchIn,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> AcademicSpecializationOut:
     require_capability(db, session, "admin.institution")
     spec = db.get(AcademicSpecialization, specialization_id)
+    before = _row_snapshot(spec)
     if spec is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Specialization not found.")
     fields = body.model_dump(exclude_unset=True)
@@ -1146,6 +1230,8 @@ def update_academic_specialization(
         fields["name"] = fields["name"].strip()
     for field, value in fields.items():
         setattr(spec, field, value)
+    db.flush()
+    _audit_institution(db, session, request, "academic_specialization", spec.id, "UPDATED", before, _row_snapshot(spec))
     db.commit()
     db.refresh(spec)
     return _academic_specialization_out(db, spec)
@@ -1258,9 +1344,9 @@ class AdminCohortOut(BaseModel):
 
 
 class AdminCohortIn(BaseModel):
-    code: str = Field(min_length=1, max_length=64)
-    name: str = Field(min_length=1, max_length=200)
-    batch_label: str = Field(min_length=1, max_length=64)  # e.g. 2024-26
+    code: _Text64
+    name: _Text200
+    batch_label: _Text64  # e.g. 2024-26
     degree_level: DegreeLevel
     entry_date: date
     expected_completion: date
@@ -1292,8 +1378,8 @@ class AdminCohortPatchIn(PatchModel):
         {"name", "batch_label", "entry_date", "expected_completion"}
     )
 
-    name: str | None = Field(default=None, min_length=1, max_length=200)
-    batch_label: str | None = Field(default=None, min_length=1, max_length=64)
+    name: _Text200 | None = None
+    batch_label: _Text64 | None = None
     entry_date: date | None = None
     expected_completion: date | None = None
     # THE MOVE. Without this field, `department_id` had exactly one writer —
@@ -1427,6 +1513,7 @@ def list_incomplete_cohorts(
 def create_cohort(
     department_id: str,
     body: AdminCohortIn,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> AdminCohortOut:
@@ -1475,6 +1562,8 @@ def create_cohort(
         end_date=_as_utc_midnight(body.expected_completion),
     )
     db.add(cohort)
+    db.flush()
+    _audit_institution(db, session, request, "cohort", cohort.id, "CREATED", None, _row_snapshot(cohort))
     db.commit()
     db.refresh(cohort)
     return _admin_cohort_out(db, cohort)
@@ -1484,6 +1573,7 @@ def create_cohort(
 def update_cohort(
     cohort_id: str,
     body: AdminCohortPatchIn,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> AdminCohortOut:
@@ -1492,6 +1582,7 @@ def update_cohort(
     copying them onto the student."""
     require_capability(db, session, "admin.institution")
     cohort = db.get(Cohort, cohort_id)
+    before = _row_snapshot(cohort)
     if cohort is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Batch not found.")
     fields = body.model_dump(exclude_unset=True)
@@ -1541,6 +1632,8 @@ def update_cohort(
         cohort.end_date = _as_utc_midnight(completion)
     for field, value in fields.items():
         setattr(cohort, field, value)
+    db.flush()
+    _audit_institution(db, session, request, "cohort", cohort.id, "UPDATED", before, _row_snapshot(cohort))
     db.commit()
     db.refresh(cohort)
     return _admin_cohort_out(db, cohort)
@@ -1634,6 +1727,7 @@ def list_unseated_students(
 def set_student_cohort(
     student_id: str,
     body: SetStudentCohortIn,
+    request: Request,
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> None:
@@ -1649,7 +1743,15 @@ def set_student_cohort(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
     if body.cohort_id is not None and db.get(Cohort, body.cohort_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Batch not found.")
+    # Imported here: admin_mentoring sits above this module in the import graph.
+    from .admin_mentoring import assert_move_keeps_mentor_in_college
+
+    assert_move_keeps_mentor_in_college(db, student, body.cohort_id)
+    before = {"cohort_id": student.cohort_id}
     student.cohort_id = body.cohort_id
+    _audit_institution(
+        db, session, request, "student", student.id, "COHORT_SET", before, {"cohort_id": body.cohort_id}
+    )
     db.commit()
 
 

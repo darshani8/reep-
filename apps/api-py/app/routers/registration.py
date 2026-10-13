@@ -62,6 +62,7 @@ from ..models.job import DegreeLevel
 from ..institution_domains import (
     college_id_for_cohort,
     college_ids_for_cohorts,
+    PUBLIC_MAIL_DOMAINS,
     domain_of,
     normalise_domain,
     provisionable_domains_for,
@@ -324,16 +325,7 @@ def _looks_like_email(value: str) -> bool:
     return "@" in value and "." in value.rsplit("@", 1)[-1]
 
 
-#: Domains that hand an address to anybody who asks, so one of them is never a
-#: college's. Only the big providers, and deliberately not a complete list: the
-#: point is the common mistake, not a directory of free mail.
-PUBLIC_MAIL_DOMAINS = frozenset(
-    {
-        "gmail.com", "googlemail.com", "yahoo.com", "yahoo.co.in", "yahoo.in",
-        "outlook.com", "hotmail.com", "live.com", "msn.com", "icloud.com",
-        "me.com", "rediffmail.com", "proton.me", "protonmail.com", "aol.com",
-    }
-)
+_PHONE_CHARS = re.compile(r"^[0-9+()\-. ]+$")
 
 
 def _college_email_problem(college_email: str, personal_email: str) -> str | None:
@@ -421,12 +413,28 @@ class RegisterIn(BaseModel):
     linkedin_url: str = Field(min_length=1, max_length=300)
     degree_level: DegreeLevel = DegreeLevel.PG
 
-    @field_validator("usn", "phone", "personal_email", "linkedin_url")
+    @field_validator("name", "usn", "phone", "personal_email", "linkedin_url")
     @classmethod
     def _not_blank(cls, value: str) -> str:
+        # `name` joined this list on 2026-10-13: `min_length=1` alone let a
+        # name of spaces through, and the review queue showed an applicant
+        # with no name at all.
         value = value.strip()
         if not value:
             raise ValueError("this field is required")
+        return value
+
+    @field_validator("phone")
+    @classmethod
+    def _phone_shape(cls, value: str) -> str:
+        """Digits with the usual separators, and a phone number's worth of
+        digits. The value is copied onto the student's placement profile at
+        approval, where "call me maybe" is a number nobody can ring."""
+        if not _PHONE_CHARS.match(value):
+            raise ValueError("enter a phone number using digits, spaces, + - ( ) only")
+        digits = sum(ch.isdigit() for ch in value)
+        if not 7 <= digits <= 15:
+            raise ValueError("a phone number has between 7 and 15 digits")
         return value
 
     @field_validator(
@@ -1660,6 +1668,17 @@ def _resolve_claim(db: Session, body: RegisterIn) -> dict[str, str | None]:
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"That {noun} does not exist. Reload the form and choose again.",
             )
+        # The hierarchy this form is drawn from lists ACTIVE colleges,
+        # departments, courses and specializations only; an id for an
+        # archived one can only come from a stale page or a hand-made request,
+        # and approving it would seat a student somewhere the office has
+        # closed. A batch is not judged here: the hierarchy serves every batch
+        # whatever its lifecycle status, and the form and this check must agree.
+        if model is not Cohort and getattr(row, "status", STATUS_ACTIVE) != STATUS_ACTIVE:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"That {noun} is not taking applications. Reload the form and choose again.",
+            )
         return row
 
     batch = load(Cohort, body.requested_cohort_id, "batch")
@@ -1958,7 +1977,9 @@ def submit(
     _apply_rule(db, reg)
     db.commit()
     db.refresh(reg)
-    log.info("application %s from %s is %s", reg.id, email, reg.status.value)
+    # The id and never the address: the log carries no applicant by name (a
+    # reviewer reads who it is from the queue, which is behind require_admin).
+    log.info("application %s is %s", reg.id, reg.status.value)
     return _public_out_one(db, reg)
 
 
@@ -2421,7 +2442,7 @@ def _apply_rule(db: Session, reg: Registration) -> None:
     except HTTPException as refused:
         reg.status = RegistrationStatus.PENDING_REVIEW
         reg.decision_reason = f"Rule '{rule.name}' would auto-approve, but: {refused.detail}"
-        log.warning("auto-approve of %s refused: %s", reg.email, refused.detail)
+        log.warning("auto-approve of application %s refused: %s", reg.id, refused.detail)
         return
     db.flush()
     # THE SAME ACT `decide` PERFORMS ON APPROVE, and it was missing here. The

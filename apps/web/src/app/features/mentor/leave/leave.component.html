@@ -193,6 +193,16 @@
       }
     </div>
 
+    @if (viewing()?.decision_change_reason) {
+      <div class="remarks">
+        <span class="icon" aria-hidden="true">undo</span>
+        <div>
+          <strong>{{ changeLabel(viewing()!) }}</strong>
+          <div>{{ viewing()!.decision_change_reason }}</div>
+        </div>
+      </div>
+    }
+
     @if (viewing()?.director_note) {
       <div class="remarks">
         <span class="icon" aria-hidden="true">flag</span>
@@ -529,12 +539,12 @@
       </div>
     }
 
-    @if (v?.status === 'REJECTED') {
+    @if (v?.status === 'REJECTED' || v?.status === 'REVOKED') {
       <div class="form-actions">
         <button type="button" class="btn" (click)="editAndResubmit(v!)">
           <span class="icon" aria-hidden="true">edit</span> Edit &amp; resubmit
         </button>
-        <span class="form-hint">Opens a fresh form with these details; the rejected one stays on record.</span>
+        <span class="form-hint">Opens a fresh form with these details; this one stays on record.</span>
       </div>
     }
 

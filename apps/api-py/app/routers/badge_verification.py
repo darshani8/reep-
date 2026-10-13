@@ -24,13 +24,18 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from .. import badge_mail
 from ..architecture_events import record_change
 from ..db import get_db
-from ..governance import require_capability
+from ..governance import (
+    ancestry_of_student,
+    granted_reaches,
+    reaches_target,
+    require_capability,
+)
 from ..identity import get_current_session
 from ..models.badge import (
     BADGE_BY_CODE,
@@ -138,18 +143,63 @@ def _evidence_query(db: Session, session: dict, response: Response):
         .join(User, Student.user_id == User.id)
         .outerjoin(Upload, BadgeEvidence.upload_id == Upload.id)
     )
-    if session["role"] == "MENTOR":
-        mentor_id = session.get("mentorId")
-        if not mentor_id:
-            return None  # no Mentor group => nobody (never the whole programme)
-        return query.where(Student.mentor_id == mentor_id)
     reach = scope_filter(db, session, "mentor.verifications")
+    if session["role"] == "MENTOR":
+        # A GRANTED VERIFIER IS NOT LIMITED TO THEIR OWN MENTEES (2026-10-13).
+        # The grant's reach is ADDED to the group, never substituted for it: a
+        # faculty member with no grant reaches `nothing` and keeps exactly the
+        # old queue. See `pending_evidence` for why.
+        mentor_id = session.get("mentorId")
+        visible = []
+        if mentor_id:
+            visible.append(Student.mentor_id == mentor_id)
+        if not reach.nothing:
+            scope_header(response, reach)
+            visible.append(Student.id.in_(reach.student_ids()))
+        if not visible:
+            return None  # no group and no grant => nobody (never the whole programme)
+        return query.where(or_(*visible))
     scope_header(response, reach)
     if reach.nothing:
         return None
     if not reach.everything:
         query = query.where(Student.id.in_(reach.student_ids()))
     return query
+
+
+_EVIDENCE_NOT_FOUND = "Evidence not found."
+
+
+def _assert_can_verify(session: dict, student_id: str, db: Session) -> None:
+    """May this session open and decide THIS student's evidence?
+
+    The per-row twin of `_evidence_query`, so a claim that is listed can always
+    be opened and one that is not listed cannot. Two doors, either enough:
+
+      1. rule 2 — `_assert_can_access_student`: a mentor's own mentee, or any
+         student for the Main Admin. Cheap (it reads the session claim), so the
+         commonest case never touches the grants table.
+      2. a live GRANT of `mentor.verifications` whose scope covers the student.
+
+    Every refusal is the same 404: an out-of-scope id must not be
+    distinguishable from a wrong one.
+
+    DELIBERATELY NOT A CHANGE TO `_assert_can_access_student`. That function
+    gates every per-student staff endpoint, many of them writes (mentor notes,
+    assessments, manual awards); widening it would hand a verification grant all
+    of those too. The second door opens HERE, for these two endpoints only.
+    """
+    try:
+        _assert_can_access_student(session, student_id, db)
+        return
+    except HTTPException:
+        pass
+    reaches = granted_reaches(db, str(session.get("userId") or ""), "mentor.verifications")
+    if reaches and reaches_target(reaches, ancestry_of_student(db, student_id)):
+        return
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND, detail=_EVIDENCE_NOT_FOUND
+    ) from None
 
 
 @router.get("/mentor/badge-evidence/pending", response_model=list[PendingEvidenceOut])
@@ -179,7 +229,17 @@ def pending_evidence(
     reports `nothing` for them. Their fence is their own group, which is
     stricter than any scope — this mentor's students, not a department's — and
     is the same argument `require_capability` makes for leaving a function
-    unscoped. Applying the reach here would empty every faculty member's queue.
+    unscoped. Applying the reach INSTEAD of the group would empty every
+    faculty member's queue.
+
+    A MENTOR MAY ALSO HOLD IT AS A GRANT, AND THEN SEES WHAT THE GRANT COVERS AS
+    WELL (2026-10-13). The placement office asked for verification to stop
+    depending on mentoring: on production 128 certificates from 26 students sat
+    pending because none of those students had a mentor, so no faculty member
+    could see them. A faculty member granted "Verify skills & evidence" in
+    Governance now sees their own group PLUS every student the grant's scope
+    covers — with no group at all, if they mentor nobody. The grant is the
+    decision; who mentors whom no longer gates it.
 
     ANYONE ELSE holds it as a GRANT, and that grant now carries a scope. This is
     where it bites today rather than in some future phase: `_FACULTY_ONLY` keeps
@@ -251,12 +311,7 @@ def evidence_file(
     ev = db.get(BadgeEvidence, evidence_id)
     if ev is None or ev.upload_id is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence not found.")
-    try:
-        _assert_can_access_student(session, ev.student_id, db)
-    except HTTPException:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Evidence not found."
-        ) from None
+    _assert_can_verify(session, ev.student_id, db)
     upload = db.get(Upload, ev.upload_id)
     if upload is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence not found.")
@@ -323,14 +378,7 @@ def review_evidence(
     ev = db.get(BadgeEvidence, evidence_id)
     if ev is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence not found.")
-    try:
-        _assert_can_access_student(session, ev.student_id, db)
-    except HTTPException:
-        # Flattened to the same 404 — an out-of-scope id must not be
-        # distinguishable from a wrong one.
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Evidence not found."
-        ) from None
+    _assert_can_verify(session, ev.student_id, db)
 
     decision = body.decision.upper()
     if decision not in ("APPROVE", "REJECT", "MORE_INFO"):

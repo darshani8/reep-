@@ -4,7 +4,7 @@ scope, growth derivation and the §16 leaderboards."""
 import uuid
 from datetime import datetime, timezone
 
-from conftest import requires_db
+from conftest import TEST_PASSWORD, requires_db
 from sqlalchemy import delete, select
 
 from app.db import SessionLocal
@@ -15,7 +15,8 @@ from app.models.badge import (
     StudentBadge,
     StudentBadgeStatus,
 )
-from app.models.user import Role, Student, User
+from app.models.governance import CapabilityGrant, SubjectKind
+from app.models.user import Mentor, Role, Student, User
 
 
 def test_catalogue_matches_the_framework_document():
@@ -163,6 +164,116 @@ def test_groupless_mentor_sees_no_queue_and_students_see_no_admin(client, make_u
     # Cohort views and the export are DIRECTOR/ADMIN, not any staff.
     assert client.get("/api/admin/badges/cohort", headers=mentor.headers).status_code == 403
     assert client.get("/api/admin/badges/export.csv", headers=mentor.headers).status_code == 403
+
+
+def _grant_row(user_id: str, key: str) -> None:
+    """A live programme-wide grant, written as a row (test_scoped_lists.py's
+    reason: a MENTOR cannot call the Governance endpoint for itself). The
+    `make_user` teardown deletes grants by subject, so nothing leaks."""
+    with SessionLocal() as db:
+        db.add(
+            CapabilityGrant(
+                capability=key,
+                subject_kind=SubjectKind.USER,
+                subject_user_id=user_id,
+                reason="badge tests: a granted verifier who mentors nobody",
+            )
+        )
+        db.commit()
+
+
+@requires_db
+def test_a_granted_verifier_reviews_students_they_do_not_mentor(client, make_user):
+    """2026-10-13: verification no longer depends on mentoring.
+
+    On production 128 certificates from 26 students sat pending because none of
+    those students had a mentor, so no faculty member could see them. A faculty
+    member GRANTED "Verify skills & evidence" now sees and decides every student
+    the grant covers — with no Mentor group at all — through the queue, the
+    reviewed strip and the review endpoint alike. Without the grant the same
+    account is refused, and the mentoring-only path is unchanged
+    (test_scoped_lists.py::test_a_faculty_approver_keeps_their_queue).
+    """
+    student = make_user("bdg-unmentored", Role.STUDENT)  # nobody mentors them
+    verifier = make_user("bdg-granted-fac", Role.MENTOR)  # mentors nobody
+    r = client.post(
+        "/api/student/badges/TECH-CRM/evidence",
+        headers=student.headers,
+        json={"evidence_type": "EXTERNAL_VERIFIED", "title": "Unmentored CRM certificate"},
+    )
+    assert r.status_code == 201, r.text
+
+    # No grant, no group: refused at the capability gate, exactly as before.
+    assert (
+        client.get("/api/mentor/badge-evidence/pending", headers=verifier.headers).status_code
+        == 403
+    )
+
+    _grant_row(verifier.user_id, "mentor.verifications")
+    queue = client.get("/api/mentor/badge-evidence/pending", headers=verifier.headers)
+    assert queue.status_code == 200, queue.text
+    ev = next(q for q in queue.json() if q["title"] == "Unmentored CRM certificate")
+
+    r = client.post(
+        f"/api/mentor/badge-evidence/{ev['id']}/review",
+        headers=verifier.headers,
+        json={"decision": "APPROVE", "note": "Checked with the issuer"},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "APPROVED"
+
+    reviewed = client.get("/api/mentor/badge-evidence/reviewed", headers=verifier.headers)
+    assert reviewed.status_code == 200, reviewed.text
+    row = next(x for x in reviewed.json() if x["id"] == ev["id"])
+    assert row["review_note"] == "Checked with the issuer"
+
+    dash = client.get("/api/student/badges", headers=student.headers).json()
+    crm = next(b for c in dash["categories"] for b in c["badges"] if b["code"] == "TECH-CRM")
+    assert crm["status"] == "EARNED"
+
+
+@requires_db
+def test_a_mentor_without_the_grant_cannot_decide_someone_elses_student(
+    client, make_user, login
+):
+    """The second door is the GRANT, not the role: a faculty member who mentors
+    somebody else, holding `mentor.verifications` only as that mentoring
+    function, still cannot see or decide this student's evidence — the same
+    flattened 404 as a wrong id."""
+    student = make_user("bdg-not-yours", Role.STUDENT)
+    granted_admin = make_user("bdg-not-yours-adm", Role.ADMIN)
+    _grant_row(granted_admin.user_id, "mentor.verifications")
+    mentee = make_user("bdg-own-mentee", Role.STUDENT)
+    faculty = make_user("bdg-own-fac", Role.MENTOR)
+    with SessionLocal() as db:
+        group = Mentor(user_id=faculty.user_id)
+        db.add(group)
+        db.flush()
+        db.scalar(select(Student).where(Student.user_id == mentee.user_id)).mentor_id = group.id
+        db.commit()
+    headers = login(faculty.email, TEST_PASSWORD)  # mentorId is minted at login
+
+    client.post(
+        "/api/student/badges/MGR-LEADERSHIP/evidence",
+        headers=student.headers,
+        json={"evidence_type": "APPLIED", "title": "Not your mentee's leadership"},
+    )
+    ev = next(
+        q
+        for q in client.get(
+            "/api/mentor/badge-evidence/pending", headers=granted_admin.headers
+        ).json()
+        if q["title"] == "Not your mentee's leadership"
+    )
+    own = client.get("/api/mentor/badge-evidence/pending", headers=headers)
+    assert own.status_code == 200, own.text
+    assert ev["id"] not in {q["id"] for q in own.json()}
+    r = client.post(
+        f"/api/mentor/badge-evidence/{ev['id']}/review",
+        headers=headers,
+        json={"decision": "APPROVE"},
+    )
+    assert r.status_code == 404
 
 
 @requires_db

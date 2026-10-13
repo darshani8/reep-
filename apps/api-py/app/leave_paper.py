@@ -138,6 +138,7 @@ SANCTIONED_WORDS: dict[str, str] = {
     "FIRST_APPROVED": "Pending",
     "SUBMITTED": "Pending",
     "CANCELLED": "Cancelled",
+    "REVOKED": "Sanction revoked",
 }
 
 #: How each stored function reads on the paper (B10.8). The keys are

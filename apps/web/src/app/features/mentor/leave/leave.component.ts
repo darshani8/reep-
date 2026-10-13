@@ -110,6 +110,11 @@ interface LeaveRow {
   director_name: string | null;
   director_decided_at: string | null;
   director_note: string | null;
+  /** A decision changed after it was made (2026-10-13): the LATEST change,
+   *  REVOKED or REOPENED, and the reason the approver had to write to you. */
+  decision_change_kind?: 'REVOKED' | 'REOPENED' | null;
+  decision_changed_at?: string | null;
+  decision_change_reason?: string | null;
 }
 
 /** One allowance, as `GET /api/leaves/balances` answers it. `remaining_days`
@@ -191,6 +196,8 @@ function statusChip(status: string): Chip {
       return { tone: 'risk', icon: 'cancel', label: 'Rejected' };
     case 'CANCELLED':
       return { tone: 'neutral', icon: 'event_busy', label: 'Cancelled' };
+    case 'REVOKED':
+      return { tone: 'risk', icon: 'undo', label: 'Sanction revoked' };
     case 'FIRST_APPROVED':
       return { tone: 'warn', icon: 'how_to_reg', label: 'Signed once · awaiting the Main Admin' };
     default:
@@ -323,7 +330,15 @@ export class LeaveComponent {
     if (status === 'APPROVED') return 'Sanctioned';
     if (status === 'REJECTED') return 'Not sanctioned';
     if (status === 'CANCELLED') return 'Cancelled';
+    if (status === 'REVOKED') return 'Sanction revoked';
     return 'Pending';
+  }
+
+  /** The heading over the approver's reason for changing a decision. */
+  changeLabel(row: LeaveRow): string {
+    return row.decision_change_kind === 'REVOKED'
+      ? 'Why the sanction was revoked'
+      : 'Reopened for a fresh decision';
   }
 
   remarksLabel(status: string): string {
@@ -665,6 +680,8 @@ export class LeaveComponent {
         return 'Not sanctioned — no cover is needed.';
       case 'CANCELLED':
         return 'Withdrawn — no cover is needed.';
+      case 'REVOKED':
+        return 'Sanction revoked — no cover is needed.';
       case 'FIRST_APPROVED':
         return 'Signed once, awaiting the Main Admin.';
       default:

@@ -526,9 +526,10 @@ is not live, so the days are free and the "on leave today" job stops on its
 own; the allowance is NOT touched, because `consumed_days` is the office's own
 number and approval never wrote it either. Mail: the applicant and every
 colleague named to cover (`alt_rows[].user_id`) are told, carrying neither the
-purpose nor the change reason; `decision_revision` suffixes the dedupe key
-(`leave:{id}:{status}:r{n}`) so a second sanction is not swallowed by the
-first one's row. `tests/test_leave_decision_change.py` pins it.
+purpose nor the change reason; a REOPEN also mails the approvers, as a fresh
+faculty application does; `decision_revision` suffixes the dedupe keys
+(`leave:{id}:{status}:r{n}`, `leave-approval:{id}:{approver}:r{n}`) so a second
+sanction or a reopened queue entry is not swallowed by the first one's row. `tests/test_leave_decision_change.py` pins it.
 
 **The signature image: normalised on the way in, never silent on the way
 out.** `PUT /api/staff/signature` re-encodes what the sniffer accepted as a

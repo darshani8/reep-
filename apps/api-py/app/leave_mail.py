@@ -294,7 +294,12 @@ def _is_faculty(user: User | None) -> bool:
 
 
 def approver_dedupe_key(lr: LeaveRequest, approver: User) -> str:
-    return f"leave-approval:{lr.id}:{approver.id}"
+    """`leave-approval:{id}:{approver}`, plus `:r{n}` once a decision on the
+    request has been changed — a REOPENED request is waiting again, and the bare
+    key would find the submission's row and send nothing."""
+    base = f"leave-approval:{lr.id}:{approver.id}"
+    revision = lr.decision_revision or 0
+    return base if revision == 0 else f"{base}:r{revision}"
 
 
 def on_leave_dedupe_key(lr: LeaveRequest, day: date, recipient: User) -> str:
@@ -360,10 +365,15 @@ def notify_approvers(db: Session, lr: LeaveRequest) -> list[MailLog]:
     for approver in leave_approvers(db):
         if approver.id == applicant.id:
             continue
+        if lr.decision_change_kind == "REOPENED":
+            # A decided request put back in the queue (2026-10-13). Names the
+            # applicant and the dates, never who reopened it or why.
+            what = f"{applicant.name}'s leave request covering {_span(lr)} has been reopened"
+        else:
+            what = f"{applicant.name} has applied for leave covering {_span(lr)}"
         text = (
             f"Hello {approver.name},\n\n"
-            f"{applicant.name} has applied for leave covering {_span(lr)}. It is "
-            f"waiting for a decision on the Leave Approvals screen.\n"
+            f"{what}. It is waiting for a decision on the Leave Approvals screen.\n"
         )
         rows.append(
             deliver_once(

@@ -2296,7 +2296,10 @@ def regenerate_resume(
     resume_pk = r.id
     markdown = _compose_for_student(db, student_id, session.get("name", ""))
     markdown, generated_by, model, _used_ai, _note = _polish(db, markdown)
+    # Re-read and re-check: the model call can take LLM_TIMEOUT_MS, and the
+    # student may have finalised this version from another tab meanwhile.
     r = _own_resume(db, student_id, resume_pk)
+    _refuse_if_finalised(r, "regenerate")
     r.markdown = markdown
     r.generated_by = generated_by
     r.model = model

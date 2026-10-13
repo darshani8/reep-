@@ -16,7 +16,7 @@ from sqlalchemy import delete, select
 
 from app.db import SessionLocal
 from app.models.academic_history import QualificationLevel
-from app.models.resume import Resume
+from app.models.resume import Resume, ResumeStatus
 from app.models.user import Student
 from app.resume_pdf import render_resume_pdf
 from app.routers.student import (
@@ -95,6 +95,12 @@ def test_a_polish_that_moves_a_section_is_refused() -> None:
     assert not _polish_keeps_template(draft, "")
 
 
+def test_a_line_of_only_separators_is_text_not_a_crash() -> None:
+    """A student's own `|---|` line must not 500 the download."""
+    for md in ("# T\n|---|\n", "# T\n|-|\n|:-:|\nAfter\n"):
+        assert render_resume_pdf(md).startswith(b"%PDF-")
+
+
 def test_the_template_renders_to_a_pdf() -> None:
     pdf = render_resume_pdf(_full(), fallback_title="Asha Rao")
     assert pdf.startswith(b"%PDF-")
@@ -157,6 +163,27 @@ def test_create_read_update_regenerate_delete(client, resume_student):
     assert again.status_code == 200, again.text
     assert again.json()["id"] == rid
     assert again.json()["version"] == made.json()["version"]
+
+    # A version finalised while its regeneration was composing stays locked.
+    from unittest import mock
+
+    from app.routers import student as student_router
+
+    real_polish = student_router._polish
+
+    def finalise_mid_call(db, markdown):
+        with SessionLocal() as other:
+            other.get(Resume, rid).status = ResumeStatus.FINALISED
+            other.commit()
+        return real_polish(db, markdown)
+
+    with mock.patch.object(student_router, "_polish", finalise_mid_call):
+        raced = client.post(f"/api/student/resume/{rid}/regenerate", headers=h)
+    assert raced.status_code == 409, raced.text
+    assert (
+        client.patch(f"/api/student/resume/{rid}", json={"status": "GENERATED"}, headers=h).status_code
+        == 200
+    )
 
     gone = client.delete(f"/api/student/resume/{rid}", headers=h)
     assert gone.status_code == 204, gone.text

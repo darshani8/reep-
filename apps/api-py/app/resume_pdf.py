@@ -89,9 +89,15 @@ def _is_separator(line: str) -> bool:
     return bool(cells) and all(c and set(c) <= set("-: ") for c in cells)
 
 
-def _table(lines: list[str], styles: dict, width: float) -> Table:
-    """A markdown table as a ReportLab table: header row shaded, grid ruled."""
+def _table(lines: list[str], styles: dict, width: float) -> Table | None:
+    """A markdown table as a ReportLab table: header row shaded, grid ruled.
+
+    None when every line was a separator: a student's own text can hold a line
+    such as `|---|`, and a table with no rows is not a table.
+    """
     rows = [_row_cells(ln) for ln in lines if not _is_separator(ln)]
+    if not rows:
+        return None
     ncols = max(len(r) for r in rows)
     rows = [r + [""] * (ncols - len(r)) for r in rows]
     data = [
@@ -141,8 +147,14 @@ def render_resume_pdf(markdown: str, *, fallback_title: str = "Resume") -> bytes
 
     def flush_table() -> None:
         if pending_table:
-            story.append(_table(pending_table, styles, width))
-            story.append(Spacer(1, 2 * mm))
+            table = _table(pending_table, styles, width)
+            if table is None:
+                # Not a table after all: print the lines as the text they were.
+                for ln in pending_table:
+                    story.append(Paragraph(_inline(ln), styles["body"]))
+            else:
+                story.append(table)
+                story.append(Spacer(1, 2 * mm))
             pending_table.clear()
 
     for raw in (markdown or "").splitlines():

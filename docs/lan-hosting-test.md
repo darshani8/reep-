@@ -72,6 +72,64 @@ stream to Tokyo for the same time.
    cuts out at the same minute every time, a firewall idle or session
    timeout is the cause, not the app.
 
+## `test.sast-skills.com` through a Cloudflare Tunnel (no AWS changes)
+
+`sast-skills.com`'s DNS is on Cloudflare (nameservers `*.ns.cloudflare.com`),
+so the test hostname is a Cloudflare record, not a Route 53 one. Nothing in
+AWS is created, edited or deployed: production's CloudFront, ALB, WAF, RDS
+and SES identity are untouched. Do not edit the DKIM or other existing
+records in the Cloudflare zone, because SES mail depends on them. The tunnel
+also provides the HTTPS the microphone and Google sign-in need.
+
+A tunnel connects OUTBOUND from the laptop. It therefore proves the network
+and the app work, but says nothing about whether the network accepts inbound
+connections. Stage 2 is still the test for that, if the real server will not
+sit behind a tunnel too.
+
+On the laptop (PowerShell):
+
+```
+winget install --id Cloudflare.cloudflared
+cloudflared tunnel login                 # browser: pick sast-skills.com
+cloudflared tunnel create reep-test      # prints the tunnel id
+cloudflared tunnel route dns reep-test test.sast-skills.com
+```
+
+`%USERPROFILE%\.cloudflared\config.yml`:
+
+```yaml
+tunnel: reep-test
+credentials-file: C:\Users\<you>\.cloudflared\<tunnel-id>.json
+ingress:
+  - hostname: test.sast-skills.com
+    service: http://localhost:4200
+    originRequest:
+      httpHostHeader: localhost:4200   # ng serve refuses unknown Host headers
+  - service: http_status:404
+```
+
+Everything goes to `ng serve`, whose `proxy.conf.json` already forwards `/api`
+(WebSockets included) to the API on 3300. The page and the API therefore
+share one origin and the session cookie is carried.
+
+`apps/api-py/.env` for the test:
+
+```
+ENV=dev                                  # dev seed only, never real students
+WEB_ORIGIN=https://test.sast-skills.com  # CORS, interview Origin check, emailed links
+AWS_PROFILE=<your existing profile>      # existing access; no new IAM user
+INTERVIEW_ENGINE=nova
+NOVA_SONIC_REGION=ap-northeast-1
+# SES_FROM_ADDRESS=no-reply@sast-skills.com   # only when testing mail, and
+#   only to your own address: the seeded accounts are @bgscet.ac.in
+```
+
+Then run the API and `npx ng serve`, and `cloudflared tunnel run reep-test`.
+Sign in at `https://test.sast-skills.com` as `student@bgscet.ac.in` /
+`student123` and run stage 3. When finished, stop `cloudflared` (the hostname
+then shows a Cloudflare error page) and `cloudflared tunnel delete reep-test`,
+then remove the `test` CNAME in the Cloudflare dashboard.
+
 ## What passing means for the real server
 
 All three stages passing on the laptop means the network is fine. The real

@@ -263,8 +263,10 @@ export class RbBasicComponent {
         }).catch(() => undefined);
       }
     } catch {
-      // Only the upload itself can throw here: save() and the cleanup DELETE
-      // swallow their own failures. Reported because no server saw it.
+      // The upload, or reading its answer, is what can throw here: save() and
+      // the cleanup DELETE swallow their own failures. An unreadable answer to
+      // an upload that worked would land here too; the API always answers
+      // JSON, so that case is not told apart. Reported because no server saw it.
       this.photoError.set(UPLOAD_DROPPED_MESSAGE);
       this.errorHandler.handleError(
         new Error('Resume photo upload failed: no HTTP response (network error on the device)'),

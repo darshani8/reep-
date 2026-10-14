@@ -78,6 +78,8 @@ Seeded logins: `student@bgscet.ac.in` / `student123`, `mentor@bgscet.ac.in` / `m
 
 **BRANCHES: `feature/*` → `dev` → `stage` → `main`, AND `hotfix/*` FROM `main` (2026-10-07).** `docs/branching-strategy.md` is the whole of it. Work is cut from `dev` and PRs target `dev`; `dev` is promoted to `stage`, `stage` to `main`, both with MERGE COMMITS (a squash leaves the source without the commit and every later promotion re-conflicts — the rulesets allow `merge` only there). `main` still deploys and still alone: `deploy.yml`'s OIDC role is pinned to `refs/heads/main`. A ruleset cannot say which branch a PR comes FROM, so `tools/ci/branch_policy.py` does, as the required check "Branch policy (promotion path)" on `main` and `stage` — its own workflow, not a sixth `ci.yml` job, for §34's reason. `stage` is a gate branch: no staging environment deploys from it. Keep `main` the default branch (`workflow_run`, schedules and `~DEFAULT_BRANCH` read it).
 
+**EVERY BUG FIX IS LOGGED, WITH ITS DATE (2026-10-14).** The owner's rule. `docs/bug-log.md` holds one dated entry per bug or production error fixed: what was seen, the cause, the evidence, the fix, the PR and how it was checked. Entries go newest first and are written in the same PR as the fix. Update the entry's Status line when the fix is merged and when it is deployed. A problem found and not fixed goes under that file's "Open" list with the date it was found. This file still carries the long reasoning; the log is where a date answers "what broke and what was done".
+
 **AGENTS IN THE LOOP (2026-09-29).** Every phase of the lifecycle has an agent; `docs/agentic-sdlc.md` is the map. `claude.yml` turns an `agent`-labelled issue or an `@claude` into a PR; `claude-review.yml` reviews every non-draft PR; `agent-release.yml` runs after green CI on `main`, writes release notes and — only when `vars.AGENT_AUTODEPLOY` is `true` AND `tools/ci/release_gate.py` says so — dispatches `deploy.yml` and watches it; `agent-ops.yml` sends infra drift, failed human deploys and `incident` issues to `agent-triage.yml`; `agent-maintenance.yml` sweeps dependencies weekly. **The gate is code, not a prompt**, pinned by `tests/test_release_gate.py`: a migration, a model, `infra/`, auth / rule 1 / rule 2 / deletion code, the service worker, a manifest, the deploy pipeline or the gate itself always needs a human, and loosening that list is loosening what reaches students unreviewed. No agent holds AWS credentials or a production secret (rule 1 applies to agents), none runs `cdk-deploy.yml` or `ops-task.yml`, and none is a CI job (§34). Triage is a CALLED workflow on purpose: issues opened with `GITHUB_TOKEN`, as `infra-drift.yml` opens them, trigger no other workflow.
 
 **ONE THING AT A TIME TOUCHES ONE DATABASE.** `tests/conftest.py` says it in its first paragraph and the consequence is nowhere: the integration tests hit the SEEDED DEV DATABASE — the same `reep_py` a running `uvicorn` is using, the same one `python -m app.seed` wrote. So **two pytest runs at once, or a pytest run beside a live API, corrupt each other's fixtures**, and the failures that come out of it are the expensive kind: they look completely real, they name a plausible cause, and every one of them passes when you re-run it on its own. The two that cost an afternoon were a purge-plan count off by one (the other run's throwaway student was in the table when the plan was taken) and a fixture student answering 404 (the other run's teardown had deleted them mid-test). Nothing in the suite is isolated by a transaction — `make_user` and its friends commit, because the endpoints under test commit.
@@ -1615,6 +1617,26 @@ LEAVES OUT `cs-uri-query`, `cs(Cookie)` and `cs(Referer)`: the setup, reset
 and activation links are `?token=`, the cookie is the session, and a referer
 carries the previous page's query string. The legacy log cannot omit fields,
 which is why it is not used. Takes an `edge-waf` deploy to exist.
+
+**"COULD NOT REACH THE SERVER" ON SKILLING WAS THE PHONE FAILING TO READ THE
+FILE (2026-10-14).** Students reported certificate claims failing with that
+sentence on a day the API took 138 uploads. The CloudFront log showed the
+failing POSTs to `/api/student/uploads` from Android sending their headers
+(136 and 142 bytes) and then no file before hanging up. A picked `File` is a
+reference the browser reads again at send time, and a file held by Drive,
+Photos or another app can be unreadable by then (`ERR_UPLOAD_FILE_CHANGED`).
+The claim form asks for four more fields after the certificate, so there is
+always time for that. `core/picked-file.ts` copies the bytes into memory at
+pick time, and a file unreadable even then is refused on the spot with
+`UNREADABLE_FILE_MESSAGE`. A thrown upload now says the connection dropped,
+the upload id is kept so a retry files the claim without uploading twice,
+and both failures go to the browser's Sentry as fixed sentences. `/register`
+(all nine of Sentry's "Registration submit failed" reports, 1 to 7 Oct, came
+from Android) and `/student/uploads` copy the file the same way since the
+same day. The alumni resume, faculty upskilling, leave attachments and the
+signature upload still send the picker's reference. The other failure in that
+log was a phone sending 0.87 MB in 121 s (CloudFront 408). That is the
+photo-downscaling item the 2026-10-01 entry above left undone.
 
 **THE CLAIM FORM FILED INTO A QUEUE THE MENTOR'S SCREEN NEVER OPENED.**
 `/student/skilling` stores the certificate through `POST /student/uploads` and

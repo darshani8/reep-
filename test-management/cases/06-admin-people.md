@@ -1371,8 +1371,8 @@ None.
 
 1. Open `/admin/mentors`.
 2. Click Test Mentor on the Mentors list.
-3. Click the release button on Test Student's row without typing a reason.
-4. Type `E2E: moving between groups` into "Reason" and click the release button again.
+3. Click the release button on Test Student's row.
+4. Type `E2E: moving between groups` into "Why is Test Student being released?" and click "Release".
 5. Tick Test Student in "Unassigned students".
 6. Type `E2E: back with their mentor` into "Reason" and click "Assign 1 selected to Test Mentor".
 7. Click the history button on Test Student's row.
@@ -1384,7 +1384,7 @@ Student from Test Mentor"; the history button has the clock icon.
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 3 | Nothing moves, and the screen says "Say why this student is being released, then press Release again." |
+| ER-1 | 3 | A box opens on Test Student's row asking "Why is Test Student being released?". Its "Release" button is disabled until a reason is typed, and Test Student is still in the group. |
 | ER-2 | 4 | The screen says "Test Student released from Test Mentor". Test Student is under "Unassigned students", and Test Mentor holds one student fewer: "N − 1/20" ("0/20" on a freshly seeded database). |
 | ER-3 | 5 | The button reads "Assign 1 selected to Test Mentor" and is disabled until a reason is typed. |
 | ER-4 | 6 | The screen says "1 student assigned to Test Mentor". Test Student is back under "Current mentees", and Test Mentor reads "N/20" again ("1/20" on a freshly seeded database). |

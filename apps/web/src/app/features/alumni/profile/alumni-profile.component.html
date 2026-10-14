@@ -50,9 +50,11 @@
             <span class="icon" aria-hidden="true">upload_file</span>
             {{ prof.created ? 'Replace resume' : 'Upload current resume *' }}
           </button>
-          @if (pickedFile) {
+          @if (resumeReading()) {
+            <span class="dt-sub" aria-live="polite">Opening the file…</span>
+          } @else if (pickedFile(); as file) {
             <span class="chip good"
-              ><span class="icon" aria-hidden="true">description</span>{{ pickedFile.name }}</span
+              ><span class="icon" aria-hidden="true">description</span>{{ file.name }}</span
             >
           } @else if (prof.resume) {
             <span class="dt-sub">Keeping: {{ prof.resume.original_name }}</span>
@@ -75,7 +77,12 @@
         }
 
         <div style="display: flex; gap: 10px">
-          <button type="button" class="dt-btn primary" [disabled]="saving()" (click)="save()">
+          <button
+            type="button"
+            class="dt-btn primary"
+            [disabled]="saving() || resumeReading()"
+            (click)="save()"
+          >
             <span class="icon" aria-hidden="true">check</span>
             {{ saving() ? 'Saving…' : prof.created ? 'Save changes' : 'Create my profile' }}
           </button>

@@ -1633,8 +1633,12 @@ the upload id is kept so a retry files the claim without uploading twice,
 and both failures go to the browser's Sentry as fixed sentences. `/register`
 (all nine of Sentry's "Registration submit failed" reports, 1 to 7 Oct, came
 from Android) and `/student/uploads` copy the file the same way since the
-same day. The alumni resume, faculty upskilling, leave attachments and the
-signature upload still send the picker's reference. The other failure in that
+same day, and so do the alumni resume, faculty upskilling, leave attachments,
+both signature uploads (`/mentor/signature` and the account page) and the
+resume builder's photo. Any new upload screen should read the file through
+`readPickedFile` and say `UPLOAD_DROPPED_MESSAGE` when `fetch` throws, both
+from `core/picked-file.ts`. Only the Main Admin's catalogue and spreadsheet
+imports, desktop screens, still send the picker's reference. The other failure in that
 log was a phone sending 0.87 MB in 121 s (CloudFront 408). That is the
 photo-downscaling item the 2026-10-01 entry above left undone.
 

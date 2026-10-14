@@ -35,6 +35,12 @@ Entry format:
 - **2026-10-14 — Large phone photos are uploaded at full size.** An iPhone sent
   0.87 MB in 121 s and CloudFront timed it out (408). Shrinking photos in the
   browser before upload would help on slow mobile data.
+- **2026-10-14 — After a failed claim on Skilling, a retry can file the
+  certificate under the old title.** The retry reuses the certificate that
+  already uploaded, so if the student changes the badge or the issuer before
+  pressing **Submit claim** again, the stored document keeps the first title.
+  The claim itself is filed correctly. Found in review of
+  [PR #165](https://github.com/darshani8/reep-/pull/165).
 - **2026-10-14 — A leave-day email was not delivered.** Sentry
   [REEP-API-3](https://bgs-college-of-engineering-and.sentry.io/issues/REEP-API-3):
   the address bounced on 2026-10-07 and Amazon SES now delivers nothing to it.
@@ -70,8 +76,12 @@ Entry format:
   tests; the key one fails when the form keeps the picker's reference);
   type check, 233 unit tests, the four static checks and the production
   build pass.
-- **Status:** PR open (draft) into `dev` on 2026-10-14; not yet merged or
-  deployed.
+- **Status:** merged to `dev` on 2026-10-14
+  ([PR #165](https://github.com/darshani8/reep-/pull/165)), promoted through
+  `stage` ([PR #166](https://github.com/darshani8/reep-/pull/166)) to `main`
+  ([PR #167](https://github.com/darshani8/reep-/pull/167)), and deployed to
+  production on 2026-10-14 at 12:45 UTC (front end only,
+  [deploy run #128](https://github.com/darshani8/reep-/actions/runs/38566139358)).
 - **Left open:** the four staff and alumni upload screens (see **Open**).
 
 ## 2026-10-14 — Skilling: certificate uploads failed with "Could not reach the server."
@@ -102,7 +112,11 @@ Entry format:
 - **Checked by:** `apps/web/src/app/core/picked-file.spec.ts` (3 of its 4 tests
   fail with the old behaviour); type check, 230 unit tests and the production
   build pass; all five required CI checks green.
-- **Status:** PR open (draft) into `dev` on 2026-10-14; not yet merged or
-  deployed.
+- **Status:** merged to `dev` on 2026-10-14
+  ([PR #165](https://github.com/darshani8/reep-/pull/165)), promoted through
+  `stage` ([PR #166](https://github.com/darshani8/reep-/pull/166)) to `main`
+  ([PR #167](https://github.com/darshani8/reep-/pull/167)), and deployed to
+  production on 2026-10-14 at 12:45 UTC (front end only,
+  [deploy run #128](https://github.com/darshani8/reep-/actions/runs/38566139358)).
 - **Left open:** photo downscaling (see **Open**). The registration and
   Documents screens were fixed the same day (entry above).

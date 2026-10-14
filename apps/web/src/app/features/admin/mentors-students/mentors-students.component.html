@@ -305,13 +305,54 @@
                   <button
                     type="button"
                     class="btn ghost sm"
+                    [class.on]="isReleasing(student)"
                     [attr.aria-label]="'Remove ' + student.name + ' from ' + mentor.name"
+                    [attr.aria-expanded]="isReleasing(student)"
+                    [attr.aria-controls]="'release-' + student.student_id"
                     [disabled]="busy()"
-                    (click)="releaseStudent(student)"
+                    (click)="isReleasing(student) ? cancelRelease() : startRelease(student)"
                   >
                     <span class="icon" aria-hidden="true">person_remove</span>
                   </button>
                 </span>
+                <!-- THE RELEASE'S OWN REASON, ON THIS ROW. It used to be read from
+                     the assign card's box in the other column, which every
+                     successful assignment empties — so the student just seated
+                     could not be released. -->
+                @if (isReleasing(student)) {
+                  <form
+                    class="release-form"
+                    [id]="'release-' + student.student_id"
+                    (submit)="$event.preventDefault(); releaseStudent(student)"
+                  >
+                    <div class="field">
+                      <label [for]="'release-reason-' + student.student_id">
+                        Why is {{ student.name }} being released?
+                      </label>
+                      <input
+                        [id]="'release-reason-' + student.student_id"
+                        type="text"
+                        placeholder="Reason"
+                        maxlength="400"
+                        [value]="releaseReason()"
+                        (input)="releaseReason.set($any($event.target).value)"
+                      />
+                    </div>
+                    @if (releaseError()) {
+                      <div class="notice" role="alert">
+                        <span class="icon" aria-hidden="true">error</span>{{ releaseError() }}
+                      </div>
+                    }
+                    <div class="release-form__actions">
+                      <button type="submit" class="btn primary sm" [disabled]="!canRelease()">
+                        Release
+                      </button>
+                      <button type="button" class="btn ghost sm" (click)="cancelRelease()">
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                }
               </li>
             } @empty {
               <li class="mentee-empty">

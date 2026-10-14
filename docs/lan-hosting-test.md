@@ -124,7 +124,9 @@ NOVA_SONIC_REGION=ap-northeast-1
 #   only to your own address: the seeded accounts are @bgscet.ac.in
 ```
 
-Then run the API and `npx ng serve`, and `cloudflared tunnel run reep-test`.
+Then run the API and `npx ng serve`, and `cloudflared tunnel run reep-test`
+(or let `tools\lan\start-test-tunnel.ps1` do every step above, and
+`-Remove` undo them).
 Sign in at `https://test.sast-skills.com` as `student@bgscet.ac.in` /
 `student123` and run stage 3. When finished, stop `cloudflared` (the hostname
 then shows a Cloudflare error page) and `cloudflared tunnel delete reep-test`,

@@ -26,12 +26,13 @@ Entry format:
 
 ## Open
 
-- **2026-10-14 — Four staff and alumni upload screens can still fail the same
-  way.** The alumni resume, faculty upskilling, leave attachments and the
-  signature upload still send the picked file by reference, so an Android
-  phone can fail to read it at send time. Fix: reuse
-  `apps/web/src/app/core/picked-file.ts` on each, as `/register` and
-  `/student/uploads` now do.
+- **2026-10-14 — Two Main Admin screens still send a picked file by
+  reference.** The catalogue upload (`features/admin/catalogue`) and the
+  spreadsheet import (`features/admin/imports`) do not copy the file at pick
+  time. They are used from an office desktop, where the Android failure below
+  does not happen, so they were left as they are. Fix if needed: read the file
+  with `readPickedFile` from `core/picked-file.ts`, as every other upload
+  screen now does.
 - **2026-10-14 — Large phone photos are uploaded at full size.** An iPhone sent
   0.87 MB in 121 s and CloudFront timed it out (408). Shrinking photos in the
   browser before upload would help on slow mobile data.
@@ -45,6 +46,42 @@ Entry format:
   [REEP-API-3](https://bgs-college-of-engineering-and.sentry.io/issues/REEP-API-3):
   the address bounced on 2026-10-07 and Amazon SES now delivers nothing to it.
   No code fix needed; the office can lift the block on `/admin/mail`.
+
+## 2026-10-14 — Staff, alumni and resume-photo uploads: the same file-read failure
+
+- **Symptom:** nobody had reported it yet; it was found while fixing the
+  student screens below. Six more upload screens sent the picked file by
+  reference: the alumni profile resume, faculty **Upskilling**, leave
+  attachments, the signature on `/mentor/signature` and on the account page,
+  and the resume builder's photo. A file the phone could not read at send time
+  failed with "Could not reach the server.", and the two signature screens
+  printed the browser's own "Failed to fetch".
+- **Cause:** the same as the Skilling entry below. The alumni profile had the
+  longest window: the resume is picked first and sent only when **Save** is
+  pressed, after the company, designation and dates are filled in.
+- **Evidence:** the same mechanism as Skilling, found by reading the code. None
+  of these screens reported anything to Sentry before this fix, so there are
+  no events to count.
+- **Fix:** every one of them now uploads the in-memory copy from
+  `core/picked-file.ts`, refuses an unreadable file on the spot, and says the
+  connection dropped when no answer comes back (the new shared
+  `UPLOAD_DROPPED_MESSAGE`). Both failures go to Sentry as fixed sentences.
+  The alumni profile shows "Opening the file…" and holds **Save** until the
+  copy is made. A refusal with no message from the server now shows its
+  status code instead of blaming the file type (Upskilling, alumni profile,
+  resume photo).
+- **Where:** [PR #168](https://github.com/darshani8/reep-/pull/168);
+  `features/alumni/profile`, `features/mentor/{upskilling,leave,signature}`,
+  `features/account`, `features/student/resume/sections/basic.component.ts`,
+  `core/picked-file.ts`.
+- **Checked by:** six new spec files, three tests each. The main test of each
+  screen fails when that screen sends the picker's reference (checked by
+  putting the old line back). Type check, 251 unit tests, the four static
+  checks and the production build pass.
+- **Status:** PR open (draft) into `dev` on 2026-10-14; not yet merged or
+  deployed.
+- **Left open:** the two Main Admin screens and photo downscaling (see
+  **Open**).
 
 ## 2026-10-14 — Registration and Documents: the same file-read failure as Skilling
 

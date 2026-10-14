@@ -22,18 +22,11 @@ import { DatePipe } from '@angular/common';
 
 import { environment } from '../../../../environments/environment';
 import { failedReadMessage } from '../../../core/feature-refusal';
-import { UNREADABLE_FILE_MESSAGE, readPickedFile } from '../../../core/picked-file';
-
-/**
- * What the screen says when the upload `fetch` THROWS: no HTTP answer at all.
- * It used to say "Could not reach the server.", which sent students to report
- * the server down while it was taking every other upload (2026-10-14). What
- * throws is the phone's side: a dropped mobile connection, or a file the phone
- * could not read.
- */
-const UPLOAD_DROPPED_MESSAGE =
-  'The file did not upload: the connection dropped. Check your internet ' +
-  '(Wi-Fi works best for files) and try again.';
+import {
+  UNREADABLE_FILE_MESSAGE,
+  UPLOAD_DROPPED_MESSAGE,
+  readPickedFile,
+} from '../../../core/picked-file';
 
 interface UploadRow {
   id: string;

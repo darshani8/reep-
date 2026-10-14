@@ -81,8 +81,12 @@
           (drop)="onCertDrop($event)"
         >
           <span class="icon" aria-hidden="true">upload_file</span>
-          <span class="cert-drop-main">{{
-            certDragOver() ? 'Drop the certificate to attach it' : 'Click to upload or drop a file'
+          <span class="cert-drop-main" aria-live="polite">{{
+            readingFile()
+              ? 'Opening the file…'
+              : certDragOver()
+                ? 'Drop the certificate to attach it'
+                : 'Click to upload or drop a file'
           }}</span>
           <span class="cert-drop-sub">PDF or JPEG, up to 5 MB</span>
         </button>

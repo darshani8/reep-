@@ -29,11 +29,12 @@
  * asserts the certificate; the mentor judges it on review.
  */
 
-import { Component, computed, signal } from '@angular/core';
+import { Component, ErrorHandler, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 import { failedReadMessage } from '../../../core/feature-refusal';
+import { UNREADABLE_FILE_MESSAGE, readPickedFile } from '../../../core/picked-file';
 
 interface EvidenceRow {
   id: string;
@@ -168,6 +169,24 @@ async function detailOf(response: Response, fallback: string): Promise<string> {
   return `${fallback} (${response.status})`;
 }
 
+/**
+ * What the form says when `fetch` THROWS — no HTTP answer arrived at all. It
+ * used to say "Could not reach the server.", which sent students to report the
+ * server down on a day it accepted 138 certificates (2026-10-14). The request
+ * that throws is almost always the multipart upload from a phone, so the
+ * sentence says what to do about the connection and that nothing is lost.
+ */
+const UPLOAD_DROPPED_MESSAGE =
+  'The certificate did not upload: the connection dropped. Check your internet ' +
+  '(Wi-Fi works best for files) and press Submit claim again. Everything you ' +
+  'filled in is still here.';
+
+/** The certificate landed and the small claim request after it did not. */
+const CLAIM_DROPPED_MESSAGE =
+  'Your certificate was uploaded, but the connection dropped before the claim ' +
+  'was filed. Press Submit claim again to finish; the certificate will not be ' +
+  'uploaded twice.';
+
 @Component({
   selector: 'app-student-skilling',
   standalone: true,
@@ -179,6 +198,8 @@ async function detailOf(response: Response, fallback: string): Promise<string> {
   styleUrl: './skilling.component.scss',
 })
 export class SkillingComponent {
+  private readonly errorHandler = inject(ErrorHandler);
+
   /// null = still loading.
   readonly dashboard = signal<Dashboard | null>(null);
   readonly boardError = signal<string | null>(null);
@@ -192,6 +213,15 @@ export class SkillingComponent {
   readonly claiming = signal(false);
   readonly claimError = signal<string | null>(null);
   readonly claimSubmitted = signal(false);
+  /// true while a picked certificate is being copied into memory.
+  readonly readingFile = signal(false);
+  /// Bumped on every pick, so a slow read of an earlier file can never land
+  /// over a later one.
+  private pickSeq = 0;
+  /// The upload behind the claim being filed. Kept when the claim request
+  /// fails after the upload landed, so pressing Submit again files the claim
+  /// against it instead of uploading the same certificate a second time.
+  private uploadedId: string | null = null;
 
   /// Badge codes the student has tapped to preview the earned state.
   private readonly previewed = signal<Set<string>>(new Set());
@@ -303,7 +333,7 @@ export class SkillingComponent {
     const file = input.files?.[0] ?? null;
     // Cleared so re-picking the SAME file still fires a change event.
     input.value = '';
-    this.acceptFile(file);
+    void this.acceptFile(file);
   }
 
   // --- drag and drop -------------------------------------------------------
@@ -335,7 +365,7 @@ export class SkillingComponent {
     const file = event.dataTransfer?.files?.[0];
     // Only when there IS one: a drag that carried text must not silently
     // discard the certificate the student already chose.
-    if (file) this.acceptFile(file);
+    if (file) void this.acceptFile(file);
   }
 
   /**
@@ -350,9 +380,16 @@ export class SkillingComponent {
    * after the whole claim has been filled in. A browser that reports no type
    * at all is not second-guessed — the server sniffs magic bytes and is the
    * authority on what a file really is.
+   *
+   * What is kept is an in-memory COPY (core/picked-file.ts): a file the phone
+   * can no longer read by the time Submit is pressed made the upload throw,
+   * and the screen blamed the server for it.
    */
-  private acceptFile(file: File | null): void {
+  private async acceptFile(file: File | null): Promise<void> {
+    const seq = ++this.pickSeq;
     this.claimError.set(null);
+    this.readingFile.set(false);
+    this.uploadedId = null;
     if (file && file.size > MAX_CERT_BYTES) {
       this.claimFile.set(null);
       this.claimError.set('That file is over 5 MB. Export a smaller PDF or JPEG and try again.');
@@ -365,7 +402,26 @@ export class SkillingComponent {
       );
       return;
     }
-    this.claimFile.set(file);
+    if (!file) {
+      this.claimFile.set(null);
+      return;
+    }
+    this.claimFile.set(null);
+    this.readingFile.set(true);
+    const copy = await readPickedFile(file);
+    // A later pick owns the form now.
+    if (seq !== this.pickSeq) return;
+    this.readingFile.set(false);
+    if (!copy) {
+      this.claimError.set(UNREADABLE_FILE_MESSAGE);
+      // Reported because no server can see it: nothing was sent. A fixed
+      // sentence and nothing from the form, not even the file name.
+      this.errorHandler.handleError(
+        new Error('Skill claim: the picked certificate could not be read on the device'),
+      );
+      return;
+    }
+    this.claimFile.set(copy);
   }
 
   /** Tap a pill to preview the earned state. An EARNED pill is already lit and
@@ -388,6 +444,9 @@ export class SkillingComponent {
     this.claimIssuer.set('');
     this.claimNote.set('');
     this.claimError.set(null);
+    this.pickSeq++;
+    this.readingFile.set(false);
+    this.uploadedId = null;
   }
 
   /// Store the certificate, then file the evidence against the badge. Two
@@ -400,27 +459,31 @@ export class SkillingComponent {
     const badge = this.badgeOptions().find((b) => b.code === code);
     this.claiming.set(true);
     this.claimError.set(null);
+    const issuer = this.claimIssuer().trim();
+    let uploadId = this.uploadedId;
     try {
-      const form = new FormData();
-      form.append('file', file);
-      form.append('kind', 'CERTIFICATE_PROOF');
-      const issuer = this.claimIssuer().trim();
-      form.append(
-        'title',
-        issuer ? `${badge?.name ?? file.name} — ${issuer}` : (badge?.name ?? file.name),
-      );
-      const up = await fetch(`${environment.apiBase}/student/uploads`, {
-        method: 'POST',
-        credentials: 'include',
-        body: form,
-      });
-      if (!up.ok) {
-        this.claimError.set(
-          await detailOf(up, 'The certificate could not be uploaded. Try again in a minute'),
+      if (!uploadId) {
+        const form = new FormData();
+        form.append('file', file);
+        form.append('kind', 'CERTIFICATE_PROOF');
+        form.append(
+          'title',
+          issuer ? `${badge?.name ?? file.name} — ${issuer}` : (badge?.name ?? file.name),
         );
-        return;
+        const up = await fetch(`${environment.apiBase}/student/uploads`, {
+          method: 'POST',
+          credentials: 'include',
+          body: form,
+        });
+        if (!up.ok) {
+          this.claimError.set(
+            await detailOf(up, 'The certificate could not be uploaded. Try again in a minute'),
+          );
+          return;
+        }
+        uploadId = (await up.json()).id as string;
+        this.uploadedId = uploadId;
       }
-      const uploadId = (await up.json()).id as string;
       const note = this.claimNote().trim();
       const claim = await fetch(`${environment.apiBase}/student/badges/${code}/evidence`, {
         method: 'POST',
@@ -443,9 +506,22 @@ export class SkillingComponent {
       // The response is the refreshed dashboard, so the board and the open
       // claims update from the same document the write returned.
       this.dashboard.set((await claim.json()) as Dashboard);
+      this.uploadedId = null;
       this.claimSubmitted.set(true);
     } catch {
-      this.claimError.set('Could not reach the server.');
+      const uploaded = this.uploadedId !== null;
+      this.claimError.set(uploaded ? CLAIM_DROPPED_MESSAGE : UPLOAD_DROPPED_MESSAGE);
+      // Reported, the registration form's rule: a request that never got an
+      // HTTP answer leaves no trace on any server. A fixed sentence and
+      // nothing from the form, so the report carries the fact and the
+      // browser's own context, never the student.
+      this.errorHandler.handleError(
+        new Error(
+          uploaded
+            ? 'Skill claim failed after the upload: no HTTP response (network error on the device)'
+            : 'Skill claim upload failed: no HTTP response (network error on the device)',
+        ),
+      );
     } finally {
       this.claiming.set(false);
     }

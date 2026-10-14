@@ -1616,6 +1616,24 @@ and activation links are `?token=`, the cookie is the session, and a referer
 carries the previous page's query string. The legacy log cannot omit fields,
 which is why it is not used. Takes an `edge-waf` deploy to exist.
 
+**"COULD NOT REACH THE SERVER" ON SKILLING WAS THE PHONE FAILING TO READ THE
+FILE (2026-10-14).** Students reported certificate claims failing with that
+sentence on a day the API took 138 uploads. The CloudFront log showed the
+failing POSTs to `/api/student/uploads` from Android sending their headers
+(136 and 142 bytes) and then no file before hanging up. A picked `File` is a
+reference the browser reads again at send time, and a file held by Drive,
+Photos or another app can be unreadable by then (`ERR_UPLOAD_FILE_CHANGED`).
+The claim form asks for four more fields after the certificate, so there is
+always time for that. `core/picked-file.ts` copies the bytes into memory at
+pick time, and a file unreadable even then is refused on the spot with
+`UNREADABLE_FILE_MESSAGE`. A thrown upload now says the connection dropped,
+the upload id is kept so a retry files the claim without uploading twice,
+and both failures go to the browser's Sentry as fixed sentences. The same
+pattern sits on `/register`, `/student/uploads` and the other upload
+screens, which still send the picker's reference. The other failure in that
+log was a phone sending 0.87 MB in 121 s (CloudFront 408). That is the
+photo-downscaling item the 2026-10-01 entry above left undone.
+
 **THE CLAIM FORM FILED INTO A QUEUE THE MENTOR'S SCREEN NEVER OPENED.**
 `/student/skilling` stores the certificate through `POST /student/uploads` and
 files `badge_evidence` against it (`POST /student/badges/{code}/evidence`);

@@ -2620,6 +2620,11 @@ test.describe('Admin: people and access', () => {
     const release = page.getByRole('button', {
       name: `Remove ${SEED.student.name} from ${SEED.mentor.name}`,
     });
+    const menteeRow = rail.locator('.mentee').filter({ hasText: SEED.student.name });
+    const releaseReason = menteeRow.getByRole('textbox', {
+      name: `Why is ${SEED.student.name} being released?`,
+    });
+    const confirmRelease = menteeRow.getByRole('button', { name: 'Release', exact: true });
     const reason = page.getByRole('textbox', { name: 'Reason', exact: true });
     const poolRow = page.locator('.pool-grid').locator(`.ag-row[row-id="${ids.studentId}"]`);
     const assign = page.getByRole('button', { name: `Assign 1 selected to ${SEED.mentor.name}` });
@@ -2637,18 +2642,22 @@ test.describe('Admin: people and access', () => {
         await expect(release, 'TC-529 (arrange): Test Student is in their group').toBeVisible();
       });
 
-      await test.step("3. Click the release button on Test Student's row without typing a reason", async () => {
+      await test.step("3. Click the release button on Test Student's row", async () => {
         await release.click();
         await expect(
-          alert(page, 'Say why this student is being released, then press Release again.'),
-          'TC-529 ER-1: a release needs a reason',
+          releaseReason,
+          'TC-529 ER-1: a box on Test Student\'s row asks why they are being released',
         ).toBeVisible();
+        await expect(
+          confirmRelease,
+          'TC-529 ER-1: "Release" is disabled until a reason is typed',
+        ).toBeDisabled();
         await expect(release, 'TC-529 ER-1: Test Student is still in the group').toBeVisible();
       });
 
-      await test.step(`4. Type ${released} into "Reason" and click the release button again`, async () => {
-        await reason.fill(released);
-        await release.click();
+      await test.step(`4. Type ${released} into "Why is Test Student being released?" and click "Release"`, async () => {
+        await releaseReason.fill(released);
+        await confirmRelease.click();
         await expect(
           notice(page, `${SEED.student.name} released from ${SEED.mentor.name}`),
           'TC-529 ER-2: the screen says the student was released',

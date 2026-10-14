@@ -1966,7 +1966,12 @@ interview transcripts — and a release is the move nothing on any screen report
 It is a BREAKING change to an endpoint the live Angular screen was posting
 `{mentor_id}` to, so the server field, the reason input (previously
 `[reepPending]="4"`) and the eight test call sites are one commit; shipping the
-server half alone is an assign button that 422s on a working console. On the
+server half alone is an assign button that 422s on a working console. **The
+release asks for its reason on the mentee's own row (2026-10-14)**: it used to
+read the ASSIGN card's "Why this seating" box, which every successful
+assignment empties, so a student the office had just seated could not be
+released. The icon sent nothing and printed "press Release again" at the top of
+the page. On the
 BATCH path (`POST /admin/cohorts/{id}/students/bulk`) `reason` is OPTIONAL, and
 the asymmetry is deliberate: a sentence asked once and applied to thirty people
 describes the batch, not any student in it. **There is still no `student_ids` on

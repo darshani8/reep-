@@ -205,6 +205,7 @@
 }
 .mentee {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding: 6px 4px;
@@ -246,6 +247,18 @@
 .mentee__actions .on {
   color: var(--brand-purple);
   background: var(--tint-1);
+}
+/* The release box takes a line of its own under the student it releases. */
+.release-form {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0 6px;
+}
+.release-form__actions {
+  display: flex;
+  gap: 6px;
 }
 .mentee-empty {
   font-size: 12.5px;

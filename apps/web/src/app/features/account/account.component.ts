@@ -64,7 +64,7 @@
  * names no phase is the same lie as a dead button.
  */
 
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ErrorHandler, computed, inject, signal } from '@angular/core';
 import {
   AbstractControl,
   FormControl,
@@ -77,6 +77,11 @@ import { Router } from '@angular/router';
 
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth.service';
+import {
+  UNREADABLE_FILE_MESSAGE,
+  UPLOAD_DROPPED_MESSAGE,
+  readPickedFile,
+} from '../../core/picked-file';
 import type { Role, SessionPayload } from '../../core/session';
 import { PluralPipe } from '../../shared/text/plural.pipe';
 
@@ -194,6 +199,7 @@ function bothPasswordsMatch(group: AbstractControl): ValidationErrors | null {
 export class AccountComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly errorHandler = inject(ErrorHandler);
 
   readonly minPasswordLength = MIN_PASSWORD_LENGTH;
   readonly maxSignatureMegabytes = MAX_SIGNATURE_MEGABYTES;
@@ -566,20 +572,36 @@ export class AccountComponent {
     this.signatureError.set(null);
     this.signatureFlash.set(null);
     try {
+      // Upload an in-memory copy (core/picked-file.ts): on a phone, a photo
+      // held by Drive, Photos or another app can fail to be read at send time.
+      const copy = await readPickedFile(chosenFile);
+      if (!copy) {
+        this.signatureError.set(UNREADABLE_FILE_MESSAGE);
+        this.errorHandler.handleError(
+          new Error('Account signature upload: the picked image could not be read on the device'),
+        );
+        return;
+      }
       const form = new FormData();
-      form.append('file', chosenFile, chosenFile.name);
+      form.append('file', copy, chosenFile.name);
       const response = await fetch(`${environment.apiBase}/staff/signature`, {
         method: 'PUT',
         credentials: 'include',
         body: form,
       });
       if (!response.ok) {
-        throw new Error(await this.detailOf(response));
+        this.signatureError.set(await this.detailOf(response));
+        return;
       }
       this.signature.set((await response.json()) as SignatureInfo);
       this.signatureFlash.set('Signature saved. It appears on your leave papers from now on.');
-    } catch (err) {
-      this.signatureError.set(this.messageFrom(err, 'Could not upload the signature.'));
+    } catch {
+      // No HTTP answer at all. This used to print the browser's own words
+      // ("Failed to fetch"); reported because no server saw it.
+      this.signatureError.set(UPLOAD_DROPPED_MESSAGE);
+      this.errorHandler.handleError(
+        new Error('Account signature upload failed: no HTTP response (network error on the device)'),
+      );
     } finally {
       this.signatureBusy.set(false);
     }

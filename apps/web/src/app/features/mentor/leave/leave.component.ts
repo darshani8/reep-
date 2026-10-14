@@ -71,10 +71,15 @@
 
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ErrorHandler, computed, inject, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
+import {
+  UNREADABLE_FILE_MESSAGE,
+  UPLOAD_DROPPED_MESSAGE,
+  readPickedFile,
+} from '../../../core/picked-file';
 
 interface AltRow {
   date: string;
@@ -229,6 +234,7 @@ function readDraft(): LocalDraft | null {
 })
 export class LeaveComponent {
   private readonly auth = inject(AuthService);
+  private readonly errorHandler = inject(ErrorHandler);
   readonly kinds = LEAVE_KINDS;
   readonly today = new Date();
 
@@ -555,8 +561,18 @@ export class LeaveComponent {
     this.attachBusy.set(true);
     this.attachError.set(null);
     try {
+      // Upload an in-memory copy (core/picked-file.ts): on Android a file held
+      // by Drive, Photos or another app can fail to be read at send time.
+      const copy = await readPickedFile(file);
+      if (!copy) {
+        this.attachError.set(UNREADABLE_FILE_MESSAGE);
+        this.errorHandler.handleError(
+          new Error('Leave attachment: the picked file could not be read on the device'),
+        );
+        return;
+      }
       const body = new FormData();
-      body.append('file', file);
+      body.append('file', copy);
       const res = await fetch(`${environment.apiBase}/leaves/${row.id}/attachments`, {
         method: 'POST',
         credentials: 'include',
@@ -570,7 +586,11 @@ export class LeaveComponent {
       }
       await this.loadAttachments(row.id);
     } catch {
-      this.attachError.set('Could not reach the server.');
+      this.attachError.set(UPLOAD_DROPPED_MESSAGE);
+      // Reported because no server saw it. A fixed sentence, nothing from the request.
+      this.errorHandler.handleError(
+        new Error('Leave attachment failed: no HTTP response (network error on the device)'),
+      );
     } finally {
       this.attachBusy.set(false);
     }

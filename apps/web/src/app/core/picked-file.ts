@@ -44,3 +44,14 @@ export async function readPickedFile(file: File): Promise<File | null> {
 export const UNREADABLE_FILE_MESSAGE =
   'This file could not be opened. If it is stored in Google Drive or another app, ' +
   'download it to this device first (or save it as a PDF), then choose it again.';
+
+/**
+ * What an upload screen says when its `fetch` THROWS: no HTTP answer arrived
+ * at all. These screens used to say "Could not reach the server.", which sent
+ * people to report the server down while it was taking every other upload
+ * (2026-10-14). With the file already in memory, what is left to throw is the
+ * phone's connection.
+ */
+export const UPLOAD_DROPPED_MESSAGE =
+  'The file did not upload: the connection dropped. Check your internet ' +
+  '(Wi-Fi works best for files) and try again.';

@@ -1630,9 +1630,11 @@ always time for that. `core/picked-file.ts` copies the bytes into memory at
 pick time, and a file unreadable even then is refused on the spot with
 `UNREADABLE_FILE_MESSAGE`. A thrown upload now says the connection dropped,
 the upload id is kept so a retry files the claim without uploading twice,
-and both failures go to the browser's Sentry as fixed sentences. The same
-pattern sits on `/register`, `/student/uploads` and the other upload
-screens, which still send the picker's reference. The other failure in that
+and both failures go to the browser's Sentry as fixed sentences. `/register`
+(all nine of Sentry's "Registration submit failed" reports, 1 to 7 Oct, came
+from Android) and `/student/uploads` copy the file the same way since the
+same day. The alumni resume, faculty upskilling, leave attachments and the
+signature upload still send the picker's reference. The other failure in that
 log was a phone sending 0.87 MB in 121 s (CloudFront 408). That is the
 photo-downscaling item the 2026-10-01 entry above left undone.
 

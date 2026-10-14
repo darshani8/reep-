@@ -26,13 +26,12 @@ Entry format:
 
 ## Open
 
-- **2026-10-14 — The other upload screens can fail the same way as Skilling.**
-  `/register`, `/student/uploads`, the alumni resume, faculty upskilling,
-  leave attachments and the signature upload still send the picked file by
-  reference, so an Android phone can fail to read it at send time. Sentry
-  [REEP-WEB-4](https://bgs-college-of-engineering-and.sentry.io/issues/REEP-WEB-4)
-  shows 9 registration network failures from 1 to 7 Oct, all on Android.
-  Fix: reuse `apps/web/src/app/core/picked-file.ts` on each screen.
+- **2026-10-14 — Four staff and alumni upload screens can still fail the same
+  way.** The alumni resume, faculty upskilling, leave attachments and the
+  signature upload still send the picked file by reference, so an Android
+  phone can fail to read it at send time. Fix: reuse
+  `apps/web/src/app/core/picked-file.ts` on each, as `/register` and
+  `/student/uploads` now do.
 - **2026-10-14 — Large phone photos are uploaded at full size.** An iPhone sent
   0.87 MB in 121 s and CloudFront timed it out (408). Shrinking photos in the
   browser before upload would help on slow mobile data.
@@ -40,6 +39,40 @@ Entry format:
   [REEP-API-3](https://bgs-college-of-engineering-and.sentry.io/issues/REEP-API-3):
   the address bounced on 2026-10-07 and Amazon SES now delivers nothing to it.
   No code fix needed; the office can lift the block on `/admin/mail`.
+
+## 2026-10-14 — Registration and Documents: the same file-read failure as Skilling
+
+- **Symptom:** on `/register`, applicants on Android pressed Submit and were
+  told their connection dropped. On `/student/uploads`, a failed upload said
+  "Could not reach the server."
+- **Cause:** both screens kept the picked file as a reference, like Skilling.
+  On `/register` the CV is the first box and is sent only after about a
+  dozen more are filled in, so there is always time for an Android phone to
+  lose read access to a file held by Drive, Photos or another app.
+  `/student/uploads` sends at pick time, so its window is short, but it
+  showed the same misleading sentence.
+- **Evidence:** Sentry
+  [REEP-WEB-4](https://bgs-college-of-engineering-and.sentry.io/issues/REEP-WEB-4),
+  "Registration submit failed: no HTTP response": 9 events from 1 to 7 Oct,
+  all from Android (6 Chrome Mobile, 3 Samsung Internet), none from iPhone or
+  desktop.
+- **Fix:** both screens now copy the file into memory when it is picked
+  (`core/picked-file.ts`). An unreadable file is refused immediately with a
+  message about the file and reported to Sentry without its name. `/register`
+  shows "Opening the file…" and holds Submit until the copy is made. On
+  `/student/uploads`, a dropped connection now says so; a refusal with no
+  message from the server shows its status code instead of blaming the
+  file; and an unreadable file is refused before a Replace deletes anything.
+- **Where:** [PR #165](https://github.com/darshani8/reep-/pull/165);
+  `features/register/registration.component.{ts,html}`,
+  `features/student/uploads/uploads.component.ts`.
+- **Checked by:** new `features/register/registration.component.spec.ts` (3
+  tests; the key one fails when the form keeps the picker's reference);
+  type check, 233 unit tests, the four static checks and the production
+  build pass.
+- **Status:** PR open (draft) into `dev` on 2026-10-14; not yet merged or
+  deployed.
+- **Left open:** the four staff and alumni upload screens (see **Open**).
 
 ## 2026-10-14 — Skilling: certificate uploads failed with "Could not reach the server."
 
@@ -71,4 +104,5 @@ Entry format:
   build pass; all five required CI checks green.
 - **Status:** PR open (draft) into `dev` on 2026-10-14; not yet merged or
   deployed.
-- **Left open:** the other upload screens and photo downscaling (see **Open**).
+- **Left open:** photo downscaling (see **Open**). The registration and
+  Documents screens were fixed the same day (entry above).

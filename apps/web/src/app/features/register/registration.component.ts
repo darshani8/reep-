@@ -52,6 +52,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../environments/environment';
+import { UNREADABLE_FILE_MESSAGE, readPickedFile } from '../../core/picked-file';
 import { MAX_SPECIALIZATIONS_FALLBACK, specializationLabel, togglePick } from '../../core/specializations';
 import { batchForYear, batchYear, yearOptions } from './batch-years';
 import {
@@ -179,6 +180,13 @@ export class RegistrationComponent {
   readonly cvError = signal<string | null>(null);
   readonly photoError = signal<string | null>(null);
   readonly maxUploadMb = MAX_UPLOAD_MB;
+  /// true while that picker's file is being copied into memory.
+  readonly cvReading = signal(false);
+  readonly photoReading = signal(false);
+  readonly filesReading = computed(() => this.cvReading() || this.photoReading());
+  /// Bumped on every pick, per picker, so a slow read of an earlier file can
+  /// never land over a later one.
+  private readonly pickSeq = { cv: 0, photo: 0 };
 
   // -- where the applicant belongs: cascading pickers over the admin's hierarchy --
   readonly hier = signal<Hierarchy | null>(null);
@@ -299,22 +307,59 @@ export class RegistrationComponent {
     }
   }
 
-  onCv(ev: Event): void {
-    const input = ev.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
-    const problem = file ? this.fileProblem(file, CV_TYPES, ['.pdf'], 'a PDF') : null;
-    this.cvError.set(problem);
-    this.cvFile.set(problem ? null : file);
-    if (problem) input.value = '';
+  onCv(ev: Event): Promise<void> {
+    return this.stageFile(ev, 'cv', (file) => this.fileProblem(file, CV_TYPES, ['.pdf'], 'a PDF'));
   }
 
-  onPhoto(ev: Event): void {
+  onPhoto(ev: Event): Promise<void> {
+    return this.stageFile(ev, 'photo', (file) =>
+      this.fileProblem(file, PHOTO_TYPES, ['.png', '.jpg', '.jpeg'], 'a PNG or JPG'),
+    );
+  }
+
+  /**
+   * Check a picked file, then keep an in-memory COPY of it (core/picked-file.ts),
+   * never the picker's reference. The CV is the first box on this form and is
+   * sent only after a dozen more are filled in; on Android a file held by Drive,
+   * Photos or another app can be unreadable by then, the upload then fails
+   * inside the phone, and the applicant was told their connection dropped. All
+   * nine "Registration submit failed" reports in Sentry (1 to 7 Oct 2026) came
+   * from Android. A file unreadable even at pick time is refused here, about
+   * the file, and reported as a fixed sentence with nothing from the form.
+   */
+  private async stageFile(
+    ev: Event,
+    which: 'cv' | 'photo',
+    problemOf: (file: File) => string | null,
+  ): Promise<void> {
     const input = ev.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
-    const problem = file ? this.fileProblem(file, PHOTO_TYPES, ['.png', '.jpg', '.jpeg'], 'a PNG or JPG') : null;
-    this.photoError.set(problem);
-    this.photoFile.set(problem ? null : file);
+    const [staged, error, reading] =
+      which === 'cv'
+        ? [this.cvFile, this.cvError, this.cvReading]
+        : [this.photoFile, this.photoError, this.photoReading];
+    const seq = ++this.pickSeq[which];
+    reading.set(false);
+    staged.set(null);
+    const problem = file ? problemOf(file) : null;
+    error.set(problem);
     if (problem) input.value = '';
+    if (!file || problem) return;
+
+    reading.set(true);
+    const copy = await readPickedFile(file);
+    // A later pick owns this box now.
+    if (seq !== this.pickSeq[which]) return;
+    reading.set(false);
+    if (!copy) {
+      error.set(UNREADABLE_FILE_MESSAGE);
+      input.value = '';
+      this.errorHandler.handleError(
+        new Error(`Registration: the picked ${which === 'cv' ? 'CV' : 'photo'} could not be read on the device`),
+      );
+      return;
+    }
+    staged.set(copy);
   }
 
   /// The two checks the server would make after the 201, made before it.
@@ -383,7 +428,7 @@ export class RegistrationComponent {
 
   async submit(event: Event): Promise<void> {
     event.preventDefault();
-    if (this.pending()) return;
+    if (this.pending() || this.filesReading()) return;
 
     this.error.set(null);
     const missing = this.missing();
@@ -502,6 +547,10 @@ export class RegistrationComponent {
     this.photoFile.set(null);
     this.cvError.set(null);
     this.photoError.set(null);
+    this.pickSeq.cv++;
+    this.pickSeq.photo++;
+    this.cvReading.set(false);
+    this.photoReading.set(false);
     this.setCollege('');
     this.error.set(null);
     // A fresh form is a fresh application: an old key would make the server

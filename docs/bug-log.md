@@ -42,6 +42,14 @@ Entry format:
   pressing **Submit claim** again, the stored document keeps the first title.
   The claim itself is filed correctly. Found in review of
   [PR #165](https://github.com/darshani8/reep-/pull/165).
+- **2026-10-14 — An unreadable answer to a successful upload would be shown
+  as a dropped connection.** On the alumni profile, both signature screens and
+  the resume photo, the same `catch` covers the upload and reading its JSON
+  answer, so a 200 whose body is not JSON would say "the connection dropped"
+  when the file had arrived. The API always answers JSON, so this has not been
+  seen. Found in review of
+  [PR #169](https://github.com/darshani8/reep-/pull/169) and
+  [PR #170](https://github.com/darshani8/reep-/pull/170).
 - **2026-10-14 — A leave-day email was not delivered.** Sentry
   [REEP-API-3](https://bgs-college-of-engineering-and.sentry.io/issues/REEP-API-3):
   the address bounced on 2026-10-07 and Amazon SES now delivers nothing to it.
@@ -78,10 +86,14 @@ Entry format:
   screen fails when that screen sends the picker's reference (checked by
   putting the old line back). Type check, 251 unit tests, the four static
   checks and the production build pass.
-- **Status:** PR open (draft) into `dev` on 2026-10-14; not yet merged or
-  deployed.
-- **Left open:** the two Main Admin screens and photo downscaling (see
-  **Open**).
+- **Status:** merged to `dev` on 2026-10-14
+  ([PR #168](https://github.com/darshani8/reep-/pull/168)), promoted through
+  `stage` ([PR #169](https://github.com/darshani8/reep-/pull/169)) to `main`
+  ([PR #170](https://github.com/darshani8/reep-/pull/170)), and deployed to
+  production on 2026-10-14 at 15:25 UTC (front end only,
+  [deploy run #129](https://github.com/darshani8/reep-/actions/runs/38588969905)).
+- **Left open:** the two Main Admin screens, photo downscaling and the
+  unreadable-answer case found in review (see **Open**).
 
 ## 2026-10-14 — Registration and Documents: the same file-read failure as Skilling
 

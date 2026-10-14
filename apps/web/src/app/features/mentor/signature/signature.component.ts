@@ -13,9 +13,14 @@
  * clicks, like every destructive button in the console.
  */
 
-import { Component, computed, signal } from '@angular/core';
+import { Component, ErrorHandler, computed, inject, signal } from '@angular/core';
 
 import { environment } from '../../../../environments/environment';
+import {
+  UNREADABLE_FILE_MESSAGE,
+  UPLOAD_DROPPED_MESSAGE,
+  readPickedFile,
+} from '../../../core/picked-file';
 
 interface SignatureInfo {
   present: boolean;
@@ -32,6 +37,7 @@ interface SignatureInfo {
   styleUrl: './signature.component.scss',
 })
 export class SignatureComponent {
+  private readonly errorHandler = inject(ErrorHandler);
   readonly info = signal<SignatureInfo | null>(null);
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
@@ -70,18 +76,36 @@ export class SignatureComponent {
     this.error.set(null);
     this.flash.set(null);
     try {
+      // Upload an in-memory copy (core/picked-file.ts): on a phone, a photo
+      // held by Drive, Photos or another app can fail to be read at send time.
+      const copy = await readPickedFile(file);
+      if (!copy) {
+        this.error.set(UNREADABLE_FILE_MESSAGE);
+        this.errorHandler.handleError(
+          new Error('Signature upload: the picked image could not be read on the device'),
+        );
+        return;
+      }
       const form = new FormData();
-      form.append('file', file, file.name);
+      form.append('file', copy, file.name);
       const res = await fetch(`${environment.apiBase}/staff/signature`, {
         method: 'PUT',
         credentials: 'include',
         body: form,
       });
-      if (!res.ok) throw new Error(await this.detail(res));
+      if (!res.ok) {
+        this.error.set(await this.detail(res));
+        return;
+      }
       this.info.set((await res.json()) as SignatureInfo);
       this.flash.set('Signature saved. It appears on your leave papers from now on.');
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Could not upload the signature.');
+    } catch {
+      // No HTTP answer at all. This used to print the browser's own words
+      // ("Failed to fetch"); reported because no server saw it.
+      this.error.set(UPLOAD_DROPPED_MESSAGE);
+      this.errorHandler.handleError(
+        new Error('Signature upload failed: no HTTP response (network error on the device)'),
+      );
     } finally {
       this.busy.set(false);
     }

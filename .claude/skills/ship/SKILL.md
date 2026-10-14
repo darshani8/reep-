@@ -66,6 +66,11 @@ Not done: the scope you cut on purpose.
 
 End with whatever attribution lines the session requires.
 
+If the change fixes a bug or a production error, add its dated entry to
+`docs/bug-log.md` in the same commit (newest first; the format is at the top
+of that file). A problem you found and did not fix goes under its "Open"
+list with the date it was found.
+
 ## 5. Push and open the PR
 
 `git push -u origin <branch>`, then open a **draft** PR against the base step 1

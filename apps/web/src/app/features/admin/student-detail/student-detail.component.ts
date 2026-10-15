@@ -1,131 +1,87 @@
 /**
- * Student 360 — one student, across every semester (spec §6, board
- * `design/admin/StudentDetail.html`).
+ * Student 360 — one student, as the placement office reads a candidate
+ * (redesigned 2026-10-15 from the approved prototype,
+ * docs/prototypes/student-360/index.html).
  *
  * THIS SCREEN NAMES ONE STUDENT AND MUST NEVER WIDEN TO A LIST. Everything it
- * draws is that student's private record — marks, attendance, interviews,
- * mentor notes — so every read is by id and every refusal is theirs.
+ * draws is that student's private record, so every read is by id and every
+ * refusal is theirs.
  *
- * THE COMPOSITE READ IS HERE (B4.5), AND IT REPLACED THE ROSTER TRICK. This
- * screen used to fetch `GET /api/admin/students` — the WHOLE roster — and pick
- * one row out of it, because there was no by-id read. There is now:
+ * THREE READS, ALL ON THE PAGE'S OWN KEY (`admin.student_records`):
  *
- *   GET /api/admin/students/{id}/360     identity, login, every semester with
- *                                        its results and activity, the semester
- *                                        history, readiness, open items, the
- *                                        current mentor, B9.1's assignment
- *                                        history and the recent trail
+ *   GET /api/admin/students/{id}/360      identity, login, profile, documents,
+ *                                         semesters, readiness, open items,
+ *                                         mentor and the recent history
+ *   GET /api/admin/students/{id}/record   built resumes, skills and growth,
+ *                                         leaderboard standing, the ledger
+ *                                         fortnight, the English baseline,
+ *                                         interviews, six weeks of attendance
+ *   GET /api/admin/students/{id}/access   who can open this record
  *
- * The identity block it returns is the roster's own `AdminStudentOut`, built by
- * `admin_students._one`, so the card at the top of this screen and the row in
- * the grid behind it cannot disagree about a batch, a faculty member or a
- * stage. The five reads below it are the ones the 360 deliberately does not
- * carry, because each is a whole panel of its own:
+ * Until this redesign the time sheet, the English baseline and the attendance
+ * came from mentor and analytics reads on other keys, so the office saw "not
+ * readable" where they belong. `/record` serves them from the same composers
+ * those reads use, so the numbers are the same everywhere.
  *
- *   GET   /api/admin/students/{id}/weekly            six weeks of attendance
- *                                                    and ledger hours, skills
- *   GET   /api/mentor/students/{id}/interviews       every mock interview
- *   GET   /api/mentor/students/{id}/badges           earned / total / points
- *   GET   /api/mentor/students/{id}/ledger/summary   the last 14 days
- *   GET   /api/mentor/students/{id}/english-baseline the CEFR attempt
- *   GET   /api/admin/cohorts                         the batches, for Move batch
- *   PATCH /api/admin/students/{id}                   Edit profile and Move batch
- *   POST  /api/admin/users/{user_id}/sign-out-everywhere
- *   POST  /api/admin/students/{id}/interview-cap/reset   B6.4, reason required
+ * WHO SEES WHAT. The Main Admin edits (`admin.students`) and gives access
+ * (`admin.governance`). A faculty member the office gave "View student
+ * records" for a student, batch, department or college reads this page and
+ * nothing more: the edit buttons, the account actions and the access controls
+ * are not drawn, and the API refuses them anyway. These are FILTERS on what is
+ * drawn, never gates; the server decides.
  *
- * SIGN OUT EVERYWHERE TAKES THE USER ID AND NOT THE STUDENT ID. The two are
- * different rows and the route is on `/admin/users`, because a session belongs
- * to an ACCOUNT and not to a place on a roster; `AdminStudentOut.user_id` is
- * the one this screen sends. It asks before it posts, because it acts on
- * somebody else's devices, and the question says what happens to them.
+ * THE RESUME IS THE CV FROM THE APPLICATION. The owner's words: the resume the
+ * office wants is the one the student uploaded when they registered. Approval
+ * moved it into their uploads, and `from_application` marks it. It is shown with
+ * pdf.js (`shared/pdf-preview`), never inline, because a student's PDF must not
+ * run in this origin. Resumes built in REEP are listed under it.
  *
- * THREE READS ARE EXPECTED TO BE REFUSED, AND THE SCREEN SAYS SO RATHER THAN
- * LOOKING BROKEN. The ledger and the English baseline are gated on
- * `mentor.mentees`, which `_FACULTY_ONLY` in `app/governance.py` deliberately
- * keeps OUT of the Main Admin's baseline: the office account has no mentees.
- * `/weekly` is gated on `admin.analytics`, which this screen's own capability
- * (`admin.students`) does not imply. And the cap reset is gated on
- * `admin.interviews`. A 403 on any of them is the system working, so the card
- * prints the server's own sentence instead of an empty state that reads as a
- * bug.
- *
- * WHAT IS STILL NOT READABLE, AND WHY EACH IS SAID RATHER THAN DRAWN. A
- * student's CONSENT grant is read by its holder alone (`GET /api/interview/
- * consent` is the caller's own and there is no admin read of somebody else's).
- * Their interview COUNT has no read at all — the cap reset reports it, so this
- * screen knows it only after one has been made. SWOC is a board across every
- * student a grant reaches and LEAVE is a queue: neither has a by-id read, and
- * this screen does not widen to a roster to fake one, so neither is drawn as a
- * tab. UPLOADS was the third of those until 2026-09-17, when the composite
- * read grew `documents` (every upload with its verdict) and `profile` (the
- * contact details as filled in) — the two halves of "the candidate's complete
- * details" the office could not see — so Documents is a real tab now and the
- * contact card sits on the Overview.
- *
- * "NOTHING IS REWRITTEN ON PROMOTION" is the board's own headline on the
- * timeline and it is still true of the schema: promotion increments
- * `students.current_semester`, writes one `student_semester_history` row per
- * student, and every other table keeps the semester number it was written with.
- * `tests/test_admin_promotion.py` pins that column by column.
- *
- * RE-SEND INVITE IS NOT A STUDENT ACTION AND IS NOT DRAWN AS ONE. The board
- * shows it; `issue_activation` refuses a STUDENT on purpose, because a
- * student's equivalent is the onboarding walk, which proves the mailbox with a
- * six-digit code before a password is set. The control is disabled and the
- * card says where the link actually comes from.
+ * EVERY MISSING NUMBER IS A DASH, NEVER 0. A KPI with nothing behind it says
+ * why in words ("No marks imported"), the rule the server keeps with nulls.
  */
 
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
+import { AuthService } from '../../../core/auth.service';
 import { environment } from '../../../../environments/environment';
+import { PdfPreviewComponent } from '../../../shared/pdf-preview/pdf-preview.component';
 import { plural } from '../../../shared/text/plural.pipe';
 import {
-  type ActivityEntry,
+  type AccessHolderOut,
+  type AccessOut,
   type AdminStudentOut,
   type AuditRow360Out,
-  type BadgeDashboardOut,
+  type BadgeOut,
+  type BoardStandingOut,
   type CapResetOut,
-  type CapUsageOut,
   type CohortOut,
   DEFAULT_HIGHEST_SEMESTER,
   type Document360Out,
-  type EnglishBaselineOut,
-  type InterviewSessionOut,
-  type LedgerSummaryOut,
-  type MentorSpell,
   NOT_READABLE,
-  type Profile360Out,
+  type ReachOptionOut,
   type ReadinessFactorOut,
+  type ResumeVersionOut,
   STAGES,
   type Semester360Out,
-  type SemesterMove360Out,
-  type SemesterStep,
+  type StaffOut,
   type Student360Out,
-  type StudentWeeklyOut,
+  type StudentRecordOut,
+  barsOf,
+  cvsOf,
+  distinctHolders,
   formatDay,
   formatMoment,
   initialsOf,
-  interviewActivityOf,
-  interviewTallyOf,
+  mainCvOf,
   meanAttendancePercentOf,
   percentOf,
-  semesterStepsUpTo,
+  pointsOf,
   stageLabelOf,
+  topPercentOf,
 } from './student-record';
 
-/** Days of ledger history the summary card asks for — the same fortnight a
- *  mentor opens the ledger to judge "are they keeping it up". */
-const LEDGER_WINDOW_DAYS = 14;
-
-/** Activity lines the card shows before it stops. The board draws five. */
-const RECENT_ACTIVITY_LINES = 5;
-
-/** The seven views this screen can answer, each on an endpoint that names
- *  this student. The board drew two more (SWOC, Leave); neither has a by-id
- *  read, and a tab that can never open is not drawn — the boards those two
- *  belong to are SWOC notes and Leave requests. Documents arrived on the
- *  composite read on 2026-09-17, which is what made its tab honest. */
+/** The views, in the order the office reads a candidate. */
 interface TabSpec {
   key: string;
   label: string;
@@ -133,16 +89,18 @@ interface TabSpec {
 
 const TABS: TabSpec[] = [
   { key: 'overview', label: 'Overview' },
-  { key: 'results', label: 'Results' },
-  { key: 'attendance', label: 'Attendance' },
+  { key: 'resume', label: 'Resume' },
+  { key: 'skills', label: 'Skills' },
+  { key: 'leaderboard', label: 'Leaderboard' },
+  { key: 'academics', label: 'Academics' },
+  { key: 'interviews', label: 'Interviews' },
   { key: 'timesheet', label: 'Time sheet' },
   { key: 'documents', label: 'Documents' },
-  { key: 'interviews', label: 'Interviews' },
-  { key: 'audit', label: 'Audit' },
+  { key: 'access', label: 'Access' },
 ];
 
-/** A document's verdict as text AND colour, never colour alone — the same
- *  words the student reads on their own Uploads screen. */
+/** A document's verdict as text AND colour, never colour alone — the words the
+ *  student reads on their own Uploads screen. */
 const DOCUMENT_CHIP: Record<string, { tone: string; label: string }> = {
   PENDING_REVIEW: { tone: 'warn', label: 'Pending review' },
   VERIFIED: { tone: 'good', label: 'Verified' },
@@ -150,13 +108,24 @@ const DOCUMENT_CHIP: Record<string, { tone: string; label: string }> = {
   REJECTED: { tone: 'risk', label: 'Rejected' },
 };
 
-/** Upload.kind -> the words on the row. */
 const DOCUMENT_KIND: Record<string, string> = {
   CERTIFICATE_PROOF: 'Certificate',
   DOCUMENT: 'Document',
-  RESUME: 'Resume',
+  RESUME: 'CV',
   PROFILE_PHOTO: 'Photo',
 };
+
+/** The attendance a semester requires, drawn as the dashed line. */
+const ATTENDANCE_REQUIRED = 75;
+
+/** The capability a "Give access" grant names. */
+const RECORDS_KEY = 'admin.student_records';
+
+/** Governance refuses a grant or a removal with a shorter reason. */
+const MIN_REASON_CHARS = 20;
+
+/** How long access lasts when the office does not change the date. */
+const DEFAULT_ACCESS_DAYS = 180;
 
 function formatBytes(size: number): string {
   if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
@@ -164,669 +133,609 @@ function formatBytes(size: number): string {
   return `${size} B`;
 }
 
-/** One read's outcome: the body, or the server's own sentence for refusing. */
+function isoDay(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
 interface ReadResult<T> {
   value: T | null;
   refusal: string | null;
 }
 
-/** One spell, dressed for the card. */
-interface MentorSpellRow {
-  id: string;
-  who: string;
-  /** "since 04 Sep 2026" / "04 Sep 2026 – 11 Sep 2026" / "since before this
-   *  was recorded" — one phrase, composed where the nulls are understood. */
-  when: string;
-  current: boolean;
-  /** "Assigned by S Kumar — thin year on the DM side", or "" when neither the
-   *  actor nor the reason was recorded. */
-  opened: string;
-  closed: string;
-}
-
-/** `admin_faculty.AccountStateOut` — the answer from disable, enable and
- *  sign-out-everywhere.
- *
- *  `detail` is the SERVER'S OWN SENTENCE about what it just did ("Every device
- *  holding … has been signed out"), and it is shown verbatim: a client that
- *  composes its own version of that sentence is a second description of one
- *  act, and the two drift. */
+/** `admin_faculty.AccountStateOut` — the server's own sentence about what the
+ *  sign-out did is shown verbatim. */
 interface AccountStateOut {
-  user_id: string;
-  email: string;
-  role: string;
-  disabled: boolean;
-  /** 2026-09-16: set when the account is REMOVED from the roster (rows kept). */
-  deleted_at?: string | null;
-  delete_reason?: string | null;
-  disabled_at: string | null;
-  disable_reason: string | null;
-  token_version: number;
-  links_revoked: number;
   detail: string;
 }
 
-/** How a spell ended, in the words a person would use. The stored vocabulary
- *  is `app/models/mentor_assignment.py`'s; an unknown value is printed as-is
- *  rather than swallowed, because a kind this client has not learned yet is
- *  still a fact about the student. */
-function endLabelOf(kind: string): string {
-  if (kind === 'release') return 'Released';
-  if (kind === 'reassign') return 'Moved on';
-  if (kind === 'faculty_disabled') return 'Released when the faculty account was disabled';
-  return kind;
+/** One line of the Needs attention card. */
+interface AttentionItem {
+  who: 'staff' | 'student';
+  icon: string;
+  title: string;
+  why: string;
+  tab: string;
+  action: string;
 }
 
-/** The vocabulary of `student_semester_history.kind`, in the office's words.
- *  An unrecognised kind is printed as stored — a value this client has not
- *  learned is still a move that happened. */
-function moveLabelOf(kind: string): string {
-  if (kind === 'promote') return 'Promoted';
-  if (kind === 'graduate') return 'Graduated';
-  if (kind === 'ungraduate') return 'Graduation reversed';
-  if (kind === 'hold_back') return 'Held back';
-  return kind;
-}
-
-/** "since 04 Sep 2026", "04 Sep 2026 – 11 Sep 2026", or the sentence a NULL
- *  `from_at` actually means. */
-function whenOf(spell: MentorSpell): string {
-  const from = spell.from_at === null ? null : formatDay(spell.from_at);
-  const to = spell.to_at === null ? null : formatDay(spell.to_at);
-  if (from === null && to === null) return 'Since before this was recorded';
-  if (from === null) return `Until ${to}, from before this was recorded`;
-  if (to === null) return `Since ${from}`;
-  return `${from} – ${to}`;
-}
-
-/** "Assigned by S Kumar — thin year on the DM side". Either half may be
- *  missing: the CLI writers record no actor, and rows written before B9.2 made
- *  a reason compulsory carry none. An empty string draws no line at all, which
- *  is the honest rendering of "nobody wrote this down". */
-function actOf(verb: string, by: string | null, reason: string | null): string {
-  if (by === null && reason === null) return '';
-  const who = by === null ? verb : `${verb} by ${by}`;
-  return reason === null ? who : `${who} — ${reason}`;
+/** One day chip of the time sheet strip. */
+interface LedgerChip {
+  day: string;
+  label: string;
+  hours: string;
+  tone: string;
 }
 
 @Component({
   selector: 'app-admin-student-detail',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, PdfPreviewComponent],
   templateUrl: './student-detail.component.html',
   styleUrl: './student-detail.component.scss',
 })
 export class AdminStudentDetailComponent {
   private readonly route = inject(ActivatedRoute);
+  private readonly auth = inject(AuthService);
+  private readonly apiBase = environment.apiBase;
 
   readonly studentId = this.route.snapshot.paramMap.get('id') ?? '';
-
-  // --- what the screen has read -------------------------------------------
 
   readonly loading = signal(true);
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
   readonly flash = signal<string | null>(null);
 
-  /** B4.5's one read. Everything the board's panels are built from. */
   readonly record = signal<Student360Out | null>(null);
-
   readonly student = signal<AdminStudentOut | null>(null);
-  readonly weekly = signal<StudentWeeklyOut | null>(null);
-  readonly interviews = signal<InterviewSessionOut[]>([]);
-  readonly badges = signal<BadgeDashboardOut | null>(null);
-  readonly ledger = signal<LedgerSummaryOut | null>(null);
-  readonly english = signal<EnglishBaselineOut | null>(null);
+  readonly panels = signal<StudentRecordOut | null>(null);
+  readonly panelsRefusal = signal<string | null>(null);
+  readonly access = signal<AccessOut | null>(null);
   readonly batches = signal<CohortOut[]>([]);
-
-  /** Why the two `mentor.mentees` reads did not answer, in the API's own
-   *  words. Almost always "You do not hold the 'Mentee log' capability", which
-   *  is the Main Admin's baseline working as designed. */
-  readonly menteeReadsRefusal = signal<string | null>(null);
-
-  /** Why the batch list did not answer, if it did not. The select is then
-   *  empty and the editor says why rather than looking broken. */
   readonly batchesRefusal = signal<string | null>(null);
-
-  /** Why the six-week read did not answer, if it did not. `/weekly` is gated
-   *  on `admin.analytics`, which this screen's own capability
-   *  (`admin.students`, spec §6) does not imply: a faculty member granted the
-   *  roster and not Analytics is refused here. That refusal used to render as
-   *  "no sessions in the last six weeks", which is a claim about the student
-   *  made out of a read that never happened. */
-  readonly weeklyRefusal = signal<string | null>(null);
-
-  /** Whether the Sign out everywhere question is on screen. The button asks
-   *  before it posts because the devices it drops are somebody else's. */
-  readonly confirmingSignOut = signal(false);
-
-  // --- the tabs -----------------------------------------------------------
 
   readonly tabs = TABS;
   readonly tab = signal('overview');
-
-  setTab(key: string): void {
-    this.tab.set(key);
-  }
-
-  // --- the editor ---------------------------------------------------------
-
-  readonly editorOpen = signal(false);
-  /** Which button opened the editor. `batch` adds the line that says so; both
-   *  save through the same PATCH, because moving a batch IS editing a
-   *  student and two write paths for one field is how they drift. */
-  readonly editorIntent = signal<'profile' | 'batch'>('profile');
-
-  readonly formName = signal('');
-  readonly formEmail = signal('');
-  readonly formUsn = signal('');
-  readonly formBatchId = signal('');
-  readonly formStage = signal('');
-  readonly formSemester = signal(1);
-
+  readonly notReadable = NOT_READABLE;
   readonly stages = STAGES;
 
-  readonly notReadable = NOT_READABLE;
-
-  // --- the interview cap reset (B6.4) -------------------------------------
-
-  readonly capResetOpen = signal(false);
-  readonly capReason = signal('');
-  /** What the student has spent, as reported BY THE RESET. There is no read of
-   *  this anywhere — the POST's response is the only place the pair appears —
-   *  so it is null until one is made, and the card says that rather than
-   *  drawing a zero. */
-  readonly capUsage = signal<CapUsageOut | null>(null);
-
   constructor() {
+    const fromUrl = this.route.snapshot.fragment ?? '';
+    if (TABS.some((spec) => spec.key === fromUrl)) {
+      this.tab.set(fromUrl);
+    }
     void this.loadEverything();
   }
 
-  // --- the header ---------------------------------------------------------
+  setTab(key: string): void {
+    this.tab.set(key);
+    this.menuOpen.set(false);
+  }
+
+  /** Arrow keys move along the tab row, as a tablist should. */
+  onTabKey(event: KeyboardEvent, index: number): void {
+    const last = TABS.length - 1;
+    let next: number | null = null;
+    if (event.key === 'ArrowRight') next = index === last ? 0 : index + 1;
+    if (event.key === 'ArrowLeft') next = index === 0 ? last : index - 1;
+    if (event.key === 'Home') next = 0;
+    if (event.key === 'End') next = last;
+    if (next === null) return;
+    event.preventDefault();
+    this.setTab(TABS[next].key);
+    const target = document.getElementById(`tab-${TABS[next].key}`);
+    target?.focus();
+  }
+
+  // --- who is looking -------------------------------------------------------
+
+  private readonly capabilities = computed(() => this.auth.session()?.capabilities ?? []);
+
+  readonly isMainAdmin = computed(() => this.auth.session()?.role === 'ADMIN');
+  /** The roster editor: Edit profile and Move batch. */
+  readonly canEdit = computed(() => this.capabilities().includes('admin.students'));
+  /** A faculty member reading on a grant: the page says so, and draws no action. */
+  readonly readOnly = computed(() => !this.isMainAdmin() && !this.canEdit());
+  readonly canManageAccess = computed(() => this.access()?.can_manage === true);
+
+  // --- the candidate ---------------------------------------------------------
 
   readonly studentName = computed(() => this.student()?.name ?? 'Student');
-
+  readonly initials = computed(() => initialsOf(this.studentName()));
   readonly usnLabel = computed(() => this.student()?.usn ?? NOT_READABLE);
-
   readonly batchLabel = computed(() => this.student()?.batch ?? 'No batch yet');
-
   readonly departmentLabel = computed(() => this.student()?.department ?? 'No department yet');
-
   readonly mentorName = computed(() => this.student()?.mentor_name ?? null);
+  readonly mentorInitials = computed(() => initialsOf(this.mentorName() ?? '?'));
 
-  readonly mentorInitials = computed(() => {
-    const name = this.mentorName();
-    if (name === null) {
-      return '?';
-    }
-    return initialsOf(name);
-  });
-
-  /**
-   * The spells, dressed. NEWEST FIRST, and the open one is the first row.
-   *
-   * AN EMPTY LIST IS NOT "NEVER HAD A MENTOR" — the server says which in
-   * `mentor_history.note`, using the current assignment beside it, and the
-   * template prints that sentence rather than composing a second one here.
-   */
-  readonly mentorSpells = computed<MentorSpellRow[]>(() =>
-    (this.record()?.mentor_history.entries ?? []).map((spell) => ({
-      id: spell.id,
-      who: spell.mentor_name ?? 'A faculty account that is no longer on the roster',
-      when: whenOf(spell),
-      current: spell.to_at === null,
-      opened: actOf(spell.kind === 'reassign' ? 'Moved here' : 'Assigned', spell.by_name, spell.reason),
-      closed:
-        spell.end_kind === null
-          ? ''
-          : actOf(endLabelOf(spell.end_kind), spell.ended_by_name, spell.end_reason),
-    })),
-  );
-
-  /** The server's own sentence for an empty history, or "" when there are rows
-   *  to draw instead. */
-  readonly mentorHistoryNote = computed(() => this.record()?.mentor_history.note ?? '');
-
+  /** "3 students", for the template. */
+  readonly plural = plural;
   readonly stageLabel = computed(() => {
     const row = this.student();
-    if (row === null) {
-      return NOT_READABLE;
-    }
-    return stageLabelOf(row.current_stage);
+    return row === null ? NOT_READABLE : stageLabelOf(row.current_stage);
   });
 
-  /** "Active" once they have signed in at least once, "Invited" until then —
-   *  and "Disabled" over both, because an account that cannot get in is not
-   *  described by either of the other two words.
-   *
-   *  NULL-SAFE ON PURPOSE. `this.student()?.last_login_at !== null` reads
-   *  `undefined !== null`, which is TRUE, so before the row is read — and
-   *  after a refused read — the header printed a green "Active" chip for a
-   *  student nobody had looked up. */
   readonly hasSignedIn = computed(() => {
     const row = this.student();
     return row !== null && row.last_login_at !== null;
   });
-
   readonly isDisabled = computed(() => this.record()?.login.disabled === true);
-
-  /** REMOVED from the roster (2026-09-16): the record is reachable by id
-   *  while the account is off every list. Drawn in the risk tone, like
-   *  disabled, and named as itself. */
   readonly isRemoved = computed(() => (this.record()?.login.deleted_at ?? null) !== null);
-
   readonly accountStatusLabel = computed(() => {
-    if (this.isRemoved()) {
-      return 'Removed';
-    }
-    if (this.isDisabled()) {
-      return 'Disabled';
-    }
-    return this.hasSignedIn() ? 'Active' : 'Invited';
+    if (this.isRemoved()) return 'Removed';
+    if (this.isDisabled()) return 'Disabled';
+    return this.hasSignedIn() ? 'Active' : 'Not signed in yet';
   });
-
-  /** The one sentence a removed account owes the reader, beside the disabled
-   *  one: when and why. Restore lives on the roster's Removed list. */
-  readonly removedLine = computed(() => {
+  readonly accountStatusTone = computed(() => {
+    if (this.isRemoved() || this.isDisabled()) return 'risk';
+    return this.hasSignedIn() ? 'good' : 'warn';
+  });
+  readonly accountLine = computed(() => {
     const login = this.record()?.login;
-    if (login === undefined || login.deleted_at === null) {
-      return null;
+    if (login === undefined) return null;
+    if (login.deleted_at !== null) {
+      return `Removed from the roster ${formatMoment(login.deleted_at)}: ${login.delete_reason ?? 'no reason recorded'}.`;
     }
-    const why = login.delete_reason ?? 'no reason recorded';
-    return `Removed from the roster ${formatMoment(login.deleted_at)} — ${why}. Restore from the Students screen's Removed list.`;
+    if (login.disabled) {
+      return `Disabled ${formatMoment(login.disabled_at)} by ${login.disabled_by_name ?? 'a removed account'}: ${login.disable_reason ?? 'no reason recorded'}.`;
+    }
+    return null;
   });
 
-  /** The one sentence a disabled account owes the reader: when, by whom and
-   *  why. B3.1 makes the reason compulsory, so it is always there. */
-  readonly disabledLine = computed(() => {
-    const login = this.record()?.login;
-    if (login === undefined || !login.disabled) {
-      return null;
-    }
-    const when = formatMoment(login.disabled_at);
-    const who = login.disabled_by_name ?? 'an account that has since been removed';
-    const why = login.disable_reason ?? 'no reason recorded';
-    return `Disabled ${when} by ${who} — ${why}`;
-  });
-
-  readonly semesterLine = computed(() => {
+  readonly semesterLabel = computed(() => {
     const row = this.student();
-    if (row === null) {
-      return NOT_READABLE;
-    }
+    if (row === null) return NOT_READABLE;
     const total = this.record()?.total_semesters ?? null;
-    if (total === null) {
-      return `semester ${row.current_semester}`;
-    }
-    return `semester ${row.current_semester} of ${total}`;
+    return total === null ? `${row.current_semester}` : `${row.current_semester} of ${total}`;
   });
-
-  readonly enrolledLabel = computed(() => formatDay(this.student()?.enrolled_at ?? null));
 
   readonly lastSignInLabel = computed(() => {
     const row = this.student();
-    if (row === null || row.last_login_at === null) {
-      return 'Has not signed in yet';
-    }
+    if (row === null || row.last_login_at === null) return 'Not yet';
     return formatMoment(row.last_login_at);
   });
 
-  // --- identity & login ----------------------------------------------------
+  readonly profile = computed(() => this.record()?.profile ?? null);
 
-  readonly signIns = computed(() => this.record()?.login.recent_sign_ins ?? []);
-
-  /** "A password and Google", "Google only", "The onboarding walk only". Two
-   *  booleans, said as the fact the office needs when somebody cannot get in —
-   *  never as two green ticks, which do not answer the question. */
-  readonly doorsLine = computed(() => {
-    const login = this.record()?.login;
-    if (login === undefined) {
-      return NOT_READABLE;
-    }
-    if (login.password_set && login.google_linked) {
-      return 'A password, and Google sign-in linked';
-    }
-    if (login.google_linked) {
-      return 'Google sign-in only — no password has ever been issued';
-    }
-    if (login.password_set) {
-      return 'A password — no Google account linked';
-    }
-    return 'Neither yet — the onboarding link is how the first password is set';
+  readonly placementLine = computed(() => {
+    const profile = this.profile();
+    if (profile === null || !profile.on_record) return null;
+    if (profile.placement_eligible === false) return 'Not eligible for placement';
+    if (profile.interested_in_jobs) return 'Wants placement';
+    if (profile.interested_in_internships) return 'Wants an internship';
+    return null;
   });
 
-  /** The two ceilings, as reported by the last reset. Null until one is made:
-   *  nothing else reports these numbers, and a zero would read as "they have
-   *  not practised today" when the truth is that nobody asked. */
-  readonly capLine = computed(() => {
-    const usage = this.capUsage();
-    if (usage === null) {
-      return null;
-    }
-    return (
-      `${usage.completed} of ${usage.daily_cap} completed · ` +
-      `${usage.attempts} of ${usage.attempt_cap} attempts · counted from ` +
-      `${formatMoment(usage.window_start)}`
-    );
-  });
-
-  // --- semester timeline --------------------------------------------------
-
-  readonly semesterSteps = computed<SemesterStep[]>(() => {
+  /** The contact rows, with a value to copy. A blank is said, not dashed. */
+  readonly contactRows = computed(() => {
+    const profile = this.profile();
     const row = this.student();
-    if (row === null) {
-      return [];
-    }
-    return semesterStepsUpTo(row.current_semester, this.record()?.total_semesters ?? null);
-  });
-
-  /** Everything the timeline needs about one step, keyed by its number, so the
-   *  template can print a semester's results and activity under it. */
-  readonly semesterByNumber = computed<Map<number, Semester360Out>>(() => {
-    const map = new Map<number, Semester360Out>();
-    for (const semester of this.record()?.semesters ?? []) {
-      map.set(semester.semester, semester);
-    }
-    return map;
-  });
-
-  semesterOf(number: number): Semester360Out | null {
-    return this.semesterByNumber().get(number) ?? null;
-  }
-
-  /** "4 ledger days · 2 interviews · 1 badge", or the sentence that says why
-   *  there are no counts. Null counts are NOT zeros: a semester with no
-   *  recorded start and end has no window to count over. */
-  activityLineOf(semester: Semester360Out | null): string {
-    if (semester === null) {
-      return 'Nothing recorded for this semester.';
-    }
-    if (!semester.activity_known) {
-      return (
-        'When this semester began and ended was never recorded, so ledger days, ' +
-        'interviews and badges cannot be attributed to it.'
-      );
-    }
-    const parts = [
-      `${plural(semester.ledger_days_reconciled ?? 0, 'reconciled day')}`,
-      `${plural(semester.interviews ?? 0, 'interview')}`,
-      `${plural(semester.badges_earned ?? 0, 'badge')}`,
+    const rows: { label: string; value: string | null; href: string | null }[] = [
+      { label: 'College email', value: row?.email ?? null, href: null },
     ];
-    return parts.join(' · ');
+    if (profile !== null && profile.on_record) {
+      rows.unshift({ label: 'Phone', value: profile.phone, href: null });
+      rows.push({ label: 'Contact email', value: profile.contact_email, href: null });
+      rows.push({ label: 'LinkedIn', value: profile.linkedin_url, href: profile.linkedin_url });
+      rows.push({ label: 'City', value: profile.city, href: null });
+    }
+    return rows;
+  });
+
+  /** A copy that asks nothing of the reader: the value goes to the clipboard
+   *  and the page says so. Where the clipboard is refused, it says that. */
+  async copy(value: string | null, label: string): Promise<void> {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      this.flash.set(`${label} copied.`);
+    } catch {
+      this.flash.set(`${label}: ${value}`);
+    }
   }
 
-  /** The dates a semester ran between, when both were recorded. */
-  windowOf(semester: Semester360Out | null): string | null {
-    if (semester === null || semester.started_on === null) {
-      return null;
-    }
-    const from = formatDay(semester.started_on);
-    if (semester.ended_on === null) {
-      return `from ${from}`;
-    }
-    return `${from} – ${formatDay(semester.ended_on)}`;
+  // --- the CV (the resume the office reads) ------------------------------------
+
+  readonly documents = computed<Document360Out[]>(() => this.record()?.documents ?? []);
+  readonly cvs = computed(() => cvsOf(this.documents()));
+  readonly mainCv = computed(() => mainCvOf(this.documents()));
+  readonly selectedCvId = signal<string | null>(null);
+  readonly shownCv = computed(() => {
+    const id = this.selectedCvId();
+    return this.cvs().find((cv) => cv.id === id) ?? this.mainCv();
+  });
+
+  selectCv(id: string): void {
+    this.selectedCvId.set(id);
   }
 
-  /** The course's length, or the honest absence of one. */
-  readonly courseLengthLine = computed(() => {
-    const total = this.record()?.total_semesters ?? null;
-    if (total === null) {
-      return (
-        'This batch names no course with a semester count, so how many semesters the ' +
-        'programme runs is not on record. Set Total semesters on the course to bound it.'
-      );
-    }
-    return `This programme runs ${plural(total, 'semester')}.`;
-  });
+  fileUrl(documentId: string): string {
+    return `${this.apiBase}/admin/students/${this.studentId}/files/${documentId}`;
+  }
 
-  // --- the semesters the editor's select offers ---------------------------
+  /** The download that is recorded on the student's history. */
+  downloadUrl(documentId: string): string {
+    return `${this.fileUrl(documentId)}?download=true`;
+  }
 
-  /** Bounded by the COURSE where the course says so, and by the deployment
-   *  fallback where it does not — the same answer `app/semester_bounds.py`
-   *  gives the PATCH, so the select cannot offer a number the save refuses. */
-  readonly semesters = computed<number[]>(() => {
-    const declared = this.record()?.total_semesters ?? null;
-    const current = this.student()?.current_semester ?? 1;
-    // A student already sitting above the course's declared length is a row
-    // that exists; the select must still be able to show where they are.
-    const highest = Math.max(declared ?? DEFAULT_HIGHEST_SEMESTER, current);
-    return Array.from({ length: highest }, (_unused, index) => index + 1);
-  });
+  cvSource(cv: Document360Out): string {
+    return cv.from_application ? 'Uploaded with the application' : 'Uploaded later';
+  }
 
-  readonly semesterHelp = computed(() => {
-    const declared = this.record()?.total_semesters ?? null;
-    if (declared === null) {
-      return (
-        `This batch names no course with a semester count, so the deployment default of ` +
-        `${DEFAULT_HIGHEST_SEMESTER} applies.`
-      );
-    }
-    return `Bounded by the course, which runs ${plural(declared, 'semester')}.`;
-  });
+  readonly builtResumes = computed<ResumeVersionOut[]>(() => this.panels()?.resumes ?? []);
 
-  // --- readiness (B6.3, computed on the server) ---------------------------
+  builtResumeUrl(resume: ResumeVersionOut): string {
+    return `${this.apiBase}/admin/students/${this.studentId}/resumes/${resume.id}/pdf?download=true`;
+  }
+
+  resumeStatusLabel(status: string): string {
+    if (status === 'FINALISED') return 'Finalised';
+    if (status === 'GENERATED') return 'Generated';
+    return 'Draft';
+  }
+
+  /** A download leaves through the browser; the history is re-read a moment
+   *  later so the row it wrote is on the Access tab. */
+  noteDownload(): void {
+    setTimeout(() => void this.load360(), 1500);
+  }
+
+  // --- the KPI strip -----------------------------------------------------------
 
   readonly readiness = computed(() => this.record()?.readiness ?? null);
 
-  /** The chip beside the score. `Not assessed yet` is a WORD and not a blank,
-   *  and it is the server's, so the two surfaces that draw readiness (the
-   *  student's own home card and this panel) say the same thing. */
   readonly readinessTone = computed(() => {
-    const readiness = this.readiness();
-    if (readiness === null || readiness.score === null) {
-      return 'neutral';
-    }
-    if (readiness.score < 40) {
-      return 'risk';
-    }
-    if (readiness.score < 70) {
-      return 'warn';
-    }
+    const score = this.readiness()?.score ?? null;
+    if (score === null) return 'neutral';
+    if (score < 40) return 'risk';
+    if (score < 70) return 'warn';
     return 'good';
   });
 
-  /** Every check, with the unmeasured ones kept apart rather than drawn as
-   *  failures — `measured: false` means nobody has run the check, which is not
-   *  the same fact as failing it. */
-  readonly readinessFactors = computed<ReadinessFactorOut[]>(
-    () => this.readiness()?.factors ?? [],
-  );
+  readonly readinessFactors = computed<ReadinessFactorOut[]>(() => this.readiness()?.factors ?? []);
 
   factorChip(factor: ReadinessFactorOut): { tone: string; label: string } {
-    if (!factor.measured) {
-      return { tone: 'neutral', label: 'Not measured' };
-    }
+    if (!factor.measured) return { tone: 'neutral', label: 'Not measured' };
     return factor.met ? { tone: 'good', label: 'Met' } : { tone: 'warn', label: 'Not met' };
   }
 
-  readonly meanAttendancePercent = computed(() => meanAttendancePercentOf(this.weekly()));
-
-  /** What the attendance meter says instead of a bar. "No sessions" is a fact
-   *  about the six weeks and may only be printed when the six weeks were
-   *  actually read; an unread window says so. */
-  readonly attendanceNoneLine = computed(() => {
-    if (this.weekly() === null) {
-      return 'not readable';
-    }
-    return 'no sessions in the last six weeks';
+  /** The latest semester with a CGPA, and its backlogs. */
+  readonly latestResult = computed(() => {
+    const withCgpa = (this.record()?.semesters ?? []).filter(
+      (semester) => semester.results !== null && semester.results.cgpa !== null,
+    );
+    return withCgpa.length === 0 ? null : withCgpa[withCgpa.length - 1];
   });
 
-  readonly badgesEarnedPercent = computed(() => {
-    const dashboard = this.badges();
-    if (dashboard === null) {
-      return null;
-    }
-    return percentOf(dashboard.earned_total, dashboard.badge_total);
+  readonly cgpa = computed(() => this.latestResult()?.results?.cgpa ?? null);
+
+  readonly liveBacklogs = computed(() => this.latestResult()?.results?.live_backlogs ?? null);
+
+  readonly attendancePercent = computed(() => meanAttendancePercentOf(this.panels()?.weekly ?? null));
+
+  readonly attendanceSpark = computed(() => {
+    const weekly = this.panels()?.weekly;
+    if (!weekly) return [];
+    return barsOf(weekly.attendance_percent, weekly.weeks.map((w) => w.label), 120, 28, ATTENDANCE_REQUIRED);
   });
 
-  readonly interviewTally = computed(() => interviewTallyOf(this.interviews()));
+  readonly overallBoard = computed<BoardStandingOut | null>(
+    () => this.panels()?.leaderboards.boards.find((board) => board.board === 'overall') ?? null,
+  );
 
-  readonly bestInterviewScore = computed(() => this.interviewTally().bestScore);
+  readonly skills = computed(() => this.panels()?.skills ?? null);
 
-  /** What the meter says instead of a bar. "3 sat, none scored" and "none sat"
-   *  are different facts, and neither is a zero. */
-  readonly interviewsSatLine = computed(() => {
-    const tally = this.interviewTally();
-    if (tally.total === 0) {
-      return 'none sat';
-    }
-    return `${tally.total} sat, none scored`;
+  readonly pendingClaims = computed(() => this.record()?.open_items.pending_badge_claims ?? 0);
+
+  readonly interviews = computed(() =>
+    [...(this.panels()?.interviews ?? [])].sort(
+      (a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime(),
+    ),
+  );
+
+  /** Scored interviews, oldest first, for the line. */
+  readonly scoredInterviews = computed(() =>
+    [...this.interviews()].reverse().filter((sitting) => sitting.overall_score !== null),
+  );
+
+  readonly bestInterview = computed(() => {
+    const scores = this.scoredInterviews().map((sitting) => sitting.overall_score as number);
+    return scores.length === 0 ? null : Math.max(...scores);
   });
 
-  readonly ledgerSubmittedPercent = computed(() => {
-    const summary = this.ledger();
-    if (summary === null) {
-      return null;
-    }
-    return percentOf(summary.days_submitted, summary.window_days);
-  });
+  readonly interviewSpark = computed(() =>
+    pointsOf(
+      this.scoredInterviews().map((sitting) => sitting.overall_score as number),
+      116,
+      24,
+      0,
+      100,
+    ),
+  );
 
-  readonly englishLine = computed(() => {
-    const attempt = this.english();
-    if (attempt === null) {
-      return null;
-    }
-    if (!attempt.exists) {
-      return 'Not sat yet';
-    }
-    if (attempt.pending_label !== null && attempt.pending_label !== '') {
-      return attempt.pending_label;
-    }
-    if (attempt.band_label === null) {
-      return `${attempt.sections_scored} of ${plural(attempt.sections_total, 'section')} scored`;
-    }
-    return attempt.band_label;
-  });
+  sparkLine(points: { x: number; y: number }[]): string {
+    return points.map((point) => `${point.x + 2},${point.y + 2}`).join(' ');
+  }
 
-  readonly verifiedSkillCount = computed(() => {
-    const record = this.weekly();
-    if (record === null) {
-      return null;
-    }
-    let total = 0;
-    for (const category of record.skills_by_category) {
-      total += category.count;
-    }
-    return total;
-  });
+  // --- needs attention ---------------------------------------------------------
 
-  // --- open items (the server's counts, B4.5) -----------------------------
-
-  /** The board's Open items, every line now a real count from the composite
-   *  read. `total` is the server's own sum, so this client cannot disagree
-   *  with the tab badge about how much is outstanding. */
-  readonly openItems = computed<{ chip: string; tone: string; text: string }[]>(() => {
+  readonly attention = computed<AttentionItem[]>(() => {
     const open = this.record()?.open_items;
-    if (open === undefined) {
-      return [];
-    }
-    const items: { chip: string; tone: string; text: string }[] = [];
-    if (open.pending_uploads > 0) {
-      items.push({
-        chip: 'Uploads',
-        tone: 'warn',
-        text: `${plural(open.pending_uploads, 'document')} waiting for a staff verdict`,
-      });
-    }
+    if (!open) return [];
+    const items: AttentionItem[] = [];
     if (open.pending_badge_claims > 0) {
       items.push({
-        chip: 'Badges',
-        tone: 'warn',
-        text: `${plural(open.pending_badge_claims, 'badge claim')} waiting for verification`,
+        who: 'staff',
+        icon: 'pending_actions',
+        title: `${plural(open.pending_badge_claims, 'skill claim')} waiting for a decision`,
+        why: this.claimNames('VERIFICATION_PENDING'),
+        tab: 'skills',
+        action: 'Review',
       });
     }
-    if (open.badge_claims_needing_info > 0) {
+    if (open.pending_uploads > 0) {
       items.push({
-        chip: 'Badges',
-        tone: 'neutral',
-        text: `${plural(open.badge_claims_needing_info, 'claim')} sent back for more information — waiting on the student`,
+        who: 'staff',
+        icon: 'pending_actions',
+        title: `${plural(open.pending_uploads, 'document')} waiting for review`,
+        why: 'On the Documents tab',
+        tab: 'documents',
+        action: 'Open',
+      });
+    }
+    const sentBack =
+      open.badge_claims_needing_info + this.documents().filter((d) => d.status === 'NEEDS_CHANGES').length;
+    if (sentBack > 0) {
+      items.push({
+        who: 'student',
+        icon: 'undo',
+        title: `${plural(sentBack, 'item')} sent back for changes`,
+        why: 'Claims and documents the student has to fix',
+        tab: open.badge_claims_needing_info > 0 ? 'skills' : 'documents',
+        action: 'See them',
       });
     }
     if (open.unsubmitted_ledger_days > 0) {
       items.push({
-        chip: 'Time sheet',
-        tone: 'warn',
-        text: `${plural(open.unsubmitted_ledger_days, 'day')} started and never submitted`,
+        who: 'student',
+        icon: 'schedule',
+        title: `${plural(open.unsubmitted_ledger_days, 'time sheet day')} started and not submitted`,
+        why: 'On the Time sheet tab',
+        tab: 'timesheet',
+        action: 'See days',
       });
     }
     if (open.missing_profile_fields.length > 0) {
       items.push({
-        chip: 'Profile',
-        tone: 'neutral',
-        text: `Not filled in: ${open.missing_profile_fields.join(', ')}`,
+        who: 'student',
+        icon: 'person',
+        title: 'Profile is missing details',
+        why: open.missing_profile_fields.join(', '),
+        tab: 'overview',
+        action: 'See profile',
       });
     }
     return items;
   });
 
-  readonly openItemsTotal = computed(() => this.record()?.open_items.total ?? 0);
+  private claimNames(status: string): string {
+    const names: string[] = [];
+    for (const category of this.skills()?.categories ?? []) {
+      for (const badge of category.badges) {
+        if (badge.status === status) names.push(badge.name);
+      }
+    }
+    return names.slice(0, 3).join(' · ');
+  }
 
-  // --- recent activity ----------------------------------------------------
+  // --- skills ------------------------------------------------------------------
 
-  readonly recentActivity = computed<ActivityEntry[]>(() =>
-    interviewActivityOf(this.interviews(), RECENT_ACTIVITY_LINES),
+  readonly earnedBadges = computed<BadgeOut[]>(() => {
+    const out: BadgeOut[] = [];
+    for (const category of this.skills()?.categories ?? []) {
+      for (const badge of category.badges) if (badge.status === 'EARNED') out.push(badge);
+    }
+    return out.sort((a, b) => (b.earned_at ?? '').localeCompare(a.earned_at ?? ''));
+  });
+
+  /** Claims nobody has decided, and claims sent back to the student. */
+  readonly openClaims = computed(() => {
+    const out: { badge: BadgeOut; state: 'pending' | 'back'; filed: string; note: string | null }[] = [];
+    for (const category of this.skills()?.categories ?? []) {
+      for (const badge of category.badges) {
+        for (const evidence of badge.evidence) {
+          if (evidence.status === 'PENDING_VERIFICATION') {
+            out.push({ badge, state: 'pending', filed: evidence.created_at, note: null });
+          } else if (evidence.status === 'MORE_INFO_REQUIRED') {
+            out.push({ badge, state: 'back', filed: evidence.created_at, note: evidence.review_note });
+          }
+        }
+      }
+    }
+    return out;
+  });
+
+  categoryPercent(earned: number, total: number): number {
+    return percentOf(earned, total);
+  }
+
+  readonly growth = computed(() => this.panels()?.growth ?? null);
+
+  scoreOf(scores: Record<string, number | null>, checkpoint: string): string {
+    const value = scores[checkpoint];
+    return value === null || value === undefined ? NOT_READABLE : `${value}`;
+  }
+
+  growthLabel(growth: number | null): string {
+    if (growth === null) return NOT_READABLE;
+    return growth > 0 ? `+${growth}` : `${growth}`;
+  }
+
+  // --- leaderboard -------------------------------------------------------------
+
+  readonly leaderboards = computed(() => this.panels()?.leaderboards ?? null);
+  readonly boardKey = signal('overall');
+  readonly shownBoard = computed(
+    () => this.leaderboards()?.boards.find((board) => board.board === this.boardKey()) ?? null,
   );
 
-  // --- contact & profile, documents (on the composite read since 2026-09-17) --
+  topPercent(board: BoardStandingOut): number | null {
+    return board.rank === null ? null : topPercentOf(board.rank, board.ranked);
+  }
 
-  readonly profile = computed<Profile360Out | null>(() => this.record()?.profile ?? null);
+  scopeLine(): string {
+    const boards = this.leaderboards();
+    if (!boards) return '';
+    if (boards.scope === 'none') return 'Not seated in a batch or a department, so there is nobody to rank against.';
+    const where = boards.scope === 'batch' ? 'batch' : 'department';
+    return `Ranked within the ${where} ${boards.scope_label ?? ''} · ${plural(boards.classmates, 'student')}`;
+  }
 
-  /** The contact facts as label/value pairs. A value the student left blank
-   *  reads as "Not filled in" — an answer about the profile, not a dash that
-   *  could mean the read failed. */
-  readonly profileFacts = computed<{ label: string; value: string; href: string | null }[]>(
-    () => {
-      const profile = this.profile();
-      if (profile === null || !profile.on_record) return [];
-      const blank = 'Not filled in';
-      const link = (url: string | null) => (url ? { value: url, href: url } : { value: blank, href: null });
-      return [
-        { label: 'Phone', value: profile.phone ?? blank, href: profile.phone ? `tel:${profile.phone}` : null },
-        {
-          label: 'Contact email',
-          value: profile.contact_email ?? blank,
-          href: profile.contact_email ? `mailto:${profile.contact_email}` : null,
-        },
-        { label: 'LinkedIn', ...link(profile.linkedin_url) },
-        { label: 'GitHub', ...link(profile.github_url) },
-        { label: 'Portfolio', ...link(profile.portfolio_url) },
-        { label: 'City', value: profile.city ?? blank, href: null },
-      ];
-    },
+  // --- academics ---------------------------------------------------------------
+
+  readonly resultRows = computed<Semester360Out[]>(() =>
+    (this.record()?.semesters ?? []).filter((semester) => semester.results !== null),
   );
 
-  /** "Eligible for placement · wants jobs · wants internships" — the three
-   *  flags the placement office reads before a drive, in words. */
-  readonly profilePreferences = computed<string>(() => {
-    const profile = this.profile();
-    if (profile === null || !profile.on_record) return '';
-    const parts = [
-      profile.placement_eligible ? 'Eligible for placement' : 'Not eligible for placement',
-      profile.interested_in_jobs ? 'Interested in jobs' : 'Not looking for jobs',
-      profile.interested_in_internships ? 'Interested in internships' : 'Not looking for internships',
-    ];
+  readonly attendanceChart = computed(() => {
+    const weekly = this.panels()?.weekly;
+    if (!weekly) return [];
+    return barsOf(weekly.attendance_percent, weekly.weeks.map((w) => w.label), 460, 160, ATTENDANCE_REQUIRED);
+  });
+
+  readonly attendanceRequired = ATTENDANCE_REQUIRED;
+  /** The y of the required line in the 160-high plot. */
+  readonly requiredY = 160 - (ATTENDANCE_REQUIRED / 100) * 160;
+
+  readonly english = computed(() => this.panels()?.english ?? null);
+
+  readonly englishLine = computed(() => {
+    const attempt = this.english();
+    if (attempt === null) return null;
+    if (!attempt.exists) return 'Not taken yet';
+    if (attempt.band_label) return attempt.band_label;
+    return `${attempt.sections_scored} of ${plural(attempt.sections_total, 'section')} scored`;
+  });
+
+  // --- interviews --------------------------------------------------------------
+
+  readonly interviewChart = computed(() =>
+    pointsOf(
+      this.scoredInterviews().map((sitting) => sitting.overall_score as number),
+      440,
+      150,
+      0,
+      100,
+    ),
+  );
+
+  interviewLine(points: { x: number; y: number }[]): string {
+    return points.map((point) => `${point.x + 40},${point.y + 10}`).join(' ');
+  }
+
+  scoredDates(): string[] {
+    return this.scoredInterviews().map((sitting) => formatDay(sitting.started_at));
+  }
+
+  interviewStatus(status: string): { tone: string; label: string } {
+    if (status === 'completed') return { tone: 'good', label: 'Completed' };
+    if (status === 'running') return { tone: 'neutral', label: 'Running' };
+    return { tone: 'warn', label: 'Ended early' };
+  }
+
+  // --- time sheet --------------------------------------------------------------
+
+  readonly ledger = computed(() => this.panels()?.ledger ?? null);
+
+  /** The last fortnight as day chips, oldest first. A day with no row is
+   *  "Not logged", which is a fact about the student, not a failed read. */
+  readonly ledgerChips = computed<LedgerChip[]>(() => {
+    const summary = this.ledger();
+    if (summary === null) return [];
+    const byDay = new Map(summary.days.map((day) => [day.day, day]));
+    const chips: LedgerChip[] = [];
+    const today = new Date();
+    for (let back = summary.window_days - 1; back >= 0; back -= 1) {
+      const date = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - back));
+      const key = isoDay(date);
+      const row = byDay.get(key);
+      const label = date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+      if (!row) {
+        chips.push({ day: label, label: 'Not logged', hours: '', tone: 'none' });
+      } else if (row.status === 'SUBMITTED') {
+        chips.push({ day: label, label: 'Submitted', hours: `${row.logged_hours} h`, tone: 'sub' });
+      } else {
+        chips.push({ day: label, label: 'Draft', hours: `${row.logged_hours} h`, tone: 'draft' });
+      }
+    }
+    return chips;
+  });
+
+  readonly skillingWeek = computed(() => {
+    const weekly = this.panels()?.weekly;
+    if (!weekly || weekly.logged_hours.length === 0) return null;
+    return {
+      hours: weekly.logged_hours[weekly.logged_hours.length - 1],
+      target: weekly.weekly_hour_target,
+    };
+  });
+
+  // --- overview ----------------------------------------------------------------
+
+  readonly semesterSteps = computed(() => {
+    const row = this.student();
+    if (row === null) return [];
+    const total = this.record()?.total_semesters ?? Math.max(row.current_semester, 1);
+    const byNumber = new Map((this.record()?.semesters ?? []).map((s) => [s.semester, s]));
+    return Array.from({ length: Math.max(total, row.current_semester) }, (_unused, index) => {
+      const number = index + 1;
+      const semester = byNumber.get(number) ?? null;
+      return {
+        number,
+        state: number < row.current_semester ? 'done' : number === row.current_semester ? 'now' : 'next',
+        when: this.windowOf(semester),
+        what: this.semesterWhat(semester, number, row.current_semester),
+      };
+    });
+  });
+
+  private windowOf(semester: Semester360Out | null): string {
+    if (semester === null || semester.started_on === null) return '';
+    if (semester.ended_on === null) return `since ${formatDay(semester.started_on)}`;
+    return `${formatDay(semester.started_on)} – ${formatDay(semester.ended_on)}`;
+  }
+
+  private semesterWhat(semester: Semester360Out | null, number: number, current: number): string {
+    if (number > current) return 'Starts when the office promotes the batch';
+    const parts: string[] = [];
+    const results = semester?.results ?? null;
+    if (results === null) {
+      parts.push('Marks not imported yet');
+    } else {
+      if (results.sgpa !== null) parts.push(`SGPA ${results.sgpa.toFixed(2)}`);
+      if (results.cgpa !== null) parts.push(`CGPA ${results.cgpa.toFixed(2)}`);
+    }
+    if (semester !== null && semester.activity_known) {
+      parts.push(plural(semester.badges_earned ?? 0, 'badge'));
+      parts.push(plural(semester.interviews ?? 0, 'interview'));
+    }
     return parts.join(' · ');
+  }
+
+  readonly mentorSince = computed(() => {
+    const spell = this.record()?.mentor_history.entries.find((entry) => entry.to_at === null);
+    if (!spell || spell.from_at === null) return null;
+    return formatDay(spell.from_at);
   });
 
-  /** "3 education entries · 2 projects" — what the resume sections hold,
-   *  counted rather than reproduced: the resume builder is the place to read
-   *  them, and a count says whether there is anything there to read. */
-  readonly profileSections = computed<string>(() => {
-    const profile = this.profile();
-    if (profile === null || !profile.on_record) return '';
-    return [
-      plural(profile.education_entries, 'education entry', 'education entries'),
-      plural(profile.experience_entries, 'experience entry', 'experience entries'),
-      plural(profile.project_entries, 'project'),
-      plural(profile.achievement_entries, 'achievement'),
-    ].join(' · ');
-  });
+  readonly auditRows = computed<AuditRow360Out[]>(() => this.record()?.recent_audit ?? []);
 
-  readonly documents = computed<Document360Out[]>(() => this.record()?.documents ?? []);
+  auditLine(row: AuditRow360Out): string {
+    const who = row.actor_name ?? 'Somebody';
+    const action = row.action.toLowerCase().replace(/_/g, ' ');
+    return `${who} · ${action}`;
+  }
 
-  readonly pendingDocumentCount = computed(
-    () => this.documents().filter((d) => d.status === 'PENDING_REVIEW').length,
-  );
+  // --- documents ----------------------------------------------------------------
 
   documentChip(status: string): { tone: string; label: string } {
     return DOCUMENT_CHIP[status] ?? { tone: 'neutral', label: status };
@@ -840,71 +749,6 @@ export class AdminStudentDetailComponent {
     return formatBytes(size);
   }
 
-  /** The bytes, through rule 2's file route: `require_mentor` admits the Main
-   *  Admin and `_assert_can_access_student` narrows a faculty holder to their
-   *  own mentees — the same fence the composite read applied to get here. */
-  documentFileUrl(documentId: string): string {
-    return `${environment.apiBase}/mentor/uploads/${documentId}/file`;
-  }
-
-  // --- the tabbed panels --------------------------------------------------
-
-  /** Every semester that has a results row. A semester with none is left out
-   *  rather than drawn as a line of dashes — nothing was imported, and an
-   *  empty row invites the reader to wonder what the marks were. */
-  readonly resultRows = computed<Semester360Out[]>(() =>
-    (this.record()?.semesters ?? []).filter((semester) => semester.results !== null),
-  );
-
-  readonly semesterMoves = computed<SemesterMove360Out[]>(
-    () => this.record()?.semester_history ?? [],
-  );
-
-  moveLabel(kind: string): string {
-    return moveLabelOf(kind);
-  }
-
-  readonly auditRows = computed<AuditRow360Out[]>(() => this.record()?.recent_audit ?? []);
-
-  /** The weeks of the six-week window, zipped into rows the table can draw.
-   *  `attendance_percent` is null for a week with no sessions at all, which is
-   *  "no classes" and never 0 %. */
-  readonly attendanceWeeks = computed(() => {
-    const record = this.weekly();
-    if (record === null) {
-      return [];
-    }
-    return record.weeks.map((week, index) => ({
-      label: week.label,
-      start: week.start,
-      end: week.end,
-      percent: record.attendance_percent[index] ?? null,
-      hours: record.logged_hours[index] ?? 0,
-    }));
-  });
-
-  /** A week's attendance as text AND colour, never colour alone.
-   *
-   *  NULL IS "NO SESSIONS THAT WEEK" AND NOT 0 %. `console`'s weekly read
-   *  returns null for a week that held no classes, and rendering it as a red
-   *  zero turns a holiday into a warning on somebody's record — which is the
-   *  same mistake `_attendance_pct` made when it returned 0.0 with nothing
-   *  imported. */
-  attendanceChip(percent: number | null): { tone: string; label: string } {
-    if (percent === null) {
-      return { tone: 'neutral', label: 'No sessions' };
-    }
-    return { tone: percent >= 75 ? 'good' : 'warn', label: `${percent}%` };
-  }
-
-  readonly interviewRows = computed(() =>
-    [...this.interviews()].sort(
-      (left, right) => new Date(right.started_at).getTime() - new Date(left.started_at).getTime(),
-    ),
-  );
-
-  readonly ledgerDays = computed(() => this.ledger()?.days ?? []);
-
   formatDay(iso: string | null): string {
     return formatDay(iso);
   }
@@ -913,99 +757,121 @@ export class AdminStudentDetailComponent {
     return formatMoment(iso);
   }
 
-  // --- the editor ---------------------------------------------------------
+  // --- access -------------------------------------------------------------------
 
-  readonly editorTitle = computed(() =>
-    this.editorIntent() === 'batch' ? 'Move batch' : 'Edit profile',
-  );
+  readonly holders = computed<AccessHolderOut[]>(() => this.access()?.holders ?? []);
 
-  readonly canSaveProfile = computed(() => {
-    if (this.busy()) {
-      return false;
-    }
-    return this.formName().trim() !== '' && this.formEmail().trim() !== '';
+  holderInitials(holder: AccessHolderOut): string {
+    return initialsOf(holder.name);
+  }
+
+  /** The rail's avatars and count: each person once. */
+  readonly people = computed(() => distinctHolders(this.holders()));
+
+  /** People let in by a grant who are not already the office or the mentor. */
+  readonly grantedCount = computed(() => {
+    const listedOtherwise = new Set(this.holders().filter((h) => h.kind !== 'grant').map((h) => h.holder_id));
+    return distinctHolders(this.holders().filter((h) => h.kind === 'grant' && !listedOtherwise.has(h.holder_id)))
+      .length;
   });
 
-  openEditor(intent: 'profile' | 'batch'): void {
-    const row = this.student();
-    if (row === null) {
-      return;
-    }
-    this.formName.set(row.name);
-    this.formEmail.set(row.email);
-    this.formUsn.set(row.usn ?? '');
-    this.formBatchId.set(row.cohort_id ?? '');
-    this.formStage.set(row.current_stage);
-    this.formSemester.set(row.current_semester);
-    this.editorIntent.set(intent);
-    this.editorOpen.set(true);
-  }
+  readonly signIns = computed(() => this.record()?.login.recent_sign_ins ?? []);
 
-  closeEditor(): void {
-    this.editorOpen.set(false);
-  }
+  readonly doorsLine = computed(() => {
+    const login = this.record()?.login;
+    if (login === undefined) return NOT_READABLE;
+    if (login.password_set && login.google_linked) return 'Password and Google';
+    if (login.google_linked) return 'Google only';
+    if (login.password_set) return 'Password only';
+    return 'Not set up yet';
+  });
 
-  onName(value: string): void {
-    this.formName.set(value);
-  }
+  // Give access ------------------------------------------------------------------
 
-  onEmail(value: string): void {
-    this.formEmail.set(value);
-  }
+  readonly giveOpen = signal(false);
+  readonly staff = signal<StaffOut[]>([]);
+  readonly giveTo = signal('');
+  readonly giveReach = signal('');
+  readonly giveUntil = signal('');
+  readonly giveReason = signal('');
+  readonly minReason = MIN_REASON_CHARS;
 
-  onUsn(value: string): void {
-    this.formUsn.set(value);
-  }
+  readonly reachOptions = computed<ReachOptionOut[]>(() => this.access()?.reach_options ?? []);
 
-  onBatch(value: string): void {
-    this.formBatchId.set(value);
-  }
+  /** Faculty only, and not the mentor or a former mentor, who already read this record. */
+  readonly grantableStaff = computed(() => {
+    const already = new Set(this.holders().filter((h) => h.kind !== 'grant').map((h) => h.holder_id));
+    return this.staff().filter((person) => person.role === 'MENTOR' && !already.has(person.user_id));
+  });
 
-  onStage(value: string): void {
-    this.formStage.set(value);
-  }
+  readonly canGive = computed(
+    () =>
+      !this.busy() &&
+      this.giveTo() !== '' &&
+      this.giveReach() !== '' &&
+      this.giveUntil() !== '' &&
+      this.giveReason().trim().length >= MIN_REASON_CHARS,
+  );
 
-  onSemester(value: string): void {
-    const semester = Number(value);
-    if (Number.isNaN(semester)) {
-      return;
-    }
-    this.formSemester.set(semester);
-  }
+  readonly todayIso = isoDay(new Date());
 
-  async saveProfile(): Promise<void> {
-    const row = this.student();
-    if (row === null || this.busy()) {
-      return;
-    }
-    const changes = this.changedFields(row);
-    if (Object.keys(changes).length === 0) {
-      this.flash.set('Nothing changed.');
-      this.editorOpen.set(false);
-      return;
-    }
-    this.busy.set(true);
+  async openGive(): Promise<void> {
     this.error.set(null);
     this.flash.set(null);
+    const until = new Date();
+    until.setDate(until.getDate() + DEFAULT_ACCESS_DAYS);
+    this.giveTo.set('');
+    this.giveReason.set('');
+    this.giveUntil.set(isoDay(until));
+    const department = this.reachOptions().find((option) => option.scope_level === 'DEPARTMENT');
+    this.giveReach.set(department ? this.reachKey(department) : '');
+    this.giveOpen.set(true);
+    if (this.staff().length === 0) {
+      const staff = await this.read<StaffOut[]>('/admin/governance/staff');
+      this.staff.set(staff.value ?? []);
+      if (staff.refusal) this.error.set(staff.refusal);
+    }
+  }
+
+  closeGive(): void {
+    this.giveOpen.set(false);
+  }
+
+  reachKey(option: ReachOptionOut): string {
+    return `${option.scope_level}:${option.scope_id}`;
+  }
+
+  async give(): Promise<void> {
+    if (!this.canGive()) return;
+    const [scopeLevel, scopeId] = this.giveReach().split(':');
+    const person = this.staff().find((p) => p.user_id === this.giveTo());
+    this.busy.set(true);
+    this.error.set(null);
     try {
-      const response = await fetch(`${environment.apiBase}/admin/students/${this.studentId}`, {
-        method: 'PATCH',
+      const response = await fetch(`${this.apiBase}/admin/governance/grants`, {
+        method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(changes),
+        body: JSON.stringify({
+          capability: RECORDS_KEY,
+          user_ids: [this.giveTo()],
+          reason: this.giveReason().trim(),
+          // The end of the chosen day, in the office's own time zone.
+          expires_at: new Date(`${this.giveUntil()}T23:59:59`).toISOString(),
+          scope_level: scopeLevel,
+          scope_id: scopeId,
+        }),
       });
       if (!response.ok) {
         this.error.set(await this.detailOf(response));
         return;
       }
-      const saved = (await response.json()) as AdminStudentOut;
-      this.student.set(saved);
-      this.editorOpen.set(false);
-      this.flash.set('Saved.');
-      // The batch may have changed, and with it the course that bounds the
-      // semesters and every per-semester panel below. Re-read rather than
-      // patching the composite by hand: one writer for that shape.
-      await this.load360();
+      this.giveOpen.set(false);
+      const reach = this.reachOptions().find((option) => this.reachKey(option) === this.giveReach());
+      const whom =
+        reach?.scope_level === 'STUDENT' ? `${this.studentName()}'s record` : `records in ${reach?.label ?? 'that group'}`;
+      this.flash.set(`${person?.name ?? 'They'} can now open ${whom} until ${formatDay(this.giveUntil())}.`);
+      await this.loadAccess();
     } catch {
       this.error.set('The server could not be reached. Nothing was changed.');
     } finally {
@@ -1013,50 +879,61 @@ export class AdminStudentDetailComponent {
     }
   }
 
-  /** Only what the reader actually changed. `cohort_id: null` is the explicit
-   *  un-seat the API reads through `model_fields_set`, so an empty batch
-   *  select has to travel as a null and never as an omission. */
-  private changedFields(row: AdminStudentOut): Record<string, unknown> {
-    const changes: Record<string, unknown> = {};
-    const name = this.formName().trim();
-    if (name !== row.name) {
-      changes['name'] = name;
-    }
-    const email = this.formEmail().trim().toLowerCase();
-    if (email !== row.email) {
-      changes['email'] = email;
-    }
-    const usn = this.formUsn().trim().toUpperCase();
-    const currentUsn = row.usn ?? '';
-    if (usn !== currentUsn) {
-      changes['usn'] = usn === '' ? null : usn;
-    }
-    const batchId = this.formBatchId();
-    const currentBatchId = row.cohort_id ?? '';
-    if (batchId !== currentBatchId) {
-      changes['cohort_id'] = batchId === '' ? null : batchId;
-    }
-    if (this.formStage() !== row.current_stage) {
-      changes['current_stage'] = this.formStage();
-    }
-    if (this.formSemester() !== row.current_semester) {
-      changes['current_semester'] = this.formSemester();
-    }
-    return changes;
+  // Remove access ----------------------------------------------------------------
+
+  readonly removing = signal<string | null>(null);
+  readonly removeReason = signal('');
+
+  askRemove(grantId: string): void {
+    this.removeReason.set('');
+    this.removing.set(grantId);
   }
 
-  // --- sign out everywhere (B3.6) -----------------------------------------
+  cancelRemove(): void {
+    this.removing.set(null);
+  }
 
-  /** Asks first. The FACULTY screen calls this same endpoint without asking
-   *  (`features/admin/faculty`, which argues it is reversible and sits beside a
-   *  Disable dialog that sets the gradient). This button stands alone among
-   *  disabled controls, where a misclick is likelier and nothing else nearby
-   *  confirms. Both readings are defensible; the divergence is deliberate and
-   *  cross-referenced so whoever settles it changes both. */
-  askSignOutEverywhere(): void {
-    if (this.student() === null || this.busy()) {
-      return;
+  readonly canRemove = computed(
+    () => !this.busy() && this.removeReason().trim().length >= MIN_REASON_CHARS,
+  );
+
+  async remove(holder: AccessHolderOut): Promise<void> {
+    if (!holder.grant_id || !this.canRemove()) return;
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      const response = await fetch(`${this.apiBase}/admin/governance/grants/${holder.grant_id}/revoke`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: this.removeReason().trim() }),
+      });
+      if (!response.ok) {
+        this.error.set(await this.detailOf(response));
+        return;
+      }
+      this.removing.set(null);
+      this.flash.set(`${holder.name} can no longer open these records.`);
+      await this.loadAccess();
+    } catch {
+      this.error.set('The server could not be reached. Nothing was changed.');
+    } finally {
+      this.busy.set(false);
     }
+  }
+
+  // --- the More menu, and the account actions it holds --------------------------
+
+  readonly menuOpen = signal(false);
+
+  toggleMenu(): void {
+    this.menuOpen.update((open) => !open);
+  }
+
+  readonly confirmingSignOut = signal(false);
+
+  askSignOutEverywhere(): void {
+    this.menuOpen.set(false);
     this.error.set(null);
     this.flash.set(null);
     this.confirmingSignOut.set(true);
@@ -1066,33 +943,17 @@ export class AdminStudentDetailComponent {
     this.confirmingSignOut.set(false);
   }
 
-  /**
-   * `POST /api/admin/users/{user_id}/sign-out-everywhere`.
-   *
-   * THE ACCOUNT'S ID, NOT THE STUDENT'S. A session hangs off `users`, so the
-   * route is on `/admin/users` and the id it wants is `user_id` — sending
-   * `studentId` here reaches a different row's account or, more often, a 404
-   * that reads as a broken button.
-   *
-   * Nothing on this screen is re-read afterwards, deliberately: the endpoint
-   * changes `token_version` and nothing this screen draws. `last_login_at` is
-   * untouched — the student HAS signed in before, and rewriting the header to
-   * say otherwise would be this client inventing a fact the server did not
-   * report. The server's own `detail` is the whole confirmation.
-   */
+  /** The ACCOUNT's id, not the student's: a session hangs off `users`. */
   async signOutEverywhere(): Promise<void> {
     const row = this.student();
-    if (row === null || this.busy()) {
-      return;
-    }
+    if (row === null || this.busy()) return;
     this.busy.set(true);
     this.error.set(null);
-    this.flash.set(null);
     try {
-      const response = await fetch(
-        `${environment.apiBase}/admin/users/${row.user_id}/sign-out-everywhere`,
-        { method: 'POST', credentials: 'include' },
-      );
+      const response = await fetch(`${this.apiBase}/admin/users/${row.user_id}/sign-out-everywhere`, {
+        method: 'POST',
+        credentials: 'include',
+      });
       if (!response.ok) {
         this.error.set(await this.detailOf(response));
         return;
@@ -1107,12 +968,12 @@ export class AdminStudentDetailComponent {
     }
   }
 
-  // --- the interview cap reset (B6.4) -------------------------------------
+  readonly capResetOpen = signal(false);
+  readonly capReason = signal('');
+  readonly canResetCap = computed(() => !this.busy() && this.capReason().trim() !== '');
 
   askCapReset(): void {
-    if (this.student() === null || this.busy()) {
-      return;
-    }
+    this.menuOpen.set(false);
     this.error.set(null);
     this.flash.set(null);
     this.capReason.set('');
@@ -1123,60 +984,30 @@ export class AdminStudentDetailComponent {
     this.capResetOpen.set(false);
   }
 
-  onCapReason(value: string): void {
-    this.capReason.set(value);
-  }
-
-  readonly canResetCap = computed(() => !this.busy() && this.capReason().trim() !== '');
-
-  /**
-   * `POST /api/admin/students/{id}/interview-cap/reset`.
-   *
-   * THE REASON IS NOT OPTIONAL, and the button is disabled without one rather
-   * than posting a blank and rendering the 422. B3.1's precedent: this is the
-   * other console action whose effect is invisible from the console a day
-   * later — the 24-hour window rolls, the count falls back to normal, and
-   * nothing on any screen says why a student had eleven interviews on Tuesday.
-   *
-   * IT DOES NOT ZERO A COUNTER, and the copy must not say it does. The cap is a
-   * rolling count, so the reset is an extra LOWER BOUND on the window it is
-   * taken over: a student mid-day never loses attempts already counted, and a
-   * second reset can only move the bound forward.
-   *
-   * Gated on `admin.interviews`, which this screen's own capability does not
-   * imply — a 403 here is the system working and the server's sentence is what
-   * the reader gets.
-   */
+  /** B6.4: the reason is required and goes on the history. It does not zero a
+   *  counter; it moves the start of the 24-hour window forward. */
   async resetCap(): Promise<void> {
     const reason = this.capReason().trim();
-    if (this.student() === null || this.busy() || reason === '') {
-      return;
-    }
+    if (this.busy() || reason === '') return;
     this.busy.set(true);
     this.error.set(null);
-    this.flash.set(null);
     try {
-      const response = await fetch(
-        `${environment.apiBase}/admin/students/${this.studentId}/interview-cap/reset`,
-        {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reason }),
-        },
-      );
+      const response = await fetch(`${this.apiBase}/admin/students/${this.studentId}/interview-cap/reset`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      });
       if (!response.ok) {
         this.error.set(await this.detailOf(response));
         return;
       }
       const reset = (await response.json()) as CapResetOut;
-      this.capUsage.set(reset.usage);
       this.capResetOpen.set(false);
-      this.capReason.set('');
       this.flash.set(
-        `${this.studentName()} may practise again — the 24-hour window is now counted from ` +
-          `${formatMoment(reset.at)}, and your reason is on the audit trail.`,
+        `${this.studentName()} can practise again. ${reset.usage.completed} of ${reset.usage.daily_cap} interviews now count today.`,
       );
+      await this.load360();
     } catch {
       this.error.set('The server could not be reached. Nothing was changed.');
     } finally {
@@ -1184,7 +1015,107 @@ export class AdminStudentDetailComponent {
     }
   }
 
-  // --- reading ------------------------------------------------------------
+  // --- the editor (Edit profile, Move batch) ------------------------------------
+
+  readonly editorOpen = signal(false);
+  readonly editorIntent = signal<'profile' | 'batch'>('profile');
+  readonly formName = signal('');
+  readonly formEmail = signal('');
+  readonly formUsn = signal('');
+  readonly formBatchId = signal('');
+  readonly formStage = signal('');
+  readonly formSemester = signal(1);
+
+  readonly editorTitle = computed(() => (this.editorIntent() === 'batch' ? 'Move batch' : 'Edit profile'));
+
+  readonly semesters = computed<number[]>(() => {
+    const declared = this.record()?.total_semesters ?? null;
+    const current = this.student()?.current_semester ?? 1;
+    const highest = Math.max(declared ?? DEFAULT_HIGHEST_SEMESTER, current);
+    return Array.from({ length: highest }, (_unused, index) => index + 1);
+  });
+
+  readonly canSaveProfile = computed(
+    () => !this.busy() && this.formName().trim() !== '' && this.formEmail().trim() !== '',
+  );
+
+  async openEditor(intent: 'profile' | 'batch'): Promise<void> {
+    const row = this.student();
+    if (row === null) return;
+    this.formName.set(row.name);
+    this.formEmail.set(row.email);
+    this.formUsn.set(row.usn ?? '');
+    this.formBatchId.set(row.cohort_id ?? '');
+    this.formStage.set(row.current_stage);
+    this.formSemester.set(row.current_semester);
+    this.editorIntent.set(intent);
+    this.editorOpen.set(true);
+    if (this.batches().length === 0) {
+      await this.loadBatches();
+    }
+  }
+
+  closeEditor(): void {
+    this.editorOpen.set(false);
+  }
+
+  onSemester(value: string): void {
+    const semester = Number(value);
+    if (!Number.isNaN(semester)) this.formSemester.set(semester);
+  }
+
+  async saveProfile(): Promise<void> {
+    const row = this.student();
+    if (row === null || this.busy()) return;
+    const changes = this.changedFields(row);
+    if (Object.keys(changes).length === 0) {
+      this.flash.set('Nothing changed.');
+      this.editorOpen.set(false);
+      return;
+    }
+    this.busy.set(true);
+    this.error.set(null);
+    this.flash.set(null);
+    try {
+      const response = await fetch(`${this.apiBase}/admin/students/${this.studentId}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(changes),
+      });
+      if (!response.ok) {
+        this.error.set(await this.detailOf(response));
+        return;
+      }
+      this.student.set((await response.json()) as AdminStudentOut);
+      this.editorOpen.set(false);
+      this.flash.set('Saved.');
+      await Promise.all([this.load360(), this.loadPanels(), this.loadAccess()]);
+    } catch {
+      this.error.set('The server could not be reached. Nothing was changed.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  /** Only what changed. `cohort_id: null` is the explicit un-seat the API reads
+   *  through `model_fields_set`, so an empty batch travels as a null. */
+  private changedFields(row: AdminStudentOut): Record<string, unknown> {
+    const changes: Record<string, unknown> = {};
+    const name = this.formName().trim();
+    if (name !== row.name) changes['name'] = name;
+    const email = this.formEmail().trim().toLowerCase();
+    if (email !== row.email) changes['email'] = email;
+    const usn = this.formUsn().trim().toUpperCase();
+    if (usn !== (row.usn ?? '')) changes['usn'] = usn === '' ? null : usn;
+    const batchId = this.formBatchId();
+    if (batchId !== (row.cohort_id ?? '')) changes['cohort_id'] = batchId === '' ? null : batchId;
+    if (this.formStage() !== row.current_stage) changes['current_stage'] = this.formStage();
+    if (this.formSemester() !== row.current_semester) changes['current_semester'] = this.formSemester();
+    return changes;
+  }
+
+  // --- reading ------------------------------------------------------------------
 
   private async loadEverything(): Promise<void> {
     if (this.studentId === '') {
@@ -1193,32 +1124,15 @@ export class AdminStudentDetailComponent {
       return;
     }
     this.loading.set(true);
-    this.error.set(null);
     await this.load360();
-    if (this.student() === null) {
-      this.loading.set(false);
-      return;
+    if (this.student() !== null) {
+      await Promise.all([this.loadPanels(), this.loadAccess()]);
     }
-    await Promise.all([
-      this.loadWeekly(),
-      this.loadInterviews(),
-      this.loadBadges(),
-      this.loadMenteeRecords(),
-      this.loadBatches(),
-    ]);
     this.loading.set(false);
   }
 
-  /**
-   * B4.5's composite read — the one that replaced picking a row out of the
-   * whole roster.
-   *
-   * A refusal here is the screen's own refusal and stops everything: both
-   * fences run inside this endpoint (`require_capability` with the student's
-   * ancestry as the target, and rule 2's `_assert_can_access_student`), so a
-   * 403 means this account may not read this student at all, and drawing the
-   * panels around an empty middle would be a screen pretending to work.
-   */
+  /** A refusal here stops the page: both fences run inside this endpoint, so a
+   *  403 or 404 means this account may not read this student at all. */
   private async load360(): Promise<void> {
     const record = await this.read<Student360Out>(`/admin/students/${this.studentId}/360`);
     if (record.value === null) {
@@ -1229,43 +1143,15 @@ export class AdminStudentDetailComponent {
     this.student.set(record.value.identity);
   }
 
-  private async loadWeekly(): Promise<void> {
-    const weekly = await this.read<StudentWeeklyOut>(`/admin/students/${this.studentId}/weekly`);
-    this.weekly.set(weekly.value);
-    this.weeklyRefusal.set(weekly.refusal);
+  private async loadPanels(): Promise<void> {
+    const panels = await this.read<StudentRecordOut>(`/admin/students/${this.studentId}/record`);
+    this.panels.set(panels.value);
+    this.panelsRefusal.set(panels.refusal);
   }
 
-  private async loadInterviews(): Promise<void> {
-    const interviews = await this.read<InterviewSessionOut[]>(
-      `/mentor/students/${this.studentId}/interviews`,
-    );
-    this.interviews.set(interviews.value ?? []);
-  }
-
-  private async loadBadges(): Promise<void> {
-    const badges = await this.read<BadgeDashboardOut>(`/mentor/students/${this.studentId}/badges`);
-    this.badges.set(badges.value);
-  }
-
-  /** The two reads gated on `mentor.mentees`. They share one refusal line
-   *  because they share one capability: telling the reader twice that the
-   *  office account does not hold the Mentee log is noise, not information. */
-  private async loadMenteeRecords(): Promise<void> {
-    const ledger = await this.read<LedgerSummaryOut>(
-      `/mentor/students/${this.studentId}/ledger/summary?days=${LEDGER_WINDOW_DAYS}`,
-    );
-    this.ledger.set(ledger.value);
-    const english = await this.read<EnglishBaselineOut>(
-      `/mentor/students/${this.studentId}/english-baseline`,
-    );
-    this.english.set(english.value);
-    if (ledger.value === null) {
-      this.menteeReadsRefusal.set(ledger.refusal);
-      return;
-    }
-    if (english.value === null) {
-      this.menteeReadsRefusal.set(english.refusal);
-    }
+  private async loadAccess(): Promise<void> {
+    const access = await this.read<AccessOut>(`/admin/students/${this.studentId}/access`);
+    this.access.set(access.value);
   }
 
   private async loadBatches(): Promise<void> {
@@ -1276,7 +1162,7 @@ export class AdminStudentDetailComponent {
 
   private async read<T>(path: string): Promise<ReadResult<T>> {
     try {
-      const response = await fetch(`${environment.apiBase}${path}`, { credentials: 'include' });
+      const response = await fetch(`${this.apiBase}${path}`, { credentials: 'include' });
       if (!response.ok) {
         return { value: null, refusal: await this.detailOf(response) };
       }
@@ -1286,30 +1172,20 @@ export class AdminStudentDetailComponent {
     }
   }
 
-  /** FastAPI answers a schema error with `detail` as a LIST; rendered raw it
-   *  reads "[object Object]". The server's refusals name the rule they are
-   *  keeping, so its own sentence is kept wherever there is one. */
+  /** FastAPI answers a schema error with `detail` as a LIST; the server's own
+   *  sentence is kept wherever there is one. */
   private async detailOf(response: Response): Promise<string> {
     try {
       const body = (await response.json()) as { detail?: unknown };
-      const detail = body.detail;
-      if (typeof detail === 'string') {
-        return detail;
-      }
-      if (Array.isArray(detail)) {
-        const messages: string[] = [];
-        for (const entry of detail) {
-          const message = (entry as { msg?: string }).msg;
-          if (typeof message === 'string') {
-            messages.push(message);
-          }
-        }
-        if (messages.length > 0) {
-          return messages.join(' ');
-        }
+      if (typeof body.detail === 'string') return body.detail;
+      if (Array.isArray(body.detail)) {
+        const messages = body.detail
+          .map((entry) => (entry as { msg?: string }).msg)
+          .filter((msg): msg is string => typeof msg === 'string');
+        if (messages.length > 0) return messages.join(' ');
       }
     } catch {
-      /* not JSON — fall through to the status */
+      /* not JSON */
     }
     return `The request was refused (${response.status}).`;
   }

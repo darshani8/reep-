@@ -438,8 +438,8 @@ def test_rule_two_gate_is_a_pure_delegate(monkeypatch) -> None:
     sentinel = object()
     seen: list[tuple] = []
 
-    def fake(session, student_id, db, *, allow_handover=False):
-        seen.append((session, student_id, db, allow_handover))
+    def fake(session, student_id, db, *, allow_handover=False, allow_records_grant=False):
+        seen.append((session, student_id, db, allow_handover, allow_records_grant))
         return sentinel
 
     monkeypatch.setattr(mentor, "assert_student_scope", fake)
@@ -447,11 +447,19 @@ def test_rule_two_gate_is_a_pure_delegate(monkeypatch) -> None:
     # B9.1 added `allow_handover`, and it must arrive at the delegate FALSE
     # unless a caller typed otherwise: fifteen of this gate's call sites are
     # writes, and a default that drifted to True would turn a 90-day read into
-    # a 90-day right to write about somebody else's student.
-    assert seen == [({"role": "MENTOR"}, "s1", "db", False)]
+    # a 90-day right to write about somebody else's student. The office's
+    # scoped records grant (2026-10-15) is the same kind of keyword, pinned
+    # the same way.
+    assert seen == [({"role": "MENTOR"}, "s1", "db", False, False)]
     seen.clear()
     assert mentor._assert_can_access_student({"role": "MENTOR"}, "s1", "db", allow_handover=True) is sentinel
-    assert seen == [({"role": "MENTOR"}, "s1", "db", True)]
+    assert seen == [({"role": "MENTOR"}, "s1", "db", True, False)]
+    seen.clear()
+    assert (
+        mentor._assert_can_access_student({"role": "MENTOR"}, "s1", "db", allow_records_grant=True)
+        is sentinel
+    )
+    assert seen == [({"role": "MENTOR"}, "s1", "db", False, True)]
 
     # And structurally: strip the docstring and exactly one statement remains,
     # a `return assert_student_scope(...)`. The mock proves the call happens;

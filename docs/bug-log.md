@@ -55,6 +55,56 @@ Entry format:
   the address bounced on 2026-10-07 and Amazon SES now delivers nothing to it.
   No code fix needed; the office can lift the block on `/admin/mail`.
 
+## 2026-10-15 — The office's student page had no resume, skills, leaderboard or KPIs
+
+- **Symptom:** the owner, on `/admin/students/:id`: the student's resume could
+  not be seen or downloaded, skills and the leaderboard were missing, there
+  were no headline numbers, and nothing on the page let the office choose who
+  else could open a student's record.
+- **Cause:** the CV from the application is stored as an upload (kind
+  `RESUME`, "CV from application", `_move_documents_to_uploads` in
+  `routers/registration.py`) but the page listed it only as a Documents row
+  with no preview. There was no staff read of a student's leaderboard rank
+  (`GET /student/leaderboards` is the caller's own) or built resumes
+  (`_own_resume`). The badge read was loaded but drawn as one "11/48" bar.
+  The time sheet and English baseline came from reads gated on
+  `mentor.mentees`, which the Main Admin does not hold, so they said "not
+  readable". And `admin.student_records` granted to a faculty member reached
+  only their own mentees, because rule 2 ran underneath it.
+- **Evidence:** the owner's report; `GET /admin/students/{id}/360` carried
+  none of these panels; the old screen showed the refusals in words.
+- **Fix:** the page is rebuilt from the approved prototype
+  (`docs/prototypes/student-360/index.html`): candidate column, six KPIs,
+  Needs attention, and Overview, Resume, Skills, Leaderboard, Academics,
+  Interviews, Time sheet, Documents and Access tabs. New reads on the page's
+  own key in `routers/admin_student_record.py`: `/record` (built resumes,
+  skills and growth, standing on every board, the ledger fortnight, the
+  English baseline, interviews, six weeks of attendance), `/access`, `/files`
+  and `/resumes/{id}/pdf` (a download writes an audit row), and
+  `/admin/student-records`, the list a faculty member uses to find the
+  students they were given. The CV is drawn with pdf.js (4.10.38), never
+  inline. On the owner's decision, a SCOPED `admin.student_records` grant now
+  opens the students it names, read only, through a new keyword on rule 2's
+  gate (`allow_records_grant`, GET reads of this page only); a programme-wide
+  grant still reaches only the holder's mentees.
+- **Where:** [PR #177](https://github.com/darshani8/reep-/pull/177);
+  `apps/api-py/app/policies.py`, `app/routers/admin_student_record.py`,
+  `app/routers/admin_student_360.py`,
+  `apps/web/src/app/features/admin/student-detail/`,
+  `features/admin/student-records/`, `shared/pdf-preview/`.
+- **Checked by:** `tests/test_student_record_access.py` (12 tests: the
+  widening, programme-wide grants unchanged, revoked and lapsed grants, no
+  mentor endpoint opened, downloads recorded, another student's file refused,
+  the list matches the page); `test_codebase_guards.py`'s delegate test now
+  pins the new keyword's default; `student-record.spec.ts`; the full API
+  suite, `ng test`, `ng build` and the four static web checks. Driven in a
+  browser as the Main Admin and as a faculty member given a department grant,
+  including giving and removing access.
+- **Status:** open PR, 2026-10-15.
+- **Left open:** interview reports and transcripts are not opened from this
+  page (the Interviews tab lists every sitting with its score); a granted
+  faculty member reads them on Interview records only for their own mentees.
+
 ## 2026-10-14 — Staff, alumni and resume-photo uploads: the same file-read failure
 
 - **Symptom:** nobody had reported it yet; it was found while fixing the

@@ -85,9 +85,17 @@ def mentees(
 
 
 def _assert_can_access_student(
-    session: dict, student_id: str, db: Session, *, allow_handover: bool = False
+    session: dict,
+    student_id: str,
+    db: Session,
+    *,
+    allow_handover: bool = False,
+    allow_records_grant: bool = False,
 ) -> Student:
     """Rule 2's gate. ONE NAME, ONE IMPLEMENTATION -- this delegates.
+
+    `allow_records_grant` (2026-10-15) is the same kind of keyword for the
+    office's scoped "View student records" grant; see `assert_student_scope`.
 
     `allow_handover` (B9.1) is a PARAMETER and not a second body, which is what
     keeps `tests/test_codebase_guards.py`'s AST guard satisfied: this function
@@ -125,7 +133,13 @@ def _assert_can_access_student(
     does not fetch it a second time. Existing callers ignore it and are
     unaffected.
     """
-    return assert_student_scope(session, student_id, db, allow_handover=allow_handover)
+    return assert_student_scope(
+        session,
+        student_id,
+        db,
+        allow_handover=allow_handover,
+        allow_records_grant=allow_records_grant,
+    )
 
 
 class NoteOut(BaseModel):

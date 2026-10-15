@@ -97,12 +97,66 @@ export interface InterviewSessionOut {
   overall_score: number | null;
 }
 
-/** `GET /api/mentor/students/{id}/badges` — `badges.BadgeDashboardOut`. */
+/** One piece of evidence filed against a badge — `badges.EvidenceOut`. */
+export interface BadgeEvidenceOut {
+  id: string;
+  evidence_type: string;
+  /** PENDING_VERIFICATION | APPROVED | REJECTED | MORE_INFO_REQUIRED */
+  status: string;
+  title: string;
+  provider: string | null;
+  review_note: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  upload_id: string | null;
+}
+
+/** One badge of the catalogue, with this student's standing on it. */
+export interface BadgeOut {
+  code: string;
+  name: string;
+  category: string;
+  category_label: string;
+  track_label: string | null;
+  stage: string;
+  points: number;
+  /** NOT_STARTED | IN_PROGRESS | VERIFICATION_PENDING | EARNED */
+  status: string;
+  points_earned: number;
+  earned_at: string | null;
+  evidence: BadgeEvidenceOut[];
+}
+
+export interface BadgeCategoryOut {
+  key: string;
+  label: string;
+  earned: number;
+  total: number;
+  badges: BadgeOut[];
+}
+
+/** `badges.BadgeDashboardOut` — the student's own Skilling screen, read for staff. */
 export interface BadgeDashboardOut {
   stage: string;
   points_total: number;
   earned_total: number;
   badge_total: number;
+  categories: BadgeCategoryOut[];
+}
+
+/** One capability's scores at T0..T4, out of 10. A null score was never
+ *  assessed and is drawn as a dash, never as 0. */
+export interface GrowthRowOut {
+  capability: string;
+  label: string;
+  scores: Record<string, number | null>;
+  current: number | null;
+  growth: number | null;
+}
+
+export interface GrowthOut {
+  checkpoints: string[];
+  rows: GrowthRowOut[];
 }
 
 /** `GET /api/mentor/students/{id}/ledger/summary` — `mentee_records.LedgerSummaryOut`. */
@@ -121,11 +175,14 @@ export interface EnglishBaselineOut {
   exists: boolean;
   status: string;
   overall_score: number | null;
+  band?: string | null;
   band_label: string | null;
   provisional: boolean;
   sections_scored: number;
   sections_total: number;
   pending_label: string | null;
+  taken_on?: string | null;
+  sections?: { skill: string; label: string; status: string; score: number | null; band: string | null }[];
 }
 
 // ------------------------------------------- the composite read (B4.5) --
@@ -348,6 +405,8 @@ export interface Document360Out {
   review_note: string | null;
   reviewed_at: string | null;
   uploaded_at: string;
+  /** The CV the student sent with their application (2026-10-15). */
+  from_application?: boolean;
 }
 
 export interface Student360Out {
@@ -429,7 +488,12 @@ export function stageLabelOf(stageKey: string): string {
 }
 
 export function initialsOf(name: string): string {
-  const words = name.trim().split(/\s+/);
+  // Words that start with a letter: "Main Admin (seed)" is "MA", not "M(",
+  // and "Dr. Meera Rao" is "DR" rather than counting the full stop.
+  const words = name
+    .trim()
+    .split(/\s+/)
+    .filter((word) => /^\p{L}/u.test(word));
   if (words.length === 0 || words[0] === '') {
     return '?';
   }
@@ -617,4 +681,202 @@ export function percentOf(part: number, whole: number): number {
     return 100;
   }
   return value;
+}
+
+// ------------------------------- the rest of the record (2026-10-15) --
+
+/** A resume the student built in REEP's resume builder. */
+export interface ResumeVersionOut {
+  id: string;
+  version: number;
+  title: string;
+  target_role: string | null;
+  /** DRAFT | GENERATED | FINALISED */
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BoardRowOut {
+  rank: number;
+  student_id: string;
+  name: string;
+  initials: string;
+  value_label: string;
+  is_this_student: boolean;
+  /** Ranks were skipped before this row, so the table draws a gap. */
+  gap_before: boolean;
+}
+
+export interface BoardStandingOut {
+  board: string;
+  label: string;
+  /** Null when the student has nothing on this board yet — never 0. */
+  rank: number | null;
+  ranked: number;
+  value_label: string | null;
+  rows: BoardRowOut[];
+  unranked_total: number;
+}
+
+export interface LeaderboardsOut {
+  /** The student chose to leave the boards; no rank is shown to anybody. */
+  hidden: boolean;
+  scope: string;
+  scope_label: string | null;
+  classmates: number;
+  boards: BoardStandingOut[];
+}
+
+/** `GET /api/admin/students/{id}/record` — `admin_student_record.StudentRecordOut`. */
+export interface StudentRecordOut {
+  resumes: ResumeVersionOut[];
+  skills: BadgeDashboardOut;
+  growth: GrowthOut;
+  leaderboards: LeaderboardsOut;
+  ledger: LedgerSummaryOut;
+  english: EnglishBaselineOut;
+  interviews: InterviewSessionOut[];
+  weekly: StudentWeeklyOut;
+}
+
+export interface AccessHolderOut {
+  /** admin | mentor | handover | grant */
+  kind: string;
+  name: string;
+  detail: string;
+  reach_label: string | null;
+  until: string | null;
+  reason: string | null;
+  granted_by: string | null;
+  granted_at: string | null;
+  grant_id: string | null;
+  /** The account's id, or `group:<id>`. One person can hold several rows. */
+  holder_id: string;
+}
+
+/** Each person once, in the order they are listed: a faculty member holding
+ *  two grants, or a mentor who was also granted, is one person. */
+export function distinctHolders(holders: AccessHolderOut[]): AccessHolderOut[] {
+  const seen = new Set<string>();
+  return holders.filter((h) => {
+    if (seen.has(h.holder_id)) return false;
+    seen.add(h.holder_id);
+    return true;
+  });
+}
+
+export interface ReachOptionOut {
+  scope_level: string;
+  scope_id: string;
+  label: string;
+  students: number;
+}
+
+/** `GET /api/admin/students/{id}/access` — `admin_student_record.AccessOut`. */
+export interface AccessOut {
+  holders: AccessHolderOut[];
+  can_manage: boolean;
+  reach_options: ReachOptionOut[];
+}
+
+/** `GET /api/admin/governance/staff` — the people a grant can name. */
+export interface StaffOut {
+  user_id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+/**
+ * The CV the page shows first: the one from the application when there is
+ * one, else the newest the student uploaded. Null when there is no CV at all.
+ * Uploads arrive newest first, so the order of the rest is kept as given.
+ */
+export function cvsOf(documents: Document360Out[]): Document360Out[] {
+  const cvs = documents.filter((document) => document.kind === 'RESUME');
+  const fromApplication = cvs.filter((document) => document.from_application === true);
+  const later = cvs.filter((document) => document.from_application !== true);
+  return [...later, ...fromApplication];
+}
+
+export function mainCvOf(documents: Document360Out[]): Document360Out | null {
+  const cvs = documents.filter((document) => document.kind === 'RESUME');
+  return cvs.find((document) => document.from_application === true) ?? cvs[0] ?? null;
+}
+
+/** "Top 8%" for rank 4 of 52: the share of the board at or above this rank,
+ *  rounded up so rank 1 of 3 is "Top 34%" and never "Top 0%". */
+export function topPercentOf(rank: number, ranked: number): number {
+  if (ranked <= 0) {
+    return 100;
+  }
+  return Math.min(100, Math.max(1, Math.ceil((100 * rank) / ranked)));
+}
+
+/** One bar of a chart, in the chart's own units. */
+export interface ChartBar {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  value: number;
+  label: string;
+  below: boolean;
+}
+
+/**
+ * Bars for values on 0..100, drawn to scale in a `width` x `height` box. A
+ * null value (a week with no sessions) gets no bar, never a zero-height one,
+ * so a holiday cannot read as 0 %.
+ */
+export function barsOf(
+  values: (number | null)[],
+  labels: string[],
+  width: number,
+  height: number,
+  threshold: number,
+): (ChartBar | null)[] {
+  const slot = values.length > 0 ? width / values.length : width;
+  const barWidth = slot * 0.56;
+  return values.map((value, index) => {
+    if (value === null) {
+      return null;
+    }
+    const clamped = Math.max(0, Math.min(100, value));
+    const barHeight = (clamped / 100) * height;
+    return {
+      x: slot * index + (slot - barWidth) / 2,
+      y: height - barHeight,
+      width: barWidth,
+      height: barHeight,
+      value,
+      label: labels[index] ?? '',
+      below: value < threshold,
+    };
+  });
+}
+
+/** A point of a line chart, in the chart's own units. */
+export interface ChartPoint {
+  x: number;
+  y: number;
+  value: number;
+}
+
+/** Points for values on [low, high], spread evenly across `width`. One value
+ *  sits in the middle rather than on an edge. */
+export function pointsOf(
+  values: number[],
+  width: number,
+  height: number,
+  low: number,
+  high: number,
+): ChartPoint[] {
+  const span = high - low || 1;
+  return values.map((value, index) => ({
+    x: values.length === 1 ? width / 2 : (index * width) / (values.length - 1),
+    y: height - ((Math.max(low, Math.min(high, value)) - low) / span) * height,
+    value,
+  }));
 }

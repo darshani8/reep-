@@ -1,36 +1,30 @@
 # CODEOWNERS — routing and labelling for the files where a wrong line has a
 # different consequence from every other file in this repository.
 #
-# HONEST CAVEAT, FIRST, BECAUSE IT DECIDES HOW MUCH THIS FILE IS WORTH TODAY.
-# Two separate things are missing, and only the first one is usually admitted.
+# WHAT THIS FILE ENFORCES, AND SINCE WHEN (2026-10-15).
 #
-# 1. CODEOWNERS has no teeth until a ruleset on `main` turns on "require review
-#    from Code Owners". That option is off and cannot honestly be turned on:
-#    `gh api repos/darshani8/reep-/collaborators` returns exactly one account
-#    (`darshani8`), so a rule demanding a code owner's approval would be
-#    unsatisfiable by anyone and the first person blocked by it would go looking
-#    for the bypass. AGENTS.md makes the same argument about the boot guard: a
-#    guard that trips on a laptop gets deleted by whoever is trying to ship that
-#    afternoon.
+# 1. THE CATCH-ALL DECIDES WHO IS ASKED. `.github/rulesets/lead-review.json`
+#    turns on "require review from Code Owners" for main, stage and dev, and
+#    every path here names `@darshani8`, the repository owner and lead. So every
+#    pull request a collaborator opens asks the owner for an approval, and a
+#    push after that approval asks again. The same ruleset lets only the
+#    repository admin merge at all, so the approval is the second line, not
+#    the first. The owner's own pull requests (and the ones Claude opens in the
+#    owner's sessions, which are authored by the same account) cannot be
+#    approved by their author; the admin merges them through the ruleset's
+#    pull-request-only bypass. Do NOT add a collaborator as an owner of any
+#    path: their approval would satisfy that second line for everyone else.
 #
-# 2. IT ALSO SIGNALS NOTHING IN THE REVIEW UI TODAY, and that is the half that
-#    gets overclaimed. The catch-all `*  @darshani8` below, and every path rule
-#    under it, name that same single account. GitHub resolves one owner for every
-#    file in the repository, so the owner set shown on a one-character edit to
-#    `student_data_egress_allowed` is byte-identical to the owner set shown on a
-#    typo fix in a comment. The catch-all already said it. Do not write anywhere
-#    that this file makes the security-critical surface visible in the review UI:
-#    it does not, and will not, until a second owner holds at least one of these
-#    paths.
+# 2. IT STILL DOES NOT SEPARATE THE SHARP PATHS IN THE REVIEW UI. One owner
+#    holds every file, so a one-character edit to `student_data_egress_allowed`
+#    asks the same person as a typo fix in a comment. The paths below are an
+#    INVENTORY for the human reading this file, with the consequence written
+#    beside each one; if you cannot write that paragraph, the path does not
+#    belong here.
 #
-# WHAT IT IS WORTH TODAY, stated at its real size: a committed, reviewable,
-# diffable INVENTORY of the paths where a wrong line has a different consequence
-# from every other file here — with the consequence written next to each one. It
-# is read by humans opening this file, not by GitHub. Every path below earns its
-# line by the paragraph above it; if you cannot write that paragraph, the path
-# does not belong in the inventory. The day a second maintainer exists, replace
-# the owner on the sharp paths and turn the ruleset option on; nothing else in
-# this file has to change, which is the reason to keep it now rather than then.
+# A PR that edits this file is itself owned by `@darshani8` (last section), and
+# GitHub reads CODEOWNERS from the BASE branch, so a pull request cannot approve
+# its own change to who approves.
 #
 # GitHub semantics that matter when editing this file: the LAST matching pattern
 # wins, not the most specific. Keep the catch-all first and the sharp paths last.

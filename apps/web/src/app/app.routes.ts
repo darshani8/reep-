@@ -427,6 +427,17 @@ export const routes: Routes = [
             (m) => m.AdminStudentsComponent,
           ),
       },
+      // The students a holder of `admin.student_records` may open (2026-10-15):
+      // a faculty member given access has no roster, so this is how they find
+      // the students the grant covers.
+      {
+        path: 'admin/student-records',
+        canActivate: [capabilityGuard('admin.student_records')],
+        loadComponent: () =>
+          import('./features/admin/student-records/student-records.component').then(
+            (m) => m.StudentRecordsComponent,
+          ),
+      },
       // Student 360 (§6): one student across every semester. AFTER the roster
       // route, though the order is not what separates them — both are full-path
       // matches, so `admin/students` never swallows `admin/students/5`.

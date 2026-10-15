@@ -114,7 +114,14 @@ def read_student_ledger_summary(
     # B9.1: a GET, so the 90-day handover window applies (read-only by
     # construction -- this module has no write path, by design).
     _assert_can_access_student(session, student_id, db, allow_handover=True)
+    return compose_ledger_summary(db, student_id, days)
 
+
+def compose_ledger_summary(db: Session, student_id: str, days: int) -> LedgerSummaryOut:
+    """The last `days` of one student's ledger, summarised. Shared with the
+    office's Student 360 read (`routers/admin_student_record.py`), so the
+    mentor and the office see the same numbers. The caller has already run
+    both fences."""
     since = local_today() - timedelta(days=days - 1)
     rows = db.scalars(
         select(TimeLedgerDay)

@@ -94,9 +94,34 @@ def tenant_id_for_session(session: dict, db: Session) -> str | None:
 
 
 def assert_student_scope(
-    session: dict, student_id: str, db: Session, *, allow_handover: bool = False
+    session: dict,
+    student_id: str,
+    db: Session,
+    *,
+    allow_handover: bool = False,
+    allow_records_grant: bool = False,
 ) -> Student:
     """Return a student only when the current role is allowed to access it.
+
+    ------------------------------------------------------------------------
+    `allow_records_grant` — the office's "View student records" grant
+    ------------------------------------------------------------------------
+
+    The owner's decision (2026-10-15): when the Main Admin gives a faculty
+    member "View student records" (`admin.student_records`) for one student,
+    a batch, a department or the college, that person may OPEN those
+    students' records, read only, whether or not they mentor them. Until then
+    the grant only ever reached the holder's own mentees, because this check
+    ran underneath it.
+
+    It is the handover's shape, wider, and it is fenced the same three ways.
+    It is a keyword, it defaults to FALSE, and only the GET reads of the
+    Student 360 page pass it, so no write path is touched. It asks the GRANT
+    (`_holds_records_grant`), so revoking it in Governance closes the door
+    the same hour. And it honours only a grant that NAMES A RUNG: a
+    programme-wide `admin.student_records` grant was written when the grant
+    meant "your own mentees", so reading it as "every student" would widen
+    every such grant silently, on deploy.
 
     ------------------------------------------------------------------------
     `allow_handover` — B9.1's 90-day window, AND WHY IT IS A KEYWORD
@@ -163,9 +188,10 @@ def assert_student_scope(
         # window on "this session has a mentorId" would be true for every
         # faculty member who has ever had one mentee. The grant names a user and
         # a student, which is the pair that actually decides this.
+        user_id = str(session.get("userId") or "")
         if not (
-            allow_handover
-            and _holds_handover(db, str(session.get("userId") or ""), student.id)
+            (allow_handover and _holds_handover(db, user_id, student.id))
+            or (allow_records_grant and _holds_records_grant(db, user_id, student.id))
         ):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not in your mentor scope.")
     return student
@@ -178,6 +204,34 @@ def _holds_handover(db: Session, user_id: str, student_id: str) -> bool:
     from .mentor_history import holds_handover_for
 
     return holds_handover_for(db, user_id, student_id)
+
+
+#: The capability whose scoped grant opens a student's record read-only. A
+#: plain constant so the Student 360 router and this module name one key.
+RECORDS_CAPABILITY = "admin.student_records"
+
+
+def _holds_records_grant(db: Session, user_id: str, student_id: str) -> bool:
+    """Does this account hold a live, SCOPED "View student records" grant that
+    reaches this student?
+
+    Scoped only: `(None, None)` -- a programme-wide grant -- is left out on
+    purpose, see `assert_student_scope`. Everything else is the ordinary
+    question `require_capability(..., target=...)` asks, through the same two
+    functions, so liveness, approval and B2.5's role check all apply here
+    without being restated. Imported inside the call for `_holds_handover`'s
+    reason: `governance` imports `mentor_functions`, which would close a cycle.
+    """
+    if not user_id:
+        return False
+    from .governance import ancestry_of_student, granted_reaches, reaches_target
+
+    scoped = [
+        reach
+        for reach in granted_reaches(db, user_id, RECORDS_CAPABILITY)
+        if reach[0] is not None
+    ]
+    return bool(scoped) and reaches_target(scoped, ancestry_of_student(db, student_id))
 
 
 def student_identity(session: dict) -> str:

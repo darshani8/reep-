@@ -1721,7 +1721,10 @@ the bytes stream through `GET /mentor/uploads/{id}/file` — rule 2's gate
 applied to a file. The way in: a **View** eye beside the pencil in the
 roster's pinned actions column (the Student column's link was the only route
 to a record and that column can be hidden — the office had), and a **Full
-record** link on the Mentee Log for a faculty holder, and since 2026-10-15 a
+record** link on the Mentee Log, drawn only where the record will open
+(`record_openable` on `GET /mentor/mentees`, the same `_openable_clause` the
+list below reads, so a grant for another department draws no link that the
+page would refuse), and since 2026-10-15 a
 **Student records** row under "Granted access" (`/admin/student-records`), the
 list a faculty member uses to find the students a scoped grant gives them.
 
@@ -1744,7 +1747,12 @@ other panels from the composers the mentor and student screens use, and
 `?download=true` on a file or built resume writes a `DOWNLOADED` audit row
 against the student, which the record's own history lists; a view writes
 nothing. "Give access" posts Governance's own `POST /admin/governance/grants`
-with a scope, so a grant has one writer and one audit trail.
+with a scope, so a grant has one writer and one audit trail. **Two panels of
+the old page came back the same day**, because the prototype had no place for
+them and this was the only screen showing the first: the mentor history (every
+faculty mentor, who moved the student and why) on the Overview's Faculty mentor
+card, and Promotions and graduations (who made each move, the reason) on the
+Academics tab. Both read the `/360` payload the page already loads.
 
 ## Reachability and keyboard access — what a full browser audit found (2026-09-10)
 

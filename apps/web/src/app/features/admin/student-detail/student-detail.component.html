@@ -585,6 +585,32 @@
                     } @else {
                       <p class="soft small">No faculty member is assigned. Assign one on Assign faculty.</p>
                     }
+                    @if (mentorSpells().length > 0) {
+                      <h3 class="sub-heading">Mentor history</h3>
+                      <ul class="mentor-spells">
+                        @for (spell of mentorSpells(); track spell.id) {
+                          <li [class.current]="spell.current">
+                            <div class="spell-who">
+                              <b>{{ spell.who }}</b>
+                              @if (spell.current) {
+                                <span class="chip good">Current</span>
+                              }
+                            </div>
+                            <div class="soft small">{{ spell.when }}</div>
+                            @if (spell.opened) {
+                              <div class="soft small">{{ spell.opened }}</div>
+                            }
+                            @if (spell.closed) {
+                              <div class="soft small">{{ spell.closed }}</div>
+                            }
+                          </li>
+                        }
+                      </ul>
+                    } @else if (mentorName() && mentorHistoryNote()) {
+                      <!-- A pairing older than the history. An unassigned
+                           student's note would repeat the line above. -->
+                      <p class="soft small">{{ mentorHistoryNote() }}</p>
+                    }
                     @if (canEdit()) {
                       <a class="btn sm secondary" routerLink="/admin/mentors">Assign faculty</a>
                     }
@@ -933,6 +959,38 @@
                   </div>
                 } @else {
                   <div class="empty"><span class="icon" aria-hidden="true">table_rows</span>No marks imported yet.</div>
+                }
+              </section>
+
+              <section class="card">
+                <h2 class="card-title">Promotions and graduations</h2>
+                @if (semesterMoves().length > 0) {
+                  <div class="table-scroll">
+                    <table class="dt-table">
+                      <caption class="sr-only">Promotions and graduations recorded for {{ studentName() }}</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Move</th><th scope="col">Semester</th><th scope="col">Effective</th>
+                          <th scope="col">By</th><th scope="col">Reason</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (move of semesterMoves(); track move.id) {
+                          <tr>
+                            <td><span class="chip neutral">{{ moveLabel(move.kind) }}</span></td>
+                            <td>{{ move.from_semester }} → {{ move.to_semester }}</td>
+                            <td>{{ formatDay(move.effective_on) }}</td>
+                            <!-- Null means the account that made the move has been
+                                 removed, not that nobody made it. -->
+                            <td>{{ move.by_name ?? 'Account since removed' }}</td>
+                            <td>{{ move.reason ?? notReadable }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                } @else {
+                  <div class="empty"><span class="icon" aria-hidden="true">school</span>No promotion or graduation recorded yet.</div>
                 }
               </section>
 

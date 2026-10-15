@@ -45,6 +45,31 @@ class MenteeOut(BaseModel):
     usn: str | None
     current_stage: str
     current_semester: int
+    #: Whether this account may open the student's complete record
+    #: (/admin/students/:id). The Mentee Log draws "Full record" only when it
+    #: is true, so the link never leads to a refusal.
+    record_openable: bool = False
+
+
+def _openable_mentees(db: Session, session: dict, student_ids: list[str]) -> set[str]:
+    """Which of these students the Student 360 page would open for this
+    account. The same rule as the "Student records" list: a faculty member's
+    own mentees open only beside a programme-wide "View student records" grant,
+    and a scoped grant opens the students it names, so a grant for another
+    department opens none of them.
+
+    Imported inside the call: `admin_student_record` imports this module for
+    rule 2's gate, so a module-level import would close a cycle.
+    """
+    if not student_ids:
+        return set()
+    from .admin_student_record import _openable_clause
+
+    query = select(Student.id).where(Student.id.in_(student_ids))
+    clause = _openable_clause(db, session)
+    if clause is not None:
+        query = query.where(clause)
+    return set(db.scalars(query))
 
 
 @router.get("/mentees", response_model=list[MenteeOut])
@@ -72,6 +97,7 @@ def mentees(
     # the Main Admin: no narrowing — the whole programme.
 
     rows = db.execute(query.order_by(User.name)).all()
+    openable = _openable_mentees(db, session, [student.id for student, _ in rows])
     return [
         MenteeOut(
             student_id=student.id,
@@ -79,6 +105,7 @@ def mentees(
             usn=student.usn,
             current_stage=student.current_stage.value,
             current_semester=student.current_semester,
+            record_openable=student.id in openable,
         )
         for student, name in rows
     ]

@@ -780,9 +780,14 @@ _DOCUMENT_ROUTES: dict[str, tuple[str, frozenset[str], str]] = {
     "photo": (DOCUMENT_KIND_PHOTO, frozenset({"image/png", "image/jpeg"}), "a PNG or JPG"),
 }
 
+#: The title the application's CV carries once it is the student's upload.
+#: The office's Student 360 page reads it to tell that CV apart from one the
+#: student uploaded later (`admin_student_360.Document360Out.from_application`).
+APPLICATION_CV_TITLE = "CV from application"
+
 #: Where a moved document lands in the student's own uploads on approval.
 _DOCUMENT_TO_UPLOAD_KIND: dict[str, tuple[UploadKind, str]] = {
-    DOCUMENT_KIND_CV: (UploadKind.RESUME, "CV from application"),
+    DOCUMENT_KIND_CV: (UploadKind.RESUME, APPLICATION_CV_TITLE),
     DOCUMENT_KIND_PHOTO: (UploadKind.PROFILE_PHOTO, "Photo from application"),
 }
 

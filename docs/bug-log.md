@@ -28,9 +28,12 @@ Entry format:
 
 - **2026-10-15 — The office's Student 360 has no resume, skills or
   leaderboard, and no KPIs.** Reported by the owner on
-  `/admin/students/:id`. There is no staff read of a student's resumes at
-  all: `GET /student/resume` and its PDF serve only the student's own
-  (`_own_resume` in `routers/student.py`). There is no staff read of a
+  `/admin/students/:id`. The resume the office wants is the CV the student
+  uploaded with their application. Approval moves it into their uploads as
+  kind `RESUME`, titled "CV from application"
+  (`_move_documents_to_uploads` in `routers/registration.py`), and
+  `GET /mentor/uploads/{id}/file` already serves it. The screen shows it only
+  as one row in the Documents tab, with no preview. There is no staff read of a
   student's leaderboard rank either (`GET /student/leaderboards` is the
   caller's own). The badge read (`GET /mentor/students/{id}/badges`) is
   loaded but drawn only as one "11/48" bar. The time sheet and English

@@ -17,12 +17,15 @@ WHAT THIS MODULE HOLDS DOWN, in the order a break would be quietest:
 3. A DOWNLOAD IS RECORDED AND A VIEW IS NOT.
 4. A FILE MUST BE THIS STUDENT'S. An upload or resume id that belongs to
    somebody else is the same 404 as one that does not exist.
+5. THE LEADERBOARD NAMES NOBODY THE VIEWER COULD NOT OPEN. A grant on one
+   student is not a grant on their classmates, so the rows around them on a
+   board are cut to the students the viewer may open; the office sees all.
 """
 
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy import delete, func, select
@@ -41,6 +44,7 @@ from app.models.student_profile import StudentProfile
 from app.models.upload import Upload, UploadKind, UploadStatus
 from app.models.user import LoginDay, Mentor, Role, Student, User
 from app.routers.registration import APPLICATION_CV_TITLE
+from app.routers.student import clear_leaderboard_cache
 from app.security import hash_password
 
 KEY = "admin.student_records"
@@ -355,6 +359,59 @@ def test_a_student_who_left_the_boards_shows_no_rank(client, make_user, world):
         db.commit()
     boards = client.get(_base(world["student"]) + "/record", headers=admin.headers).json()["leaderboards"]
     assert boards["hidden"] is True and boards["boards"] == []
+
+
+@requires_db
+def test_the_leaderboard_names_only_students_the_viewer_may_open(client, login, make_user, world, grant):
+    """Found in review of the promotion (2026-10-15): the rows around a
+    student on a board carry each classmate's name and value, the VTU board's
+    value is their CGPA, and a grant on ONE student is not a grant on them."""
+    tag = uuid.uuid4().hex[:6]
+    student_user = world["users"][0]
+    with SessionLocal() as db:
+        classmate_user = User(
+            email=f"rec-classmate-{tag}@bgscet.ac.in", name="Record Classmate",
+            role=Role.STUDENT, password_hash=hash_password(TEST_PASSWORD),
+        )
+        db.add(classmate_user)
+        db.flush()
+        classmate = Student(user_id=classmate_user.id, usn=f"1RECC{tag.upper()}", cohort_id=world["batch"])
+        db.add(classmate)
+        today = date.today()
+        # Both on the sign-in board, the classmate ranked first.
+        db.add_all([LoginDay(user_id=classmate_user.id, day=today - timedelta(days=i)) for i in range(3)])
+        db.add(LoginDay(user_id=student_user, day=today))
+        db.commit()
+        classmate_id, classmate_user_id = classmate.id, classmate_user.id
+    clear_leaderboard_cache()
+
+    def named(headers) -> set[str]:
+        boards = client.get(_base(world["student"]) + "/record", headers=headers).json()["leaderboards"]
+        streak = next(b for b in boards["boards"] if b["board"] == "streak")
+        assert streak["rank"] == 2 and streak["ranked"] == 2, "the student's own standing is always given"
+        return {row["student_id"] for b in boards["boards"] for row in b["rows"]}
+
+    try:
+        admin = make_user("rec-admin", Role.ADMIN)
+        assert classmate_id in named(admin.headers), "the office sees the whole board"
+
+        grant(world["stranger_user"], ScopeLevel.STUDENT, world["student"])
+        stranger = login(world["stranger_email"], TEST_PASSWORD)
+        assert named(stranger) == {world["student"]}
+
+        grant(world["mentor_user"])  # programme-wide: their own mentees
+        mentor = login(world["mentor_email"], TEST_PASSWORD)
+        assert named(mentor) == {world["student"]}
+
+        grant(world["stranger_user"], ScopeLevel.COHORT, world["batch"])
+        assert classmate_id in named(stranger), "a grant on the batch reaches the classmate"
+    finally:
+        with SessionLocal() as db:
+            db.execute(delete(LoginDay).where(LoginDay.user_id == classmate_user_id))
+            db.execute(delete(Student).where(Student.id == classmate_id))
+            db.execute(delete(User).where(User.id == classmate_user_id))
+            db.commit()
+        clear_leaderboard_cache()
 
 
 @requires_db

@@ -48,7 +48,7 @@ from typing import Final
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel
-from sqlalchemy import func, or_, select
+from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.orm import Session
 
 from .. import batch_labels
@@ -276,10 +276,20 @@ def _resumes(db: Session, student_id: str) -> list[ResumeVersionOut]:
     ]
 
 
-def compose_leaderboards(db: Session, student: Student) -> LeaderboardsOut:
+def compose_leaderboards(
+    db: Session, student: Student, *, openable: ColumnElement[bool] | None = None
+) -> LeaderboardsOut:
     """Every board, from the same cached computation the student's screen
     reads (`routers/student.py::_ranked_board`), so a rank here and a rank
-    there cannot disagree."""
+    there cannot disagree.
+
+    `openable` narrows the ROWS to the classmates the caller may open
+    themselves (`_openable_clause`); None lists them all, which is the Main
+    Admin's view. This student's own rank, out of how many, and their value
+    are always given. Without it a faculty member granted ONE student read the
+    names and CGPAs of that student's top-ranked classmates, whom the grant
+    does not reach (found in review of the promotion, 2026-10-15).
+    """
     scope = _leaderboard_scope(db, student)
     profile_hidden = db.scalar(
         select(StudentProfile.leaderboard_opt_out).where(StudentProfile.student_id == student.id)
@@ -290,7 +300,7 @@ def compose_leaderboards(db: Session, student: Student) -> LeaderboardsOut:
         )
 
     classmates = 0
-    boards: list[BoardStandingOut] = []
+    computed_boards = []
     for key, label in BOARDS:
         computed = _ranked_board(db, scope, key)
         classmates = computed.classmates
@@ -299,10 +309,25 @@ def compose_leaderboards(db: Session, student: Student) -> LeaderboardsOut:
         shown = set(range(min(BOARD_TOP, len(entries))))
         if mine is not None:
             shown |= set(range(max(0, mine - BOARD_AROUND), min(len(entries), mine + BOARD_AROUND + 1)))
+        computed_boards.append((key, label, computed, entries, mine, shown))
+
+    visible: set[str] | None = None
+    if openable is not None:
+        candidates = {entries[i][1] for _, _, _, entries, _, shown in computed_boards for i in shown}
+        visible = {student.id}
+        if candidates:
+            visible |= set(
+                db.scalars(select(Student.id).where(Student.id.in_(candidates), openable)).all()
+            )
+
+    boards: list[BoardStandingOut] = []
+    for key, label, computed, entries, mine, shown in computed_boards:
         rows: list[BoardRowOut] = []
         previous: int | None = None
         for index in sorted(shown):
             rank, sid, name, _value, value_label = entries[index]
+            if visible is not None and sid not in visible:
+                continue
             rows.append(
                 BoardRowOut(
                     rank=rank,
@@ -347,7 +372,7 @@ def student_record(
         resumes=_resumes(db, student.id),
         skills=compose_badges(student, db),
         growth=compose_growth(student.id, db),
-        leaderboards=compose_leaderboards(db, student),
+        leaderboards=compose_leaderboards(db, student, openable=_openable_clause(db, session)),
         ledger=compose_ledger_summary(db, student.id, LEDGER_DAYS),
         english=compose_english_baseline(db, student.id),
         interviews=_sessions_for_student(db, student.id),
@@ -642,6 +667,26 @@ def student_access(
     )
 
 
+def _openable_clause(db: Session, session: dict) -> ColumnElement[bool] | None:
+    """The students this account may open on the record page, as a WHERE
+    clause over `students`; None for the Main Admin, who may open everybody.
+
+    A faculty member: their own mentees, and the students their SCOPED
+    "View student records" grants reach, which is the set `_open_record`
+    admits. The "Student records" list and the leaderboard rows on a record
+    both read this, so neither names a student the page would refuse.
+    """
+    role = str(session.get("role") or "")
+    if CAPABILITY in ROLE_BASELINE.get(role, frozenset()):
+        return None
+    user_id = str(session.get("userId") or "")
+    covered = _scoped_reach(granted_reaches(db, user_id, CAPABILITY))
+    reachable = [Student.mentor_id.in_(select(Mentor.id).where(Mentor.user_id == user_id))]
+    if not covered.nothing:
+        reachable.append(Student.id.in_(covered.student_ids()))
+    return or_(*reachable)
+
+
 # ------------------------------------------------------------- the list --
 
 #: A list for finding a student, not a roster: the search narrows it.
@@ -662,16 +707,10 @@ def student_records(
     out, as they are on the roster.
     """
     require_capability(db, session, CAPABILITY)
-    role = str(session.get("role") or "")
     where = [User.deleted_at.is_(None)]
-    if CAPABILITY not in ROLE_BASELINE.get(role, frozenset()):
-        user_id = str(session.get("userId") or "")
-        covered = _scoped_reach(granted_reaches(db, user_id, CAPABILITY))
-        mine = select(Mentor.id).where(Mentor.user_id == user_id)
-        reachable = [Student.mentor_id.in_(mine)]
-        if not covered.nothing:
-            reachable.append(Student.id.in_(covered.student_ids()))
-        where.append(or_(*reachable))
+    openable = _openable_clause(db, session)
+    if openable is not None:
+        where.append(openable)
     if q and q.strip():
         needle = f"%{q.strip().lower()}%"
         where.append(

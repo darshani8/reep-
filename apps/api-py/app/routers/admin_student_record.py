@@ -48,7 +48,7 @@ from typing import Final
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel
-from sqlalchemy import ColumnElement, func, or_, select
+from sqlalchemy import ColumnElement, false, func, or_, select
 from sqlalchemy.orm import Session
 
 from .. import batch_labels
@@ -660,9 +660,14 @@ def student_access(
             )
     holders.extend(_handover_holders(db, student))
     holders.extend(_grant_holders(db, student))
+    can_manage = has_capability(db, session, "admin.governance")
+    if not can_manage:
+        # A grant's reason and who made it are written for the office, which
+        # decides grants; a faculty member reading the record sees who else can.
+        holders = [h.model_copy(update={"reason": None, "granted_by": None}) for h in holders]
     return AccessOut(
         holders=holders,
-        can_manage=has_capability(db, session, "admin.governance"),
+        can_manage=can_manage,
         reach_options=_reach_options(db, student),
     )
 
@@ -671,20 +676,26 @@ def _openable_clause(db: Session, session: dict) -> ColumnElement[bool] | None:
     """The students this account may open on the record page, as a WHERE
     clause over `students`; None for the Main Admin, who may open everybody.
 
-    A faculty member: their own mentees, and the students their SCOPED
-    "View student records" grants reach, which is the set `_open_record`
-    admits. The "Student records" list and the leaderboard rows on a record
-    both read this, so neither names a student the page would refuse.
+    A faculty member: the students their SCOPED "View student records" grants
+    reach, and their own mentees only while they also hold a programme-wide
+    grant. That is the set `_open_record` admits: its capability fence asks
+    whether the grant reaches THIS student, and only a programme-wide grant
+    reaches a mentee in a department no scoped grant names. The "Student
+    records" list and the leaderboard rows on a record both read this, so
+    neither names a student the page would refuse.
     """
     role = str(session.get("role") or "")
     if CAPABILITY in ROLE_BASELINE.get(role, frozenset()):
         return None
     user_id = str(session.get("userId") or "")
-    covered = _scoped_reach(granted_reaches(db, user_id, CAPABILITY))
-    reachable = [Student.mentor_id.in_(select(Mentor.id).where(Mentor.user_id == user_id))]
+    reaches = granted_reaches(db, user_id, CAPABILITY)
+    covered = _scoped_reach(reaches)
+    reachable: list[ColumnElement[bool]] = []
+    if (None, None) in reaches:
+        reachable.append(Student.mentor_id.in_(select(Mentor.id).where(Mentor.user_id == user_id)))
     if not covered.nothing:
         reachable.append(Student.id.in_(covered.student_ids()))
-    return or_(*reachable)
+    return or_(*reachable) if reachable else false()
 
 
 # ------------------------------------------------------------- the list --

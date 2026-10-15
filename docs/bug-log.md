@@ -55,6 +55,45 @@ Entry format:
   the address bounced on 2026-10-07 and Amazon SES now delivers nothing to it.
   No code fix needed; the office can lift the block on `/admin/mail`.
 
+## 2026-10-15 — The redesigned student page lost two panels, and "Full record" could lead to a refusal
+
+- **Symptom:** found while checking the Student 360 release for the owner. The
+  new `/admin/students/:id` no longer showed a student's mentor history (every
+  faculty mentor they have had, with who moved them and why) or their
+  promotions and graduations (who made each move and the reason). The old page
+  showed both, and it was the only screen that showed the mentor history. And
+  on the Mentee Log, a faculty member holding "View student records" for
+  another department saw a "Full record" link beside their mentee that opened
+  onto "Your 'View student records' capability does not reach this record".
+- **Cause:** the approved prototype had no place for the two panels, so the
+  rebuild in #177 dropped them, though `GET /admin/students/{id}/360` still
+  sends both (`mentor_history`, `semester_history`). The Mentee Log drew the
+  link whenever the session held `admin.student_records` anywhere
+  (`canOpenRecord` in `mentee-log.component.ts`), while the record page asks
+  whether the grant reaches that student. Before today every grant was
+  programme-wide, so the two answers agreed.
+- **Evidence:** the old and new templates compared side by side; the link
+  reproduced on a local copy with a Civil-only grant, `GET /360` answering 403.
+- **Fix:** the Overview's Faculty mentor card lists the mentor history again,
+  and the Academics tab has a Promotions and graduations table, both from the
+  data the page already loads (`mentorSpellRowsOf` and `moveLabelOf` in
+  `student-record.ts`). `GET /api/mentor/mentees` now carries
+  `record_openable` for each mentee, answered by the record page's own rule
+  (`_openable_clause` in `routers/admin_student_record.py`), and the Mentee
+  Log draws "Full record" only when it is true.
+- **Where:** this pull request; `apps/api-py/app/routers/mentor.py`,
+  `apps/web/src/app/features/admin/student-detail/`,
+  `features/mentor/mentee-log/`.
+- **Checked by:**
+  `test_student_record_access.py::test_the_mentee_log_offers_the_full_record_only_where_it_opens`
+  fails without the server change; new cases in `student-record.spec.ts`;
+  the record, admin, governance and guard test modules, `ng test`, `ng build`,
+  `tsc` and the four static web checks. Driven in a browser on a local copy:
+  the two panels with a recorded mentor change and promotion, and the link
+  hidden with a Civil-only grant and shown, and opening, with a grant on the
+  student's department.
+- **Status:** open PR into `dev`.
+
 ## 2026-10-15 — The office's student page had no resume, skills, leaderboard or KPIs
 
 - **Symptom:** the owner, on `/admin/students/:id`: the student's resume could
@@ -106,7 +145,14 @@ Entry format:
   suite, `ng test`, `ng build` and the four static web checks. Driven in a
   browser as the Main Admin and as a faculty member given a department grant,
   including giving and removing access.
-- **Status:** #177 merged into `dev` 2026-10-15; #179 open; not yet deployed.
+- **Status:** #177 and #179 merged into `dev` and released to `main` in
+  #180, 2026-10-15; deployed the same day (Deploy run 131, `1e09480`).
+  Two non-blocking findings from the review of #180 are fixed in
+  [PR #181](https://github.com/darshani8/reep-/pull/181), merged into `dev`
+  2026-10-15, not yet deployed: the Student records list offered a faculty
+  member's own mentee that the page then refused, and `/access` showed the
+  office's grant reasons to faculty viewers. Neither could expose anything
+  before the office makes a scoped grant.
 - **Left open:** interview reports and transcripts are not opened from this
   page (the Interviews tab lists every sitting with its score); a granted
   faculty member reads them on Interview records only for their own mentees.

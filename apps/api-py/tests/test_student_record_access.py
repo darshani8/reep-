@@ -434,8 +434,15 @@ def test_the_access_list_names_everybody_who_can_open_the_record(client, make_us
     # The batch is named by its course and year, never the bare year.
     assert body["reach_options"][1]["label"] == "Record Programme · 2025-27"
 
+    # A faculty member reading the record sees who else can, but not the
+    # office's reason for each grant or who made it (review of #180).
     stranger = login(world["stranger_email"], TEST_PASSWORD)
-    assert client.get(_base(world["student"]) + "/access", headers=stranger).json()["can_manage"] is False
+    seen = client.get(_base(world["student"]) + "/access", headers=stranger).json()
+    assert seen["can_manage"] is False
+    shown = [h for h in seen["holders"] if h["kind"] == "grant"]
+    assert [h["grant_id"] for h in shown] == [grant_id]
+    assert all(h["reason"] is None and h["granted_by"] is None for h in seen["holders"])
+    assert granted[0]["reason"], "the office still reads the reason"
 
 
 # ------------------------------------------------------- the finding list --
@@ -459,6 +466,14 @@ def test_the_records_list_is_exactly_the_students_the_page_opens(client, login, 
     grant(world["stranger_user"], ScopeLevel.DEPARTMENT, world["home"])
     seen = listed(stranger)
     assert world["student"] in seen and world["neighbour"] not in seen
+
+    # A mentor whose only grant names ANOTHER department: the page refuses
+    # their own mentee (the grant does not reach them), so the list must not
+    # offer them either (review of #180).
+    grant(world["mentor_user"], ScopeLevel.DEPARTMENT, world["other"])
+    mentor = login(world["mentor_email"], TEST_PASSWORD)
+    assert client.get(_base(world["student"]) + "/360", headers=mentor).status_code == 403
+    assert world["student"] not in listed(mentor)
 
     grant(world["mentor_user"])
     assert world["student"] in listed(login(world["mentor_email"], TEST_PASSWORD))

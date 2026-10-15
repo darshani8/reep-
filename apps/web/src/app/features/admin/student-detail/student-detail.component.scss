@@ -604,6 +604,44 @@
   margin: 8px 0 12px;
 }
 
+/* The mentor card's second level, "Mentor history". Local, because nothing
+   else on the screen needs a heading below the card title. */
+.sub-heading {
+  margin: 14px 0 6px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mentor-spells {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* A rail down the left makes the spells read as a timeline; only the current
+   one is coloured. */
+.mentor-spells li {
+  border-left: 2px solid var(--hairline);
+  padding-left: 10px;
+}
+
+.mentor-spells li.current {
+  border-left-color: var(--brand-purple);
+}
+
+.spell-who {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .feed li {
   display: flex;
   justify-content: space-between;

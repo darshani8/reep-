@@ -1,11 +1,14 @@
 import {
   type AccessHolderOut,
   type Document360Out,
+  type MentorSpell,
   barsOf,
   cvsOf,
   distinctHolders,
   initialsOf,
   mainCvOf,
+  mentorSpellRowsOf,
+  moveLabelOf,
   pointsOf,
   topPercentOf,
 } from './student-record';
@@ -112,5 +115,74 @@ describe('who can open the record', () => {
 
   it('keeps two different people who share a name', () => {
     expect(distinctHolders([holder('k1', 'grant', 'g1'), holder('k2', 'grant', 'g2')])).toHaveLength(2);
+  });
+});
+
+describe('the mentor history on the Faculty mentor card', () => {
+  function spell(overrides: Partial<MentorSpell>): MentorSpell {
+    return {
+      id: 's',
+      mentor_id: 'm',
+      mentor_name: 'Asha Rao',
+      from_at: '2026-06-01T00:00:00Z',
+      to_at: null,
+      kind: 'assign',
+      by_name: 'Main Admin',
+      reason: 'Finance cohort',
+      end_kind: null,
+      ended_by_name: null,
+      end_reason: null,
+      ...overrides,
+    };
+  }
+
+  it('says who made each change and why, newest first as sent', () => {
+    const rows = mentorSpellRowsOf({
+      available: true,
+      note: '',
+      entries: [
+        spell({ id: 'now', mentor_name: 'Ravi Shetty', kind: 'reassign', reason: 'Asha on leave' }),
+        spell({
+          id: 'before',
+          to_at: '2026-09-01T00:00:00Z',
+          end_kind: 'reassign',
+          ended_by_name: 'Main Admin',
+          end_reason: 'Asha on leave',
+        }),
+      ],
+    });
+    expect(rows.map((row) => [row.who, row.current])).toEqual([
+      ['Ravi Shetty', true],
+      ['Asha Rao', false],
+    ]);
+    expect(rows[0].opened).toBe('Moved here by Main Admin — Asha on leave');
+    expect(rows[1].closed).toBe('Moved on by Main Admin — Asha on leave');
+  });
+
+  it('does not invent a start date or an actor nobody recorded', () => {
+    const [row] = mentorSpellRowsOf({
+      available: true,
+      note: '',
+      entries: [spell({ from_at: null, by_name: null, reason: null, mentor_name: null })],
+    });
+    expect(row.when).toBe('Since before this was recorded');
+    expect(row.opened).toBe('');
+    expect(row.who).toBe('A faculty account that is no longer on the roster');
+  });
+
+  it('draws nothing for a student with no history', () => {
+    expect(mentorSpellRowsOf(undefined)).toEqual([]);
+  });
+});
+
+describe('the promotions and graduations table', () => {
+  it('names each kind of move in words, and prints an unknown one as stored', () => {
+    expect(['promote', 'graduate', 'ungraduate', 'hold_back', 'transfer'].map(moveLabelOf)).toEqual([
+      'Promoted',
+      'Graduated',
+      'Graduation reversed',
+      'Held back',
+      'transfer',
+    ]);
   });
 });

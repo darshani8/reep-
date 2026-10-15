@@ -534,6 +534,73 @@ export function formatMoment(iso: string | null): string {
   return `${day}, ${time}`;
 }
 
+// ------------------------------------------------ moves and mentor spells --
+
+/** `student_semester_history.kind` in the office's words. A kind this client
+ *  has not learned is printed as stored: it is still a move that happened. */
+export function moveLabelOf(kind: string): string {
+  if (kind === 'promote') return 'Promoted';
+  if (kind === 'graduate') return 'Graduated';
+  if (kind === 'ungraduate') return 'Graduation reversed';
+  if (kind === 'hold_back') return 'Held back';
+  return kind;
+}
+
+/** One faculty mentor the student has had, dressed for the Faculty mentor card. */
+export interface MentorSpellRow {
+  id: string;
+  who: string;
+  /** "Since 04 Sep 2026", "04 Sep 2026 – 11 Sep 2026", or what a missing start
+   *  date means: the pairing predates the history. */
+  when: string;
+  current: boolean;
+  /** "Assigned by S Kumar — thin year on the DM side"; empty when neither the
+   *  actor nor the reason was recorded. */
+  opened: string;
+  /** How the spell ended, in the same shape; empty while it is open. */
+  closed: string;
+}
+
+/** How a spell ended (`app/models/mentor_assignment.py`'s vocabulary). An
+ *  unknown value is printed as stored rather than swallowed. */
+function endLabelOf(kind: string): string {
+  if (kind === 'release') return 'Released';
+  if (kind === 'reassign') return 'Moved on';
+  if (kind === 'faculty_disabled') return 'Released when the faculty account was disabled';
+  return kind;
+}
+
+function spellWhenOf(spell: MentorSpell): string {
+  const from = spell.from_at === null ? null : formatDay(spell.from_at);
+  const to = spell.to_at === null ? null : formatDay(spell.to_at);
+  if (from === null && to === null) return 'Since before this was recorded';
+  if (from === null) return `Until ${to}, from before this was recorded`;
+  if (to === null) return `Since ${from}`;
+  return `${from} – ${to}`;
+}
+
+/** "Assigned by S Kumar — reason". Either half may be missing: command-line
+ *  writers record no actor, and older rows carry no reason. */
+function actOf(verb: string, by: string | null, reason: string | null): string {
+  if (by === null && reason === null) return '';
+  const who = by === null ? verb : `${verb} by ${by}`;
+  return reason === null ? who : `${who} — ${reason}`;
+}
+
+/** Every spell, newest first as the server sends them. An empty list is not
+ *  "never had a mentor": the server's `note` says which empty state it is. */
+export function mentorSpellRowsOf(history: MentorHistory360Out | null | undefined): MentorSpellRow[] {
+  return (history?.entries ?? []).map((spell) => ({
+    id: spell.id,
+    who: spell.mentor_name ?? 'A faculty account that is no longer on the roster',
+    when: spellWhenOf(spell),
+    current: spell.to_at === null,
+    opened: actOf(spell.kind === 'reassign' ? 'Moved here' : 'Assigned', spell.by_name, spell.reason),
+    closed:
+      spell.end_kind === null ? '' : actOf(endLabelOf(spell.end_kind), spell.ended_by_name, spell.end_reason),
+  }));
+}
+
 // ------------------------------------------------- the semester timeline --
 
 export interface SemesterStep {

@@ -58,12 +58,14 @@ import {
   type CohortOut,
   DEFAULT_HIGHEST_SEMESTER,
   type Document360Out,
+  type MentorSpellRow,
   NOT_READABLE,
   type ReachOptionOut,
   type ReadinessFactorOut,
   type ResumeVersionOut,
   STAGES,
   type Semester360Out,
+  type SemesterMove360Out,
   type StaffOut,
   type Student360Out,
   type StudentRecordOut,
@@ -75,6 +77,8 @@ import {
   initialsOf,
   mainCvOf,
   meanAttendancePercentOf,
+  mentorSpellRowsOf,
+  moveLabelOf,
   percentOf,
   pointsOf,
   stageLabelOf,
@@ -726,6 +730,20 @@ export class AdminStudentDetailComponent {
     if (!spell || spell.from_at === null) return null;
     return formatDay(spell.from_at);
   });
+
+  /** Every faculty mentor the student has had, newest first, with who made
+   *  each change and why. */
+  readonly mentorSpells = computed<MentorSpellRow[]>(() => mentorSpellRowsOf(this.record()?.mentor_history));
+
+  /** The server's own sentence when there is no history to list. */
+  readonly mentorHistoryNote = computed(() => this.record()?.mentor_history.note ?? '');
+
+  /** Every promotion, graduation and reversal recorded for this student. */
+  readonly semesterMoves = computed<SemesterMove360Out[]>(() => this.record()?.semester_history ?? []);
+
+  moveLabel(kind: string): string {
+    return moveLabelOf(kind);
+  }
 
   readonly auditRows = computed<AuditRow360Out[]>(() => this.record()?.recent_audit ?? []);
 

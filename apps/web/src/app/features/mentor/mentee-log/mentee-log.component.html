@@ -56,11 +56,10 @@
           <div class="card ml-compose">
             <div class="ml-card-title ml-card-title--row">
               <span>Log a meeting with {{ s.name }}</span>
-              <!-- Drawn only for a holder of "View student records" (a grant
-                   the Main Admin makes in Governance): the mentee's complete
-                   record — contact details, results, attendance, documents,
-                   badges, interviews. -->
-              @if (canOpenRecord()) {
+              <!-- Drawn only when the mentee's complete record will open for
+                   this account: a "View student records" grant from the Main
+                   Admin that reaches this student. The server says which. -->
+              @if (s.record_openable) {
                 <a class="btn ghost sm" [routerLink]="['/admin/students', s.student_id]">
                   <span class="icon" aria-hidden="true">visibility</span> Full record
                 </a>

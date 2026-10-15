@@ -1220,6 +1220,25 @@ Main Admin reaches a stuck student's evidence). Reading it the loose way would
 turn every one of them into universal access to every student's records,
 silently, on deploy. `tests/test_mentor_assignments.py` pins all four facts.
 
+**THE OFFICE'S "VIEW STUDENT RECORDS" GRANT IS THE OTHER READ-ONLY WIDENING
+(2026-10-15, the owner's decision).** When the Main Admin gives a faculty member
+`admin.student_records` for one student, a batch, a department or the college,
+that person may READ those students' records on the Student 360 page whether or
+not they mentor them. It is the handover's shape, wider, and fenced the same
+way: `allow_records_grant` is a keyword-only, default-False parameter of
+`assert_student_scope`, passed True only by the GET reads of that page
+(`routers/admin_student_360.py` and `routers/admin_student_record.py`, which has
+no write path), and `policies._holds_records_grant` asks the GRANT, so revoking
+it in Governance shuts the door the same hour. **It honours only a grant that
+NAMES A RUNG.** Every `admin.student_records` grant written before this date is
+programme-wide and meant "your own mentees"; reading `(None, None)` as "every
+student" would widen all of them silently on deploy, so a programme-wide grant
+still reaches only the holder's mentees. The mentor endpoints never pass the
+keyword, so the same grant opens no mentor read or write (`notes`, `badges`,
+`interviews`, `/mentor/uploads/{id}/file`). `tests/test_student_record_access.py`
+pins all of it, including that the "Student records" list
+(`GET /admin/student-records`) names exactly the students the page opens.
+
 ### Rule 1 applies to telemetry too: Sentry is one init per process, and the scrubbers are the floor
 
 Sentry is a second HTTP transport out of the process, carrying whatever the SDK
@@ -1692,8 +1711,9 @@ PROGRAMME, `carries_pii`) is the read side of the roster, split off
 `admin.students`, which is the EDITOR. `GET /admin/students/{id}/360` and the
 route `/admin/students/:id` hang on it; the Main Admin holds both keys by
 baseline and sees no difference, a faculty member holds whichever Governance
-granted, and rule 2 still runs underneath — a granted MENTOR opens their OWN
-mentees' records and nobody else's. Two panels were missing from "complete":
+granted, and rule 2 still runs underneath: a granted MENTOR opens their OWN
+mentees' records, plus the students a SCOPED grant names (2026-10-15, see rule
+2's "the other read-only widening"). Two panels were missing from "complete":
 the profile as FILLED IN (the open-items card named only the gaps) and the
 student's DOCUMENTS, which had no by-id read anywhere; both are on the
 composite read now (`profile`, `documents`), the Documents tab is real, and
@@ -1701,9 +1721,30 @@ the bytes stream through `GET /mentor/uploads/{id}/file` — rule 2's gate
 applied to a file. The way in: a **View** eye beside the pencil in the
 roster's pinned actions column (the Student column's link was the only route
 to a record and that column can be hidden — the office had), and a **Full
-record** link on the Mentee Log for a faculty holder. The key has NO sidebar
-row on purpose — it opens a per-student screen, and `GRANTABLE_ADMIN_SCREENS`
-says so where the next reader will look for it.
+record** link on the Mentee Log for a faculty holder, and since 2026-10-15 a
+**Student records** row under "Granted access" (`/admin/student-records`), the
+list a faculty member uses to find the students a scoped grant gives them.
+
+**THE STUDENT 360 PAGE WAS REDESIGNED ON 2026-10-15 FROM AN APPROVED PROTOTYPE**
+(`docs/prototypes/student-360/index.html`): a candidate column (contact, the CV,
+who can open the record), six KPIs, "Needs attention", and tabs for Overview,
+Resume, Skills, Leaderboard, Academics, Interviews, Time sheet, Documents and
+Access. **The resume is the CV the student uploaded when they registered** (the
+owner's words): approval moves it into their uploads as kind `RESUME`, titled
+`registration.APPLICATION_CV_TITLE`, and `Document360Out.from_application`
+marks it. **It is drawn with pdf.js (`shared/pdf-preview`), never an iframe**,
+because every upload is served as an attachment so a student's PDF never runs
+in this origin; pdf.js paints canvases and the core library never runs a
+PDF's scripts. Pinned at 4.10.38: 5.x calls `Map.prototype.getOrInsertComputed`,
+which only the newest browsers have, and the one unguarded built-in 4.x needs,
+`Promise.withResolvers`, is filled in on the lazy path. It runs on the main
+thread (`globalThis.pdfjsWorker`), so there is no separate worker asset outside
+the service worker's manifest. `GET /admin/students/{id}/record` serves the
+other panels from the composers the mentor and student screens use, and
+`?download=true` on a file or built resume writes a `DOWNLOADED` audit row
+against the student, which the record's own history lists; a view writes
+nothing. "Give access" posts Governance's own `POST /admin/governance/grants`
+with a scope, so a grant has one writer and one audit trail.
 
 ## Reachability and keyboard access — what a full browser audit found (2026-09-10)
 

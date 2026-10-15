@@ -46,6 +46,7 @@ from .routers import (
     admin_mentoring,
     admin_promotion,
     admin_student_360,
+    admin_student_record,
     admin_students,
     interview_bank,
     interview_policy,
@@ -484,6 +485,7 @@ app.include_router(admin_promotion.router, prefix="/api")
 # roster edits are writes with a domain fence and an audit row on every one,
 # and this is a read that touches ten tables and writes nothing.
 app.include_router(admin_student_360.router, prefix="/api")
+app.include_router(admin_student_record.router, prefix="/api")
 app.include_router(admin_faculty.router, prefix="/api")
 # 2026-09-16 - remove / restore / delete-for-good, for students, faculty and
 # colleges, plus the emailed code the permanent ones demand. Its own module

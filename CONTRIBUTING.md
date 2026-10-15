@@ -246,6 +246,11 @@ prerequisite that makes step 2's gate *resolvable*.
 unprotected as of this commit; `gh api repos/darshani8/reep-/branches/main/protection`
 returns 404 and `/rulesets` returns `[]`. **Merging this branch does not change that.**
 
+**Since 2026-10-15 there are four rulesets, not one.** The repository has a second
+collaborator, and `.github/rulesets/lead-review.json` lets only the admin merge into
+`main`, `stage` and `dev`. `.github/rulesets/README.md` says how to apply all four, and
+it is the authority over this step where they differ.
+
 **What an admin does.** Apply protection to `main`:
 
 - require a pull request before merging, **approvals: 0**
@@ -860,8 +865,8 @@ jobs" paragraph false, and must update it; see "Review".
 
 ## 13. Review routing
 
-*Stage: review.* **[ON MERGE]** for `.github/CODEOWNERS`. Not blocking in any state today —
-`gh api repos/darshani8/reep-/collaborators --jq 'length'` returns 1.
+*Stage: review.* **[ON MERGE]** for `.github/CODEOWNERS`; blocking for collaborators once
+`.github/rulesets/lead-review.json` is applied **[ADMIN]**.
 
 `.github/CODEOWNERS` routes review for the files where a wrong line has a different
 consequence from every other file in the repo:
@@ -885,11 +890,11 @@ colour in a diff as a typo fix. CODEOWNERS makes *"this diff touches the thing t
 whether a student's USN leaves the machine"* a fact the review UI **states**, rather than
 something a reviewer has to notice.
 
-**The honest caveat.** With one collaborator, `require_code_owner_reviews` is unsatisfiable
-by anyone — turning it on would close the only route to main. The file is routing and
-labelling today. **Turn the ruleset option on the day a second maintainer exists**, and
-until then treat a diff that touches any path above as one you re-read from the top before
-merging your own PR.
+**Code-owner review is on for collaborators (2026-10-15).** `.github/rulesets/lead-review.json`
+requires one code-owner approval on the latest push for every PR into `main`, `stage` and
+`dev`, and lets only the admin merge. The owner's own PRs cannot be approved by their
+author, so the admin merges them through that ruleset's pull-request-only bypass. Treat a
+diff that touches any path above as one you re-read from the top before merging it.
 
 **What stops you if you skip it.** Nothing. Steps 10 and 11 are the intended mechanical
 companions and both are `[ASPIRATIONAL]`.

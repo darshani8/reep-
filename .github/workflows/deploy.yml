@@ -51,6 +51,22 @@ jobs:
     name: Confirm
     runs-on: ubuntu-latest
     steps:
+      # A collaborator with write access can press "Run workflow" here, and the
+      # run would assume the main-pinned AWS role like any other. Only the owner
+      # ships to production. github-actions[bot] is agent-release.yml's
+      # dispatch; it can only ever run this file as it is on main, so it ships
+      # code that already passed review. triggering_actor, not actor: a re-run
+      # is judged by whoever pressed Re-run.
+      - name: Only the repository owner may deploy
+        env:
+          ACTOR: ${{ github.triggering_actor }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          if [ "$ACTOR" != "$OWNER" ] && [ "$ACTOR" != "github-actions[bot]" ]; then
+            echo "::error::Only $OWNER may deploy. This run was started by $ACTOR. Nothing was changed."
+            exit 1
+          fi
+
       - name: Check the confirmation word
         run: |
           if [ "${{ inputs.confirm }}" != "deploy" ]; then

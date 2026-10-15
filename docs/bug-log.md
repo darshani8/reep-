@@ -106,7 +106,14 @@ Entry format:
   suite, `ng test`, `ng build` and the four static web checks. Driven in a
   browser as the Main Admin and as a faculty member given a department grant,
   including giving and removing access.
-- **Status:** #177 merged into `dev` 2026-10-15; #179 open; not yet deployed.
+- **Status:** #177 and #179 merged into `dev` and released to `main` in
+  #180, 2026-10-15; deployed the same day (Deploy run 131, `1e09480`).
+  Two non-blocking findings from the review of #180 are fixed in
+  [PR #181](https://github.com/darshani8/reep-/pull/181), open: the
+  Student records list offered a faculty member's own mentee that the page
+  then refused, and `/access` showed the office's grant reasons to faculty
+  viewers. Neither could expose anything before the office makes a scoped
+  grant.
 - **Left open:** interview reports and transcripts are not opened from this
   page (the Interviews tab lists every sitting with its score); a granted
   faculty member reads them on Interview records only for their own mentees.

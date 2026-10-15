@@ -20,6 +20,8 @@ WHAT THIS MODULE HOLDS DOWN, in the order a break would be quietest:
 5. THE LEADERBOARD NAMES NOBODY THE VIEWER COULD NOT OPEN. A grant on one
    student is not a grant on their classmates, so the rows around them on a
    board are cut to the students the viewer may open; the office sees all.
+6. NO LINK LEADS TO A REFUSAL. The "Student records" list and the Mentee
+   Log's "Full record" link offer exactly the students the page opens.
 """
 
 from __future__ import annotations
@@ -481,3 +483,28 @@ def test_the_records_list_is_exactly_the_students_the_page_opens(client, login, 
     admin = make_user("rec-admin", Role.ADMIN)
     everyone = client.get("/api/admin/student-records?q=Record", headers=admin.headers).json()
     assert {world["student"], world["neighbour"]} <= {row["student_id"] for row in everyone}
+
+
+def test_the_mentee_log_offers_the_full_record_only_where_it_opens(client, login, world, grant):
+    """The Mentee Log draws "Full record" from `record_openable`, so the flag
+    must agree with the page: no link without a grant, none with a grant for
+    another department (the page refuses that mentee), and a link with a grant
+    that reaches them."""
+    record = _base(world["student"]) + "/360"
+
+    def check(page_status: int) -> bool:
+        """The record page's answer for this mentor, then the flag beside it."""
+        mentor = login(world["mentor_email"], TEST_PASSWORD)
+        assert client.get(record, headers=mentor).status_code == page_status
+        response = client.get("/api/mentor/mentees", headers=mentor)
+        assert response.status_code == 200, response.text
+        rows = {row["student_id"]: row for row in response.json()}
+        return rows[world["student"]]["record_openable"]
+
+    assert check(403) is False
+
+    grant(world["mentor_user"], ScopeLevel.DEPARTMENT, world["other"])
+    assert check(403) is False
+
+    grant(world["mentor_user"], ScopeLevel.DEPARTMENT, world["home"])
+    assert check(200) is True

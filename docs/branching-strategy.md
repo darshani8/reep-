@@ -61,6 +61,8 @@ A squash creates a commit that exists only on the target. Squash `dev` into `sta
 | A PR into `stage` comes from `dev` (or a `main` back-merge) only | same | same |
 | A PR into `dev` comes from anything except `stage` | same | same (advisory on `dev`, not required) |
 | No direct push, no force push, no deletion, the five CI checks green | `.github/rulesets/{main,stage,dev}.json` | GitHub rulesets — **an admin must apply them** (see `.github/rulesets/README.md`) |
+| Only the lead (the repository admin) merges into `main`, `stage` and `dev`; every PR asks the code owner `@darshani8` for an approval | `.github/rulesets/lead-review.json`, `.github/CODEOWNERS` | GitHub ruleset (`update` rule, admin bypass on pull requests only) — **an admin must apply it** |
+| Only the repository owner runs Deploy, CDK deploy and Ops task | the first step of `deploy.yml`, `cdk-deploy.yml`, `ops-task.yml` | `github.triggering_actor` checked against the owner |
 | CI runs on pushes to all three long-lived branches | `.github/workflows/ci.yml` | `on.push.branches` |
 | Only `main` deploys to production | `deploy.yml`'s OIDC role (`githubDeployRef`, `refs/heads/main`) | AWS IAM trust policy |
 
@@ -74,7 +76,7 @@ Until **both** `stage` and `dev` exist on the remote, the branch-policy job pass
 git fetch origin main
 git push origin origin/main:refs/heads/dev
 git push origin origin/main:refs/heads/stage
-for b in main stage dev; do
+for b in main stage dev lead-review; do
   gh api -X POST repos/darshani8/reep-/rulesets --input .github/rulesets/$b.json
 done
 ```

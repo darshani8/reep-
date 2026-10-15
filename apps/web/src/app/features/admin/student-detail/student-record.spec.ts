@@ -1,7 +1,9 @@
 import {
+  type AccessHolderOut,
   type Document360Out,
   barsOf,
   cvsOf,
+  distinctHolders,
   initialsOf,
   mainCvOf,
   pointsOf,
@@ -84,5 +86,31 @@ describe('initials on an avatar', () => {
     expect(initialsOf('Main Admin (seed)')).toBe('MA');
     expect(initialsOf('Priya Shetty')).toBe('PS');
     expect(initialsOf('')).toBe('?');
+  });
+});
+
+describe('who can open the record', () => {
+  function holder(holderId: string, kind: string, grantId: string | null = null): AccessHolderOut {
+    return {
+      kind,
+      name: 'Kiran Hegde',
+      detail: '',
+      reach_label: null,
+      until: null,
+      reason: null,
+      granted_by: null,
+      granted_at: null,
+      grant_id: grantId,
+      holder_id: holderId,
+    };
+  }
+
+  it('counts a faculty member with two grants once', () => {
+    const people = distinctHolders([holder('a', 'admin'), holder('k', 'grant', 'g1'), holder('k', 'grant', 'g2')]);
+    expect(people.map((p) => p.holder_id)).toEqual(['a', 'k']);
+  });
+
+  it('keeps two different people who share a name', () => {
+    expect(distinctHolders([holder('k1', 'grant', 'g1'), holder('k2', 'grant', 'g2')])).toHaveLength(2);
   });
 });

@@ -364,11 +364,11 @@ def test_the_access_list_names_everybody_who_can_open_the_record(client, make_us
     grant(world["stranger_user"])  # programme-wide: opens nothing here, so not listed
 
     body = client.get(_base(world["student"]) + "/access", headers=admin.headers).json()
-    kinds = [(h["kind"], h["name"]) for h in body["holders"]]
-    assert ("mentor", "Record Mentor") in kinds
+    kinds = [(h["kind"], h["name"], h["holder_id"]) for h in body["holders"]]
+    assert ("mentor", "Record Mentor", world["mentor_user"]) in kinds
     granted = [h for h in body["holders"] if h["kind"] == "grant"]
-    assert [(h["name"], h["reach_label"], h["grant_id"]) for h in granted] == [
-        ("Record Stranger", "Record Home", grant_id)
+    assert [(h["name"], h["reach_label"], h["grant_id"], h["holder_id"]) for h in granted] == [
+        ("Record Stranger", "Record Home", grant_id, world["stranger_user"])
     ]
     assert body["can_manage"] is True
     assert [o["scope_level"] for o in body["reach_options"]] == [

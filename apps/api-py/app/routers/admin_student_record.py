@@ -233,6 +233,10 @@ class AccessHolderOut(BaseModel):
     #: Set on a grant the office can remove (`POST /admin/governance/grants/
     #: {id}/revoke`). Null for everybody else.
     grant_id: str | None = None
+    #: Who this is: the account's id, or ``group:<id>`` for an access group.
+    #: One person can appear twice (a mentor who also holds a grant, or two
+    #: grants), and the page counts people by this, not by rows.
+    holder_id: str
 
 
 class ReachOptionOut(BaseModel):
@@ -538,6 +542,7 @@ def _grant_holders(db: Session, student: Student) -> list[AccessHolderOut]:
             holders.append(
                 AccessHolderOut(
                     name=user.name or user.email,
+                    holder_id=user.id,
                     detail="Read only: can open records and download resumes and documents.",
                     **common,
                 )
@@ -557,6 +562,7 @@ def _grant_holders(db: Session, student: Student) -> list[AccessHolderOut]:
             holders.append(
                 AccessHolderOut(
                     name=f"{group.name} (group of {members})",
+                    holder_id=f"group:{group.id}",
                     detail="Read only, for everyone in this access group.",
                     **common,
                 )
@@ -582,6 +588,7 @@ def _handover_holders(db: Session, student: Student) -> list[AccessHolderOut]:
         AccessHolderOut(
             kind="handover",
             name=user.name or user.email,
+            holder_id=user.id,
             detail="Former faculty mentor. Can read notes and the time sheet during the handover.",
             until=g.expires_at,
         )
@@ -609,6 +616,7 @@ def student_access(
                 AccessHolderOut(
                     kind="admin",
                     name=admin.name or admin.email,
+                    holder_id=admin.id,
                     detail="Main Admin. Sees every student and can edit, move and remove them.",
                 )
             )
@@ -621,6 +629,7 @@ def student_access(
                 AccessHolderOut(
                     kind="mentor",
                     name=mentor_user.name or mentor_user.email,
+                    holder_id=mentor_user.id,
                     detail="Faculty mentor. Reads the records of their own mentees.",
                 )
             )

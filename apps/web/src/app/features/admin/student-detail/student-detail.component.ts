@@ -69,6 +69,7 @@ import {
   type StudentRecordOut,
   barsOf,
   cvsOf,
+  distinctHolders,
   formatDay,
   formatMoment,
   initialsOf,
@@ -764,7 +765,15 @@ export class AdminStudentDetailComponent {
     return initialsOf(holder.name);
   }
 
-  readonly grantedCount = computed(() => this.holders().filter((h) => h.kind === 'grant').length);
+  /** The rail's avatars and count: each person once. */
+  readonly people = computed(() => distinctHolders(this.holders()));
+
+  /** People let in by a grant who are not already the office or the mentor. */
+  readonly grantedCount = computed(() => {
+    const listedOtherwise = new Set(this.holders().filter((h) => h.kind !== 'grant').map((h) => h.holder_id));
+    return distinctHolders(this.holders().filter((h) => h.kind === 'grant' && !listedOtherwise.has(h.holder_id)))
+      .length;
+  });
 
   readonly signIns = computed(() => this.record()?.login.recent_sign_ins ?? []);
 
@@ -789,10 +798,10 @@ export class AdminStudentDetailComponent {
 
   readonly reachOptions = computed<ReachOptionOut[]>(() => this.access()?.reach_options ?? []);
 
-  /** Faculty only, and not somebody who already holds a grant reaching here. */
+  /** Faculty only, and not the mentor or a former mentor, who already read this record. */
   readonly grantableStaff = computed(() => {
-    const already = new Set(this.holders().filter((h) => h.kind !== 'grant').map((h) => h.name));
-    return this.staff().filter((person) => person.role === 'MENTOR' && !already.has(person.name));
+    const already = new Set(this.holders().filter((h) => h.kind !== 'grant').map((h) => h.holder_id));
+    return this.staff().filter((person) => person.role === 'MENTOR' && !already.has(person.user_id));
   });
 
   readonly canGive = computed(

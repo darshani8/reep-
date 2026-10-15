@@ -751,6 +751,19 @@ export interface AccessHolderOut {
   granted_by: string | null;
   granted_at: string | null;
   grant_id: string | null;
+  /** The account's id, or `group:<id>`. One person can hold several rows. */
+  holder_id: string;
+}
+
+/** Each person once, in the order they are listed: a faculty member holding
+ *  two grants, or a mentor who was also granted, is one person. */
+export function distinctHolders(holders: AccessHolderOut[]): AccessHolderOut[] {
+  const seen = new Set<string>();
+  return holders.filter((h) => {
+    if (seen.has(h.holder_id)) return false;
+    seen.add(h.holder_id);
+    return true;
+  });
 }
 
 export interface ReachOptionOut {

@@ -298,14 +298,14 @@
 
         <section class="card">
           <h2 class="card-title">Who can open this record</h2>
-          @if (access(); as list) {
+          @if (access()) {
             <div class="stack-row">
               <div class="avstack">
-                @for (holder of list.holders; track holder.name + holder.kind) {
+                @for (holder of people(); track holder.holder_id) {
                   <span class="avatar-sm" [title]="holder.name">{{ holderInitials(holder) }}</span>
                 }
               </div>
-              <span class="chip neutral">{{ list.holders.length }} {{ list.holders.length === 1 ? 'person' : 'people' }}</span>
+              <span class="chip neutral">{{ people().length }} {{ people().length === 1 ? 'person' : 'people' }}</span>
             </div>
             <p class="soft small">
               The placement office{{ mentorName() ? ', the faculty mentor' : '' }}{{
@@ -1216,7 +1216,7 @@
                 }
 
                 <ul class="holders">
-                  @for (holder of holders(); track holder.name + holder.kind + (holder.grant_id ?? '')) {
+                  @for (holder of holders(); track holder.holder_id + holder.kind + (holder.grant_id ?? '')) {
                     <li class="holder">
                       <span class="avatar-sm" aria-hidden="true">{{ holderInitials(holder) }}</span>
                       <div>

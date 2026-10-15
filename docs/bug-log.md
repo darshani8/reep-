@@ -86,21 +86,27 @@ Entry format:
   inline. On the owner's decision, a SCOPED `admin.student_records` grant now
   opens the students it names, read only, through a new keyword on rule 2's
   gate (`allow_records_grant`, GET reads of this page only); a programme-wide
-  grant still reaches only the holder's mentees.
-- **Where:** [PR #177](https://github.com/darshani8/reep-/pull/177);
+  grant still reaches only the holder's mentees. The review of the promotion
+  found that the Leaderboard tab still named the student's top-ranked
+  classmates, with their CGPA on the VTU board, to a faculty member granted
+  that one student; the rows are now cut to the students the viewer may open
+  (`_openable_clause`, shared with the Student records list).
+- **Where:** [PR #177](https://github.com/darshani8/reep-/pull/177) and
+  [PR #179](https://github.com/darshani8/reep-/pull/179);
   `apps/api-py/app/policies.py`, `app/routers/admin_student_record.py`,
   `app/routers/admin_student_360.py`,
   `apps/web/src/app/features/admin/student-detail/`,
   `features/admin/student-records/`, `shared/pdf-preview/`.
-- **Checked by:** `tests/test_student_record_access.py` (12 tests: the
+- **Checked by:** `tests/test_student_record_access.py` (the
   widening, programme-wide grants unchanged, revoked and lapsed grants, no
   mentor endpoint opened, downloads recorded, another student's file refused,
-  the list matches the page); `test_codebase_guards.py`'s delegate test now
+  the list matches the page), and in #179 a test that fails without the
+  narrowing; `test_codebase_guards.py`'s delegate test now
   pins the new keyword's default; `student-record.spec.ts`; the full API
   suite, `ng test`, `ng build` and the four static web checks. Driven in a
   browser as the Main Admin and as a faculty member given a department grant,
   including giving and removing access.
-- **Status:** open PR, 2026-10-15.
+- **Status:** #177 merged into `dev` 2026-10-15; #179 open; not yet deployed.
 - **Left open:** interview reports and transcripts are not opened from this
   page (the Interviews tab lists every sitting with its score); a granted
   faculty member reads them on Interview records only for their own mentees.

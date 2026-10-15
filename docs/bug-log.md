@@ -26,6 +26,18 @@ Entry format:
 
 ## Open
 
+- **2026-10-15 — The office's Student 360 has no resume, skills or
+  leaderboard, and no KPIs.** Reported by the owner on
+  `/admin/students/:id`. There is no staff read of a student's resumes at
+  all: `GET /student/resume` and its PDF serve only the student's own
+  (`_own_resume` in `routers/student.py`). There is no staff read of a
+  student's leaderboard rank either (`GET /student/leaderboards` is the
+  caller's own). The badge read (`GET /mentor/students/{id}/badges`) is
+  loaded but drawn only as one "11/48" bar. The time sheet and English
+  baseline reads are gated on `mentor.mentees`, which the Main Admin does
+  not hold, so they show "not readable". A redesign prototype is at
+  `docs/prototypes/student-360/index.html`; the screen is rebuilt once the
+  owner approves it.
 - **2026-10-14 — Two Main Admin screens still send a picked file by
   reference.** The catalogue upload (`features/admin/catalogue`) and the
   spreadsheet import (`features/admin/imports`) do not copy the file at pick

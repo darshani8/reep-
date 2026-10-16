@@ -55,6 +55,27 @@ Entry format:
   the address bounced on 2026-10-07 and Amazon SES now delivers nothing to it.
   No code fix needed; the office can lift the block on `/admin/mail`.
 
+## 2026-10-16 — A database error while mailing about a skill claim could fail a claim that was already saved
+
+- **Symptom:** none seen. Found by the automated review of the promotion PR
+  [#202](https://github.com/darshani8/reep-/pull/202). A student filing a
+  skill claim, or a reviewer deciding one, could get a 500 for something that
+  had in fact been saved, and would then try again.
+- **Cause:** `app/badge_mail.py`. `notify_verifiers_of_claim` and
+  `notify_student_of_decision` run after the claim or decision is committed
+  and say they never raise, but their lookups of the student and the
+  verifiers had no guard. Only the mail driver inside `deliver_once` did.
+- **Evidence:** a test that forces an `OperationalError` in those lookups
+  fails on the old code with the raw error.
+- **Fix:** each function runs its body under one handler. It rolls the
+  session back and logs the error's class name and the evidence id, never the
+  message, which on this path carries addresses.
+- **Where:** [PR #203](https://github.com/darshani8/reep-/pull/203);
+  `app/badge_mail.py`, `tests/test_skill_claim_flow.py`.
+- **Checked by:** `tests/test_skill_claim_flow.py::test_a_mail_failure_never_fails_a_saved_claim_or_decision`
+  (fails without the fix, passes with it) and the rest of that module; CI.
+- **Status:** open PR, 2026-10-16.
+
 ## 2026-10-16 — Every mentor could verify their mentees' skills, and the office could not choose who verifies
 
 - **Symptom:** the owner asked for skill verification to be taken away from

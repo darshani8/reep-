@@ -100,20 +100,20 @@ export class ResumeEvidenceService {
 
       if (s.verified) {
         status = 'verified';
-        statusNote = 'A mentor checked the evidence and confirmed this skill.';
+        statusNote = 'A faculty reviewer checked the evidence and confirmed this skill.';
       } else if (claim?.status === 'PENDING_REVIEW') {
         status = 'in-review';
-        statusNote = 'With your mentor. It can go on the resume once verified.';
+        statusNote = 'Waiting for review. It can go on the resume once verified.';
       } else if (claim?.status === 'NEEDS_CHANGES') {
         status = 'needs-changes';
         statusNote = claim.review_note
-          ? `Your mentor asked for a change: ${claim.review_note}`
-          : 'Your mentor sent this back. Add stronger evidence and claim it again.';
+          ? `The reviewer asked for a change: ${claim.review_note}`
+          : 'The reviewer sent this back. Add stronger evidence and claim it again.';
       } else if (claim?.status === 'REJECTED') {
         status = 'rejected';
         statusNote = claim.review_note
           ? `Not verified: ${claim.review_note}`
-          : 'Your mentor did not verify this claim.';
+          : 'The reviewer did not verify this claim.';
       } else {
         status = 'student-added';
         statusNote = 'You added this yourself. Claim it with a certificate to have it verified.';

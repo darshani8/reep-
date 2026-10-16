@@ -16,7 +16,7 @@ Four kinds of account. The on-screen name and the stored role differ for two of 
 |---|---|---|---|
 | **Student** | `STUDENT` | `/student/*`, `app/routers/student.py`, a `students` row, the session's `studentId` | A current student. The roster is the access control: an address with no `users` row cannot sign in. |
 | **Faculty** | `MENTOR` | `/mentor/*`, `app/routers/mentor.py`, `require_mentor`, the console's `/admin/faculty` (`features/admin/faculty/`) | A faculty account. It is **not a mentor by existing** — it has no `mentors` row and sees nobody until the Main Admin assigns it a student. |
-| a student's **mentor** | `MENTOR` **plus a `mentors` row** | `students.mentor_id` → `mentors.id`, the session's `mentorId`, `app/mentor_functions.py` | The faculty member assigned to that student. "Your mentor" on the student's screens; the `Mentor` group row is what rule 2 scopes on, and the three `mentor.*` functions and `admin.student_records` (their mentees' full records) are derived from having a mentee. |
+| a student's **mentor** | `MENTOR` **plus a `mentors` row** | `students.mentor_id` → `mentors.id`, the session's `mentorId`, `app/mentor_functions.py` | The faculty member assigned to that student. "Your mentor" on the student's screens; the `Mentor` group row is what rule 2 scopes on, and the two `mentor.*` functions (the Mentee Log and the notebook) and `admin.student_records` (their mentees' full records) are derived from having a mentee. Verifying a student's skills is NOT: it is a grant the Main Admin makes (`app/verifiers.py`). |
 | **Alumni** | `ALUMNI` | `/alumni/*`, `app/routers/alumni.py` | A graduate: no `students` row, no `mentors` row, no staff scope. |
 | **Main Admin** — the placement office | `ADMIN` | `/admin/*`, `app/routers/console.py` and `admin_*.py`, `require_admin`, `features/admin/`, the login's dashed "Main Admin" door | **One account per deployment.** "Placement office", "placement cell" and "TPO" on the screens all mean this account, and its SWOC lines are stamped `SwocSource.PLACEMENT`, the placement cell's viewpoint; it is the one role Governance admits, and faculty reach a console screen only as a grant it makes. |
 
@@ -809,10 +809,12 @@ so (B2.3).** `ROLE_BASELINE["MENTOR"]` used to be every SCOPED key in the
 catalogue, so "is this person staff" and "may this person read a mentee's ledger"
 were one question with one answer. It is now `{mentor.agent, mentor.upskilling}`
 — the assistant and one's own certificate shelf, which belong to the PERSON. The
-three that belong to a GROUP (`mentor.mentees`, `mentor.notebook`,
-`mentor.verifications`) are **derived, not granted** (`mentor.leave_approve`
-was the fourth until 2026-09-16, when leave approval became the Main Admin's
-alone and the key left the catalogue — see "Leave is one signature" below):
+two that belong to a GROUP (`mentor.mentees`, `mentor.notebook`) are **derived,
+not granted** (`mentor.leave_approve` was the fourth until 2026-09-16, when
+leave approval became the Main Admin's alone and the key left the catalogue —
+see "Leave is one signature" below; `mentor.verifications` was the third until
+2026-10-16 and is now a grant only — see "Skill verification is the office's
+choice of person" below):
 `app/mentor_functions.py` is a pure function of "do you currently mentor
 anybody". The spec asked for `capability_grants` rows written by
 `ensure_mentor_group` and backfilled by a migration; that was built first and
@@ -1236,7 +1238,7 @@ GET call sites only** (`mentor.py`'s notes list and the three reads in
 `mentee_records.py`); `_assert_can_access_student` gained the parameter and is
 still the single delegating `return` the AST guard pins.
 **And the grant is what makes the feature visible at all**: `mentor_functions_for`
-derives the three `mentor.*` capabilities and `admin.student_records` live from `mentee_count > 0`, so a
+derives the two `mentor.*` capabilities and `admin.student_records` live from `mentee_count > 0`, so a
 mentor whose last mentee was just reassigned holds NONE of them and
 `require_capability` answers 403 *before* rule 2 ever runs — a handover honoured
 only inside `assert_student_scope` would be invisible to exactly the person it
@@ -1274,7 +1276,7 @@ Mentee Log listed a mentor's students and nothing behind them: "Full record",
 the "Student records" row and the route guard all needed an
 `admin.student_records` grant from the office, even for the mentor's own
 group. `admin.student_records` is now DERIVED from having a mentee, beside the
-three `mentor.*` functions (`mentor_functions.MENTEE_RECORD_FUNCTIONS`,
+two `mentor.*` functions (`mentor_functions.MENTEE_RECORD_FUNCTIONS`,
 `DERIVED_FROM_MENTEES`), for the same reason they are derived: five places set
 `students.mentor_id`. It reaches nobody else, because it widens nothing rule 2
 decides: every read behind the key runs `_assert_can_access_student` with the
@@ -1727,15 +1729,46 @@ Documents queue on the same screen, decidable in the opposite direction, so
 `review_evidence` now writes the claim's verdict onto the upload too (VERIFIED /
 NEEDS_CHANGES / REJECTED, same reviewer, same note — never over a verdict the
 document already carries), and `pending_uploads` leaves out a file a pending
-claim stands on. The board draws the mentor's approval as a BLUE `verified`
+claim stands on. The board draws the reviewer's approval as a BLUE `verified`
 tick on an EARNED tile and nothing else: an unclaimed badge is unmarked, a
 claim in review wears a clock, and the tap-to-preview lights the hexagon
 without the tick, because a preview that wore it would be indistinguishable
 from a verified badge. `tests/test_skill_claim_flow.py` walks all of it.
 
-**MAIL: THE MENTOR HEARS OF THE CLAIM, THE STUDENT OF THE DECISION, AND THE
+**SKILL VERIFICATION IS THE OFFICE'S CHOICE OF PERSON, NOT A MENTOR'S BY
+MENTORING (2026-10-16, the owner's decision: "remove skill verification from
+all mentors").** `mentor.verifications` ("Verify skills & evidence") left
+`MENTOR_FUNCTIONS`; it is held ONLY as a grant the Main Admin makes in Who can
+do what, with a reason and a reach (a student, a batch, a department, a
+college or the programme), and a holder sees exactly the students that reach
+covers — their own mentees included only if it covers them. `app/verifiers.py`
+is the one gate, and every verification door asks it: the claim queue, its
+reviewed strip, a claim's file and decision (`routers/badge_verification.py`),
+the Documents queue and its decision (`routers/mentor.py`, the other half of
+the same screen, which had been the mentor's group and, for the Main Admin,
+every file with no grant), the legacy `skill-claims` review (no screen, but it
+still marks a `student_skills` row verified, which the resume prints under
+"Verified Skills"), and a manual award of a skill badge (an award is a
+verification without a claim; the Main Admin keeps that escape hatch). Two
+read doors widen for a verifier and nothing else: `/mentor/uploads/{id}/file`
+and a claim's file, both GETs. RULE 2 IS UNCHANGED: `_assert_can_access_student`
+still admits a mentor to their own group everywhere else (notes, the notebook,
+the 360 read); verification simply stopped asking it. It also stopped letting
+a Main Admin with a SCOPED verification grant decide any student by id, which
+rule 2's "the admin sees all" had quietly allowed while the list was narrowed.
+The sidebar row and the `/mentor/verifications` route guard both read the
+capability. A claim nobody's grant reaches waits, and nobody is mailed, until
+the office grants somebody. The dev seed grants Test Mentor the key for the
+seeded college so the screen has a reviewer on a fresh database. The student's
+screens say "a faculty reviewer" and "Waiting for review" rather than "your
+mentor". `tests/test_skill_claim_flow.py` pins the mentor's refusal at every
+door and the grant's reach as the fence.
+
+**MAIL: THE VERIFIERS HEAR OF THE CLAIM, THE STUDENT OF THE DECISION, AND THE
 SWITCH IS DERIVED.** `app/badge_mail.py`, through `mailer.deliver_once` — keys
-`badge-claim:{id}` (one message per claim, however often it is retried) and
+`badge-claim:{id}:{recipient}` (one message per claim per verifier, however
+often it is retried; the recipients are `verifiers.verifiers_for`, the same
+question the gate asks, so they were the student's mentor until 2026-10-16) and
 `badge-decision:{id}:{status}` (stable per transition, different per
 transition). Both run AFTER the commit and never raise. The student's mail
 carries the reviewer's note: unlike a leave approver's note, which is written

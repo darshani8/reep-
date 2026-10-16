@@ -116,7 +116,7 @@ Entry format:
   the new tests fail on the old code. Also the full backend suite (2,075
   tests), the front-end unit tests, `ng build`, and the end-to-end cases
   TC-210 to 214, all of module 05 and TC-530 to 549 against a live app.
-- **Status:** open PR, 2026-10-16.
+- **Status:** merged 2026-10-16 ([#200](https://github.com/darshani8/reep-/pull/200), `d8be4a4`), released to `main` through [#202](https://github.com/darshani8/reep-/pull/202) and [#204](https://github.com/darshani8/reep-/pull/204) (`a964fff`), and deployed to production 2026-10-16 ([Deploy run #139](https://github.com/darshani8/reep-/actions/runs/38873799938)). From then on nobody on production verifies until the office grants "Verify skills & evidence".
 - **Left open:** once deployed, nobody on production verifies until the office
   grants "Verify skills & evidence" in Who can do what; pending claims and
   documents wait until then. Nothing on the admin Home counts claims that no

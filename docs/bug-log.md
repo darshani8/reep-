@@ -92,7 +92,10 @@ Entry format:
   the two panels with a recorded mentor change and promotion, and the link
   hidden with a Civil-only grant and shown, and opening, with a grant on the
   student's department.
-- **Status:** open PR into `dev`.
+- **Status:** [PR #182](https://github.com/darshani8/reep-/pull/182) merged into `dev`
+  2026-10-15, released to `main` in
+  [PR #184](https://github.com/darshani8/reep-/pull/184) and deployed 2026-10-16
+  (Deploy run 132, `3c48939`).
 
 ## 2026-10-15 — The office's student page had no resume, skills, leaderboard or KPIs
 
@@ -149,7 +152,8 @@ Entry format:
   #180, 2026-10-15; deployed the same day (Deploy run 131, `1e09480`).
   Two non-blocking findings from the review of #180 are fixed in
   [PR #181](https://github.com/darshani8/reep-/pull/181), merged into `dev`
-  2026-10-15, not yet deployed: the Student records list offered a faculty
+  2026-10-15 and deployed 2026-10-16 with #182 (Deploy run 132,
+  `3c48939`): the Student records list offered a faculty
   member's own mentee that the page then refused, and `/access` showed the
   office's grant reasons to faculty viewers. Neither could expose anything
   before the office makes a scoped grant.

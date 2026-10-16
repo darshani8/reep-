@@ -1,11 +1,22 @@
-"""Skill-claim notifications (2026-09-17): the mentor hears that a claim is
+"""Skill-claim notifications (2026-09-17): the verifiers hear that a claim is
 waiting, the student hears what was decided.
 
-Two messages and nothing else. `notify_mentor_of_claim(db, ev)` runs after a
+Two messages and nothing else. `notify_verifiers_of_claim(db, ev)` runs after a
 student files a badge claim on Skilling (`POST /student/badges/{code}/evidence`)
-and mails the faculty member who mentors them; `notify_student_of_decision(db,
+and mails every faculty member who can decide it; `notify_student_of_decision(db,
 ev)` runs after a reviewer decides the claim (`POST /mentor/badge-evidence/{id}/
 review`) and mails the student, whichever way it went.
+
+THE CLAIM MAIL GOES TO THE VERIFIERS, NOT TO THE MENTOR (2026-10-16). Until the
+owner took verification away from every mentor, the one person who could decide
+a claim was the student's mentor, so that is who was mailed. Now the people who
+can decide it are the holders of a "Verify skills & evidence" grant whose reach
+covers the student (app/verifiers.py), and mailing the mentor would tell
+somebody "it is waiting for your review" about a queue they cannot open. The
+recipients are asked of `verifiers_for`, which asks the same question every
+verification door asks, so the list and the gate cannot disagree. Nobody holds
+such a grant yet means nobody is mailed and the claim waits for the office to
+choose somebody.
 
 ==============================================================================
 WHETHER THEY GO OUT IS DERIVED FROM THE TRANSPORT, NOT DEFAULTED TO OFF
@@ -23,9 +34,9 @@ variable in a task definition that somebody has to remember. A developer who
 wants to read the message out of the console outbox sets
 `BADGE_MAIL_ENABLED=true`; the test suite does the same through `settings`.
 
-While the gate is off both functions return None and write nothing, so a screen
-that wants to say "your mentor has been emailed" has an honest value to branch
-on. No screen says it today.
+While the gate is off both functions return nothing (an empty list, or None)
+and write nothing, so a screen that wants to say "the reviewers have been
+emailed" has an honest value to branch on. No screen says it today.
 
 ==============================================================================
 `deliver_once`, NEVER `mail_transport.send` DIRECTLY
@@ -34,8 +45,8 @@ on. No screen says it today.
 Both messages fire on state transitions that can be retried -- a double-tap on
 Verify, a request that 500s after its commit -- so they go through
 `app/mailer.py::deliver_once`, whose unique index on `dedupe_key` is the
-arbiter. The claim key is `badge-claim:{evidence_id}`: one row, one message,
-however many times the handler is re-entered. The decision key is
+arbiter. The claim key is `badge-claim:{evidence_id}:{recipient_user_id}`: one row
+and one message per verifier, however many times the handler is re-entered. The decision key is
 `badge-decision:{evidence_id}:{status}`: stable per transition and different
 per transition, so a claim sent back for MORE_INFO and then approved produces
 two messages and a retried approval produces one.
@@ -47,22 +58,22 @@ WHAT TRAVELS, AND WHY THE REVIEWER'S NOTE IS IN IT
 `leave_mail.py` keeps the approver's note OUT of its mail, because a note
 written for the office's file is not a note written to the applicant. The badge
 `review_note` is the opposite kind of sentence: the Skilling screen shows it to
-the student as "Note from your mentor", the review form labels it as the whole
+the student as "Note from the reviewer", the review form labels it as the whole
 of what the student is told, and the API now REFUSES a rejection without one --
 it exists to be read by the student, so the mail that tells them the decision
 carries it. What never travels is anything from the student's record: no USN,
-no marks, no attendance, no certificate. The mentor's message names the student
-and the badge and links to the queue; the student's names the badge, the
-outcome and the note.
+no marks, no attendance, no certificate. The verifier's message names the
+student and the badge and links to the queue; the student's names the badge,
+the outcome and the note, and never who decided it.
 
 The logger is muted from Sentry (`app/telemetry_scrub.py::MUTED_LOGGERS`)
 alongside `app.leave_mail`, for its reason: a module whose job is composing
 text about a named student is the one that grows a debug line under pressure.
 
-RULE 1 is not in play (nothing here reaches a model). RULE 2 is satisfied by
-construction: the two recipients this module can address are the student's own
-account and the account of the faculty member who mentors them, both read off
-`students.mentor_id` -- the same column rule 2 filters on.
+RULE 1 is not in play (nothing here reaches a model). The recipients this
+module can address are the student's own account and the accounts whose
+verification grant reaches that student -- the people who can already open the
+claim the message names.
 """
 
 from __future__ import annotations
@@ -78,7 +89,8 @@ from .mail_transport import send as transport_send
 from .mailer import deliver_once
 from .models.badge import BADGE_BY_CODE, BadgeEvidence, EvidenceStatus
 from .models.mail import MailLog
-from .models.user import Mentor, Student, User
+from .models.user import Student, User
+from .verifiers import verifiers_for
 
 log = logging.getLogger(__name__)
 
@@ -88,9 +100,10 @@ CLAIM_MAIL_KIND = "badge-claim"
 DECISION_MAIL_KIND = "badge-decision"
 
 
-def claim_dedupe_key(ev: BadgeEvidence) -> str:
-    """`badge-claim:{id}` -- one message per claim, however often it is retried."""
-    return f"badge-claim:{ev.id}"
+def claim_dedupe_key(ev: BadgeEvidence, recipient_user_id: str) -> str:
+    """`badge-claim:{id}:{recipient}` -- one message per claim per verifier,
+    however often it is retried."""
+    return f"badge-claim:{ev.id}:{recipient_user_id}"
 
 
 def decision_dedupe_key(ev: BadgeEvidence) -> str:
@@ -132,57 +145,57 @@ def _driver(text: str) -> Callable[[str, str | None], None]:
 # ------------------------------------------------------------- the claim --
 
 
-def notify_mentor_of_claim(db: Session, ev: BadgeEvidence) -> MailLog | None:
-    """Tell the student's mentor a claim is waiting. Returns the `mail_logs`
-    row, or None when nothing was sent.
+def notify_verifiers_of_claim(db: Session, ev: BadgeEvidence) -> list[MailLog]:
+    """Tell everybody who can decide this claim that it is waiting. Returns
+    the `mail_logs` rows written, one per verifier.
 
-    None means one of four things and the caller must not read it as failure:
-    the gate is off, the student has no mentor (nobody holds the queue this
-    claim sits in -- the Main Admin reaches it by granting itself
-    `mentor.verifications`), the mentor's account is gone or barred, or the
-    student's own account is. It NEVER raises: a mail that did not go out must
-    never be the reason a claim fails to file.
+    Empty means one of four things and the caller must not read it as failure:
+    the gate is off, nobody holds a verification grant reaching this student
+    (the claim waits until the office grants one -- the Main Admin can grant
+    itself the queue), every such account is barred or has no address, or the
+    student's own account is gone. It NEVER raises: a mail that did not go out
+    must never be the reason a claim fails to file.
 
     Call it AFTER the claim's own commit, for `leave_mail.notify_transition`'s
     reason: `deliver_once` commits its own row, and a message about a claim
     that has not landed yet is worse than a late one.
     """
     if not settings.badge_mail_active:
-        return None
+        return []
     account = _student_account(db, ev)
     if account is None:
-        return None
+        return []
     student, student_user = account
-    if not student.mentor_id:
-        log.info("Claim notification skipped: student of evidence %s has no mentor", ev.id)
-        return None
-    group = db.get(Mentor, student.mentor_id)
-    mentor_user = db.get(User, group.user_id) if group else None
-    if not _reachable(mentor_user):
-        log.info("Claim notification skipped: no reachable mentor for evidence %s", ev.id)
-        return None
-    assert mentor_user is not None  # for the type checker; _reachable said so
+    verifiers = [u for u in verifiers_for(db, student.id) if _reachable(u)]
+    if not verifiers:
+        log.info("Claim notification skipped: nobody can verify evidence %s yet", ev.id)
+        return []
 
     badge = _badge_name(ev)
     subject = f"{student_user.name} has claimed the {badge} badge"
     what = ev.title.strip() if ev.title else "a certificate"
     issued = f" issued by {ev.provider.strip()}" if (ev.provider or "").strip() else ""
-    text = (
-        f"Hello {mentor_user.name},\n\n"
-        f"{student_user.name} has claimed the {badge} badge on REEP and attached "
-        f"{what}{issued} as evidence. It is waiting for your review.\n\n"
-        f"Open your verification queue to verify it, ask for changes, or reject it "
-        f"with a reason: {_link('/mentor/verifications')}\n\n"
-        f"The student is told your decision, and your note, by email.\n"
-    )
-    return deliver_once(
-        db,
-        kind=CLAIM_MAIL_KIND,
-        recipient=mentor_user.email,
-        dedupe_key=claim_dedupe_key(ev),
-        subject=subject,
-        send=_driver(text),
-    )
+    rows: list[MailLog] = []
+    for verifier in verifiers:
+        text = (
+            f"Hello {verifier.name},\n\n"
+            f"{student_user.name} has claimed the {badge} badge on REEP and attached "
+            f"{what}{issued} as evidence. It is waiting for your review.\n\n"
+            f"Open your verification queue to verify it, ask for changes, or reject it "
+            f"with a reason: {_link('/mentor/verifications')}\n\n"
+            f"The student is told your decision, and your note, by email.\n"
+        )
+        rows.append(
+            deliver_once(
+                db,
+                kind=CLAIM_MAIL_KIND,
+                recipient=verifier.email,
+                dedupe_key=claim_dedupe_key(ev, verifier.id),
+                subject=subject,
+                send=_driver(text),
+            )
+        )
+    return rows
 
 
 # ---------------------------------------------------------- the decision --
@@ -191,11 +204,11 @@ def notify_mentor_of_claim(db: Session, ev: BadgeEvidence) -> MailLog | None:
 def _approved(name: str, badge: str, note: str | None) -> tuple[str, str]:
     body = (
         f"Hello {name},\n\n"
-        f"Your mentor has verified the evidence you submitted for the {badge} badge. "
+        f"The evidence you submitted for the {badge} badge has been verified. "
         f"The badge is now marked verified on your Skilling board.\n"
     )
     if note:
-        body += f"\nNote from your mentor: {note}\n"
+        body += f"\nNote from the reviewer: {note}\n"
     body += f"\nSkilling: {_link('/student/skilling')}\n"
     return f"Your {badge} badge is verified", body
 
@@ -203,8 +216,8 @@ def _approved(name: str, badge: str, note: str | None) -> tuple[str, str]:
 def _rejected(name: str, badge: str, note: str | None) -> tuple[str, str]:
     body = (
         f"Hello {name},\n\n"
-        f"Your mentor has reviewed the evidence you submitted for the {badge} badge "
-        f"and did not verify it.\n"
+        f"The evidence you submitted for the {badge} badge has been reviewed "
+        f"and was not verified.\n"
     )
     if note:
         body += f"\nReason: {note}\n"
@@ -218,8 +231,8 @@ def _rejected(name: str, badge: str, note: str | None) -> tuple[str, str]:
 def _more_info(name: str, badge: str, note: str | None) -> tuple[str, str]:
     body = (
         f"Hello {name},\n\n"
-        f"Your mentor has looked at the evidence you submitted for the {badge} badge "
-        f"and asked for changes before it can be verified.\n"
+        f"The evidence you submitted for the {badge} badge has been reviewed, "
+        f"and changes are needed before it can be verified.\n"
     )
     if note:
         body += f"\nWhat to change: {note}\n"

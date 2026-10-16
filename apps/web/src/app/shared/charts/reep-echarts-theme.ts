@@ -22,7 +22,7 @@
  * name rather than by palette position.
  *
  * WHERE THIS MAY BE IMPORTED. Lazily-loaded routes only — see the same note in
- * shared/grid/reep-grid-theme.ts. The initial bundle is held to 400 kB and
+ * shared/grid/reep-grid-theme.ts. The initial bundle is held to 610 kB and
  * ECharts is far larger than that on its own.
  */
 

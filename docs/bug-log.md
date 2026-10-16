@@ -55,6 +55,31 @@ Entry format:
   the address bounced on 2026-10-07 and Amazon SES now delivers nothing to it.
   No code fix needed; the office can lift the block on `/admin/mail`.
 
+## 2026-10-16 — Known vulnerabilities in PyJWT, pypdf and the web build
+
+- **Symptom:** the weekly maintenance issue
+  [#104](https://github.com/darshani8/reep-/issues/104) listed advisories
+  that needed minor bumps: PyJWT 2.13.0 (13), pypdf 6.18.x (3 more after the
+  6.18.1 patch), and `piscina` (critical, via `@angular/build`) and
+  `@angular/router` (high) in the web app.
+- **Cause:** pinned versions older than the fixes.
+- **Fix:** `pyjwt[crypto]` 2.15.1 and `pypdf` 6.20.1; Angular 22.2.3 across
+  every `@angular/*` package, which brings `piscina` 5.3.2. Angular 22.2 now
+  counts the framework chunks `main` imports in the initial bundle (418.7 kB,
+  where 22.1 reported 209 kB for the same JS: 349.8 kB against 348.3 kB
+  loaded at startup), so the initial budget moved up by that recount, to
+  460 kB warning and 610 kB error. The Angular CLI now needs Node 22.22.3 or
+  later; CI's `node-version: "22"` resolves to 22.23.3.
+- **Where:** this pull request; `apps/api-py/requirements.txt`,
+  `apps/web/package.json`, `apps/web/package-lock.json`,
+  `apps/web/angular.json`.
+- **Checked by:** `pip-audit` 17 findings to 0 on the pins and 0 on the full
+  environment; `npm audit` 0; the backend suite against a migrated, seeded
+  database; `tsc`, `ng test` and `ng build` on Node 22.23.3. Every
+  `jwt.decode` uses a one-family algorithm list, so the mixed HMAC and
+  asymmetric advisory does not apply.
+- **Status:** open PR.
+
 ## 2026-10-16 — Eight end-to-end cases in modules 05 and 06 failed on `dev`
 
 - **Symptom:** a local run of `tests/05-faculty-alumni.spec.ts` and

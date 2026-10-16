@@ -169,7 +169,7 @@ must import `FormsModule`, which the login screen legitimately does for its
 and not just the template: strip that import and the check goes red rather than
 the button going quiet.
 
-**Routes are lazy.** `app.routes.ts` uses `loadComponent`, never a static `component:` reference. Every route was once eagerly imported, which put the whole app — mentor and admin screens, the resume builder, the realtime assistant — into a single 1.23 MB `main` chunk that a student on a phone downloaded before the login form could paint. It is ~142 kB initial now, and the production bundle budget is set close enough to that number that one re-eager-ed route fails `ng build` in CI.
+**Routes are lazy.** `app.routes.ts` uses `loadComponent`, never a static `component:` reference. Every route was once eagerly imported, which put the whole app — mentor and admin screens, the resume builder, the realtime assistant — into a single 1.23 MB `main` chunk that a student on a phone downloaded before the login form could paint. `main` is ~142 kB now. Since Angular 22.2 the builder's initial total also counts the framework chunks `main` imports (~419 kB with styles, which 22.1 shipped too while reporting 209 kB), and the budget (460 kB warning, 610 kB error) keeps the headroom it had before that recount. It is a backstop against a heavy route or library going eager, not a per-route lint.
 
 ## Auth — Google-only sign-in over the session retained from the migration
 

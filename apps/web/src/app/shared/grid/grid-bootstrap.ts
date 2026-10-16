@@ -10,9 +10,9 @@
  * (01-design-system.md §5) and each is its own lazily loaded route, so there is
  * no single module every one of them passes through — `main.ts` is the only
  * such place and importing AG Grid there puts ~300 kB into the initial bundle,
- * against a 400 kB budget the whole app shares. So each grid screen calls this
- * from its constructor instead, and the flag makes the second through
- * eleventh calls free.
+ * against a 610 kB budget the framework already fills to ~419 kB. So each
+ * grid screen calls this from its constructor instead, and the flag makes the
+ * second through eleventh calls free.
  *
  * `AllCommunityModule` is the whole Community feature set, which is what the
  * boards use: quick filter, floating filters, checkbox selection, column menu,

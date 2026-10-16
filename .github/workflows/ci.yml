@@ -228,8 +228,9 @@ jobs:
       # The real production build, not just a typecheck. It used to fail the
       # bundle budget (1.23 MB against a 1 MB cap) because every route was
       # statically imported, so this step could not be enforced. Routes are lazy
-      # now — initial is ~142 kB — and the budget is set close enough to that
-      # that a single `component:` slipped back into app.routes.ts fails here
+      # now — `main` is ~142 kB, ~419 kB initial once the framework chunks it
+      # imports are counted (Angular 22.2 counts them; 22.1 did not) — and the
+      # budget is a backstop against a heavy route or library going eager
       # rather than shipping the whole app to the login screen again.
       - name: Build (enforces the bundle budget)
         working-directory: apps/web

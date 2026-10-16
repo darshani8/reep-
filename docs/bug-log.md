@@ -55,6 +55,80 @@ Entry format:
   the address bounced on 2026-10-07 and Amazon SES now delivers nothing to it.
   No code fix needed; the office can lift the block on `/admin/mail`.
 
+## 2026-10-16 — Eight end-to-end cases in modules 05 and 06 failed on `dev`
+
+- **Symptom:** a local run of `tests/05-faculty-alumni.spec.ts` and
+  `tests/06-admin-people.spec.ts` against a seeded stack failed TC-407, TC-506,
+  TC-507, TC-510, TC-513, TC-514, TC-532 and TC-539, the same way with or
+  without the governance change in the same pull request.
+- **Cause:** three screens had changed and their cases had not, and one test
+  helper was wrong. The Verifications eyebrow became "Faculty · skill
+  verification" in #140 (TC-407). The roster's Batch box lists each YEAR once
+  since 2026-10-06 (`b6fdc2f`), so picking a batch by id or by its long label
+  matched no option (TC-506, 507, 510, 539). TC-513 and TC-514 still read the
+  Student 360 page from before its 2026-10-15 redesign (the old header line,
+  the Results, Attendance and Audit tabs, an "Open" link). And `seeded()` in
+  `tests/06-admin-people.spec.ts` took the seeded batch from wherever Test
+  Student sat at the time: once a stopped run left them in a test's throwaway
+  batch, every later `restoreSeededStudent` put them back into that batch, so
+  the roster showed the seeded batch empty and TC-532 counted the wrong batch.
+- **Evidence:** each failure reproduced on `dev` with this pull request's
+  changes stashed; the database showed Test Student in "2026-28 E2E …".
+- **Fix:** the cases and tests follow the screens as they are now (the Batch
+  box picked by year, TC-513 and TC-514 rewritten against the new record
+  page, the download checked as a PDF), and `seeded()` finds the seeded batch
+  by its own label. TC-506 restores Test Student to that batch before it
+  reads it.
+- **Where:** this pull request; `tests/05-faculty-alumni.spec.ts`,
+  `tests/06-admin-people.spec.ts`, `test-management/cases/05-faculty-alumni.md`,
+  `test-management/cases/06-admin-people.md`.
+- **Checked by:** modules 05 and 06 in full against a seeded local stack:
+  70 passed; `npx playwright test --list` reports no drift.
+- **Status:** open PR into `dev` ([#189](https://github.com/darshani8/reep-/pull/189)).
+
+## 2026-10-16 — Mentors could not see their own mentees' records, and access was hard to give and take away
+
+- **Symptom:** the owner: a faculty member's mentees were listed on the
+  Mentee Log with nothing behind them, and "Who can do what" was too confusing
+  to use; giving access meant one screen per request, and taking one access
+  away from several people meant one removal per person.
+- **Cause:** the Student 360 page and the "Student records" list hang on
+  `admin.student_records`, which a faculty member held only by a grant from
+  the office, even for their own group. So the Mentee Log drew no "Full
+  record" link (`record_openable` was false), the route guard turned the
+  mentor away, and `_openable_clause` in `routers/admin_student_record.py`
+  listed a mentor's mentees only beside a programme-wide grant. The access
+  screen (`features/admin/governance`) granted one capability per request
+  from a side panel, showed two near-identical "Scope" and "Reach" columns and
+  a catalogue of internal keys, and removed a selection by posting
+  `/grants/{id}/revoke` once per row.
+- **Evidence:** the owner's report;
+  `test_the_mentee_log_offers_the_full_record_only_where_it_opens` and TC-403
+  both pinned "no Full record link without the grant".
+- **Fix:** `admin.student_records` is derived from having a mentee, like the
+  three `mentor.*` functions (`mentor_functions.MENTEE_RECORD_FUNCTIONS`);
+  rule 2 still admits a mentor to their own group only, and a student outside
+  it still needs the office's scoped grant. "Student records" is a row of the
+  faculty sidebar. The access screen is redesigned as Give access, Who has
+  access, Needs attention and Groups. `POST /admin/governance/grants` takes
+  `capabilities: [...]` and writes every (access type, person) pair in one
+  transaction; the new `POST /admin/governance/grants/revoke` removes many
+  grants with one reason, all or nothing.
+- **Where:** this pull request; `apps/api-py/app/mentor_functions.py`,
+  `apps/api-py/app/routers/admin_student_record.py`,
+  `apps/api-py/app/routers/governance.py`,
+  `apps/web/src/app/features/admin/governance/`,
+  `apps/web/src/app/layout/app-shell.component.ts`.
+- **Checked by:** `test_student_record_access.py::test_a_mentor_opens_their_own_mentees_record_and_nobody_elses`
+  and `tests/test_governance_bulk.py` (new); the governance, mentor-function,
+  record and 360 test modules; `governance.component.spec.ts`; `ng test`,
+  `ng build`, `tsc` and the four static web checks. End-to-end against a local
+  stack: TC-403 (the mentor opens the record from the Mentee Log), TC-424,
+  TC-530, TC-531 and the new TC-540.
+- **Status:** open PR into `dev` ([#189](https://github.com/darshani8/reep-/pull/189)).
+- **Left open:** approving and extending still go one grant per request,
+  because each can be refused on its own.
+
 ## 2026-10-16 — A USN typed in lower case was not matched against the roster
 
 - **Symptom:** found while fixing the entry below, then fixed at the owner's

@@ -319,6 +319,16 @@ const FACULTY_NAVIGATION: readonly NavigationGroup[] = [
         path: '/mentor/mentees',
         capability: 'mentor.mentees',
       },
+      // A faculty member holds `admin.student_records` by mentoring somebody
+      // (2026-10-16), so the list of the records they may open is one of
+      // their own rows, not "Granted access". It still needs the key: a
+      // faculty member with no mentees and no grant has nothing to list.
+      {
+        label: 'Student records',
+        icon: 'folder_open',
+        path: '/admin/student-records',
+        capability: 'admin.student_records',
+      },
       { label: 'Leave Requests', icon: 'event_available', path: '/mentor/leave' },
       {
         label: 'Skill Verifications',
@@ -566,7 +576,11 @@ export class AppShellComponent {
   private readonly grantedAdminScreens = computed<readonly NavigationItem[]>(() => {
     if (this.navKind() !== 'staff') return [];
     const held = this.session()?.capabilities ?? [];
+    // A screen already among the faculty's own rows (Student records) is not
+    // drawn twice.
+    const own = new Set(FACULTY_NAVIGATION.flatMap((group) => group.items.map((item) => item.path)));
     return GRANTABLE_ADMIN_SCREENS.filter((screen) => {
+      if (own.has(screen.path)) return false;
       const needed =
         typeof screen.capability === 'string' ? [screen.capability] : screen.capability;
       return needed.every((key) => held.includes(key));

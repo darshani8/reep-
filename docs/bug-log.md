@@ -94,7 +94,7 @@ Entry format:
   `ng build`, `tsc` and the four static web checks. End-to-end against a local
   stack: TC-403 (the mentor opens the record from the Mentee Log), TC-424,
   TC-530, TC-531 and the new TC-540.
-- **Status:** open PR into `dev`.
+- **Status:** open PR into `dev` ([#189](https://github.com/darshani8/reep-/pull/189)).
 - **Left open:** approving and extending still go one grant per request,
   because each can be refused on its own.
 

@@ -54,6 +54,57 @@ Entry format:
   [REEP-API-3](https://bgs-college-of-engineering-and.sentry.io/issues/REEP-API-3):
   the address bounced on 2026-10-07 and Amazon SES now delivers nothing to it.
   No code fix needed; the office can lift the block on `/admin/mail`.
+- **2026-10-16 — USNs on applications are compared case-sensitively.** The
+  roster stores USNs upper case (`seed_roster`, the Students editor), but
+  `POST /register` stores the USN as typed. So an applicant who types
+  `1mp25ba033` is not flagged against a student holding `1MP25BA033`, and
+  approving makes a second student with the same number in lower case. Not
+  seen in production. Fix if needed: upper-case the USN in `RegisterIn`, as
+  the new correction endpoint already does.
+
+## 2026-10-16 — An application whose USN another student held could only be rejected
+
+- **Symptom:** on New applications, pressing Approve on Prajwal Gowda Ic's
+  application (USN 1MP25BA033) showed "USN 1MP25BA033 already belongs to
+  another student. Correct the USN on this application, or reject it as a
+  duplicate". The panel said "Fix the application or reject it". Nothing on
+  the screen could correct a USN, and nothing said who held the number.
+- **Cause:** `_provision_student` in `app/routers/registration.py` refuses a
+  USN another student holds (GUARD 3, correct: `students.usn` is unique). But
+  the API had no way to edit an application, so the refusal's advice pointed
+  at a control that did not exist. The checklist line (`_checks_for_one`)
+  named nobody, so the reviewer could not tell a typo from the same person
+  applying under a second address, or from another record holding the wrong
+  number.
+- **Evidence:** the screenshot from the office. Reproduced locally with a
+  student holding 1MP25BA033 and a pending application carrying it.
+- **Fix:** `PATCH /api/register/{id}` corrects the USN on an application that
+  is pending or on hold. It is upper-cased, audited (`CORRECTED`, before and
+  after) and refused (409) if another student holds the new number, and it
+  answers the row with its checklist recomputed. For a programme-wide reviewer
+  the clash line now names the holder ("… already belongs to Prajwal G
+  (1mp25ba033@bgscet.ac.in)") and carries `student_id`. The panel draws
+  "Open their record" for a session that holds `admin.student_records`. A
+  scoped reviewer is still told only that the USN is taken. The panel's USN
+  row has a "Correct USN" button. The 409 from Approve still names nobody,
+  because `_apply_rule` copies it into the applicant's public
+  `decision_reason`.
+- **Where:** `app/routers/registration.py`,
+  `features/admin/registrations/` (component, template, styles, spec).
+- **Checked by:** `tests/test_registration_usn_correction.py` (12 tests,
+  which fail without the fix), the whole `tests/test_registration_*.py`
+  suite, `test_codebase_guards.py` and `test_phase3_compatibility.py` (203
+  passed), the registrations spec (4 tests) and the full `ng test` (269
+  passed), `ng build`, and the four web static checks. Also walked in a
+  browser against a local stack: the clash line named the holder, a taken
+  USN was refused under the box, and a free one turned the line green.
+- **Status:** open PR.
+- **Left open:** what to do when the holder IS the applicant under another
+  address is still the reviewer's call: reject as a duplicate, or change that
+  record's address on Students to the applicant's and approve, which then
+  reuses the record. There is no one-step "approve onto that record". It would
+  attach an existing student's marks to a new address on a reviewer's click,
+  and that needs the owner's decision. The case-sensitivity gap is under Open.
 
 ## 2026-10-15 — The redesigned student page lost two panels, and "Full record" could lead to a refusal
 

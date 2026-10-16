@@ -472,3 +472,36 @@ def test_a_grant_scoped_to_one_student_reaches_nobody_else(client, pair, make_us
         json={"decision": "VERIFY"},
     )
     assert r.status_code == 404
+
+
+@requires_db
+def test_a_mail_failure_never_fails_a_saved_claim_or_decision(client, pair, monkeypatch, caplog):
+    """The claim and the decision are committed BEFORE the mail is tried, so a
+    database error while finding who to mail must not turn a saved claim into
+    a 500 the student retries. The log line names the error's class and never
+    its message, which on this path carries addresses."""
+    from sqlalchemy.exc import OperationalError
+
+    monkeypatch.setattr(settings, "badge_mail_enabled", "true")
+    verifier, student = pair
+
+    def broken(*_args, **_kwargs):
+        raise OperationalError("SELECT users", {"email": "leak@example.com"}, Exception("boom"))
+
+    monkeypatch.setattr(badge_mail, "verifiers_for", broken)
+    with caplog.at_level("WARNING", logger="app.badge_mail"):
+        filed = _file_claim(client, student)  # asserts the 201 itself
+    assert list(mail_transport.outbox) == []
+    assert "OperationalError" in caplog.text
+    assert "leak@example.com" not in caplog.text and "boom" not in caplog.text
+
+    row = _queue_row(client, verifier, filed["upload_id"])
+    monkeypatch.setattr(badge_mail, "_student_account", broken)
+    r = client.post(
+        f"/api/mentor/badge-evidence/{row['id']}/review",
+        headers=verifier.headers,
+        json={"decision": "APPROVE"},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "APPROVED"
+    assert list(mail_transport.outbox) == []

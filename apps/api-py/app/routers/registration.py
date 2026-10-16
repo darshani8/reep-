@@ -172,7 +172,10 @@ def validate_usn_pattern(pattern: str) -> re.Pattern[str]:
             "catastrophic-backtracking risk on the public registration endpoint"
         )
     try:
-        return re.compile(pattern)
+        # IGNORECASE (2026-10-16): `RegisterIn` upper-cases every USN now, so a
+        # rule written in lower case (`^1mp25`) would otherwise match nobody
+        # and send every applicant it was meant for to manual review, silently.
+        return re.compile(pattern, re.IGNORECASE)
     except re.error as exc:
         raise ValueError(f"usn_pattern is not a valid regular expression: {exc}") from exc
 

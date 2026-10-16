@@ -77,11 +77,16 @@ Entry format:
   record. One side effect: a rule's USN pattern now sees the upper-case USN,
   so an applicant who typed lower case can now match an upper-case pattern
   (and be auto-approved by it), where before they went to manual review.
+  Rule patterns are also compiled case-insensitively now
+  (`validate_usn_pattern`), because a rule written in lower case (`^1mp25`)
+  would otherwise match nobody once every USN is upper case. The PR's
+  automated review found that.
 - **Where:** `app/usn.py`, `app/routers/registration.py`,
   `app/routers/admin_students.py`, `app/grant_access.py`, `app/seed_roster.py`.
 - **Checked by:** six new tests in
   `tests/test_registration_usn_correction.py` (the five that touch the
-  database fail on the old code). Every test module that touches
+  database fail on the old code) and
+  `tests/test_registration_rules.py::test_usn_pattern_ignores_case`. Every test module that touches
   registration, the Students editor, `grant_access` or `seed_roster` passes
   (42 modules, 567 tests).
 - **Status:** open PR, the same one as the entry below.

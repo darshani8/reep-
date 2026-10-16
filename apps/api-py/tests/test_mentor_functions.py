@@ -2,11 +2,13 @@
 
 `ROLE_BASELINE["MENTOR"]` handed every faculty account every SCOPED capability,
 so "is this person staff" and "may this person read a mentee's ledger" were one
-question. The four that belong to a mentor GROUP are derived from the mentee
-count now; the two that belong to the PERSON stay in the baseline.
+question. The ones that belong to a mentor GROUP are derived from the mentee
+count now; the two that belong to the PERSON stay in the baseline. There were
+four; leave approval left on 2026-09-16 and evidence verification on
+2026-10-16, both to become grants the office makes about a named person.
 
-The guard the spec asks for is the first test: no mentees, none of the four;
-with a mentee, all four. The rest hold down the things that would make that
+The guard the spec asks for is the first test: no mentees, none of them;
+with a mentee, all of them. The rest hold down the things that would make that
 true in the test and false in production.
 """
 
@@ -46,16 +48,23 @@ def test_the_two_that_belong_to_the_person_stay_in_the_baseline():
     assert MENTOR_FUNCTIONS.isdisjoint(ROLE_BASELINE["MENTOR"])
 
 
-def test_the_three_functions_are_the_ones_that_need_a_mentee():
+def test_the_two_functions_are_the_ones_that_need_a_mentee():
     """Each is about somebody else's record: the log of them, the notebook
-    about them, their evidence. Leave approval WAS the fourth until 2026-09-16
-    and is the Main Admin's alone now — not a function, not a capability."""
-    assert MENTOR_FUNCTIONS == {
-        "mentor.mentees",
-        "mentor.notebook",
-        "mentor.verifications",
-    }
+    about them. Leave approval WAS the fourth until 2026-09-16 and is the Main
+    Admin's alone now — not a function, not a capability."""
+    assert MENTOR_FUNCTIONS == {"mentor.mentees", "mentor.notebook"}
     assert "mentor.leave_approve" not in MENTOR_FUNCTIONS
+
+
+def test_skill_verification_does_not_come_with_mentoring():
+    """The owner's decision of 2026-10-16: "remove skill verification from
+    all mentors". `mentor.verifications` is held only as a grant the office
+    makes in Who can do what (app/verifiers.py). Put it back in the derived
+    set and every mentor on the deployment verifies their group's skills
+    again, silently, on deploy."""
+    assert "mentor.verifications" not in DERIVED_FROM_MENTEES
+    assert "mentor.verifications" not in ROLE_BASELINE["MENTOR"]
+    assert "mentor.verifications" not in ROLE_BASELINE["ADMIN"]
 
 
 @pytest.fixture
@@ -125,7 +134,7 @@ def _attach(db, made, attached: bool) -> None:
 
 
 @requires_db
-def test_a_mentors_row_alone_brings_none_of_the_four(faculty_with_optional_mentee):
+def test_a_mentors_row_alone_brings_none_of_them(faculty_with_optional_mentee):
     """THE GUARD B2.3 ASKS FOR, first half.
 
     The account has a `mentors` row and no mentees — the state every faculty
@@ -143,8 +152,9 @@ def test_a_mentors_row_alone_brings_none_of_the_four(faculty_with_optional_mente
 
 
 @requires_db
-def test_one_mentee_brings_all_three(faculty_with_optional_mentee):
-    """THE GUARD B2.3 ASKS FOR, second half."""
+def test_one_mentee_brings_all_of_them_and_no_verification(faculty_with_optional_mentee):
+    """THE GUARD B2.3 ASKS FOR, second half -- and, since 2026-10-16, the
+    mentee does NOT bring skill verification."""
     made = faculty_with_optional_mentee
     with SessionLocal() as db:
         _attach(db, made, True)
@@ -152,6 +162,7 @@ def test_one_mentee_brings_all_three(faculty_with_optional_mentee):
         assert mentor_functions_for(db, made["faculty"]) == DERIVED_FROM_MENTEES
         held = capabilities_for(db, {"userId": made["faculty"], "role": "MENTOR"})
         assert DERIVED_FROM_MENTEES <= held
+        assert "mentor.verifications" not in held
 
 
 def test_a_mentee_brings_the_read_of_their_record_and_nothing_else():
@@ -210,7 +221,7 @@ def test_a_deliberate_grant_still_works_and_is_additive(faculty_with_optional_me
         db.commit()
         held = capabilities_for(db, {"userId": made["faculty"], "role": "MENTOR"})
     assert "mentor.mentees" in held, "a deliberate grant was lost"
-    assert "mentor.notebook" not in held, "a grant for one key handed over the other three"
+    assert "mentor.notebook" not in held, "a grant for one key handed over another"
 
 
 @requires_db

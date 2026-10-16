@@ -257,10 +257,12 @@ export const routes: Routes = [
           ),
       },
       // The skill-claim review queue: the ONLY route by which a skill becomes
-      // verified, and mentor-scoped on the server as well as here.
+      // verified. Since 2026-10-16 it is reached through a grant of "Verify
+      // skills & evidence" and never by mentoring, so the guard reads the
+      // capability as the sidebar row does; the API refuses either way.
       {
         path: 'mentor/verifications',
-        canActivate: [roleGuard('MENTOR', 'ADMIN')],
+        canActivate: [roleGuard('MENTOR', 'ADMIN'), capabilityGuard('mentor.verifications')],
         loadComponent: () =>
           import('./features/mentor/verifications/verifications.component').then(
             (m) => m.MentorVerificationsComponent,

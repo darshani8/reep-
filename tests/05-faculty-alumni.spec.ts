@@ -794,7 +794,7 @@ test.describe('Faculty and alumni', () => {
 
   // ----------------------------------------------------- verifications --
 
-  test("Verifications lists the mentees' pending skill claims and documents @TC-407", async ({
+  test('Verifications lists the pending skill claims and documents the faculty member may verify @TC-407', async ({
     page,
     signIn,
   }) => {

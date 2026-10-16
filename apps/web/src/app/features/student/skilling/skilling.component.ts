@@ -26,7 +26,7 @@
  * badge from a category the student is no longer looking at.
  *
  * The claim form does NOT ask for a level or an evidence type. The student
- * asserts the certificate; the mentor judges it on review.
+ * asserts the certificate; a faculty reviewer judges it on review.
  */
 
 import { Component, ErrorHandler, computed, inject, signal } from '@angular/core';
@@ -77,11 +77,11 @@ interface BoardBadge {
   code: string;
   name: string;
   /** Held EARNED — the pill glows, carries the blue verified tick, and nothing
-   *  can dim it. The tick is the mentor's approval and appears on no other
+   *  can dim it. The tick is the reviewer's approval and appears on no other
    *  state: an unclaimed badge is unmarked, a claim in review is marked as
    *  waiting, a tapped preview lights the tile but never wears the tick. */
   acquired: boolean;
-  /** A claim is with the mentor: the tile says so rather than reading as
+  /** A claim is waiting for review: the tile says so rather than reading as
    *  unclaimed, because the student filed it and is waiting on somebody. */
   pending: boolean;
   /** Tapped for a preview of the earned state; purely visual, never stored. */
@@ -116,13 +116,13 @@ function openClaimChip(status: string): Omit<OpenClaim, 'id' | 'badgeName' | 're
   if (status === 'REJECTED')
     return { chipClass: 'risk', chipIcon: 'cancel', chipLabel: 'Not verified' };
   if (status === 'PENDING_VERIFICATION')
-    return { chipClass: 'warn', chipIcon: 'schedule', chipLabel: 'With your mentor' };
+    return { chipClass: 'warn', chipIcon: 'schedule', chipLabel: 'Waiting for review' };
   return null; // APPROVED needs no row — the badge on the board is already lit.
 }
 
 const STATUS_HINT: Record<string, string> = {
   EARNED: 'Verified and acquired',
-  VERIFICATION_PENDING: 'Verification pending — with your mentor',
+  VERIFICATION_PENDING: 'Verification pending — waiting for review',
   IN_PROGRESS: 'In progress — not yet verified',
   NOT_STARTED: 'Available — claim it with a certificate',
 };

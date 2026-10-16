@@ -107,12 +107,12 @@ ROLE_BASELINE: Final[dict[str, frozenset[str]]] = {
     # person read a mentee's ledger" were one question with one answer.
     #
     # What is left is what belongs to the PERSON: the assistant, and their own
-    # certificate shelf. The four that belong to a GROUP — the mentee log, the
-    # notebook, evidence verification and leave approval — arrive as derived
-    # grants when they are assigned their first student and go when their last
-    # one is released (app/mentor_functions.py). Every one of those four already
-    # refused a faculty member with no mentees at the endpoint; now Governance
-    # says so too, which is where the office looks to answer "who can see what".
+    # certificate shelf. The two that belong to a GROUP — the mentee log and
+    # the notebook — arrive as derived functions when they are assigned their
+    # first student and go when their last one is released
+    # (app/mentor_functions.py). Leave approval left that list on 2026-09-16
+    # and evidence verification on 2026-10-16: both are now decisions the
+    # office makes about a named person, as grants (app/verifiers.py).
     #
     # The ten `student.*` keys left with them. They gate nothing anywhere —
     # B2.1 deletes them from the catalogue — and no client reads one, so this

@@ -150,11 +150,10 @@ def test_reject_and_more_info_mint_nothing(client, make_user, granted):
 @requires_db
 def test_groupless_mentor_sees_no_queue_and_students_see_no_admin(client, make_user):
     mentor = make_user("bdg-scope", Role.MENTOR)  # no Mentor row => no group
-    # 403 since B2.3, where it was `200 []`. A faculty account with no mentees
-    # does not hold `mentor.verifications` at all now — it is derived from the
-    # mentee count, not carried by the role — so the capability gate refuses
-    # before the queue is narrowed. The property is the same and the reason is
-    # now true on screen: they see no queue because they mentor nobody.
+    # 403 since B2.3, where it was `200 []`. A faculty account holds
+    # `mentor.verifications` only as a grant from the office (2026-10-16; it
+    # was derived from mentoring until then), so the capability gate refuses
+    # before the queue is narrowed.
     assert client.get("/api/mentor/badge-evidence/pending", headers=mentor.headers).status_code == 403
 
     student = make_user("bdg-scope-stud", Role.STUDENT)
@@ -191,8 +190,8 @@ def test_a_granted_verifier_reviews_students_they_do_not_mentor(client, make_use
     member GRANTED "Verify skills & evidence" now sees and decides every student
     the grant covers — with no Mentor group at all — through the queue, the
     reviewed strip and the review endpoint alike. Without the grant the same
-    account is refused, and the mentoring-only path is unchanged
-    (test_scoped_lists.py::test_a_faculty_approver_keeps_their_queue).
+    account is refused. Since 2026-10-16 the grant is the only path: mentoring
+    brings none (test_a_mentor_without_the_grant_cannot_decide_any_student).
     """
     student = make_user("bdg-unmentored", Role.STUDENT)  # nobody mentors them
     verifier = make_user("bdg-granted-fac", Role.MENTOR)  # mentors nobody
@@ -233,13 +232,13 @@ def test_a_granted_verifier_reviews_students_they_do_not_mentor(client, make_use
 
 
 @requires_db
-def test_a_mentor_without_the_grant_cannot_decide_someone_elses_student(
-    client, make_user, login
-):
-    """The second door is the GRANT, not the role: a faculty member who mentors
-    somebody else, holding `mentor.verifications` only as that mentoring
-    function, still cannot see or decide this student's evidence — the same
-    flattened 404 as a wrong id."""
+def test_a_mentor_without_the_grant_cannot_decide_any_student(client, make_user, login):
+    """The GRANT is the only door, and mentoring is not one (2026-10-16, the
+    owner's decision). A faculty member who mentors somebody but holds no
+    grant is refused the queue at the capability gate -- for their OWN mentee's
+    claim as much as for a stranger's -- and a decision by id is refused too.
+    Until this date they held `mentor.verifications` as a function of
+    mentoring and decided their own group's claims."""
     student = make_user("bdg-not-yours", Role.STUDENT)
     granted_admin = make_user("bdg-not-yours-adm", Role.ADMIN)
     _grant_row(granted_admin.user_id, "mentor.verifications")
@@ -253,27 +252,22 @@ def test_a_mentor_without_the_grant_cannot_decide_someone_elses_student(
         db.commit()
     headers = login(faculty.email, TEST_PASSWORD)  # mentorId is minted at login
 
-    client.post(
-        "/api/student/badges/MGR-LEADERSHIP/evidence",
-        headers=student.headers,
-        json={"evidence_type": "APPLIED", "title": "Not your mentee's leadership"},
-    )
-    ev = next(
-        q
-        for q in client.get(
-            "/api/mentor/badge-evidence/pending", headers=granted_admin.headers
-        ).json()
-        if q["title"] == "Not your mentee's leadership"
-    )
-    own = client.get("/api/mentor/badge-evidence/pending", headers=headers)
-    assert own.status_code == 200, own.text
-    assert ev["id"] not in {q["id"] for q in own.json()}
-    r = client.post(
-        f"/api/mentor/badge-evidence/{ev['id']}/review",
-        headers=headers,
-        json={"decision": "APPROVE"},
-    )
-    assert r.status_code == 404
+    for who, title in ((student, "Not your mentee's leadership"), (mentee, "Your mentee's leadership")):
+        client.post(
+            "/api/student/badges/MGR-LEADERSHIP/evidence",
+            headers=who.headers,
+            json={"evidence_type": "APPLIED", "title": title},
+        )
+    queue = client.get("/api/mentor/badge-evidence/pending", headers=granted_admin.headers).json()
+    for title in ("Not your mentee's leadership", "Your mentee's leadership"):
+        ev = next(q for q in queue if q["title"] == title)
+        r = client.post(
+            f"/api/mentor/badge-evidence/{ev['id']}/review",
+            headers=headers,
+            json={"decision": "APPROVE"},
+        )
+        assert r.status_code == 403, (title, r.text)
+    assert client.get("/api/mentor/badge-evidence/pending", headers=headers).status_code == 403
 
 
 @requires_db

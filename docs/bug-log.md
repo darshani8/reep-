@@ -55,6 +55,95 @@ Entry format:
   the address bounced on 2026-10-07 and Amazon SES now delivers nothing to it.
   No code fix needed; the office can lift the block on `/admin/mail`.
 
+## 2026-10-16 — The daily drift check never compared AWS with its templates
+
+- **Symptom:** issue [#117](https://github.com/darshani8/reep-/issues/117)
+  reopened every morning since 2026-09-30: `detect-stack-drift` "could not
+  start" on `reep-core` and `reep-voice-platform`, so a change made by hand in
+  AWS would have gone unreported.
+- **Cause:** CloudFormation reads every resource with the caller's
+  credentials. `infra-drift.yml` ran the check as `reep-github-deploy`, which
+  was refused CloudFormation and account-wide read rights on purpose (it ships
+  code), and no other role existed.
+- **Evidence:** every run of `infra-drift.yml` since 2026-09-30 (the comments
+  on #117 and #118).
+- **Fix:** a separate role, `reep-github-drift` (`GithubDriftRole` in
+  `infra/cdk/reep_core/stack.py`, harden only, OIDC pinned to `main`). It may
+  run the five drift calls on the two stacks and read each resource type's
+  configuration with the permissions copied from the CloudFormation schema
+  (`reep_core/drift_reader.py`). Object bodies, table items, secrets,
+  decryption and log lines are explicitly denied. The workflow assumes it for
+  the drift step only, reports "could not assume" as a blocked check until the
+  role exists, and prints CloudFormation's reason when a detection fails.
+- **Where:** this pull request; `infra/cdk/reep_core/drift_reader.py`,
+  `infra/cdk/reep_core/stack.py`, `.github/workflows/infra-drift.yml`.
+- **Checked by:** `test_every_resource_type_the_drift_check_reads_is_classified`,
+  `test_the_drift_role_reads_configuration_and_never_data`,
+  `test_the_drift_role_is_harden_only_and_a_failed_create_leaves_nothing`
+  (each fails when its table entry, data deny or cdk.json key is removed);
+  every action checked against AWS's service reference as a non-write; the
+  workflow step run against a stubbed `aws` CLI for the blocked and the
+  DETECTION_FAILED paths; CDK suite 148 passed, 22 skipped.
+- **Status:** open PR. Needs a `reep-core` deploy (CDK deploy, a `core-*`
+  option) before the role exists; #117 closes itself on the first run where
+  every check completes.
+- **Left open:** `reep-edge-waf` and `reep-dr-vault` are diffed but still not
+  drift-checked; they live in other regions.
+
+## 2026-10-16 — Every reep-core deploy would rebuild the NAT instance
+
+- **Symptom:** issue [#118](https://github.com/darshani8/reep-/issues/118):
+  on 2026-10-14 and 2026-10-15 the daily `cdk diff` showed `NatInstance
+  replace` (ImageId `ami-0cf36b0c962e50fd7` to a newer AL2023 image) and a
+  re-pointed `PrivateDefaultRoute`, with nothing merged that touched the NAT.
+  The same report printed its spend table as "Amazon 0.00" on every line.
+- **Cause:** `reep_core/stack.py` resolved the NAT AMI from AWS's public
+  `ami-amazon-linux-latest` SSM parameter at deploy time. That parameter moves
+  whenever AWS ships an image, and `ImageId` is a replacement property, so any
+  `reep-core` deploy would rebuild the NAT box: egress lost during the swap,
+  the user data run on an image nobody had tried, and the old instance left
+  running behind `UpdateReplacePolicy: Retain`. The spend table split the CLI's
+  tab-separated output on spaces, and service names contain spaces. The CDK
+  jobs ran on Node 20, which jsii flags as end-of-life.
+- **Evidence:** the 2026-10-14 and 2026-10-15 comments on #118.
+- **Fix:** `natAmiId` in `infra/cdk/cdk.json` pins the AMI the live instance
+  runs, with the parameter kept only as a fallback for a fresh account; the
+  spend table splits on tabs; `infra-drift.yml`, `cdk-deploy.yml` and the CI
+  `cdk` job use Node 22.
+- **Where:** this pull request; `infra/cdk/cdk.json`,
+  `infra/cdk/reep_core/stack.py`, the three workflows.
+- **Checked by:** `test_cdk_json_pins_the_nat_ami_the_deployment_is_actually_running`
+  (fails without the cdk.json key), `test_a_malformed_nat_ami_is_refused`,
+  `test_without_a_pin_the_nat_ami_still_resolves`; a synth with the real
+  context changes only the NAT `ImageId` (to the value already deployed), the
+  four deletion policies below and the new drift role.
+- **Status:** open PR. The first `cdk diff` after merge should show
+  `NatInstance` unchanged; if it shows `replace`, the pin is wrong and must
+  not be deployed.
+- **Left open:** the tag-only difference on the API scaling target that #118
+  also reported clears with the next `reep-core` deploy; nothing in the
+  repository is wrong there.
+
+## 2026-10-16 — A rolled-back NAT create blocked the retry
+
+- **Symptom:** issue [#124](https://github.com/darshani8/reep-/issues/124):
+  on 2026-10-03 `core-nat-instance` was refused at change-set validation
+  because the IAM role and instance profile `reep-nat-instance` "already
+  exist".
+- **Cause:** every resource in `reep-core` is `DeletionPolicy: Retain`, so the
+  morning's failed create kept the instance, its security group, role and
+  profile, and the fixed names collided. They were deleted by hand that day
+  and the swap finished (`docs/cost-review-2026-09.md`); nothing stopped it
+  happening again.
+- **Fix:** the four NAT resources and the new drift role are
+  `RetainExceptOnCreate`: a create that rolls back is deleted, and a box that
+  was running is still only ever forgotten.
+- **Where:** this pull request; `infra/cdk/reep_core/stack.py`.
+- **Checked by:** `test_a_failed_nat_create_leaves_nothing_to_collide_with`;
+  `test_nothing_in_the_stack_deletes_on_removal` still passes.
+- **Status:** open PR; the policy change rides the next `reep-core` deploy and
+  touches no resource.
+
 ## 2026-10-16 — Known vulnerabilities in PyJWT, pypdf and the web build
 
 - **Symptom:** the weekly maintenance issue

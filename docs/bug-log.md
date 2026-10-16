@@ -82,7 +82,8 @@ Entry format:
   review" instead of "your mentor". The dev seed grants Test Mentor the key for
   the seeded college. Rule 2 is unchanged for everything else (notes, the
   notebook, the Mentee Log, the 360 read).
-- **Where:** this pull request; `app/verifiers.py`, `app/mentor_functions.py`,
+- **Where:** [PR #200](https://github.com/darshani8/reep-/pull/200);
+  `app/verifiers.py`, `app/mentor_functions.py`,
   `app/routers/badge_verification.py`, `app/routers/mentor.py`,
   `app/badge_mail.py`, `app/seed.py`, `apps/web/src/app/app.routes.ts`,
   `features/student/skilling`, `features/mentor/verifications`.
@@ -90,8 +91,10 @@ Entry format:
   refused at every door and gets no email; a granted faculty member who
   mentors nobody verifies claims and documents; a grant for one student reaches
   no other), `test_mentor_functions.py`, `test_scoped_lists.py`,
-  `test_badges.py`, `test_governance.py`, `test_skill_verification.py`, the
-  full backend suite, and `ng build`.
+  `test_badges.py`, `test_governance.py`, `test_skill_verification.py`; four of
+  the new tests fail on the old code. Also the full backend suite (2,075
+  tests), the front-end unit tests, `ng build`, and the end-to-end cases
+  TC-210 to 214, all of module 05 and TC-530 to 549 against a live app.
 - **Status:** open PR, 2026-10-16.
 - **Left open:** once deployed, nobody on production verifies until the office
   grants "Verify skills & evidence" in Who can do what; pending claims and

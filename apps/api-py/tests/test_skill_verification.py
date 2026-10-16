@@ -1,4 +1,10 @@
-"""Student -> mentor skill verification: the decision, and what it tells people.
+"""Student -> reviewer skill verification: the decision, and what it tells people.
+
+The reviewer here is the student's mentor AND holds a "Verify skills &
+evidence" grant reaching the student: since 2026-10-16 the grant is what lets
+them decide (app/verifiers.py), and mentoring alone opens none of these
+endpoints. test_skill_claim_flow.py pins that the mentor without the grant is
+refused.
 
 Three rules are pinned here, and each exists because breaking it is SILENT — the
 endpoint still returns 200, the screen still renders, and the damage shows up as
@@ -12,7 +18,7 @@ a student who does not know what to do next, or a resume that overstates.
     rejection a student cannot act on is indistinguishable, from their side,
     from a bug.
   * A generated resume lists VERIFIED skills only. An unverified StudentSkill is
-    a claim still with a mentor; printing it under Skills presents work in
+    a claim still in review; printing it under Skills presents work in
     review as work confirmed, which is the thing this whole flow exists to
     prevent.
 
@@ -28,6 +34,7 @@ import pytest
 from conftest import TEST_PASSWORD, requires_db
 
 from app.db import SessionLocal
+from app.models.governance import CapabilityGrant, ScopeLevel, SubjectKind
 from app.models.skill import Skill, SkillClaim, StudentSkill
 from app.models.upload import Upload
 from app.models.user import Mentor, Role, Student
@@ -38,7 +45,9 @@ _PDF = b"%PDF-1.4\n%%EOF\n"
 
 @pytest.fixture
 def pair(client, make_user):
-    """A MENTOR with a real Mentor row, and a student assigned to them.
+    """A MENTOR with a real Mentor row, a student assigned to them, and the
+    verification grant for that student (`make_user`'s teardown deletes grants
+    by subject).
 
     A FIXTURE RATHER THAN A HELPER, for teardown ordering. `make_user` deletes
     its users when it finalises, and the Mentor row added here references one of
@@ -61,6 +70,16 @@ def pair(client, make_user):
         db.flush()
         student_row = db.query(Student).filter(Student.user_id == student.user_id).one()
         student_row.mentor_id = mentor.id
+        db.add(
+            CapabilityGrant(
+                capability="mentor.verifications",
+                subject_kind=SubjectKind.USER,
+                subject_user_id=mentor_user.user_id,
+                scope_level=ScopeLevel.STUDENT,
+                scope_id=student_row.id,
+                reason="skill verification tests: the reviewer the office chose",
+            )
+        )
         db.commit()
         mentor_id, student_id = mentor.id, student_row.id
 
@@ -219,8 +238,8 @@ def test_generated_resume_lists_verified_skills_only(client, pair):
 def test_recently_reviewed_is_scoped_and_carries_the_decision(client, pair, make_user):
     """The queue's history strip: a decided claim leaves the pending list and
     appears under Recently reviewed WITH the note the student was given — and
-    under the same rule-2 scope as the queue, so a mentor with no group reads an
-    empty history rather than the programme's."""
+    under the same scope as the queue, so a faculty member with no grant is
+    refused the history rather than reading the programme's."""
     skill_id, skill_name = new_skill(pair, "history")
     claim = file_a_claim(client, pair.student, skill_id)
 
@@ -261,10 +280,12 @@ def test_recently_reviewed_is_scoped_and_carries_the_decision(client, pair, make
         "/api/mentor/skill-claims/reviewed?limit=0", headers=pair.mentor_headers
     ).status_code == 422
 
-    # Rule 2: a MENTOR with no group sees NOBODY's history, and a student none at all.
+    # A faculty member with no grant sees NOBODY's history (refused at the
+    # capability gate since 2026-10-16, where it was an empty list), and a
+    # student none at all.
     loner = make_user("sv-loner", Role.MENTOR)
     r = client.get("/api/mentor/skill-claims/reviewed", headers=loner.headers)
-    assert r.status_code == 200 and r.json() == []
+    assert r.status_code == 403
     r = client.get("/api/mentor/skill-claims/reviewed", headers=pair.student.headers)
     assert r.status_code == 403
 

@@ -26,6 +26,13 @@ from ..models.skill import Skill, SkillClaim, StudentSkill
 from ..models.upload import Upload, UploadStatus
 from ..models.user import Student, User
 from ..policies import assert_student_scope
+from ..verifiers import (
+    VERIFY_CAPABILITY,
+    assert_can_verify,
+    can_verify,
+    narrow_to_reach,
+    verification_reach,
+)
 
 router = APIRouter(prefix="/mentor", tags=["mentor"])
 
@@ -606,10 +613,22 @@ def _upload_out(u: Upload, student_name: str) -> UploadOut:
 
 @router.get("/uploads/pending", response_model=list[UploadOut])
 def pending_uploads(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+    response: Response,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
 ) -> list[UploadOut]:
     """Documents awaiting review — profile photos, certificate proofs, offer
-    letters — scoped to the mentor's own group (the Main Admin sees all).
+    letters — for the faculty the office chose to verify, narrowed to their
+    grant's reach.
+
+    THE SAME DOOR AS THE SKILL-CLAIM QUEUE (2026-10-16). This list is the
+    Documents half of the Skill Verifications screen, so it follows the same
+    rule: a grant of "Verify skills & evidence" (app/verifiers.py), never
+    mentoring. It used to be the mentor's own group and, for the Main Admin,
+    every pending file on the deployment with no grant at all; a screen whose
+    two halves answered to different rules would have shown a granted
+    verifier an always-empty Documents list and left every mentor a
+    verification door with no screen in front of it.
 
     A CERTIFICATE THAT BACKS A PENDING BADGE CLAIM IS NOT LISTED HERE
     (2026-09-17). The Skilling claim form stores the certificate through
@@ -623,21 +642,20 @@ def pending_uploads(
     exactly as before.
     """
     require_mentor(session)
+    require_capability(db, session, VERIFY_CAPABILITY)
     claimed = select(BadgeEvidence.upload_id).where(
         BadgeEvidence.status == EvidenceStatus.PENDING_VERIFICATION,
         BadgeEvidence.upload_id.is_not(None),
     )
-    query = (
+    query = narrow_to_reach(
         select(Upload, User.name)
         .join(Student, Upload.student_id == Student.id)
         .join(User, Student.user_id == User.id)
-        .where(Upload.status == UploadStatus.PENDING_REVIEW, Upload.id.not_in(claimed))
+        .where(Upload.status == UploadStatus.PENDING_REVIEW, Upload.id.not_in(claimed)),
+        verification_reach(db, session, response),
     )
-    if session["role"] == "MENTOR":
-        mentor_id = session.get("mentorId")
-        if not mentor_id:
-            return []  # no Mentor group => nobody (never the whole programme)
-        query = query.where(Student.mentor_id == mentor_id)
+    if query is None:
+        return []  # a grant whose reach is nothing (never the whole programme)
     rows = db.execute(query.order_by(Upload.uploaded_at)).all()
     return [_upload_out(u, name) for u, name in rows]
 
@@ -654,13 +672,15 @@ def review_upload(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> UploadOut:
-    """Verify or reject a submitted document. Scope-checked: a MENTOR can only
-    touch an upload from a student in their own group."""
+    """Verify or reject a submitted document. Only by a holder of the
+    verification grant whose reach covers the student (app/verifiers.py) --
+    the same door as the list above, and as a skill claim's decision."""
     require_mentor(session)
+    require_capability(db, session, VERIFY_CAPABILITY)
     up = db.get(Upload, upload_id)
     if up is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Upload not found.")
-    _assert_can_access_student(session, up.student_id, db)
+    assert_can_verify(db, session, up.student_id, detail="Upload not found.")
     if up.status != UploadStatus.PENDING_REVIEW:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Only a pending upload can be reviewed."
@@ -735,13 +755,20 @@ def _claim_out(
     )
 
 
-def _claim_query(session: dict):
+def _claim_query(db: Session, session: dict, response: Response | None = None):
     """The claim rows a staff member may see, with the names the card needs.
 
-    Rule 2 applied IN SQL: a MENTOR is narrowed to their own group and a MENTOR
-    with no group gets a query that can match nothing (`None` here, `[]` at the
-    call sites). the Main Admin read the whole programme. Shared by the pending
-    queue and the reviewed history so the two lists cannot disagree about scope.
+    Narrowed IN SQL to the verification grant's reach (app/verifiers.py), or
+    None for a reach of nothing (`[]` at the call sites). Shared by the pending
+    queue and the reviewed history so the two lists cannot disagree about
+    scope.
+
+    THE LEGACY QUEUE FOLLOWS THE GRANT TOO (2026-10-16). No screen reads it --
+    the Skilling claim form files `badge_evidence` now -- but its review still
+    marks a `student_skills` row verified, which is what the resume prints under
+    "Verified Skills". Left on rule 2 it would have been the one way a mentor
+    could still verify a skill after the owner took verification from every
+    mentor, so it answers to the same grant as every other verification door.
     """
     query = (
         select(SkillClaim, User.name, Skill.name, Upload)
@@ -750,21 +777,19 @@ def _claim_query(session: dict):
         .join(Skill, SkillClaim.skill_id == Skill.id)
         .outerjoin(Upload, SkillClaim.upload_id == Upload.id)
     )
-    if session["role"] == "MENTOR":
-        mentor_id = session.get("mentorId")
-        if not mentor_id:
-            return None
-        query = query.where(Student.mentor_id == mentor_id)
-    return query
+    return narrow_to_reach(query, verification_reach(db, session, response))
 
 
 @router.get("/skill-claims/pending", response_model=list[SkillClaimReviewOut])
 def pending_skill_claims(
-    session: dict = Depends(get_current_session), db: Session = Depends(get_db)
+    response: Response,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
 ) -> list[SkillClaimReviewOut]:
-    """Skill claims awaiting review, scoped to the mentor's group."""
+    """Skill claims awaiting review, narrowed to the verification grant."""
     require_mentor(session)
-    query = _claim_query(session)
+    require_capability(db, session, VERIFY_CAPABILITY)
+    query = _claim_query(db, session, response)
     if query is None:
         return []
     rows = db.execute(
@@ -777,6 +802,7 @@ def pending_skill_claims(
 
 @router.get("/skill-claims/reviewed", response_model=list[SkillClaimReviewOut])
 def reviewed_skill_claims(
+    response: Response,
     limit: int = Query(default=10, ge=1, le=50),
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
@@ -790,7 +816,8 @@ def reviewed_skill_claims(
     was given — the two things a mentor asks "did I really say that?" about.
     """
     require_mentor(session)
-    query = _claim_query(session)
+    require_capability(db, session, VERIFY_CAPABILITY)
+    query = _claim_query(db, session, response)
     if query is None:
         return []
     rows = db.execute(
@@ -816,13 +843,20 @@ def download_student_upload(
 
     Scoped by `_assert_can_access_student`, the same gate every other mentor
     read goes through, so a mentor still cannot reach a student outside their
-    group.
+    group. ONE MORE READ-ONLY DOOR (2026-10-16): a holder of the verification
+    grant whose reach covers the student, because the Documents queue on the
+    Skill Verifications screen opens its files here and a verifier the office
+    chose need not mentor anybody. Read-only, so it widens no write.
     """
     require_mentor(session)
     upload = db.get(Upload, upload_id)
     if upload is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Upload not found.")
-    _assert_can_access_student(session, upload.student_id, db)
+    try:
+        _assert_can_access_student(session, upload.student_id, db)
+    except HTTPException:
+        if not can_verify(db, session, upload.student_id):
+            raise
     try:
         content = read_bytes(upload.stored_name)
     except FileNotFoundError:
@@ -853,12 +887,14 @@ def review_skill_claim(
 ) -> SkillClaimReviewOut:
     """Grant (optionally at a reduced level) or reject a skill claim. Granting
     upserts the student's verified StudentSkill at the granted level and points
-    it at the evidence upload — the claim is how a skill becomes verified."""
+    it at the evidence upload — the claim is how a skill becomes verified.
+    Only by a holder of the verification grant covering the student."""
     require_mentor(session)
+    require_capability(db, session, VERIFY_CAPABILITY)
     sc = db.get(SkillClaim, claim_id)
     if sc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Claim not found.")
-    _assert_can_access_student(session, sc.student_id, db)
+    assert_can_verify(db, session, sc.student_id, detail="Claim not found.")
     if sc.status != UploadStatus.PENDING_REVIEW:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Only a pending claim can be reviewed."

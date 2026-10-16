@@ -55,6 +55,52 @@ Entry format:
   the address bounced on 2026-10-07 and Amazon SES now delivers nothing to it.
   No code fix needed; the office can lift the block on `/admin/mail`.
 
+## 2026-10-16 — Every mentor could verify their mentees' skills, and the office could not choose who verifies
+
+- **Symptom:** the owner asked for skill verification to be taken away from
+  all mentors. Every faculty member assigned a student held "Verify skills &
+  evidence" for that student without anybody granting it, so the office could
+  not choose who verifies, could not take it from one mentor, and Who can do
+  what did not list it.
+- **Cause:** `MENTOR_FUNCTIONS` in `app/mentor_functions.py` derived
+  `mentor.verifications` from having a mentee. Four other doors also let a
+  mentor verify through rule 2 alone: the Documents queue and its decision
+  (`routers/mentor.py::pending_uploads`, `review_upload`), the legacy
+  skill-claim review (`review_skill_claim`, which marks a skill verified for
+  the resume), and a manual award of a skill badge
+  (`badge_verification.manual_award`). Separately, `_assert_can_verify` let a
+  Main Admin with a verification grant scoped to one college decide any
+  student's claim by id, while the queue showed only that college.
+- **Evidence:** reading the code. `tests/test_skill_claim_flow.py` gave its
+  reviewer no grant at all; mentoring was enough.
+- **Fix:** `mentor.verifications` is now a grant only. `app/verifiers.py` is
+  one gate that every verification door asks: the grant's reach decides who is
+  listed, opened and decided. Mentoring brings none of it. The claim email goes
+  to the faculty whose grant covers the student, not to the mentor. The
+  `/mentor/verifications` route guard reads the capability. The student's
+  Skilling and resume screens say "a faculty reviewer" and "Waiting for
+  review" instead of "your mentor". The dev seed grants Test Mentor the key for
+  the seeded college. Rule 2 is unchanged for everything else (notes, the
+  notebook, the Mentee Log, the 360 read).
+- **Where:** [PR #200](https://github.com/darshani8/reep-/pull/200);
+  `app/verifiers.py`, `app/mentor_functions.py`,
+  `app/routers/badge_verification.py`, `app/routers/mentor.py`,
+  `app/badge_mail.py`, `app/seed.py`, `apps/web/src/app/app.routes.ts`,
+  `features/student/skilling`, `features/mentor/verifications`.
+- **Checked by:** `tests/test_skill_claim_flow.py` (the student's own mentor is
+  refused at every door and gets no email; a granted faculty member who
+  mentors nobody verifies claims and documents; a grant for one student reaches
+  no other), `test_mentor_functions.py`, `test_scoped_lists.py`,
+  `test_badges.py`, `test_governance.py`, `test_skill_verification.py`; four of
+  the new tests fail on the old code. Also the full backend suite (2,075
+  tests), the front-end unit tests, `ng build`, and the end-to-end cases
+  TC-210 to 214, all of module 05 and TC-530 to 549 against a live app.
+- **Status:** open PR, 2026-10-16.
+- **Left open:** once deployed, nobody on production verifies until the office
+  grants "Verify skills & evidence" in Who can do what; pending claims and
+  documents wait until then. Nothing on the admin Home counts claims that no
+  grant reaches.
+
 ## 2026-10-16 — Eight end-to-end cases in modules 05 and 06 failed on `dev`
 
 - **Symptom:** a local run of `tests/05-faculty-alumni.spec.ts` and

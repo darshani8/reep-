@@ -490,10 +490,11 @@ def submit_evidence(
     # THE MENTOR IS TOLD A CLAIM IS WAITING (2026-09-17) -- after the commit,
     # so the mail can never describe a row that did not land, and through
     # `deliver_once`, so a retried submission never mails twice. It returns
-    # None rather than raising when nothing can be sent (gate off, no mentor,
-    # mentor's account barred): a mail that did not go out is never the
-    # reason a claim fails to file. app/badge_mail.py carries the reasoning.
-    badge_mail.notify_mentor_of_claim(db, ev)
+    # Empty rather than raising when nothing can be sent (gate off, nobody
+    # granted verification over this student yet, every verifier barred): a
+    # mail that did not go out is never the reason a claim fails to file.
+    # app/badge_mail.py carries the reasoning.
+    badge_mail.notify_verifiers_of_claim(db, ev)
     return compose_badges(db.get(Student, student_id), db)
 
 

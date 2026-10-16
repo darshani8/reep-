@@ -313,15 +313,20 @@ KEY = "admin.student_records"
 
 @requires_db
 def test_the_capability_is_the_gate(client, make_user, login, subject):
-    """A STUDENT and an ungranted MENTOR are both refused; the office is not."""
+    """A STUDENT and an ungranted faculty member who mentors nobody are both
+    refused; the office is not, and neither is the student's own mentor, who
+    holds the key by mentoring them (2026-10-16)."""
     admin = make_user("t360-admin", Role.ADMIN)
     student_headers = login(subject["student_email"], TEST_PASSWORD)
-    faculty_headers = login(subject["faculty_email"], TEST_PASSWORD)
+    stranger_headers = login(subject["stranger_email"], TEST_PASSWORD)
 
     assert client.get(_url(subject["student"]), headers=student_headers).status_code == 403
-    refused = client.get(_url(subject["student"]), headers=faculty_headers)
+    refused = client.get(_url(subject["student"]), headers=stranger_headers)
     assert refused.status_code == 403
     assert "View student records" in refused.text, "the 403 names the capability to ask for"
+
+    mentor_headers = login(subject["faculty_email"], TEST_PASSWORD)
+    assert client.get(_url(subject["student"]), headers=mentor_headers).status_code == 200
 
     assert client.get(_url(subject["student"]), headers=admin.headers).status_code == 200
     assert client.get(_url("no-such-student"), headers=admin.headers).status_code == 404
@@ -333,8 +338,8 @@ def test_the_roster_key_alone_does_not_open_the_record(client, login, subject, g
     reads the record behind one, and holding the first is not holding the
     second. A faculty member granted only the roster editor is refused here
     with the read key named, so the office knows which grant to make."""
-    grant(subject["faculty_user"], "admin.students")
-    headers = login(subject["faculty_email"], TEST_PASSWORD)
+    grant(subject["stranger_user"], "admin.students")
+    headers = login(subject["stranger_email"], TEST_PASSWORD)
     refused = client.get(_url(subject["student"]), headers=headers)
     assert refused.status_code == 403
     assert "View student records" in refused.text
@@ -358,30 +363,31 @@ def test_rule_2_is_not_relaxed_by_the_capability(client, login, subject, grant):
     assert refused.status_code == 404, "rule 2 refuses with a 404, never a 403"
     assert "mentor scope" in refused.text
 
-    # And the same key, granted to the faculty member who DOES mentor this
-    # student, reaches them — so the refusal above is scope and not a broken
-    # endpoint.
-    grant(subject["faculty_user"], KEY)
-    granted_mentor = login(subject["faculty_email"], TEST_PASSWORD)
-    assert client.get(_url(subject["student"]), headers=granted_mentor).status_code == 200
+    # And the faculty member who DOES mentor this student reaches them, by
+    # mentoring them (2026-10-16) — so the refusal above is scope and not a
+    # broken endpoint.
+    mentor = login(subject["faculty_email"], TEST_PASSWORD)
+    assert client.get(_url(subject["student"]), headers=mentor).status_code == 200
 
 
 @requires_db
 def test_a_grant_that_reaches_somewhere_else_is_refused_here(client, login, subject, grant):
-    """B1.2's second question. The holder mentors this student — rule 2 passes —
-    and the grant is real, but it hangs on the WRONG department.
+    """B1.2's second question. The grant is real, but it hangs on the WRONG
+    department.
 
     Without the `target=` argument the narrowing on the roster list would be
     decoration: a scoped holder who cannot see a student in the grid could open
-    their entire record by typing the id.
+    their entire record by typing the id. The holder here mentors nobody: the
+    student's own mentor opens the record by mentoring them (2026-10-16), so a
+    grant is not what decides it for them.
     """
-    grant(subject["faculty_user"], KEY, ScopeLevel.DEPARTMENT, subject["other"])
-    headers = login(subject["faculty_email"], TEST_PASSWORD)
+    grant(subject["stranger_user"], KEY, ScopeLevel.DEPARTMENT, subject["other"])
+    headers = login(subject["stranger_email"], TEST_PASSWORD)
 
     refused = client.get(_url(subject["student"]), headers=headers)
     assert refused.status_code == 403, "a grant held somewhere else is a 403, not a 404"
 
-    grant(subject["faculty_user"], KEY, ScopeLevel.DEPARTMENT, subject["home"])
+    grant(subject["stranger_user"], KEY, ScopeLevel.DEPARTMENT, subject["home"])
     assert client.get(_url(subject["student"]), headers=headers).status_code == 200
 
 

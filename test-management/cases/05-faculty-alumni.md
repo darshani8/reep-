@@ -170,7 +170,7 @@ session.
    seed writes it with the heading "1:1 review", the location "Cabin 3" and the
    linked action "1:1 scheduled".
 3. The faculty member holds no "View student records" grant from the Main
-   Admin. With one, a "Full record" link is also shown.
+   Admin. Mentoring the student is enough to open their record (2026-10-16).
 
 ### Test data
 
@@ -181,14 +181,16 @@ session.
 ### Steps
 
 1. Open `/mentor/mentees`.
+2. Click "Full record".
 
 ### Expected results
 
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 1 | The page is headed "Mentee Log", with "Your mentees and the 1:1 meeting notes they can read." under it. The "My students" card lists one student, "Test Student", with "1BG24MBA001 · Sem 2 · EXCEL_ADVANCED", and that student is selected. |
-| ER-2 | 1 | The right-hand card reads "Log a meeting with Test Student", with the fields "Heading (optional)", "Linked action" and "Meeting note" and a Save note button. There is no "Full record" link. |
+| ER-2 | 1 | The right-hand card reads "Log a meeting with Test Student", with the fields "Heading (optional)", "Linked action" and "Meeting note" and a Save note button, and a "Full record" link beside the heading. |
 | ER-3 | 1 | The seeded note is listed under the form: the heading "1:1 review · Cabin 3", its text, and a "1:1 scheduled" chip. |
+| ER-4 | 2 | The student's full record opens at `/admin/students/<id>`, for Test Student, read only: there is no Edit or Remove button. |
 
 ---
 
@@ -1096,7 +1098,7 @@ None.
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 1 | The sidebar lists exactly Notebook, Mentee Log, Leave Requests, Skill Verifications and Upskilling. There is no "Granted access" group. |
+| ER-1 | 1 | The sidebar lists exactly Notebook, Mentee Log, Student records, Leave Requests, Skill Verifications and Upskilling (Student records because they mentor a student). There is no "Granted access" group. |
 | ER-2 | 2 | The app does not open the admin console. It sends the browser to `/mentor/notebook`, headed "Faculty notebook". |
 | ER-3 | 3 | Again the browser lands on `/mentor/notebook`. |
 | ER-4 | 4 | The API refuses: the page shows `{"detail":"You do not hold the 'Students' capability. An administrator can grant it in Governance."}`. |

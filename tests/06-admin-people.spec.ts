@@ -2724,7 +2724,7 @@ test.describe('Admin: people and access', () => {
 
   // ========================================================== governance ==
 
-  test('Granting a function with a reason, scope and dates, then revoking it @TC-530', async ({
+  test('Giving one kind of access with a reason, scope and dates, then removing it @TC-530', async ({
     page,
     signIn,
     browser,
@@ -2737,10 +2737,13 @@ test.describe('Admin: people and access', () => {
     const faculty = await createFaculty(api, ids.departmentId);
     await activate(playwright, baseURL ?? '', faculty.link);
     const theirs = await openBrowserAs(browser, baseURL ?? '', faculty.email, FACULTY_PASSWORD);
-    const panel = page.getByRole('complementary', { name: 'Grant a function' });
-    const give = panel.getByRole('button', { name: 'Give access' });
-    const blocked = panel.locator('.gov-blocked');
-    const grantRow = page.getByRole('row').filter({ hasText: faculty.name });
+    const form = page.getByRole('region', { name: 'Give access' });
+    const give = form.getByRole('button', { name: 'Give access' });
+    const blocked = form.locator('.gv-blocked');
+    const grantRow = page
+      .getByRole('region', { name: 'Analytics', exact: true })
+      .getByRole('row')
+      .filter({ hasText: faculty.name });
     const grantReason = 'E2E: reviewing placement numbers this term';
     const extendReason = 'E2E: still reviewing the placement numbers';
     const revokeReason = 'E2E: the review of the numbers is finished';
@@ -2749,78 +2752,72 @@ test.describe('Admin: people and access', () => {
       await test.step('1. Open /admin/governance', async () => {
         await page.goto('/admin/governance');
         await expect(give, 'TC-530 ER-1: "Give access" waits for a person').toBeDisabled();
-        await expect(blocked, 'TC-530 ER-1: and says so').toHaveText('Add at least one person');
+        await expect(blocked, 'TC-530 ER-1: and says so').toHaveText('Choose at least one person');
       });
 
-      await test.step('2. Under "Person", choose the new faculty member and click Add', async () => {
-        await panel
-          .getByRole('combobox', { name: 'Person' })
-          .selectOption({ label: `${faculty.name} — ${faculty.email}` });
-        await panel.getByRole('button', { name: 'Add', exact: true }).click();
+      await test.step('2. Under "Who", search for the new faculty member and tick them', async () => {
+        await form.getByRole('searchbox', { name: 'Search people' }).fill(faculty.email);
+        await form.getByRole('checkbox', { name: faculty.name }).check();
+        await expect(form, 'TC-530 ER-2: one person is chosen').toContainText('1 chosen');
+        await expect(blocked, 'TC-530 ER-2: the form now asks for the access').toHaveText(
+          'Choose at least one kind of access',
+        );
+      });
+
+      await test.step('3. Under "What they can open", tick "Analytics"', async () => {
+        const analytics = form.getByRole('checkbox', { name: /^Analytics\b/ });
+        await analytics.check();
         await expect(
-          panel.getByRole('button', { name: `Remove ${faculty.name}` }),
-          'TC-530 ER-2: the faculty member is added as a chip',
-        ).toBeVisible();
+          analytics,
+          'TC-530 ER-3: Analytics says which screen it opens',
+        ).toHaveAccessibleName(/Opens “Charts & numbers”/);
       });
 
-      await test.step('3. Under "Access", choose "Analytics"', async () => {
-        await panel.getByRole('combobox', { name: 'Access', exact: true }).selectOption({
-          label: 'Analytics',
-        });
-        await expect(
-          panel,
-          'TC-530 ER-3: the help line says the function is programme-wide',
-        ).toContainText('Programme-wide: no mentor group narrows it.');
-      });
-
-      await test.step('4. Under "Scope target", choose "Department · Department of Management Studies"', async () => {
-        await panel
-          .getByRole('combobox', { name: 'Scope target' })
+      await test.step('4. Under "Which students", choose "Department · Department of Management Studies"', async () => {
+        await form
+          .getByRole('combobox', { name: 'Which students' })
           .selectOption(`DEPARTMENT:${ids.departmentId}`);
-        await expect(panel, 'TC-530 ER-4: the reach is spelt out in students').toContainText(
+        await expect(form, 'TC-530 ER-4: the summary names who, what and which students').toContainText(
           new RegExp(
-            `Narrowed to department ${SEED.department}\\. 1 faculty member would reach Analytics for \\d+ students? today\\.`,
+            `1 person will get “Analytics” for department ${SEED.department} \\(\\d+ students?\\), with no end date\\.`,
           ),
         );
       });
 
       await test.step('5. Type E2E: short into "Reason"', async () => {
-        await panel.getByRole('textbox', { name: 'Reason' }).fill('E2E: short');
+        await form.getByRole('textbox', { name: 'Reason' }).fill('E2E: short');
         await expect(give, 'TC-530 ER-5: a short reason is refused').toBeDisabled();
-        await expect(blocked, 'TC-530 ER-5: and the panel says how long it must be').toHaveText(
+        await expect(blocked, 'TC-530 ER-5: and the form says how long it must be').toHaveText(
           'A reason of at least 20 characters is required',
         );
       });
 
-      await test.step(`6. Set "Expires" to a date 60 days ahead and replace the reason with ${grantReason}`, async () => {
-        await panel.getByLabel('Expires').fill(isoDayFromToday(60));
-        await panel.getByRole('textbox', { name: 'Reason' }).fill(grantReason);
+      await test.step(`6. Set "Ends on" to a date 60 days ahead and replace the reason with ${grantReason}`, async () => {
+        await form.getByLabel('Ends on (optional)').fill(isoDayFromToday(60));
+        await form.getByRole('textbox', { name: 'Reason' }).fill(grantReason);
         await expect(give, 'TC-530 ER-6: "Give access" is enabled').toBeEnabled();
       });
 
       await test.step('7. Click "Give access"', async () => {
         await give.click();
         await expect(
-          notice(page, 'Granted to 1 subject.'),
-          'TC-530 ER-7: the grant is made',
+          notice(page, `Gave “Analytics” to ${faculty.name}.`),
+          'TC-530 ER-7: the access is given',
         ).toBeVisible();
-        await expect(grantRow, 'TC-530 ER-7: it is listed under Grants').toHaveCount(1);
+        await expect(
+          page.getByRole('tab', { name: /^Who has access/ }),
+          'TC-530 ER-7: "Who has access" opens',
+        ).toHaveAttribute('aria-selected', 'true');
+        await expect(grantRow, 'TC-530 ER-7: they are listed under Analytics').toHaveCount(1);
         const cells = grantRow.getByRole('cell');
-        await expect(cells.nth(0), 'TC-530 ER-7: for the faculty member, as Faculty').toContainText(
+        await expect(cells.nth(1), 'TC-530 ER-7: the faculty member, as Faculty').toContainText(
           'Faculty',
         );
-        await expect(cells.nth(1), 'TC-530 ER-7: Access Analytics').toHaveText('Analytics');
-        await expect(cells.nth(2), 'TC-530 ER-7: Scope Programme-wide').toHaveText(
-          'Programme-wide',
-        );
-        await expect(cells.nth(3), 'TC-530 ER-7: Reach is the department').toHaveText(
+        await expect(cells.nth(2), 'TC-530 ER-7: Students is the department').toHaveText(
           `Department · ${SEED.department}`,
         );
-        await expect(cells.nth(4), 'TC-530 ER-7: granted by the Main Admin').toHaveText(
-          SEED.admin.name,
-        );
-        await expect(cells.nth(5), 'TC-530 ER-7: it has an expiry date').not.toHaveText('—');
-        await expect(cells.nth(6), 'TC-530 ER-7: Status Live').toHaveText('Live');
+        await expect(cells.nth(3), 'TC-530 ER-7: it has an end date').not.toHaveText('—');
+        await expect(cells.nth(4), 'TC-530 ER-7: Status Active').toHaveText('Active');
       });
 
       await test.step("8. In the faculty member's browser, open /admin/analytics", async () => {
@@ -2831,7 +2828,7 @@ test.describe('Admin: people and access', () => {
         ).toBeVisible();
       });
 
-      await test.step("9. Click Extend on the faculty member's grant row", async () => {
+      await test.step("9. Click Extend on the faculty member's row", async () => {
         await grantRow.getByRole('button', { name: 'Extend' }).click();
         await expect(
           page.getByRole('region', { name: 'Extend 1 grant' }),
@@ -2849,22 +2846,24 @@ test.describe('Admin: people and access', () => {
           'TC-530 ER-10: the grant is extended',
         ).toBeVisible();
         await expect(
-          grantRow.getByRole('cell').nth(6),
-          'TC-530 ER-10: its Status reads "Due for review"',
-        ).toHaveText('Due for review');
+          grantRow.getByRole('cell').nth(4),
+          'TC-530 ER-10: its Status reads "Review due"',
+        ).toHaveText('Review due');
       });
 
-      await test.step('11. Click the Review tab', async () => {
-        await page.getByRole('tab', { name: /^Review/ }).click();
-        const expiring = page.getByRole('region', { name: /^Running out within 30 days/ });
+      await test.step('11. Click the "Needs attention" tab', async () => {
+        await page.getByRole('tab', { name: /^Needs attention/ }).click();
+        const expiring = page.getByRole('region', {
+          name: /^Ending or due for review in the next 30 days/,
+        });
         const row = expiring.getByRole('row').filter({ hasText: faculty.name });
         await expect(row, 'TC-530 ER-11: the grant is on the review list').toHaveCount(1);
-        await expect(row, 'TC-530 ER-11: as due for review').toContainText('Due for review');
+        await expect(row, 'TC-530 ER-11: as Analytics').toContainText('Analytics');
       });
 
-      await test.step('12. Click the Grants tab and click "Remove access" on the faculty member\'s row', async () => {
-        await page.getByRole('tab', { name: /^Grants/ }).click();
-        await grantRow.getByRole('button', { name: 'Remove access' }).click();
+      await test.step('12. Click the "Who has access" tab and click "Remove" on the faculty member\'s row', async () => {
+        await page.getByRole('tab', { name: /^Who has access/ }).click();
+        await grantRow.getByRole('button', { name: 'Remove', exact: true }).click();
         await expect(
           page.getByRole('region', { name: 'Remove access' }),
           'TC-530 ER-12: a "Remove access" box opens naming the grant',
@@ -2876,10 +2875,10 @@ test.describe('Admin: people and access', () => {
         await box.getByRole('textbox', { name: 'Reason' }).fill(revokeReason);
         await box.getByRole('button', { name: 'Remove access' }).click();
         await expect(
-          notice(page, `Revoked “Analytics” from ${faculty.name}.`),
-          'TC-530 ER-13: the grant is revoked',
+          notice(page, `Removed “Analytics” from ${faculty.name}.`),
+          'TC-530 ER-13: the access is removed',
         ).toBeVisible();
-        await expect(grantRow, 'TC-530 ER-13: it leaves the Grants list').toHaveCount(0);
+        await expect(grantRow, 'TC-530 ER-13: it leaves the list').toHaveCount(0);
       });
 
       await test.step("14. In the faculty member's browser, reload /admin/analytics", async () => {
@@ -2899,7 +2898,7 @@ test.describe('Admin: people and access', () => {
   test.describe('in India Standard Time', () => {
     test.use({ timezoneId: 'Asia/Kolkata' });
 
-    test("A grant's expiry reads back as the day that was typed @TC-531", async ({
+    test("A grant's end date reads back as the day that was typed @TC-531", async ({
       page,
       signIn,
     }) => {
@@ -2907,8 +2906,11 @@ test.describe('Admin: people and access', () => {
       const api = page.request;
       const ids = await seeded(api);
       const faculty = await createFaculty(api, ids.departmentId);
-      const panel = page.getByRole('complementary', { name: 'Grant a function' });
-      const grantRow = page.getByRole('row').filter({ hasText: faculty.name });
+      const form = page.getByRole('region', { name: 'Give access' });
+      const grantRow = page
+        .getByRole('region', { name: 'Analytics', exact: true })
+        .getByRole('row')
+        .filter({ hasText: faculty.name });
       const typed = isoDayFromToday(45);
       const [year, month, day] = typed.split('-').map(Number);
 
@@ -2917,30 +2919,24 @@ test.describe('Admin: people and access', () => {
           await page.goto('/admin/governance');
         });
 
-        await test.step('2. Under "Person", choose the new faculty member and click Add', async () => {
-          await panel
-            .getByRole('combobox', { name: 'Person' })
-            .selectOption({ label: `${faculty.name} — ${faculty.email}` });
-          await panel.getByRole('button', { name: 'Add', exact: true }).click();
+        await test.step('2. Under "Who", search for the new faculty member and tick them', async () => {
+          await form.getByRole('searchbox', { name: 'Search people' }).fill(faculty.email);
+          await form.getByRole('checkbox', { name: faculty.name }).check();
         });
 
-        await test.step('3. Under "Access", choose "Analytics"', async () => {
-          await panel.getByRole('combobox', { name: 'Access', exact: true }).selectOption({
-            label: 'Analytics',
-          });
+        await test.step('3. Under "What they can open", tick "Analytics"', async () => {
+          await form.getByRole('checkbox', { name: /^Analytics\b/ }).check();
         });
 
-        await test.step('4. Set "Expires" to a date 45 days ahead', async () => {
-          await panel.getByLabel('Expires').fill(typed);
+        await test.step('4. Set "Ends on" to a date 45 days ahead', async () => {
+          await form.getByLabel('Ends on (optional)').fill(typed);
         });
 
         await test.step('5. Type E2E: checking the expiry date into "Reason" and click "Give access"', async () => {
-          await panel
-            .getByRole('textbox', { name: 'Reason' })
-            .fill('E2E: checking the expiry date');
-          await panel.getByRole('button', { name: 'Give access' }).click();
+          await form.getByRole('textbox', { name: 'Reason' }).fill('E2E: checking the expiry date');
+          await form.getByRole('button', { name: 'Give access' }).click();
           await expect(
-            notice(page, 'Granted to 1 subject.'),
+            notice(page, `Gave “Analytics” to ${faculty.name}.`),
             'TC-531 (arrange): granted',
           ).toBeVisible();
           // The day typed, in the format the screen prints dates, in this
@@ -2955,8 +2951,8 @@ test.describe('Admin: people and access', () => {
             [year, month, day],
           );
           await expect(
-            grantRow.getByRole('cell').nth(5),
-            'TC-531 ER-1: Expires shows the day that was typed',
+            grantRow.getByRole('cell').nth(3),
+            'TC-531 ER-1: Ends shows the day that was typed',
           ).toHaveText(expected);
         });
       } finally {
@@ -2964,6 +2960,87 @@ test.describe('Admin: people and access', () => {
         await removeUser(api, faculty.userId);
       }
     });
+  });
+
+  test('Giving two kinds of access to two people at once, then removing one from both @TC-540', async ({
+    page,
+    signIn,
+  }) => {
+    await signIn('admin');
+    const api = page.request;
+    const ids = await seeded(api);
+    const first = await createFaculty(api, ids.departmentId);
+    const second = await createFaculty(api, ids.departmentId);
+    const form = page.getByRole('region', { name: 'Give access' });
+    const analytics = page.getByRole('region', { name: 'Analytics', exact: true });
+    const jobs = page.getByRole('region', { name: 'Jobs sheet', exact: true });
+    const rowOf = (section: Locator, name: string): Locator =>
+      section.getByRole('row').filter({ hasText: name });
+    const grantReason = 'E2E: placement drive coordinators this term';
+    const removeReason = 'E2E: the drive no longer needs the charts';
+
+    try {
+      await test.step('1. Open /admin/governance', async () => {
+        await page.goto('/admin/governance');
+      });
+
+      await test.step('2. Under "Who", search for "E2E Faculty" and tick both new faculty members', async () => {
+        await form.getByRole('searchbox', { name: 'Search people' }).fill('E2E Faculty');
+        await form.getByRole('checkbox', { name: first.name }).check();
+        await form.getByRole('checkbox', { name: second.name }).check();
+        await expect(form, 'TC-540 ER-1: two people are chosen').toContainText('2 chosen');
+      });
+
+      await test.step('3. Under "What they can open", tick "Analytics" and "Jobs sheet"', async () => {
+        await form.getByRole('checkbox', { name: /^Analytics\b/ }).check();
+        await form.getByRole('checkbox', { name: /^Jobs sheet\b/ }).check();
+        await expect(form, 'TC-540 ER-2: the summary counts both').toContainText(
+          '2 people will get 2 kinds of access for all students, with no end date.',
+        );
+      });
+
+      await test.step(`4. Type ${grantReason} into "Reason" and click "Give access"`, async () => {
+        await form.getByRole('textbox', { name: 'Reason' }).fill(grantReason);
+        await form.getByRole('button', { name: 'Give access' }).click();
+        await expect(
+          notice(page, 'Gave access: 4 grants.'),
+          'TC-540 ER-3: four grants in one go',
+        ).toBeVisible();
+        for (const person of [first, second]) {
+          await expect(rowOf(analytics, person.name), 'TC-540 ER-3: both under Analytics').toHaveCount(1);
+          await expect(rowOf(jobs, person.name), 'TC-540 ER-3: both under Jobs sheet').toHaveCount(1);
+        }
+      });
+
+      await test.step('5. Under "Analytics", tick both new faculty members and click "Remove Analytics from 2 people"', async () => {
+        for (const person of [first, second]) {
+          await analytics.getByRole('checkbox', { name: `Tick Analytics for ${person.name}` }).check();
+        }
+        await analytics.getByRole('button', { name: 'Remove Analytics from 2 people' }).click();
+        const box = page.getByRole('region', { name: 'Remove access' });
+        await expect(box, 'TC-540 ER-4: the box names the first').toContainText(first.name);
+        await expect(box, 'TC-540 ER-4: and the second').toContainText(second.name);
+      });
+
+      await test.step(`6. Type ${removeReason} into "Reason" and click "Remove 2 grants"`, async () => {
+        const box = page.getByRole('region', { name: 'Remove access' });
+        await box.getByRole('textbox', { name: 'Reason' }).fill(removeReason);
+        await box.getByRole('button', { name: 'Remove 2 grants' }).click();
+        await expect(
+          notice(page, 'Removed “Analytics” from 2 people.'),
+          'TC-540 ER-5: one request removed both',
+        ).toBeVisible();
+        for (const person of [first, second]) {
+          await expect(rowOf(analytics, person.name), 'TC-540 ER-5: gone from Analytics').toHaveCount(0);
+          await expect(rowOf(jobs, person.name), 'TC-540 ER-5: still under Jobs sheet').toHaveCount(1);
+        }
+      });
+    } finally {
+      for (const person of [first, second]) {
+        await revokeGrantsOf(api, person.userId);
+        await removeUser(api, person.userId);
+      }
+    }
   });
 
   // ==================================================== feature switches ==

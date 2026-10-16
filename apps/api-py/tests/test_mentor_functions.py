@@ -20,7 +20,13 @@ from conftest import requires_db
 
 from app.db import SessionLocal
 from app.governance import ROLE_BASELINE, capabilities_for, require_capability
-from app.mentor_functions import MENTOR_FUNCTIONS, mentee_count, mentor_functions_for
+from app.mentor_functions import (
+    DERIVED_FROM_MENTEES,
+    MENTEE_RECORD_FUNCTIONS,
+    MENTOR_FUNCTIONS,
+    mentee_count,
+    mentor_functions_for,
+)
 from app.models.cohort import Cohort
 from app.models.governance import CapabilityGrant, SubjectKind
 from app.models.institution import STATUS_ACTIVE, College, Department
@@ -132,7 +138,7 @@ def test_a_mentors_row_alone_brings_none_of_the_four(faculty_with_optional_mente
         assert mentee_count(db, made["faculty"]) == 0
         assert mentor_functions_for(db, made["faculty"]) == frozenset()
         held = capabilities_for(db, {"userId": made["faculty"], "role": "MENTOR"})
-        assert MENTOR_FUNCTIONS.isdisjoint(held)
+        assert DERIVED_FROM_MENTEES.isdisjoint(held)
         assert "mentor.agent" in held and "mentor.upskilling" in held
 
 
@@ -143,9 +149,18 @@ def test_one_mentee_brings_all_three(faculty_with_optional_mentee):
     with SessionLocal() as db:
         _attach(db, made, True)
         assert mentee_count(db, made["faculty"]) == 1
-        assert mentor_functions_for(db, made["faculty"]) == MENTOR_FUNCTIONS
+        assert mentor_functions_for(db, made["faculty"]) == DERIVED_FROM_MENTEES
         held = capabilities_for(db, {"userId": made["faculty"], "role": "MENTOR"})
-        assert MENTOR_FUNCTIONS <= held
+        assert DERIVED_FROM_MENTEES <= held
+
+
+def test_a_mentee_brings_the_read_of_their_record_and_nothing_else():
+    """2026-10-16: mentoring a student opens their full record, read only.
+    The one key it adds is the record page's, and it is not in the baseline,
+    so a faculty member with no mentees does not hold it."""
+    assert MENTEE_RECORD_FUNCTIONS == {"admin.student_records"}
+    assert DERIVED_FROM_MENTEES == MENTOR_FUNCTIONS | MENTEE_RECORD_FUNCTIONS
+    assert MENTEE_RECORD_FUNCTIONS.isdisjoint(ROLE_BASELINE["MENTOR"])
 
 
 @requires_db

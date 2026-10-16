@@ -924,6 +924,31 @@ through the console; listing it writes no event of its own — it would be the m
 frequent action in the table within a week and would bury everything the table
 exists to show — but **the CSV download audits itself**.
 
+**WHO CAN DO WHAT WAS REDESIGNED, AND ACCESS IS GIVEN AND REMOVED MANY AT A
+TIME (2026-10-16).** The owner found the screen too confusing: a nine-column
+grid whose "Scope" and "Reach" columns answered near-identical questions, a
+side panel that granted ONE function at a time, and a catalogue tab of internal
+keys. `features/admin/governance` is now four tabs in plain words: **Give
+access** (tick people or a group, tick every kind of access, choose which
+students and an optional end date, give a reason; one summary sentence says
+what will happen), **Who has access** (every grant grouped by access type or by
+person; tick rows, or a whole access type, and remove them), **Needs
+attention** (the `/review` queue) and **Groups**. Each access type says which
+sidebar row it opens for a faculty member, read from `GRANTABLE_ADMIN_SCREENS`
+rather than typed again. The API grew two batch forms to match, both one
+transaction and all or nothing: `POST /admin/governance/grants` takes
+`capabilities: [...]` beside the old single `capability` (folded in, so older
+clients still work) and writes every (access type, subject) pair with the one
+reason, the approval state decided per access type; `POST
+/admin/governance/grants/revoke` takes `grant_ids` and one reason, refuses the
+whole request on an unknown id, and names ids already revoked rather than
+failing on them. Both are capped (`MAX_GRANT_ROWS_PER_REQUEST`,
+`MAX_REVOKES_PER_REQUEST`). Approve and extend still go one grant at a time,
+because each can be refused on its own. The old `?tab=review`, `grants` and
+`catalogue` links land on the tab that now holds the same thing.
+`tests/test_governance_bulk.py` pins the API; TC-530, TC-531 and TC-540 drive
+the screen.
+
 **B2.1: ENFORCE EVERY CATALOGUE KEY OR DELETE IT.** A row naming a capability
 nothing checks is a promise the API does not keep, and Governance is where the
 office looks to answer "who can see what". `tools/ci/check_capability_enforcement.py`
@@ -1238,6 +1263,23 @@ keyword, so the same grant opens no mentor read or write (`notes`, `badges`,
 `interviews`, `/mentor/uploads/{id}/file`). `tests/test_student_record_access.py`
 pins all of it, including that the "Student records" list
 (`GET /admin/student-records`) names exactly the students the page opens.
+
+**A MENTOR OPENS THEIR OWN MENTEES' RECORDS WITH NO GRANT (2026-10-16, the
+owner's report: "mentors' mentee records are not visible").** Until then the
+Mentee Log listed a mentor's students and nothing behind them: "Full record",
+the "Student records" row and the route guard all needed an
+`admin.student_records` grant from the office, even for the mentor's own
+group. `admin.student_records` is now DERIVED from having a mentee, beside the
+three `mentor.*` functions (`mentor_functions.MENTEE_RECORD_FUNCTIONS`,
+`DERIVED_FROM_MENTEES`), for the same reason they are derived: five places set
+`students.mentor_id`. It reaches nobody else, because it widens nothing rule 2
+decides: every read behind the key runs `_assert_can_access_student` with the
+mentor's own group, `_holds_records_grant` reads GRANTS and never functions, so
+a student outside the group still needs the office's scoped grant, and every
+endpoint behind the key is a GET. The roster editor (`admin.students`) is a
+different key and mentoring does not bring it. `_openable_clause` lists the
+mentor's mentees always, so the Mentee Log draws "Full record" for each of them.
+`test_student_record_access.py::test_a_mentor_opens_their_own_mentees_record_and_nobody_elses`.
 
 ### Rule 1 applies to telemetry too: Sentry is one init per process, and the scrubbers are the floor
 
@@ -1711,9 +1753,10 @@ PROGRAMME, `carries_pii`) is the read side of the roster, split off
 `admin.students`, which is the EDITOR. `GET /admin/students/{id}/360` and the
 route `/admin/students/:id` hang on it; the Main Admin holds both keys by
 baseline and sees no difference, a faculty member holds whichever Governance
-granted, and rule 2 still runs underneath: a granted MENTOR opens their OWN
-mentees' records, plus the students a SCOPED grant names (2026-10-15, see rule
-2's "the other read-only widening"). Two panels were missing from "complete":
+granted, and rule 2 still runs underneath: a MENTOR opens their OWN mentees'
+records (by mentoring them since 2026-10-16; see rule 2's "a mentor opens
+their own mentees' records"), plus the students a SCOPED grant names
+(2026-10-15, see rule 2's "the other read-only widening"). Two panels were missing from "complete":
 the profile as FILLED IN (the open-items card named only the gaps) and the
 student's DOCUMENTS, which had no by-id read anywhere; both are on the
 composite read now (`profile`, `documents`), the Documents tab is real, and

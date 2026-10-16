@@ -16,7 +16,7 @@ Four kinds of account. The on-screen name and the stored role differ for two of 
 |---|---|---|---|
 | **Student** | `STUDENT` | `/student/*`, `app/routers/student.py`, a `students` row, the session's `studentId` | A current student. The roster is the access control: an address with no `users` row cannot sign in. |
 | **Faculty** | `MENTOR` | `/mentor/*`, `app/routers/mentor.py`, `require_mentor`, the console's `/admin/faculty` (`features/admin/faculty/`) | A faculty account. It is **not a mentor by existing** — it has no `mentors` row and sees nobody until the Main Admin assigns it a student. |
-| a student's **mentor** | `MENTOR` **plus a `mentors` row** | `students.mentor_id` → `mentors.id`, the session's `mentorId`, `app/mentor_functions.py` | The faculty member assigned to that student. "Your mentor" on the student's screens; the `Mentor` group row is what rule 2 scopes on, and the three `mentor.*` functions are derived from having a mentee. |
+| a student's **mentor** | `MENTOR` **plus a `mentors` row** | `students.mentor_id` → `mentors.id`, the session's `mentorId`, `app/mentor_functions.py` | The faculty member assigned to that student. "Your mentor" on the student's screens; the `Mentor` group row is what rule 2 scopes on, and the three `mentor.*` functions and `admin.student_records` (their mentees' full records) are derived from having a mentee. |
 | **Alumni** | `ALUMNI` | `/alumni/*`, `app/routers/alumni.py` | A graduate: no `students` row, no `mentors` row, no staff scope. |
 | **Main Admin** — the placement office | `ADMIN` | `/admin/*`, `app/routers/console.py` and `admin_*.py`, `require_admin`, `features/admin/`, the login's dashed "Main Admin" door | **One account per deployment.** "Placement office", "placement cell" and "TPO" on the screens all mean this account, and its SWOC lines are stamped `SwocSource.PLACEMENT`, the placement cell's viewpoint; it is the one role Governance admits, and faculty reach a console screen only as a grant it makes. |
 
@@ -979,7 +979,7 @@ refused by the PUT — the same rule as an unwired feature switch.
 
 **The compatibility guardrails are a test module, not a checklist.**
 `tests/test_phase3_compatibility.py` holds 07 §5: the role is unchanged, a mentor
-with mentees keeps the four functions and one without keeps their own two, **the
+with mentees keeps the group functions (`DERIVED_FROM_MENTEES`) and one without keeps their own two, **the
 capability and the endpoint give the same answer** (the split that made
 `test_no_director_privilege.py` necessary, in the other direction), a pre-B1.2
 grant still reaches the programme, the Main Admin is never narrowed, student
@@ -1234,7 +1234,7 @@ GET call sites only** (`mentor.py`'s notes list and the three reads in
 `mentee_records.py`); `_assert_can_access_student` gained the parameter and is
 still the single delegating `return` the AST guard pins.
 **And the grant is what makes the feature visible at all**: `mentor_functions_for`
-derives the four `mentor.*` capabilities live from `mentee_count > 0`, so a
+derives the three `mentor.*` capabilities and `admin.student_records` live from `mentee_count > 0`, so a
 mentor whose last mentee was just reassigned holds NONE of them and
 `require_capability` answers 403 *before* rule 2 ever runs — a handover honoured
 only inside `assert_student_scope` would be invisible to exactly the person it

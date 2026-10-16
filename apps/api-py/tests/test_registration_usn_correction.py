@@ -1,4 +1,5 @@
-"""Correcting a USN on an application, and saying who already holds one.
+"""Correcting a USN on an application, saying who already holds one, and
+matching a USN whatever case it was typed in.
 
 THE DEAD END THIS MODULE PINS SHUT (2026-10-16). An application whose USN
 another student held showed "USN … already belongs to another student" and
@@ -12,6 +13,13 @@ holder for a programme-wide reviewer.
 Every test that clears a block also presses Approve, because a correction that
 the checklist calls fine and `_provision_student` still refuses is the
 green-check defect `test_registration_checks.py` exists to prevent.
+
+THE CASE OF A USN (2026-10-16, the same day). The roster stores USNs upper case
+and the form stored them as typed, and every comparison was case-sensitive: an
+applicant who typed `1mp25ba033` was not flagged against `1MP25BA033`, and
+approving them seated a second student with the same number. The last section
+pins `app/usn.py`: writers store upper case, and lookups compare upper case on
+both sides so a lowercase row written before the fix is still found.
 """
 
 from __future__ import annotations
@@ -31,7 +39,9 @@ from app.models.student_profile import StudentProfile
 from app.models.user import Role, Student, User
 from app.routers.registration import CHECK_BLOCKED, CHECK_OK, CHECK_USN_UNIQUE
 
-from conftest import requires_db
+from app.usn import normalise_usn
+
+from conftest import application_files, requires_db
 
 
 # --------------------------------------------------------------- fixtures --
@@ -393,3 +403,129 @@ def test_the_refusal_at_approve_never_names_the_holder(client, make_user, applic
     assert decision.status_code == 409, decision.text
     assert holder.email not in decision.json()["detail"]
     assert "Voice Test" not in decision.json()["detail"]
+
+
+# -------------------------------------------------- the case of a USN --
+
+
+def test_a_usn_is_normalised_to_the_rosters_spelling():
+    assert normalise_usn("  1mp25ba033 ") == "1MP25BA033"
+    assert normalise_usn("   ") is None
+    assert normalise_usn(None) is None
+
+
+@requires_db
+def test_the_form_stores_a_lowercase_usn_upper_case(client, tmp_document_store):
+    email = _email()
+    usn = _new_usn("1bg26low").lower()
+    try:
+        r = client.post(
+            "/api/register",
+            data={
+                "name": "Lowercase Applicant",
+                "email": email,
+                "usn": f" {usn} ",
+                "phone": "+91 90000 00000",
+                "personal_email": f"personal.{uuid.uuid4().hex[:8]}@gmail.com",
+                "linkedin_url": "https://www.linkedin.com/in/lowercase-applicant",
+                "degree_level": "PG",
+            },
+            files=application_files(),
+        )
+        assert r.status_code == 201, r.text
+        assert r.json()["usn"] == usn.upper()
+        with SessionLocal() as db:
+            reg = db.scalar(select(Registration).where(Registration.email == email))
+            assert reg.usn == usn.upper()
+    finally:
+        with SessionLocal() as db:
+            db.execute(delete(Registration).where(Registration.email == email))
+            user = db.scalar(select(User).where(User.email == email))
+            if user is not None:
+                for stu in db.scalars(select(Student).where(Student.user_id == user.id)).all():
+                    db.execute(delete(StudentProfile).where(StudentProfile.student_id == stu.id))
+                    db.execute(delete(Student).where(Student.id == stu.id))
+                db.execute(delete(User).where(User.id == user.id))
+            db.commit()
+
+
+@requires_db
+def test_a_lowercase_application_is_blocked_by_an_upper_case_holder(client, make_user, applicant):
+    """The reported shape: the roster's `1MP25BA033`, typed as `1mp25ba033`.
+    The row is written directly, as every application stored before the fix
+    was, so this also covers the queue as it stands on deploy day."""
+    admin = make_user("usnfix-case-up", Role.ADMIN)
+    holder = make_user("usnfix-case-up-holder", Role.STUDENT)
+    taken = _new_usn()
+    _give_usn(holder.user_id, taken)
+    reg_id = applicant(_email(), usn=taken.lower())
+
+    check = _usn_check(client, admin, reg_id)
+    assert check["status"] == CHECK_BLOCKED
+    assert holder.email in check["label"]
+
+    decision = client.post(
+        f"/api/register/{reg_id}/decision", headers=admin.headers, json={"decision": "APPROVE"}
+    )
+    assert decision.status_code == 409, decision.text
+    with SessionLocal() as db:
+        assert db.scalar(select(Student).where(Student.usn == taken.lower())) is None, (
+            "a refused approval must not seat a lowercase twin"
+        )
+
+
+@requires_db
+def test_an_upper_case_application_is_blocked_by_a_lowercase_holder(client, make_user, applicant):
+    """The other direction: a student approved before the fix with a lowercase
+    USN still holds that number."""
+    admin = make_user("usnfix-case-low", Role.ADMIN)
+    holder = make_user("usnfix-case-low-holder", Role.STUDENT)
+    taken = _new_usn()
+    _give_usn(holder.user_id, taken.lower())
+    reg_id = applicant(_email(), usn=taken)
+
+    assert _usn_check(client, admin, reg_id)["status"] == CHECK_BLOCKED
+    decision = client.post(
+        f"/api/register/{reg_id}/decision", headers=admin.headers, json={"decision": "APPROVE"}
+    )
+    assert decision.status_code == 409, decision.text
+    assert client.patch(
+        f"/api/register/{reg_id}", headers=admin.headers, json={"usn": f"{taken}X"}
+    ).status_code == 200
+    assert client.patch(
+        f"/api/register/{reg_id}", headers=admin.headers, json={"usn": taken.lower()}
+    ).status_code == 409, "a correction is refused against a lowercase holder too"
+
+
+@requires_db
+def test_approving_a_lowercase_application_seats_the_upper_case_usn(client, make_user, applicant):
+    admin = make_user("usnfix-case-seat", Role.ADMIN)
+    usn = _new_usn()
+    email = _email()
+    reg_id = applicant(email, usn=usn.lower())
+
+    check = _usn_check(client, admin, reg_id)
+    assert check["status"] == CHECK_OK
+    assert usn in check["label"]
+    decision = client.post(
+        f"/api/register/{reg_id}/decision", headers=admin.headers, json={"decision": "APPROVE"}
+    )
+    assert decision.status_code == 200, decision.text
+    with SessionLocal() as db:
+        user = db.scalar(select(User).where(User.email == email))
+        assert db.scalar(select(Student).where(Student.user_id == user.id)).usn == usn
+
+
+@requires_db
+def test_the_students_editor_refuses_a_usn_held_in_another_case(client, make_user):
+    admin = make_user("usnfix-case-edit", Role.ADMIN)
+    holder = make_user("usnfix-case-edit-holder", Role.STUDENT)
+    other = make_user("usnfix-case-edit-other", Role.STUDENT)
+    taken = _new_usn()
+    _give_usn(holder.user_id, taken.lower())
+    other_student_id = _give_usn(other.user_id, _new_usn())
+
+    r = client.patch(
+        f"/api/admin/students/{other_student_id}", headers=admin.headers, json={"usn": taken}
+    )
+    assert r.status_code == 409, r.text

@@ -54,13 +54,42 @@ Entry format:
   [REEP-API-3](https://bgs-college-of-engineering-and.sentry.io/issues/REEP-API-3):
   the address bounced on 2026-10-07 and Amazon SES now delivers nothing to it.
   No code fix needed; the office can lift the block on `/admin/mail`.
-- **2026-10-16 — USNs on applications are compared case-sensitively.** The
-  roster stores USNs upper case (`seed_roster`, the Students editor), but
-  `POST /register` stores the USN as typed. So an applicant who types
-  `1mp25ba033` is not flagged against a student holding `1MP25BA033`, and
-  approving makes a second student with the same number in lower case. Not
-  seen in production. Fix if needed: upper-case the USN in `RegisterIn`, as
-  the new correction endpoint already does.
+
+## 2026-10-16 — A USN typed in lower case was not matched against the roster
+
+- **Symptom:** found while fixing the entry below, then fixed at the owner's
+  request. An applicant who typed `1mp25ba033` was not flagged against a
+  student holding `1MP25BA033`, and approving them put a second student on the
+  roster with the same number in lower case.
+- **Cause:** the roster stores USNs upper case (`seed_roster`, the Students
+  editor), but `RegisterIn` in `app/routers/registration.py` stored the USN as
+  typed. Every "who holds this USN" lookup was case-sensitive: the approval
+  guard in `_provision_student`, the checklist in `_checks_for`, the Students
+  editor's check in `admin_students.py`, `grant_access` and `seed_roster`. So
+  was the unique index on `students.usn`.
+- **Evidence:** reproduced in tests. Not seen in production.
+- **Fix:** `app/usn.py` holds two helpers. `normalise_usn` strips and
+  upper-cases a USN. `usn_is` compares upper case on both sides. The form now
+  stores the USN upper case, approval seats the upper-case USN, and every
+  lookup above, plus the new correction endpoint, compares upper case. That
+  last part also catches a lowercase USN
+  written before this fix, both on a pending application and on a student
+  record. One side effect: a rule's USN pattern now sees the upper-case USN,
+  so an applicant who typed lower case can now match an upper-case pattern
+  (and be auto-approved by it), where before they went to manual review.
+- **Where:** `app/usn.py`, `app/routers/registration.py`,
+  `app/routers/admin_students.py`, `app/grant_access.py`, `app/seed_roster.py`.
+- **Checked by:** six new tests in
+  `tests/test_registration_usn_correction.py` (the five that touch the
+  database fail on the old code). Every test module that touches
+  registration, the Students editor, `grant_access` or `seed_roster` passes
+  (42 modules, 567 tests).
+- **Status:** open PR, the same one as the entry below.
+- **Left open:** no migration. Lowercase USNs already on the roster stay as
+  they are until somebody edits them on Students; lookups find them either
+  way. A unique index on `upper(usn)` would make the database refuse a case
+  twin too. It needs production checked for existing twins first, because
+  such an index fails to build if one exists.
 
 ## 2026-10-16 — An application whose USN another student held could only be rejected
 
@@ -104,7 +133,7 @@ Entry format:
   record's address on Students to the applicant's and approve, which then
   reuses the record. There is no one-step "approve onto that record". It would
   attach an existing student's marks to a new address on a reviewer's click,
-  and that needs the owner's decision. The case-sensitivity gap is under Open.
+  and that needs the owner's decision.
 
 ## 2026-10-15 — The redesigned student page lost two panels, and "Full record" could lead to a refusal
 

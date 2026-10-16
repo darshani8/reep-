@@ -88,6 +88,7 @@ from ..models.registration import (
 from ..models.student_profile import StudentProfile
 from ..models.user import Role, Student, User
 from ..student_placement import resolve_student_department
+from ..usn import normalise_usn, usn_is
 from ..governance import require_capability
 from ..policies import scope_filter
 from ..scope_views import (
@@ -423,6 +424,15 @@ class RegisterIn(BaseModel):
         if not value:
             raise ValueError("this field is required")
         return value
+
+    @field_validator("usn")
+    @classmethod
+    def _usn_upper_case(cls, value: str) -> str:
+        """Upper case, as the roster stores it (2026-10-16). Stored as typed,
+        `1mp25ba033` was not matched against a student holding `1MP25BA033`,
+        and approving it seated a second student with the same number. See
+        app/usn.py. Runs after `_not_blank`, so the value is already stripped."""
+        return value.upper()
 
     @field_validator("phone")
     @classmethod
@@ -1031,7 +1041,7 @@ def _checks_for(
             users_by_email[(u.email or "").lower()] = u
 
     # -- the students behind those accounts, and whoever holds these USNs -----
-    usns = {(r.usn or "").strip() for r in rows if (r.usn or "").strip()}
+    usns = {u for u in (normalise_usn(r.usn) for r in rows) if u}
     user_ids = {u.id for u in users_by_email.values()}
     student_by_user: dict[str, Student] = {}
     student_by_usn: dict[str, Student] = {}
@@ -1039,12 +1049,14 @@ def _checks_for(
     if user_ids:
         clauses.append(Student.user_id.in_(list(user_ids)))
     if usns:
-        clauses.append(Student.usn.in_(list(usns)))
+        # Upper case on both sides (app/usn.py): a lowercase USN written before
+        # 2026-10-16 is still the same number.
+        clauses.append(func.upper(Student.usn).in_(list(usns)))
     if clauses:
         for st in db.scalars(select(Student).where(or_(*clauses))).all():
             student_by_user[st.user_id] = st
             if st.usn:
-                student_by_usn[st.usn] = st
+                student_by_usn[st.usn.upper()] = st
 
     # -- who those USN holders are, for a reviewer allowed to be told --------
     holder_users: dict[str, User] = {}
@@ -1280,7 +1292,7 @@ def _checks_for_one(
     # check that skipped that branch would report a refusal on an approval that
     # in fact succeeds. That is the same defect as a green check on a row Approve
     # refuses, in the other direction.
-    usn = (r.usn or "").strip()
+    usn = normalise_usn(r.usn) or ""
     own_student = student_by_user.get(account.id) if account is not None else None
     holder = student_by_usn.get(usn) if usn else None
     if not usn:
@@ -1292,7 +1304,7 @@ def _checks_for_one(
                 detail="Approving seats them without one; Students & batches can add it later.",
             )
         )
-    elif own_student is not None and own_student.usn == usn:
+    elif own_student is not None and (own_student.usn or "").upper() == usn:
         checks.append(
             CheckOut(
                 key=CHECK_USN_UNIQUE,
@@ -2363,8 +2375,10 @@ def _provision_student(db: Session, reg: Registration) -> Student:
 
     student = db.scalar(select(Student).where(Student.user_id == user.id))
     if student is None:
-        usn = (reg.usn or "").strip() or None
-        if usn is not None and db.scalar(select(Student.id).where(Student.usn == usn)) is not None:
+        # Upper case, and compared upper case (app/usn.py): an application
+        # typed in lower case is the same number as the roster's.
+        usn = normalise_usn(reg.usn)
+        if usn is not None and db.scalar(select(Student.id).where(usn_is(Student.usn, usn))) is not None:
             # ------------------------------------------------------------------ #
             # GUARD 3: the USN. `students.usn` is `unique=True, nullable=True`,
             # and this line wrote it with no check at all — so two applications
@@ -2974,10 +2988,9 @@ class RegistrationCorrectionIn(BaseModel):
     @field_validator("usn")
     @classmethod
     def _clean_usn(cls, value: str) -> str:
-        # Upper case, as the roster stores it (`seed_roster`, and
-        # `admin_students._clean_usn` on the Students editor).
-        value = value.strip().upper()
-        if not value:
+        # Upper case, as the roster stores it (app/usn.py).
+        value = normalise_usn(value)
+        if value is None:
             raise ValueError("enter the USN")
         return value
 
@@ -3025,7 +3038,7 @@ def correct(
     usn = body.usn
     before = reg.usn
     if usn != before:
-        holder = db.scalar(select(Student).where(Student.usn == usn))
+        holder = db.scalar(select(Student).where(usn_is(Student.usn, usn)))
         if holder is not None:
             account = db.scalar(
                 select(User).where(func.lower(User.email) == (reg.email or "").strip().lower())

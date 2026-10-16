@@ -62,6 +62,7 @@ from ..policies import scope_filter
 from ..scope_views import scope_header
 from ..semester_bounds import ceiling_for_cohort, ceiling_for_student, rejection
 from ..mentor_history import record_mentor_change
+from ..usn import usn_is
 # B9. The assignment screen's two rules, imported rather than restated: a
 # faculty account becomes a mentor by being handed a student, and a mentor must
 # be in the student's own college. Two copies of a college rule disagree the
@@ -541,7 +542,9 @@ def update_student(
             profile.email = body.email
     if "usn" in sent and body.usn != student.usn:
         if body.usn is not None:
-            taken = db.scalar(select(Student.id).where(Student.usn == body.usn, Student.id != student.id))
+            taken = db.scalar(
+                select(Student.id).where(usn_is(Student.usn, body.usn), Student.id != student.id)
+            )
             if taken is not None:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"USN {body.usn} already belongs to a student.")
         student.usn = body.usn

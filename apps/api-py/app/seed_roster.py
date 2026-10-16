@@ -51,6 +51,7 @@ from .db import SessionLocal
 from .models.cohort import Cohort
 from .models.student_profile import StudentProfile
 from .models.user import Role, Student, User
+from .usn import usn_is
 
 # Last-resort fallback for the email domain. The configured value is
 # `settings.roster_domain` (ROSTER_EMAIL_DOMAIN, alias COLLEGE_EMAIL_DOMAIN,
@@ -255,7 +256,7 @@ def seed_roster(
         if user is None:
             # USN is UNIQUE too: a roster typo that reuses a USN under a new
             # email would fail the whole commit rather than no-op quietly.
-            holder = db.scalar(select(Student).where(Student.usn == usn))
+            holder = db.scalar(select(Student).where(usn_is(Student.usn, usn)))
             if holder is not None:
                 # This is also the state a CORRECTED domain leaves behind: the
                 # student exists, at the address the wrong domain derived. With
@@ -328,7 +329,7 @@ def seed_roster(
 
         stu = db.scalar(select(Student).where(Student.user_id == user.id))
         if stu is None:
-            holder = db.scalar(select(Student).where(Student.usn == usn))
+            holder = db.scalar(select(Student).where(usn_is(Student.usn, usn)))
             if holder is not None:
                 print(
                     f"skipped {usn} ({email}): that USN already belongs to another account",
@@ -350,7 +351,7 @@ def seed_roster(
             linked += 1
             touched = True
         elif stu.usn is None:
-            holder = db.scalar(select(Student).where(Student.usn == usn))
+            holder = db.scalar(select(Student).where(usn_is(Student.usn, usn)))
             if holder is not None:
                 print(
                     f"skipped USN backfill for {email}: {usn} already belongs to another account",

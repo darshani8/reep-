@@ -59,6 +59,7 @@ from .models.student_profile import StudentProfile
 from .models.user import Mentor, Role, Student, User
 from .config import settings
 from .seed_roster import db_target
+from .usn import usn_is
 
 # The roles this tool may mint on its own. STUDENT is absent on purpose â see the
 # module docstring; a User row without its Student row is an account that signs
@@ -446,7 +447,7 @@ def grant(
         # student has already touched.
         db.flush()
         wanted_usn = (usn or "").strip().upper()
-        other = db.scalar(select(Student).where(Student.usn == wanted_usn))
+        other = db.scalar(select(Student).where(usn_is(Student.usn, wanted_usn)))
         if other is not None and other.user_id != user.id:
             db.rollback()
             raise ValueError(

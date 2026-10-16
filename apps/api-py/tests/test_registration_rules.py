@@ -37,6 +37,16 @@ def test_usn_pattern_condition():
     assert not _rule_matches(rule, "a@x.com", None, DegreeLevel.PG)
 
 
+def test_usn_pattern_ignores_case():
+    """The form upper-cases every USN (2026-10-16), so a rule an author wrote
+    in lower case must still match; without IGNORECASE it matched nobody and
+    sent every applicant it was written for to manual review."""
+    lower = _rule(email_domain=None, usn_pattern=r"^1mp25ba[0-9]{3}$", degree_level=None)
+    assert _rule_matches(lower, "a@x.com", "1MP25BA033", DegreeLevel.PG)
+    upper = _rule(email_domain=None, usn_pattern=r"^1MP25BA[0-9]{3}$", degree_level=None)
+    assert _rule_matches(upper, "a@x.com", "1mp25ba033", DegreeLevel.PG)
+
+
 def test_degree_level_condition():
     rule = _rule(email_domain=None, usn_pattern=None, degree_level=DegreeLevel.PG)
     assert _rule_matches(rule, "a@x.com", None, DegreeLevel.PG)

@@ -75,7 +75,7 @@ Entry format:
   decryption and log lines are explicitly denied. The workflow assumes it for
   the drift step only, reports "could not assume" as a blocked check until the
   role exists, and prints CloudFormation's reason when a detection fails.
-- **Where:** this pull request; `infra/cdk/reep_core/drift_reader.py`,
+- **Where:** [PR #201](https://github.com/darshani8/reep-/pull/201); `infra/cdk/reep_core/drift_reader.py`,
   `infra/cdk/reep_core/stack.py`, `.github/workflows/infra-drift.yml`.
 - **Checked by:** `test_every_resource_type_the_drift_check_reads_is_classified`,
   `test_the_drift_role_reads_configuration_and_never_data`,
@@ -110,7 +110,7 @@ Entry format:
   runs, with the parameter kept only as a fallback for a fresh account; the
   spend table splits on tabs; `infra-drift.yml`, `cdk-deploy.yml` and the CI
   `cdk` job use Node 22.
-- **Where:** this pull request; `infra/cdk/cdk.json`,
+- **Where:** [PR #201](https://github.com/darshani8/reep-/pull/201); `infra/cdk/cdk.json`,
   `infra/cdk/reep_core/stack.py`, the three workflows.
 - **Checked by:** `test_cdk_json_pins_the_nat_ami_the_deployment_is_actually_running`
   (fails without the cdk.json key), `test_a_malformed_nat_ami_is_refused`,
@@ -138,7 +138,7 @@ Entry format:
 - **Fix:** the four NAT resources and the new drift role are
   `RetainExceptOnCreate`: a create that rolls back is deleted, and a box that
   was running is still only ever forgotten.
-- **Where:** this pull request; `infra/cdk/reep_core/stack.py`.
+- **Where:** [PR #201](https://github.com/darshani8/reep-/pull/201); `infra/cdk/reep_core/stack.py`.
 - **Checked by:** `test_a_failed_nat_create_leaves_nothing_to_collide_with`;
   `test_nothing_in_the_stack_deletes_on_removal` still passes.
 - **Status:** open PR; the policy change rides the next `reep-core` deploy and
@@ -159,7 +159,7 @@ Entry format:
   loaded at startup), so the initial budget moved up by that recount, to
   460 kB warning and 610 kB error. The Angular CLI now needs Node 22.22.3 or
   later; CI's `node-version: "22"` resolves to 22.23.3.
-- **Where:** this pull request; `apps/api-py/requirements.txt`,
+- **Where:** [PR #201](https://github.com/darshani8/reep-/pull/201); `apps/api-py/requirements.txt`,
   `apps/web/package.json`, `apps/web/package-lock.json`,
   `apps/web/angular.json`.
 - **Checked by:** `pip-audit` 17 findings to 0 on the pins and 0 on the full

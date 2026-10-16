@@ -810,8 +810,8 @@ test.describe('Faculty and alumni', () => {
         'TC-407 ER-1: the page is headed "Verifications"',
       ).toBeVisible();
       await expect(
-        page.getByText('Faculty · sole approver', { exact: true }),
-        'TC-407 ER-1: the eyebrow reads "Faculty · sole approver"',
+        page.getByText('Faculty · skill verification', { exact: true }),
+        'TC-407 ER-1: the eyebrow reads "Faculty · skill verification"',
       ).toBeVisible();
       await expect(
         page.locator('.queue-chip').filter({ hasText: /Skill claims\s+\d+/ }),

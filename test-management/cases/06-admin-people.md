@@ -296,7 +296,7 @@ None.
 ### Steps
 
 1. Open `/admin/students`.
-2. Under "Batch", choose "Master of Business Administration - Finance · 2024-26 Section B (ended)".
+2. Under "Batch", choose "2024-26 Section B (ended)".
 3. Under "Status", choose "Invited · not signed in yet".
 4. Under "Status", choose "All".
 5. Under "Batch", choose "No batch yet".
@@ -659,8 +659,8 @@ None.
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 2 | The browser opens `/admin/students/<the student's id>`, headed "Test Student". The line under the name reads "1BG24MBA001 · Master of Business Administration - Finance · 2024-26 Section B · Department of Management Studies · semester 2 · mentor Test Mentor", followed by an "Active" chip and an "Excel-Adv" chip. |
-| ER-2 | 2 | There are tabs Overview, Results, Attendance, Time sheet, Documents, Interviews and Audit. |
+| ER-1 | 2 | The browser opens `/admin/students/<the student's id>`. The summary card beside the record names "Test Student" with the USN 1BG24MBA001, an "Active" chip and an "Excel-Adv stage" chip, and reads Batch "Master of Business Administration - Finance · 2024-26 Section B", Department "Department of Management Studies", Semester "2" and Faculty mentor "Test Mentor". |
+| ER-2 | 2 | The record has the tabs Overview, Resume, Skills, Leaderboard, Academics, Interviews, Time sheet, Documents and Access, in that order. |
 
 ---
 
@@ -690,20 +690,20 @@ None.
 ### Steps
 
 1. Open Test Student's full record with the eye on the roster.
-2. Read the "Contact & profile" and "Mentor" cards on Overview.
-3. Click the Results tab.
+2. Read the "Contact", "Profile as filled in" and "Faculty mentor" cards.
+3. Click the Academics tab.
 4. Click the Documents tab.
-5. Click Open on the "Existing CV" row.
+5. Click the download button on the resume_v1.pdf row.
 
 ### Expected results
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 2 | "Contact & profile" reads City "Bengaluru" and, under "Career summary", "MBA finance candidate seeking placement.". |
-| ER-2 | 2 | The "Mentor" card names Test Mentor, and under "Assignment history" the first entry names Test Mentor with a "current" chip. |
+| ER-1 | 2 | "Contact" reads City "Bengaluru", and "Profile as filled in" reads Career summary "MBA finance candidate seeking placement.". |
+| ER-2 | 2 | "Faculty mentor" names Test Mentor, and the newest entry under "Mentor history" names Test Mentor with a "Current" chip. |
 | ER-3 | 3 | "Results, semester by semester" lists semester 1 with SGPA 8.2 and CGPA 8.2. |
-| ER-4 | 4 | "Documents" lists the three seeded files, each with its verdict and the reviewer's note ("—" when there is none): "Profile photo" (me.png, Photo), "Leadership certificate" (leadership_completion.pdf, Certificate) and "Existing CV" (resume_v1.pdf, Resume). A chip counts the files waiting for a verdict ("N pending review"), and there is no chip when none is waiting. On a freshly seeded database the chip reads "2 pending review", the photo and the certificate read "Pending review" with note "—", and the CV reads "Verified" with note "Looks good.". |
-| ER-5 | 5 | The CV opens in a new tab as a PDF. |
+| ER-4 | 4 | "Documents" lists the three seeded files with their kind and verdict, and the reviewer's note under the file name when there is one: leadership_completion.pdf (Certificate), me.png (Photo) and resume_v1.pdf (CV). On a freshly seeded database the certificate and the photo read "Pending review" with no note, and the CV reads "Verified" with the note "Looks good.". |
+| ER-5 | 5 | The browser downloads resume_v1.pdf, a PDF. |
 
 ---
 

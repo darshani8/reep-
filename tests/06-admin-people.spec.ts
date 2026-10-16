@@ -63,8 +63,10 @@ const SEED = {
   collegeOption: 'BGSCET · BGS College of Engineering and Technology',
 } as const;
 
-/** The batch as the roster's Batch filter offers it: it ended on 31 Jul 2026. */
-const BATCH_OPTION = `${SEED.batch} (ended)`;
+/** The batch as the roster's Batch filter offers it: by its year, which the
+ *  Course and Specialization boxes beside it narrow (2026-10-06), marked
+ *  because it ended on 31 Jul 2026. */
+const BATCH_OPTION = `${SEED.batchYear} (ended)`;
 
 /** A password for a throwaway faculty account: 12 characters or more, and not
  *  one of the demo passwords `set_password` refuses. */
@@ -122,6 +124,9 @@ interface Batch {
   id: string;
   /** "Master of Business Administration · 2026-28 E2E …", the server's own label. */
   label: string;
+  /** "2026-28 E2E …": the batch as the roster's Batch box lists it, by year
+   *  (2026-10-06). Unique to this test's batch, so picking it picks the batch. */
+  year: string;
 }
 
 interface Faculty {
@@ -161,17 +166,21 @@ async function seeded(api: APIRequestContext): Promise<Seeded> {
   const student = students.find((row) => row.usn === SEED.student.usn);
   const mentor = load.find((row) => row.name === SEED.mentor.name);
   const department = departments.find((row) => row.name === SEED.department);
-  if (!student || !student.cohort_id || !mentor?.mentor_id || !department) {
+  // The seeded batch is found by its own label, NEVER by where the student
+  // sits now. A run stopped mid-case can leave Test Student in a test's
+  // throwaway batch, and reading the batch off the student made every later
+  // `restoreSeededStudent` "restore" them into that batch for good.
+  const batch = (await hierarchyBatches(api)).find((row) => row.display_label === SEED.batch);
+  if (!student || !batch || !mentor?.mentor_id || !department) {
     throw new Error('The dev seed is missing its student, batch, mentor group or department.');
   }
-  const batch = (await hierarchyBatches(api)).find((row) => row.id === student.cohort_id);
-  if (!batch?.course_id) throw new Error('The seeded batch names no course.');
+  if (!batch.course_id) throw new Error('The seeded batch names no course.');
   return {
     studentId: student.student_id,
     mentorUserId: mentor.user_id,
     mentorId: mentor.mentor_id,
     departmentId: department.id,
-    cohortId: student.cohort_id,
+    cohortId: batch.id,
     courseId: batch.course_id,
   };
 }
@@ -197,11 +206,12 @@ async function hierarchyBatches(api: APIRequestContext): Promise<HierarchyBatchR
  */
 async function createBatch(api: APIRequestContext, ids: Seeded): Promise<Batch> {
   const tag = nextTag();
+  const name = `2026-28 E2E ${tag}`;
   const created = await ok<{ id: string }>(
     await api.post(`/api/admin/departments/${ids.departmentId}/cohorts`, {
       data: {
         code: `E2E-${tag}`,
-        name: `2026-28 E2E ${tag}`,
+        name,
         batch_label: '2026-28',
         degree_level: 'PG',
         entry_date: '2026-07-01',
@@ -213,7 +223,7 @@ async function createBatch(api: APIRequestContext, ids: Seeded): Promise<Batch> 
   );
   const row = (await hierarchyBatches(api)).find((batch) => batch.id === created.id);
   if (!row?.current) throw new Error('The new batch is not listed as running.');
-  return { id: created.id, label: row.display_label };
+  return { id: created.id, label: row.display_label, year: name };
 }
 
 async function seat(
@@ -792,6 +802,9 @@ test.describe('Admin: people and access', () => {
   test('Filtering the roster by batch and status @TC-506', async ({ page, signIn }) => {
     await signIn('admin');
     const ids = await seeded(page.request);
+    // The case reads Test Student in the seeded batch; a run stopped mid-case
+    // elsewhere can have left them in another one.
+    await restoreSeededStudent(page.request, ids);
     const row = gridRow(page, ids.studentId);
     const rail = page.locator('.roster-rail');
     const batchFilter = page.getByRole('combobox', { name: 'Batch', exact: true });
@@ -863,7 +876,7 @@ test.describe('Admin: people and access', () => {
       });
 
       await test.step('2. Under "Batch", choose the new batch', async () => {
-        await page.getByRole('combobox', { name: 'Batch', exact: true }).selectOption(batch.id);
+        await page.getByRole('combobox', { name: 'Batch', exact: true }).selectOption(batch.year);
         await expect(row, 'TC-507 (arrange): Test Student is in the batch').toBeVisible();
       });
 
@@ -1057,7 +1070,7 @@ test.describe('Admin: people and access', () => {
       });
 
       await test.step('2. Under "Batch", choose the new batch', async () => {
-        await page.getByRole('combobox', { name: 'Batch', exact: true }).selectOption(batch.id);
+        await page.getByRole('combobox', { name: 'Batch', exact: true }).selectOption(batch.year);
         await expect(semester, 'TC-510 (arrange): Test Student is in semester 2').toHaveText(
           String(SEED.student.semester),
         );
@@ -1138,7 +1151,7 @@ test.describe('Admin: people and access', () => {
       });
 
       await test.step('2. Under "Batch", choose the new batch', async () => {
-        await page.getByRole('combobox', { name: 'Batch', exact: true }).selectOption(batch.id);
+        await page.getByRole('combobox', { name: 'Batch', exact: true }).selectOption(batch.year);
         await expect(
           gridRow(page, ids.studentId),
           'TC-539 (arrange): Test Student, on the roster, is listed',
@@ -1343,42 +1356,46 @@ test.describe('Admin: people and access', () => {
       await expect(
         heading(page, SEED.student.name),
         'TC-513 ER-1: headed with their name',
-      ).toBeVisible();
-      const line = page.locator('.head-sub');
-      for (const part of [
-        SEED.student.usn,
-        SEED.batch,
-        SEED.department,
-        `semester ${SEED.student.semester}`,
-        `mentor ${SEED.mentor.name}`,
-      ]) {
-        await expect(line, `TC-513 ER-1: the line under the name carries "${part}"`).toContainText(
-          part,
-        );
-      }
+      ).toBeAttached();
+      const summary = page.getByRole('complementary', { name: 'Student summary' });
       await expect(
-        line.locator('.chip').filter({ hasText: /^Active$/ }),
+        summary.getByRole('heading', { level: 2, name: SEED.student.name, exact: true }),
+        'TC-513 ER-1: the summary card names the student',
+      ).toBeVisible();
+      await expect(summary, 'TC-513 ER-1: with their USN').toContainText(SEED.student.usn);
+      const chips = summary.locator('.chip-row .chip');
+      await expect(
+        chips.filter({ hasText: /^Active$/ }),
         'TC-513 ER-1: an "Active" chip',
       ).toBeVisible();
       await expect(
-        line.locator('.chip').filter({ hasText: new RegExp(`^${SEED.student.stageLabel}$`) }),
+        chips.filter({ hasText: new RegExp(`^${SEED.student.stageLabel} stage$`) }),
         'TC-513 ER-1: the stage chip',
       ).toBeVisible();
-      const tabs = page.getByRole('group', { name: 'Student views' });
-      for (const tab of [
+      const fact = (term: string) =>
+        summary.locator('.rail-facts > div').filter({ has: page.getByRole('term').getByText(term, { exact: true }) }).getByRole('definition');
+      await expect(fact('Batch'), 'TC-513 ER-1: Batch').toHaveText(SEED.batch);
+      await expect(fact('Department'), 'TC-513 ER-1: Department').toHaveText(SEED.department);
+      await expect(fact('Semester'), 'TC-513 ER-1: Semester').toHaveText(
+        String(SEED.student.semester),
+      );
+      await expect(fact('Faculty mentor'), 'TC-513 ER-1: Faculty mentor').toContainText(
+        SEED.mentor.name,
+      );
+      await expect(
+        page.getByRole('tablist', { name: 'Parts of the record' }).getByRole('tab'),
+        'TC-513 ER-2: the record has its nine tabs, in order',
+      ).toHaveText([
         'Overview',
-        'Results',
-        'Attendance',
+        'Resume',
+        'Skills',
+        'Leaderboard',
+        'Academics',
+        'Interviews',
         'Time sheet',
         'Documents',
-        'Interviews',
-        'Audit',
-      ]) {
-        await expect(
-          tabs.getByRole('button', { name: tab, exact: true }),
-          `TC-513 ER-2: a "${tab}" tab`,
-        ).toBeVisible();
-      }
+        'Access',
+      ]);
     });
   });
 
@@ -1392,7 +1409,7 @@ test.describe('Admin: people and access', () => {
       page
         .locator('.card')
         .filter({ has: page.getByRole('heading', { level: 2, name: title, exact: true }) });
-    const tabs = page.getByRole('group', { name: 'Student views' });
+    const tabs = page.getByRole('tablist', { name: 'Parts of the record' });
     // The seeded uploads, by title. Their verdicts are read from the record
     // itself: module 05's verification cases may have decided one since the seed.
     const verdictLabel: Record<string, string> = {
@@ -1404,18 +1421,17 @@ test.describe('Admin: people and access', () => {
     const record = await ok<{
       documents: { title: string; status: string; review_note: string | null }[];
     }>(await page.request.get(`/api/admin/students/${ids.studentId}/360`), 'GET 360');
-    const pending = record.documents.filter((row) => row.status === 'PENDING_REVIEW').length;
     const documents = [
       { title: 'Profile photo', file: 'me.png', kind: 'Photo' },
       { title: 'Leadership certificate', file: 'leadership_completion.pdf', kind: 'Certificate' },
-      { title: 'Existing CV', file: 'resume_v1.pdf', kind: 'Resume' },
+      { title: 'Existing CV', file: 'resume_v1.pdf', kind: 'CV' },
     ].map((seededDocument) => {
       const onRecord = record.documents.find((row) => row.title === seededDocument.title);
       if (!onRecord) throw new Error(`The seeded upload "${seededDocument.title}" is missing.`);
       return {
         ...seededDocument,
         status: verdictLabel[onRecord.status] ?? onRecord.status,
-        note: onRecord.review_note || '—',
+        note: onRecord.review_note || '',
       };
     });
 
@@ -1425,36 +1441,38 @@ test.describe('Admin: people and access', () => {
       await expect(
         heading(page, SEED.student.name),
         'TC-514 (arrange): the record is open',
-      ).toBeVisible();
+      ).toBeAttached();
     });
 
-    await test.step('2. Read the "Contact & profile" and "Mentor" cards on Overview', async () => {
-      const profile = card('Contact & profile');
+    await test.step('2. Read the "Contact", "Profile as filled in" and "Faculty mentor" cards', async () => {
       await expect(
-        profile.locator('.fact').filter({ hasText: 'City' }).locator('dd'),
+        card('Contact').getByRole('listitem').filter({ hasText: /^\s*City/ }),
         'TC-514 ER-1: City reads Bengaluru',
-      ).toHaveText(SEED.student.city);
+      ).toContainText(SEED.student.city);
       await expect(
-        profile,
+        card('Profile as filled in')
+          .locator('.rail-facts > div')
+          .filter({ hasText: 'Career summary' })
+          .getByRole('definition'),
         'TC-514 ER-1: the career summary as the student wrote it',
-      ).toContainText(SEED.student.summary);
-      const mentor = card('Mentor');
+      ).toHaveText(SEED.student.summary);
+      const mentor = card('Faculty mentor');
       await expect(
-        mentor.locator('.mentor-name'),
-        'TC-514 ER-2: the Mentor card names Test Mentor',
+        mentor.locator('.mentor-row b'),
+        'TC-514 ER-2: the card names Test Mentor',
       ).toHaveText(SEED.mentor.name);
       const current = mentor.locator('.mentor-spells li').first();
       await expect(
         current,
-        'TC-514 ER-2: the newest assignment is Test Mentor, marked current',
+        'TC-514 ER-2: the newest entry under "Mentor history" is Test Mentor',
       ).toContainText(SEED.mentor.name);
-      await expect(current.locator('.chip'), 'TC-514 ER-2: marked current').toHaveText('current');
+      await expect(current.locator('.chip'), 'TC-514 ER-2: marked current').toHaveText('Current');
     });
 
-    await test.step('3. Click the Results tab', async () => {
-      await tabs.getByRole('button', { name: 'Results', exact: true }).click();
+    await test.step('3. Click the Academics tab', async () => {
+      await tabs.getByRole('tab', { name: 'Academics', exact: true }).click();
       const semesterOne = page
-        .getByRole('table', { name: `Semester results for ${SEED.student.name}` })
+        .getByRole('table', { name: 'Semester results' })
         .getByRole('row')
         .filter({ has: page.getByRole('cell', { name: '1', exact: true }) });
       await expect(
@@ -1468,47 +1486,39 @@ test.describe('Admin: people and access', () => {
     });
 
     await test.step('4. Click the Documents tab', async () => {
-      await tabs.getByRole('button', { name: 'Documents', exact: true }).click();
+      await tabs.getByRole('tab', { name: 'Documents', exact: true }).click();
       const table = page.getByRole('table', { name: `Documents uploaded by ${SEED.student.name}` });
-      await expect(
-        page.locator('.chip').filter({ hasText: /pending review$/ }),
-        'TC-514 ER-4: the chip counts the documents waiting for a verdict',
-      ).toHaveText(pending > 0 ? [`${pending} pending review`] : []);
       for (const document of documents) {
-        const row = table.getByRole('row').filter({ hasText: document.title });
-        await expect(row, `TC-514 ER-4: "${document.title}" is listed`).toHaveCount(1);
-        await expect(row, `TC-514 ER-4: with its file name`).toContainText(document.file);
-        await expect(row.getByRole('cell').nth(1), `TC-514 ER-4: kind ${document.kind}`).toHaveText(
+        const row = table.getByRole('row').filter({ hasText: document.file });
+        await expect(row, `TC-514 ER-4: "${document.file}" is listed`).toHaveCount(1);
+        await expect(row.getByRole('cell').nth(0), `TC-514 ER-4: kind ${document.kind}`).toHaveText(
           document.kind,
         );
+        const file = row.getByRole('cell').nth(1);
+        if (document.note) {
+          await expect(file, "TC-514 ER-4: the reviewer's note under the file").toContainText(
+            document.note,
+          );
+        } else {
+          await expect(file, 'TC-514 ER-4: no note under the file').toHaveText(document.file);
+        }
         await expect(
           row.getByRole('cell').nth(3),
           `TC-514 ER-4: status ${document.status}`,
-        ).toContainText(document.status);
-        await expect(row.getByRole('cell').nth(4), "TC-514 ER-4: the reviewer's note").toHaveText(
-          document.note,
-        );
+        ).toHaveText(document.status);
       }
     });
 
-    await test.step('5. Click Open on the "Existing CV" row', async () => {
-      const open = page
+    await test.step('5. Click the download button on the resume_v1.pdf row', async () => {
+      const download = page.waitForEvent('download');
+      await page
         .getByRole('table', { name: `Documents uploaded by ${SEED.student.name}` })
-        .getByRole('row')
-        .filter({ hasText: 'Existing CV' })
-        .getByRole('link', { name: 'Open' });
-      await expect(open, 'TC-514 ER-5: the link opens in a new tab').toHaveAttribute(
-        'target',
-        '_blank',
-      );
-      // A browser shows a PDF in the new tab; a headless one downloads it, so
-      // the file behind the link is fetched with this session instead.
-      const href = await open.getAttribute('href');
-      const file = await page.request.get(href ?? '');
-      expect(file.status(), 'TC-514 ER-5: the CV is served').toBe(200);
-      expect(file.headers()['content-type'], 'TC-514 ER-5: the CV is a PDF').toContain(
-        'application/pdf',
-      );
+        .getByRole('link', { name: 'Download resume_v1.pdf' })
+        .click();
+      const file = await download;
+      expect(file.suggestedFilename(), 'TC-514 ER-5: the CV is downloaded').toBe('resume_v1.pdf');
+      const bytes = fs.readFileSync((await file.path()) ?? '');
+      expect(bytes.subarray(0, 5).toString(), 'TC-514 ER-5: as a PDF').toBe('%PDF-');
     });
   });
 

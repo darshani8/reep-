@@ -348,7 +348,7 @@ None beyond the seeded items above.
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 1 | The page is headed "Verifications", under the eyebrow "Faculty · sole approver", with a "Skill claims" and a "Documents" count chip in the header. |
+| ER-1 | 1 | The page is headed "Verifications", under the eyebrow "Faculty · skill verification", with a "Skill claims" and a "Documents" count chip in the header. |
 | ER-2 | 1 | Under "Skill claims", a card reads "Business Analytics Fundamentals · Sectoral Skills · Certificate", "Test Student · submitted" and the date it was filed, with a "Submitted" chip and a Review evidence button. |
 | ER-3 | 1 | Under "Documents", "Profile photo · Photo" and "Leadership certificate · Certificate" are listed, each for Test Student, with a "Pending review" chip, an "Open …" link naming the file, a "Reviewer note" field and Verify and Reject buttons. |
 | ER-4 | 2 | The card opens and its chip reads "Under review". It shows "Badge claimed: Business Analytics Fundamentals", "Category: Sectoral Skills", "Evidence: Certificate · Business Analytics Fundamentals", "Issued by: Coursera", "Student: Test Student · 1BG24MBA001", and under "What the student told you": "Completed last week — certificate attached on my uploads." A "No file attached" chip, the "Verification rubric", the "Note to the student" field and the Verify, Request changes, Reject and Close buttons are shown. |

@@ -55,6 +55,37 @@ Entry format:
   the address bounced on 2026-10-07 and Amazon SES now delivers nothing to it.
   No code fix needed; the office can lift the block on `/admin/mail`.
 
+## 2026-10-16 — Eight end-to-end cases in modules 05 and 06 failed on `dev`
+
+- **Symptom:** a local run of `tests/05-faculty-alumni.spec.ts` and
+  `tests/06-admin-people.spec.ts` against a seeded stack failed TC-407, TC-506,
+  TC-507, TC-510, TC-513, TC-514, TC-532 and TC-539, the same way with or
+  without the governance change in the same pull request.
+- **Cause:** three screens had changed and their cases had not, and one test
+  helper was wrong. The Verifications eyebrow became "Faculty · skill
+  verification" in #140 (TC-407). The roster's Batch box lists each YEAR once
+  since 2026-10-06 (`b6fdc2f`), so picking a batch by id or by its long label
+  matched no option (TC-506, 507, 510, 539). TC-513 and TC-514 still read the
+  Student 360 page from before its 2026-10-15 redesign (the old header line,
+  the Results, Attendance and Audit tabs, an "Open" link). And `seeded()` in
+  `tests/06-admin-people.spec.ts` took the seeded batch from wherever Test
+  Student sat at the time: once a stopped run left them in a test's throwaway
+  batch, every later `restoreSeededStudent` put them back into that batch, so
+  the roster showed the seeded batch empty and TC-532 counted the wrong batch.
+- **Evidence:** each failure reproduced on `dev` with this pull request's
+  changes stashed; the database showed Test Student in "2026-28 E2E …".
+- **Fix:** the cases and tests follow the screens as they are now (the Batch
+  box picked by year, TC-513 and TC-514 rewritten against the new record
+  page, the download checked as a PDF), and `seeded()` finds the seeded batch
+  by its own label. TC-506 restores Test Student to that batch before it
+  reads it.
+- **Where:** this pull request; `tests/05-faculty-alumni.spec.ts`,
+  `tests/06-admin-people.spec.ts`, `test-management/cases/05-faculty-alumni.md`,
+  `test-management/cases/06-admin-people.md`.
+- **Checked by:** modules 05 and 06 in full against a seeded local stack:
+  70 passed; `npx playwright test --list` reports no drift.
+- **Status:** open PR into `dev` ([#189](https://github.com/darshani8/reep-/pull/189)).
+
 ## 2026-10-16 — Mentors could not see their own mentees' records, and access was hard to give and take away
 
 - **Symptom:** the owner: a faculty member's mentees were listed on the

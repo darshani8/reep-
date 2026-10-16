@@ -162,6 +162,32 @@ def notify_verifiers_of_claim(db: Session, ev: BadgeEvidence) -> list[MailLog]:
     """
     if not settings.badge_mail_active:
         return []
+    ev_id = ev.id  # read before anything can fail: the handler must not touch the row
+    try:
+        return _notify_verifiers(db, ev)
+    except Exception as exc:  # the claim is already saved; a mail must not undo that
+        _contain(db, "Claim notification", ev_id, exc)
+        return []
+
+
+def _contain(db: Session, what: str, ev_id: str, exc: Exception) -> None:
+    """Log a failure the caller must never see, and leave the session usable.
+
+    THE CLASS NAME AND NOTHING ELSE. A database error's message carries the
+    statement's parameters, and on this path those include addresses -- the
+    leak `deliver_once`'s own driver handler refuses for the same reason.
+    Rolled back first, so the caller's next read (it composes its answer from
+    rows already committed) runs on a usable session; a rollback that itself
+    fails is swallowed, because the claim or decision is saved either way.
+    """
+    try:
+        db.rollback()
+    except Exception:  # noqa: BLE001 - nothing here may reach the caller
+        pass
+    log.warning("%s failed for evidence %s: %s", what, ev_id, type(exc).__name__)
+
+
+def _notify_verifiers(db: Session, ev: BadgeEvidence) -> list[MailLog]:
     account = _student_account(db, ev)
     if account is None:
         return []
@@ -260,6 +286,19 @@ def notify_student_of_decision(db: Session, ev: BadgeEvidence) -> MailLog | None
     builder = _DECISIONS.get(ev.status)
     if builder is None:
         return None
+    ev_id = ev.id
+    try:
+        return _notify_student(db, ev, builder)
+    except Exception as exc:  # the decision is already saved; a mail must not undo that
+        _contain(db, "Decision notification", ev_id, exc)
+        return None
+
+
+def _notify_student(
+    db: Session,
+    ev: BadgeEvidence,
+    builder: Callable[[str, str, str | None], tuple[str, str]],
+) -> MailLog | None:
     account = _student_account(db, ev)
     if account is None or not _reachable(account[1]):
         log.info("Decision notification skipped: no reachable student for evidence %s", ev.id)

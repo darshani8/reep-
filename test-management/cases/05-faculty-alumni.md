@@ -316,7 +316,7 @@ shows it.
 
 ---
 
-## TC-407 — Verifications lists the mentees' pending skill claims and documents
+## TC-407 — Verifications lists the pending skill claims and documents the faculty member may verify
 
 | Field | Value |
 |---|---|
@@ -328,7 +328,9 @@ shows it.
 
 ### Pre-conditions
 
-1. As TC-400.
+1. As TC-400, and the faculty member holds "Verify skills & evidence" for the
+   seeded college. The dev seed grants it as the placement office would in Who
+   can do what; mentoring the student does not open this screen.
 2. The dev seed's pending items for the student have not been decided: the
    skill claim "Business Analytics Fundamentals" (issued by Coursera, no file
    attached), and two uploaded documents waiting for review, "Profile photo"
@@ -368,7 +370,9 @@ None beyond the seeded items above.
 
 ### Pre-conditions
 
-1. As TC-400.
+1. As TC-400, and the faculty member holds "Verify skills & evidence" for the
+   seeded college. The dev seed grants it as the placement office would in Who
+   can do what; mentoring the student does not open this screen.
 2. The student has filed a claim to be decided. Sign in as the student on
    `/student/skilling`, and claim the "SQL" badge with a certificate: evidence
    type Certificate, the title and provider in the test data, the file
@@ -523,7 +527,9 @@ As TC-409.
 
 ### Pre-conditions
 
-1. As TC-400.
+1. As TC-400, and the faculty member holds "Verify skills & evidence" for the
+   seeded college. The dev seed grants it as the placement office would in Who
+   can do what; mentoring the student does not open this screen.
 2. The student has uploaded a document that no skill claim stands on. Sign in
    as the student on `/student/uploads`, choose the Document type "Other
    document", and upload a copy of `tests/fixtures/sample.pdf` renamed to the

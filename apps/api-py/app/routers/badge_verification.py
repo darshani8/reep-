@@ -1,10 +1,14 @@
 """Staff and admin half of the Skills & Badge framework (§12, §15–§18).
 
-Rule 2 everywhere a student is named: every per-student endpoint goes through
-`_assert_can_access_student` (imported from routers/mentor.py, never
-reimplemented), and the pending-evidence queue narrows to the mentor's own
-group IN SQL — an out-of-group claim is never read out of the database, the
-leave-queue lesson. Cohort views, exports and the certification catalogue are
+VERIFYING IS THE OFFICE'S CHOICE OF PERSON, NOT A MENTOR'S BY MENTORING
+(2026-10-16). The queue, the reviewed strip, a claim's file and its decision
+are reached through a grant of `mentor.verifications` ("Verify skills &
+evidence") and narrowed to that grant's reach IN SQL, through app/verifiers.py
+-- an out-of-reach claim is never read out of the database, the leave-queue
+lesson. Mentoring a student no longer opens any of them. The other per-student
+endpoints here (assessments, the staff read of the dashboard) still go through
+rule 2's `_assert_can_access_student`, imported from routers/mentor.py and
+never reimplemented. Cohort views, exports and the certification catalogue are
 the Main Admin (§15's "cohort-level administrative view", §18).
 
 What approving means (§10): the reviewer's APPROVE on an evidence row is the
@@ -24,18 +28,13 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel, Field
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .. import badge_mail
 from ..architecture_events import record_change
 from ..db import get_db
-from ..governance import (
-    ancestry_of_student,
-    granted_reaches,
-    reaches_target,
-    require_capability,
-)
+from ..governance import require_capability
 from ..identity import get_current_session
 from ..models.badge import (
     BADGE_BY_CODE,
@@ -61,10 +60,15 @@ from ..exports import (
     record_export,
     scope_note,
 )
-from ..policies import scope_filter
-from ..scope_views import scope_header
 from ..models.upload import Upload, UploadStatus
 from ..models.user import Student, User
+from ..policies import scope_filter
+from ..verifiers import (
+    VERIFY_CAPABILITY,
+    assert_can_verify,
+    narrow_to_reach,
+    verification_reach,
+)
 from .badges import BadgeDashboardOut, GrowthOut, compose_badges, compose_growth
 from .mentor import _assert_can_access_student, require_admin, require_mentor
 
@@ -135,7 +139,9 @@ def _evidence_query(db: Session, session: dict, response: Response):
 
     ONE query for the pending queue and the reviewed strip, so the two lists
     cannot disagree about scope -- `mentor.py::_claim_query`'s rule. The
-    narrowing is `pending_evidence`'s, documented there.
+    narrowing is the verification grant's reach and nothing else
+    (app/verifiers.py); `pending_evidence` says why the mentor's own group is no
+    longer part of it.
     """
     query = (
         select(BadgeEvidence, User.name, Student.usn, Upload)
@@ -143,28 +149,7 @@ def _evidence_query(db: Session, session: dict, response: Response):
         .join(User, Student.user_id == User.id)
         .outerjoin(Upload, BadgeEvidence.upload_id == Upload.id)
     )
-    reach = scope_filter(db, session, "mentor.verifications")
-    if session["role"] == "MENTOR":
-        # A GRANTED VERIFIER IS NOT LIMITED TO THEIR OWN MENTEES (2026-10-13).
-        # The grant's reach is ADDED to the group, never substituted for it: a
-        # faculty member with no grant reaches `nothing` and keeps exactly the
-        # old queue. See `pending_evidence` for why.
-        mentor_id = session.get("mentorId")
-        visible = []
-        if mentor_id:
-            visible.append(Student.mentor_id == mentor_id)
-        if not reach.nothing:
-            scope_header(response, reach)
-            visible.append(Student.id.in_(reach.student_ids()))
-        if not visible:
-            return None  # no group and no grant => nobody (never the whole programme)
-        return query.where(or_(*visible))
-    scope_header(response, reach)
-    if reach.nothing:
-        return None
-    if not reach.everything:
-        query = query.where(Student.id.in_(reach.student_ids()))
-    return query
+    return narrow_to_reach(query, verification_reach(db, session, response))
 
 
 _EVIDENCE_NOT_FOUND = "Evidence not found."
@@ -174,32 +159,23 @@ def _assert_can_verify(session: dict, student_id: str, db: Session) -> None:
     """May this session open and decide THIS student's evidence?
 
     The per-row twin of `_evidence_query`, so a claim that is listed can always
-    be opened and one that is not listed cannot. Two doors, either enough:
+    be opened and one that is not listed cannot: a live grant of
+    `mentor.verifications` whose reach covers the student, asked of
+    app/verifiers.py. Every refusal is the same 404: an out-of-scope id must not
+    be distinguishable from a wrong one.
 
-      1. rule 2 — `_assert_can_access_student`: a mentor's own mentee, or any
-         student for the Main Admin. Cheap (it reads the session claim), so the
-         commonest case never touches the grants table.
-      2. a live GRANT of `mentor.verifications` whose scope covers the student.
+    RULE 2 IS NO LONGER A DOOR HERE (2026-10-16). It was the first of two: a
+    mentor's own mentee, or any student for the Main Admin. The first half went
+    with the owner's decision that mentoring brings no verification; the second
+    was a quiet widening -- a Main Admin holding a grant scoped to one college
+    saw that college's queue and could still open and decide any student's
+    claim by id. The grant's reach is now the whole answer for both.
 
-    Every refusal is the same 404: an out-of-scope id must not be
-    distinguishable from a wrong one.
-
-    DELIBERATELY NOT A CHANGE TO `_assert_can_access_student`. That function
-    gates every per-student staff endpoint, many of them writes (mentor notes,
-    assessments, manual awards); widening it would hand a verification grant all
-    of those too. The second door opens HERE, for these two endpoints only.
+    STILL NOT A CHANGE TO `_assert_can_access_student`. That function gates
+    every other per-student staff endpoint, many of them writes (mentor notes,
+    assessments); it keeps admitting a mentor to their own group there.
     """
-    try:
-        _assert_can_access_student(session, student_id, db)
-        return
-    except HTTPException:
-        pass
-    reaches = granted_reaches(db, str(session.get("userId") or ""), "mentor.verifications")
-    if reaches and reaches_target(reaches, ancestry_of_student(db, student_id)):
-        return
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND, detail=_EVIDENCE_NOT_FOUND
-    ) from None
+    assert_can_verify(db, session, student_id, detail=_EVIDENCE_NOT_FOUND)
 
 
 @router.get("/mentor/badge-evidence/pending", response_model=list[PendingEvidenceOut])
@@ -220,41 +196,29 @@ def pending_evidence(
     and the mentor's screen showed a queue nothing could fill. The
     `skill_claims` endpoints stay for the resume builder's read of them.
 
-    SCOPED (B1.4), COMPOSED WITH THE GROUP FENCE AND NOT REPLACING IT. There are
-    two ways to hold `mentor.verifications` and they are narrowed differently
-    ON PURPOSE:
+    ONLY A GRANT OPENS IT, AND ITS REACH IS THE FENCE (2026-10-16). Until this
+    date there were two ways to hold `mentor.verifications`: a FUNCTION derived
+    from mentoring somebody, fenced to the mentor's own group, and a GRANT,
+    fenced to its scope (2026-10-13, after 128 certificates from 26 students
+    with no mentor sat pending where no faculty member could see them; the
+    grant was ADDED to the group). The owner then asked for verification to be
+    taken from every mentor and given only to the faculty the office chooses,
+    so the function is gone (app/mentor_functions.py) and the group with it: a
+    granted faculty member sees exactly the students the grant covers, their
+    own mentees included only if the grant covers them. A faculty member with
+    no grant is refused at the capability gate, whoever they mentor. Until the
+    office grants somebody, a claim waits in this queue with nobody to see it.
 
-    A MENTOR holds it as a derived FUNCTION of currently mentoring somebody
-    (app/mentor_functions.py), so there is no grant row and `scope_filter`
-    reports `nothing` for them. Their fence is their own group, which is
-    stricter than any scope — this mentor's students, not a department's — and
-    is the same argument `require_capability` makes for leaving a function
-    unscoped. Applying the reach INSTEAD of the group would empty every
-    faculty member's queue.
-
-    A MENTOR MAY ALSO HOLD IT AS A GRANT, AND THEN SEES WHAT THE GRANT COVERS AS
-    WELL (2026-10-13). The placement office asked for verification to stop
-    depending on mentoring: on production 128 certificates from 26 students sat
-    pending because none of those students had a mentor, so no faculty member
-    could see them. A faculty member granted "Verify skills & evidence" in
-    Governance now sees their own group PLUS every student the grant's scope
-    covers — with no group at all, if they mentor nobody. The grant is the
-    decision; who mentors whom no longer gates it.
-
-    ANYONE ELSE holds it as a GRANT, and that grant now carries a scope. This is
-    where it bites today rather than in some future phase: `_FACULTY_ONLY` keeps
-    `mentor.verifications` out of the Main Admin's baseline precisely so that
-    looking at a stuck student's evidence is an audited grant it makes to
-    itself — and until this line, that grant read every pending claim on the
-    deployment. A grant scoped to the college whose student is stuck now shows
+    THE MAIN ADMIN IS HELD TO THE SAME GRANT. `_FACULTY_ONLY` keeps
+    `mentor.verifications` out of the office account's baseline precisely so
+    that looking at a stuck student's evidence is an audited grant it makes to
+    itself, and a grant scoped to the college whose student is stuck shows
     that college's queue.
     """
-    # mentor.verifications: verifying a student's evidence is a faculty act.
-    # The Main Admin no longer holds it by role - but it stays GRANTABLE, which
-    # matters here specifically: when a student's assigned faculty never reviews
-    # their evidence, the admin can grant itself this, clear the queue, and
-    # revoke it again. Without that the evidence would simply sit.
-    require_capability(db, session, "mentor.verifications")
+    # mentor.verifications: held only as a GRANT (app/verifiers.py), by the
+    # faculty the office chose -- or by the office itself, which grants itself
+    # the queue when a student's evidence is stuck and revokes it after.
+    require_capability(db, session, VERIFY_CAPABILITY)
     query = _evidence_query(db, session, response)
     if query is None:
         return []
@@ -281,7 +245,7 @@ def reviewed_evidence(
     cannot check they made correctly. Read-only, and it carries the review note,
     so the strip shows the outcome AND the words the student was given.
     """
-    require_capability(db, session, "mentor.verifications")
+    require_capability(db, session, VERIFY_CAPABILITY)
     query = _evidence_query(db, session, response)
     if query is None:
         return []
@@ -302,12 +266,10 @@ def evidence_file(
     """Stream the certificate behind a claim so the reviewer can actually read
     what they are approving. Same scope, and the same flattened 404, as the
     review endpoint."""
-    # mentor.verifications: verifying a student's evidence is a faculty act.
-    # The Main Admin no longer holds it by role - but it stays GRANTABLE, which
-    # matters here specifically: when a student's assigned faculty never reviews
-    # their evidence, the admin can grant itself this, clear the queue, and
-    # revoke it again. Without that the evidence would simply sit.
-    require_capability(db, session, "mentor.verifications")
+    # mentor.verifications: held only as a GRANT (app/verifiers.py), by the
+    # faculty the office chose -- or by the office itself, which grants itself
+    # the queue when a student's evidence is stuck and revokes it after.
+    require_capability(db, session, VERIFY_CAPABILITY)
     ev = db.get(BadgeEvidence, evidence_id)
     if ev is None or ev.upload_id is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence not found.")
@@ -369,12 +331,10 @@ def review_evidence(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> PendingEvidenceOut:
-    # mentor.verifications: verifying a student's evidence is a faculty act.
-    # The Main Admin no longer holds it by role - but it stays GRANTABLE, which
-    # matters here specifically: when a student's assigned faculty never reviews
-    # their evidence, the admin can grant itself this, clear the queue, and
-    # revoke it again. Without that the evidence would simply sit.
-    require_capability(db, session, "mentor.verifications")
+    # mentor.verifications: held only as a GRANT (app/verifiers.py), by the
+    # faculty the office chose -- or by the office itself, which grants itself
+    # the queue when a student's evidence is stuck and revokes it after.
+    require_capability(db, session, VERIFY_CAPABILITY)
     ev = db.get(BadgeEvidence, evidence_id)
     if ev is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence not found.")
@@ -464,8 +424,24 @@ def manual_award(
     db: Session = Depends(get_db),
 ) -> BadgeDashboardOut:
     """Manual award — how §8's readiness badges land when assessment thresholds
-    are met, and §18's escape hatch for everything else."""
-    _assert_can_access_student(session, student_id, db)
+    are met, and §18's escape hatch for everything else.
+
+    AN AWARD IS A VERIFICATION WITHOUT A CLAIM, SO IT HAS THE SAME DOOR
+    (2026-10-16). It mints an EARNED skill badge with no evidence row behind it,
+    and until this date any MENTOR could do that for their own mentee by rule 2
+    alone -- which, once verification stopped coming with mentoring, would have
+    been the one way a mentor could still mark a skill verified. The Main Admin
+    keeps the escape hatch for any student; anybody else needs the verification
+    grant covering this one. Readiness badges stay the Main Admin's alone,
+    below.
+    """
+    if session.get("role") == "ADMIN":
+        _assert_can_access_student(session, student_id, db)
+    else:
+        require_capability(db, session, VERIFY_CAPABILITY)
+        if db.get(Student, student_id) is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found.")
+        assert_can_verify(db, session, student_id, detail="Student not found.")
     if code not in BADGE_BY_CODE:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such badge.")
     if BADGE_BY_CODE[code].staff_awarded:

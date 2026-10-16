@@ -263,9 +263,9 @@ None beyond the seeded student.
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 1 | The badge board groups the badges into five categories, captioned "Managerial Skills" "12 badges · 1 earned", "Sectoral Skills" "16 badges", "Platform / Technical Skills" "10 badges · 1 earned", "Thinking Skills" "6 badges" and "Interview Readiness" "4 readiness badges". |
-| ER-2 | 1 | "Business Communication" and "Microsoft Excel – Foundation" read "Verified" and carry the blue verified tick. "Business Analytics Fundamentals" reads "With your mentor". A badge nobody has claimed, such as "Strategic Thinking", reads "Not claimed". |
+| ER-2 | 1 | "Business Communication" and "Microsoft Excel – Foundation" read "Verified" and carry the blue verified tick. "Business Analytics Fundamentals" reads "Waiting for review". A badge nobody has claimed, such as "Strategic Thinking", reads "Not claimed". |
 | ER-3 | 1 | The line under the board reads "2 skills currently illuminated". |
-| ER-4 | 1 | A "Claims in progress" table lists "Business Analytics Fundamentals" with the status "With your mentor" and the note "—", and "Critical Thinking" with the status "Needs changes" and the note "Add the certificate or the organiser's result sheet." Earlier runs of TC-213 may have added "Design Thinking" rows reading "Not verified". |
+| ER-4 | 1 | A "Claims in progress" table lists "Business Analytics Fundamentals" with the status "Waiting for review" and the note "—", and "Critical Thinking" with the status "Needs changes" and the note "Add the certificate or the organiser's result sheet." Earlier runs of TC-213 may have added "Design Thinking" rows reading "Not verified". |
 
 ---
 
@@ -348,7 +348,7 @@ None beyond the seeded student.
 
 ---
 
-## TC-213 — Filing a claim with a certificate sends the badge to the mentor
+## TC-213 — Filing a claim with a certificate sends the badge for review
 
 | Field | Value |
 |---|---|
@@ -374,7 +374,7 @@ None beyond the seeded student.
 | Skill category | Thinking Skills |
 | Skill badge | Design Thinking |
 | Issued by | `E2E Institute` and a run id, e.g. `E2E Institute k3x9a` |
-| Note for your mentor | `E2E claim` and the same run id |
+| Note for the reviewer | `E2E claim` and the same run id |
 
 ### Steps
 
@@ -382,7 +382,7 @@ None beyond the seeded student.
 2. Click "Click to upload or drop a file" and choose the certificate file.
 3. In "Skill category", select Thinking Skills.
 4. In "Skill badge", select Design Thinking.
-5. Enter the test data in "Issued by" and "Note for your mentor".
+5. Enter the test data in "Issued by" and "Note for the reviewer".
 6. Click Submit claim.
 
 ### Expected results
@@ -391,14 +391,14 @@ None beyond the seeded student.
 |---|---|---|
 | ER-1 | 2 | The upload box is replaced by the file name, "sample.pdf", and a Replace button. Submit claim stays disabled. |
 | ER-2 | 4 | Submit claim becomes enabled. |
-| ER-3 | 6 | The form is replaced by "Claim submitted. Your mentor will review the certificate and verify the badge within two working days." and a "Claim another skill" button. |
-| ER-4 | 6 | The "Design Thinking" badge now reads "With your mentor", and "Claims in progress" lists "Design Thinking" with the status "With your mentor" and the note "—". |
-| ER-5 | 6 | **Manual only.** The claim waits in Test Mentor's queue at `/mentor/verifications` (module 05), and the certificate is on the student's `/student/uploads` shelf, titled "Design Thinking — " followed by the issuer. Where mail is on for skill claims (`BADGE_MAIL_ENABLED=true`, or SES configured), Test Mentor is emailed "Test Student has claimed the Design Thinking badge". |
+| ER-3 | 6 | The form is replaced by "Claim submitted. A faculty reviewer will check the certificate and verify the badge." and a "Claim another skill" button. |
+| ER-4 | 6 | The "Design Thinking" badge now reads "Waiting for review", and "Claims in progress" lists "Design Thinking" with the status "Waiting for review" and the note "—". |
+| ER-5 | 6 | **Manual only.** The claim waits in the queue at `/mentor/verifications` of every faculty member granted "Verify skills & evidence" for this student — on the dev seed, Test Mentor, whose grant covers the seeded college (module 05) — and the certificate is on the student's `/student/uploads` shelf, titled "Design Thinking — " followed by the issuer. Where mail is on for skill claims (`BADGE_MAIL_ENABLED=true`, or SES configured), each of them (Test Mentor on the dev seed) is emailed "Test Student has claimed the Design Thinking badge". |
 
 ### Post-conditions
 
-The claim waits for the mentor, and the badge reads "With your mentor",
-until the mentor decides it. To run the case again, the mentor rejects the
+The claim waits for a faculty reviewer, and the badge reads "Waiting for
+review", until a reviewer decides it. To run the case again, Test Mentor rejects the
 claim with a note on `/mentor/verifications`, and the student deletes the
 certificate on `/student/uploads`. The automated test does both through the
 API when it ends. The rejected claim stays in "Claims in progress" as

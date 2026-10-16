@@ -49,6 +49,7 @@ from .models.certification import Certification, CertificationProgress
 from .models.cohort import Cohort
 from .models.institution import AcademicCourse, AcademicSpecialization, College, Department
 from .models.course import Course, CourseModel, Dimension, Enrollment, ProgressStatus
+from .models.governance import CapabilityGrant, ScopeLevel, SubjectKind
 from .models.job import DegreeLevel, Job
 from .models.lab import ActivityType, CheckInSource, LabSession, LearningMode
 from .models.mail import MailLog
@@ -84,6 +85,7 @@ from .models.user import LoginDay, Mentor, Role, Stage, Student, User
 # endpoint is not willing to run is a rule that silently matches nobody.
 from .routers.registration import validate_usn_pattern
 from .security import hash_password
+from .verifiers import VERIFY_CAPABILITY
 # Single copy of the KB, shared with the production-safe `python -m app.seed_kb`.
 from .seed_kb import seed_knowledge
 
@@ -726,6 +728,39 @@ def main() -> None:
             stu.department_id = cohort.department_id
             db.commit()
             print("filed student under the cohort's department")
+
+        # SKILL VERIFICATION IS A GRANT THE OFFICE MAKES (2026-10-16), no longer
+        # something mentoring brings (app/verifiers.py). So a fresh database
+        # would have a pending claim and a pending document with nobody able to
+        # open the queue they sit in. The seed makes the choice the office
+        # would: Test Mentor verifies for the seeded college, written as the
+        # Main Admin's grant with a reason, exactly as Who can do what writes
+        # one. Idempotent on a live grant, so a revoked one is not re-made
+        # behind the back of whoever revoked it on a dev database.
+        mentor_user = db.scalar(select(User).where(User.email == mentor_email))
+        if mentor_user and college and db.scalar(
+            select(CapabilityGrant).where(
+                CapabilityGrant.capability == VERIFY_CAPABILITY,
+                CapabilityGrant.subject_kind == SubjectKind.USER,
+                CapabilityGrant.subject_user_id == mentor_user.id,
+            )
+        ) is None:
+            db.add(
+                CapabilityGrant(
+                    capability=VERIFY_CAPABILITY,
+                    subject_kind=SubjectKind.USER,
+                    subject_user_id=mentor_user.id,
+                    scope_level=ScopeLevel.COLLEGE,
+                    scope_id=college.id,
+                    role_at_grant=Role.MENTOR.value,
+                    granted_by_user_id=db.scalar(
+                        select(User.id).where(User.email == "admin@bgscet.ac.in")
+                    ),
+                    reason="Seeded: Test Mentor verifies skill claims and documents for this college.",
+                )
+            )
+            db.commit()
+            print("granted Test Mentor skill verification for the seeded college")
 
         # Idempotently create the default active placement criteria.
         if db.scalar(select(PlacementCriteria)) is None:

@@ -1,14 +1,15 @@
 /**
- * Verifications — the mentor's review queue, and the ONLY place a skill becomes
- * verified or a submitted document stops being "in review".
+ * Verifications — the review queue of the faculty the placement office chose,
+ * and the ONLY place a skill becomes verified or a submitted document stops
+ * being "in review".
  *
- * A student files a claim on Skilling; it lands here, for their assigned mentor
- * AND for anybody holding a Governance grant of "Verify skills & evidence"
- * whose scope covers that student (2026-10-13 — verification no longer depends
- * on mentoring, so a student without a mentor is not a student nobody can
- * review). `GET /mentor/badge-evidence/pending` does that narrowing
- * server-side and the review endpoint re-checks it, so the routing is a
- * property of the API rather than of this screen.
+ * A student files a claim on Skilling; it lands here for everybody holding a
+ * grant of "Verify skills & evidence" whose reach covers that student. Since
+ * 2026-10-16 that grant is the ONLY way in: mentoring a student brings no
+ * verification (the owner's decision), so the sidebar row and the route guard
+ * both read the capability. `GET /mentor/badge-evidence/pending` does the
+ * narrowing server-side and the review endpoint re-checks it, so the routing
+ * is a property of the API rather than of this screen.
  *
  * THIS SCREEN READS THE QUEUE THE CLAIM FORM FILES INTO (2026-09-17). The
  * Skilling claim card stores the certificate and posts
@@ -51,8 +52,8 @@
  * profile photo, an offer letter, an internship report — is written
  * PENDING_REVIEW, and `POST /mentor/uploads/{id}/review` is the only production
  * writer of VERIFIED or REJECTED on that row. It is reviewed here because it
- * is the same reviewer, the same mentor group and the same
- * `_assert_can_access_student` gate.
+ * is the same reviewer and the same grant, narrowed the same way
+ * (app/verifiers.py on the API).
  *
  * TWO OUTCOMES THERE, NOT THREE. `UploadStatus` carries NEEDS_CHANGES and the
  * upload review endpoint does not accept it: the body is VERIFY or REJECT and

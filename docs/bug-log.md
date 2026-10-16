@@ -84,7 +84,7 @@ Entry format:
   `test-management/cases/06-admin-people.md`.
 - **Checked by:** modules 05 and 06 in full against a seeded local stack:
   70 passed; `npx playwright test --list` reports no drift.
-- **Status:** open PR into `dev` ([#189](https://github.com/darshani8/reep-/pull/189)).
+- **Status:** merged 2026-10-16 ([#189](https://github.com/darshani8/reep-/pull/189)), released to `main` through [#191](https://github.com/darshani8/reep-/pull/191) and [#192](https://github.com/darshani8/reep-/pull/192); deploy in progress.
 
 ## 2026-10-16 — Mentors could not see their own mentees' records, and access was hard to give and take away
 
@@ -125,7 +125,7 @@ Entry format:
   `ng build`, `tsc` and the four static web checks. End-to-end against a local
   stack: TC-403 (the mentor opens the record from the Mentee Log), TC-424,
   TC-530, TC-531 and the new TC-540.
-- **Status:** open PR into `dev` ([#189](https://github.com/darshani8/reep-/pull/189)).
+- **Status:** merged 2026-10-16 ([#189](https://github.com/darshani8/reep-/pull/189)), released to `main` through [#191](https://github.com/darshani8/reep-/pull/191) and [#192](https://github.com/darshani8/reep-/pull/192); deploy in progress.
 - **Left open:** approving and extending still go one grant per request,
   because each can be refused on its own.
 

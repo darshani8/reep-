@@ -1,4 +1,4 @@
-"""The four capabilities a faculty account holds by having mentees.
+"""The capabilities a faculty account holds by having mentees.
 
 B2.3 of docs/redesign-2026-09/04-backend-changes.md.
 
@@ -64,6 +64,26 @@ MENTOR_FUNCTIONS: Final[frozenset[str]] = frozenset(
     {"mentor.mentees", "mentor.notebook", "mentor.verifications"}
 )
 
+#: A MENTOR READS THEIR OWN MENTEES' FULL RECORDS (2026-10-16, the owner's
+#: report: "mentors' mentee records are not visible"). Until then the Student
+#: 360 page opened for a faculty member only beside a "View student records"
+#: grant from the office, so a mentor saw a student's name on the Mentee Log
+#: and nothing behind it -- no "Full record" link, no "Student records" row,
+#: and the route guard turned them away if they typed the address.
+#:
+#: Derived for the same reason the three above are: it is a fact about who
+#: they mentor, and five places set `students.mentor_id`. It reaches no one
+#: else. The key is PROGRAMME on the catalogue, but every read it gates runs
+#: rule 2 underneath (`_assert_can_access_student`), which admits a MENTOR to
+#: their own group only; a student outside it still needs the office's SCOPED
+#: grant, which this does not touch (`policies._holds_records_grant` reads
+#: grants, never functions). Every endpoint behind the key is a GET.
+MENTEE_RECORD_FUNCTIONS: Final[frozenset[str]] = frozenset({"admin.student_records"})
+
+#: Everything having a mentee brings, which is what `mentor_functions_for`
+#: answers.
+DERIVED_FROM_MENTEES: Final[frozenset[str]] = MENTOR_FUNCTIONS | MENTEE_RECORD_FUNCTIONS
+
 
 def mentee_count(db: Session, user_id: str) -> int:
     """How many students this faculty account currently mentors.
@@ -88,7 +108,8 @@ def mentee_count(db: Session, user_id: str) -> int:
 
 
 def mentor_functions_for(db: Session, user_id: str) -> frozenset[str]:
-    """The three, if this account mentors anybody. Otherwise nothing."""
+    """The three, and the read of the mentees' records, if this account
+    mentors anybody. Otherwise nothing."""
     if not user_id:
         return frozenset()
-    return MENTOR_FUNCTIONS if mentee_count(db, user_id) > 0 else frozenset()
+    return DERIVED_FROM_MENTEES if mentee_count(db, user_id) > 0 else frozenset()

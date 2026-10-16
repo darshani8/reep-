@@ -613,8 +613,8 @@ test.describe('Faculty and alumni', () => {
       ).toBeVisible();
       await expect(
         page.getByRole('link', { name: 'Full record' }),
-        'TC-403 ER-2: no "Full record" link without the grant',
-      ).toHaveCount(0);
+        'TC-403 ER-2: mentoring the student is enough for a "Full record" link',
+      ).toBeVisible();
 
       const seeded = page.locator('.ml-note').filter({
         hasText: 'Discussed placement readiness; strong on analytics, work on GD delivery.',
@@ -628,6 +628,25 @@ test.describe('Faculty and alumni', () => {
         chip(seeded, '1:1 scheduled'),
         'TC-403 ER-3: with a "1:1 scheduled" chip',
       ).toBeVisible();
+    });
+
+    await test.step('2. Click "Full record"', async () => {
+      await page.getByRole('link', { name: 'Full record' }).click();
+      await expect(page, 'TC-403 ER-4: the record opens at /admin/students/<id>').toHaveURL(
+        /\/admin\/students\/[0-9a-f]+$/,
+      );
+      await expect(
+        page.getByRole('heading', { level: 1, name: STUDENT.name, exact: true }),
+        'TC-403 ER-4: for Test Student',
+      ).toBeVisible();
+      await expect(
+        page.getByRole('button', { name: 'Edit profile' }),
+        'TC-403 ER-4: read only: no Edit button',
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole('button', { name: /^Remove/ }),
+        'TC-403 ER-4: read only: no Remove button',
+      ).toHaveCount(0);
     });
   });
 
@@ -791,8 +810,8 @@ test.describe('Faculty and alumni', () => {
         'TC-407 ER-1: the page is headed "Verifications"',
       ).toBeVisible();
       await expect(
-        page.getByText('Faculty · sole approver', { exact: true }),
-        'TC-407 ER-1: the eyebrow reads "Faculty · sole approver"',
+        page.getByText('Faculty · skill verification', { exact: true }),
+        'TC-407 ER-1: the eyebrow reads "Faculty · skill verification"',
       ).toBeVisible();
       await expect(
         page.locator('.queue-chip').filter({ hasText: /Skill claims\s+\d+/ }),
@@ -2040,10 +2059,11 @@ test.describe('Faculty and alumni', () => {
       const nav = page.getByRole('navigation', { name: 'Main' });
       await expect(
         nav.getByRole('link'),
-        'TC-424 ER-1: exactly the five faculty screens',
+        'TC-424 ER-1: exactly the six faculty screens',
       ).toHaveText([
         endsWith('Notebook'),
         endsWith('Mentee Log'),
+        endsWith('Student records'),
         endsWith('Leave Requests'),
         endsWith('Skill Verifications'),
         endsWith('Upskilling'),

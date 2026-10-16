@@ -296,7 +296,7 @@ None.
 ### Steps
 
 1. Open `/admin/students`.
-2. Under "Batch", choose "Master of Business Administration - Finance · 2024-26 Section B (ended)".
+2. Under "Batch", choose "2024-26 Section B (ended)".
 3. Under "Status", choose "Invited · not signed in yet".
 4. Under "Status", choose "All".
 5. Under "Batch", choose "No batch yet".
@@ -659,8 +659,8 @@ None.
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 2 | The browser opens `/admin/students/<the student's id>`, headed "Test Student". The line under the name reads "1BG24MBA001 · Master of Business Administration - Finance · 2024-26 Section B · Department of Management Studies · semester 2 · mentor Test Mentor", followed by an "Active" chip and an "Excel-Adv" chip. |
-| ER-2 | 2 | There are tabs Overview, Results, Attendance, Time sheet, Documents, Interviews and Audit. |
+| ER-1 | 2 | The browser opens `/admin/students/<the student's id>`. The summary card beside the record names "Test Student" with the USN 1BG24MBA001, an "Active" chip and an "Excel-Adv stage" chip, and reads Batch "Master of Business Administration - Finance · 2024-26 Section B", Department "Department of Management Studies", Semester "2" and Faculty mentor "Test Mentor". |
+| ER-2 | 2 | The record has the tabs Overview, Resume, Skills, Leaderboard, Academics, Interviews, Time sheet, Documents and Access, in that order. |
 
 ---
 
@@ -690,20 +690,20 @@ None.
 ### Steps
 
 1. Open Test Student's full record with the eye on the roster.
-2. Read the "Contact & profile" and "Mentor" cards on Overview.
-3. Click the Results tab.
+2. Read the "Contact", "Profile as filled in" and "Faculty mentor" cards.
+3. Click the Academics tab.
 4. Click the Documents tab.
-5. Click Open on the "Existing CV" row.
+5. Click the download button on the resume_v1.pdf row.
 
 ### Expected results
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 2 | "Contact & profile" reads City "Bengaluru" and, under "Career summary", "MBA finance candidate seeking placement.". |
-| ER-2 | 2 | The "Mentor" card names Test Mentor, and under "Assignment history" the first entry names Test Mentor with a "current" chip. |
+| ER-1 | 2 | "Contact" reads City "Bengaluru", and "Profile as filled in" reads Career summary "MBA finance candidate seeking placement.". |
+| ER-2 | 2 | "Faculty mentor" names Test Mentor, and the newest entry under "Mentor history" names Test Mentor with a "Current" chip. |
 | ER-3 | 3 | "Results, semester by semester" lists semester 1 with SGPA 8.2 and CGPA 8.2. |
-| ER-4 | 4 | "Documents" lists the three seeded files, each with its verdict and the reviewer's note ("—" when there is none): "Profile photo" (me.png, Photo), "Leadership certificate" (leadership_completion.pdf, Certificate) and "Existing CV" (resume_v1.pdf, Resume). A chip counts the files waiting for a verdict ("N pending review"), and there is no chip when none is waiting. On a freshly seeded database the chip reads "2 pending review", the photo and the certificate read "Pending review" with note "—", and the CV reads "Verified" with note "Looks good.". |
-| ER-5 | 5 | The CV opens in a new tab as a PDF. |
+| ER-4 | 4 | "Documents" lists the three seeded files with their kind and verdict, and the reviewer's note under the file name when there is one: leadership_completion.pdf (Certificate), me.png (Photo) and resume_v1.pdf (CV). On a freshly seeded database the certificate and the photo read "Pending review" with no note, and the CV reads "Verified" with the note "Looks good.". |
+| ER-5 | 5 | The browser downloads resume_v1.pdf, a PDF. |
 
 ---
 
@@ -1397,7 +1397,7 @@ read-only "Mentee log" grant for this student, listed on `/admin/governance`.
 
 ---
 
-## TC-530 — Granting a function with a reason, scope and dates, then revoking it
+## TC-530 — Giving one kind of access with a reason, scope and dates, then removing it
 
 | Field | Value |
 |---|---|
@@ -1418,11 +1418,11 @@ read-only "Mentee log" grant for this student, listed on `/admin/governance`.
 
 | Field | Value |
 |---|---|
-| Function | Analytics |
-| Scope target | Department · Department of Management Studies |
+| Access | Analytics |
+| Which students | Department · Department of Management Studies |
 | Too short a reason | `E2E: short` |
 | Reason for the grant | `E2E: reviewing placement numbers this term` |
-| Expires | 60 days from today |
+| Ends on | 60 days from today |
 | New review date | 10 days from today |
 | Reason for the extension | `E2E: still reviewing the placement numbers` |
 | Reason for the removal | `E2E: the review of the numbers is finished` |
@@ -1430,17 +1430,17 @@ read-only "Mentee log" grant for this student, listed on `/admin/governance`.
 ### Steps
 
 1. Open `/admin/governance`.
-2. Under "Person", choose the new faculty member and click Add.
-3. Under "Access", choose "Analytics".
-4. Under "Scope target", choose "Department · Department of Management Studies".
+2. Under "Who", search for the new faculty member and tick them.
+3. Under "What they can open", tick "Analytics".
+4. Under "Which students", choose "Department · Department of Management Studies".
 5. Type `E2E: short` into "Reason".
-6. Set "Expires" to a date 60 days ahead and replace the reason with `E2E: reviewing placement numbers this term`.
+6. Set "Ends on" to a date 60 days ahead and replace the reason with `E2E: reviewing placement numbers this term`.
 7. Click "Give access".
 8. In the faculty member's browser, open `/admin/analytics`.
-9. Click Extend on the faculty member's grant row.
+9. Click Extend on the faculty member's row.
 10. Set "New review date" to a date 10 days ahead, type `E2E: still reviewing the placement numbers` into "Reason" and click Extend.
-11. Click the Review tab.
-12. Click the Grants tab and click "Remove access" on the faculty member's row.
+11. Click the "Needs attention" tab.
+12. Click the "Who has access" tab and click "Remove" on the faculty member's row.
 13. Type `E2E: the review of the numbers is finished` into "Reason" and click "Remove access".
 14. In the faculty member's browser, reload `/admin/analytics`.
 
@@ -1448,19 +1448,19 @@ read-only "Mentee log" grant for this student, listed on `/admin/governance`.
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 1 | In the "Grant a function" panel, "Give access" is disabled and the panel says "Add at least one person". |
-| ER-2 | 2 | The faculty member is added as a chip. |
-| ER-3 | 3 | The help line says "Programme-wide: no mentor group narrows it." |
-| ER-4 | 4 | The panel says "Narrowed to department Department of Management Studies. 1 faculty member would reach Analytics for N student(s) today." (1 student on a freshly seeded database). |
-| ER-5 | 5 | "Give access" is disabled and the panel says "A reason of at least 20 characters is required". |
+| ER-1 | 1 | On the "Give access" tab, "Give access" is disabled and the form says "Choose at least one person". |
+| ER-2 | 2 | "1 chosen" shows beside "Who", and the form now says "Choose at least one kind of access". |
+| ER-3 | 3 | The Analytics choice says it opens "Charts & numbers". |
+| ER-4 | 4 | The summary says "1 person will get “Analytics” for department Department of Management Studies (N students), with no end date." (1 student on a freshly seeded database). |
+| ER-5 | 5 | "Give access" is disabled and the form says "A reason of at least 20 characters is required". |
 | ER-6 | 6 | "Give access" is enabled. |
-| ER-7 | 7 | The screen says "Granted to 1 subject." The grant is listed: the faculty member, marked "Faculty"; Access "Analytics"; Scope "Programme-wide"; Reach "Department · Department of Management Studies"; Granted by "Main Admin (seed)"; an expiry date; Status "Live". |
+| ER-7 | 7 | The screen says "Gave “Analytics” to <name>." and the "Who has access" tab opens. Under "Analytics" the faculty member is listed, marked "Faculty"; Students "Department · Department of Management Studies"; an end date; Status "Active". |
 | ER-8 | 8 | The grant works at once: "Charts & numbers" opens for the faculty member. |
-| ER-9 | 9 | An "Extend 1 grant" box opens above the tabs. |
-| ER-10 | 10 | The screen says "Extended “Analytics” for <name>." and the grant's Status reads "Due for review". |
-| ER-11 | 11 | Under "Running out within 30 days" the grant is listed as "Due for review". |
+| ER-9 | 9 | An "Extend 1 grant" box opens above the tabs' content. |
+| ER-10 | 10 | The screen says "Extended “Analytics” for <name>." and the row's Status reads "Review due". |
+| ER-11 | 11 | Under "Ending or due for review in the next 30 days" the faculty member's Analytics grant is listed. |
 | ER-12 | 12 | A "Remove access" box opens, naming the grant and the faculty member. |
-| ER-13 | 13 | The screen says "Revoked “Analytics” from <name>." and the grant leaves the Grants list. |
+| ER-13 | 13 | The screen says "Removed “Analytics” from <name>." and the row leaves the list. |
 | ER-14 | 14 | "Charts & numbers" is closed to them again: they land on `/mentor/notebook`. |
 
 ### Post-conditions
@@ -1471,7 +1471,7 @@ reason.
 
 ---
 
-## TC-531 — A grant's expiry reads back as the day that was typed
+## TC-531 — A grant's end date reads back as the day that was typed
 
 | Field | Value |
 |---|---|
@@ -1492,29 +1492,29 @@ reason.
 
 | Field | Value |
 |---|---|
-| Function | Analytics |
-| Expires | 45 days from today |
+| Access | Analytics |
+| Ends on | 45 days from today |
 | Reason | `E2E: checking the expiry date` |
 
 ### Steps
 
 1. Open `/admin/governance`.
-2. Under "Person", choose the new faculty member and click Add.
-3. Under "Access", choose "Analytics".
-4. Set "Expires" to a date 45 days ahead.
+2. Under "Who", search for the new faculty member and tick them.
+3. Under "What they can open", tick "Analytics".
+4. Set "Ends on" to a date 45 days ahead.
 5. Type `E2E: checking the expiry date` into "Reason" and click "Give access".
 
 ### Expected results
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 5 | The grant is made, and its Expires column shows the day that was typed. |
+| ER-1 | 5 | The access is given, and on "Who has access" its Ends column shows the day that was typed. |
 
 ### Post-conditions
 
-The faculty member holds a live Analytics grant. Remove it on the Grants tab
-("Remove access", with a reason of at least 20 characters); the automated test
-does this through the API.
+The faculty member holds a live Analytics grant. Remove it on "Who has access"
+("Remove", with a reason of at least 20 characters); the automated test does
+this through the API.
 
 ---
 
@@ -1807,3 +1807,53 @@ None.
 | ER-1 | 1 | The app sends them to `/student`, headed "Welcome back, Test", not the console. |
 | ER-2 | 2 | The same: `/student`, "Welcome back, Test". |
 | ER-3 | 3 | The same: `/student`, "Welcome back, Test". |
+
+---
+
+## TC-540 — Giving two kinds of access to two people at once, then removing one from both
+
+| Field | Value |
+|---|---|
+| ID | TC-540 |
+| Module | Admin: who can do what |
+| Priority | P1 |
+| Type | Functional, positive |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-540` |
+
+### Pre-conditions
+
+1. The common pre-conditions at the top of this file.
+2. Two new faculty members exist, named "E2E Faculty …", with no grants.
+
+### Test data
+
+| Field | Value |
+|---|---|
+| Access | Analytics and Jobs sheet |
+| Reason for the grant | `E2E: placement drive coordinators this term` |
+| Reason for the removal | `E2E: the drive no longer needs the charts` |
+
+### Steps
+
+1. Open `/admin/governance`.
+2. Under "Who", search for "E2E Faculty" and tick both new faculty members.
+3. Under "What they can open", tick "Analytics" and "Jobs sheet".
+4. Type `E2E: placement drive coordinators this term` into "Reason" and click "Give access".
+5. Under "Analytics", tick both new faculty members and click "Remove Analytics from 2 people".
+6. Type `E2E: the drive no longer needs the charts` into "Reason" and click "Remove 2 grants".
+
+### Expected results
+
+| # | After step | Expected result |
+|---|---|---|
+| ER-1 | 2 | "2 chosen" shows beside "Who". |
+| ER-2 | 3 | The summary says "2 people will get 2 kinds of access for all students, with no end date." |
+| ER-3 | 4 | The screen says "Gave access: 4 grants." On "Who has access" both people are listed under "Analytics" and under "Jobs sheet". |
+| ER-4 | 5 | A "Remove access" box opens, naming both people. |
+| ER-5 | 6 | The screen says "Removed “Analytics” from 2 people." Neither is listed under "Analytics" any more; both are still listed under "Jobs sheet". |
+
+### Post-conditions
+
+Both faculty members hold Jobs sheet. Remove it on "Who has access" (tick both
+under "Jobs sheet" and click "Remove Jobs sheet from 2 people"); the automated
+test revokes every grant and removes both accounts through the API.

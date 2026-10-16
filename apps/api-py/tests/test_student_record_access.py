@@ -22,6 +22,8 @@ WHAT THIS MODULE HOLDS DOWN, in the order a break would be quietest:
    board are cut to the students the viewer may open; the office sees all.
 6. NO LINK LEADS TO A REFUSAL. The "Student records" list and the Mentee
    Log's "Full record" link offer exactly the students the page opens.
+7. A MENTOR OPENS THEIR OWN MENTEES (2026-10-16). Mentoring a student is
+   enough to read their record; it reaches nobody else and writes nothing.
 """
 
 from __future__ import annotations
@@ -401,8 +403,7 @@ def test_the_leaderboard_names_only_students_the_viewer_may_open(client, login, 
         stranger = login(world["stranger_email"], TEST_PASSWORD)
         assert named(stranger) == {world["student"]}
 
-        grant(world["mentor_user"])  # programme-wide: their own mentees
-        mentor = login(world["mentor_email"], TEST_PASSWORD)
+        mentor = login(world["mentor_email"], TEST_PASSWORD)  # their own mentee, no grant
         assert named(mentor) == {world["student"]}
 
         grant(world["stranger_user"], ScopeLevel.COHORT, world["batch"])
@@ -469,16 +470,20 @@ def test_the_records_list_is_exactly_the_students_the_page_opens(client, login, 
     seen = listed(stranger)
     assert world["student"] in seen and world["neighbour"] not in seen
 
-    # A mentor whose only grant names ANOTHER department: the page refuses
-    # their own mentee (the grant does not reach them), so the list must not
-    # offer them either (review of #180).
+    # A mentor with no grant at all: mentoring the student opens their record
+    # (2026-10-16), so the list offers their mentee and nobody else.
+    mentor = login(world["mentor_email"], TEST_PASSWORD)
+    assert client.get(_base(world["student"]) + "/360", headers=mentor).status_code == 200
+    seen = listed(mentor)
+    assert world["student"] in seen and world["neighbour"] not in seen
+
+    # A grant naming ANOTHER department adds that department's students and
+    # takes nothing away from their own mentee (review of #180 asked that the
+    # list and the page agree; they still do).
     grant(world["mentor_user"], ScopeLevel.DEPARTMENT, world["other"])
     mentor = login(world["mentor_email"], TEST_PASSWORD)
-    assert client.get(_base(world["student"]) + "/360", headers=mentor).status_code == 403
-    assert world["student"] not in listed(mentor)
-
-    grant(world["mentor_user"])
-    assert world["student"] in listed(login(world["mentor_email"], TEST_PASSWORD))
+    assert client.get(_base(world["neighbour"]) + "/360", headers=mentor).status_code == 200
+    assert {world["student"], world["neighbour"]} <= listed(mentor)
 
     admin = make_user("rec-admin", Role.ADMIN)
     everyone = client.get("/api/admin/student-records?q=Record", headers=admin.headers).json()
@@ -487,9 +492,10 @@ def test_the_records_list_is_exactly_the_students_the_page_opens(client, login, 
 
 def test_the_mentee_log_offers_the_full_record_only_where_it_opens(client, login, world, grant):
     """The Mentee Log draws "Full record" from `record_openable`, so the flag
-    must agree with the page: no link without a grant, none with a grant for
-    another department (the page refuses that mentee), and a link with a grant
-    that reaches them."""
+    must agree with the page. Since 2026-10-16 the page opens for a mentor's
+    own mentee with no grant ("mentors' mentee records are not visible" was the
+    owner's report), so the link is there from the start, and a grant for
+    another department does not take it away."""
     record = _base(world["student"]) + "/360"
 
     def check(page_status: int) -> bool:
@@ -501,10 +507,38 @@ def test_the_mentee_log_offers_the_full_record_only_where_it_opens(client, login
         rows = {row["student_id"]: row for row in response.json()}
         return rows[world["student"]]["record_openable"]
 
-    assert check(403) is False
+    assert check(200) is True
 
     grant(world["mentor_user"], ScopeLevel.DEPARTMENT, world["other"])
-    assert check(403) is False
-
-    grant(world["mentor_user"], ScopeLevel.DEPARTMENT, world["home"])
     assert check(200) is True
+
+
+@requires_db
+def test_a_mentor_opens_their_own_mentees_record_and_nobody_elses(client, login, world):
+    """THE FIX, from the mentor's side: no grant, every read of the page opens
+    for their own mentee, the auth payload carries the key so the route guard
+    and the "Student records" row let them in, and a student outside their
+    group is refused exactly as before (rule 2, not the capability)."""
+    mentor = login(world["mentor_email"], TEST_PASSWORD)
+    me = client.get("/api/auth/me", headers=mentor).json()
+    assert KEY in me["capabilities"]
+    for path in READS:
+        response = client.get(_base(world["student"]) + path, headers=mentor)
+        assert response.status_code == 200, (path, response.text)
+    cv = client.get(_base(world["student"]) + f"/files/{world['cv']}", headers=mentor)
+    assert cv.status_code == 200, cv.text
+
+    refused = client.get(_base(world["neighbour"]) + "/360", headers=mentor)
+    assert refused.status_code == 404 and "mentor scope" in refused.text
+
+    # Read only: the record's key opens no write. The roster editor is a
+    # different key, which mentoring does not bring.
+    edited = client.patch(
+        f"/api/admin/students/{world['student']}", headers=mentor, json={"name": "Renamed"}
+    )
+    assert edited.status_code == 403, edited.text
+
+    # A faculty member who mentors nobody holds nothing of the kind.
+    stranger = login(world["stranger_email"], TEST_PASSWORD)
+    assert KEY not in client.get("/api/auth/me", headers=stranger).json()["capabilities"]
+    assert client.get(_base(world["student"]) + "/360", headers=stranger).status_code == 403

@@ -364,8 +364,26 @@ def staff(
 # Capability grants
 # --------------------------------------------------------------------------- #
 
+#: The most rows one grant request may write: people (or groups) times access
+#: types. A whole faculty given a handful of screens is well inside it; a
+#: number past it is a client looping, and one transaction that size would hold
+#: the grants table for the length of it.
+MAX_GRANT_ROWS_PER_REQUEST = 1000
+
+#: The most grants one removal may take away in a single act.
+MAX_REVOKES_PER_REQUEST = 500
+
+
 class GrantIn(BaseModel):
-    capability: str
+    #: One access type, the field every client before 2026-10-16 sends. Kept,
+    #: and folded into `capabilities` below, so an older client still works.
+    capability: str | None = None
+    #: MANY ACCESS TYPES IN ONE ACT (2026-10-16, the owner's request: "give
+    #: access to many at a time"). The console ticks several access types for
+    #: several people, and the API writes every (access type, person) pair in
+    #: ONE transaction with ONE reason, so a refusal half-way leaves nothing
+    #: written rather than half a decision.
+    capabilities: list[str] = Field(default_factory=list)
     #: Exactly one of these carries the subjects; both lists so a single request
     #: can grant to four people, matching the console's multi-select.
     user_ids: list[str] = Field(default_factory=list)
@@ -396,10 +414,25 @@ class GrantIn(BaseModel):
 
     @field_validator("capability")
     @classmethod
-    def _known(cls, v: str) -> str:
-        if v not in CAPABILITIES_BY_KEY:
+    def _known(cls, v: str | None) -> str | None:
+        if v is not None and v not in CAPABILITIES_BY_KEY:
             raise ValueError(f"unknown capability {v!r}")
         return v
+
+    @field_validator("capabilities")
+    @classmethod
+    def _all_known(cls, values: list[str]) -> list[str]:
+        for v in values:
+            if v not in CAPABILITIES_BY_KEY:
+                raise ValueError(f"unknown capability {v!r}")
+        return values
+
+    @property
+    def capability_keys(self) -> list[str]:
+        """Every access type asked for, the single field first, each once and
+        in the order given."""
+        ordered = ([self.capability] if self.capability else []) + self.capabilities
+        return list(dict.fromkeys(ordered))
 
     @field_validator("scope_id", mode="before")
     @classmethod
@@ -412,6 +445,8 @@ class GrantIn(BaseModel):
 
     @model_validator(mode="after")
     def _scope_pair(self) -> "GrantIn":
+        if not self.capability_keys:
+            raise ValueError("name at least one access type to grant")
         if (self.scope_level is None) != (self.scope_id is None):
             raise ValueError(
                 "a scope target needs both a level and an id: name the rung and "
@@ -533,7 +568,13 @@ def create_grants(
     session: dict = Depends(get_current_session),
     db: Session = Depends(get_db),
 ) -> list[GrantOut]:
-    """Grant one capability to any number of users and groups, in one act.
+    """Grant any number of access types to any number of users and groups, in
+    one act and one transaction.
+
+    MANY ACCESS TYPES SINCE 2026-10-16. The office gives a new placement
+    coordinator four screens at once; one request per screen meant four
+    reasons typed and four chances for the third to fail after the first two
+    had landed. Every (access type, subject) pair is written here or none is.
 
     ONE REASON COVERS THE BATCH and is copied onto every row, because that is
     what an admin actually means: "these four, for this reason". Writing one
@@ -578,13 +619,38 @@ def create_grants(
                 detail="That target does not exist at the level given.",
             )
 
+    keys = body.capability_keys
+    user_ids = list(dict.fromkeys(body.user_ids))
+    group_ids = list(dict.fromkeys(body.group_ids))
+    asked = len(keys) * (len(user_ids) + len(group_ids))
+    if asked > MAX_GRANT_ROWS_PER_REQUEST:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                f"That is {asked} grants in one go; the most is "
+                f"{MAX_GRANT_ROWS_PER_REQUEST}. Give access in smaller batches."
+            ),
+        )
+
+    # Every subject is checked BEFORE a row is built, so a bad id half-way
+    # through a batch refuses the whole request rather than writing the pairs
+    # that came before it.
+    users: list[User] = []
+    for uid in user_ids:
+        user = db.get(User, uid)
+        if user is None or user.role not in (Role.MENTOR, Role.ADMIN):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Capabilities are granted to staff. One of the ids is not a staff account.",
+            )
+        users.append(user)
+    for gid in group_ids:
+        if db.get(AccessGroup, gid) is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="No such access group."
+            )
+
     now = _now()
-    cap = CAPABILITIES_BY_KEY[body.capability]
-    # WHO is granting decides the state, not only WHAT is granted. The Main
-    # Admin's row is live at once; a deputy's grant of a capability that shows
-    # a student's own record is written, listed and audited, and holds NOTHING
-    # until a different holder of `admin.governance` approves it (B2.4).
-    approval_state = initial_approval_state(cap, session)
     # A grant with an expiry reviews AT that expiry -- the queue shows it as
     # running out, and the admin extends it or lets it lapse. One with no expiry
     # is the grant that most needs a date, because nothing else will ever bring
@@ -592,7 +658,7 @@ def create_grants(
     review_at = _aware(body.expires_at) or (now + timedelta(days=REVIEW_AFTER_DAYS))
     created: list[CapabilityGrant] = []
 
-    def already_live(kind: SubjectKind, subject_id: str) -> bool:
+    def already_live(key: str, kind: SubjectKind, subject_id: str) -> bool:
         """Is there already a row for this pair that has not ended?
 
         A `pending_approval` row COUNTS, deliberately, and this query is
@@ -609,7 +675,7 @@ def create_grants(
         )
         return db.scalar(
             select(CapabilityGrant.id).where(
-                CapabilityGrant.capability == body.capability,
+                CapabilityGrant.capability == key,
                 CapabilityGrant.subject_kind == kind,
                 col == subject_id,
                 # B1.2. THE REACH IS PART OF THE PAIR. Without these two clauses
@@ -627,51 +693,50 @@ def create_grants(
             )
         ) is not None
 
-    for uid in body.user_ids:
-        user = db.get(User, uid)
-        if user is None or user.role not in (Role.MENTOR, Role.ADMIN):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail="Capabilities are granted to staff. One of the ids is not a staff account.",
-            )
-        if already_live(SubjectKind.USER, uid):
-            continue
-        created.append(CapabilityGrant(
-            capability=body.capability, subject_kind=SubjectKind.USER, subject_user_id=uid,
-            reason=reason, granted_by_user_id=session["userId"], expires_at=body.expires_at,
-            approval_state=approval_state, review_at=review_at,
-            # B1.2. NULL on both columns is the programme-wide grant this
-            # endpoint has always written; a pair is the narrowing.
-            scope_level=body.scope_level, scope_id=body.scope_id,
-            # B2.5. The role this decision was made about. `granted_capabilities`
-            # stops counting the row if the account becomes something else.
-            role_at_grant=user.role.value,
-        ))
-
-    for gid in body.group_ids:
-        if db.get(AccessGroup, gid) is None:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="No such access group."
-            )
-        if already_live(SubjectKind.GROUP, gid):
-            continue
-        created.append(CapabilityGrant(
-            capability=body.capability, subject_kind=SubjectKind.GROUP, subject_group_id=gid,
-            reason=reason, granted_by_user_id=session["userId"], expires_at=body.expires_at,
-            approval_state=approval_state, review_at=review_at,
-            scope_level=body.scope_level, scope_id=body.scope_id,
-            # `role_at_grant` STAYS NULL ON A GROUP GRANT, and that is right
-            # rather than lazy: the decision names "the placement coordinators",
-            # not a role, and there is no single account whose role could later
-            # contradict it. Membership is staff-only and checked when somebody
-            # joins, which is where that question belongs.
-        ))
+    for key in keys:
+        # WHO is granting decides the state, not only WHAT is granted. The Main
+        # Admin's row is live at once; a deputy's grant of a capability that
+        # shows a student's own record is written, listed and audited, and
+        # holds NOTHING until a different holder of `admin.governance` approves
+        # it (B2.4). Asked per access type, because a batch can mix both kinds.
+        approval_state = initial_approval_state(CAPABILITIES_BY_KEY[key], session)
+        for user in users:
+            if already_live(key, SubjectKind.USER, user.id):
+                continue
+            created.append(CapabilityGrant(
+                capability=key, subject_kind=SubjectKind.USER, subject_user_id=user.id,
+                reason=reason, granted_by_user_id=session["userId"], expires_at=body.expires_at,
+                approval_state=approval_state, review_at=review_at,
+                # B1.2. NULL on both columns is the programme-wide grant this
+                # endpoint has always written; a pair is the narrowing.
+                scope_level=body.scope_level, scope_id=body.scope_id,
+                # B2.5. The role this decision was made about.
+                # `granted_capabilities` stops counting the row if the account
+                # becomes something else.
+                role_at_grant=user.role.value,
+            ))
+        for gid in group_ids:
+            if already_live(key, SubjectKind.GROUP, gid):
+                continue
+            created.append(CapabilityGrant(
+                capability=key, subject_kind=SubjectKind.GROUP, subject_group_id=gid,
+                reason=reason, granted_by_user_id=session["userId"], expires_at=body.expires_at,
+                approval_state=approval_state, review_at=review_at,
+                scope_level=body.scope_level, scope_id=body.scope_id,
+                # `role_at_grant` STAYS NULL ON A GROUP GRANT, and that is right
+                # rather than lazy: the decision names "the placement
+                # coordinators", not a role, and there is no single account
+                # whose role could later contradict it. Membership is
+                # staff-only and checked when somebody joins, which is where
+                # that question belongs.
+            ))
 
     for g in created:
         db.add(g)
     db.flush()
 
     for g in created:
+        cap = CAPABILITIES_BY_KEY[g.capability]
         record_change(
             db, session=session, request=request, tenant_id=None,
             entity_type="capability_grant", entity_id=g.id, action="GRANTED",
@@ -689,7 +754,7 @@ def create_grants(
                 "reason": reason,
                 "expires_at": body.expires_at.isoformat() if body.expires_at else None,
                 "review_at": review_at.isoformat(),
-                "approval_state": approval_state,
+                "approval_state": g.approval_state,
                 "carries_pii": cap.carries_pii,
                 "role_at_grant": g.role_at_grant,
                 "batch_size": len(created),
@@ -737,6 +802,94 @@ def revoke_grant(
     db.commit()
     db.refresh(g)
     return _grant_out(db, g)
+
+
+class RevokeManyIn(BaseModel):
+    #: The grants to take away. The console collects them from "Who has
+    #: access": one access type ticked off for several people, or several
+    #: grants of one person, which is the same request.
+    grant_ids: list[str] = Field(min_length=1)
+    reason: str
+
+
+class RevokeManyOut(BaseModel):
+    revoked: list[GrantOut]
+    #: Ids that were already revoked when this request arrived (a second tab,
+    #: a double press). Named rather than refused: what was asked is true.
+    already_revoked: list[str] = Field(default_factory=list)
+
+
+@router.post("/grants/revoke", response_model=RevokeManyOut)
+def revoke_grants(
+    body: RevokeManyIn,
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> RevokeManyOut:
+    """Remove access from many at once: one reason, one transaction, one
+    audit row per grant (2026-10-16, the owner's request: "remove one function
+    for many at a time").
+
+    The console's old "Remove access" on a selection posted `/{id}/revoke`
+    once per row, so a refusal on the fourth left three removed and the rest
+    standing, with one error on screen naming none of them. Here every id is
+    checked first and an unknown one refuses the whole request; nothing is
+    stamped unless all of it can be.
+
+    Stamp, never delete, for `revoke_grant`'s reason. The path does not clash
+    with `/grants/{grant_id}/revoke`, which has one more segment.
+    """
+    require_governance(db, session)
+    reason = _reason(body.reason)
+    ids = list(dict.fromkeys(body.grant_ids))
+    if len(ids) > MAX_REVOKES_PER_REQUEST:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                f"That is {len(ids)} grants in one go; the most is "
+                f"{MAX_REVOKES_PER_REQUEST}. Remove access in smaller batches."
+            ),
+        )
+    rows = {g.id: g for g in db.scalars(select(CapabilityGrant).where(CapabilityGrant.id.in_(ids)))}
+    missing = [gid for gid in ids if gid not in rows]
+    if missing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                f"{len(missing)} of these grants could not be found, so nothing was "
+                "removed. Reload the page and try again."
+            ),
+        )
+    now = _now()
+    revoked: list[CapabilityGrant] = []
+    already: list[str] = []
+    for gid in ids:
+        g = rows[gid]
+        if g.revoked_at is not None:
+            already.append(gid)
+            continue
+        g.revoked_at = now
+        g.revoked_by_user_id = session["userId"]
+        g.revoke_reason = reason
+        revoked.append(g)
+    for g in revoked:
+        record_change(
+            db, session=session, request=request, tenant_id=None,
+            entity_type="capability_grant", entity_id=g.id, action="REVOKED",
+            before={"capability": g.capability, "reason": g.reason},
+            after={
+                "capability": g.capability,
+                "revoke_reason": reason,
+                "batch_size": len(revoked),
+            },
+            event_type="governance.capability.revoked", payload={"capability": g.capability},
+        )
+    db.commit()
+    for g in revoked:
+        db.refresh(g)
+    return RevokeManyOut(
+        revoked=[_grant_out(db, g) for g in revoked], already_revoked=already
+    )
 
 
 class ApproveIn(BaseModel):

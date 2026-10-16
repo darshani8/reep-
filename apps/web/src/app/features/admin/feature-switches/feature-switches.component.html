@@ -45,21 +45,32 @@
   </div>
 
   @if (state() === 'ready') {
-    <!-- The governance section's own tabs. Grants, the functions catalogue and
-         groups are three panes of ONE screen, so all three links land on it and
-         each says so in its accessible name. -->
+    <!-- The governance section's own tabs. Give access, Who has access and
+         Groups are panes of ONE screen, so each link lands on it with `?tab=`
+         naming the pane, and each says so in its accessible name. -->
     <div class="tabs fs-tabs">
-      <a class="tab fs-tablink" routerLink="/admin/governance" aria-label="Grants, on Who can do what">
-        Grants
+      <a
+        class="tab fs-tablink"
+        routerLink="/admin/governance"
+        [queryParams]="{ tab: 'give' }"
+        aria-label="Give access, on Who can do what"
+      >
+        Give access
       </a>
       <a
         class="tab fs-tablink"
         routerLink="/admin/governance"
-        aria-label="Functions catalogue, on Who can do what"
+        [queryParams]="{ tab: 'holders' }"
+        aria-label="Who has access, on Who can do what"
       >
-        Functions catalogue
+        Who has access
       </a>
-      <a class="tab fs-tablink" routerLink="/admin/governance" aria-label="Groups, on Who can do what">
+      <a
+        class="tab fs-tablink"
+        routerLink="/admin/governance"
+        [queryParams]="{ tab: 'groups' }"
+        aria-label="Groups, on Who can do what"
+      >
         Groups
       </a>
       <span class="tab active" aria-current="page">Student feature switches</span>

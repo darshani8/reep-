@@ -65,6 +65,16 @@ interface SsoStatus {
 const DEFAULT_DOMAIN_LABEL = 'your college';
 
 /**
+ * What a person whose account the Main Admin DISABLED reads, wherever they meet
+ * it: Google's `?error=sso_disabled` and `?signedOut=disabled`, when a session
+ * they were using was cut. The password and code doors print the server's own
+ * `DISABLED_SIGN_IN_MESSAGE` (app/routers/auth.py), which is these words.
+ */
+export const ACCOUNT_DISABLED_MESSAGE =
+  'Your account has been disabled for security reasons. ' +
+  'Contact the placement office (Main Admin) to resolve the issue.';
+
+/**
  * `?error=` codes the callback redirects with, and what a human should read.
  *
  * THE KEYS ARE THE SERVER'S, `sso_*`-namespaced exactly as the callback
@@ -90,6 +100,9 @@ function messageFor(code: string, domain: string): string {
         'Access is by roster only; there is no self-registration. If you ' +
         'should be on it, ask the placement office to add you.'
       );
+    // Google verified the person and the office has disabled the account.
+    case 'sso_disabled':
+      return ACCOUNT_DISABLED_MESSAGE;
     case 'sso_unverified_email':
       return (
         'Google has not verified the email address on that account, so it ' +
@@ -386,6 +399,7 @@ export class LoginComponent {
   readonly signedOutElsewhere = signal<boolean>(
     this.route.snapshot.queryParamMap.get('signedOut') === 'elsewhere',
   );
+
   /** The second step, when the server answers a right password with a
    *  challenge instead of a session: whose mailbox the code went to and how
    *  long it lives. Non-null swaps the password form for the code form. */
@@ -421,6 +435,12 @@ export class LoginComponent {
     if (code) {
       this.errorCode.set(code);
       this.error.set(messageFor(code, this.domain()));
+    }
+    // `?signedOut=disabled`: the auth guard sets it when a session ended
+    // because the Main Admin DISABLED the account (`X-Reep-Session: disabled`).
+    // Signing in again cannot help, so it is the error box, not a quiet note.
+    if (this.route.snapshot.queryParamMap.get('signedOut') === 'disabled') {
+      this.error.set(ACCOUNT_DISABLED_MESSAGE);
     }
     this.restoreRemembered();
     void this.probe();

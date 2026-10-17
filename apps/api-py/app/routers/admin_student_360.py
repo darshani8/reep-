@@ -832,9 +832,27 @@ def student_360(
         db.scalar(select(User.name).where(User.id == group.user_id)) if group else None
     )
 
+    # THE ACCESS TAB'S HALF OF THIS PAYLOAD IS THE MAIN ADMIN'S (2026-10-17).
+    # Recent sign-ins (with their addresses and browsers), the record's own
+    # history and the reasons the office wrote when it disabled or removed the
+    # account are drawn on that tab, which nobody else is shown. A faculty
+    # member reading on a grant still learns THAT the account is disabled,
+    # from the flag and the date; the why was written for the office.
+    office = session.get("role") == "ADMIN"
+    login = _login_panel(db, user)
+    if not office:
+        login = login.model_copy(
+            update={
+                "recent_sign_ins": [],
+                "disable_reason": None,
+                "disabled_by_name": None,
+                "delete_reason": None,
+            }
+        )
+
     return Student360Out(
         identity=_one(db, student.id),
-        login=_login_panel(db, user),
+        login=login,
         profile=_profile_panel(db, student),
         documents=_documents_panel(db, student),
         total_semesters=total_semesters,
@@ -861,6 +879,6 @@ def student_360(
             mentor_name=faculty_name,
         ),
         mentor_history=_mentor_history_panel(db, student),
-        recent_audit=_recent_audit(db, student, user),
+        recent_audit=_recent_audit(db, student, user) if office else [],
     )
 

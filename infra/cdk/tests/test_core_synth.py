@@ -9,6 +9,7 @@ something (a master password, a replaced security group).
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import re
 from pathlib import Path
@@ -17,7 +18,7 @@ import aws_cdk as cdk
 import pytest
 from aws_cdk.assertions import Match, Template
 
-from reep_core import DEREGISTRATION_DELAY_SECONDS, STOP_TIMEOUT_SECONDS, CoreStack, DrVaultStack, EdgeWafStack
+from reep_core import DEREGISTRATION_DELAY_SECONDS, STOP_TIMEOUT_SECONDS, CoreStack, DrVaultStack, EdgeWafStack, drift_reader
 from reep_core.edge import (
     BODY_RULES_OUTSIDE_UPLOADS,
     CLOUDFRONT_LOG_FIELDS,
@@ -26,6 +27,7 @@ from reep_core.edge import (
     COMMON_RULE_SET_COUNTED,
     UPTIME_CHECK_TYPE,
 )
+from reep_voice_platform import VoicePlatformStack
 
 TF_DIR = Path(__file__).resolve().parents[2] / "aws"
 
@@ -2067,7 +2069,8 @@ def test_the_deploy_role_still_has_no_codedeploy_cloudformation_or_rds(hardened:
     credentials, so a drift check that actually works needs read access across
     most of the account. `ce:GetCostAndUsage` was granted instead — Cost
     Explorer names no resource and reaches none — and `ce:` is therefore the
-    one allowance below.
+    one allowance below. The drift check got its own role on 2026-10-16
+    (`test_the_drift_role_reads_configuration_and_never_data`).
 
     If a future change needs one of these prefixes here, that is a decision
     about who may deploy infrastructure from a pull request, not a test to
@@ -2104,6 +2107,172 @@ def test_the_deploy_role_still_has_no_codedeploy_cloudformation_or_rds(hardened:
     assert ce == ["ce:GetCostAndUsage"], (
         f"the deploy role's Cost Explorer grant changed to {ce!r}; only ce:GetCostAndUsage is intended"
     )
+
+
+_DR_VAULT = "arn:aws:backup:ap-southeast-1:123456789012:backup-vault:reep-vault-dr"
+
+
+def _drift_role(t: Template) -> dict:
+    roles = [
+        r for r in t.find_resources("AWS::IAM::Role").values()
+        if r["Properties"].get("RoleName") == "reep-github-drift"
+    ]
+    assert len(roles) == 1, f"expected exactly one reep-github-drift role, found {len(roles)}"
+    return roles[0]
+
+
+def _as_list(value: object) -> list:
+    return [value] if isinstance(value, (str, dict)) else list(value)  # type: ignore[arg-type]
+
+
+def test_every_resource_type_the_drift_check_reads_is_classified(hardened: Template) -> None:
+    """#117. CloudFormation reads each resource with the CALLER's credentials,
+    so `reep-github-drift` needs the read permissions of every type in the two
+    stacks infra-drift.yml drift-checks. A type missing from
+    `drift_reader.READ_PERMISSIONS` does not fail anything loudly: the next
+    morning's detection ends DETECTION_FAILED, the workflow files it as "a check
+    could not run", and the drift half goes blank again. So a new type is
+    refused HERE, where the fix is one line copied from its CloudFormation
+    schema. The variants cover the types the other flags render: the NAT
+    gateway and its EIP, blue/green's listener rule, managed SES.
+    """
+    platform = Template.from_stack(
+        VoicePlatformStack(
+            cdk.App(),
+            "test-voice-platform",
+            project="reep",
+            recording_retention_days=90,
+            env=cdk.Environment(account="123456789012", region="ap-south-1"),
+        )
+    )
+    variants = [
+        hardened,
+        platform,
+        _core("harden", natGateway="true", natInstance="false", drVaultArn=_DR_VAULT),
+        _core("harden", blueGreen="true", drVaultArn=_DR_VAULT),
+    ]
+    missing = sorted(
+        {
+            res["Type"]
+            for t in variants
+            for res in t.to_json()["Resources"].values()
+            if res["Type"] not in drift_reader.READ_PERMISSIONS
+        }
+    )
+    assert not missing, (
+        f"{missing} would leave the daily drift check blank (DETECTION_FAILED). Add each type to "
+        "READ_PERMISSIONS in reep_core/drift_reader.py with its schema's handlers.read.permissions."
+    )
+
+
+def test_the_drift_role_reads_configuration_and_never_data(hardened: Template) -> None:
+    """`reep-github-drift` answers `detect-stack-drift` and can do nothing else.
+
+    Every allowed action is one of CloudFormation's five drift calls or a
+    Describe/Get/List, the three stack-scoped calls reach only reep-core and
+    reep-voice-platform, and the reads that would reach a student's record
+    (object bodies, table items, secrets, decryption, log lines) are DENIED as
+    well as absent. The Deny is what still holds if a managed policy is ever
+    attached; `ReadOnlyAccess` was the obvious choice and it reads the dump
+    buckets, which even the dump task may not.
+    """
+    role = _drift_role(hardened)
+    props = role["Properties"]
+    assert not props.get("ManagedPolicyArns"), "the drift role must not carry a managed policy"
+
+    trust = props["AssumeRolePolicyDocument"]["Statement"]
+    assert len(trust) == 1 and trust[0]["Action"] == "sts:AssumeRoleWithWebIdentity"
+    subjects = _as_list(trust[0]["Condition"]["StringEquals"]["token.actions.githubusercontent.com:sub"])
+    assert subjects and all(s.endswith(":ref:refs/heads/main") for s in subjects), (
+        f"the drift role is assumable from outside main: {subjects}"
+    )
+
+    allowed: list[tuple[str, list]] = []
+    denied: set[str] = set()
+    for doc in props.get("Policies", []):
+        for stmt in doc["PolicyDocument"]["Statement"]:
+            actions = _as_list(stmt.get("Action", []))
+            if stmt["Effect"] == "Deny":
+                denied.update(actions)
+            else:
+                allowed.extend((a, _as_list(stmt["Resource"])) for a in actions)
+    assert allowed, "the drift role rendered no allowed actions — this guard would pass vacuously"
+
+    cloudformation = set(drift_reader.CLOUDFORMATION_STACK_ACTIONS) | set(drift_reader.CLOUDFORMATION_UNSCOPED_ACTIONS)
+    stacks = {
+        "arn:aws:cloudformation:ap-south-1:123456789012:stack/reep-core/*",
+        "arn:aws:cloudformation:ap-south-1:123456789012:stack/reep-voice-platform/*",
+    }
+    for action, resources in allowed:
+        assert action in cloudformation or re.fullmatch(r"[a-z0-9-]+:(Describe|Get|List)[A-Za-z]+", action), (
+            f"reep-github-drift gained {action!r}, which is not a read"
+        )
+        for data_read in drift_reader.DATA_READS_DENIED:
+            assert not fnmatch.fnmatch(action, data_read), f"reep-github-drift may {action!r}, a read of DATA"
+        if action in drift_reader.CLOUDFORMATION_STACK_ACTIONS:
+            assert set(resources) == stacks, f"{action} reaches {resources}, not just the two stacks"
+    assert {a for a, _ in allowed} >= cloudformation, "a drift call is missing, so the check cannot answer"
+    assert set(drift_reader.DATA_READS_DENIED) <= denied, (
+        f"the explicit Deny lost {sorted(set(drift_reader.DATA_READS_DENIED) - denied)}"
+    )
+
+
+def test_the_drift_role_is_harden_only_and_a_failed_create_leaves_nothing(imported: Template, hardened: Template) -> None:
+    """The import phase mirrors what Terraform handed over, and this role was
+    never part of it. And a fixed name under plain Retain is #124: a create
+    that rolls back keeps the role, and the retry fails on "already exists"."""
+    names = [r["Properties"].get("RoleName") for r in imported.find_resources("AWS::IAM::Role").values()]
+    assert "reep-github-drift" not in names
+    assert _drift_role(hardened).get("DeletionPolicy") == "RetainExceptOnCreate"
+    outputs = hardened.to_json().get("Outputs", {})
+    assert "GithubDriftRoleArn" in outputs
+
+
+def test_cdk_json_pins_the_nat_ami_the_deployment_is_actually_running(hardened: Template) -> None:
+    """#118. The NAT AMI came from AWS's moving `ami-amazon-linux-latest`
+    parameter, ImageId is a replacement property, and so every reep-core deploy
+    after AWS shipped an AL2023 image rebuilt the NAT box: a few seconds of no
+    egress, an untried image under the user data, and the old instance left
+    running behind Retain. infra-drift.yml reported it on every such morning.
+    The pin is the AMI the live instance runs (the drift report of 2026-10-15
+    shows it as the deployed ImageId); bump it on purpose, never by accident."""
+    ami = CDK_JSON_CONTEXT.get("natAmiId")
+    assert isinstance(ami, str) and re.fullmatch(r"ami-[0-9a-f]{8,17}", ami), f"cdk.json natAmiId is {ami!r}"
+    nat = hardened.to_json()["Resources"]["NatInstance"]["Properties"]
+    assert nat["ImageId"] == ami, f"the NAT instance does not run the pinned AMI: {nat['ImageId']}"
+    parameters = hardened.to_json().get("Parameters", {})
+    assert not [p for p in parameters if "amiamazonlinuxlatest" in p.lower()], (
+        "the template still resolves the NAT AMI from the moving 'latest' parameter"
+    )
+
+
+def test_a_malformed_nat_ami_is_refused() -> None:
+    with pytest.raises(ValueError, match="natAmiId"):
+        _core("harden", natAmiId="al2023-latest", drVaultArn=_DR_VAULT)
+
+
+def test_without_a_pin_the_nat_ami_still_resolves() -> None:
+    """A fresh account has no AMI to pin yet; the first deploy must still work."""
+    t = _core("harden", natAmiId="", drVaultArn=_DR_VAULT)
+    image = t.to_json()["Resources"]["NatInstance"]["Properties"]["ImageId"]
+    assert isinstance(image, dict) and "Ref" in image
+
+
+def test_a_failed_nat_create_leaves_nothing_to_collide_with(hardened: Template) -> None:
+    """#124. The first core-nat-instance run rolled back on 2026-10-03, plain
+    Retain kept the security group, `reep-nat-instance` role and profile and
+    the instance, and the retry was refused at change-set validation because
+    the role "already exists". RetainExceptOnCreate deletes what a failed
+    create made and still never deletes a box that was running."""
+    resources = hardened.to_json()["Resources"]
+    nat = {
+        lid: res for lid, res in resources.items()
+        if lid in ("NatInstanceSg", "NatInstanceRole", "NatInstanceProfile", "NatInstance")
+    }
+    assert len(nat) == 4, f"expected the four NAT resources, found {sorted(nat)}"
+    for lid, res in nat.items():
+        assert res.get("DeletionPolicy") == "RetainExceptOnCreate", f"{lid}: {res.get('DeletionPolicy')}"
+        assert res.get("UpdateReplacePolicy") == "Retain", f"{lid}: {res.get('UpdateReplacePolicy')}"
 
 
 def _db_class(t: Template) -> str:

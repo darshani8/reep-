@@ -17,10 +17,11 @@ export const authGuard: CanActivateFn = async (_route, state) => {
   // `signedOut=elsewhere` is what turns a silent bounce into a sentence. Under
   // one device at a time the student's own second sign-in is the usual cause,
   // and a login screen that says nothing about it looks like a fault.
+  // `signedOut=disabled` is the office having disabled the account, which
+  // signing in again cannot fix.
+  const signedOut = auth.accountDisabled() ? 'disabled' : auth.retiredElsewhere() ? 'elsewhere' : null;
   return router.createUrlTree(['/login'], {
-    queryParams: auth.retiredElsewhere()
-      ? { next: state.url, signedOut: 'elsewhere' }
-      : { next: state.url },
+    queryParams: signedOut ? { next: state.url, signedOut } : { next: state.url },
   });
 };
 

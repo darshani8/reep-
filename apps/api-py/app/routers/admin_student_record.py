@@ -6,6 +6,7 @@
         weeks of attendance
     GET /api/admin/students/{student_id}/access
         who can open this record, and the students a new grant could reach
+        (the Main Admin's alone)
     GET /api/admin/students/{student_id}/files/{upload_id}
         one of the student's uploads (their CV, a certificate), as a file
     GET /api/admin/students/{student_id}/resumes/{resume_id}/pdf
@@ -88,7 +89,7 @@ from .admin_students import AdminStudentOut, _rows
 from .governance import _target_label
 from .interview_records import InterviewSessionOut, _sessions_for_student
 from .mentee_records import LedgerSummaryOut, compose_ledger_summary
-from .mentor import _assert_can_access_student
+from .mentor import _assert_can_access_student, require_admin
 from .student import _INSTITUTION_Q, _initials, _leaderboard_scope, _ranked_board
 from .student_programme import EnglishBaselineOut, compose_english_baseline
 
@@ -630,7 +631,15 @@ def student_access(
 ) -> AccessOut:
     """Who can open this student's record, and how. Granting and removing go
     through Governance's own endpoints, so there is one place a grant is
-    written and one audit trail for it."""
+    written and one audit trail for it.
+
+    THE MAIN ADMIN'S ALONE (2026-10-17, the owner's decision). Who else can
+    read a student, why each of them was let in and by whom is the office's
+    business, not the business of a faculty member reading on a grant or a
+    mentor reading their own mentee. So this is `require_admin` before the
+    record is even opened, and the page draws no Access tab for anybody else.
+    """
+    require_admin(session)
     student = _open_record(db, session, student_id)
     holders: list[AccessHolderOut] = []
     for admin in db.scalars(
@@ -660,14 +669,9 @@ def student_access(
             )
     holders.extend(_handover_holders(db, student))
     holders.extend(_grant_holders(db, student))
-    can_manage = has_capability(db, session, "admin.governance")
-    if not can_manage:
-        # A grant's reason and who made it are written for the office, which
-        # decides grants; a faculty member reading the record sees who else can.
-        holders = [h.model_copy(update={"reason": None, "granted_by": None}) for h in holders]
     return AccessOut(
         holders=holders,
-        can_manage=can_manage,
+        can_manage=has_capability(db, session, "admin.governance"),
         reach_options=_reach_options(db, student),
     )
 

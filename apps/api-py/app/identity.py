@@ -4,8 +4,10 @@ from fastapi import HTTPException, Request, WebSocket, WebSocketException, statu
 
 from .security import (
     SESSION_COOKIE,
+    SESSION_DISABLED_VALUE,
     SESSION_RETIRED_HEADER,
     SESSION_RETIRED_VALUE,
+    session_was_disabled,
     session_was_retired,
     verify_session_token,
 )
@@ -44,12 +46,13 @@ def get_current_session(request: Request) -> dict:
         # A HEADER rather than a richer `detail`, because `detail` is a string
         # every existing client renders as prose: widening it to an object here
         # would change a contract shared by every authenticated route in the
-        # app, to serve one screen.
-        headers = (
-            {SESSION_RETIRED_HEADER: SESSION_RETIRED_VALUE}
-            if session_was_retired(token)
-            else None
-        )
+        # app, to serve one screen. The same header says when the office has
+        # DISABLED the account, so the login screen can tell them that instead.
+        headers = None
+        if session_was_retired(token):
+            headers = {SESSION_RETIRED_HEADER: SESSION_RETIRED_VALUE}
+        elif session_was_disabled(token):
+            headers = {SESSION_RETIRED_HEADER: SESSION_DISABLED_VALUE}
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Sign in required.",

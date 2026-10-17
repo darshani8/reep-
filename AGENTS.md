@@ -179,7 +179,7 @@ What Google issues is **the same session as before, byte for byte**: passwords a
 
 **ONE DEVICE AT A TIME (2026-09-10).** A REEP account holds exactly **one live session**: every sign-in — password, emailed code, Google, and the activation link — advances `users.token_version` before the token is minted, and `app/security.py` refuses any token whose version is behind the row. So signing in on a phone drops the laptop on its next request. **The newest sign-in wins, deliberately**: refusing the *new* device instead would lock out the student whose browser crashed until a row aged out, and it would need a sessions table, an eviction policy and a device list that this design does not have. `_retire_other_sessions` is the in-memory half and **the caller's commit is what persists it** — on the code door that commit is the same one that lands the one-time code's `consumed_at`, so a separate earlier commit would make "code spent, session refused" reachable. `_confirm_exclusive_session` seeds this worker's revocation cache and must run **after** the commit. If that commit fails the session is still issued and the older devices survive: fail-open on exclusivity, never on authentication, and logged where it happens. `tests/test_single_device_session.py` covers all four doors, and the mutation that matters most is building the payload *before* the bump — that mints a token one version behind the row, which is a 200 from `/login` followed by a 401 on the very next request, for everyone.
 
-Because this makes being signed out a routine event rather than an incident, the server says **why**: a 401 whose cookie was retired (rather than expired or absent) carries the header `X-Reep-Session: retired` (`session_was_retired` in `app/security.py`). `AuthService.refresh()` reads it, the auth guard redirects to `/login?signedOut=elsewhere`, and the login screen explains it. Without that the student meets a login form mid-task with no explanation, signs in again, drops the other device, and learns the app logs you out at random.
+Because this makes being signed out a routine event rather than an incident, the server says **why**: a 401 whose cookie was retired (rather than expired or absent) carries the header `X-Reep-Session: retired` (`session_was_retired` in `app/security.py`). `AuthService.refresh()` reads it, the auth guard redirects to `/login?signedOut=elsewhere`, and the login screen explains it. Without that the student meets a login form mid-task with no explanation, signs in again, drops the other device, and learns the app logs you out at random. **The same header says `disabled` (2026-10-17)** when the cookie is genuine but the Main Admin has disabled the account (`session_was_disabled`; never for a REMOVED account, which has not been told about a security issue); the guard sends them to `/login?signedOut=disabled`, which shows the same red-box sentence the password and code doors answer with (`DISABLED_SIGN_IN_MESSAGE`, "Your account has been disabled for security reasons. Contact the placement office (Main Admin) to resolve the issue.") and Google gives as `?error=sso_disabled`. A removed account hears `REMOVED_SIGN_IN_MESSAGE` and Google's `sso_not_enrolled` instead. `tests/test_disabled_account.py`.
 
 `POST /api/auth/login` (password) is **always on in dev/CI and off everywhere else unless `PASSWORD_LOGIN=true`**: the `login` fixture in `tests/conftest.py` and the six test modules that use it authenticate through it, so deleting it would take the DB-backed suite and CI with it. The guard is `settings.password_login_allowed` — an allowlist of dev/CI environment names **or** the explicit flag, never `not is_prod`, so an unrecognised `ENV` (`staging`, `uat`, a typo, a blank from a broken deploy) still shuts the password door rather than opening it. A default production deployment answers 403 and names Google instead. Set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in `apps/api-py/.env`; blank means `GET /api/auth/sso/status` reports unavailable and the login screen's Google button renders disabled with the reason — nothing else is affected. Full notes, including the exact authorised redirect URI and a troubleshooting section: `docs/google-sign-in.md`.
 
@@ -890,7 +890,10 @@ disabling is the single console action whose effect is invisible from the consol
 afterwards — the person simply cannot get in — and six months later nobody
 remembers whether it was a resignation, a secondment or a security incident. The
 reason is on the row AND on the trail, and the re-enable window is read against
-it. `enable` and `sign-out-everywhere` sit beside it. **Deleting a faculty
+it. `enable` and `sign-out-everywhere` sit beside it. **The same two endpoints
+disable and enable a STUDENT (2026-10-17)**, from the More menu on the student's
+record, Main Admin only as they always were; a student has no 90-day enable
+window, because "create a new account instead" means nothing for one. **Deleting a faculty
 account from the console arrived on 2026-09-16** — remove-and-restore and
 delete-for-good behind an emailed code, in `routers/admin_deletion.py`; see
 "Deleting people and colleges from the console" below. Emptying a whole
@@ -1827,7 +1830,13 @@ other panels from the composers the mentor and student screens use, and
 `?download=true` on a file or built resume writes a `DOWNLOADED` audit row
 against the student, which the record's own history lists; a view writes
 nothing. "Give access" posts Governance's own `POST /admin/governance/grants`
-with a scope, so a grant has one writer and one audit trail. **Two panels of
+with a scope, so a grant has one writer and one audit trail. **The Access tab
+is the Main Admin's alone (2026-10-17, the owner's decision)**: `GET
+.../access` is `require_admin`, the page draws the tab and the rail's "Who can
+open this record" card for the office only, and `/360` sends an empty sign-in
+list and history, and no disable or removal reason, to anybody else. A faculty
+member reading on a grant or a mentee still sees THAT the account is disabled.
+**Two panels of
 the old page came back the same day**, because the prototype had no place for
 them and this was the only screen showing the first: the mentor history (every
 faculty mentor, who moved the student and why) on the Overview's Faculty mentor

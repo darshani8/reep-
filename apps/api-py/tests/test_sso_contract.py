@@ -146,3 +146,19 @@ def test_the_login_screen_calls_paths_the_router_actually_serves() -> None:
         f"does not serve. It serves {sorted(served)}. A 404 here fails OPEN: the "
         f"probe gives up and the Google button renders live regardless."
     )
+
+
+def test_the_login_screen_prints_the_disabled_sentence_the_server_answers() -> None:
+    """One sentence, two files (2026-10-17). The password and code doors print
+    `DISABLED_SIGN_IN_MESSAGE` verbatim; Google's `sso_disabled` and
+    `?signedOut=disabled` print the screen's own copy. Edit one and the person
+    reads two different explanations of the same lock-out."""
+    from app.routers.auth import DISABLED_SIGN_IN_MESSAGE
+
+    src = _LOGIN_TS.read_text(encoding="utf-8")
+    block = src.split("export const ACCOUNT_DISABLED_MESSAGE =")[1].split(";")[0]
+    on_screen = "".join(re.findall(r"'([^']*)'", block))
+    assert on_screen == DISABLED_SIGN_IN_MESSAGE, (
+        f"login.component.ts says {on_screen!r}; the server says "
+        f"{DISABLED_SIGN_IN_MESSAGE!r}"
+    )

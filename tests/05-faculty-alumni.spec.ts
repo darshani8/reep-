@@ -647,6 +647,23 @@ test.describe('Faculty and alumni', () => {
         page.getByRole('button', { name: /^Remove/ }),
         'TC-403 ER-4: read only: no Remove button',
       ).toHaveCount(0);
+      await expect(
+        page.getByRole('tablist', { name: 'Parts of the record' }).getByRole('tab'),
+        "TC-403 ER-4: eight tabs and no Access tab, which is the Main Admin's alone",
+      ).toHaveText([
+        'Overview',
+        'Resume',
+        'Skills',
+        'Leaderboard',
+        'Academics',
+        'Interviews',
+        'Time sheet',
+        'Documents',
+      ]);
+      await expect(
+        page.getByRole('heading', { name: 'Who can open this record' }),
+        'TC-403 ER-4: no "Who can open this record" card',
+      ).toHaveCount(0);
     });
   });
 

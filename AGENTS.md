@@ -2288,6 +2288,31 @@ written down:** the interview WebSocket (cookie + Origin check), plain
 `<a href="/api/...">` downloads, and Google sign-in (Google refuses embedded
 webviews).
 
+**THE APP IS PUBLISHED FROM `feature/mobile-app` AND NEVER FROM `main`
+(2026-10-17, the owner's rule).** `.github/workflows/android-play.yml` is a
+`push` trigger on that branch, because a push runs the workflow file from the
+pushed commit and nothing about it has to land on `main` (a
+`workflow_dispatch` button would). Its `guard` job refuses any other ref and
+any pusher but the owner, `deploy.yml`'s check. It builds `bundleRelease`
+signed with the Play UPLOAD key, which reaches Gradle only as
+`REEP_UPLOAD_KEYSTORE*` environment variables (`android/app/build.gradle`;
+unset means an unsigned release and a debug build that needs no key), and it
+refuses a bundle that is unsigned or carries `CN=Android Debug`. The secrets are
+in the `play-store` ENVIRONMENT, whose deployment-branch rule is what keeps
+other branches from reading them; the guard job alone cannot, because a write
+collaborator can push an edited copy of it to the same branch. The upload is
+`tools/play/upload_bundle.py`, Google's own auth library against the
+androidpublisher API, deliberately not a third-party Action: whatever runs that
+step holds the credential that publishes to every student's phone. One edit,
+deleted on any failure, so no half-made release sits in Play Console;
+`tests/test_play_upload.py` pins the call order. The defaults are the internal
+track and DRAFT status, so a push never reaches a phone without somebody
+pressing Start rollout, and `PLAY_UPLOAD` stays off until the first bundle has
+been uploaded by hand, which Google requires. versionCode is
+`run_number * 100 + run_attempt`: Play refuses a code it has seen, and renaming
+the workflow restarts `run_number`. `docs/mobile-app.md` §8 is the owner's
+runbook.
+
 The floating **agent orb** and the **dock** it opens live in the SHELL
 (`layout/agent-orb.component.ts`, `layout/agent-dock.component.ts`), not in a
 route, because they are on every screen. **The dock is BOTH assistants under

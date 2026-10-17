@@ -87,7 +87,8 @@ Entry format:
   (`?error=sso_disabled`, added to the three-way code contract) and when its
   open session ends (`X-Reep-Session: disabled` → `/login?signedOut=disabled`).
   A removed account hears that it is no longer on the roster instead.
-- **Where:** `app/routers/admin_student_record.py`, `admin_student_360.py`,
+- **Where:** [PR #207](https://github.com/darshani8/reep-/pull/207);
+  `app/routers/admin_student_record.py`, `admin_student_360.py`,
   `admin_faculty.py`, `auth.py`, `app/security.py`, `app/identity.py`;
   `features/admin/student-detail/`, `features/login/`, `core/auth.service.ts`,
   `core/auth.guard.ts`; `docs/google-sign-in.md`.

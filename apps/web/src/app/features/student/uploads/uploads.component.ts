@@ -17,11 +17,16 @@
  * snake_case fields are the ones FastAPI's UploadRowOut returns verbatim.
  */
 
-import { Component, computed, signal } from '@angular/core';
+import { Component, ErrorHandler, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 
 import { environment } from '../../../../environments/environment';
 import { failedReadMessage } from '../../../core/feature-refusal';
+import {
+  UNREADABLE_FILE_MESSAGE,
+  UPLOAD_DROPPED_MESSAGE,
+  readPickedFile,
+} from '../../../core/picked-file';
 
 interface UploadRow {
   id: string;
@@ -78,6 +83,7 @@ const MAX_BYTES = 10 * 1024 * 1024; // 10 MB — matches the server cap.
 })
 export class UploadsComponent {
   readonly apiBase = environment.apiBase;
+  private readonly errorHandler = inject(ErrorHandler);
 
   /** null while loading; an array (possibly empty) once the fetch resolves. */
   readonly rows = signal<UploadRow[] | null>(null);
@@ -230,8 +236,21 @@ export class UploadsComponent {
 
     this.uploading.set(true);
     try {
+      // Read the bytes first and upload the in-memory copy
+      // (core/picked-file.ts): on Android a file held by Drive, Photos or
+      // another app can fail to be read at send time, which reached this
+      // screen as a thrown fetch. A file unreadable even now is refused here,
+      // about the file, before a Replace deletes anything.
+      const copy = await readPickedFile(file);
+      if (!copy) {
+        this.uploadError.set(UNREADABLE_FILE_MESSAGE);
+        this.errorHandler.handleError(
+          new Error('Document upload: the picked file could not be read on the device'),
+        );
+        return;
+      }
       const form = new FormData();
-      form.append('file', file);
+      form.append('file', copy);
       form.append('kind', this.kind());
       form.append('title', file.name);
       const res = await fetch(`${this.apiBase}/student/uploads`, {
@@ -241,8 +260,12 @@ export class UploadsComponent {
       });
       if (!res.ok) {
         const detail = await res.json().catch(() => null);
+        // The server's sentence, or the STATUS: a refusal from the edge has no
+        // JSON body, and a sentence about file types would blame the file.
         this.uploadError.set(
-          detail?.detail ?? 'Upload failed. Only PDF, PNG or JPEG up to 10 MB are accepted.',
+          typeof detail?.detail === 'string'
+            ? detail.detail
+            : `The file could not be uploaded (${res.status}). Please try again in a minute.`,
         );
         return;
       }
@@ -254,7 +277,12 @@ export class UploadsComponent {
       this.justUploaded.set(created); // shows step 3 + the preview
       await this.load(); // reflect the new PENDING_REVIEW row
     } catch {
-      this.uploadError.set('Could not reach the server.');
+      this.uploadError.set(UPLOAD_DROPPED_MESSAGE);
+      // Reported because no server saw it. A fixed sentence, nothing from
+      // the student or the file.
+      this.errorHandler.handleError(
+        new Error('Document upload failed: no HTTP response (network error on the device)'),
+      );
     } finally {
       this.uploading.set(false);
     }

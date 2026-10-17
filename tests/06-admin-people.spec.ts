@@ -63,8 +63,10 @@ const SEED = {
   collegeOption: 'BGSCET · BGS College of Engineering and Technology',
 } as const;
 
-/** The batch as the roster's Batch filter offers it: it ended on 31 Jul 2026. */
-const BATCH_OPTION = `${SEED.batch} (ended)`;
+/** The batch as the roster's Batch filter offers it: by its year, which the
+ *  Course and Specialization boxes beside it narrow (2026-10-06), marked
+ *  because it ended on 31 Jul 2026. */
+const BATCH_OPTION = `${SEED.batchYear} (ended)`;
 
 /** A password for a throwaway faculty account: 12 characters or more, and not
  *  one of the demo passwords `set_password` refuses. */
@@ -122,6 +124,9 @@ interface Batch {
   id: string;
   /** "Master of Business Administration · 2026-28 E2E …", the server's own label. */
   label: string;
+  /** "2026-28 E2E …": the batch as the roster's Batch box lists it, by year
+   *  (2026-10-06). Unique to this test's batch, so picking it picks the batch. */
+  year: string;
 }
 
 interface Faculty {
@@ -161,17 +166,21 @@ async function seeded(api: APIRequestContext): Promise<Seeded> {
   const student = students.find((row) => row.usn === SEED.student.usn);
   const mentor = load.find((row) => row.name === SEED.mentor.name);
   const department = departments.find((row) => row.name === SEED.department);
-  if (!student || !student.cohort_id || !mentor?.mentor_id || !department) {
+  // The seeded batch is found by its own label, NEVER by where the student
+  // sits now. A run stopped mid-case can leave Test Student in a test's
+  // throwaway batch, and reading the batch off the student made every later
+  // `restoreSeededStudent` "restore" them into that batch for good.
+  const batch = (await hierarchyBatches(api)).find((row) => row.display_label === SEED.batch);
+  if (!student || !batch || !mentor?.mentor_id || !department) {
     throw new Error('The dev seed is missing its student, batch, mentor group or department.');
   }
-  const batch = (await hierarchyBatches(api)).find((row) => row.id === student.cohort_id);
-  if (!batch?.course_id) throw new Error('The seeded batch names no course.');
+  if (!batch.course_id) throw new Error('The seeded batch names no course.');
   return {
     studentId: student.student_id,
     mentorUserId: mentor.user_id,
     mentorId: mentor.mentor_id,
     departmentId: department.id,
-    cohortId: student.cohort_id,
+    cohortId: batch.id,
     courseId: batch.course_id,
   };
 }
@@ -197,11 +206,12 @@ async function hierarchyBatches(api: APIRequestContext): Promise<HierarchyBatchR
  */
 async function createBatch(api: APIRequestContext, ids: Seeded): Promise<Batch> {
   const tag = nextTag();
+  const name = `2026-28 E2E ${tag}`;
   const created = await ok<{ id: string }>(
     await api.post(`/api/admin/departments/${ids.departmentId}/cohorts`, {
       data: {
         code: `E2E-${tag}`,
-        name: `2026-28 E2E ${tag}`,
+        name,
         batch_label: '2026-28',
         degree_level: 'PG',
         entry_date: '2026-07-01',
@@ -213,7 +223,7 @@ async function createBatch(api: APIRequestContext, ids: Seeded): Promise<Batch> 
   );
   const row = (await hierarchyBatches(api)).find((batch) => batch.id === created.id);
   if (!row?.current) throw new Error('The new batch is not listed as running.');
-  return { id: created.id, label: row.display_label };
+  return { id: created.id, label: row.display_label, year: name };
 }
 
 async function seat(
@@ -792,6 +802,9 @@ test.describe('Admin: people and access', () => {
   test('Filtering the roster by batch and status @TC-506', async ({ page, signIn }) => {
     await signIn('admin');
     const ids = await seeded(page.request);
+    // The case reads Test Student in the seeded batch; a run stopped mid-case
+    // elsewhere can have left them in another one.
+    await restoreSeededStudent(page.request, ids);
     const row = gridRow(page, ids.studentId);
     const rail = page.locator('.roster-rail');
     const batchFilter = page.getByRole('combobox', { name: 'Batch', exact: true });
@@ -863,7 +876,7 @@ test.describe('Admin: people and access', () => {
       });
 
       await test.step('2. Under "Batch", choose the new batch', async () => {
-        await page.getByRole('combobox', { name: 'Batch', exact: true }).selectOption(batch.id);
+        await page.getByRole('combobox', { name: 'Batch', exact: true }).selectOption(batch.year);
         await expect(row, 'TC-507 (arrange): Test Student is in the batch').toBeVisible();
       });
 
@@ -1057,7 +1070,7 @@ test.describe('Admin: people and access', () => {
       });
 
       await test.step('2. Under "Batch", choose the new batch', async () => {
-        await page.getByRole('combobox', { name: 'Batch', exact: true }).selectOption(batch.id);
+        await page.getByRole('combobox', { name: 'Batch', exact: true }).selectOption(batch.year);
         await expect(semester, 'TC-510 (arrange): Test Student is in semester 2').toHaveText(
           String(SEED.student.semester),
         );
@@ -1138,7 +1151,7 @@ test.describe('Admin: people and access', () => {
       });
 
       await test.step('2. Under "Batch", choose the new batch', async () => {
-        await page.getByRole('combobox', { name: 'Batch', exact: true }).selectOption(batch.id);
+        await page.getByRole('combobox', { name: 'Batch', exact: true }).selectOption(batch.year);
         await expect(
           gridRow(page, ids.studentId),
           'TC-539 (arrange): Test Student, on the roster, is listed',
@@ -1343,42 +1356,46 @@ test.describe('Admin: people and access', () => {
       await expect(
         heading(page, SEED.student.name),
         'TC-513 ER-1: headed with their name',
-      ).toBeVisible();
-      const line = page.locator('.head-sub');
-      for (const part of [
-        SEED.student.usn,
-        SEED.batch,
-        SEED.department,
-        `semester ${SEED.student.semester}`,
-        `mentor ${SEED.mentor.name}`,
-      ]) {
-        await expect(line, `TC-513 ER-1: the line under the name carries "${part}"`).toContainText(
-          part,
-        );
-      }
+      ).toBeAttached();
+      const summary = page.getByRole('complementary', { name: 'Student summary' });
       await expect(
-        line.locator('.chip').filter({ hasText: /^Active$/ }),
+        summary.getByRole('heading', { level: 2, name: SEED.student.name, exact: true }),
+        'TC-513 ER-1: the summary card names the student',
+      ).toBeVisible();
+      await expect(summary, 'TC-513 ER-1: with their USN').toContainText(SEED.student.usn);
+      const chips = summary.locator('.chip-row .chip');
+      await expect(
+        chips.filter({ hasText: /^Active$/ }),
         'TC-513 ER-1: an "Active" chip',
       ).toBeVisible();
       await expect(
-        line.locator('.chip').filter({ hasText: new RegExp(`^${SEED.student.stageLabel}$`) }),
+        chips.filter({ hasText: new RegExp(`^${SEED.student.stageLabel} stage$`) }),
         'TC-513 ER-1: the stage chip',
       ).toBeVisible();
-      const tabs = page.getByRole('group', { name: 'Student views' });
-      for (const tab of [
+      const fact = (term: string) =>
+        summary.locator('.rail-facts > div').filter({ has: page.getByRole('term').getByText(term, { exact: true }) }).getByRole('definition');
+      await expect(fact('Batch'), 'TC-513 ER-1: Batch').toHaveText(SEED.batch);
+      await expect(fact('Department'), 'TC-513 ER-1: Department').toHaveText(SEED.department);
+      await expect(fact('Semester'), 'TC-513 ER-1: Semester').toHaveText(
+        String(SEED.student.semester),
+      );
+      await expect(fact('Faculty mentor'), 'TC-513 ER-1: Faculty mentor').toContainText(
+        SEED.mentor.name,
+      );
+      await expect(
+        page.getByRole('tablist', { name: 'Parts of the record' }).getByRole('tab'),
+        'TC-513 ER-2: the record has its nine tabs, in order',
+      ).toHaveText([
         'Overview',
-        'Results',
-        'Attendance',
+        'Resume',
+        'Skills',
+        'Leaderboard',
+        'Academics',
+        'Interviews',
         'Time sheet',
         'Documents',
-        'Interviews',
-        'Audit',
-      ]) {
-        await expect(
-          tabs.getByRole('button', { name: tab, exact: true }),
-          `TC-513 ER-2: a "${tab}" tab`,
-        ).toBeVisible();
-      }
+        'Access',
+      ]);
     });
   });
 
@@ -1392,7 +1409,7 @@ test.describe('Admin: people and access', () => {
       page
         .locator('.card')
         .filter({ has: page.getByRole('heading', { level: 2, name: title, exact: true }) });
-    const tabs = page.getByRole('group', { name: 'Student views' });
+    const tabs = page.getByRole('tablist', { name: 'Parts of the record' });
     // The seeded uploads, by title. Their verdicts are read from the record
     // itself: module 05's verification cases may have decided one since the seed.
     const verdictLabel: Record<string, string> = {
@@ -1404,18 +1421,17 @@ test.describe('Admin: people and access', () => {
     const record = await ok<{
       documents: { title: string; status: string; review_note: string | null }[];
     }>(await page.request.get(`/api/admin/students/${ids.studentId}/360`), 'GET 360');
-    const pending = record.documents.filter((row) => row.status === 'PENDING_REVIEW').length;
     const documents = [
       { title: 'Profile photo', file: 'me.png', kind: 'Photo' },
       { title: 'Leadership certificate', file: 'leadership_completion.pdf', kind: 'Certificate' },
-      { title: 'Existing CV', file: 'resume_v1.pdf', kind: 'Resume' },
+      { title: 'Existing CV', file: 'resume_v1.pdf', kind: 'CV' },
     ].map((seededDocument) => {
       const onRecord = record.documents.find((row) => row.title === seededDocument.title);
       if (!onRecord) throw new Error(`The seeded upload "${seededDocument.title}" is missing.`);
       return {
         ...seededDocument,
         status: verdictLabel[onRecord.status] ?? onRecord.status,
-        note: onRecord.review_note || '—',
+        note: onRecord.review_note || '',
       };
     });
 
@@ -1425,36 +1441,38 @@ test.describe('Admin: people and access', () => {
       await expect(
         heading(page, SEED.student.name),
         'TC-514 (arrange): the record is open',
-      ).toBeVisible();
+      ).toBeAttached();
     });
 
-    await test.step('2. Read the "Contact & profile" and "Mentor" cards on Overview', async () => {
-      const profile = card('Contact & profile');
+    await test.step('2. Read the "Contact", "Profile as filled in" and "Faculty mentor" cards', async () => {
       await expect(
-        profile.locator('.fact').filter({ hasText: 'City' }).locator('dd'),
+        card('Contact').getByRole('listitem').filter({ hasText: /^\s*City/ }),
         'TC-514 ER-1: City reads Bengaluru',
-      ).toHaveText(SEED.student.city);
+      ).toContainText(SEED.student.city);
       await expect(
-        profile,
+        card('Profile as filled in')
+          .locator('.rail-facts > div')
+          .filter({ hasText: 'Career summary' })
+          .getByRole('definition'),
         'TC-514 ER-1: the career summary as the student wrote it',
-      ).toContainText(SEED.student.summary);
-      const mentor = card('Mentor');
+      ).toHaveText(SEED.student.summary);
+      const mentor = card('Faculty mentor');
       await expect(
-        mentor.locator('.mentor-name'),
-        'TC-514 ER-2: the Mentor card names Test Mentor',
+        mentor.locator('.mentor-row b'),
+        'TC-514 ER-2: the card names Test Mentor',
       ).toHaveText(SEED.mentor.name);
       const current = mentor.locator('.mentor-spells li').first();
       await expect(
         current,
-        'TC-514 ER-2: the newest assignment is Test Mentor, marked current',
+        'TC-514 ER-2: the newest entry under "Mentor history" is Test Mentor',
       ).toContainText(SEED.mentor.name);
-      await expect(current.locator('.chip'), 'TC-514 ER-2: marked current').toHaveText('current');
+      await expect(current.locator('.chip'), 'TC-514 ER-2: marked current').toHaveText('Current');
     });
 
-    await test.step('3. Click the Results tab', async () => {
-      await tabs.getByRole('button', { name: 'Results', exact: true }).click();
+    await test.step('3. Click the Academics tab', async () => {
+      await tabs.getByRole('tab', { name: 'Academics', exact: true }).click();
       const semesterOne = page
-        .getByRole('table', { name: `Semester results for ${SEED.student.name}` })
+        .getByRole('table', { name: 'Semester results' })
         .getByRole('row')
         .filter({ has: page.getByRole('cell', { name: '1', exact: true }) });
       await expect(
@@ -1468,47 +1486,39 @@ test.describe('Admin: people and access', () => {
     });
 
     await test.step('4. Click the Documents tab', async () => {
-      await tabs.getByRole('button', { name: 'Documents', exact: true }).click();
+      await tabs.getByRole('tab', { name: 'Documents', exact: true }).click();
       const table = page.getByRole('table', { name: `Documents uploaded by ${SEED.student.name}` });
-      await expect(
-        page.locator('.chip').filter({ hasText: /pending review$/ }),
-        'TC-514 ER-4: the chip counts the documents waiting for a verdict',
-      ).toHaveText(pending > 0 ? [`${pending} pending review`] : []);
       for (const document of documents) {
-        const row = table.getByRole('row').filter({ hasText: document.title });
-        await expect(row, `TC-514 ER-4: "${document.title}" is listed`).toHaveCount(1);
-        await expect(row, `TC-514 ER-4: with its file name`).toContainText(document.file);
-        await expect(row.getByRole('cell').nth(1), `TC-514 ER-4: kind ${document.kind}`).toHaveText(
+        const row = table.getByRole('row').filter({ hasText: document.file });
+        await expect(row, `TC-514 ER-4: "${document.file}" is listed`).toHaveCount(1);
+        await expect(row.getByRole('cell').nth(0), `TC-514 ER-4: kind ${document.kind}`).toHaveText(
           document.kind,
         );
+        const file = row.getByRole('cell').nth(1);
+        if (document.note) {
+          await expect(file, "TC-514 ER-4: the reviewer's note under the file").toContainText(
+            document.note,
+          );
+        } else {
+          await expect(file, 'TC-514 ER-4: no note under the file').toHaveText(document.file);
+        }
         await expect(
           row.getByRole('cell').nth(3),
           `TC-514 ER-4: status ${document.status}`,
-        ).toContainText(document.status);
-        await expect(row.getByRole('cell').nth(4), "TC-514 ER-4: the reviewer's note").toHaveText(
-          document.note,
-        );
+        ).toHaveText(document.status);
       }
     });
 
-    await test.step('5. Click Open on the "Existing CV" row', async () => {
-      const open = page
+    await test.step('5. Click the download button on the resume_v1.pdf row', async () => {
+      const download = page.waitForEvent('download');
+      await page
         .getByRole('table', { name: `Documents uploaded by ${SEED.student.name}` })
-        .getByRole('row')
-        .filter({ hasText: 'Existing CV' })
-        .getByRole('link', { name: 'Open' });
-      await expect(open, 'TC-514 ER-5: the link opens in a new tab').toHaveAttribute(
-        'target',
-        '_blank',
-      );
-      // A browser shows a PDF in the new tab; a headless one downloads it, so
-      // the file behind the link is fetched with this session instead.
-      const href = await open.getAttribute('href');
-      const file = await page.request.get(href ?? '');
-      expect(file.status(), 'TC-514 ER-5: the CV is served').toBe(200);
-      expect(file.headers()['content-type'], 'TC-514 ER-5: the CV is a PDF').toContain(
-        'application/pdf',
-      );
+        .getByRole('link', { name: 'Download resume_v1.pdf' })
+        .click();
+      const file = await download;
+      expect(file.suggestedFilename(), 'TC-514 ER-5: the CV is downloaded').toBe('resume_v1.pdf');
+      const bytes = fs.readFileSync((await file.path()) ?? '');
+      expect(bytes.subarray(0, 5).toString(), 'TC-514 ER-5: as a PDF').toBe('%PDF-');
     });
   });
 
@@ -1623,6 +1633,82 @@ test.describe('Admin: people and access', () => {
         await expect(row, 'TC-515 ER-6: they leave the Removed list').toHaveCount(0);
       });
     } finally {
+      await removeStudent(api, student.studentId);
+    }
+  });
+
+  test("Disabling a student's account from their record and enabling it again @TC-541", async ({
+    page,
+    signIn,
+  }) => {
+    await signIn('admin');
+    const api = page.request;
+    const student = await createStudent(api);
+    const reason = 'E2E: password shared with another student';
+    const summary = page.getByRole('complementary', { name: 'Student summary' });
+    const status = summary.locator('.chip-row .chip').first();
+    const more = page.getByRole('button', { name: 'More', exact: true });
+    const disableBox = page.getByRole('dialog', { name: `Disable ${student.name}'s account?` });
+    const disableButton = disableBox.getByRole('button', { name: 'Disable account' });
+    const enableBox = page.getByRole('alertdialog', { name: `Enable ${student.name}'s account?` });
+
+    try {
+      await test.step("1. Open the student's record at /admin/students/<id>", async () => {
+        await page.goto(`/admin/students/${student.studentId}`);
+        await expect(status, 'TC-541 (arrange): the record has loaded').toHaveText('Not signed in yet');
+      });
+
+      await test.step('2. Click "More", then "Disable account"', async () => {
+        await more.click();
+        await page.getByRole('menuitem', { name: 'Disable account' }).click();
+        await expect(disableBox, "TC-541 ER-1: a \"Disable <name>'s account?\" box opens").toBeVisible();
+        await expect(
+          disableBox,
+          'TC-541 ER-1: it says what the student will be told',
+        ).toContainText(
+          'they are told the account was disabled for a security reason and to contact the placement office',
+        );
+        await expect(disableButton, 'TC-541 ER-1: Disable waits for a reason').toBeDisabled();
+      });
+
+      await test.step(`3. Type ${reason} into "Reason" and click "Disable account" in the box`, async () => {
+        await disableBox.getByRole('textbox', { name: 'Reason' }).fill(reason);
+        await disableButton.click();
+        await expect(disableBox, 'TC-541 ER-2: the box closes').toBeHidden();
+        await expect(
+          notice(page, `${student.email} can no longer sign in, and every device it held has been signed out.`),
+          'TC-541 ER-2: the screen says what disabling did',
+        ).toBeVisible();
+        await expect(status, 'TC-541 ER-2: the status reads Disabled').toHaveText('Disabled');
+        await expect(
+          summary.locator('.account-line'),
+          'TC-541 ER-2: the line under it gives the reason',
+        ).toContainText(reason);
+      });
+
+      await test.step('4. Click "More", then "Enable account"', async () => {
+        await more.click();
+        await expect(
+          page.getByRole('menuitem', { name: 'Disable account' }),
+          'TC-541 ER-3: Disable is not offered twice',
+        ).toHaveCount(0);
+        await page.getByRole('menuitem', { name: 'Enable account' }).click();
+        await expect(enableBox, "TC-541 ER-3: an \"Enable <name>'s account?\" box opens").toBeVisible();
+      });
+
+      await test.step('5. Click "Enable account" in the box', async () => {
+        await enableBox.getByRole('button', { name: 'Enable account' }).click();
+        await expect(enableBox, 'TC-541 ER-4: the box closes').toBeHidden();
+        await expect(
+          notice(page, `${student.email} can sign in again.`),
+          'TC-541 ER-4: the screen says they can sign in again',
+        ).toBeVisible();
+        await expect(status, 'TC-541 ER-4: the status no longer reads Disabled').toHaveText(
+          'Not signed in yet',
+        );
+      });
+    } finally {
+      // Removing keeps a disabled account disabled, which is all a throwaway needs.
       await removeStudent(api, student.studentId);
     }
   });
@@ -2317,7 +2403,8 @@ test.describe('Admin: people and access', () => {
         await page.getByRole('button', { name: 'Sign in', exact: true }).click();
         await expect(
           page.getByRole('alert').filter({
-            hasText: 'This account has been disabled. Contact the placement office.',
+            hasText:
+              'Your account has been disabled for security reasons. Contact the placement office (Main Admin) to resolve the issue.',
           }),
           'TC-523 ER-1: the page says the account is disabled',
         ).toBeVisible();
@@ -2383,6 +2470,58 @@ test.describe('Admin: people and access', () => {
         await expect(theirs.page, 'TC-524 ER-3: the faculty member is sent to sign in').toHaveURL(
           /\/login\?next=%2Fmentor%2Fnotebook/,
         );
+      });
+    } finally {
+      await theirs.context.close();
+      await removeUser(api, faculty.userId);
+    }
+  });
+
+  test('A faculty member signed in when their account is disabled is told why @TC-542', async ({
+    page,
+    signIn,
+    browser,
+    baseURL,
+    playwright,
+  }) => {
+    await signIn('admin');
+    const api = page.request;
+    const ids = await seeded(api);
+    const faculty = await createFaculty(api, ids.departmentId);
+    await activate(playwright, baseURL ?? '', faculty.link);
+    const theirs = await openBrowserAs(browser, baseURL ?? '', faculty.email, FACULTY_PASSWORD);
+
+    try {
+      await test.step('1. In a second browser, sign in as the new faculty member and open their notebook', async () => {
+        await theirs.page.goto('/mentor/notebook');
+        await expect(
+          heading(theirs.page, 'Faculty notebook'),
+          'TC-542 ER-1: the faculty member is signed in',
+        ).toBeVisible();
+      });
+
+      await test.step('2. In the admin browser, disable their account with the reason E2E: checking the signed-out note', async () => {
+        await ok(
+          await api.post(`/api/admin/users/${faculty.userId}/disable`, {
+            data: { reason: 'E2E: checking the signed-out note' },
+          }),
+          'POST /api/admin/users/{id}/disable',
+        );
+      });
+
+      await test.step('3. In the second browser, reload the page', async () => {
+        await theirs.page.reload();
+        await expect(
+          theirs.page,
+          'TC-542 ER-2: they are sent to sign in, and the address says why',
+        ).toHaveURL(/\/login\?next=%2Fmentor%2Fnotebook&signedOut=disabled$/);
+        await expect(
+          theirs.page.getByRole('alert').filter({
+            hasText:
+              'Your account has been disabled for security reasons. Contact the placement office (Main Admin) to resolve the issue.',
+          }),
+          'TC-542 ER-2: the page says the account was disabled and who resolves it',
+        ).toBeVisible();
       });
     } finally {
       await theirs.context.close();
@@ -2620,6 +2759,11 @@ test.describe('Admin: people and access', () => {
     const release = page.getByRole('button', {
       name: `Remove ${SEED.student.name} from ${SEED.mentor.name}`,
     });
+    const menteeRow = rail.locator('.mentee').filter({ hasText: SEED.student.name });
+    const releaseReason = menteeRow.getByRole('textbox', {
+      name: `Why is ${SEED.student.name} being released?`,
+    });
+    const confirmRelease = menteeRow.getByRole('button', { name: 'Release', exact: true });
     const reason = page.getByRole('textbox', { name: 'Reason', exact: true });
     const poolRow = page.locator('.pool-grid').locator(`.ag-row[row-id="${ids.studentId}"]`);
     const assign = page.getByRole('button', { name: `Assign 1 selected to ${SEED.mentor.name}` });
@@ -2637,18 +2781,22 @@ test.describe('Admin: people and access', () => {
         await expect(release, 'TC-529 (arrange): Test Student is in their group').toBeVisible();
       });
 
-      await test.step("3. Click the release button on Test Student's row without typing a reason", async () => {
+      await test.step("3. Click the release button on Test Student's row", async () => {
         await release.click();
         await expect(
-          alert(page, 'Say why this student is being released, then press Release again.'),
-          'TC-529 ER-1: a release needs a reason',
+          releaseReason,
+          'TC-529 ER-1: a box on Test Student\'s row asks why they are being released',
         ).toBeVisible();
+        await expect(
+          confirmRelease,
+          'TC-529 ER-1: "Release" is disabled until a reason is typed',
+        ).toBeDisabled();
         await expect(release, 'TC-529 ER-1: Test Student is still in the group').toBeVisible();
       });
 
-      await test.step(`4. Type ${released} into "Reason" and click the release button again`, async () => {
-        await reason.fill(released);
-        await release.click();
+      await test.step(`4. Type ${released} into "Why is Test Student being released?" and click "Release"`, async () => {
+        await releaseReason.fill(released);
+        await confirmRelease.click();
         await expect(
           notice(page, `${SEED.student.name} released from ${SEED.mentor.name}`),
           'TC-529 ER-2: the screen says the student was released',
@@ -2715,7 +2863,7 @@ test.describe('Admin: people and access', () => {
 
   // ========================================================== governance ==
 
-  test('Granting a function with a reason, scope and dates, then revoking it @TC-530', async ({
+  test('Giving one kind of access with a reason, scope and dates, then removing it @TC-530', async ({
     page,
     signIn,
     browser,
@@ -2728,10 +2876,13 @@ test.describe('Admin: people and access', () => {
     const faculty = await createFaculty(api, ids.departmentId);
     await activate(playwright, baseURL ?? '', faculty.link);
     const theirs = await openBrowserAs(browser, baseURL ?? '', faculty.email, FACULTY_PASSWORD);
-    const panel = page.getByRole('complementary', { name: 'Grant a function' });
-    const give = panel.getByRole('button', { name: 'Give access' });
-    const blocked = panel.locator('.gov-blocked');
-    const grantRow = page.getByRole('row').filter({ hasText: faculty.name });
+    const form = page.getByRole('region', { name: 'Give access' });
+    const give = form.getByRole('button', { name: 'Give access' });
+    const blocked = form.locator('.gv-blocked');
+    const grantRow = page
+      .getByRole('region', { name: 'Analytics', exact: true })
+      .getByRole('row')
+      .filter({ hasText: faculty.name });
     const grantReason = 'E2E: reviewing placement numbers this term';
     const extendReason = 'E2E: still reviewing the placement numbers';
     const revokeReason = 'E2E: the review of the numbers is finished';
@@ -2740,78 +2891,72 @@ test.describe('Admin: people and access', () => {
       await test.step('1. Open /admin/governance', async () => {
         await page.goto('/admin/governance');
         await expect(give, 'TC-530 ER-1: "Give access" waits for a person').toBeDisabled();
-        await expect(blocked, 'TC-530 ER-1: and says so').toHaveText('Add at least one person');
+        await expect(blocked, 'TC-530 ER-1: and says so').toHaveText('Choose at least one person');
       });
 
-      await test.step('2. Under "Person", choose the new faculty member and click Add', async () => {
-        await panel
-          .getByRole('combobox', { name: 'Person' })
-          .selectOption({ label: `${faculty.name} — ${faculty.email}` });
-        await panel.getByRole('button', { name: 'Add', exact: true }).click();
+      await test.step('2. Under "Who", search for the new faculty member and tick them', async () => {
+        await form.getByRole('searchbox', { name: 'Search people' }).fill(faculty.email);
+        await form.getByRole('checkbox', { name: faculty.name }).check();
+        await expect(form, 'TC-530 ER-2: one person is chosen').toContainText('1 chosen');
+        await expect(blocked, 'TC-530 ER-2: the form now asks for the access').toHaveText(
+          'Choose at least one kind of access',
+        );
+      });
+
+      await test.step('3. Under "What they can open", tick "Analytics"', async () => {
+        const analytics = form.getByRole('checkbox', { name: /^Analytics\b/ });
+        await analytics.check();
         await expect(
-          panel.getByRole('button', { name: `Remove ${faculty.name}` }),
-          'TC-530 ER-2: the faculty member is added as a chip',
-        ).toBeVisible();
+          analytics,
+          'TC-530 ER-3: Analytics says which screen it opens',
+        ).toHaveAccessibleName(/Opens “Charts & numbers”/);
       });
 
-      await test.step('3. Under "Access", choose "Analytics"', async () => {
-        await panel.getByRole('combobox', { name: 'Access', exact: true }).selectOption({
-          label: 'Analytics',
-        });
-        await expect(
-          panel,
-          'TC-530 ER-3: the help line says the function is programme-wide',
-        ).toContainText('Programme-wide: no mentor group narrows it.');
-      });
-
-      await test.step('4. Under "Scope target", choose "Department · Department of Management Studies"', async () => {
-        await panel
-          .getByRole('combobox', { name: 'Scope target' })
+      await test.step('4. Under "Which students", choose "Department · Department of Management Studies"', async () => {
+        await form
+          .getByRole('combobox', { name: 'Which students' })
           .selectOption(`DEPARTMENT:${ids.departmentId}`);
-        await expect(panel, 'TC-530 ER-4: the reach is spelt out in students').toContainText(
+        await expect(form, 'TC-530 ER-4: the summary names who, what and which students').toContainText(
           new RegExp(
-            `Narrowed to department ${SEED.department}\\. 1 faculty member would reach Analytics for \\d+ students? today\\.`,
+            `1 person will get “Analytics” for department ${SEED.department} \\(\\d+ students?\\), with no end date\\.`,
           ),
         );
       });
 
       await test.step('5. Type E2E: short into "Reason"', async () => {
-        await panel.getByRole('textbox', { name: 'Reason' }).fill('E2E: short');
+        await form.getByRole('textbox', { name: 'Reason' }).fill('E2E: short');
         await expect(give, 'TC-530 ER-5: a short reason is refused').toBeDisabled();
-        await expect(blocked, 'TC-530 ER-5: and the panel says how long it must be').toHaveText(
+        await expect(blocked, 'TC-530 ER-5: and the form says how long it must be').toHaveText(
           'A reason of at least 20 characters is required',
         );
       });
 
-      await test.step(`6. Set "Expires" to a date 60 days ahead and replace the reason with ${grantReason}`, async () => {
-        await panel.getByLabel('Expires').fill(isoDayFromToday(60));
-        await panel.getByRole('textbox', { name: 'Reason' }).fill(grantReason);
+      await test.step(`6. Set "Ends on" to a date 60 days ahead and replace the reason with ${grantReason}`, async () => {
+        await form.getByLabel('Ends on (optional)').fill(isoDayFromToday(60));
+        await form.getByRole('textbox', { name: 'Reason' }).fill(grantReason);
         await expect(give, 'TC-530 ER-6: "Give access" is enabled').toBeEnabled();
       });
 
       await test.step('7. Click "Give access"', async () => {
         await give.click();
         await expect(
-          notice(page, 'Granted to 1 subject.'),
-          'TC-530 ER-7: the grant is made',
+          notice(page, `Gave “Analytics” to ${faculty.name}.`),
+          'TC-530 ER-7: the access is given',
         ).toBeVisible();
-        await expect(grantRow, 'TC-530 ER-7: it is listed under Grants').toHaveCount(1);
+        await expect(
+          page.getByRole('tab', { name: /^Who has access/ }),
+          'TC-530 ER-7: "Who has access" opens',
+        ).toHaveAttribute('aria-selected', 'true');
+        await expect(grantRow, 'TC-530 ER-7: they are listed under Analytics').toHaveCount(1);
         const cells = grantRow.getByRole('cell');
-        await expect(cells.nth(0), 'TC-530 ER-7: for the faculty member, as Faculty').toContainText(
+        await expect(cells.nth(1), 'TC-530 ER-7: the faculty member, as Faculty').toContainText(
           'Faculty',
         );
-        await expect(cells.nth(1), 'TC-530 ER-7: Access Analytics').toHaveText('Analytics');
-        await expect(cells.nth(2), 'TC-530 ER-7: Scope Programme-wide').toHaveText(
-          'Programme-wide',
-        );
-        await expect(cells.nth(3), 'TC-530 ER-7: Reach is the department').toHaveText(
+        await expect(cells.nth(2), 'TC-530 ER-7: Students is the department').toHaveText(
           `Department · ${SEED.department}`,
         );
-        await expect(cells.nth(4), 'TC-530 ER-7: granted by the Main Admin').toHaveText(
-          SEED.admin.name,
-        );
-        await expect(cells.nth(5), 'TC-530 ER-7: it has an expiry date').not.toHaveText('—');
-        await expect(cells.nth(6), 'TC-530 ER-7: Status Live').toHaveText('Live');
+        await expect(cells.nth(3), 'TC-530 ER-7: it has an end date').not.toHaveText('—');
+        await expect(cells.nth(4), 'TC-530 ER-7: Status Active').toHaveText('Active');
       });
 
       await test.step("8. In the faculty member's browser, open /admin/analytics", async () => {
@@ -2822,7 +2967,7 @@ test.describe('Admin: people and access', () => {
         ).toBeVisible();
       });
 
-      await test.step("9. Click Extend on the faculty member's grant row", async () => {
+      await test.step("9. Click Extend on the faculty member's row", async () => {
         await grantRow.getByRole('button', { name: 'Extend' }).click();
         await expect(
           page.getByRole('region', { name: 'Extend 1 grant' }),
@@ -2840,22 +2985,24 @@ test.describe('Admin: people and access', () => {
           'TC-530 ER-10: the grant is extended',
         ).toBeVisible();
         await expect(
-          grantRow.getByRole('cell').nth(6),
-          'TC-530 ER-10: its Status reads "Due for review"',
-        ).toHaveText('Due for review');
+          grantRow.getByRole('cell').nth(4),
+          'TC-530 ER-10: its Status reads "Review due"',
+        ).toHaveText('Review due');
       });
 
-      await test.step('11. Click the Review tab', async () => {
-        await page.getByRole('tab', { name: /^Review/ }).click();
-        const expiring = page.getByRole('region', { name: /^Running out within 30 days/ });
+      await test.step('11. Click the "Needs attention" tab', async () => {
+        await page.getByRole('tab', { name: /^Needs attention/ }).click();
+        const expiring = page.getByRole('region', {
+          name: /^Ending or due for review in the next 30 days/,
+        });
         const row = expiring.getByRole('row').filter({ hasText: faculty.name });
         await expect(row, 'TC-530 ER-11: the grant is on the review list').toHaveCount(1);
-        await expect(row, 'TC-530 ER-11: as due for review').toContainText('Due for review');
+        await expect(row, 'TC-530 ER-11: as Analytics').toContainText('Analytics');
       });
 
-      await test.step('12. Click the Grants tab and click "Remove access" on the faculty member\'s row', async () => {
-        await page.getByRole('tab', { name: /^Grants/ }).click();
-        await grantRow.getByRole('button', { name: 'Remove access' }).click();
+      await test.step('12. Click the "Who has access" tab and click "Remove" on the faculty member\'s row', async () => {
+        await page.getByRole('tab', { name: /^Who has access/ }).click();
+        await grantRow.getByRole('button', { name: 'Remove', exact: true }).click();
         await expect(
           page.getByRole('region', { name: 'Remove access' }),
           'TC-530 ER-12: a "Remove access" box opens naming the grant',
@@ -2867,10 +3014,10 @@ test.describe('Admin: people and access', () => {
         await box.getByRole('textbox', { name: 'Reason' }).fill(revokeReason);
         await box.getByRole('button', { name: 'Remove access' }).click();
         await expect(
-          notice(page, `Revoked “Analytics” from ${faculty.name}.`),
-          'TC-530 ER-13: the grant is revoked',
+          notice(page, `Removed “Analytics” from ${faculty.name}.`),
+          'TC-530 ER-13: the access is removed',
         ).toBeVisible();
-        await expect(grantRow, 'TC-530 ER-13: it leaves the Grants list').toHaveCount(0);
+        await expect(grantRow, 'TC-530 ER-13: it leaves the list').toHaveCount(0);
       });
 
       await test.step("14. In the faculty member's browser, reload /admin/analytics", async () => {
@@ -2890,7 +3037,7 @@ test.describe('Admin: people and access', () => {
   test.describe('in India Standard Time', () => {
     test.use({ timezoneId: 'Asia/Kolkata' });
 
-    test("A grant's expiry reads back as the day that was typed @TC-531", async ({
+    test("A grant's end date reads back as the day that was typed @TC-531", async ({
       page,
       signIn,
     }) => {
@@ -2898,8 +3045,11 @@ test.describe('Admin: people and access', () => {
       const api = page.request;
       const ids = await seeded(api);
       const faculty = await createFaculty(api, ids.departmentId);
-      const panel = page.getByRole('complementary', { name: 'Grant a function' });
-      const grantRow = page.getByRole('row').filter({ hasText: faculty.name });
+      const form = page.getByRole('region', { name: 'Give access' });
+      const grantRow = page
+        .getByRole('region', { name: 'Analytics', exact: true })
+        .getByRole('row')
+        .filter({ hasText: faculty.name });
       const typed = isoDayFromToday(45);
       const [year, month, day] = typed.split('-').map(Number);
 
@@ -2908,30 +3058,24 @@ test.describe('Admin: people and access', () => {
           await page.goto('/admin/governance');
         });
 
-        await test.step('2. Under "Person", choose the new faculty member and click Add', async () => {
-          await panel
-            .getByRole('combobox', { name: 'Person' })
-            .selectOption({ label: `${faculty.name} — ${faculty.email}` });
-          await panel.getByRole('button', { name: 'Add', exact: true }).click();
+        await test.step('2. Under "Who", search for the new faculty member and tick them', async () => {
+          await form.getByRole('searchbox', { name: 'Search people' }).fill(faculty.email);
+          await form.getByRole('checkbox', { name: faculty.name }).check();
         });
 
-        await test.step('3. Under "Access", choose "Analytics"', async () => {
-          await panel.getByRole('combobox', { name: 'Access', exact: true }).selectOption({
-            label: 'Analytics',
-          });
+        await test.step('3. Under "What they can open", tick "Analytics"', async () => {
+          await form.getByRole('checkbox', { name: /^Analytics\b/ }).check();
         });
 
-        await test.step('4. Set "Expires" to a date 45 days ahead', async () => {
-          await panel.getByLabel('Expires').fill(typed);
+        await test.step('4. Set "Ends on" to a date 45 days ahead', async () => {
+          await form.getByLabel('Ends on (optional)').fill(typed);
         });
 
         await test.step('5. Type E2E: checking the expiry date into "Reason" and click "Give access"', async () => {
-          await panel
-            .getByRole('textbox', { name: 'Reason' })
-            .fill('E2E: checking the expiry date');
-          await panel.getByRole('button', { name: 'Give access' }).click();
+          await form.getByRole('textbox', { name: 'Reason' }).fill('E2E: checking the expiry date');
+          await form.getByRole('button', { name: 'Give access' }).click();
           await expect(
-            notice(page, 'Granted to 1 subject.'),
+            notice(page, `Gave “Analytics” to ${faculty.name}.`),
             'TC-531 (arrange): granted',
           ).toBeVisible();
           // The day typed, in the format the screen prints dates, in this
@@ -2946,8 +3090,8 @@ test.describe('Admin: people and access', () => {
             [year, month, day],
           );
           await expect(
-            grantRow.getByRole('cell').nth(5),
-            'TC-531 ER-1: Expires shows the day that was typed',
+            grantRow.getByRole('cell').nth(3),
+            'TC-531 ER-1: Ends shows the day that was typed',
           ).toHaveText(expected);
         });
       } finally {
@@ -2955,6 +3099,87 @@ test.describe('Admin: people and access', () => {
         await removeUser(api, faculty.userId);
       }
     });
+  });
+
+  test('Giving two kinds of access to two people at once, then removing one from both @TC-540', async ({
+    page,
+    signIn,
+  }) => {
+    await signIn('admin');
+    const api = page.request;
+    const ids = await seeded(api);
+    const first = await createFaculty(api, ids.departmentId);
+    const second = await createFaculty(api, ids.departmentId);
+    const form = page.getByRole('region', { name: 'Give access' });
+    const analytics = page.getByRole('region', { name: 'Analytics', exact: true });
+    const jobs = page.getByRole('region', { name: 'Jobs sheet', exact: true });
+    const rowOf = (section: Locator, name: string): Locator =>
+      section.getByRole('row').filter({ hasText: name });
+    const grantReason = 'E2E: placement drive coordinators this term';
+    const removeReason = 'E2E: the drive no longer needs the charts';
+
+    try {
+      await test.step('1. Open /admin/governance', async () => {
+        await page.goto('/admin/governance');
+      });
+
+      await test.step('2. Under "Who", search for "E2E Faculty" and tick both new faculty members', async () => {
+        await form.getByRole('searchbox', { name: 'Search people' }).fill('E2E Faculty');
+        await form.getByRole('checkbox', { name: first.name }).check();
+        await form.getByRole('checkbox', { name: second.name }).check();
+        await expect(form, 'TC-540 ER-1: two people are chosen').toContainText('2 chosen');
+      });
+
+      await test.step('3. Under "What they can open", tick "Analytics" and "Jobs sheet"', async () => {
+        await form.getByRole('checkbox', { name: /^Analytics\b/ }).check();
+        await form.getByRole('checkbox', { name: /^Jobs sheet\b/ }).check();
+        await expect(form, 'TC-540 ER-2: the summary counts both').toContainText(
+          '2 people will get 2 kinds of access for all students, with no end date.',
+        );
+      });
+
+      await test.step(`4. Type ${grantReason} into "Reason" and click "Give access"`, async () => {
+        await form.getByRole('textbox', { name: 'Reason' }).fill(grantReason);
+        await form.getByRole('button', { name: 'Give access' }).click();
+        await expect(
+          notice(page, 'Gave access: 4 grants.'),
+          'TC-540 ER-3: four grants in one go',
+        ).toBeVisible();
+        for (const person of [first, second]) {
+          await expect(rowOf(analytics, person.name), 'TC-540 ER-3: both under Analytics').toHaveCount(1);
+          await expect(rowOf(jobs, person.name), 'TC-540 ER-3: both under Jobs sheet').toHaveCount(1);
+        }
+      });
+
+      await test.step('5. Under "Analytics", tick both new faculty members and click "Remove Analytics from 2 people"', async () => {
+        for (const person of [first, second]) {
+          await analytics.getByRole('checkbox', { name: `Tick Analytics for ${person.name}` }).check();
+        }
+        await analytics.getByRole('button', { name: 'Remove Analytics from 2 people' }).click();
+        const box = page.getByRole('region', { name: 'Remove access' });
+        await expect(box, 'TC-540 ER-4: the box names the first').toContainText(first.name);
+        await expect(box, 'TC-540 ER-4: and the second').toContainText(second.name);
+      });
+
+      await test.step(`6. Type ${removeReason} into "Reason" and click "Remove 2 grants"`, async () => {
+        const box = page.getByRole('region', { name: 'Remove access' });
+        await box.getByRole('textbox', { name: 'Reason' }).fill(removeReason);
+        await box.getByRole('button', { name: 'Remove 2 grants' }).click();
+        await expect(
+          notice(page, 'Removed “Analytics” from 2 people.'),
+          'TC-540 ER-5: one request removed both',
+        ).toBeVisible();
+        for (const person of [first, second]) {
+          await expect(rowOf(analytics, person.name), 'TC-540 ER-5: gone from Analytics').toHaveCount(0);
+          await expect(rowOf(jobs, person.name), 'TC-540 ER-5: still under Jobs sheet').toHaveCount(1);
+        }
+      });
+    } finally {
+      for (const person of [first, second]) {
+        await revokeGrantsOf(api, person.userId);
+        await removeUser(api, person.userId);
+      }
+    }
   });
 
   // ==================================================== feature switches ==

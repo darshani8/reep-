@@ -83,6 +83,7 @@ operator's, and a CloudFormation deploy must not be able to overwrite them.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from aws_cdk import (
@@ -119,6 +120,8 @@ from aws_cdk import (
 )
 from constructs import Construct, IConstruct
 import jsii
+
+from . import drift_reader
 
 
 @jsii.implements(IAspect)
@@ -703,16 +706,37 @@ class CoreStack(Stack):
             nat_profile = iam.CfnInstanceProfile(
                 self, "NatInstanceProfile", roles=[nat_role.ref], instance_profile_name=f"{project}-nat-instance"
             )
-            # The AMI is resolved by CloudFormation from AWS's own public SSM
-            # parameter at deploy time, not looked up at synth: the synth guards
-            # run in CI with no credentials and must not need a region read.
-            # ARM64 for the same reason apiArm64 exists — a t4g is cheaper than
-            # the x86 equivalent for identical work.
-            nat_ami = ssm.StringParameter.value_for_typed_string_parameter_v2(
-                self,
-                "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64",
-                ssm.ParameterValueType.AWS_EC2_IMAGE_ID,
-            )
+            # THE AMI IS PINNED IN cdk.json (`natAmiId`), AND "LATEST" WAS THE
+            # BUG. It used to be resolved by CloudFormation from AWS's public
+            # `al2023-ami-kernel-default-arm64` SSM parameter at deploy time,
+            # and that parameter moves every time AWS ships an AL2023 image.
+            # ImageId is a replacement property, so every reep-core deploy,
+            # including one that changed nothing here, rebuilt the NAT box:
+            # the private subnets lost egress during the swap (a live
+            # interview's upstream stream with them), the user data that failed
+            # twice on 2026-10-03 ran again on an image nobody had tried it on,
+            # and the old box stayed running and billing because
+            # UpdateReplacePolicy is Retain. infra-drift.yml reported it as
+            # drift on every morning after AWS published an image (#118).
+            # Bump the pin deliberately, at night, after checking the new
+            # image boots this user data. ARM64 for the same reason apiArm64
+            # exists — a t4g is cheaper than the x86 equivalent for identical
+            # work. Without a pin (a fresh account) it still falls back to the
+            # parameter, so a first deploy needs no AMI lookup.
+            nat_ami_id: str = str(opt("natAmiId", "")).strip()
+            if nat_ami_id:
+                if not re.fullmatch(r"ami-[0-9a-f]{8,17}", nat_ami_id):
+                    raise ValueError(
+                        f"natAmiId must be an AMI id like ami-0123456789abcdef0, not {nat_ami_id!r}. "
+                        "It is the NAT instance's image, pinned so a deploy never replaces the box by surprise."
+                    )
+                nat_ami = nat_ami_id
+            else:
+                nat_ami = ssm.StringParameter.value_for_typed_string_parameter_v2(
+                    self,
+                    "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64",
+                    ssm.ParameterValueType.AWS_EC2_IMAGE_ID,
+                )
             # cloud-init runs user data on FIRST boot only, so the forwarding
             # rules are installed as a systemd unit rather than applied inline —
             # otherwise the first reboot silently turns this back into a plain
@@ -787,6 +811,16 @@ class CoreStack(Stack):
                 tags=[{"key": "Name", "value": f"{project}-nat"}],
             )
             nat_instance.add_dependency(igw_attach)
+            # RETAIN, EXCEPT WHEN THE CREATE ITSELF ROLLS BACK (#124). The role
+            # and the profile carry fixed names. On 2026-10-03 the first
+            # attempt failed, plain Retain kept all four of these, and the
+            # retry was refused at change-set validation because
+            # `reep-nat-instance` "already exists"; they had to be deleted by
+            # hand. RetainExceptOnCreate deletes what a failed create made and
+            # still forgets, never deletes, a box that was running. None of the
+            # four holds data.
+            for nat_resource in (nat_sg, nat_role, nat_profile, nat_instance):
+                nat_resource.apply_removal_policy(RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE)
         public_rt = ec2.CfnRouteTable(self, "PublicRouteTable", vpc_id=vpc.ref)
         ec2.CfnRoute(
             self, "PublicDefaultRoute", route_table_id=public_rt.ref, destination_cidr_block="0.0.0.0/0", gateway_id=igw.ref
@@ -2897,14 +2931,81 @@ class CoreStack(Stack):
                         # ReadOnlyAccess on a role every GitHub Actions run can
                         # assume. That is a far larger grant than the question
                         # it answers is worth, and it would break this role's
-                        # stated "no CloudFormation right" boundary. If that
-                        # check is wanted, it belongs to a SEPARATE role this
-                        # workflow assumes, not to the role that ships code.
+                        # stated "no CloudFormation right" boundary. That check
+                        # has its own role, `GithubDriftRole` below, not the
+                        # role that ships code.
                         iam.PolicyStatement(sid="ReadGrossSpend", actions=["ce:GetCostAndUsage"], resources=["*"]),
                     ]
                 )
             },
         )
+
+        # THE SEPARATE ROLE THE COMMENT ABOVE ASKS FOR (#117). infra-drift.yml
+        # assumes it for `detect-stack-drift` alone; `cdk diff` and the spend
+        # read stay on the deploy role. It can start a drift detection on
+        # reep-core and reep-voice-platform, read each resource's
+        # CONFIGURATION the way CloudFormation's read handler does, and nothing
+        # else: no write, no deploy, and an explicit Deny on every read that
+        # reaches a student's record instead of a resource's settings.
+        # reep_core/drift_reader.py carries the list and the reasoning.
+        #
+        # HARDEN ONLY: the import phase mirrors what Terraform handed over and
+        # this role was never part of that. Same OIDC trust as the deploy
+        # role, so only a workflow on `main` can assume it.
+        drift_role = None
+        if harden:
+            drift_stack_arns = [
+                f"arn:aws:cloudformation:{self.region}:{self.account}:stack/{project}-{suffix}/*"
+                for suffix in drift_reader.DRIFT_CHECKED_STACKS
+            ]
+            drift_role = iam.Role(
+                self,
+                "GithubDriftRole",
+                role_name=f"{project}-github-drift",
+                assumed_by=iam.FederatedPrincipal(
+                    oidc_arn,
+                    conditions={
+                        "StringEquals": {
+                            "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                            "token.actions.githubusercontent.com:sub": subjects,
+                        }
+                    },
+                    assume_role_action="sts:AssumeRoleWithWebIdentity",
+                ),
+                inline_policies={
+                    "detect-drift-read-only": iam.PolicyDocument(
+                        statements=[
+                            iam.PolicyStatement(
+                                sid="DetectDriftOnTheseStacks",
+                                actions=list(drift_reader.CLOUDFORMATION_STACK_ACTIONS),
+                                resources=drift_stack_arns,
+                            ),
+                            # Neither action accepts a resource ARN.
+                            iam.PolicyStatement(
+                                sid="ReadTheDetectionStatus",
+                                actions=list(drift_reader.CLOUDFORMATION_UNSCOPED_ACTIONS),
+                                resources=["*"],
+                            ),
+                            # Describe/Get/List only, and most of them accept
+                            # no resource ARN either.
+                            iam.PolicyStatement(
+                                sid="ReadResourceConfiguration",
+                                actions=drift_reader.read_actions(),
+                                resources=["*"],
+                            ),
+                            iam.PolicyStatement(
+                                sid="NeverReadTheData",
+                                effect=iam.Effect.DENY,
+                                actions=list(drift_reader.DATA_READS_DENIED),
+                                resources=["*"],
+                            ),
+                        ]
+                    )
+                },
+            )
+            # A fixed name and plain Retain is how #124 happened: a create that
+            # rolls back keeps the role, and the retry collides with it.
+            drift_role.apply_removal_policy(RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE)
 
         # ---------------------------------------------------------- outputs --
         CfnOutput(self, "Phase", value=self.phase)
@@ -2915,6 +3016,8 @@ class CoreStack(Stack):
         CfnOutput(self, "EcsCluster", value=cluster.cluster_name)
         CfnOutput(self, "DbEndpoint", value=db.attr_endpoint_address)
         CfnOutput(self, "GithubDeployRoleArn", value=deploy_role.role_arn)
+        if drift_role is not None:
+            CfnOutput(self, "GithubDriftRoleArn", value=drift_role.role_arn)
         CfnOutput(self, "BackupVaultArn", value=vault.attr_backup_vault_arn)
         if blue_green:
             assert colour_rule is not None and tg_green is not None

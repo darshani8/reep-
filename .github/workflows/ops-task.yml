@@ -101,6 +101,20 @@ jobs:
     name: Run on the API image
     runs-on: ubuntu-latest
     steps:
+      # A collaborator with write access can press "Run workflow" here, and the
+      # menu includes the three purges and grant-access ADMIN. Only the owner
+      # runs it. triggering_actor, not actor: a re-run is judged by whoever
+      # pressed Re-run. No bot is admitted: nothing dispatches this file.
+      - name: Only the repository owner may run an ops task
+        env:
+          ACTOR: ${{ github.triggering_actor }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          if [ "$ACTOR" != "$OWNER" ]; then
+            echo "::error::Only $OWNER may run an ops task. This run was started by $ACTOR. Nothing was changed."
+            exit 1
+          fi
+
       - name: Check the confirmation word
         run: |
           if [ "${{ inputs.confirm }}" != "run" ]; then

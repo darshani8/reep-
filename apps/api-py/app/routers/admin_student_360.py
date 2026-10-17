@@ -96,7 +96,7 @@ from ..models.redesign import AuditEvent
 from ..models.semester_history import StudentSemesterHistory
 from ..models.student_profile import StudentProfile
 from ..models.time_ledger import LedgerDayStatus, TimeLedgerDay
-from ..models.upload import Upload, UploadStatus
+from ..models.upload import Upload, UploadKind, UploadStatus
 from ..models.user import Mentor, Student, User
 from ..semester_bounds import course_for_cohort
 # B9.1's history, composed ONCE and read here through this module's own two
@@ -104,6 +104,7 @@ from ..semester_bounds import course_for_cohort
 from .admin_mentoring import MentorAssignmentOut, compose_mentor_history
 from .admin_students import AdminStudentOut, _one, _student_or_404
 from .mentor import _assert_can_access_student
+from .registration import APPLICATION_CV_TITLE
 from .student import compose_placement_readiness, PlacementReadinessOut
 
 router = APIRouter(prefix="/admin", tags=["admin-students"])
@@ -355,6 +356,9 @@ class Document360Out(BaseModel):
     review_note: str | None
     reviewed_at: datetime | None
     uploaded_at: datetime
+    #: True for the CV the student sent with their application, which approval
+    #: moved into their uploads. It is the resume the office reads first.
+    from_application: bool = False
 
 
 class Student360Out(BaseModel):
@@ -544,6 +548,7 @@ def _documents_panel(db: Session, student: Student) -> list[Document360Out]:
             review_note=u.review_note,
             reviewed_at=u.reviewed_at,
             uploaded_at=u.uploaded_at,
+            from_application=(u.kind == UploadKind.RESUME and u.title == APPLICATION_CV_TITLE),
         )
         for u in rows
     ]
@@ -793,10 +798,12 @@ def student_360(
     # department gets the same 403 they would get on an edit — the list being
     # narrowed is decoration if the detail behind it is not.
     require_capability(db, session, CAPABILITY, target=ancestry_of_student(db, student.id))
-    # Rule 2, separately and always. A MENTOR holding this capability still sees
-    # only their own group, and a MENTOR with no group sees nobody — never the
-    # whole programme. A capability can never relax the student filter.
-    _assert_can_access_student(session, student.id, db)
+    # Rule 2, separately and always. A MENTOR holding this capability sees
+    # their own group, and a MENTOR with no group sees nobody — never the whole
+    # programme. The one widening is the office's own: a SCOPED grant of this
+    # capability opens the students it names, read only (2026-10-15, the
+    # owner's decision; `policies.assert_student_scope` says how it is fenced).
+    _assert_can_access_student(session, student.id, db, allow_records_grant=True)
 
     history = db.scalars(
         select(StudentSemesterHistory)
@@ -825,9 +832,27 @@ def student_360(
         db.scalar(select(User.name).where(User.id == group.user_id)) if group else None
     )
 
+    # THE ACCESS TAB'S HALF OF THIS PAYLOAD IS THE MAIN ADMIN'S (2026-10-17).
+    # Recent sign-ins (with their addresses and browsers), the record's own
+    # history and the reasons the office wrote when it disabled or removed the
+    # account are drawn on that tab, which nobody else is shown. A faculty
+    # member reading on a grant still learns THAT the account is disabled,
+    # from the flag and the date; the why was written for the office.
+    office = session.get("role") == "ADMIN"
+    login = _login_panel(db, user)
+    if not office:
+        login = login.model_copy(
+            update={
+                "recent_sign_ins": [],
+                "disable_reason": None,
+                "disabled_by_name": None,
+                "delete_reason": None,
+            }
+        )
+
     return Student360Out(
         identity=_one(db, student.id),
-        login=_login_panel(db, user),
+        login=login,
         profile=_profile_panel(db, student),
         documents=_documents_panel(db, student),
         total_semesters=total_semesters,
@@ -854,6 +879,6 @@ def student_360(
             mentor_name=faculty_name,
         ),
         mentor_history=_mentor_history_panel(db, student),
-        recent_audit=_recent_audit(db, student, user),
+        recent_audit=_recent_audit(db, student, user) if office else [],
     )
 

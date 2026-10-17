@@ -1,4 +1,4 @@
-"""The four capabilities a faculty account holds by having mentees.
+"""The capabilities a faculty account holds by having mentees.
 
 B2.3 of docs/redesign-2026-09/04-backend-changes.md.
 
@@ -6,7 +6,7 @@ ROLE WAS DOING TWO JOBS. `ROLE_BASELINE["MENTOR"]` handed every faculty account
 every SCOPED capability in the catalogue, so "is this person a member of staff"
 and "may this person read a mentee's ledger" were one question with one answer.
 They are not one question. A faculty member who has never been assigned a student
-has no mentee log to read, nobody's evidence to verify and no leave to approve.
+has no mentee log to read and no notebook to keep.
 AGENTS.md says exactly that in words -- "a faculty account is not a mentor by
 existing" -- and every one of these endpoints already behaves that way, but the
 capability said otherwise, and the capability is what Governance shows the office
@@ -54,15 +54,39 @@ from sqlalchemy.orm import Session
 
 from .models.user import Mentor, Student, User
 
-#: The three a mentee brings. `mentor.agent` and `mentor.upskilling` are NOT here
+#: The two a mentee brings. `mentor.agent` and `mentor.upskilling` are NOT here
 #: and stay in the baseline: the assistant and one's own certificate shelf belong
 #: to the person, not to the group, and taking them away between assignments
 #: would be removing their own things. `mentor.leave_approve` WAS the fourth
 #: until 2026-09-16: leave approval is the Main Admin's alone now
 #: (routers/leave.py) and the key left the catalogue with the door.
-MENTOR_FUNCTIONS: Final[frozenset[str]] = frozenset(
-    {"mentor.mentees", "mentor.notebook", "mentor.verifications"}
-)
+#:
+#: `mentor.verifications` WAS THE THIRD UNTIL 2026-10-16 (the owner's decision:
+#: "remove skill verification from all mentors"). Verifying a student's skills
+#: and documents is now done only by the faculty the placement office chooses,
+#: through a grant in Who can do what; mentoring somebody brings none of it.
+#: app/verifiers.py is the one gate every verification door asks.
+MENTOR_FUNCTIONS: Final[frozenset[str]] = frozenset({"mentor.mentees", "mentor.notebook"})
+
+#: A MENTOR READS THEIR OWN MENTEES' FULL RECORDS (2026-10-16, the owner's
+#: report: "mentors' mentee records are not visible"). Until then the Student
+#: 360 page opened for a faculty member only beside a "View student records"
+#: grant from the office, so a mentor saw a student's name on the Mentee Log
+#: and nothing behind it -- no "Full record" link, no "Student records" row,
+#: and the route guard turned them away if they typed the address.
+#:
+#: Derived for the same reason the two above are: it is a fact about who
+#: they mentor, and five places set `students.mentor_id`. It reaches no one
+#: else. The key is PROGRAMME on the catalogue, but every read it gates runs
+#: rule 2 underneath (`_assert_can_access_student`), which admits a MENTOR to
+#: their own group only; a student outside it still needs the office's SCOPED
+#: grant, which this does not touch (`policies._holds_records_grant` reads
+#: grants, never functions). Every endpoint behind the key is a GET.
+MENTEE_RECORD_FUNCTIONS: Final[frozenset[str]] = frozenset({"admin.student_records"})
+
+#: Everything having a mentee brings, which is what `mentor_functions_for`
+#: answers.
+DERIVED_FROM_MENTEES: Final[frozenset[str]] = MENTOR_FUNCTIONS | MENTEE_RECORD_FUNCTIONS
 
 
 def mentee_count(db: Session, user_id: str) -> int:
@@ -88,7 +112,8 @@ def mentee_count(db: Session, user_id: str) -> int:
 
 
 def mentor_functions_for(db: Session, user_id: str) -> frozenset[str]:
-    """The three, if this account mentors anybody. Otherwise nothing."""
+    """The two, and the read of the mentees' records, if this account
+    mentors anybody. Otherwise nothing."""
     if not user_id:
         return frozenset()
-    return MENTOR_FUNCTIONS if mentee_count(db, user_id) > 0 else frozenset()
+    return DERIVED_FROM_MENTEES if mentee_count(db, user_id) > 0 else frozenset()

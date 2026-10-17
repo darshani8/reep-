@@ -16,10 +16,10 @@
  * tools/ci/check_theme_tokens.py fails if the two ever disagree.
  *
  * WHERE THIS MAY BE IMPORTED. Lazily-loaded routes only. AG Grid is a large
- * dependency and the initial bundle is held to 400 kB; every admin screen is
- * already a `loadComponent` route, so importing it from one costs nothing on
- * the login screen. Never import this from the shell, a guard or a service the
- * shell injects.
+ * dependency and the initial bundle is held to 610 kB, ~419 of it already the
+ * framework; every admin screen is already a `loadComponent` route, so
+ * importing it from one costs nothing on the login screen. Never import this
+ * from the shell, a guard or a service the shell injects.
  *
  * HOW A SCREEN USES IT, once its Phase 2 board is built:
  *

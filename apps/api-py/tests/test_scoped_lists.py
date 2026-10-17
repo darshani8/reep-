@@ -633,22 +633,22 @@ def test_the_analytics_tiles_count_only_the_reach(client, make_user, spine, scop
 
 
 @requires_db
-def test_a_faculty_verifier_keeps_their_evidence_queue(client, make_user, login, spine):
-    """A capability held as a FUNCTION is unscoped, and a queue that forgot it
-    empties for every faculty member on the deployment.
+def test_a_faculty_verifier_reads_their_grant_and_not_their_group(
+    client, make_user, login, spine, scoped_grant
+):
+    """The evidence queue is the GRANT's reach and nothing else (2026-10-16).
 
-    `mentor.verifications` is derived from currently mentoring somebody
-    (app/mentor_functions.py), so there is no grant row and `scope_filter`
-    reports `nothing`. The evidence queue composes the reach with the
-    mentor-group fence instead of replacing it. Delete this and the obvious
-    refactor — "narrow every list by the reach" — silently takes the queue away
-    from every mentor at once, and the failure is a queue that is EMPTY rather
-    than a request that is REFUSED, which is why this asserts on rows and not
-    on a status code.
+    Until this date `mentor.verifications` was derived from mentoring
+    somebody, and the queue composed the reach with the mentor-group fence; the
+    owner then took verification away from every mentor. So a faculty member
+    who mentors a student and holds no grant is REFUSED, and once granted the
+    other department they see that department -- and not their own mentee in
+    this one. Put the group back into `_evidence_query` and the second half of
+    this test fails: the mentee reappears in a queue the office never gave.
 
-    The LEAVE queue is no longer beside it: leave approval is the Main Admin's
-    alone since 2026-09-16, so a faculty member gets a 403 there whatever they
-    mentor — asserted here so the two queues cannot be "tidied" back together.
+    The LEAVE queue is asserted beside it as before: leave approval is the
+    Main Admin's alone since 2026-09-16, so a faculty member gets a 403 there
+    whatever they mentor.
 
     Signed in AFTER the group exists, because the session is a signed snapshot:
     `mentorId` is minted at login and rule 2 reads the claim, not the row.
@@ -658,20 +658,24 @@ def test_a_faculty_verifier_keeps_their_evidence_queue(client, make_user, login,
         group = Mentor(user_id=faculty.user_id)
         db.add(group)
         db.flush()
-        db.get(Student, spine["student_here"]).mentor_id = group.id
+        db.get(Student, spine["student_there"]).mentor_id = group.id
         db.commit()
     try:
         headers = login(faculty.email, TEST_PASSWORD)
         assert client.get("/api/leaves/pending", headers=headers).status_code == 403
+        # Mentoring brings no queue.
+        assert client.get("/api/mentor/badge-evidence/pending", headers=headers).status_code == 403
+
+        scoped_grant(faculty.user_id, "mentor.verifications", ScopeLevel.DEPARTMENT, spine["here"])
         evidence = client.get("/api/mentor/badge-evidence/pending", headers=headers)
         assert evidence.status_code == 200, evidence.text
-        assert spine["student_here"] in {row["student_id"] for row in evidence.json()}
-
-        # And the group fence is still the fence: the other department's mentee
-        # is not theirs to see, which is what makes the queue narrow at all.
-        assert spine["student_there"] not in {row["student_id"] for row in evidence.json()}
+        assert evidence.headers["X-Reep-Scope"] == "narrowed"
+        seen = {row["student_id"] for row in evidence.json()}
+        # BOTH halves, for the reason the next test gives.
+        assert spine["student_here"] in seen
+        assert spine["student_there"] not in seen, "the mentor's own group leaked into the queue"
     finally:
-        _undo([spine["student_here"]], [faculty.user_id])
+        _undo([spine["student_there"]], [faculty.user_id])
 
 
 @requires_db
@@ -684,8 +688,8 @@ def test_a_granted_verifier_reads_only_their_scope_of_the_evidence_queue(
     baseline precisely so that looking at a stuck student's evidence is an
     audited grant it makes to itself — and until B1.4 that grant read every
     pending claim on the deployment. This asserts the ADMIN branch narrows;
-    `test_a_faculty_verifier_keeps_their_evidence_queue` asserts the MENTOR
-    branch does not.
+    `test_a_faculty_verifier_reads_their_grant_and_not_their_group` asserts
+    the MENTOR branch narrows the same way.
     """
     admin = make_user(f"sl-ev-{spine['tag']}", Role.ADMIN)
     scoped_grant(admin.user_id, "mentor.verifications", ScopeLevel.DEPARTMENT, spine["here"])

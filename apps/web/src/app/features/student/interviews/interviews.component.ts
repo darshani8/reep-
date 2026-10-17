@@ -16,8 +16,8 @@
  * not a disclosure, it is a notice. This is where they read what was kept.
  *
  * LAZY, AND IT MUST STAY LAZY. Reached only through a `loadComponent` in
- * app.routes.ts. The initial bundle is ~142 kB against a budget set close enough
- * that one re-eager-ed route fails `ng build` in CI — a static `component:`
+ * app.routes.ts. `main` is ~142 kB and the initial budget is a backstop against
+ * a heavy route going eager, not a per-route lint — a static `component:`
  * reference here would pull this screen, the report card and everything they
  * import into the chunk a student downloads before the login form paints.
  */

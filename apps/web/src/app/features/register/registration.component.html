@@ -72,6 +72,8 @@
           <span class="icon" aria-hidden="true">upload_file</span>
           @if (cvFile(); as f) {
             <strong>{{ f.name }}</strong> · {{ (f.size / 1024) | number: '1.0-0' }} KB
+          } @else if (cvReading()) {
+            Opening the file…
           } @else {
             Attach your CV <span class="req">*</span>
           }
@@ -212,6 +214,8 @@
             <span class="icon" style="font-size:20px; margin-bottom:0" aria-hidden="true">photo_camera</span>
             @if (photoFile(); as f) {
               <strong>{{ f.name }}</strong> · {{ (f.size / 1024) | number: '1.0-0' }} KB
+            } @else if (photoReading()) {
+              Opening the file…
             } @else {
               Upload a headshot
             }
@@ -240,7 +244,7 @@
         }
 
         <div style="margin-top:20px; display:flex; gap:10px; align-items:center;">
-          <button type="submit" class="dt-btn primary" [disabled]="pending()">
+          <button type="submit" class="dt-btn primary" [disabled]="pending() || filesReading()">
             {{ pending() ? 'Submitting…' : 'Submit registration' }}
             <span class="icon" style="font-size:16px" aria-hidden="true">arrow_forward</span>
           </button>

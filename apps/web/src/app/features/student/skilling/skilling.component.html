@@ -13,15 +13,15 @@
   <div class="card claim-card">
     <h3 class="claim-title">Claim a skill with a certificate</h3>
     <p class="claim-lede">
-      Upload the certificate and pick the badge it proves. Your mentor verifies it before the badge
-      lights up.
+      Upload the certificate and pick the badge it proves. A faculty reviewer verifies it before the
+      badge lights up.
     </p>
 
     @if (claimSubmitted()) {
       <div class="claim-done">
         <p>
-          <b>Claim submitted.</b> Your mentor will review the certificate and verify the badge
-          within two working days.
+          <b>Claim submitted.</b> A faculty reviewer will check the certificate and verify the
+          badge.
         </p>
         <button type="button" class="btn-outline-good" (click)="claimAnother()">
           Claim another skill
@@ -81,8 +81,12 @@
           (drop)="onCertDrop($event)"
         >
           <span class="icon" aria-hidden="true">upload_file</span>
-          <span class="cert-drop-main">{{
-            certDragOver() ? 'Drop the certificate to attach it' : 'Click to upload or drop a file'
+          <span class="cert-drop-main" aria-live="polite">{{
+            readingFile()
+              ? 'Opening the file…'
+              : certDragOver()
+                ? 'Drop the certificate to attach it'
+                : 'Click to upload or drop a file'
           }}</span>
           <span class="cert-drop-sub">PDF or JPEG, up to 5 MB</span>
         </button>
@@ -150,7 +154,7 @@
       </label>
 
       <label class="claim-field">
-        <span class="field-label">Note for your mentor</span>
+        <span class="field-label">Note for the reviewer</span>
         <input
           [value]="claimNote()"
           (input)="claimNote.set($any($event.target).value)"
@@ -196,7 +200,7 @@
           <tr>
             <th>Badge</th>
             <th class="claims-status">Status</th>
-            <th>Note from your mentor</th>
+            <th>Note from the reviewer</th>
           </tr>
         </thead>
         <tbody>
@@ -224,10 +228,10 @@
     <div class="board-legend">
       <span class="legend-item"><span class="dot dot-open"></span>Not claimed</span>
       <span class="legend-item">
-        <span class="icon legend-wait" aria-hidden="true">schedule</span>Claim with your mentor
+        <span class="icon legend-wait" aria-hidden="true">schedule</span>Claim waiting for review
       </span>
       <span class="legend-item legend-item--lit">
-        <span class="icon legend-tick" aria-hidden="true">verified</span>Verified by your mentor
+        <span class="icon legend-tick" aria-hidden="true">verified</span>Verified by a reviewer
       </span>
       <span class="legend-hint">Tap badges to preview the earned state.</span>
     </div>
@@ -251,7 +255,7 @@
           </div>
           <div class="board-badges">
             @for (b of cat.badges; track b.code) {
-              <!-- THE BLUE TICK IS THE MENTOR'S, AND ONLY THEIRS. It is drawn on
+              <!-- THE BLUE TICK IS THE REVIEWER'S, AND ONLY THEIRS. It is drawn on
                    a badge held EARNED and on nothing else: a badge nobody has
                    claimed is unmarked, a claim in review wears a small clock,
                    and a tapped preview lights the hexagon without the tick —
@@ -286,7 +290,7 @@
                   } @else if (b.previewed) {
                     Preview
                   } @else if (b.pending) {
-                    <span class="icon" aria-hidden="true">schedule</span>With your mentor
+                    <span class="icon" aria-hidden="true">schedule</span>Waiting for review
                   } @else {
                     Not claimed
                   }
@@ -301,7 +305,7 @@
         <div>
           <b>{{ litCount() }}</b> skills currently illuminated
         </div>
-        <div class="board-foot-hint">Unmarked → claimed &amp; with your mentor → blue tick</div>
+        <div class="board-foot-hint">Unmarked → claimed &amp; waiting for review → blue tick</div>
       </div>
     }
   </div>

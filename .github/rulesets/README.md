@@ -26,22 +26,60 @@ and every gate the process documents in this repository stands behind that one
 open door. Read anything in `CONTRIBUTING.md` that speaks of `main` being
 protected as describing the state *after* this file is applied.
 
-## Three rulesets now, one per long-lived branch
+## Four rulesets: one per long-lived branch, and one for who merges
 
 `main.json`, `stage.json` and `dev.json` implement `docs/branching-strategy.md`.
 All three demand a PR, the five CI checks, no force push and no deletion.
 `main` and `stage` additionally require **Branch policy (promotion path)**
-(`.github/workflows/branch-policy.yml`) and allow **merge commits only**. Apply
-each the same way, substituting the file name; `stage` and `dev` must exist as
-branches first, or the ruleset applies to nothing. `tests/test_codebase_guards.py`
-§34 compares all three against `ci.yml`.
+(`.github/workflows/branch-policy.yml`) and allow **merge commits only**.
+`tests/test_codebase_guards.py` §34 compares all three against `ci.yml`. They
+have **no bypass**: they bind the owner exactly as they bind everybody else.
+
+`lead-review.json` (2026-10-15) is the fourth, and it exists because the
+repository gained a second collaborator with write access. It covers the same
+three branches and says two things:
+
+- **Only the repository admin merges.** Its `update` rule refuses every update
+  to `main`, `stage` and `dev` from anybody who cannot bypass it, and the one
+  bypass is the admin role in `pull_request` mode: a merge through a PR, never a
+  direct push. A collaborator opens PRs and pushes their own branches, and the
+  merge button stays shut for them even after an approval. The decision to
+  merge is the lead's (or Claude's, acting in the lead's own session, which
+  merges as the lead).
+- **Every PR asks the code owner.** One approval, from a code owner (the
+  catch-all in `.github/CODEOWNERS` is `@darshani8`), on the latest push. With
+  the `update` rule above this records the review rather than gating the merge,
+  and it is what makes GitHub request the owner's review on every collaborator
+  PR.
+
+It is a separate ruleset, and not more rules in the other three, because a
+bypass is per ruleset. Put in `main.json`, the admin bypass would also lift the
+five CI checks and the force-push ban for the admin. Kept apart, the admin
+skips only the approval and the merge restriction, and still cannot merge red
+CI or push directly. `tests/test_repo_access.py` pins that split.
+
+**Merging as the admin.** Your own PRs (and the PRs Claude opens in your
+sessions, which are authored by your account) cannot be approved by their
+author. GitHub shows **Merge without waiting for requirements to be met
+(bypass rules)** under the merge button; tick it. It bypasses
+`lead-review.json` only. If CI is red the button stays disabled, because
+`main.json` has no bypass. Merge these by hand rather than with auto-merge,
+which waits for the requirements to be met, and a requirement the author
+cannot meet is never met.
 
 ## Applying it
 
+All four, once, by the admin (`stage` and `dev` must exist as branches first,
+or a ruleset naming them applies to nothing):
+
 ```bash
-gh api -X POST repos/darshani8/reep-/rulesets \
-  --input .github/rulesets/main.json
+for f in main stage dev lead-review; do
+  gh api -X POST repos/darshani8/reep-/rulesets --input .github/rulesets/$f.json
+done
 ```
+
+Without `gh`, in the browser: **Settings → Rules → Rulesets → New ruleset →
+Import a ruleset**, and import each of the four files in turn.
 
 Then confirm it took, because a POST that returns 201 and a ruleset that
 actually gates are not the same claim:
@@ -71,7 +109,14 @@ classic form.
 
 ## Why the payload says what it says
 
-**`required_approving_review_count: 0`, and this is the honest number.**
+**`required_approving_review_count: 0` in the three branch rulesets.** The
+approval now lives in `lead-review.json` (above), where the admin can bypass
+it. In the branch rulesets, which nobody bypasses, `1` would still make the
+owner's own pull requests unmergeable, for the reason that follows. The
+paragraph below is the record of why this was zero when the repository had
+one collaborator.
+
+**Why it was zero, and still is in the branch rulesets.**
 `gh api repos/darshani8/reep-/collaborators` returns one account. GitHub does
 not allow an author to approve their own pull request, so `1` would make `main`
 unmergeable by anyone — not strict, *unmergeable*. A rule that literally cannot
@@ -137,7 +182,9 @@ from.
 Force-push is what turns "we can see what happened" into "we cannot", and it is
 the one action that makes an incident unreconstructable.
 
-**`bypass_actors: []`** — nobody, including the owner, including admins. That is
+**`bypass_actors: []`** in `main.json`, `stage.json` and `dev.json`. Only
+`lead-review.json` names a bypass, and only for its own two rules — nobody,
+including the owner, including admins, bypasses these. That is
 the strongest form and it has a real cost: when a required check breaks for a
 reason that is not the code (an Actions incident, the `pgvector/pgvector:pg17`
 service image failing to pull, a renamed job as above), `main` is unmergeable by

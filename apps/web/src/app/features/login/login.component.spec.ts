@@ -3,14 +3,21 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 
 import { AuthService } from '../../core/auth.service';
-import { codeErrorFor, LoginComponent, passwordErrorFor } from './login.component';
+import {
+  ACCOUNT_DISABLED_MESSAGE,
+  codeErrorFor,
+  LoginComponent,
+  passwordErrorFor,
+} from './login.component';
 
 /**
  * The sign-in card's own behaviour, without a server: the field messages
  * follow the fields, "Remember me" brings back the door it was ticked at, and
  * a 403 says the server's reason rather than one sentence for every 403.
  */
-const DISABLED = 'This account has been disabled. Contact the placement office.';
+/** The server's `DISABLED_SIGN_IN_MESSAGE` (app/routers/auth.py), word for word. */
+const DISABLED =
+  'Your account has been disabled for security reasons. Contact the placement office (Main Admin) to resolve the issue.';
 const DOOR_SHUT =
   'Password sign-in is switched off on this server, so this form cannot work. Use Continue with Google.';
 
@@ -31,12 +38,15 @@ function refusingAuth(status: number, detail?: string): Partial<AuthService> {
   };
 }
 
-async function create(auth: Partial<AuthService> = refusingAuth(401)): Promise<LoginComponent> {
+async function create(
+  auth: Partial<AuthService> = refusingAuth(401),
+  query: Record<string, string> = {},
+): Promise<LoginComponent> {
   await TestBed.configureTestingModule({
     imports: [LoginComponent],
     providers: [
       provideRouter([]),
-      { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap({}) } } },
+      { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(query) } } },
       { provide: AuthService, useValue: auth },
     ],
   }).compileComponents();
@@ -166,5 +176,36 @@ describe('Sign in · what a refused password sign-in says', () => {
     expect(passwordErrorFor(refused(401, 'Invalid email or password.'))).toBe(
       'That email and password did not match an account. Check both, or use Continue with Google.',
     );
+  });
+});
+
+describe('Sign in · a disabled account is told why', () => {
+  const realFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    globalThis.fetch = probeFetch;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  it('prints the server sentence word for word', () => {
+    expect(ACCOUNT_DISABLED_MESSAGE).toBe(DISABLED);
+  });
+
+  it('says it in the error box when a session was ended by a disable', async () => {
+    const c = await create(refusingAuth(401), { next: '/student', signedOut: 'disabled' });
+    expect(c.error()).toBe(DISABLED);
+  });
+
+  it('says it for a Google sign-in the office has disabled', async () => {
+    const c = await create(refusingAuth(401), { error: 'sso_disabled' });
+    expect(c.error()).toBe(DISABLED);
+  });
+
+  it('says nothing of the kind after an ordinary sign-out', async () => {
+    const c = await create(refusingAuth(401), { next: '/student', signedOut: 'elsewhere' });
+    expect(c.error()).toBeNull();
   });
 });

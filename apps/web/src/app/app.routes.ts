@@ -257,10 +257,12 @@ export const routes: Routes = [
           ),
       },
       // The skill-claim review queue: the ONLY route by which a skill becomes
-      // verified, and mentor-scoped on the server as well as here.
+      // verified. Since 2026-10-16 it is reached through a grant of "Verify
+      // skills & evidence" and never by mentoring, so the guard reads the
+      // capability as the sidebar row does; the API refuses either way.
       {
         path: 'mentor/verifications',
-        canActivate: [roleGuard('MENTOR', 'ADMIN')],
+        canActivate: [roleGuard('MENTOR', 'ADMIN'), capabilityGuard('mentor.verifications')],
         loadComponent: () =>
           import('./features/mentor/verifications/verifications.component').then(
             (m) => m.MentorVerificationsComponent,
@@ -425,6 +427,17 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/admin/students/students.component').then(
             (m) => m.AdminStudentsComponent,
+          ),
+      },
+      // The students a holder of `admin.student_records` may open (2026-10-15):
+      // a faculty member given access has no roster, so this is how they find
+      // the students the grant covers.
+      {
+        path: 'admin/student-records',
+        canActivate: [capabilityGuard('admin.student_records')],
+        loadComponent: () =>
+          import('./features/admin/student-records/student-records.component').then(
+            (m) => m.StudentRecordsComponent,
           ),
       },
       // Student 360 (§6): one student across every semester. AFTER the roster

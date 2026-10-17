@@ -77,8 +77,9 @@
         Main Admin — open the REEP Admin Console
       </button>
 
-      <!-- A refusal handed back on the Google callback redirect. Text + icon +
-           colour together, never colour alone. -->
+      <!-- A refusal handed back on the Google callback redirect, or a session
+           ended because the account was disabled. Text + icon + colour
+           together, never colour alone. -->
       @if (error()) {
         <div class="alert alert--error" role="alert">
           <span class="icon" aria-hidden="true">error</span>

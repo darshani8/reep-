@@ -310,15 +310,28 @@ export class AdminMentorsStudentsComponent {
    * in the same change on purpose: the endpoint was breaking, the live client
    * posted `{mentor_id}` and nothing else, and shipping either half alone is an
    * assign button that fails on a working console.
-   *
-   * IT GUARDS THE RELEASE BUTTON AS WELL AS THE ASSIGN BUTTON. Releasing a
-   * student is the move nothing else on any screen reports — the student simply
-   * stops appearing in a group — so it is the one that most needs a sentence
-   * saying why.
    */
   readonly assignReason = signal('');
 
   readonly hasReason = computed(() => this.assignReason().trim().length > 0);
+
+  /**
+   * THE RELEASE ASKS FOR ITS OWN REASON, ON THE MENTEE'S OWN ROW. The server
+   * requires one on a release as much as on an assignment — a release is the
+   * move nothing else on any screen reports — but the release used to read it
+   * out of the ASSIGN card's "Why this seating" box, in the other column. That
+   * box is emptied by every successful assignment, so the student the admin had
+   * just seated could not be released: the icon sent nothing, and the only
+   * answer was a notice at the top of the page asking them to "press Release
+   * again" with a button no label called Release. The remove icon now opens a
+   * box on that row, and its Release button is disabled until it holds a reason.
+   */
+  readonly releasingStudentId = signal<string | null>(null);
+  readonly releaseReason = signal('');
+  /** A refused release, said beside the box the admin is looking at. */
+  readonly releaseError = signal<string | null>(null);
+
+  readonly canRelease = computed(() => this.releaseReason().trim().length > 0 && !this.busy());
 
   /**
    * THE HISTORY CARD, PER STUDENT. B9.1 records every assignment, release and
@@ -504,6 +517,7 @@ export class AdminMentorsStudentsComponent {
   selectMentor(userId: string): void {
     this.selectedMentorUserId.set(userId);
     this.flash.set(null);
+    this.cancelRelease();
   }
 
   isSelectedMentor(mentor: MentorLoad): boolean {
@@ -700,21 +714,61 @@ export class AdminMentorsStudentsComponent {
     const mentor = this.selectedMentor();
     const studentIds = this.selectedStudentIds();
     if (mentor === null || studentIds.length === 0) return;
-    const seated = plural(studentIds.length, 'student');
-    await this.writeMentor(studentIds, mentor, `${seated} assigned to ${mentor.name}`);
+    const failure = await this.writeMentor(studentIds, mentor, this.assignReason().trim());
+    if (failure === null) {
+      this.flash.set(`${plural(studentIds.length, 'student')} assigned to ${mentor.name}`);
+      // Cleared only on success. After a failure the words stay in the box, or
+      // the retry costs the admin the sentence they just typed.
+      this.assignReason.set('');
+    } else if (!this.loadFailed()) {
+      // refresh() clears the error it does not raise; the write's reason is the
+      // more specific one, unless the reload failed too and is already saying so.
+      this.error.set(failure);
+    }
   }
 
-  /** Release one student back to the pool. Needs the same reason an assignment
-   *  does — see `assignReason`. */
+  /** The remove icon on a mentee row: open the release box on that row. */
+  startRelease(student: Mentee): void {
+    this.releasingStudentId.set(student.student_id);
+    this.releaseReason.set('');
+    this.releaseError.set(null);
+    this.flash.set(null);
+  }
+
+  cancelRelease(): void {
+    this.releasingStudentId.set(null);
+    this.releaseReason.set('');
+    this.releaseError.set(null);
+  }
+
+  isReleasing(student: Mentee): boolean {
+    return this.releasingStudentId() === student.student_id;
+  }
+
+  /** Release one student back to the pool, with the reason typed on their row. */
   async releaseStudent(student: Mentee): Promise<void> {
-    if (!this.hasReason()) {
-      this.flash.set(null);
-      this.error.set('Say why this student is being released, then press Release again.');
-      return;
-    }
+    const reason = this.releaseReason().trim();
+    if (reason.length === 0 || this.busy()) return;
     const mentor = this.selectedMentor();
     const from = mentor === null ? 'their mentor' : mentor.name;
-    await this.writeMentor([student.student_id], null, `${student.name} released from ${from}`);
+    this.releaseError.set(null);
+    const failure = await this.writeMentor([student.student_id], null, reason);
+    if (failure === null) {
+      this.cancelRelease();
+      this.flash.set(`${student.name} released from ${from}`);
+      return;
+    }
+    if (this.loadFailed()) return;
+    // Said on the row while the row is still drawn, so the admin reads it where
+    // they pressed; a row the reload removed has nowhere to say it but the top.
+    const stillListed =
+      this.selectedMentor()?.mentees.some((one) => one.student_id === student.student_id) ?? false;
+    if (stillListed) {
+      this.releaseError.set(failure);
+    } else {
+      this.cancelRelease();
+      this.error.set(failure);
+    }
   }
 
   toggleBatchBar(): void {
@@ -784,13 +838,16 @@ export class AdminMentorsStudentsComponent {
 
   /** Null target releases. A target with no group yet is sent by USER id: the
    *  API creates the group on that first assignment, which is how a faculty
-   *  account becomes a mentor — by this act, not by a flag at creation. */
+   *  account becomes a mentor — by this act, not by a flag at creation.
+   *  Answers the refusal in words, or null when every request went through;
+   *  the caller says which, because the assign card and a mentee row say it in
+   *  different places. */
   private async writeMentor(
     studentIds: string[],
     target: MentorLoad | null,
-    message: string,
-  ): Promise<void> {
-    const body = this.assignmentBody(target);
+    reason: string,
+  ): Promise<string | null> {
+    const body = this.assignmentBody(target, reason);
     this.busy.set(true);
     this.error.set(null);
     // A stale "3 students assigned to …" sitting under a red failure notice is
@@ -820,24 +877,14 @@ export class AdminMentorsStudentsComponent {
     this.liveGrid?.deselectAll();
     this.selectedStudentIds.set([]);
     await this.refresh();
-    if (failure === null) {
-      this.flash.set(message);
-      // Cleared only on success. After a failure the words stay in the box, or
-      // the retry costs the admin the sentence they just typed.
-      this.assignReason.set('');
-    } else if (!this.loadFailed()) {
-      // refresh() clears the error it does not raise; the write's reason is the
-      // more specific one, unless the reload failed too and is already saying so.
-      this.error.set(failure);
-    }
     this.busy.set(false);
+    return failure;
   }
 
-  private assignmentBody(target: MentorLoad | null): Record<string, string | null> {
+  private assignmentBody(target: MentorLoad | null, reason: string): Record<string, string | null> {
     // `reason` on every body, release included: the server requires it on all
     // three shapes, which is the point — a release is the move that leaves no
     // other trace.
-    const reason = this.assignReason().trim();
     if (target === null) return { mentor_id: null, reason };
     if (target.mentor_id !== null) return { mentor_id: target.mentor_id, reason };
     return { mentor_user_id: target.user_id, reason };

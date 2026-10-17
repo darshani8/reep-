@@ -415,7 +415,7 @@ async function withdrawPendingClaims(
  *  name is the badge's name and then its state, e.g. "Strategic Thinking Not claimed". */
 const badgeTile = (page: Page, name: string) =>
   page.getByRole('button', {
-    name: new RegExp(`^${escapeRe(name)} (Verified|With your mentor|Not claimed|Preview)$`),
+    name: new RegExp(`^${escapeRe(name)} (Verified|Waiting for review|Not claimed|Preview)$`),
   });
 const illuminated = (page: Page) => page.locator('.board-foot > div').first();
 const uploadBox = (page: Page) =>
@@ -892,8 +892,8 @@ test.describe('Student: home and progress', () => {
       }
       await expect(
         badgeTile(page, 'Business Analytics Fundamentals'),
-        'TC-210 ER-2: the seeded claim reads "With your mentor"',
-      ).toHaveAccessibleName('Business Analytics Fundamentals With your mentor');
+        'TC-210 ER-2: the seeded claim reads "Waiting for review"',
+      ).toHaveAccessibleName('Business Analytics Fundamentals Waiting for review');
       await expect(
         badgeTile(page, 'Strategic Thinking'),
         'TC-210 ER-2: an unclaimed badge reads "Not claimed"',
@@ -903,7 +903,7 @@ test.describe('Student: home and progress', () => {
       );
       await expect(
         page.getByRole('row', {
-          name: 'Business Analytics Fundamentals With your mentor —',
+          name: 'Business Analytics Fundamentals Waiting for review —',
           exact: true,
         }),
         'TC-210 ER-4: the claim waiting for the mentor',
@@ -1031,7 +1031,7 @@ test.describe('Student: home and progress', () => {
     });
   });
 
-  test('Filing a claim with a certificate sends the badge to the mentor @TC-213', async ({
+  test('Filing a claim with a certificate sends the badge for review @TC-213', async ({
     page,
     signIn,
     playwright,
@@ -1041,7 +1041,7 @@ test.describe('Student: home and progress', () => {
     const issuer = `E2E Institute ${RUN}`;
     const note = `E2E claim ${RUN}`;
     // A claim left behind by an interrupted run would make the badge read
-    // "With your mentor" before this one starts.
+    // "Waiting for review" before this one starts.
     await withdrawPendingClaims(page, playwright, baseURL, 'Design Thinking');
 
     try {
@@ -1075,9 +1075,9 @@ test.describe('Student: home and progress', () => {
         await expect(submitClaim(page), 'TC-213 ER-2: Submit claim is enabled').toBeEnabled();
       });
 
-      await test.step('5. Enter the test data in "Issued by" and "Note for your mentor"', async () => {
+      await test.step('5. Enter the test data in "Issued by" and "Note for the reviewer"', async () => {
         await page.getByRole('textbox', { name: 'Issued by' }).fill(issuer);
-        await page.getByRole('textbox', { name: 'Note for your mentor' }).fill(note);
+        await page.getByRole('textbox', { name: 'Note for the reviewer' }).fill(note);
       });
 
       await test.step('6. Click Submit claim', async () => {
@@ -1086,7 +1086,7 @@ test.describe('Student: home and progress', () => {
           page.locator('.claim-done p'),
           'TC-213 ER-3: the claim is confirmed',
         ).toHaveText(
-          'Claim submitted. Your mentor will review the certificate and verify the badge within two working days.',
+          'Claim submitted. A faculty reviewer will check the certificate and verify the badge.',
         );
         await expect(
           page.getByRole('button', { name: 'Claim another skill' }),
@@ -1095,9 +1095,9 @@ test.describe('Student: home and progress', () => {
         await expect(
           badgeTile(page, 'Design Thinking'),
           'TC-213 ER-4: the badge is with the mentor',
-        ).toHaveAccessibleName('Design Thinking With your mentor');
+        ).toHaveAccessibleName('Design Thinking Waiting for review');
         await expect(
-          page.getByRole('row', { name: 'Design Thinking With your mentor —', exact: true }),
+          page.getByRole('row', { name: 'Design Thinking Waiting for review —', exact: true }),
           'TC-213 ER-4: the claim is listed as in progress',
         ).toBeVisible();
       });

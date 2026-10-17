@@ -102,7 +102,7 @@ def test_the_baseline_takes_nothing_away_from_a_mentor() -> None:
     mentor_caps = ROLE_BASELINE["MENTOR"]
     # B2.3: THE BASELINE IS WHAT BELONGS TO THE PERSON, NOT THE GROUP. It was
     # every SCOPED key, which made "is this person staff" and "may this person
-    # read a mentee's ledger" one question with one answer. The four that belong
+    # read a mentee's ledger" one question with one answer. The ones that belong
     # to a group are derived from the mentee count now
     # (app/mentor_functions.py), and the ten student.* keys gate nothing.
     assert mentor_caps == {"mentor.agent", "mentor.upskilling"}
@@ -134,13 +134,21 @@ def test_the_baseline_takes_nothing_away_from_a_mentor() -> None:
     assert _FACULTY_ONLY and not (admin_caps & _FACULTY_ONLY), (
         "the Main Admin picked up a faculty instrument by baseline; a grant is the way in"
     )
-    # A FACULTY MEMBER STILL HOLDS ALL FOUR — three of them by mentoring somebody
-    # rather than by being staff (B2.3). The original assertion was
-    # `_FACULTY_ONLY <= mentor_caps` and it protected a real thing: a faculty
-    # instrument nobody on the faculty can reach is a broken screen. That is
-    # still the property; what moved is where three of the four come from.
-    assert _FACULTY_ONLY <= (mentor_caps | MENTOR_FUNCTIONS), (
+    # A FACULTY MEMBER CAN STILL HOLD ALL FOUR — two by being staff, two by
+    # mentoring somebody (B2.3), and one ONLY as a grant: skill verification
+    # left the mentoring functions on 2026-10-16 (the owner's decision), so the
+    # office chooses who verifies, in Who can do what. The original assertion
+    # was `_FACULTY_ONLY <= mentor_caps` and it protected a real thing: a
+    # faculty instrument nobody on the faculty can reach is a broken screen.
+    # A grant-only instrument is reachable -- by the grant -- and it is named
+    # here so that a SECOND one is a decision somebody writes down, not a
+    # function that quietly fell out of the derived set.
+    GRANT_ONLY = {"mentor.verifications"}
+    assert _FACULTY_ONLY - GRANT_ONLY <= (mentor_caps | MENTOR_FUNCTIONS), (
         "a faculty instrument no faculty member can hold, by baseline or by mentees"
+    )
+    assert GRANT_ONLY.isdisjoint(mentor_caps | MENTOR_FUNCTIONS), (
+        "skill verification came back with mentoring; the office chooses who verifies"
     )
     assert MENTOR_FUNCTIONS.isdisjoint(mentor_caps), (
         "a function is in the baseline as well, so it is held without any mentees"

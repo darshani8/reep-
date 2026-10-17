@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 import time
 import uuid
+from datetime import datetime, timezone
 
 import jwt
 import pytest
@@ -275,6 +276,37 @@ def test_a_verified_google_account_not_on_the_roster_gets_no_session(client, goo
     assert r.status_code == 302
     assert r.headers["location"].endswith("/login?error=sso_not_enrolled")
     assert not r.cookies.get(SESSION_COOKIE), "a stranger was given a session"
+
+
+@pytest.mark.parametrize(
+    ("column", "expected"),
+    [
+        # The office disabled them: the login screen says so, and who to ask.
+        ("disabled_at", "sso_disabled"),
+        # The office removed them from the roster: no security sentence for that.
+        ("deleted_at", "sso_not_enrolled"),
+    ],
+)
+@requires_db
+def test_a_barred_roster_row_gets_no_session_and_the_right_code(
+    client, google, roster_user, column, expected
+):
+    email = f"sso-barred-{uuid.uuid4().hex[:8]}@bgscet.ac.in"
+    uid = roster_user(email)
+    with SessionLocal() as db:
+        setattr(db.get(User, uid), column, datetime.now(timezone.utc))
+        db.commit()
+    state, nonce, cookie = _start(client)
+    tok = google(email=email, nonce=nonce)
+    google_auth.exchange_code = lambda code: tok  # noqa: E731
+    try:
+        r = _callback(client, cookie, code="good-code", state=state)
+    finally:
+        del google_auth.exchange_code
+
+    assert r.status_code == 302
+    assert r.headers["location"].endswith(f"/login?error={expected}"), r.headers["location"]
+    assert not r.cookies.get(SESSION_COOKIE), "a barred account was given a session"
 
 
 # -------------------------------------------------- 3. failures redirect, not 500

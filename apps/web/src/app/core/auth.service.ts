@@ -90,6 +90,14 @@ export class AuthService {
    */
   readonly retiredElsewhere = signal(false);
 
+  /**
+   * True when the last `refresh()` failed because the Main Admin DISABLED this
+   * account (`X-Reep-Session: disabled`, app/security.py::session_was_disabled).
+   * The guard sends them to a login screen that says so, rather than to a form
+   * that will refuse them again with no word of why.
+   */
+  readonly accountDisabled = signal(false);
+
   /// Reads the current session from the cookie, or null. Used by the guard on
   /// first load and after a hard refresh. FastAPI exposes this as /auth/me.
   async refresh(): Promise<SessionPayload | null> {
@@ -101,15 +109,16 @@ export class AuthService {
       );
       this._session.set(session);
       this.retiredElsewhere.set(false);
+      this.accountDisabled.set(false);
       return session;
     } catch (err) {
       this._session.set(null);
       // A 401 means the phone app's saved token is dead (expired, or retired
       // by a sign-in elsewhere): forget it so the next launch asks to sign in.
       if (err instanceof HttpErrorResponse && err.status === 401) nativeSessionHook.onToken?.(null);
-      this.retiredElsewhere.set(
-        err instanceof HttpErrorResponse && err.headers.get('X-Reep-Session') === 'retired',
-      );
+      const why = err instanceof HttpErrorResponse ? err.headers.get('X-Reep-Session') : null;
+      this.retiredElsewhere.set(why === 'retired');
+      this.accountDisabled.set(why === 'disabled');
       return null;
     }
   }

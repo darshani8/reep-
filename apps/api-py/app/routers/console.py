@@ -1164,6 +1164,13 @@ def student_weekly(
     """
     require_capability(db, session, "admin.analytics")
     _assert_can_access_student(session, student_id, db)
+    return compose_student_weekly(db, student_id)
+
+
+def compose_student_weekly(db: Session, student_id: str) -> StudentWeeklyOut:
+    """Six ISO weeks of one student's attendance and ledger hours. Shared with
+    the office's Student 360 read (`routers/admin_student_record.py`); the
+    caller has already run both fences."""
     row = db.execute(
         select(Student, User.name)
         .join(User, Student.user_id == User.id)

@@ -310,10 +310,70 @@
             <dt>Department</dt>
             <dd>{{ reviewed.application.department_name ?? 'Not named' }}</dd>
           </div>
-          <div>
-            <dt>USN</dt>
-            <dd>{{ reviewed.usn ?? 'Not on record' }}</dd>
-          </div>
+          <!-- THE ONE FACT THE REVIEWER CAN CHANGE (2026-10-16). A USN another
+               student holds makes Approve refuse, and the checklist sends the
+               reviewer here to correct it; before this box there was nothing
+               to press but Reject. `PATCH /register/{id}` answers the row with
+               its checklist recomputed. While open it takes the whole row: an
+               input and two buttons do not fit in half of this panel. -->
+          @if (usnEditingId() === reviewed.registrationId) {
+            <div class="usn-fact--editing">
+              <dt><label for="usn-correction">USN</label></dt>
+              <dd>
+                <div class="field">
+                  <div class="usn-edit">
+                    <input
+                      id="usn-correction"
+                      class="ctrl"
+                      type="text"
+                      maxlength="32"
+                      autocomplete="off"
+                      spellcheck="false"
+                      [value]="usnDraft()"
+                      [disabled]="usnSaving()"
+                      [attr.aria-invalid]="usnError() ? 'true' : null"
+                      [attr.aria-describedby]="usnError() ? 'usn-correction-error' : null"
+                      (input)="onUsnInput($event)"
+                      (keydown.enter)="saveUsnCorrection(reviewed.application)"
+                      (keydown.escape)="cancelUsnCorrection()"
+                    />
+                    <button
+                      type="button"
+                      class="btn sm"
+                      [disabled]="usnSaving()"
+                      (click)="saveUsnCorrection(reviewed.application)"
+                    >
+                      {{ usnSaving() ? 'Saving…' : 'Save' }}
+                    </button>
+                    <button type="button" class="btn ghost sm" [disabled]="usnSaving()" (click)="cancelUsnCorrection()">
+                      Cancel
+                    </button>
+                  </div>
+                  @if (usnError(); as message) {
+                    <span class="err" id="usn-correction-error" role="alert">
+                      <span class="icon" aria-hidden="true">error</span>{{ message }}
+                    </span>
+                  }
+                </div>
+              </dd>
+            </div>
+          } @else {
+            <div>
+              <dt>USN</dt>
+              <dd>
+                {{ reviewed.usn ?? 'Not on record' }}
+                @if (canDecide()) {
+                  <button
+                    type="button"
+                    class="btn ghost sm usn-correct"
+                    (click)="startUsnCorrection(reviewed.application)"
+                  >
+                    <span class="icon" aria-hidden="true">edit</span> Correct USN
+                  </button>
+                }
+              </dd>
+            </div>
+          }
           <div>
             <dt>Phone</dt>
             <dd>{{ reviewed.application.phone ?? 'Not on record' }}</dd>
@@ -413,6 +473,9 @@
                 <div>
                   <div class="check-headline">{{ check.headline }}</div>
                   <div class="check-detail">{{ check.detail }}</div>
+                  @if (check.recordLink) {
+                    <a class="check-link" [routerLink]="check.recordLink">Open their record</a>
+                  }
                 </div>
               </div>
             }

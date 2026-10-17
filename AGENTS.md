@@ -16,7 +16,7 @@ Four kinds of account. The on-screen name and the stored role differ for two of 
 |---|---|---|---|
 | **Student** | `STUDENT` | `/student/*`, `app/routers/student.py`, a `students` row, the session's `studentId` | A current student. The roster is the access control: an address with no `users` row cannot sign in. |
 | **Faculty** | `MENTOR` | `/mentor/*`, `app/routers/mentor.py`, `require_mentor`, the console's `/admin/faculty` (`features/admin/faculty/`) | A faculty account. It is **not a mentor by existing** — it has no `mentors` row and sees nobody until the Main Admin assigns it a student. |
-| a student's **mentor** | `MENTOR` **plus a `mentors` row** | `students.mentor_id` → `mentors.id`, the session's `mentorId`, `app/mentor_functions.py` | The faculty member assigned to that student. "Your mentor" on the student's screens; the `Mentor` group row is what rule 2 scopes on, and the three `mentor.*` functions are derived from having a mentee. |
+| a student's **mentor** | `MENTOR` **plus a `mentors` row** | `students.mentor_id` → `mentors.id`, the session's `mentorId`, `app/mentor_functions.py` | The faculty member assigned to that student. "Your mentor" on the student's screens; the `Mentor` group row is what rule 2 scopes on, and the two `mentor.*` functions (the Mentee Log and the notebook) and `admin.student_records` (their mentees' full records) are derived from having a mentee. Verifying a student's skills is NOT: it is a grant the Main Admin makes (`app/verifiers.py`). |
 | **Alumni** | `ALUMNI` | `/alumni/*`, `app/routers/alumni.py` | A graduate: no `students` row, no `mentors` row, no staff scope. |
 | **Main Admin** — the placement office | `ADMIN` | `/admin/*`, `app/routers/console.py` and `admin_*.py`, `require_admin`, `features/admin/`, the login's dashed "Main Admin" door | **One account per deployment.** "Placement office", "placement cell" and "TPO" on the screens all mean this account, and its SWOC lines are stamped `SwocSource.PLACEMENT`, the placement cell's viewpoint; it is the one role Governance admits, and faculty reach a console screen only as a grant it makes. |
 
@@ -77,6 +77,10 @@ Seeded logins: `student@bgscet.ac.in` / `student123`, `mentor@bgscet.ac.in` / `m
 **THE END-TO-END SUITE IS AT THE ROOT, COVERS THE WHOLE APP, AND EVERY TEST IN IT IS A MANUAL CASE'S TWIN (2026-09-22).** `npm ci && npm run test:e2e` from the repository root runs Playwright (`playwright.config.ts`, `tests/*.spec.ts`) against the RUNNING app: the SPA on 4200 in front of the API on 3300, `ENV=dev`, dev seed applied, nothing mocked. Install the browser once with `npx playwright install chromium`. The suite lives at the root and not in `apps/web` because the Angular unit-test builder collects every `**/*.spec.ts` under its project root, so a Playwright spec there would be run by vitest. **Eight modules, one case file and one spec each.** `test-management/manual-test-cases.md` is the index (the modules with their ID ranges and screens, setup, the seeded accounts, what each CSV status means), and the cases are in `test-management/cases/0N-*.md`. The specs are `tests/auth-sync.spec.ts` (module 01, the name the suite started with) and `tests/0N-*.spec.ts`. **The numbers are the run order, and one of them is load-bearing:** module 08 gives the seeded student a mock-interview record and a consent, which module 04's "before any interview" cases need to be absent, so 04 must run first. **Each test is linked to one case by the `@TC-NNN` tag in its title.** Its `test.step()` titles are that case's numbered steps, and every assertion message names the expected result it checks (`TC-001 ER-4: ...`). `tests/reporters/manual-csv-reporter.ts` reads every case file and writes `manual-test-results.csv` with a row for every case. It **fails the run when the two drift**: an untagged test, a tag naming no case, a step list or step number that differs, an ID in two files, a case marked not automated that a test automates, or, on an unfiltered run, a case whose field names a tag no test carries. The problem is also written into that case's "Sync Problems" cell, so a drifted case never reads as a clean Passed. `npx playwright test --list` runs the tag checks without the app and leaves the CSV alone. **That reporter is a local file because `playwright-csv-reporter` does not exist on npm** (a 404 on 2026-09-22). Do not install whatever is published under that name later: a reporter runs in-process on every run. **Every spec imports `test` and `expect` from `tests/support/reep.ts`, never from `@playwright/test`,** because that `test` carries the auto fixture that checks the environment before each test and the `signIn(account)` fixture (the API sets the session cookie in the page's own context, so only the cases about the login screen type into it). **BLOCKED, SKIPPED AND KNOWN FAILURE ARE THREE DIFFERENT ANSWERS, AND WHICH ONE A TEST GIVES IS A DECISION.** Blocked is a broken environment (API down, database down, seed missing, account locked out): the test fails with the reason, so a run against a stopped API is red rather than a green row of skips. Skipped is the absence of something the environment is allowed not to have: an optional feature switched off (Google sign-in, TC-034 and TC-039) or test data earlier runs used up for good (a submitted ledger day cannot be reopened, an interview record cannot be deleted); the reason is in the CSV's Error column and a fresh database runs them all. Known failure is a `test.fail(true, 'BUG: ...')` that asserts the CORRECT behaviour of a product bug the suite found, so the test starts passing, and must be unmarked, the day the bug is fixed. **One worker, and never beside pytest:** the cases sign in as the seeded accounts, and REEP keeps one live session per account, so a second worker, or pytest's `login` fixture, would sign the suite out mid-test; for the same reason a run signs out any browser a developer has signed in as a seeded account. Cases that need more than one person use a second browser context or an API context of their own. It is **not a CI job**: it needs a live stack, and a sixth job would have to be added to all four files §34 compares. The runs leave data behind by design where the product keeps it (removed accounts, decided leave, archived test colleges), each case's post-conditions say what, and nothing asserts a count other cases can change.
 
 **BRANCHES: `feature/*` → `dev` → `stage` → `main`, AND `hotfix/*` FROM `main` (2026-10-07).** `docs/branching-strategy.md` is the whole of it. Work is cut from `dev` and PRs target `dev`; `dev` is promoted to `stage`, `stage` to `main`, both with MERGE COMMITS (a squash leaves the source without the commit and every later promotion re-conflicts — the rulesets allow `merge` only there). `main` still deploys and still alone: `deploy.yml`'s OIDC role is pinned to `refs/heads/main`. A ruleset cannot say which branch a PR comes FROM, so `tools/ci/branch_policy.py` does, as the required check "Branch policy (promotion path)" on `main` and `stage` — its own workflow, not a sixth `ci.yml` job, for §34's reason. `stage` is a gate branch: no staging environment deploys from it. Keep `main` the default branch (`workflow_run`, schedules and `~DEFAULT_BRANCH` read it).
+
+**ONLY THE LEAD MERGES, AND ONLY THE OWNER SHIPS (2026-10-15).** The repository has a second collaborator with write access, and on a personal-account repository write access is the only role there is. `.github/rulesets/lead-review.json` is what keeps that from being merge access: an `update` rule on `main`, `stage` and `dev` that only the admin role bypasses, and only through a pull request, plus one code-owner approval (`.github/CODEOWNERS`, every path `@darshani8`). It is a FOURTH ruleset and not more rules in the branch three because a bypass is per ruleset: the admin skips the approval and nothing else, so CI still binds the lead. Never name a collaborator as a code owner: the approval is the second line behind the `update` rule, and a collaborator owner's approval would satisfy it for everyone else. `deploy.yml`, `cdk-deploy.yml` and `ops-task.yml` refuse any run whose `github.triggering_actor` is not the owner (`deploy.yml` also admits `github-actions[bot]`, which is `agent-release.yml`'s dispatch and can only run `main`'s copy). The AWS role is already pinned to `refs/heads/main`, so a workflow edited on a branch cannot reach production; these checks close the "Run workflow" button on `main`. Repository SECRETS are not covered by either: any write collaborator can read them from a workflow pushed to their own branch. `tests/test_repo_access.py` pins all of it.
+
+**EVERY BUG FIX IS LOGGED, WITH ITS DATE (2026-10-14).** The owner's rule. `docs/bug-log.md` holds one dated entry per bug or production error fixed: what was seen, the cause, the evidence, the fix, the PR and how it was checked. Entries go newest first and are written in the same PR as the fix. Update the entry's Status line when the fix is merged and when it is deployed. A problem found and not fixed goes under that file's "Open" list with the date it was found. This file still carries the long reasoning; the log is where a date answers "what broke and what was done".
 
 **AGENTS IN THE LOOP (2026-09-29).** Every phase of the lifecycle has an agent; `docs/agentic-sdlc.md` is the map. `claude.yml` turns an `agent`-labelled issue or an `@claude` into a PR; `claude-review.yml` reviews every non-draft PR; `agent-release.yml` runs after green CI on `main`, writes release notes and — only when `vars.AGENT_AUTODEPLOY` is `true` AND `tools/ci/release_gate.py` says so — dispatches `deploy.yml` and watches it; `agent-ops.yml` sends infra drift, failed human deploys and `incident` issues to `agent-triage.yml`; `agent-maintenance.yml` sweeps dependencies weekly. **The gate is code, not a prompt**, pinned by `tests/test_release_gate.py`: a migration, a model, `infra/`, auth / rule 1 / rule 2 / deletion code, the service worker, a manifest, the deploy pipeline or the gate itself always needs a human, and loosening that list is loosening what reaches students unreviewed. No agent holds AWS credentials or a production secret (rule 1 applies to agents), none runs `cdk-deploy.yml` or `ops-task.yml`, and none is a CI job (§34). Triage is a CALLED workflow on purpose: issues opened with `GITHUB_TOKEN`, as `infra-drift.yml` opens them, trigger no other workflow.
 
@@ -165,7 +169,7 @@ must import `FormsModule`, which the login screen legitimately does for its
 and not just the template: strip that import and the check goes red rather than
 the button going quiet.
 
-**Routes are lazy.** `app.routes.ts` uses `loadComponent`, never a static `component:` reference. Every route was once eagerly imported, which put the whole app — mentor and admin screens, the resume builder, the realtime assistant — into a single 1.23 MB `main` chunk that a student on a phone downloaded before the login form could paint. It is ~142 kB initial now, and the production bundle budget is set close enough to that number that one re-eager-ed route fails `ng build` in CI.
+**Routes are lazy.** `app.routes.ts` uses `loadComponent`, never a static `component:` reference. Every route was once eagerly imported, which put the whole app — mentor and admin screens, the resume builder, the realtime assistant — into a single 1.23 MB `main` chunk that a student on a phone downloaded before the login form could paint. `main` is ~142 kB now. Since Angular 22.2 the builder's initial total also counts the framework chunks `main` imports (~419 kB with styles, which 22.1 shipped too while reporting 209 kB), and the budget (460 kB warning, 610 kB error) keeps the headroom it had before that recount. It is a backstop against a heavy route or library going eager, not a per-route lint.
 
 ## Auth — Google-only sign-in over the session retained from the migration
 
@@ -175,7 +179,7 @@ What Google issues is **the same session as before, byte for byte**: passwords a
 
 **ONE DEVICE AT A TIME (2026-09-10).** A REEP account holds exactly **one live session**: every sign-in — password, emailed code, Google, and the activation link — advances `users.token_version` before the token is minted, and `app/security.py` refuses any token whose version is behind the row. So signing in on a phone drops the laptop on its next request. **The newest sign-in wins, deliberately**: refusing the *new* device instead would lock out the student whose browser crashed until a row aged out, and it would need a sessions table, an eviction policy and a device list that this design does not have. `_retire_other_sessions` is the in-memory half and **the caller's commit is what persists it** — on the code door that commit is the same one that lands the one-time code's `consumed_at`, so a separate earlier commit would make "code spent, session refused" reachable. `_confirm_exclusive_session` seeds this worker's revocation cache and must run **after** the commit. If that commit fails the session is still issued and the older devices survive: fail-open on exclusivity, never on authentication, and logged where it happens. `tests/test_single_device_session.py` covers all four doors, and the mutation that matters most is building the payload *before* the bump — that mints a token one version behind the row, which is a 200 from `/login` followed by a 401 on the very next request, for everyone.
 
-Because this makes being signed out a routine event rather than an incident, the server says **why**: a 401 whose cookie was retired (rather than expired or absent) carries the header `X-Reep-Session: retired` (`session_was_retired` in `app/security.py`). `AuthService.refresh()` reads it, the auth guard redirects to `/login?signedOut=elsewhere`, and the login screen explains it. Without that the student meets a login form mid-task with no explanation, signs in again, drops the other device, and learns the app logs you out at random.
+Because this makes being signed out a routine event rather than an incident, the server says **why**: a 401 whose cookie was retired (rather than expired or absent) carries the header `X-Reep-Session: retired` (`session_was_retired` in `app/security.py`). `AuthService.refresh()` reads it, the auth guard redirects to `/login?signedOut=elsewhere`, and the login screen explains it. Without that the student meets a login form mid-task with no explanation, signs in again, drops the other device, and learns the app logs you out at random. **The same header says `disabled` (2026-10-17)** when the cookie is genuine but the Main Admin has disabled the account (`session_was_disabled`; never for a REMOVED account, which has not been told about a security issue); the guard sends them to `/login?signedOut=disabled`, which shows the same red-box sentence the password and code doors answer with (`DISABLED_SIGN_IN_MESSAGE`, "Your account has been disabled for security reasons. Contact the placement office (Main Admin) to resolve the issue.") and Google gives as `?error=sso_disabled`. A removed account hears `REMOVED_SIGN_IN_MESSAGE` and Google's `sso_not_enrolled` instead. `tests/test_disabled_account.py`.
 
 `POST /api/auth/login` (password) is **always on in dev/CI and off everywhere else unless `PASSWORD_LOGIN=true`**: the `login` fixture in `tests/conftest.py` and the six test modules that use it authenticate through it, so deleting it would take the DB-backed suite and CI with it. The guard is `settings.password_login_allowed` — an allowlist of dev/CI environment names **or** the explicit flag, never `not is_prod`, so an unrecognised `ENV` (`staging`, `uat`, a typo, a blank from a broken deploy) still shuts the password door rather than opening it. A default production deployment answers 403 and names Google instead. Set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in `apps/api-py/.env`; blank means `GET /api/auth/sso/status` reports unavailable and the login screen's Google button renders disabled with the reason — nothing else is affected. Full notes, including the exact authorised redirect URI and a troubleshooting section: `docs/google-sign-in.md`.
 
@@ -356,6 +360,8 @@ not that failure.
 
 **A REJECTED APPLICANT MAY APPLY AGAIN (2026-09-16).** `registrations.email` was UNIQUE outright and `submit`'s duplicate guard read every row, so an address the office had rejected — for a mistyped USN, say — met the deliberately opaque 409 on its corrected second attempt, and the rejection mail had sent them to the same office; neither side could see why. Migration `d7e2f9a41c86` replaces the constraint with `uq_registration_live_email`, a PARTIAL unique on `email WHERE status <> 'REJECTED'` (the `uq_mentor_assignment_one_open_spell` shape: one LIVE row, enforced by the database so two submissions racing the guard cannot both land), declared on the model with the same predicate. The guard reads the same rule, the REJECTED row stays as the record of that decision, and the reviewer's checklist on the new row carries `prior_applications` — a WARN naming the reason given last time, never a block. `tests/test_registration_reapply.py` pins all of it, including the index against the real schema.
 
+**A USN ANOTHER STUDENT HOLDS CAN BE CORRECTED ON THE APPLICATION (2026-10-16).** Approve refuses it (GUARD 3), and until this date the refusal said "correct the USN on this application" when nothing could, so Reject was the only button. `PATCH /api/register/{id}` takes `{usn}` and nothing else, only on PENDING_REVIEW or HOLD, upper-cases it, audits it as `CORRECTED`, refuses a USN another student holds, and answers the row WITH its checklist. The `usn_unique` line names the holder (name, address, `student_id`, and "Open their record" on screen) only for a programme-wide reach; a scoped reviewer is told the USN is taken and not by whom. **The 409 from `_provision_student` must never name the holder**: `_apply_rule` copies that sentence into the PUBLIC `decision_reason` when a rule's auto-approve is refused. `tests/test_registration_usn_correction.py` pins it. **A USN is stored UPPER CASE and compared upper case on both sides**: `app/usn.py`'s `normalise_usn` for every writer, `usn_is` for every "who holds this USN" lookup. The form stored it as typed until the same day, so `1mp25ba033` slipped past a student holding `1MP25BA033`; `usn_is` also finds the lowercase rows written before that. The unique index on `students.usn` is still case-sensitive, so a new lookup that compares with `==` reopens the hole. A rule's `usn_pattern` is compiled `re.IGNORECASE` for the same reason: a pattern written in lower case would otherwise match no upper-cased USN at all.
+
 The endpoint carries a brute-force limiter, and **it is keyed on the account, never on the source address**. Behind the ALB `request.client.host` is one value for the entire internet: an address bucket there is a global outage waiting to happen — ten wrong passwords from anyone locks out every student at once — and raising the limit until that stops hurting makes it stop working. This was written the wrong way first and the suite caught it immediately (24 failures became 134, because every `TestClient` request shares one peer address). Ten failures per email per fifteen minutes, only failures count, a success returns the budget, and the 429 names Google because that door is not gated by this counter — so an attacker who burns a known address's budget costs a real user a redirect, not their access. What no in-process counter can bound behind a proxy is **spraying** (one guess each against a thousand accounts); that control belongs at the edge, as a WAF rate rule.
 
 ## Deleting people and colleges from the console (2026-09-16)
@@ -526,9 +532,10 @@ is not live, so the days are free and the "on leave today" job stops on its
 own; the allowance is NOT touched, because `consumed_days` is the office's own
 number and approval never wrote it either. Mail: the applicant and every
 colleague named to cover (`alt_rows[].user_id`) are told, carrying neither the
-purpose nor the change reason; `decision_revision` suffixes the dedupe key
-(`leave:{id}:{status}:r{n}`) so a second sanction is not swallowed by the
-first one's row. `tests/test_leave_decision_change.py` pins it.
+purpose nor the change reason; a REOPEN also mails the approvers, as a fresh
+faculty application does; `decision_revision` suffixes the dedupe keys
+(`leave:{id}:{status}:r{n}`, `leave-approval:{id}:{approver}:r{n}`) so a second
+sanction or a reopened queue entry is not swallowed by the first one's row. `tests/test_leave_decision_change.py` pins it.
 
 **The signature image: normalised on the way in, never silent on the way
 out.** `PUT /api/staff/signature` re-encodes what the sniffer accepted as a
@@ -802,10 +809,12 @@ so (B2.3).** `ROLE_BASELINE["MENTOR"]` used to be every SCOPED key in the
 catalogue, so "is this person staff" and "may this person read a mentee's ledger"
 were one question with one answer. It is now `{mentor.agent, mentor.upskilling}`
 — the assistant and one's own certificate shelf, which belong to the PERSON. The
-three that belong to a GROUP (`mentor.mentees`, `mentor.notebook`,
-`mentor.verifications`) are **derived, not granted** (`mentor.leave_approve`
-was the fourth until 2026-09-16, when leave approval became the Main Admin's
-alone and the key left the catalogue — see "Leave is one signature" below):
+two that belong to a GROUP (`mentor.mentees`, `mentor.notebook`) are **derived,
+not granted** (`mentor.leave_approve` was the fourth until 2026-09-16, when
+leave approval became the Main Admin's alone and the key left the catalogue —
+see "Leave is one signature" below; `mentor.verifications` was the third until
+2026-10-16 and is now a grant only — see "Skill verification is the office's
+choice of person" below):
 `app/mentor_functions.py` is a pure function of "do you currently mentor
 anybody". The spec asked for `capability_grants` rows written by
 `ensure_mentor_group` and backfilled by a migration; that was built first and
@@ -881,7 +890,10 @@ disabling is the single console action whose effect is invisible from the consol
 afterwards — the person simply cannot get in — and six months later nobody
 remembers whether it was a resignation, a secondment or a security incident. The
 reason is on the row AND on the trail, and the re-enable window is read against
-it. `enable` and `sign-out-everywhere` sit beside it. **Deleting a faculty
+it. `enable` and `sign-out-everywhere` sit beside it. **The same two endpoints
+disable and enable a STUDENT (2026-10-17)**, from the More menu on the student's
+record, Main Admin only as they always were; a student has no 90-day enable
+window, because "create a new account instead" means nothing for one. **Deleting a faculty
 account from the console arrived on 2026-09-16** — remove-and-restore and
 delete-for-good behind an emailed code, in `routers/admin_deletion.py`; see
 "Deleting people and colleges from the console" below. Emptying a whole
@@ -919,6 +931,31 @@ through the console; listing it writes no event of its own — it would be the m
 frequent action in the table within a week and would bury everything the table
 exists to show — but **the CSV download audits itself**.
 
+**WHO CAN DO WHAT WAS REDESIGNED, AND ACCESS IS GIVEN AND REMOVED MANY AT A
+TIME (2026-10-16).** The owner found the screen too confusing: a nine-column
+grid whose "Scope" and "Reach" columns answered near-identical questions, a
+side panel that granted ONE function at a time, and a catalogue tab of internal
+keys. `features/admin/governance` is now four tabs in plain words: **Give
+access** (tick people or a group, tick every kind of access, choose which
+students and an optional end date, give a reason; one summary sentence says
+what will happen), **Who has access** (every grant grouped by access type or by
+person; tick rows, or a whole access type, and remove them), **Needs
+attention** (the `/review` queue) and **Groups**. Each access type says which
+sidebar row it opens for a faculty member, read from `GRANTABLE_ADMIN_SCREENS`
+rather than typed again. The API grew two batch forms to match, both one
+transaction and all or nothing: `POST /admin/governance/grants` takes
+`capabilities: [...]` beside the old single `capability` (folded in, so older
+clients still work) and writes every (access type, subject) pair with the one
+reason, the approval state decided per access type; `POST
+/admin/governance/grants/revoke` takes `grant_ids` and one reason, refuses the
+whole request on an unknown id, and names ids already revoked rather than
+failing on them. Both are capped (`MAX_GRANT_ROWS_PER_REQUEST`,
+`MAX_REVOKES_PER_REQUEST`). Approve and extend still go one grant at a time,
+because each can be refused on its own. The old `?tab=review`, `grants` and
+`catalogue` links land on the tab that now holds the same thing.
+`tests/test_governance_bulk.py` pins the API; TC-530, TC-531 and TC-540 drive
+the screen.
+
 **B2.1: ENFORCE EVERY CATALOGUE KEY OR DELETE IT.** A row naming a capability
 nothing checks is a promise the API does not keep, and Governance is where the
 office looks to answer "who can see what". `tools/ci/check_capability_enforcement.py`
@@ -947,7 +984,7 @@ refused by the PUT — the same rule as an unwired feature switch.
 
 **The compatibility guardrails are a test module, not a checklist.**
 `tests/test_phase3_compatibility.py` holds 07 §5: the role is unchanged, a mentor
-with mentees keeps the four functions and one without keeps their own two, **the
+with mentees keeps the group functions (`DERIVED_FROM_MENTEES`) and one without keeps their own two, **the
 capability and the endpoint give the same answer** (the split that made
 `test_no_director_privilege.py` necessary, in the other direction), a pre-B1.2
 grant still reaches the programme, the Main Admin is never narrowed, student
@@ -1160,6 +1197,8 @@ A **fourth alarm** goes with it, and it is the one the other three could not be.
 
 **AND THE SAME WORKFLOW CATCHES THE MIRROR IMAGE, WHICH IS WHAT ACTUALLY HAPPENED NEXT (2026-09-16).** Graviton -- `RuntimePlatform: ARM64` on the api task definition, same vCPU, same memory, ~20% cheaper -- was deployed by passing `-c apiArm64=true` from a `core-arm64` dropdown option, and **the flag was never written into `cdk.json`**. Deployed and never merged, the exact inverse of `ecdb37b`, and `infra-drift.yml` would have opened an issue the next morning: `main` rendered no `RuntimePlatform` while the running service was arm64. Being red for a known-good reason is how a daily check becomes one nobody reads, so it is not a false positive to tolerate. The second half is worse and is invisible from the diff: **every `core-*` option in `cdk-deploy.yml` passes only its OWN context flag**, so the next deploy of `core-9a`, `core-9b` or either NAT option would have re-rendered the task definition WITHOUT the platform and rolled the api silently back to x86 at twice the price -- CI green, PR merged, nothing on any screen. The fix needed no deploy at all, because the repository is what was wrong: `"apiArm64": true` in `infra/cdk/cdk.json`, pinned by `test_cdk_json_carries_the_arm64_the_deployment_is_actually_running`, and `core-arm64` DELETED from the dropdown -- with the flag in `cdk.json` that option is a second source of truth for one setting, and it was a bare `reep-core` deploy gated only by the word `deploy`. **A context flag set at deploy time and not persisted is not configuration, it is a thing somebody has to remember**; `cdk.json` is the file that remembers, and the two `-c` flags still in that workflow (`hardenEcs=false`, the NAT pair) are there because they name a PHASE of a one-way migration rather than a standing property of the deployment. One consequence to carry forward: `deploy.yml`'s multi-arch manifest assertion is now load-bearing rather than belt-and-braces -- the api runs ARM64 unconditionally, so that check is the only thing between a routine image build and a service whose every task dies at pull with "Manifest does not contain descriptor matching platform linux/arm64". Do not remove it.
 
+**THE DRIFT HALF ANSWERS NOW, AS ITS OWN ROLE, AND THE NAT AMI IS PINNED (2026-10-16, #117, #118, #124).** `detect-stack-drift` never ran: CloudFormation reads every live resource with the CALLER's credentials, and the deploy role was refused that read on purpose. `reep-github-drift` (`GithubDriftRole` in `reep_core/stack.py`, harden only, the deploy role's OIDC trust, so `main` only) is the separate role that comment asked for. It holds the five drift calls on `reep-core` and `reep-voice-platform`, each resource type's read-handler permissions copied from its CloudFormation schema (`reep_core/drift_reader.py`), and an explicit Deny on object bodies, table items, secrets, `kms:Decrypt` and log lines. **Not `ReadOnlyAccess`, which reads the dump buckets** that even the dump task may not read. `s3:ListBucket` is on the list because S3's read handler needs it, and every key in the sensitive buckets is a date or a uuid. A resource type missing from `READ_PERMISSIONS` would leave the check blank again (DETECTION_FAILED), so `test_every_resource_type_the_drift_check_reads_is_classified` refuses it at synth. `infra-drift.yml` assumes the role for that one step and reports "could not assume" as a blocked check until a `core-*` deploy creates it. **The NAT AMI is `natAmiId` in `cdk.json`**, not AWS's moving `ami-amazon-linux-latest` parameter: `ImageId` is a replacement property, so every `reep-core` deploy after AWS shipped an image rebuilt the NAT box (egress lost for the swap, the user data run on an untried image, the old box left running behind Retain), and the drift check reported it every such morning. Bump it on purpose, at night. The NAT security group, role, profile and instance, and the drift role, are `RetainExceptOnCreate`: under plain Retain a rolled-back create kept the fixed-name `reep-nat-instance` role and the retry failed on "already exists" (#124).
+
 
 ## The two rules that must not be broken
 
@@ -1202,7 +1241,7 @@ GET call sites only** (`mentor.py`'s notes list and the three reads in
 `mentee_records.py`); `_assert_can_access_student` gained the parameter and is
 still the single delegating `return` the AST guard pins.
 **And the grant is what makes the feature visible at all**: `mentor_functions_for`
-derives the four `mentor.*` capabilities live from `mentee_count > 0`, so a
+derives the two `mentor.*` capabilities and `admin.student_records` live from `mentee_count > 0`, so a
 mentor whose last mentee was just reassigned holds NONE of them and
 `require_capability` answers 403 *before* rule 2 ever runs — a handover honoured
 only inside `assert_student_scope` would be invisible to exactly the person it
@@ -1214,6 +1253,42 @@ student)` EXACTLY, because a programme-wide `mentor.mentees` grant satisfies
 Main Admin reaches a stuck student's evidence). Reading it the loose way would
 turn every one of them into universal access to every student's records,
 silently, on deploy. `tests/test_mentor_assignments.py` pins all four facts.
+
+**THE OFFICE'S "VIEW STUDENT RECORDS" GRANT IS THE OTHER READ-ONLY WIDENING
+(2026-10-15, the owner's decision).** When the Main Admin gives a faculty member
+`admin.student_records` for one student, a batch, a department or the college,
+that person may READ those students' records on the Student 360 page whether or
+not they mentor them. It is the handover's shape, wider, and fenced the same
+way: `allow_records_grant` is a keyword-only, default-False parameter of
+`assert_student_scope`, passed True only by the GET reads of that page
+(`routers/admin_student_360.py` and `routers/admin_student_record.py`, which has
+no write path), and `policies._holds_records_grant` asks the GRANT, so revoking
+it in Governance shuts the door the same hour. **It honours only a grant that
+NAMES A RUNG.** Every `admin.student_records` grant written before this date is
+programme-wide and meant "your own mentees"; reading `(None, None)` as "every
+student" would widen all of them silently on deploy, so a programme-wide grant
+still reaches only the holder's mentees. The mentor endpoints never pass the
+keyword, so the same grant opens no mentor read or write (`notes`, `badges`,
+`interviews`, `/mentor/uploads/{id}/file`). `tests/test_student_record_access.py`
+pins all of it, including that the "Student records" list
+(`GET /admin/student-records`) names exactly the students the page opens.
+
+**A MENTOR OPENS THEIR OWN MENTEES' RECORDS WITH NO GRANT (2026-10-16, the
+owner's report: "mentors' mentee records are not visible").** Until then the
+Mentee Log listed a mentor's students and nothing behind them: "Full record",
+the "Student records" row and the route guard all needed an
+`admin.student_records` grant from the office, even for the mentor's own
+group. `admin.student_records` is now DERIVED from having a mentee, beside the
+two `mentor.*` functions (`mentor_functions.MENTEE_RECORD_FUNCTIONS`,
+`DERIVED_FROM_MENTEES`), for the same reason they are derived: five places set
+`students.mentor_id`. It reaches nobody else, because it widens nothing rule 2
+decides: every read behind the key runs `_assert_can_access_student` with the
+mentor's own group, `_holds_records_grant` reads GRANTS and never functions, so
+a student outside the group still needs the office's scoped grant, and every
+endpoint behind the key is a GET. The roster editor (`admin.students`) is a
+different key and mentoring does not bring it. `_openable_clause` lists the
+mentor's mentees always, so the Mentee Log draws "Full record" for each of them.
+`test_student_record_access.py::test_a_mentor_opens_their_own_mentees_record_and_nobody_elses`.
 
 ### Rule 1 applies to telemetry too: Sentry is one init per process, and the scrubbers are the floor
 
@@ -1615,6 +1690,30 @@ and activation links are `?token=`, the cookie is the session, and a referer
 carries the previous page's query string. The legacy log cannot omit fields,
 which is why it is not used. Takes an `edge-waf` deploy to exist.
 
+**"COULD NOT REACH THE SERVER" ON SKILLING WAS THE PHONE FAILING TO READ THE
+FILE (2026-10-14).** Students reported certificate claims failing with that
+sentence on a day the API took 138 uploads. The CloudFront log showed the
+failing POSTs to `/api/student/uploads` from Android sending their headers
+(136 and 142 bytes) and then no file before hanging up. A picked `File` is a
+reference the browser reads again at send time, and a file held by Drive,
+Photos or another app can be unreadable by then (`ERR_UPLOAD_FILE_CHANGED`).
+The claim form asks for four more fields after the certificate, so there is
+always time for that. `core/picked-file.ts` copies the bytes into memory at
+pick time, and a file unreadable even then is refused on the spot with
+`UNREADABLE_FILE_MESSAGE`. A thrown upload now says the connection dropped,
+the upload id is kept so a retry files the claim without uploading twice,
+and both failures go to the browser's Sentry as fixed sentences. `/register`
+(all nine of Sentry's "Registration submit failed" reports, 1 to 7 Oct, came
+from Android) and `/student/uploads` copy the file the same way since the
+same day, and so do the alumni resume, faculty upskilling, leave attachments,
+both signature uploads (`/mentor/signature` and the account page) and the
+resume builder's photo. Any new upload screen should read the file through
+`readPickedFile` and say `UPLOAD_DROPPED_MESSAGE` when `fetch` throws, both
+from `core/picked-file.ts`. Only the Main Admin's catalogue and spreadsheet
+imports, desktop screens, still send the picker's reference. The other failure in that
+log was a phone sending 0.87 MB in 121 s (CloudFront 408). That is the
+photo-downscaling item the 2026-10-01 entry above left undone.
+
 **THE CLAIM FORM FILED INTO A QUEUE THE MENTOR'S SCREEN NEVER OPENED.**
 `/student/skilling` stores the certificate through `POST /student/uploads` and
 files `badge_evidence` against it (`POST /student/badges/{code}/evidence`);
@@ -1633,15 +1732,46 @@ Documents queue on the same screen, decidable in the opposite direction, so
 `review_evidence` now writes the claim's verdict onto the upload too (VERIFIED /
 NEEDS_CHANGES / REJECTED, same reviewer, same note — never over a verdict the
 document already carries), and `pending_uploads` leaves out a file a pending
-claim stands on. The board draws the mentor's approval as a BLUE `verified`
+claim stands on. The board draws the reviewer's approval as a BLUE `verified`
 tick on an EARNED tile and nothing else: an unclaimed badge is unmarked, a
 claim in review wears a clock, and the tap-to-preview lights the hexagon
 without the tick, because a preview that wore it would be indistinguishable
 from a verified badge. `tests/test_skill_claim_flow.py` walks all of it.
 
-**MAIL: THE MENTOR HEARS OF THE CLAIM, THE STUDENT OF THE DECISION, AND THE
+**SKILL VERIFICATION IS THE OFFICE'S CHOICE OF PERSON, NOT A MENTOR'S BY
+MENTORING (2026-10-16, the owner's decision: "remove skill verification from
+all mentors").** `mentor.verifications` ("Verify skills & evidence") left
+`MENTOR_FUNCTIONS`; it is held ONLY as a grant the Main Admin makes in Who can
+do what, with a reason and a reach (a student, a batch, a department, a
+college or the programme), and a holder sees exactly the students that reach
+covers — their own mentees included only if it covers them. `app/verifiers.py`
+is the one gate, and every verification door asks it: the claim queue, its
+reviewed strip, a claim's file and decision (`routers/badge_verification.py`),
+the Documents queue and its decision (`routers/mentor.py`, the other half of
+the same screen, which had been the mentor's group and, for the Main Admin,
+every file with no grant), the legacy `skill-claims` review (no screen, but it
+still marks a `student_skills` row verified, which the resume prints under
+"Verified Skills"), and a manual award of a skill badge (an award is a
+verification without a claim; the Main Admin keeps that escape hatch). Two
+read doors widen for a verifier and nothing else: `/mentor/uploads/{id}/file`
+and a claim's file, both GETs. RULE 2 IS UNCHANGED: `_assert_can_access_student`
+still admits a mentor to their own group everywhere else (notes, the notebook,
+the 360 read); verification simply stopped asking it. It also stopped letting
+a Main Admin with a SCOPED verification grant decide any student by id, which
+rule 2's "the admin sees all" had quietly allowed while the list was narrowed.
+The sidebar row and the `/mentor/verifications` route guard both read the
+capability. A claim nobody's grant reaches waits, and nobody is mailed, until
+the office grants somebody. The dev seed grants Test Mentor the key for the
+seeded college so the screen has a reviewer on a fresh database. The student's
+screens say "a faculty reviewer" and "Waiting for review" rather than "your
+mentor". `tests/test_skill_claim_flow.py` pins the mentor's refusal at every
+door and the grant's reach as the fence.
+
+**MAIL: THE VERIFIERS HEAR OF THE CLAIM, THE STUDENT OF THE DECISION, AND THE
 SWITCH IS DERIVED.** `app/badge_mail.py`, through `mailer.deliver_once` — keys
-`badge-claim:{id}` (one message per claim, however often it is retried) and
+`badge-claim:{id}:{recipient}` (one message per claim per verifier, however
+often it is retried; the recipients are `verifiers.verifiers_for`, the same
+question the gate asks, so they were the student's mentor until 2026-10-16) and
 `badge-decision:{id}:{status}` (stable per transition, different per
 transition). Both run AFTER the commit and never raise. The student's mail
 carries the reviewer's note: unlike a leave approver's note, which is written
@@ -1663,8 +1793,10 @@ PROGRAMME, `carries_pii`) is the read side of the roster, split off
 `admin.students`, which is the EDITOR. `GET /admin/students/{id}/360` and the
 route `/admin/students/:id` hang on it; the Main Admin holds both keys by
 baseline and sees no difference, a faculty member holds whichever Governance
-granted, and rule 2 still runs underneath — a granted MENTOR opens their OWN
-mentees' records and nobody else's. Two panels were missing from "complete":
+granted, and rule 2 still runs underneath: a MENTOR opens their OWN mentees'
+records (by mentoring them since 2026-10-16; see rule 2's "a mentor opens
+their own mentees' records"), plus the students a SCOPED grant names
+(2026-10-15, see rule 2's "the other read-only widening"). Two panels were missing from "complete":
 the profile as FILLED IN (the open-items card named only the gaps) and the
 student's DOCUMENTS, which had no by-id read anywhere; both are on the
 composite read now (`profile`, `documents`), the Documents tab is real, and
@@ -1672,9 +1804,44 @@ the bytes stream through `GET /mentor/uploads/{id}/file` — rule 2's gate
 applied to a file. The way in: a **View** eye beside the pencil in the
 roster's pinned actions column (the Student column's link was the only route
 to a record and that column can be hidden — the office had), and a **Full
-record** link on the Mentee Log for a faculty holder. The key has NO sidebar
-row on purpose — it opens a per-student screen, and `GRANTABLE_ADMIN_SCREENS`
-says so where the next reader will look for it.
+record** link on the Mentee Log, drawn only where the record will open
+(`record_openable` on `GET /mentor/mentees`, the same `_openable_clause` the
+list below reads, so a grant for another department draws no link that the
+page would refuse), and since 2026-10-15 a
+**Student records** row under "Granted access" (`/admin/student-records`), the
+list a faculty member uses to find the students a scoped grant gives them.
+
+**THE STUDENT 360 PAGE WAS REDESIGNED ON 2026-10-15 FROM AN APPROVED PROTOTYPE**
+(`docs/prototypes/student-360/index.html`): a candidate column (contact, the CV,
+who can open the record), six KPIs, "Needs attention", and tabs for Overview,
+Resume, Skills, Leaderboard, Academics, Interviews, Time sheet, Documents and
+Access. **The resume is the CV the student uploaded when they registered** (the
+owner's words): approval moves it into their uploads as kind `RESUME`, titled
+`registration.APPLICATION_CV_TITLE`, and `Document360Out.from_application`
+marks it. **It is drawn with pdf.js (`shared/pdf-preview`), never an iframe**,
+because every upload is served as an attachment so a student's PDF never runs
+in this origin; pdf.js paints canvases and the core library never runs a
+PDF's scripts. Pinned at 4.10.38: 5.x calls `Map.prototype.getOrInsertComputed`,
+which only the newest browsers have, and the one unguarded built-in 4.x needs,
+`Promise.withResolvers`, is filled in on the lazy path. It runs on the main
+thread (`globalThis.pdfjsWorker`), so there is no separate worker asset outside
+the service worker's manifest. `GET /admin/students/{id}/record` serves the
+other panels from the composers the mentor and student screens use, and
+`?download=true` on a file or built resume writes a `DOWNLOADED` audit row
+against the student, which the record's own history lists; a view writes
+nothing. "Give access" posts Governance's own `POST /admin/governance/grants`
+with a scope, so a grant has one writer and one audit trail. **The Access tab
+is the Main Admin's alone (2026-10-17, the owner's decision)**: `GET
+.../access` is `require_admin`, the page draws the tab and the rail's "Who can
+open this record" card for the office only, and `/360` sends an empty sign-in
+list and history, and no disable or removal reason, to anybody else. A faculty
+member reading on a grant or a mentee still sees THAT the account is disabled.
+**Two panels of
+the old page came back the same day**, because the prototype had no place for
+them and this was the only screen showing the first: the mentor history (every
+faculty mentor, who moved the student and why) on the Overview's Faculty mentor
+card, and Promotions and graduations (who made each move, the reason) on the
+Academics tab. Both read the `/360` payload the page already loads.
 
 ## Reachability and keyboard access — what a full browser audit found (2026-09-10)
 
@@ -1965,7 +2132,12 @@ interview transcripts — and a release is the move nothing on any screen report
 It is a BREAKING change to an endpoint the live Angular screen was posting
 `{mentor_id}` to, so the server field, the reason input (previously
 `[reepPending]="4"`) and the eight test call sites are one commit; shipping the
-server half alone is an assign button that 422s on a working console. On the
+server half alone is an assign button that 422s on a working console. **The
+release asks for its reason on the mentee's own row (2026-10-14)**: it used to
+read the ASSIGN card's "Why this seating" box, which every successful
+assignment empties, so a student the office had just seated could not be
+released. The icon sent nothing and printed "press Release again" at the top of
+the page. On the
 BATCH path (`POST /admin/cohorts/{id}/students/bulk`) `reason` is OPTIONAL, and
 the asymmetry is deliberate: a sentence asked once and applied to thirty people
 describes the batch, not any student in it. **There is still no `student_ids` on

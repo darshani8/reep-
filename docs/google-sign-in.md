@@ -116,9 +116,10 @@ button renders disabled with the reason underneath.
 | `sso_identity` | the ID token did not verify (signature, `aud`, `iss`, `exp`, `nonce`) | network / config — check the API log |
 | `sso_unverified_email` | the ID token's `email_verified` was not `true` | the Google account |
 | `sso_not_enrolled` | verified identity, no matching `users` row | roster |
+| `sso_disabled` | verified identity, but the Main Admin has disabled the account (a removed account still lands on `sso_not_enrolled`) | the placement office |
 | `sso_failed` | the backstop — anything not enumerated above | check the API log |
 
-These seven-plus-one strings are a **three-way contract**: the callback in
+These eight-plus-one strings are a **three-way contract**: the callback in
 `app/routers/auth.py` emits them, `messageFor` in
 `apps/web/src/app/features/login/login.component.ts` turns each into a sentence,
 and this table documents them. They were once three independent vocabularies

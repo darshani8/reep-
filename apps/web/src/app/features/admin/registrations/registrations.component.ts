@@ -116,7 +116,8 @@
  */
 
 import { DatePipe } from '@angular/common';
-import { Component, computed, signal } from '@angular/core';
+import { Component, Injector, afterNextRender, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
 import type {
   CellClickedEvent,
@@ -134,6 +135,7 @@ import type {
 } from 'ag-grid-community';
 
 import { environment } from '../../../../environments/environment';
+import { AuthService } from '../../../core/auth.service';
 import { specializationLabel } from '../../../core/specializations';
 import { registerReepGrid } from '../../../shared/grid/grid-bootstrap';
 import { reepGridTheme, reepGridThemeCompact } from '../../../shared/grid/reep-grid-theme';
@@ -234,6 +236,9 @@ interface CheckApiRow {
   status: 'ok' | 'warn' | 'blocked';
   label: string;
   detail: string;
+  /** The student the check names (2026-10-16): on `usn_unique`, the one who
+   *  already holds this USN, sent only to a programme-wide reviewer. */
+  student_id?: string | null;
 }
 
 /** `RegistrationOut` in `app/routers/registration.py`. */
@@ -360,6 +365,9 @@ interface ApplicationCheck {
   detail: string;
   tone: 'good' | 'warn' | 'neutral' | 'risk';
   icon: string;
+  /** Student 360 of the student the check names. Set only for a session
+   *  holding `admin.student_records`, which that route asks for. */
+  recordLink?: string | null;
 }
 
 /** The server's three verdicts, mapped onto this screen's tones and glyphs.
@@ -624,11 +632,14 @@ function shortDateOf(isoTimestamp: string): string {
 @Component({
   selector: 'app-admin-registrations',
   standalone: true,
-  imports: [DatePipe, AgGridAngular],
+  imports: [DatePipe, AgGridAngular, RouterLink],
   templateUrl: './registrations.component.html',
   styleUrl: './registrations.component.scss',
 })
 export class AdminRegistrationsComponent {
+  private readonly auth = inject(AuthService);
+  private readonly injector = inject(Injector);
+
   readonly queueTabs = QUEUE_TABS;
   readonly submittedWindows = SUBMITTED_WINDOWS;
   readonly domainFilters = DOMAIN_FILTERS;
@@ -673,6 +684,12 @@ export class AdminRegistrationsComponent {
   readonly submittedFilter = signal(SUBMITTED_WINDOWS[0].key);
   readonly decisionNote = signal('');
   readonly noteError = signal<string | null>(null);
+  /** The application whose USN is being corrected, by id, or null. Keyed by
+   *  id so the box belongs to one application and not to the panel. */
+  readonly usnEditingId = signal<string | null>(null);
+  readonly usnDraft = signal('');
+  readonly usnSaving = signal(false);
+  readonly usnError = signal<string | null>(null);
   readonly seatingRulesOpen = signal(false);
 
   // --- the rule editor (B11.3) -------------------------------------------
@@ -986,11 +1003,15 @@ export class AdminRegistrationsComponent {
     // decision was taken weeks ago. A partial checklist under a decided
     // application reads as advice; it is archaeology.
     if (application.checks === null) return [];
+    const canOpenRecords = (this.auth.session()?.capabilities ?? []).includes(
+      'admin.student_records',
+    );
     const checks: ApplicationCheck[] = application.checks.map((check) => ({
       headline: check.label,
       detail: check.detail,
       tone: CHECK_TONES[check.status].tone,
       icon: CHECK_TONES[check.status].icon,
+      recordLink: canOpenRecords && check.student_id ? `/admin/students/${check.student_id}` : null,
     }));
     checks.push(this.batchCheckFor(application, reviewed.batchLabel));
     checks.push(this.documentCheckFor(application, 'CV', 'CV'));
@@ -1459,6 +1480,67 @@ export class AdminRegistrationsComponent {
       return `${who} approved — the account is created and the onboarding link is on its way to their college email.`;
     }
     return `${who} rejected — your reason has been emailed to them.`;
+  }
+
+  /** Open the USN box on one application, with its USN typed in. */
+  startUsnCorrection(application: RegistrationApiRow): void {
+    this.usnEditingId.set(application.id);
+    this.usnDraft.set(application.usn ?? '');
+    this.usnError.set(null);
+    afterNextRender(() => document.getElementById('usn-correction')?.focus(), {
+      injector: this.injector,
+    });
+  }
+
+  cancelUsnCorrection(): void {
+    this.usnEditingId.set(null);
+    this.usnError.set(null);
+  }
+
+  onUsnInput(event: Event): void {
+    this.usnDraft.set((event.target as HTMLInputElement).value);
+  }
+
+  /**
+   * Correct the USN on an application waiting for a decision (2026-10-16).
+   *
+   * `PATCH /register/{id}`. A USN another student held used to leave Reject as
+   * the only button, though the checklist and the 409 both said to correct it.
+   * The answer is the row WITH its checklist recomputed, so it replaces the
+   * row in place and the panel shows the new verdict at once. A USN that is
+   * also taken is a 409 whose sentence is shown under the box.
+   */
+  async saveUsnCorrection(application: RegistrationApiRow): Promise<void> {
+    const usn = this.usnDraft().trim();
+    if (usn === '') {
+      this.usnError.set('Enter the USN.');
+      return;
+    }
+    this.usnSaving.set(true);
+    this.usnError.set(null);
+    try {
+      const response = await fetch(`${environment.apiBase}/register/${application.id}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usn }),
+      });
+      if (!response.ok) {
+        this.usnError.set(await detailOf(response));
+        return;
+      }
+      const corrected = (await response.json()) as RegistrationApiRow;
+      this.applications.update((loaded) =>
+        (loaded ?? []).map((row) => (row.id === corrected.id ? corrected : row)),
+      );
+      this.usnEditingId.set(null);
+      // The banner Approve left is about the USN this replaced.
+      this.error.set(null);
+    } catch {
+      this.usnError.set('Could not reach the server.');
+    } finally {
+      this.usnSaving.set(false);
+    }
   }
 
   /**

@@ -321,6 +321,16 @@ const FACULTY_NAVIGATION: readonly NavigationGroup[] = [
         path: '/mentor/mentees',
         capability: 'mentor.mentees',
       },
+      // A faculty member holds `admin.student_records` by mentoring somebody
+      // (2026-10-16), so the list of the records they may open is one of
+      // their own rows, not "Granted access". It still needs the key: a
+      // faculty member with no mentees and no grant has nothing to list.
+      {
+        label: 'Student records',
+        icon: 'folder_open',
+        path: '/admin/student-records',
+        capability: 'admin.student_records',
+      },
       { label: 'Leave Requests', icon: 'event_available', path: '/mentor/leave' },
       {
         label: 'Skill Verifications',
@@ -349,13 +359,11 @@ const ALUMNI_NAVIGATION: readonly NavigationGroup[] = [
  * capability with no row here is a grant that changes nothing on screen, so
  * this list and the catalogue in app/models/governance.py are kept in step.
  *
- * ONE KEY HAS NO ROW ON PURPOSE: `admin.student_records` (2026-09-17) opens a
- * PER-STUDENT screen, /admin/students/:id, and there is no list to put in a
- * sidebar. It is reached from the roster's View button (a holder of
- * `admin.students`) and from the "Full record" link on a faculty member's own
- * Mentee Log (a holder of `mentor.mentees`) — the two places a person who
- * may read a record already meets the student, and rule 2 narrows a faculty
- * holder to their own mentees on the way through.
+ * `admin.student_records` HAS A ROW SINCE 2026-10-15. Until then a grant of it
+ * reached only the holder's own mentees, who are on their Mentee Log. The
+ * office can now give it for a batch, a department or the college, and those
+ * students are on no screen a faculty member has, so "Student records" lists
+ * them (`/admin/student-records`).
  *
  * THE REDESIGNED SCREENS ARE HERE TOO. Left out, a faculty member granted
  * `admin.institution` would pass /admin/colleges' route guard with no row
@@ -405,6 +413,12 @@ export const GRANTABLE_ADMIN_SCREENS: readonly (NavigationItem & {
     path: '/admin/students',
     label: 'Students & batches',
     icon: 'how_to_reg',
+  },
+  {
+    capability: 'admin.student_records',
+    path: '/admin/student-records',
+    label: 'Student records',
+    icon: 'folder_open',
   },
   {
     capability: 'admin.institution',
@@ -567,7 +581,11 @@ export class AppShellComponent {
   private readonly grantedAdminScreens = computed<readonly NavigationItem[]>(() => {
     if (this.navKind() !== 'staff') return [];
     const held = this.session()?.capabilities ?? [];
+    // A screen already among the faculty's own rows (Student records) is not
+    // drawn twice.
+    const own = new Set(FACULTY_NAVIGATION.flatMap((group) => group.items.map((item) => item.path)));
     return GRANTABLE_ADMIN_SCREENS.filter((screen) => {
+      if (own.has(screen.path)) return false;
       const needed =
         typeof screen.capability === 'string' ? [screen.capability] : screen.capability;
       return needed.every((key) => held.includes(key));

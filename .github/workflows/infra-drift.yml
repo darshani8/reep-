@@ -81,7 +81,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install the CDK library and CLI
         working-directory: infra/cdk
@@ -274,89 +274,6 @@ jobs:
           echo "differs=$differs" >> "$GITHUB_OUTPUT"
           echo "unhardened=$unhardened" >> "$GITHUB_OUTPUT"
 
-      # AWS vs its own template. Separate question, separate section, and
-      # NOT_CHECKED rows are dropped because they are resource types
-      # CloudFormation cannot drift-check, not findings (cdk-cutover.md §5).
-      #
-      # EVERY WAY OUT OF THIS LOOP THAT IS NOT AN ANSWER IS RECORDED AS BLOCKED.
-      # On 2026-09-16 both stacks answered AccessDenied on the very first call,
-      # the loop `continue`d, `drifted` stayed 0 and the run reported clean: the
-      # check was not merely useless, it was contributing a confident "no" to a
-      # question it had never asked. The four exits are the grant missing, the
-      # detection ending as anything but DETECTION_COMPLETE (DETECTION_FAILED
-      # means CloudFormation could not read some resources, which is not the same
-      # as finding no drift), the detection still running after five minutes, and
-      # a count that comes back empty because the third call was denied.
-      #
-      # IAM, so the warning carries its own remedy: this needs
-      # `cloudformation:DetectStackDrift`, `cloudformation:DetectStackResourceDrift`,
-      # `cloudformation:DescribeStackDriftDetectionStatus` and
-      # `cloudformation:DescribeStackResourceDrifts` on the deploy role — and
-      # read access to the resource types in the stack, because CloudFormation
-      # reads each live resource with THESE credentials, so a role holding only
-      # the four above returns NOT_CHECKED for most of the stack.
-      - name: CloudFormation drift detection
-        id: cfn
-        continue-on-error: true
-        run: |
-          set -uo pipefail
-          drifted=0
-          blocked_cfn() {
-            {
-              echo "- \`detect-stack-drift $1\` did not answer ($2), so **$1** was NOT drift-checked this run — blank, not clean."
-              echo "  Grant \`cloudformation:DetectStackDrift\`, \`cloudformation:DetectStackResourceDrift\`, \`cloudformation:DescribeStackDriftDetectionStatus\`"
-              echo "  and \`cloudformation:DescribeStackResourceDrifts\` to \`reep-github-deploy\`, plus read access to the stack's resource types."
-            } >> /tmp/blocked.md
-          }
-          for stack in reep-core reep-voice-platform; do
-            id=$(aws cloudformation detect-stack-drift --stack-name "$stack" \
-                   --query StackDriftDetectionId --output text 2>/tmp/cfn.err) || {
-              echo "::warning::could not start drift detection on $stack (missing cloudformation:DetectStackDrift?)"
-              sed -n '1,3p' /tmp/cfn.err || true
-              blocked_cfn "$stack" "could not start — missing cloudformation:DetectStackDrift?"
-              continue; }
-            status=""
-            for _ in $(seq 1 60); do
-              status=$(aws cloudformation describe-stack-drift-detection-status \
-                         --stack-drift-detection-id "$id" \
-                         --query DetectionStatus --output text 2>/dev/null) || status=""
-              [ "$status" != DETECTION_IN_PROGRESS ] && break
-              sleep 5
-            done
-            if [ "$status" != DETECTION_COMPLETE ]; then
-              echo "::warning::drift detection on $stack ended as '${status:-unreadable}', not DETECTION_COMPLETE"
-              blocked_cfn "$stack" "ended as '${status:-unreadable}', not DETECTION_COMPLETE"
-              continue
-            fi
-            # An empty or `None` count is the third call failing, not a stack with
-            # nothing wrong with it: `length()` over the drift list always yields
-            # an integer when the call succeeds.
-            n=$(aws cloudformation describe-stack-resource-drifts --stack-name "$stack" \
-                  --stack-resource-drift-status-filters MODIFIED DELETED \
-                  --query 'length(StackResourceDrifts)' --output text 2>/dev/null) || n=""
-            if [ -z "$n" ] || [ "$n" = "None" ]; then
-              echo "::warning::could not read the drift results for $stack (missing cloudformation:DescribeStackResourceDrifts?)"
-              blocked_cfn "$stack" "results unreadable — missing cloudformation:DescribeStackResourceDrifts?"
-              continue
-            fi
-            echo "$stack: $n drifted resource(s)"
-            if [ "$n" != "0" ]; then
-              drifted=1
-              {
-                echo "### \`$stack\` — AWS differs from its deployed template"
-                echo
-                echo '```'
-                aws cloudformation describe-stack-resource-drifts --stack-name "$stack" \
-                  --stack-resource-drift-status-filters MODIFIED DELETED \
-                  --query 'StackResourceDrifts[].{Id:LogicalResourceId,Status:StackResourceDriftStatus,Diffs:PropertyDifferences[].PropertyPath}' \
-                  --output table
-                echo '```'
-                echo
-              } >> /tmp/drift.md
-            fi
-          done
-          echo "drifted=$drifted" >> "$GITHUB_OUTPUT"
-
       # GROSS spend, and gross is the whole point. This account's promotional
       # credits were absorbing ~75% of the bill, so the OpenSearch collection
       # cost $0.00 net for its entire life and appeared in no net-cost view at
@@ -389,14 +306,136 @@ jobs:
             } >> /tmp/blocked.md
             exit 0
           fi
-          sort -k2 -gr /tmp/cost.txt | head -20 | awk '{printf "  %-46s %10.2f\n", $1, $2}'
+          # The CLI's text output is TAB-separated and service names contain
+          # spaces ("Amazon Elastic Compute Cloud - Compute"). Splitting on
+          # whitespace printed every one of them as "Amazon 0.00" (#118).
+          sort -t "$(printf '\t')" -k2,2 -gr /tmp/cost.txt | head -20 | awk -F '\t' '{printf "  %-56s %10.2f\n", $1, $2}'
           {
             echo "### Gross spend, last 14 days (credits excluded)"
             echo
             echo '```'
-            sort -k2 -gr /tmp/cost.txt | head -20 | awk '{printf "%-46s %10.2f\n", $1, $2}'
+            sort -t "$(printf '\t')" -k2,2 -gr /tmp/cost.txt | head -20 | awk -F '\t' '{printf "%-56s %10.2f\n", $1, $2}'
             echo '```'
           } >> /tmp/cost.md
+
+      # AWS vs its own template. Separate question, separate section, and
+      # NOT_CHECKED rows are dropped because they are resource types
+      # CloudFormation cannot drift-check, not findings (cdk-cutover.md §5).
+      #
+      # EVERY WAY OUT OF THIS LOOP THAT IS NOT AN ANSWER IS RECORDED AS BLOCKED.
+      # On 2026-09-16 both stacks answered AccessDenied on the very first call,
+      # the loop `continue`d, `drifted` stayed 0 and the run reported clean: the
+      # check was not merely useless, it was contributing a confident "no" to a
+      # question it had never asked. The four exits are the grant missing, the
+      # detection ending as anything but DETECTION_COMPLETE (DETECTION_FAILED
+      # means CloudFormation could not read some resources, which is not the same
+      # as finding no drift), the detection still running after five minutes, and
+      # a count that comes back empty because the third call was denied.
+      #
+      # ITS OWN ROLE, `reep-github-drift`, AND ONLY FOR THIS STEP (#117).
+      # CloudFormation reads each live resource with THESE credentials, so the
+      # check needs read access to every resource type in both stacks. That was
+      # refused on the deploy role on purpose: the role that ships code must not
+      # also be able to read the account. `GithubDriftRole` in
+      # infra/cdk/reep_core/stack.py holds the five drift calls on these two
+      # stacks, each type's read-handler permissions from its CloudFormation
+      # schema (reep_core/drift_reader.py), and an explicit Deny on every read
+      # of object bodies, table items, secrets and log lines. It is assumed
+      # AFTER the spend step, which stays on the deploy role, and nothing runs
+      # after this step with its credentials but the report.
+      #
+      # Until reep-core is deployed with it the assume fails, which is a check
+      # that could not run, not a red run: the step below reports it as blocked.
+      - name: Assume the drift-reading role
+        id: drift-creds
+        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DRIFT_ROLE_ARN || 'arn:aws:iam::445363794125:role/reep-github-drift' }}
+          aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
+          role-session-name: reep-drift-detect-${{ github.run_id }}
+
+      - name: CloudFormation drift detection
+        id: cfn
+        continue-on-error: true
+        env:
+          DRIFT_CREDS: ${{ steps.drift-creds.outcome }}
+        run: |
+          set -uo pipefail
+          drifted=0
+          blocked_cfn() {
+            {
+              echo "- \`detect-stack-drift $1\` did not answer ($2), so **$1** was NOT drift-checked this run — blank, not clean."
+              echo "  It runs as \`reep-github-drift\` (\`GithubDriftRole\` in infra/cdk/reep_core/stack.py). If that role could not be assumed,"
+              echo "  reep-core has not been deployed with it yet: run **CDK deploy** with a \`core-*\` option. If the detection ended as"
+              echo "  DETECTION_FAILED, the reason in brackets names the resource it could not read: add that type's read permissions to"
+              echo "  \`READ_PERMISSIONS\` in infra/cdk/reep_core/drift_reader.py."
+            } >> /tmp/blocked.md
+          }
+          # The deploy role's credentials may still be in the environment when
+          # the assume failed. Running the detection with them would be the
+          # 2026-09-16 AccessDenied again, so it does not run at all.
+          if [ "${DRIFT_CREDS:-}" != success ]; then
+            echo "::warning::could not assume reep-github-drift — drift detection skipped"
+            for stack in reep-core reep-voice-platform; do
+              blocked_cfn "$stack" "could not assume reep-github-drift"
+            done
+            echo "drifted=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          for stack in reep-core reep-voice-platform; do
+            id=$(aws cloudformation detect-stack-drift --stack-name "$stack" \
+                   --query StackDriftDetectionId --output text 2>/tmp/cfn.err) || {
+              echo "::warning::could not start drift detection on $stack (missing cloudformation:DetectStackDrift?)"
+              sed -n '1,3p' /tmp/cfn.err || true
+              blocked_cfn "$stack" "could not start — missing cloudformation:DetectStackDrift?"
+              continue; }
+            status=""
+            for _ in $(seq 1 60); do
+              status=$(aws cloudformation describe-stack-drift-detection-status \
+                         --stack-drift-detection-id "$id" \
+                         --query DetectionStatus --output text 2>/dev/null) || status=""
+              [ "$status" != DETECTION_IN_PROGRESS ] && break
+              sleep 5
+            done
+            if [ "$status" != DETECTION_COMPLETE ]; then
+              # DETECTION_FAILED names what it could not read; without the
+              # reason the remedy is a guess.
+              reason=$(aws cloudformation describe-stack-drift-detection-status \
+                         --stack-drift-detection-id "$id" \
+                         --query DetectionStatusReason --output text 2>/dev/null | tr '\n' ' ' | sed 's/ *$//' | cut -c1-400) || reason=""
+              echo "::warning::drift detection on $stack ended as '${status:-unreadable}', not DETECTION_COMPLETE: ${reason}"
+              blocked_cfn "$stack" "ended as '${status:-unreadable}', not DETECTION_COMPLETE${reason:+: $reason}"
+              continue
+            fi
+            # An empty or `None` count is the third call failing, not a stack with
+            # nothing wrong with it: `length()` over the drift list always yields
+            # an integer when the call succeeds.
+            n=$(aws cloudformation describe-stack-resource-drifts --stack-name "$stack" \
+                  --stack-resource-drift-status-filters MODIFIED DELETED \
+                  --query 'length(StackResourceDrifts)' --output text 2>/dev/null) || n=""
+            if [ -z "$n" ] || [ "$n" = "None" ]; then
+              echo "::warning::could not read the drift results for $stack (missing cloudformation:DescribeStackResourceDrifts?)"
+              blocked_cfn "$stack" "results unreadable — missing cloudformation:DescribeStackResourceDrifts?"
+              continue
+            fi
+            echo "$stack: $n drifted resource(s)"
+            if [ "$n" != "0" ]; then
+              drifted=1
+              {
+                echo "### \`$stack\` — AWS differs from its deployed template"
+                echo
+                echo '```'
+                aws cloudformation describe-stack-resource-drifts --stack-name "$stack" \
+                  --stack-resource-drift-status-filters MODIFIED DELETED \
+                  --query 'StackResourceDrifts[].{Id:LogicalResourceId,Status:StackResourceDriftStatus,Diffs:PropertyDifferences[].PropertyPath}' \
+                  --output table
+                echo '```'
+                echo
+              } >> /tmp/drift.md
+            fi
+          done
+          echo "drifted=$drifted" >> "$GITHUB_OUTPUT"
 
       - name: Report
         uses: actions/github-script@v7

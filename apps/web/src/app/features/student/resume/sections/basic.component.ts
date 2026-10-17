@@ -15,11 +15,16 @@
  * with svc.patch('basic', …). It never fetches or PUTs resume-profile itself.
  */
 
-import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Component, ErrorHandler, computed, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { AuthService } from '../../../../core/auth.service';
 import { environment } from '../../../../../environments/environment';
+import {
+  UNREADABLE_FILE_MESSAGE,
+  UPLOAD_DROPPED_MESSAGE,
+  readPickedFile,
+} from '../../../../core/picked-file';
 import { ResumeBuilderService } from '../resume-builder.service';
 import { ResumeIdentityService } from '../resume-identity.service';
 
@@ -108,6 +113,7 @@ export class RbBasicComponent {
   private readonly svc = inject(ResumeBuilderService);
   private readonly auth = inject(AuthService);
   private readonly identity = inject(ResumeIdentityService);
+  private readonly errorHandler = inject(ErrorHandler);
 
   /** Locked identity, synced from the student record (best-effort). */
   readonly usn = this.identity.usn;
@@ -179,8 +185,18 @@ export class RbBasicComponent {
     this.uploadingPhoto.set(true);
     this.photoError.set(null);
     try {
+      // Upload an in-memory copy (core/picked-file.ts): on Android a photo
+      // held by Google Photos or another app can fail to be read at send time.
+      const copy = await readPickedFile(file);
+      if (!copy) {
+        this.photoError.set(UNREADABLE_FILE_MESSAGE);
+        this.errorHandler.handleError(
+          new Error('Resume photo: the picked image could not be read on the device'),
+        );
+        return;
+      }
       const form = new FormData();
-      form.append('file', file);
+      form.append('file', copy);
       form.append('kind', 'PROFILE_PHOTO');
       form.append('title', 'Profile photo');
       const res = await fetch(`${environment.apiBase}/student/uploads`, {
@@ -190,7 +206,13 @@ export class RbBasicComponent {
       });
       if (!res.ok) {
         const d = await res.json().catch(() => null);
-        this.photoError.set(d?.detail ?? 'Photo upload failed — use a PNG or JPEG under 10 MB.');
+        // The server's sentence, or the STATUS: a refusal from the edge has no
+        // JSON body, and a sentence about file types would blame the photo.
+        this.photoError.set(
+          typeof d?.detail === 'string'
+            ? d.detail
+            : `The photo could not be uploaded (${res.status}). Please try again in a minute.`,
+        );
         return;
       }
       const previousId = this.m.photo_upload_id;
@@ -241,7 +263,14 @@ export class RbBasicComponent {
         }).catch(() => undefined);
       }
     } catch {
-      this.photoError.set('Could not reach the server.');
+      // The upload, or reading its answer, is what can throw here: save() and
+      // the cleanup DELETE swallow their own failures. An unreadable answer to
+      // an upload that worked would land here too; the API always answers
+      // JSON, so that case is not told apart. Reported because no server saw it.
+      this.photoError.set(UPLOAD_DROPPED_MESSAGE);
+      this.errorHandler.handleError(
+        new Error('Resume photo upload failed: no HTTP response (network error on the device)'),
+      );
     } finally {
       this.uploadingPhoto.set(false);
       input.value = '';

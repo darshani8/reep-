@@ -45,7 +45,7 @@ from fastapi import (
     UploadFile,
     status,
 )
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -62,6 +62,7 @@ from ..models.job import DegreeLevel
 from ..institution_domains import (
     college_id_for_cohort,
     college_ids_for_cohorts,
+    PUBLIC_MAIL_DOMAINS,
     domain_of,
     normalise_domain,
     provisionable_domains_for,
@@ -87,6 +88,7 @@ from ..models.registration import (
 from ..models.student_profile import StudentProfile
 from ..models.user import Role, Student, User
 from ..student_placement import resolve_student_department
+from ..usn import normalise_usn, usn_is
 from ..governance import require_capability
 from ..policies import scope_filter
 from ..scope_views import (
@@ -170,7 +172,10 @@ def validate_usn_pattern(pattern: str) -> re.Pattern[str]:
             "catastrophic-backtracking risk on the public registration endpoint"
         )
     try:
-        return re.compile(pattern)
+        # IGNORECASE (2026-10-16): `RegisterIn` upper-cases every USN now, so a
+        # rule written in lower case (`^1mp25`) would otherwise match nobody
+        # and send every applicant it was meant for to manual review, silently.
+        return re.compile(pattern, re.IGNORECASE)
     except re.error as exc:
         raise ValueError(f"usn_pattern is not a valid regular expression: {exc}") from exc
 
@@ -324,16 +329,7 @@ def _looks_like_email(value: str) -> bool:
     return "@" in value and "." in value.rsplit("@", 1)[-1]
 
 
-#: Domains that hand an address to anybody who asks, so one of them is never a
-#: college's. Only the big providers, and deliberately not a complete list: the
-#: point is the common mistake, not a directory of free mail.
-PUBLIC_MAIL_DOMAINS = frozenset(
-    {
-        "gmail.com", "googlemail.com", "yahoo.com", "yahoo.co.in", "yahoo.in",
-        "outlook.com", "hotmail.com", "live.com", "msn.com", "icloud.com",
-        "me.com", "rediffmail.com", "proton.me", "protonmail.com", "aol.com",
-    }
-)
+_PHONE_CHARS = re.compile(r"^[0-9+()\-. ]+$")
 
 
 def _college_email_problem(college_email: str, personal_email: str) -> str | None:
@@ -421,12 +417,37 @@ class RegisterIn(BaseModel):
     linkedin_url: str = Field(min_length=1, max_length=300)
     degree_level: DegreeLevel = DegreeLevel.PG
 
-    @field_validator("usn", "phone", "personal_email", "linkedin_url")
+    @field_validator("name", "usn", "phone", "personal_email", "linkedin_url")
     @classmethod
     def _not_blank(cls, value: str) -> str:
+        # `name` joined this list on 2026-10-13: `min_length=1` alone let a
+        # name of spaces through, and the review queue showed an applicant
+        # with no name at all.
         value = value.strip()
         if not value:
             raise ValueError("this field is required")
+        return value
+
+    @field_validator("usn")
+    @classmethod
+    def _usn_upper_case(cls, value: str) -> str:
+        """Upper case, as the roster stores it (2026-10-16). Stored as typed,
+        `1mp25ba033` was not matched against a student holding `1MP25BA033`,
+        and approving it seated a second student with the same number. See
+        app/usn.py. Runs after `_not_blank`, so the value is already stripped."""
+        return value.upper()
+
+    @field_validator("phone")
+    @classmethod
+    def _phone_shape(cls, value: str) -> str:
+        """Digits with the usual separators, and a phone number's worth of
+        digits. The value is copied onto the student's placement profile at
+        approval, where "call me maybe" is a number nobody can ring."""
+        if not _PHONE_CHARS.match(value):
+            raise ValueError("enter a phone number using digits, spaces, + - ( ) only")
+        digits = sum(ch.isdigit() for ch in value)
+        if not 7 <= digits <= 15:
+            raise ValueError("a phone number has between 7 and 15 digits")
         return value
 
     @field_validator(
@@ -628,6 +649,13 @@ class CheckOut(BaseModel):
     label: str
     #: One sentence saying what it means for the decision about to be made.
     detail: str
+    #: The student a check is about, where it names one (2026-10-16). Set only
+    #: on `usn_unique` when ANOTHER student holds the USN and the reviewer's
+    #: reach is the whole programme, so the panel can open that record: "is
+    #: this the same person, or a typo?" cannot be answered from a USN alone.
+    #: Null everywhere else, including for a scoped reviewer, whose reach may
+    #: not cover the student holding the number.
+    student_id: str | None = None
 
 
 class RegistrationOut(BaseModel):
@@ -772,9 +800,14 @@ _DOCUMENT_ROUTES: dict[str, tuple[str, frozenset[str], str]] = {
     "photo": (DOCUMENT_KIND_PHOTO, frozenset({"image/png", "image/jpeg"}), "a PNG or JPG"),
 }
 
+#: The title the application's CV carries once it is the student's upload.
+#: The office's Student 360 page reads it to tell that CV apart from one the
+#: student uploaded later (`admin_student_360.Document360Out.from_application`).
+APPLICATION_CV_TITLE = "CV from application"
+
 #: Where a moved document lands in the student's own uploads on approval.
 _DOCUMENT_TO_UPLOAD_KIND: dict[str, tuple[UploadKind, str]] = {
-    DOCUMENT_KIND_CV: (UploadKind.RESUME, "CV from application"),
+    DOCUMENT_KIND_CV: (UploadKind.RESUME, APPLICATION_CV_TITLE),
     DOCUMENT_KIND_PHOTO: (UploadKind.PROFILE_PHOTO, "Photo from application"),
 }
 
@@ -953,8 +986,14 @@ def _checks_for(
     *,
     docs: dict[str, list[str]] | None = None,
     names: dict[str, dict[str, str | None]] | None = None,
+    reveal_holders: bool = False,
 ) -> dict[str, list[CheckOut]]:
     """The pre-decision checklist for a whole page, in a handful of queries.
+
+    `reveal_holders` names the student who already holds an application's USN
+    (one more query, only when asked). The caller passes True only for a
+    programme-wide reach: a scoped reviewer is told the USN is taken and not
+    by whom, since that student may be outside their grant.
 
     BATCHED BY `IN`, NEVER PER ROW — `_doc_kinds` and `_claim_names` above are the
     house pattern and this follows it, because the queue has no LIMIT and the two
@@ -1005,7 +1044,7 @@ def _checks_for(
             users_by_email[(u.email or "").lower()] = u
 
     # -- the students behind those accounts, and whoever holds these USNs -----
-    usns = {(r.usn or "").strip() for r in rows if (r.usn or "").strip()}
+    usns = {u for u in (normalise_usn(r.usn) for r in rows) if u}
     user_ids = {u.id for u in users_by_email.values()}
     student_by_user: dict[str, Student] = {}
     student_by_usn: dict[str, Student] = {}
@@ -1013,12 +1052,21 @@ def _checks_for(
     if user_ids:
         clauses.append(Student.user_id.in_(list(user_ids)))
     if usns:
-        clauses.append(Student.usn.in_(list(usns)))
+        # Upper case on both sides (app/usn.py): a lowercase USN written before
+        # 2026-10-16 is still the same number.
+        clauses.append(func.upper(Student.usn).in_(list(usns)))
     if clauses:
         for st in db.scalars(select(Student).where(or_(*clauses))).all():
             student_by_user[st.user_id] = st
             if st.usn:
-                student_by_usn[st.usn] = st
+                student_by_usn[st.usn.upper()] = st
+
+    # -- who those USN holders are, for a reviewer allowed to be told --------
+    holder_users: dict[str, User] = {}
+    if reveal_holders and student_by_usn:
+        holder_ids = {st.user_id for st in student_by_usn.values()}
+        for u in db.scalars(select(User).where(User.id.in_(list(holder_ids)))).all():
+            holder_users[u.id] = u
 
     # -- the rejected applications these addresses made before ----------------
     # Newest decision first, so `prior[0]` is the one the reviewer should read.
@@ -1057,6 +1105,7 @@ def _checks_for(
             account=users_by_email.get((r.email or "").strip().lower()),
             student_by_user=student_by_user,
             student_by_usn=student_by_usn,
+            holder_users=holder_users,
             rule=rules_by_id.get(r.matched_rule_id) if r.matched_rule_id else None,
             # Not itself: a row in the Rejected tab is never in `rows` here
             # (DECIDABLE_STATUSES), but the exclusion costs nothing and keeps
@@ -1096,6 +1145,7 @@ def _checks_for_one(
     student_by_user: dict[str, Student],
     student_by_usn: dict[str, Student],
     rule: RegistrationRule | None,
+    holder_users: dict[str, User] | None = None,
     prior: Sequence[Registration] = (),
     docs: Sequence[str] = (),
     specializations: Sequence[str] = (),
@@ -1110,6 +1160,8 @@ def _checks_for_one(
     `docs` is the kinds attached ("CV", "PHOTO"), from the queue's own lookup.
     `specializations` is the ticked specializations BY NAME, in the row's
     order; two of them is a dual specialization and earns a line.
+    `holder_users` is the accounts behind `student_by_usn`, keyed by user id,
+    and is filled only for a reviewer who may be told who holds a USN.
     """
     checks: list[CheckOut] = []
     reason = (r.decision_reason or "").strip()
@@ -1243,7 +1295,7 @@ def _checks_for_one(
     # check that skipped that branch would report a refusal on an approval that
     # in fact succeeds. That is the same defect as a green check on a row Approve
     # refuses, in the other direction.
-    usn = (r.usn or "").strip()
+    usn = normalise_usn(r.usn) or ""
     own_student = student_by_user.get(account.id) if account is not None else None
     holder = student_by_usn.get(usn) if usn else None
     if not usn:
@@ -1255,7 +1307,7 @@ def _checks_for_one(
                 detail="Approving seats them without one; Students & batches can add it later.",
             )
         )
-    elif own_student is not None and own_student.usn == usn:
+    elif own_student is not None and (own_student.usn or "").upper() == usn:
         checks.append(
             CheckOut(
                 key=CHECK_USN_UNIQUE,
@@ -1277,17 +1329,42 @@ def _checks_for_one(
             )
         )
     elif holder is not None:
-        checks.append(
-            CheckOut(
-                key=CHECK_USN_UNIQUE,
-                status=CHECK_BLOCKED,
-                label=f"USN {usn} already belongs to another student",
-                detail=(
-                    "Approve refuses this (409). Correct the USN on this application, or "
-                    "reject it as a duplicate."
-                ),
+        # WHO HOLDS IT IS THE WHOLE DECISION (2026-10-16). A mistyped USN, the
+        # same person applying under a second address, and another record
+        # carrying the wrong number all looked identical here, and the line
+        # sent the reviewer to "correct the USN on this application" when no
+        # screen could. The name, the address and a link to the record let the
+        # reviewer tell them apart; `PATCH /register/{id}` is the correction.
+        # Never put the holder in `_provision_student`'s 409: `_apply_rule`
+        # writes that sentence into the public `decision_reason`.
+        owner = (holder_users or {}).get(holder.user_id)
+        if owner is not None:
+            removed = " - a removed account" if owner.deleted_at is not None else ""
+            checks.append(
+                CheckOut(
+                    key=CHECK_USN_UNIQUE,
+                    status=CHECK_BLOCKED,
+                    label=f"USN {usn} already belongs to {owner.name} ({owner.email}){removed}",
+                    detail=(
+                        "Approve refuses this (409). If the USN here is mistyped, use Correct "
+                        "USN. If that record is this same person, reject this as a duplicate. "
+                        "If that record's USN is wrong, fix it on Students first."
+                    ),
+                    student_id=holder.id,
+                )
             )
-        )
+        else:
+            checks.append(
+                CheckOut(
+                    key=CHECK_USN_UNIQUE,
+                    status=CHECK_BLOCKED,
+                    label=f"USN {usn} already belongs to another student",
+                    detail=(
+                        "Approve refuses this (409). If the USN here is mistyped, use Correct "
+                        "USN; otherwise reject this as a duplicate."
+                    ),
+                )
+            )
     else:
         checks.append(
             CheckOut(
@@ -1660,6 +1737,17 @@ def _resolve_claim(db: Session, body: RegisterIn) -> dict[str, str | None]:
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"That {noun} does not exist. Reload the form and choose again.",
             )
+        # The hierarchy this form is drawn from lists ACTIVE colleges,
+        # departments, courses and specializations only; an id for an
+        # archived one can only come from a stale page or a hand-made request,
+        # and approving it would seat a student somewhere the office has
+        # closed. A batch is not judged here: the hierarchy serves every batch
+        # whatever its lifecycle status, and the form and this check must agree.
+        if model is not Cohort and getattr(row, "status", STATUS_ACTIVE) != STATUS_ACTIVE:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"That {noun} is not taking applications. Reload the form and choose again.",
+            )
         return row
 
     batch = load(Cohort, body.requested_cohort_id, "batch")
@@ -1958,7 +2046,9 @@ def submit(
     _apply_rule(db, reg)
     db.commit()
     db.refresh(reg)
-    log.info("application %s from %s is %s", reg.id, email, reg.status.value)
+    # The id and never the address: the log carries no applicant by name (a
+    # reviewer reads who it is from the queue, which is behind require_admin).
+    log.info("application %s is %s", reg.id, reg.status.value)
     return _public_out_one(db, reg)
 
 
@@ -2067,7 +2157,11 @@ def pending(
     names = _claim_names(db, rows)
     # Only a row somebody can still decide gets a checklist. See
     # DECIDABLE_STATUSES: null here means NOT COMPUTED, never "nothing wrong".
-    checks = _checks_for(db, rows, docs=kinds, names=names) if wanted in DECIDABLE_STATUSES else {}
+    checks = (
+        _checks_for(db, rows, docs=kinds, names=names, reveal_holders=reach.everything)
+        if wanted in DECIDABLE_STATUSES
+        else {}
+    )
     return [_out(r, kinds.get(r.id, ()), names.get(r.id), checks.get(r.id)) for r in rows]
 
 
@@ -2284,8 +2378,10 @@ def _provision_student(db: Session, reg: Registration) -> Student:
 
     student = db.scalar(select(Student).where(Student.user_id == user.id))
     if student is None:
-        usn = (reg.usn or "").strip() or None
-        if usn is not None and db.scalar(select(Student.id).where(Student.usn == usn)) is not None:
+        # Upper case, and compared upper case (app/usn.py): an application
+        # typed in lower case is the same number as the roster's.
+        usn = normalise_usn(reg.usn)
+        if usn is not None and db.scalar(select(Student.id).where(usn_is(Student.usn, usn))) is not None:
             # ------------------------------------------------------------------ #
             # GUARD 3: the USN. `students.usn` is `unique=True, nullable=True`,
             # and this line wrote it with no check at all — so two applications
@@ -2421,7 +2517,7 @@ def _apply_rule(db: Session, reg: Registration) -> None:
     except HTTPException as refused:
         reg.status = RegistrationStatus.PENDING_REVIEW
         reg.decision_reason = f"Rule '{rule.name}' would auto-approve, but: {refused.detail}"
-        log.warning("auto-approve of %s refused: %s", reg.email, refused.detail)
+        log.warning("auto-approve of application %s refused: %s", reg.id, refused.detail)
         return
     db.flush()
     # THE SAME ACT `decide` PERFORMS ON APPROVE, and it was missing here. The
@@ -2881,6 +2977,98 @@ def download_document(
         # it leaves latin-1, which at this college is a matter of course.
         headers={"Content-Disposition": content_disposition(doc.original_name)},
     )
+
+
+class RegistrationCorrectionIn(BaseModel):
+    """What a reviewer may correct on an application still waiting for a
+    decision: the USN, and nothing else. An unknown field is a 422 rather than
+    ignored, so a client that sends `email` learns it was not applied."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    usn: str = Field(min_length=1, max_length=32)
+
+    @field_validator("usn")
+    @classmethod
+    def _clean_usn(cls, value: str) -> str:
+        # Upper case, as the roster stores it (app/usn.py).
+        value = normalise_usn(value)
+        if value is None:
+            raise ValueError("enter the USN")
+        return value
+
+
+@router.patch("/{registration_id}", response_model=RegistrationOut)
+def correct(
+    registration_id: str,
+    body: RegistrationCorrectionIn,
+    request: Request,
+    session: dict = Depends(get_current_session),
+    db: Session = Depends(get_db),
+) -> RegistrationOut:
+    """Correct the USN on an application waiting for a decision (2026-10-16).
+
+    THE CHECKLIST AND THE 409 BOTH SAID "CORRECT THE USN ON THIS APPLICATION",
+    AND NOTHING COULD. An application whose USN another student held could
+    only be rejected, so an applicant who mistyped one digit was refused and
+    had to apply again. This is that correction.
+
+    Only PENDING_REVIEW and HOLD, the statuses Approve still accepts: on a
+    decided application the USN is history, and an approved one's number lives
+    on the student's record, which Students edits.
+
+    A USN another student holds is refused here too (409), because correcting
+    one clash into another helps nobody. The applicant's OWN record holding it
+    is not a clash: Approve reuses that record (GUARD 3's control flow).
+
+    Answers the row WITH its checklist, unlike `decision`, `hold` and `reopen`:
+    the row is still in the queue, and the reviewer needs the new verdict to
+    decide it.
+    """
+    require_capability(db, session, "admin.registrations")
+    reg = db.scalar(
+        select(Registration).where(Registration.id == registration_id).with_for_update()
+    )
+    if reg is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
+    _assert_reachable(db, session, reg)
+    if reg.status not in DECIDABLE_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only an application waiting for a decision can be corrected.",
+        )
+    reveal = scope_filter(db, session, "admin.registrations").everything
+    usn = body.usn
+    before = reg.usn
+    if usn != before:
+        holder = db.scalar(select(Student).where(usn_is(Student.usn, usn)))
+        if holder is not None:
+            account = db.scalar(
+                select(User).where(func.lower(User.email) == (reg.email or "").strip().lower())
+            )
+            if account is None or holder.user_id != account.id:
+                owner = db.get(User, holder.user_id) if reveal else None
+                who = f"{owner.name} ({owner.email})" if owner is not None else "another student"
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=(
+                        f"USN {usn} already belongs to {who}. Check the number, or fix that "
+                        "record on Students first."
+                    ),
+                )
+        reg.usn = usn
+        record_change(
+            db, session=session, request=request, tenant_id=None,
+            entity_type="registration", entity_id=reg.id, action="CORRECTED",
+            before={"usn": before}, after={"usn": usn},
+            event_type="registration.corrected", payload={"email": reg.email},
+        )
+        db.commit()
+        db.refresh(reg)
+    kinds = _doc_kinds(db, [reg.id])
+    names = _claim_names(db, [reg])
+    checks = _checks_for(db, [reg], docs=kinds, names=names, reveal_holders=reveal)
+    return _out(reg, kinds.get(reg.id, ()), names.get(reg.id), checks.get(reg.id))
 
 
 class HoldIn(BaseModel):

@@ -62,11 +62,16 @@ from ..policies import scope_filter
 from ..scope_views import scope_header
 from ..semester_bounds import ceiling_for_cohort, ceiling_for_student, rejection
 from ..mentor_history import record_mentor_change
+from ..usn import usn_is
 # B9. The assignment screen's two rules, imported rather than restated: a
 # faculty account becomes a mentor by being handed a student, and a mentor must
 # be in the student's own college. Two copies of a college rule disagree the
 # first time one of them is corrected.
-from .admin_mentoring import _assert_same_college, ensure_mentor_group
+from .admin_mentoring import (
+    _assert_same_college,
+    assert_move_keeps_mentor_in_college,
+    ensure_mentor_group,
+)
 from .registration import SSO_ONLY_PASSWORD_HASH
 
 router = APIRouter(prefix="/admin", tags=["admin-students"])
@@ -537,7 +542,9 @@ def update_student(
             profile.email = body.email
     if "usn" in sent and body.usn != student.usn:
         if body.usn is not None:
-            taken = db.scalar(select(Student.id).where(Student.usn == body.usn, Student.id != student.id))
+            taken = db.scalar(
+                select(Student.id).where(usn_is(Student.usn, body.usn), Student.id != student.id)
+            )
             if taken is not None:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"USN {body.usn} already belongs to a student.")
         student.usn = body.usn
@@ -551,6 +558,11 @@ def update_student(
     if "cohort_id" in sent:
         if body.cohort_id is not None:
             _cohort_or_404(db, body.cohort_id)
+            # A request that also names a mentor is judged by the mentor branch
+            # below, against the new batch; one that does not keeps the current
+            # mentor, who must be in the destination's college (B1.5).
+            if "mentor_user_id" not in sent:
+                assert_move_keeps_mentor_in_college(db, student, body.cohort_id)
         student.cohort_id = body.cohort_id
     # Re-derived whenever EITHER pointer moves, not just when the client names a
     # department: moving a student into another batch must not leave them filed
@@ -687,6 +699,10 @@ def batch_action(
         if body.cohort_id == cohort.id:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="That is the same batch.")
         _cohort_or_404(db, body.cohort_id)
+        # Every student is judged BEFORE any is moved, so a refusal leaves the
+        # batch exactly as it was rather than half moved.
+        for s in students:
+            assert_move_keeps_mentor_in_college(db, s, body.cohort_id)
         for s in students:
             s.cohort_id = body.cohort_id
             # The destination batch's department travels WITH the move. Setting

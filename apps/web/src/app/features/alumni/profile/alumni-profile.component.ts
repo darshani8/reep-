@@ -9,11 +9,12 @@
  * the one on file.
  */
 
-import { Component, signal } from '@angular/core';
+import { Component, ErrorHandler, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { environment } from '../../../../environments/environment';
+import { UNREADABLE_FILE_MESSAGE, readPickedFile } from '../../../core/picked-file';
 
 interface ResumeMeta {
   original_name: string;
@@ -35,6 +36,12 @@ interface AlumniProfileOut {
 
 const MAX_BYTES = 10 * 1024 * 1024; // matches the server cap
 
+/** `fetch` threw on Save: no HTTP answer at all. It used to say "Could not
+ *  reach the server.", which blamed the server for a phone's connection. */
+const SAVE_DROPPED_MESSAGE =
+  'Your profile was not saved: the connection dropped. Check your internet ' +
+  '(Wi-Fi works best for files) and try again. Everything you filled in is still here.';
+
 @Component({
   selector: 'app-alumni-profile',
   standalone: true,
@@ -43,6 +50,7 @@ const MAX_BYTES = 10 * 1024 * 1024; // matches the server cap
 })
 export class AlumniProfileComponent {
   readonly apiBase = environment.apiBase;
+  private readonly errorHandler = inject(ErrorHandler);
 
   /** null while the first GET is in flight. */
   readonly profile = signal<AlumniProfileOut | null>(null);
@@ -57,7 +65,18 @@ export class AlumniProfileComponent {
   /** ISO yyyy-MM-dd, which is what <input type="date"> reads and writes. */
   joinedOn = '';
   graduationYear = '';
-  pickedFile: File | null = null;
+  /**
+   * The resume as an in-memory copy, made when it is picked (core/picked-file.ts).
+   * The form is filled in AFTER the resume and sent on Save, and on Android a
+   * file held by Drive or another app can stop being readable in between. A
+   * signal, because it is set after an await and this app has no zone.js to
+   * notice a plain field changing.
+   */
+  readonly pickedFile = signal<File | null>(null);
+  /** true while a picked resume is being read into memory; Save waits for it. */
+  readonly resumeReading = signal(false);
+  /** Bumped on every pick, so a slow read of an earlier pick cannot win. */
+  private pickSeq = 0;
 
   readonly saving = signal(false);
   readonly saveError = signal<string | null>(null);
@@ -92,7 +111,7 @@ export class AlumniProfileComponent {
 
   startEdit(): void {
     this.saveError.set(null);
-    this.pickedFile = null;
+    this.clearPick();
     this.editing.set(true);
   }
 
@@ -103,24 +122,51 @@ export class AlumniProfileComponent {
     this.designation = prof.designation ?? '';
     this.joinedOn = prof.joined_on ?? '';
     this.graduationYear = prof.graduation_year ? String(prof.graduation_year) : '';
-    this.pickedFile = null;
+    this.clearPick();
     this.saveError.set(null);
     this.editing.set(false);
   }
 
-  onPick(event: Event): void {
+  async onPick(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
+    const seq = ++this.pickSeq;
+    this.resumeReading.set(false);
     if (file && file.size > MAX_BYTES) {
       this.saveError.set('That file is over 10 MB. Please upload a smaller PDF.');
       input.value = '';
       return;
     }
     this.saveError.set(null);
-    this.pickedFile = file;
+    if (!file) {
+      this.pickedFile.set(null);
+      return;
+    }
+    this.resumeReading.set(true);
+    const copy = await readPickedFile(file);
+    if (seq !== this.pickSeq) return; // a later pick (or Cancel) owns the form now
+    this.resumeReading.set(false);
+    if (!copy) {
+      this.pickedFile.set(null);
+      this.saveError.set(UNREADABLE_FILE_MESSAGE);
+      input.value = '';
+      // A fixed sentence: nothing from the form or the file name.
+      this.errorHandler.handleError(
+        new Error('Alumni profile: the picked resume could not be read on the device'),
+      );
+      return;
+    }
+    this.pickedFile.set(copy);
+  }
+
+  private clearPick(): void {
+    this.pickSeq++;
+    this.resumeReading.set(false);
+    this.pickedFile.set(null);
   }
 
   async save(): Promise<void> {
+    if (this.saving() || this.resumeReading()) return;
     this.saveError.set(null);
     const company = this.company.trim();
     if (!company) {
@@ -128,7 +174,8 @@ export class AlumniProfileComponent {
       return;
     }
     const isFirstSave = !this.profile()?.created;
-    if (isFirstSave && !this.pickedFile) {
+    const resume = this.pickedFile();
+    if (isFirstSave && !resume) {
       this.saveError.set('Upload your current resume to create your profile.');
       return;
     }
@@ -147,7 +194,7 @@ export class AlumniProfileComponent {
       // Omitted when blank — the server parses it as an int and an empty
       // string would 422 instead of meaning "not given".
       if (year) form.append('graduation_year', year);
-      if (this.pickedFile) form.append('resume', this.pickedFile);
+      if (resume) form.append('resume', resume);
       const res = await fetch(`${this.apiBase}/alumni/profile`, {
         method: 'POST',
         credentials: 'include',
@@ -155,16 +202,26 @@ export class AlumniProfileComponent {
       });
       if (!res.ok) {
         const detail = await res.json().catch(() => null);
-        this.saveError.set(detail?.detail ?? 'Could not save your profile.');
+        // The server's sentence, or the STATUS: a refusal from the edge has no
+        // JSON body, and a list `detail` would print as [object Object].
+        this.saveError.set(
+          typeof detail?.detail === 'string'
+            ? detail.detail
+            : `Your profile could not be saved (${res.status}). Please try again in a minute.`,
+        );
         return;
       }
       this.profile.set((await res.json()) as AlumniProfileOut);
-      this.pickedFile = null;
+      this.clearPick();
       this.editing.set(false);
       this.savedFlash.set(true);
       setTimeout(() => this.savedFlash.set(false), 2500);
     } catch {
-      this.saveError.set('Could not reach the server.');
+      this.saveError.set(SAVE_DROPPED_MESSAGE);
+      // Reported because no server saw it. A fixed sentence, nothing from the form.
+      this.errorHandler.handleError(
+        new Error('Alumni profile save failed: no HTTP response (network error on the device)'),
+      );
     } finally {
       this.saving.set(false);
     }

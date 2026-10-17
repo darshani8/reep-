@@ -3,40 +3,32 @@
     <div>
       <div class="crumb"><span>Settings</span><span class="sep">/</span><span>Who can do what</span></div>
       <h1 class="dt-title">Who can do what</h1>
-      <div class="dt-sub">Who may open which screen, and until when.</div>
+      <div class="dt-sub">Give faculty access to screens, and take it away.</div>
     </div>
     <div class="dt-toolbar">
-      <!-- B2.4's GET /review, live. Two lists — waiting for approval, and
-           running out — and the count is both, because both need somebody. -->
-      <button type="button" class="btn secondary" (click)="openReviewQueue()">
-        <span class="icon" aria-hidden="true">rate_review</span> Review queue
-        @if (reviewCount() > 0) {
-          <span class="gov-tab-count">· {{ reviewCount() }}</span>
-        }
-      </button>
-      <button type="button" class="btn secondary" (click)="focusGrantForm()">
-        <span class="icon" aria-hidden="true">key</span> Give access
-      </button>
+      <a class="btn secondary gv-link" routerLink="/admin/governance/features">
+        <span class="icon" aria-hidden="true">tune</span> Student feature switches
+      </a>
+      <a class="btn secondary gv-link" routerLink="/admin/audit">
+        <span class="icon" aria-hidden="true">history</span> What changed
+      </a>
     </div>
   </div>
 
   <div role="status">
     @if (state() === 'loading') {
-      <div class="notice info gov-note">
-        <span class="icon" aria-hidden="true">hourglass_empty</span>
-        <div>Loading…</div>
-      </div>
+      <p class="loading-line">Loading…</p>
     }
     @if (flash()) {
-      <div class="notice good gov-note">
-        <span class="icon" aria-hidden="true">check</span>
+      <div class="notice good gv-note">
+        <span class="icon" aria-hidden="true">check_circle</span>
         <div>{{ flash() }}</div>
       </div>
     }
   </div>
   <div role="alert">
     @if (error()) {
-      <div class="notice gov-note">
+      <div class="notice gv-note">
         <span class="icon" aria-hidden="true">error</span>
         <div>{{ error() }}</div>
       </div>
@@ -44,63 +36,105 @@
   </div>
 
   @if (state() === 'ready') {
-    <!-- ONE REASON BOX FOR THREE WRITES, and it sits above the tabs because a
-         row can be acted on from the register or from the review queue and the
-         box must not scroll away with whichever list opened it. -->
+    <div class="gv-tabs" role="tablist" aria-label="Who can do what">
+      <button
+        type="button"
+        role="tab"
+        id="gv-tab-give"
+        aria-controls="gv-pane"
+        class="gv-tab"
+        [class.active]="tab() === 'give'"
+        [attr.aria-selected]="tab() === 'give'"
+        (click)="openTab('give')"
+      >
+        <span class="icon" aria-hidden="true">key</span> Give access
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id="gv-tab-holders"
+        aria-controls="gv-pane"
+        class="gv-tab"
+        [class.active]="tab() === 'holders'"
+        [attr.aria-selected]="tab() === 'holders'"
+        (click)="openTab('holders')"
+      >
+        <span class="icon" aria-hidden="true">group</span> Who has access
+        <span class="gv-count">{{ grantRows().length }}</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id="gv-tab-attention"
+        aria-controls="gv-pane"
+        class="gv-tab"
+        [class.active]="tab() === 'attention'"
+        [attr.aria-selected]="tab() === 'attention'"
+        (click)="openTab('attention')"
+      >
+        <span class="icon" aria-hidden="true">pending_actions</span> Needs attention
+        <span class="gv-count" [class.hot]="reviewCount() > 0">{{ reviewCount() }}</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id="gv-tab-groups"
+        aria-controls="gv-pane"
+        class="gv-tab"
+        [class.active]="tab() === 'groups'"
+        [attr.aria-selected]="tab() === 'groups'"
+        (click)="openTab('groups')"
+      >
+        <span class="icon" aria-hidden="true">groups</span> Groups
+        <span class="gv-count">{{ groups().length }}</span>
+      </button>
+    </div>
+
+    <!-- ONE REASON BOX for approve, extend and remove. It sits above the
+         panes, so the list that opened it can scroll without taking it along. -->
     @if (actionKind(); as kind) {
-      <section class="card gov-action" [attr.aria-label]="actionTitle()">
-        <h2 class="gov-card-title">{{ actionTitle() }}</h2>
-        <ul class="gov-action-list">
+      <section class="card gv-action" [attr.aria-label]="actionTitle()">
+        <h2 class="gv-title">{{ actionTitle() }}</h2>
+        <ul class="gv-action-list">
           @for (row of actionRows(); track row.id) {
             <li>
               <strong>{{ row.functionLabel }}</strong>
-              <span class="gov-sub">
+              <span class="gv-sub">
                 {{ kind === 'revoke' ? 'from' : 'for' }} {{ row.subjectLabel }} · {{ row.reachLabel }}
               </span>
             </li>
           }
         </ul>
 
-        @if (kind === 'approve') {
-          <div class="notice accent gov-note">
-            <span class="icon" aria-hidden="true">how_to_reg</span>
-            <div>
-              Approving makes it live. A deputy cannot approve a grant they made themselves.
-            </div>
-          </div>
-        }
-
         @if (kind === 'extend') {
-          <div class="gov-two">
+          <div class="gv-two">
             <div class="field">
-              <label for="gov-action-expiry">New expiry</label>
+              <label for="gv-action-expiry">New end date</label>
               <input
-                id="gov-action-expiry"
+                id="gv-action-expiry"
                 class="ctrl"
                 type="date"
                 [value]="actionExpiry()"
                 (change)="actionExpiry.set($any($event.target).value)"
               />
-              <span class="help">Optional if you set a review date.</span>
             </div>
             <div class="field">
-              <label for="gov-action-review">New review date</label>
+              <label for="gv-action-review">New review date</label>
               <input
-                id="gov-action-review"
+                id="gv-action-review"
                 class="ctrl"
                 type="date"
                 [value]="actionReview()"
                 (change)="actionReview.set($any($event.target).value)"
               />
-              <span class="help">Optional if you set an expiry.</span>
             </div>
           </div>
         }
 
         <div class="field">
-          <label for="gov-action-reason">Reason</label>
+          <label for="gv-action-reason">Reason</label>
           <textarea
-            id="gov-action-reason"
+            id="gv-action-reason"
             #actionReasonBox
             class="ctrl multi"
             rows="2"
@@ -109,14 +143,9 @@
             [value]="actionReason()"
             (input)="actionReason.set($any($event.target).value)"
           ></textarea>
-          <span class="help">
-            A reason of at least {{ minReason() | plural: 'character' }} is required. It is
-            written onto the audit trail — and on an extension it is a fresh decision, not the
-            first one repeated.
-          </span>
         </div>
 
-        <div class="gov-actions">
+        <div class="gv-actions">
           <button type="button" class="btn ghost" (click)="cancelAction()">Cancel</button>
           <button
             type="button"
@@ -128,251 +157,375 @@
             {{ actionVerb() }}
           </button>
           @if (actionBlockedBecause(); as why) {
-            <span class="gov-blocked">{{ why }}</span>
+            <span class="gv-blocked">{{ why }}</span>
           }
         </div>
       </section>
     }
 
-    <div class="tabs gov-tabs">
-      <div class="gov-tablist" role="tablist" aria-label="Governance sections">
-      <button
-        type="button"
-        role="tab"
-        id="gov-tab-grants"
-        aria-controls="gov-pane-grants"
-        class="tab"
-        [class.active]="tab() === 'grants'"
-        [attr.aria-selected]="tab() === 'grants'"
-        (click)="tab.set('grants')"
-      >
-        Grants<span class="gov-tab-count">· {{ grantRows().length }}</span>
-      </button>
-      <button
-        type="button"
-        role="tab"
-        id="gov-tab-review"
-        aria-controls="gov-pane-review"
-        class="tab"
-        [class.active]="tab() === 'review'"
-        [attr.aria-selected]="tab() === 'review'"
-        (click)="tab.set('review')"
-      >
-        Review<span class="gov-tab-count">· {{ reviewCount() }}</span>
-      </button>
-      <button
-        type="button"
-        role="tab"
-        id="gov-tab-catalogue"
-        aria-controls="gov-pane-catalogue"
-        class="tab"
-        [class.active]="tab() === 'catalogue'"
-        [attr.aria-selected]="tab() === 'catalogue'"
-        (click)="tab.set('catalogue')"
-      >
-        Access types<span class="gov-tab-count">· {{ functionCatalogue().length }}</span>
-      </button>
-      <button
-        type="button"
-        role="tab"
-        id="gov-tab-groups"
-        aria-controls="gov-pane-groups"
-        class="tab"
-        [class.active]="tab() === 'groups'"
-        [attr.aria-selected]="tab() === 'groups'"
-        (click)="tab.set('groups')"
-      >
-        Groups<span class="gov-tab-count">· {{ groups().length }}</span>
-      </button>
-      </div>
-      <!-- Two destinations rather than two tabs: the student switches and the
-           audit log are screens of their own (§20, §21), and a tab that
-           navigates away is honest about that. -->
-      <a class="tab gov-tablink" routerLink="/admin/governance/features">
-        Student feature switches<span class="icon" aria-hidden="true">open_in_new</span>
-      </a>
-      <a class="tab gov-tablink" routerLink="/admin/audit">
-        What changed<span class="icon" aria-hidden="true">open_in_new</span>
-      </a>
-    </div>
-
-    <!-- =================================================== GRANTS ======= -->
-    @if (tab() === 'grants') {
-      <div role="tabpanel" id="gov-pane-grants" aria-labelledby="gov-tab-grants">
-      <div class="gov-filters">
-        <!-- B1.2/B1.4. A grant now carries its own reach, so these two narrow
-             the register by the rung a grant touches — not by the rung it was
-             hung on exactly. See `reachTouches`. -->
-        <div class="select">
-          <span class="lbl">College</span>
-          <span class="val">{{ collegeFilterLabel() }}</span>
-          <select aria-label="College" (change)="setCollegeFilter($any($event.target).value)">
-            <option value="" [selected]="collegeFilter() === ''">All colleges</option>
-            @for (node of colleges(); track node.id) {
-              <option [value]="node.id" [selected]="collegeFilter() === node.id">
-                {{ node.label }} — {{ node.students | plural: 'student' }}
-              </option>
-            }
-          </select>
-        </div>
-        <div class="select">
-          <span class="lbl">Department</span>
-          <span class="val">{{ departmentFilterLabel() }}</span>
-          <select aria-label="Department" (change)="setDepartmentFilter($any($event.target).value)">
-            <option value="" [selected]="departmentFilter() === ''">All departments</option>
-            @for (node of departmentsInScope(); track node.id) {
-              <option [value]="node.id" [selected]="departmentFilter() === node.id">
-                {{ node.label }} — {{ node.students | plural: 'student' }}
-              </option>
-            }
-          </select>
-        </div>
-
-        <div class="select gov-function-filter">
-          <span class="lbl">Access</span>
-          <span class="val">{{ functionFilterLabel() }}</span>
-          <select aria-label="Function" (change)="setFunctionFilter($any($event.target).value)">
-            <option value="" [selected]="functionFilter() === ''">All functions</option>
-            @for (capability of capabilities(); track capability.key) {
-              <option [value]="capability.key" [selected]="functionFilter() === capability.key">
-                {{ capability.label }}
-              </option>
-            }
-          </select>
-        </div>
-
-        <div class="select">
-          <span class="lbl">Status</span>
-          <span class="val">{{ statusFilterLabel() }}</span>
-          <select aria-label="Status" (change)="setStatusFilter($any($event.target).value)">
-            <option value="all" [selected]="statusFilter() === 'all'">All</option>
-            <option value="live" [selected]="statusFilter() === 'live'">Live</option>
-            <option value="expiring" [selected]="statusFilter() === 'expiring'">
-              Needs review
-            </option>
-            <option value="pending" [selected]="statusFilter() === 'pending'">
-              Awaiting approval
-            </option>
-          </select>
-        </div>
-
-        <p class="gov-filters-note">
-          Every grant here is live or waiting to be approved. Revoked and lapsed grants stay in
-          the audit trail.
-        </p>
-      </div>
-
-      <!-- A grant's REACH and its function's SCOPE are two different questions
-           with confusingly similar names, so they are two columns. -->
-
-      <div class="gov-board">
-        <div class="dt-frame gov-grid-frame">
-          <div class="dt-gridbar">
-            <input
-              class="dt-quickfilter"
-              type="search"
-              placeholder="Quick filter…"
-              aria-label="Search grants by person, group, function, reach or reason"
-              (input)="setQuickFilter($any($event.target).value)"
-            />
-            <button
-              type="button"
-              class="btn secondary sm"
-              [disabled]="selectedGrantIds().length === 0"
-              (click)="startActionForSelection('revoke')"
-            >
-              <span class="icon" aria-hidden="true">block</span> Remove access
-            </button>
-            <!-- B2.4's POST /grants/{id}/extend, live. Batched the same way the
-                 revoke is: one reason, applied to each row in turn. -->
-            <button
-              type="button"
-              class="btn secondary sm"
-              [disabled]="selectedGrantIds().length === 0"
-              (click)="startActionForSelection('extend')"
-            >
-              <span class="icon" aria-hidden="true">schedule</span> Extend
-            </button>
-            <span class="gov-gridbar-end">
-              <button
-                type="button"
-                class="btn secondary sm"
-                [attr.aria-pressed]="rowsAreCompact()"
-                aria-label="Toggle compact rows"
-                (click)="toggleRowDensity()"
-              >
-                <span class="icon" aria-hidden="true">tune</span>
-              </button>
-            </span>
+    <div id="gv-pane" role="tabpanel" [attr.aria-labelledby]="'gv-tab-' + tab()">
+      <!-- ================================================= GIVE ACCESS === -->
+      @if (tab() === 'give') {
+        @if (reviewCount() > 0) {
+          <div class="notice warn gv-note">
+            <span class="icon" aria-hidden="true">pending_actions</span>
+            <div class="gv-grow">
+              {{ reviewPending().length | plural: 'grant' }} waiting for approval ·
+              {{ reviewExpiring().length | plural: 'grant' }} ending or due for review.
+            </div>
+            <button type="button" class="btn secondary sm" (click)="openTab('attention')">Open</button>
           </div>
+        }
 
-          <div class="gov-grid-scroll">
-            <table class="dt-table gov-table" [class.gov-compact]="rowsAreCompact()">
-              <thead>
-                <tr>
-                  <th class="pinned gov-who-col">
-                    <label class="gov-check">
+        <section class="card gv-give" aria-label="Give access">
+          <!-- 1 · who -->
+          <div class="gv-step">
+            <div class="gv-step-head">
+              <span class="gv-n" aria-hidden="true">1</span>
+              <h2 class="gv-title">Who</h2>
+              <div class="seg gv-seg" role="group" aria-label="Give access to">
+                <button
+                  type="button"
+                  [class.active]="giveMode() === 'users'"
+                  [attr.aria-pressed]="giveMode() === 'users'"
+                  (click)="setGiveMode('users')"
+                >
+                  People
+                </button>
+                <button
+                  type="button"
+                  [class.active]="giveMode() === 'groups'"
+                  [attr.aria-pressed]="giveMode() === 'groups'"
+                  (click)="setGiveMode('groups')"
+                >
+                  A group
+                </button>
+              </div>
+              <span class="gv-picked">{{ pickedCount() }} chosen</span>
+            </div>
+
+            @if (giveMode() === 'users') {
+              <div class="gv-pickbar">
+                <input
+                  class="ctrl gv-search"
+                  type="search"
+                  placeholder="Search by name or email"
+                  aria-label="Search people"
+                  [value]="peopleSearch()"
+                  (input)="peopleSearch.set($any($event.target).value)"
+                />
+                <button
+                  type="button"
+                  class="btn ghost sm"
+                  [disabled]="staffShown().length === 0"
+                  (click)="toggleAllShown()"
+                >
+                  {{ allShownPicked() ? 'Untick all shown' : 'Tick all shown' }}
+                </button>
+              </div>
+              <ul class="gv-picklist" aria-label="People">
+                @for (person of staffShown(); track person.user_id) {
+                  <li>
+                    <label class="gv-pick" [class.on]="isPersonPicked(person.user_id)">
                       <input
                         type="checkbox"
-                        aria-label="Select every grant on this page"
-                        [checked]="allOnPageAreSelected()"
-                        (change)="toggleSelectionForPage()"
+                        [checked]="isPersonPicked(person.user_id)"
+                        (change)="togglePerson(person.user_id)"
                       />
-                      <span>Person / group</span>
+                      <span class="gv-who">
+                        <span class="gv-name">{{ person.name }}</span>
+                        <span class="gv-sub">{{ person.email }}</span>
+                      </span>
+                      <span class="chip neutral">{{ person.role === 'ADMIN' ? 'Main Admin' : 'Faculty' }}</span>
                     </label>
-                  </th>
-                  <th>Access</th>
-                  <th>Scope</th>
-                  <th>Reach</th>
-                  <th>Granted by</th>
-                  <th>Expires</th>
-                  <th>Status</th>
-                  <th><span class="sr-only">Actions</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of pagedGrants(); track row.id) {
-                  <tr [class.selected]="isGrantSelected(row.id)">
-                    <td class="pinned gov-who-col">
-                      <label class="gov-check">
+                  </li>
+                } @empty {
+                  <li class="gv-empty">Nobody matches that search.</li>
+                }
+              </ul>
+            } @else {
+              <ul class="gv-picklist" aria-label="Groups">
+                @for (group of groups(); track group.id) {
+                  <li>
+                    <label class="gv-pick" [class.on]="isGroupPicked(group.id)">
+                      <input
+                        type="checkbox"
+                        [checked]="isGroupPicked(group.id)"
+                        (change)="toggleGroupPick(group.id)"
+                      />
+                      <span class="gv-who">
+                        <span class="gv-name">{{ group.name }}</span>
+                        <span class="gv-sub">{{ group.members.length | plural: 'member' }}</span>
+                      </span>
+                    </label>
+                  </li>
+                } @empty {
+                  <li class="gv-empty">No groups yet. Make one on the Groups tab.</li>
+                }
+              </ul>
+            }
+          </div>
+
+          <!-- 2 · what -->
+          <div class="gv-step">
+            <div class="gv-step-head">
+              <span class="gv-n" aria-hidden="true">2</span>
+              <h2 class="gv-title">What they can open</h2>
+              <span class="gv-picked">{{ pickedKeys().length }} chosen</span>
+            </div>
+            @for (group of accessChoiceGroups(); track group.title) {
+              <fieldset class="gv-choices">
+                <legend class="eyebrow">{{ group.title }}</legend>
+                <div class="gv-choice-grid">
+                  @for (choice of group.choices; track choice.key) {
+                    <label class="gv-choice" [class.on]="isKeyPicked(choice.key)">
+                      <input
+                        type="checkbox"
+                        [checked]="isKeyPicked(choice.key)"
+                        (change)="toggleKey(choice.key)"
+                      />
+                      <span class="gv-who">
+                        <span class="gv-name">{{ choice.label }}</span>
+                        <span class="gv-sub">
+                          @if (choice.opens) {
+                            Opens “{{ choice.opens }}”
+                          }
+                          @if (choice.opens && choice.holders) {
+                            ·
+                          }
+                          @if (choice.holders) {
+                            {{ choice.holders | plural: 'holder' }}
+                          }
+                        </span>
+                      </span>
+                      @if (choice.personal) {
+                        <span class="chip warn">Personal records</span>
+                      }
+                    </label>
+                  }
+                </div>
+              </fieldset>
+            }
+          </div>
+
+          <!-- 3 · which students, until when, why -->
+          <div class="gv-step">
+            <div class="gv-step-head">
+              <span class="gv-n" aria-hidden="true">3</span>
+              <h2 class="gv-title">Which students, until when, and why</h2>
+            </div>
+            <div class="gv-two">
+              <div class="field">
+                <label for="gv-scope">Which students</label>
+                <select
+                  id="gv-scope"
+                  class="ctrl"
+                  (change)="grantScope.set($any($event.target).value)"
+                >
+                  <option value="" [selected]="grantScope() === ''">
+                    All students — {{ totalStudents() | plural: 'student' }}
+                  </option>
+                  @for (option of scopeOptions(); track option.key) {
+                    <option [value]="option.key" [selected]="grantScope() === option.key">
+                      {{ option.label }}
+                    </option>
+                  }
+                </select>
+              </div>
+              <div class="field">
+                <label for="gv-expiry">Ends on (optional)</label>
+                <input
+                  id="gv-expiry"
+                  class="ctrl"
+                  type="date"
+                  [value]="grantExpiry()"
+                  (change)="grantExpiry.set($any($event.target).value)"
+                />
+              </div>
+            </div>
+            <div class="field">
+              <label for="gv-reason">Reason</label>
+              <textarea
+                id="gv-reason"
+                class="ctrl multi"
+                rows="2"
+                placeholder="Why these people need this access."
+                [value]="grantReason()"
+                (input)="grantReason.set($any($event.target).value)"
+              ></textarea>
+            </div>
+          </div>
+
+          @if (grantSummary(); as summary) {
+            <div class="notice info gv-note">
+              <span class="icon" aria-hidden="true">info</span>
+              <div>{{ summary }}</div>
+            </div>
+          }
+          @if (grantWarning(); as warning) {
+            <div class="notice warn gv-note">
+              <span class="icon" aria-hidden="true">warning</span>
+              <div>{{ warning }}</div>
+            </div>
+          }
+          @if (recordsHint(); as hint) {
+            <div class="notice accent gv-note">
+              <span class="icon" aria-hidden="true">info</span>
+              <div>{{ hint }}</div>
+            </div>
+          }
+          @if (grantNeedsApproval()) {
+            <div class="notice warn gv-note">
+              <span class="icon" aria-hidden="true">shield_person</span>
+              <div>Access to personal records waits until a different admin approves it.</div>
+            </div>
+          }
+
+          <div class="gv-actions">
+            <button type="button" class="btn ghost" (click)="clearGrantForm()">Clear</button>
+            <button type="button" class="btn primary" [disabled]="!canGrant()" (click)="grant()">
+              <span class="icon" aria-hidden="true">{{ grantNeedsApproval() ? 'how_to_reg' : 'key' }}</span>
+              {{ grantButtonLabel() }}
+            </button>
+            @if (grantBlockedBecause(); as why) {
+              <span class="gv-blocked">{{ why }}</span>
+            }
+          </div>
+        </section>
+      }
+
+      <!-- ============================================== WHO HAS ACCESS === -->
+      @if (tab() === 'holders') {
+        <div class="gv-filters">
+          <div class="seg gv-seg" role="group" aria-label="Group the list by">
+            <button
+              type="button"
+              [class.active]="holderView() === 'access'"
+              [attr.aria-pressed]="holderView() === 'access'"
+              (click)="setHolderView('access')"
+            >
+              By access
+            </button>
+            <button
+              type="button"
+              [class.active]="holderView() === 'person'"
+              [attr.aria-pressed]="holderView() === 'person'"
+              (click)="setHolderView('person')"
+            >
+              By person
+            </button>
+          </div>
+          <input
+            class="ctrl gv-search"
+            type="search"
+            placeholder="Search by name or access"
+            aria-label="Search who has access"
+            [value]="quickFilter()"
+            (input)="quickFilter.set($any($event.target).value)"
+          />
+          <select class="ctrl gv-filter" aria-label="Status" (change)="setStatusFilter($any($event.target).value)">
+            <option value="all" [selected]="statusFilter() === 'all'">Any status</option>
+            <option value="active" [selected]="statusFilter() === 'active'">Active</option>
+            <option value="ending" [selected]="statusFilter() === 'ending'">Ending or review due</option>
+            <option value="pending" [selected]="statusFilter() === 'pending'">Needs approval</option>
+          </select>
+          @if (whereOptions().length > 1) {
+            <select class="ctrl gv-filter" aria-label="Covers" (change)="whereFilter.set($any($event.target).value)">
+              <option value="" [selected]="whereFilter() === ''">Any students</option>
+              @for (option of whereOptions(); track option.key) {
+                <option [value]="option.key" [selected]="whereFilter() === option.key">{{ option.label }}</option>
+              }
+            </select>
+          }
+        </div>
+
+        <p class="gv-fact">
+          Listed: access given on this screen. The Main Admin already has every office screen, and
+          faculty get Mentee Log, Notebook and their mentees’ records by being assigned students.
+          Skill Verifications comes only from access given here.
+        </p>
+
+        @if (selectedGrantIds().length > 0) {
+          <div class="card gv-selbar" role="region" aria-label="Selected access">
+            <strong>{{ selectedGrantIds().length | plural: 'grant' }} ticked</strong>
+            <button type="button" class="btn danger sm" (click)="startActionForSelection('revoke')">
+              <span class="icon" aria-hidden="true">block</span> Remove access
+            </button>
+            <button type="button" class="btn secondary sm" (click)="startActionForSelection('extend')">
+              <span class="icon" aria-hidden="true">schedule</span> Extend
+            </button>
+            <button type="button" class="btn ghost sm" (click)="clearSelection()">Untick all</button>
+          </div>
+        }
+
+        @for (group of holderGroups(); track group.key) {
+          <section class="card gv-holder" [attr.aria-label]="group.title">
+            <div class="gv-holder-head">
+              <label class="gv-check">
+                <input
+                  type="checkbox"
+                  [checked]="allSelectedIn(group)"
+                  [attr.aria-label]="'Tick everyone under ' + group.title"
+                  (change)="toggleGroupSelection(group)"
+                />
+              </label>
+              <div class="gv-grow">
+                <h2 class="gv-title">{{ group.title }}</h2>
+                <span class="gv-sub">{{ group.subtitle }}</span>
+              </div>
+              <button type="button" class="btn secondary sm" (click)="startRemoveForGroup(group)">
+                <span class="icon" aria-hidden="true">block</span> {{ removeLabelFor(group) }}
+              </button>
+            </div>
+            <div class="gv-scroll">
+              <table class="dt-table gv-table">
+                <thead>
+                  <tr>
+                    <th><span class="sr-only">Tick</span></th>
+                    <th>{{ holderView() === 'access' ? 'Person or group' : 'Access' }}</th>
+                    <th>Students</th>
+                    <th>Ends</th>
+                    <th>Status</th>
+                    <th><span class="sr-only">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of group.rows; track row.id) {
+                    <tr [class.selected]="isGrantSelected(row.id)">
+                      <td class="gv-tick">
                         <input
                           type="checkbox"
                           [checked]="isGrantSelected(row.id)"
-                          [attr.aria-label]="'Select ' + row.functionLabel + ' for ' + row.subjectLabel"
+                          [attr.aria-label]="'Tick ' + row.functionLabel + ' for ' + row.subjectLabel"
                           (change)="toggleGrantSelection(row.id)"
                         />
-                        <span class="avatar" aria-hidden="true">{{ row.subjectInitials }}</span>
-                        <span class="gov-who">
-                          <span class="gov-who-name">{{ row.subjectLabel }}</span>
-                          <span class="gov-sub">{{ row.subjectKindLabel }}</span>
+                      </td>
+                      <td>
+                        @if (holderView() === 'access') {
+                          <span class="gv-person">
+                            <span class="gv-avatar" aria-hidden="true">{{ row.subjectInitials }}</span>
+                            <span class="gv-who">
+                              <span class="gv-name">{{ row.subjectLabel }}</span>
+                              <span class="gv-sub">{{ row.subjectKindLabel }}</span>
+                            </span>
+                          </span>
+                        } @else {
+                          <span class="chip accent">{{ row.functionLabel }}</span>
+                        }
+                      </td>
+                      <td>{{ row.reachLabel }}</td>
+                      <td class="gv-nums">{{ row.expiresLabel }}</td>
+                      <td>
+                        <span
+                          class="chip dot"
+                          [class.good]="row.statusTone === 'good'"
+                          [class.warn]="row.statusTone === 'warn'"
+                          [class.risk]="row.statusTone === 'risk'"
+                        >
+                          {{ row.statusLabel }}
                         </span>
-                      </label>
-                    </td>
-                    <td><span class="chip accent">{{ row.functionLabel }}</span></td>
-                    <td>
-                      <span class="chip dot" [class.risk]="row.functionScopeIsProgrammeWide" [class.neutral]="!row.functionScopeIsProgrammeWide">
-                        {{ row.functionScopeLabel }}
-                      </span>
-                    </td>
-                    <td>
-                      <span class="chip dot" [class.risk]="row.reachIsWholeCollege" [class.neutral]="!row.reachIsWholeCollege">
-                        {{ row.reachLabel }}
-                      </span>
-                    </td>
-                    <td>{{ row.grantedByLabel }}</td>
-                    <td class="gov-nums">{{ row.expiresLabel }}</td>
-                    <td>
-                      <span
-                        class="chip dot"
-                        [class.good]="row.statusTone === 'good'"
-                        [class.warn]="row.statusTone === 'warn'"
-                        [class.risk]="row.statusTone === 'risk'"
-                      >
-                        {{ row.statusLabel }}
-                      </span>
-                    </td>
-                    <td class="gov-rowaction">
-                      <span class="gov-rowactions">
+                      </td>
+                      <td class="gv-rowactions">
                         @if (row.isPending) {
                           <button type="button" class="btn ghost sm" (click)="startAction('approve', [row])">
                             Approve
@@ -382,323 +535,46 @@
                           Extend
                         </button>
                         <button type="button" class="btn ghost sm" (click)="startAction('revoke', [row])">
-                          Remove access
+                          Remove
                         </button>
-                      </span>
-                    </td>
-                  </tr>
-                } @empty {
-                  <tr>
-                    <td colspan="8" class="gov-empty">
-                      @if (grantRows().length === 0) {
-                        No grants yet — every role holds its baseline.
-                      } @else {
-                        No grant matches these filters.
-                      }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <div class="dt-statusbar">
-            <span>Rows: <b>{{ filteredGrants().length }}</b></span>
-            <span>Selected: <b>{{ selectedGrantIds().length }}</b></span>
-            <span>Awaiting approval: <b>{{ pendingApprovalCount() }}</b></span>
-            <span>Expiring soon: <b>{{ expiringSoonCount() }}</b></span>
-            <span class="pager">
-              <label class="gov-pagesize">
-                <span>Page size</span>
-                <select aria-label="Rows per page" (change)="setRowsPerPage($any($event.target).value)">
-                  @for (size of rowsPerPageChoices; track size) {
-                    <option [value]="size" [selected]="size === rowsPerPage()">{{ size }}</option>
+                      </td>
+                    </tr>
                   }
-                </select>
-              </label>
-              <span>{{ rowRangeLabel() }}</span>
-              <button
-                type="button"
-                class="btn ghost sm"
-                [disabled]="isFirstPage()"
-                aria-label="Previous page"
-                (click)="goToPreviousPage()"
-              >
-                <span class="icon" aria-hidden="true">chevron_left</span>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        } @empty {
+          <div class="card gv-empty-card">
+            @if (grantRows().length === 0) {
+              Nobody has been given access yet.
+              <button type="button" class="btn primary sm" (click)="openTab('give')">
+                <span class="icon" aria-hidden="true">key</span> Give access
               </button>
-              <span>{{ pagerLabel() }}</span>
-              <button
-                type="button"
-                class="btn ghost sm"
-                [disabled]="isLastPage()"
-                aria-label="Next page"
-                (click)="goToNextPage()"
-              >
-                <span class="icon" aria-hidden="true">chevron_right</span>
-              </button>
-            </span>
+            } @else {
+              Nothing matches these filters.
+            }
           </div>
-        </div>
+        }
+      }
 
-        <!-- ------------------------------------------ the 380px panel ---- -->
-        <aside class="card gov-panel" aria-label="Grant a function">
-          <h2 class="gov-card-title">Grant a function</h2>
-
-          <div class="seg gov-seg" role="group" aria-label="Grant to">
-            <button
-              type="button"
-              [class.active]="grantMode() === 'users'"
-              [attr.aria-pressed]="grantMode() === 'users'"
-              (click)="setGrantMode('users')"
-            >
-              Individuals
-            </button>
-            <button
-              type="button"
-              [class.active]="grantMode() === 'groups'"
-              [attr.aria-pressed]="grantMode() === 'groups'"
-              (click)="setGrantMode('groups')"
-            >
-              Access group
-            </button>
-          </div>
-
-          @if (grantMode() === 'users') {
-            <div class="field">
-              <label for="gov-user">Person</label>
-              <div class="gov-row">
-                <select
-                  id="gov-user"
-                  class="ctrl"
-                  (change)="userToAdd.set($any($event.target).value)"
-                >
-                  <option value="" [selected]="userToAdd() === ''">Choose…</option>
-                  @for (person of addableStaff(); track person.user_id) {
-                    <option [value]="person.user_id" [selected]="userToAdd() === person.user_id">
-                      {{ person.name }} — {{ person.email }}
-                    </option>
-                  }
-                </select>
-                <button type="button" class="btn secondary sm" [disabled]="!userToAdd()" (click)="addUser()">
-                  Add
-                </button>
-              </div>
-              <div class="gov-chips">
-                @for (person of pickedStaff(); track person.user_id) {
-                  <span class="chip accent">
-                    {{ person.name }}
-                    <button
-                      type="button"
-                      class="gov-chip-x"
-                      [attr.aria-label]="'Remove ' + person.name"
-                      (click)="removeUser(person.user_id)"
-                    >
-                      <span class="icon" aria-hidden="true">close</span>
-                    </button>
-                  </span>
-                } @empty {
-                  <span class="gov-empty">Nobody added yet.</span>
-                }
-              </div>
-            </div>
-          } @else {
-            <div class="field">
-              <label for="gov-group">Access group</label>
-              <div class="gov-row">
-                <select
-                  id="gov-group"
-                  class="ctrl"
-                  (change)="groupToAdd.set($any($event.target).value)"
-                >
-                  <option value="" [selected]="groupToAdd() === ''">Choose…</option>
-                  @for (group of addableGroups(); track group.id) {
-                    <option [value]="group.id" [selected]="groupToAdd() === group.id">
-                      {{ group.name }} ({{ group.members.length }} faculty)
-                    </option>
-                  }
-                </select>
-                <button type="button" class="btn secondary sm" [disabled]="!groupToAdd()" (click)="addGroup()">
-                  Add
-                </button>
-              </div>
-              <div class="gov-chips">
-                @for (group of pickedGroups(); track group.id) {
-                  <span class="chip accent">
-                    {{ group.name }}
-                    <button
-                      type="button"
-                      class="gov-chip-x"
-                      [attr.aria-label]="'Remove ' + group.name"
-                      (click)="removeGroup(group.id)"
-                    >
-                      <span class="icon" aria-hidden="true">close</span>
-                    </button>
-                  </span>
-                } @empty {
-                  <span class="gov-empty">No group added yet.</span>
-                }
-              </div>
-            </div>
-          }
-
-          <div class="field">
-            <label for="gov-function">Access</label>
-            <select
-              id="gov-function"
-              #functionSelect
-              class="ctrl"
-              (change)="capabilityKey.set($any($event.target).value)"
-            >
-              <optgroup label="Scoped — narrowed to the holder's mentor group">
-                @for (capability of scopedCapabilities(); track capability.key) {
-                  <option [value]="capability.key" [selected]="capabilityKey() === capability.key">
-                    {{ capability.label }}
-                  </option>
-                }
-              </optgroup>
-              <optgroup label="Programme-wide — cannot be narrowed">
-                @for (capability of programmeCapabilities(); track capability.key) {
-                  <option [value]="capability.key" [selected]="capabilityKey() === capability.key">
-                    {{ capability.label }}
-                  </option>
-                }
-              </optgroup>
-            </select>
-            <span class="help">{{ chosenFunctionHelp() }}</span>
-          </div>
-
-          <!-- B1.2, live. The blank option posts NEITHER scope_level nor
-               scope_id: GrantIn refuses a level without an id and an id without
-               a level, and omitting both is the programme-wide grant this
-               endpoint has always written. -->
-          <div class="field">
-            <label for="gov-scope">Scope target</label>
-            <select
-              id="gov-scope"
-              class="ctrl"
-              aria-describedby="gov-scope-help"
-              (change)="grantScope.set($any($event.target).value)"
-            >
-              <option value="" [selected]="grantScope() === ''">
-                Everything the function reaches
-              </option>
-              @for (option of scopeOptions(); track option.key) {
-                <option [value]="option.key" [selected]="grantScope() === option.key">
-                  {{ option.label }}
-                </option>
-              }
-            </select>
-            <span class="help" id="gov-scope-help">How far this grant reaches.</span>
-          </div>
-
-          <div class="gov-two">
-            <div class="field">
-              <label for="gov-expiry">Expires</label>
-              <input
-                id="gov-expiry"
-                class="ctrl"
-                type="date"
-                [value]="grantExpiry()"
-                (change)="grantExpiry.set($any($event.target).value)"
-              />
-              <span class="help">Optional. Left empty it stays until it is revoked.</span>
+      <!-- ============================================ NEEDS ATTENTION === -->
+      @if (tab() === 'attention') {
+        <section class="card gv-holder" aria-labelledby="gv-pending-title">
+          <div class="gv-holder-head">
+            <div class="gv-grow">
+              <h2 class="gv-title" id="gv-pending-title">Waiting for approval</h2>
+              <span class="gv-sub">These do nothing until a different admin approves them.</span>
             </div>
           </div>
-
-          <div class="field">
-            <label for="gov-reason">Reason</label>
-            <textarea
-              id="gov-reason"
-              class="ctrl multi"
-              rows="3"
-              placeholder="Why these people need this, in a sentence someone can audit in a year."
-              [value]="grantReason()"
-              (input)="grantReason.set($any($event.target).value)"
-            ></textarea>
-            <span class="help">
-              At least {{ minReason() | plural: 'character' }} · shown in the audit log.
-            </span>
-          </div>
-
-          @if (grantReach(); as reach) {
-            <div class="notice gov-note" [class.accent]="!reach.wide" [class.warn]="reach.wide">
-              @if (reach.wide) {
-                <span class="icon" aria-hidden="true">warning</span>
-              } @else {
-                <span class="icon" aria-hidden="true">info</span>
-              }
-              <div>{{ reach.text }}</div>
-            </div>
-          }
-
-          @if (chosenGrantNeedsApproval()) {
-            <div class="notice warn gov-note">
-              <span class="icon" aria-hidden="true">shield_person</span>
-              <div>
-                This access shows a student’s own record, so another holder of Who can do what must approve it before it works.
-              </div>
-            </div>
-          }
-
-          <div class="gov-actions">
-            <button type="button" class="btn ghost" (click)="clearGrantForm()">Cancel</button>
-            <!-- ONE SUBMIT. "Send for approval" is not a second endpoint: POST
-                 /grants writes a deputy's carries_pii grant pending by itself
-                 (the Main Admin's is live at once), so the button says which
-                 of the two acts it is about to perform. -->
-            <button type="button" class="btn primary" [disabled]="!canGrant()" (click)="grant()">
-              <span class="icon" aria-hidden="true">
-                {{ chosenGrantNeedsApproval() ? 'how_to_reg' : 'key' }}
-              </span>
-              {{ grantButtonLabel() }}
-            </button>
-          </div>
-          @if (grantBlockedBecause(); as why) {
-            <p class="gov-blocked">{{ why }}</p>
-          }
-        </aside>
-      </div>
-
-      <!-- The student switches used to be the second half of this screen. They
-           are the opposite instrument — allow-until-switched-off — and they now
-           have their own URL (§20). -->
-      <section class="card gov-linkcard" aria-labelledby="gov-features-title">
-        <div>
-          <h2 class="gov-card-title" id="gov-features-title">Student feature switches</h2>
-          <p class="gov-hint">
-            Functions are denied until granted; student features are on until switched off. Two
-            opposite defaults, so they are two screens. {{ featureSummary() }}
-          </p>
-        </div>
-        <a class="btn secondary gov-openlink" routerLink="/admin/governance/features">
-          <span class="icon" aria-hidden="true">tune</span> Open student feature switches
-        </a>
-      </section>
-      </div>
-    }
-
-    <!-- =================================================== REVIEW ======= -->
-    @if (tab() === 'review') {
-      <div role="tabpanel" id="gov-pane-review" aria-labelledby="gov-tab-review">
-
-      <section class="gov-review-block" aria-labelledby="gov-review-pending-title">
-        <h2 class="gov-card-title" id="gov-review-pending-title">
-          Awaiting approval
-          <span class="chip neutral">{{ reviewPendingRows().length | plural: 'grant' }}</span>
-        </h2>
-        <p class="gov-hint">
-          Written, listed and audited — and holding nothing. A deputy who made the grant cannot be
-          the one who agrees to it; the Main Admin can approve any of them.
-        </p>
-        <div class="dt-frame">
-          <div class="gov-grid-scroll">
-            <table class="dt-table gov-table">
+          <div class="gv-scroll">
+            <table class="dt-table gv-table">
               <thead>
                 <tr>
-                  <th class="pinned gov-who-col">Person / group</th>
+                  <th>Person or group</th>
                   <th>Access</th>
-                  <th>Reach</th>
-                  <th>Granted by</th>
+                  <th>Students</th>
+                  <th>Given by</th>
                   <th>Reason</th>
                   <th><span class="sr-only">Actions</span></th>
                 </tr>
@@ -706,222 +582,123 @@
               <tbody>
                 @for (row of reviewPendingRows(); track row.id) {
                   <tr>
-                    <td class="pinned gov-who-col">
-                      <span class="avatar" aria-hidden="true">{{ row.subjectInitials }}</span>
-                      <span class="gov-who">
-                        <span class="gov-who-name">{{ row.subjectLabel }}</span>
-                        <span class="gov-sub">{{ row.subjectKindLabel }}</span>
+                    <td>
+                      <span class="gv-person">
+                        <span class="gv-avatar" aria-hidden="true">{{ row.subjectInitials }}</span>
+                        <span class="gv-who">
+                          <span class="gv-name">{{ row.subjectLabel }}</span>
+                          <span class="gv-sub">{{ row.subjectKindLabel }}</span>
+                        </span>
                       </span>
                     </td>
-                    <td>
-                      <span class="chip accent">{{ row.functionLabel }}</span>
-                      @if (row.carriesPersonalData) {
-                        <span class="chip dot warn">Personal record</span>
-                      }
-                    </td>
-                    <td>
-                      <span class="chip dot" [class.risk]="row.reachIsWholeCollege" [class.neutral]="!row.reachIsWholeCollege">
-                        {{ row.reachLabel }}
-                      </span>
-                    </td>
+                    <td><span class="chip accent">{{ row.functionLabel }}</span></td>
+                    <td>{{ row.reachLabel }}</td>
                     <td>{{ row.grantedByLabel }}</td>
-                    <td class="gov-reason-cell">{{ row.reason }}</td>
-                    <td class="gov-rowaction">
-                      <span class="gov-rowactions">
-                        <button type="button" class="btn secondary sm" (click)="startAction('approve', [row])">
-                          <span class="icon" aria-hidden="true">how_to_reg</span> Approve
-                        </button>
-                        <button type="button" class="btn ghost sm" (click)="startAction('revoke', [row])">
-                          Remove access
-                        </button>
-                      </span>
+                    <td class="gv-reason">{{ row.reason }}</td>
+                    <td class="gv-rowactions">
+                      <button type="button" class="btn secondary sm" (click)="startAction('approve', [row])">
+                        <span class="icon" aria-hidden="true">how_to_reg</span> Approve
+                      </button>
+                      <button type="button" class="btn ghost sm" (click)="startAction('revoke', [row])">
+                        Remove
+                      </button>
                     </td>
                   </tr>
                 } @empty {
-                  <tr>
-                    <td colspan="6" class="gov-empty">Nothing is waiting for approval.</td>
-                  </tr>
+                  <tr><td colspan="6" class="gv-empty">Nothing is waiting for approval.</td></tr>
                 }
               </tbody>
             </table>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="gov-review-block" aria-labelledby="gov-review-expiring-title">
-        <h2 class="gov-card-title" id="gov-review-expiring-title">
-          Running out within {{ reviewHorizonDays() | plural: 'day' }}
-          <span class="chip neutral">{{ reviewExpiringRows().length | plural: 'grant' }}</span>
-        </h2>
-        <p class="gov-hint">
-          An expiry inside the window, or a review date inside it — a grant with no expiry never
-          appears on an expiry-only queue, and that is exactly the grant that most needs looking
-          at. Extend it with a fresh reason, or let it lapse.
-        </p>
-        <div class="dt-frame">
-          <div class="gov-grid-scroll">
-            <table class="dt-table gov-table">
+        <section class="card gv-holder" aria-labelledby="gv-expiring-title">
+          <div class="gv-holder-head">
+            <div class="gv-grow">
+              <h2 class="gv-title" id="gv-expiring-title">
+                Ending or due for review in the next {{ reviewHorizonDays() | plural: 'day' }}
+              </h2>
+              <span class="gv-sub">Extend it with a reason, or let it end.</span>
+            </div>
+          </div>
+          <div class="gv-scroll">
+            <table class="dt-table gv-table">
               <thead>
                 <tr>
-                  <th class="pinned gov-who-col">Person / group</th>
+                  <th>Person or group</th>
                   <th>Access</th>
-                  <th>Reach</th>
-                  <th>Expires</th>
+                  <th>Students</th>
+                  <th>Ends</th>
                   <th>Review</th>
-                  <th>Status</th>
                   <th><span class="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
                 @for (row of reviewExpiringRows(); track row.id) {
                   <tr>
-                    <td class="pinned gov-who-col">
-                      <span class="avatar" aria-hidden="true">{{ row.subjectInitials }}</span>
-                      <span class="gov-who">
-                        <span class="gov-who-name">{{ row.subjectLabel }}</span>
-                        <span class="gov-sub">{{ row.subjectKindLabel }}</span>
+                    <td>
+                      <span class="gv-person">
+                        <span class="gv-avatar" aria-hidden="true">{{ row.subjectInitials }}</span>
+                        <span class="gv-who">
+                          <span class="gv-name">{{ row.subjectLabel }}</span>
+                          <span class="gv-sub">{{ row.subjectKindLabel }}</span>
+                        </span>
                       </span>
                     </td>
                     <td><span class="chip accent">{{ row.functionLabel }}</span></td>
-                    <td>
-                      <span class="chip dot" [class.risk]="row.reachIsWholeCollege" [class.neutral]="!row.reachIsWholeCollege">
-                        {{ row.reachLabel }}
-                      </span>
-                    </td>
-                    <td class="gov-nums">{{ row.expiresLabel }}</td>
-                    <td class="gov-nums">{{ row.reviewLabel }}</td>
-                    <td>
-                      <span
-                        class="chip dot"
-                        [class.good]="row.statusTone === 'good'"
-                        [class.warn]="row.statusTone === 'warn'"
-                        [class.risk]="row.statusTone === 'risk'"
-                      >
-                        {{ row.statusLabel }}
-                      </span>
-                    </td>
-                    <td class="gov-rowaction">
-                      <span class="gov-rowactions">
-                        <button type="button" class="btn secondary sm" (click)="startAction('extend', [row])">
-                          <span class="icon" aria-hidden="true">schedule</span> Extend
-                        </button>
-                        <button type="button" class="btn ghost sm" (click)="startAction('revoke', [row])">
-                          Remove access
-                        </button>
-                      </span>
+                    <td>{{ row.reachLabel }}</td>
+                    <td class="gv-nums">{{ row.expiresLabel }}</td>
+                    <td class="gv-nums">{{ row.reviewLabel }}</td>
+                    <td class="gv-rowactions">
+                      <button type="button" class="btn secondary sm" (click)="startAction('extend', [row])">
+                        <span class="icon" aria-hidden="true">schedule</span> Extend
+                      </button>
+                      <button type="button" class="btn ghost sm" (click)="startAction('revoke', [row])">
+                        Remove
+                      </button>
                     </td>
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="7" class="gov-empty">
-                      Nothing is running out in the next
-                      {{ reviewHorizonDays() | plural: 'day' }}.
+                    <td colspan="6" class="gv-empty">
+                      Nothing ends or is due for review in the next {{ reviewHorizonDays() | plural: 'day' }}.
                     </td>
                   </tr>
                 }
               </tbody>
             </table>
           </div>
-        </div>
-      </section>
-      </div>
-    }
+        </section>
+      }
 
-    <!-- ============================================ FUNCTIONS CATALOGUE == -->
-    @if (tab() === 'catalogue') {
-      <div role="tabpanel" id="gov-pane-catalogue" aria-labelledby="gov-tab-catalogue">
-
-      <div class="dt-frame">
-        <table class="dt-table gov-table">
-          <thead>
-            <tr>
-              <th class="pinned gov-fn-col">Access</th>
-              <th>Key</th>
-              <th>Scope</th>
-              <th>Personal data</th>
-              <th>Server-enforced</th>
-              <th>Live grants</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (row of functionCatalogue(); track row.key) {
-              <tr>
-                <td class="pinned gov-fn-col">{{ row.label }}</td>
-                <td><code class="gov-key">{{ row.key }}</code></td>
-                <td>
-                  <span class="chip dot" [class.risk]="row.reachIsProgrammeWide" [class.neutral]="!row.reachIsProgrammeWide">
-                    {{ row.reachLabel }}
-                  </span>
-                </td>
-                <td>
-                  <span class="chip dot" [class.warn]="row.carriesPersonalData" [class.neutral]="!row.carriesPersonalData">
-                    {{ row.personalDataLabel }}
-                  </span>
-                </td>
-                <td>
-                  <span
-                    class="chip dot"
-                    [class.good]="row.enforcementIsReported && row.enforcementIsServerChecked"
-                    [class.risk]="row.enforcementIsReported && !row.enforcementIsServerChecked"
-                    [class.neutral]="!row.enforcementIsReported"
-                  >
-                    {{ row.enforcementLabel }}
-                  </span>
-                </td>
-                <td class="gov-nums">{{ row.liveGrantCount }}</td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="6" class="gov-empty">The catalogue is empty.</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-
-      <p class="gov-hint">
-        A role's baseline already carries some of these without a grant, so a zero in Live grants
-        does not mean nobody holds it. The catalogue itself is code, not rows — adding a function is
-        a code change, because each one has to be enforced at a call site.
-      </p>
-      </div>
-    }
-
-    <!-- ==================================================== GROUPS ======= -->
-    @if (tab() === 'groups') {
-      <div role="tabpanel" id="gov-pane-groups" aria-labelledby="gov-tab-groups">
-      <div class="gov-board">
-        <div class="gov-grouplist">
-          @for (group of groups(); track group.id) {
-            <section class="card gov-group" [attr.aria-label]="group.name">
-              <div class="gov-group-head">
-                <h2 class="gov-card-title">{{ group.name }}</h2>
-                <span class="chip neutral">{{ group.members.length | plural: 'member' }}</span>
-              </div>
-              @if (group.description) {
-                <p class="gov-hint">{{ group.description }}</p>
-              }
-
-              <div class="gov-group-block">
-                <div class="eyebrow">Functions it carries</div>
-                <div class="gov-chips">
+      <!-- ===================================================== GROUPS === -->
+      @if (tab() === 'groups') {
+        <div class="gv-board">
+          <div class="gv-grouplist">
+            @for (group of groups(); track group.id) {
+              <section class="card gv-group" [attr.aria-label]="group.name">
+                <div class="gv-holder-head">
+                  <div class="gv-grow">
+                    <h2 class="gv-title">{{ group.name }}</h2>
+                    <span class="gv-sub">{{ group.members.length | plural: 'member' }}</span>
+                  </div>
+                </div>
+                <div class="eyebrow">Access it gives</div>
+                <div class="gv-chips">
                   @for (key of group.capabilities; track key) {
                     <span class="chip accent">{{ labelForFunctionKey(key) }}</span>
                   } @empty {
-                    <span class="gov-empty">No function granted to this group yet.</span>
+                    <span class="gv-empty">None yet. Choose “A group” on Give access.</span>
                   }
                 </div>
-              </div>
-
-              <div class="gov-group-block">
                 <div class="eyebrow">Members</div>
-                <ul class="gov-members">
+                <ul class="gv-members">
                   @for (member of group.members; track member.user_id) {
                     <li>
-                      <span class="avatar" aria-hidden="true">{{ member.name.charAt(0) }}</span>
-                      <span class="gov-who">
-                        <span class="gov-who-name">{{ member.name }}</span>
-                        <span class="gov-sub">{{ member.email }}</span>
+                      <span class="gv-avatar" aria-hidden="true">{{ member.name.charAt(0) }}</span>
+                      <span class="gv-who gv-grow">
+                        <span class="gv-name">{{ member.name }}</span>
+                        <span class="gv-sub">{{ member.email }}</span>
                       </span>
                       <button
                         type="button"
@@ -933,104 +710,82 @@
                       </button>
                     </li>
                   } @empty {
-                    <li class="gov-empty">Nobody in this group yet.</li>
+                    <li class="gv-empty">Nobody in this group yet.</li>
                   }
                 </ul>
-              </div>
-            </section>
-          } @empty {
-            <div class="card gov-group">
-              <p class="gov-empty">No access groups yet.</p>
+              </section>
+            } @empty {
+              <div class="card gv-empty-card">No groups yet.</div>
+            }
+          </div>
+
+          <aside class="card gv-side" aria-label="Groups">
+            <h2 class="gv-title">New group</h2>
+            <div class="field">
+              <label for="gv-newgroup">Name</label>
+              <input
+                id="gv-newgroup"
+                class="ctrl"
+                type="text"
+                placeholder="Placement cell"
+                [value]="newGroupName()"
+                (input)="newGroupName.set($any($event.target).value)"
+              />
             </div>
-          }
+            <div class="gv-actions">
+              <button
+                type="button"
+                class="btn primary"
+                [disabled]="newGroupName().trim().length < 2 || groupBusy()"
+                (click)="createGroup()"
+              >
+                <span class="icon" aria-hidden="true">add</span> Create group
+              </button>
+            </div>
+
+            <h2 class="gv-title gv-spaced">Add someone to a group</h2>
+            <div class="field">
+              <label for="gv-membergroup">Group</label>
+              <select id="gv-membergroup" class="ctrl" (change)="memberGroupId.set($any($event.target).value)">
+                <option value="" [selected]="memberGroupId() === ''">Choose…</option>
+                @for (group of groups(); track group.id) {
+                  <option [value]="group.id" [selected]="memberGroupId() === group.id">{{ group.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="field">
+              <label for="gv-memberuser">Person</label>
+              <select id="gv-memberuser" class="ctrl" (change)="memberUserId.set($any($event.target).value)">
+                <option value="" [selected]="memberUserId() === ''">Choose…</option>
+                @for (person of staff(); track person.user_id) {
+                  <option [value]="person.user_id" [selected]="memberUserId() === person.user_id">
+                    {{ person.name }} — {{ person.email }}
+                  </option>
+                }
+              </select>
+            </div>
+            <div class="field">
+              <label for="gv-memberreason">Reason</label>
+              <textarea
+                id="gv-memberreason"
+                class="ctrl multi"
+                rows="2"
+                placeholder="Why this person joins the group."
+                [value]="memberReason()"
+                (input)="memberReason.set($any($event.target).value)"
+              ></textarea>
+            </div>
+            <div class="gv-actions">
+              <button type="button" class="btn secondary" [disabled]="!canAddMember()" (click)="addMemberToGroup()">
+                <span class="icon" aria-hidden="true">person_add</span> Add to group
+              </button>
+            </div>
+            @if (addMemberBlockedBecause(); as why) {
+              <p class="gv-blocked">{{ why }}</p>
+            }
+          </aside>
         </div>
-
-        <aside class="card gov-panel" aria-label="Access groups">
-          <h2 class="gov-card-title">New access group</h2>
-          <p class="gov-hint">
-            A group issues the same functions to everyone in it, now and later.
-          </p>
-          <div class="field">
-            <label for="gov-newgroup">Name</label>
-            <input
-              id="gov-newgroup"
-              class="ctrl"
-              type="text"
-              placeholder="Placement cell"
-              [value]="newGroupName()"
-              (input)="newGroupName.set($any($event.target).value)"
-            />
-          </div>
-          <div class="gov-actions">
-            <button
-              type="button"
-              class="btn primary"
-              [disabled]="newGroupName().trim().length < 2 || groupBusy()"
-              (click)="createGroup()"
-            >
-              <span class="icon" aria-hidden="true">add</span> Create group
-            </button>
-          </div>
-
-          <h2 class="gov-card-title gov-spaced">Add someone to a group</h2>
-          <div class="field">
-            <label for="gov-membergroup">Group</label>
-            <select
-              id="gov-membergroup"
-              class="ctrl"
-              (change)="memberGroupId.set($any($event.target).value)"
-            >
-              <option value="" [selected]="memberGroupId() === ''">Choose…</option>
-              @for (group of groups(); track group.id) {
-                <option [value]="group.id" [selected]="memberGroupId() === group.id">
-                  {{ group.name }}
-                </option>
-              }
-            </select>
-          </div>
-          <div class="field">
-            <label for="gov-memberuser">Person</label>
-            <select
-              id="gov-memberuser"
-              class="ctrl"
-              (change)="memberUserId.set($any($event.target).value)"
-            >
-              <option value="" [selected]="memberUserId() === ''">Choose…</option>
-              @for (person of staff(); track person.user_id) {
-                <option [value]="person.user_id" [selected]="memberUserId() === person.user_id">
-                  {{ person.name }} — {{ person.email }}
-                </option>
-              }
-            </select>
-          </div>
-          <div class="field">
-            <label for="gov-memberreason">Reason</label>
-            <textarea
-              id="gov-memberreason"
-              class="ctrl multi"
-              rows="2"
-              placeholder="Why this person joins the group, in a sentence someone can audit in a year."
-              [value]="memberReason()"
-              (input)="memberReason.set($any($event.target).value)"
-            ></textarea>
-            <span class="help">At least {{ minReason() | plural: 'character' }}.</span>
-          </div>
-          <div class="gov-actions">
-            <button
-              type="button"
-              class="btn secondary"
-              [disabled]="!canAddMember()"
-              (click)="addMemberToGroup()"
-            >
-              <span class="icon" aria-hidden="true">person_add</span> Add to group
-            </button>
-          </div>
-          @if (addMemberBlockedBecause(); as why) {
-            <p class="gov-blocked">{{ why }}</p>
-          }
-        </aside>
-      </div>
-      </div>
-    }
+      }
+    </div>
   }
 </div>

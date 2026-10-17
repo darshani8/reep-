@@ -170,7 +170,7 @@ session.
    seed writes it with the heading "1:1 review", the location "Cabin 3" and the
    linked action "1:1 scheduled".
 3. The faculty member holds no "View student records" grant from the Main
-   Admin. With one, a "Full record" link is also shown.
+   Admin. Mentoring the student is enough to open their record (2026-10-16).
 
 ### Test data
 
@@ -181,14 +181,16 @@ session.
 ### Steps
 
 1. Open `/mentor/mentees`.
+2. Click "Full record".
 
 ### Expected results
 
 | # | After step | Expected result |
 |---|---|---|
 | ER-1 | 1 | The page is headed "Mentee Log", with "Your mentees and the 1:1 meeting notes they can read." under it. The "My students" card lists one student, "Test Student", with "1BG24MBA001 · Sem 2 · EXCEL_ADVANCED", and that student is selected. |
-| ER-2 | 1 | The right-hand card reads "Log a meeting with Test Student", with the fields "Heading (optional)", "Linked action" and "Meeting note" and a Save note button. There is no "Full record" link. |
+| ER-2 | 1 | The right-hand card reads "Log a meeting with Test Student", with the fields "Heading (optional)", "Linked action" and "Meeting note" and a Save note button, and a "Full record" link beside the heading. |
 | ER-3 | 1 | The seeded note is listed under the form: the heading "1:1 review · Cabin 3", its text, and a "1:1 scheduled" chip. |
+| ER-4 | 2 | The student's full record opens at `/admin/students/<id>`, for Test Student, read only: there is no Edit or Remove button. Its tabs are Overview, Resume, Skills, Leaderboard, Academics, Interviews, Time sheet and Documents: there is no Access tab and no "Who can open this record" card, which are the Main Admin's alone. |
 
 ---
 
@@ -314,7 +316,7 @@ shows it.
 
 ---
 
-## TC-407 — Verifications lists the mentees' pending skill claims and documents
+## TC-407 — Verifications lists the pending skill claims and documents the faculty member may verify
 
 | Field | Value |
 |---|---|
@@ -326,7 +328,9 @@ shows it.
 
 ### Pre-conditions
 
-1. As TC-400.
+1. As TC-400, and the faculty member holds "Verify skills & evidence" for the
+   seeded college. The dev seed grants it as the placement office would in Who
+   can do what; mentoring the student does not open this screen.
 2. The dev seed's pending items for the student have not been decided: the
    skill claim "Business Analytics Fundamentals" (issued by Coursera, no file
    attached), and two uploaded documents waiting for review, "Profile photo"
@@ -346,7 +350,7 @@ None beyond the seeded items above.
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 1 | The page is headed "Verifications", under the eyebrow "Faculty · sole approver", with a "Skill claims" and a "Documents" count chip in the header. |
+| ER-1 | 1 | The page is headed "Verifications", under the eyebrow "Faculty · skill verification", with a "Skill claims" and a "Documents" count chip in the header. |
 | ER-2 | 1 | Under "Skill claims", a card reads "Business Analytics Fundamentals · Sectoral Skills · Certificate", "Test Student · submitted" and the date it was filed, with a "Submitted" chip and a Review evidence button. |
 | ER-3 | 1 | Under "Documents", "Profile photo · Photo" and "Leadership certificate · Certificate" are listed, each for Test Student, with a "Pending review" chip, an "Open …" link naming the file, a "Reviewer note" field and Verify and Reject buttons. |
 | ER-4 | 2 | The card opens and its chip reads "Under review". It shows "Badge claimed: Business Analytics Fundamentals", "Category: Sectoral Skills", "Evidence: Certificate · Business Analytics Fundamentals", "Issued by: Coursera", "Student: Test Student · 1BG24MBA001", and under "What the student told you": "Completed last week — certificate attached on my uploads." A "No file attached" chip, the "Verification rubric", the "Note to the student" field and the Verify, Request changes, Reject and Close buttons are shown. |
@@ -366,7 +370,9 @@ None beyond the seeded items above.
 
 ### Pre-conditions
 
-1. As TC-400.
+1. As TC-400, and the faculty member holds "Verify skills & evidence" for the
+   seeded college. The dev seed grants it as the placement office would in Who
+   can do what; mentoring the student does not open this screen.
 2. The student has filed a claim to be decided. Sign in as the student on
    `/student/skilling`, and claim the "SQL" badge with a certificate: evidence
    type Certificate, the title and provider in the test data, the file
@@ -521,7 +527,9 @@ As TC-409.
 
 ### Pre-conditions
 
-1. As TC-400.
+1. As TC-400, and the faculty member holds "Verify skills & evidence" for the
+   seeded college. The dev seed grants it as the placement office would in Who
+   can do what; mentoring the student does not open this screen.
 2. The student has uploaded a document that no skill claim stands on. Sign in
    as the student on `/student/uploads`, choose the Document type "Other
    document", and upload a copy of `tests/fixtures/sample.pdf` renamed to the
@@ -1096,7 +1104,7 @@ None.
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 1 | The sidebar lists exactly Notebook, Mentee Log, Leave Requests, Skill Verifications and Upskilling. There is no "Granted access" group. |
+| ER-1 | 1 | The sidebar lists exactly Notebook, Mentee Log, Student records, Leave Requests, Skill Verifications and Upskilling (Student records because they mentor a student). There is no "Granted access" group. |
 | ER-2 | 2 | The app does not open the admin console. It sends the browser to `/mentor/notebook`, headed "Faculty notebook". |
 | ER-3 | 3 | Again the browser lands on `/mentor/notebook`. |
 | ER-4 | 4 | The API refuses: the page shows `{"detail":"You do not hold the 'Students' capability. An administrator can grant it in Governance."}`. |

@@ -2305,10 +2305,16 @@ collaborator can push an edited copy of it to the same branch. The upload is
 androidpublisher API, deliberately not a third-party Action: whatever runs that
 step holds the credential that publishes to every student's phone. One edit,
 deleted on any failure, so no half-made release sits in Play Console;
-`tests/test_play_upload.py` pins the call order. The defaults are the internal
-track and DRAFT status, so a push never reaches a phone without somebody
-pressing Start rollout, and `PLAY_UPLOAD` stays off until the first bundle has
-been uploaded by hand, which Google requires. versionCode is
+`tests/test_play_upload.py` pins the call order. The default is the internal
+track rolled out at once (`completed`), the owner's call on 2026-10-17: Google
+holds internal tests for no standard review, they reach the listed testers
+(100 at most) within minutes, and the 12-tester closed-test rule gates
+production only. Every other track defaults to DRAFT. Before an app's first
+rollout Google accepts only a draft, so the uploader retries a `completed`
+refused with Google's "draft app" sentence as a draft in the same edit and says
+so in the run summary; any other refusal is reported as it is. `PLAY_UPLOAD`
+stays off until the first bundle has been uploaded by hand, which Google
+requires. versionCode is
 `run_number * 100 + run_attempt`: Play refuses a code it has seen, and renaming
 the workflow restarts `run_number`. `docs/mobile-app.md` §8 is the owner's
 runbook.

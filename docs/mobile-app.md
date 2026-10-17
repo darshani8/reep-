@@ -157,8 +157,14 @@ runs **Actions → "Android app to Google Play"**
 (`.github/workflows/android-play.yml`). It builds a release bundle (`.aab`),
 signs it with your upload key, attaches it to the run as **reep-play-aab**,
 and, once you switch it on, uploads it to Google Play's **internal testing**
-track as a **draft**. Nothing reaches a phone until you press **Start rollout**
-in Play Console.
+track and rolls it out straight away.
+
+**Internal testing has no restrictions to wait on.** Google does not hold an
+internal test for its standard review, a new version reaches your testers
+within minutes, and the 12-tester, 14-day rule for new personal accounts
+applies only before **production** (see "Before the app can be public"). It
+takes up to **100 testers**, each added by their Google account email, who
+install the app from Google Play through an opt-in link.
 
 ### One-time setup, in this order
 
@@ -215,8 +221,11 @@ in Play Console.
    latest "Android app to Google Play" run). When it is green, open it,
    download **reep-play-aab** and unzip it. In Play Console: **Test and release
    → Testing → Internal testing → Create new release** → accept **Play App
-   Signing** → upload `app-release.aab` → **Next** → **Save and publish**. Add
-   yourself under **Testers**.
+   Signing** → upload `app-release.aab` → **Next** → **Save and publish**.
+   Then **Testers** → create an email list with your testers' Google account
+   addresses (up to 100) → **Save**, and send them the **Copy link** opt-in
+   link. Each tester opens it once on their phone, accepts, and installs REEP
+   from Google Play.
 
 6. **Let GitHub upload every later one.**
    - https://console.cloud.google.com → pick or create a project → **APIs &
@@ -233,8 +242,11 @@ in Play Console.
      whole JSON file; variable `PLAY_UPLOAD` = `true`. Delete the JSON file from
      your computer.
 
-From then on every push to `feature/mobile-app` that touches `apps/web` puts a
-new draft on internal testing. Open Play Console and press **Start rollout**.
+From then on every push to `feature/mobile-app` that touches `apps/web` rolls a
+new version out to your internal testers, and their phones update it from
+Google Play like any other app. Nothing to press. (Only if Google still treats
+the app as never released does it accept a **draft** instead; the run's summary
+says so, and pressing **Start rollout** once in Play Console ends that.)
 
 ### The environment's variables
 
@@ -243,7 +255,7 @@ new draft on internal testing. Open Play Console and press **Start rollout**.
 | `REEP_API_ORIGIN` | the run stops | the server the app talks to |
 | `PLAY_UPLOAD` | build and sign only | `true` uploads to Google Play; anything else attaches the bundle to the run and uploads nothing |
 | `PLAY_TRACK` | `internal` | `internal`, `alpha` (closed testing), `beta` (open testing) or `production` |
-| `PLAY_RELEASE_STATUS` | `draft` | `draft` waits for **Start rollout**; `completed` sends it to that track at once |
+| `PLAY_RELEASE_STATUS` | `completed` on `internal`, `draft` on every other track | `completed` sends it to that track at once; `draft` waits for **Start rollout** |
 
 Each run numbers its bundle `1.0.<run number>`, with version code
 `run number × 100 + attempt`, so the numbers only grow and a re-run never
@@ -251,7 +263,10 @@ collides. Google refuses a version code it has seen before.
 
 ### Before the app can be public
 
-Play Console's **Dashboard** lists what Google needs before a production
+This is the list for **production**, where anybody can find REEP on Google
+Play; internal testing does not wait on the closed test below. If Play Console
+asks for one of these declarations before your first internal release, fill it
+in there. Its **Dashboard** lists what Google needs before a production
 release: a **privacy policy** web page (the app shows students' marks and
 attendance, so it needs a real one), the **Data safety** form, a **content
 rating**, the **target audience**, and the store listing's screenshots and

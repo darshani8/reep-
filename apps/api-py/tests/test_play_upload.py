@@ -9,6 +9,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -71,9 +72,9 @@ def bundle(tmp_path: Path) -> Path:
 
 def test_one_edit_upload_track_commit_in_that_order(bundle: Path) -> None:
     google = _Play()
-    version = play.publish(google, bundle, track="internal", status="draft", release_name="1.0.42")
+    version, status = play.publish(google, bundle, track="internal", status="draft", release_name="1.0.42")
 
-    assert version == 4201
+    assert (version, status) == (4201, "draft")
     assert [(m, u) for m, u, _ in google.calls] == [
         ("POST", f"{API}/edits"),
         ("POST", f"{play.UPLOAD_API}/{play.PACKAGE}/edits/e1/bundles"),
@@ -100,6 +101,76 @@ def test_a_refusal_deletes_the_edit_and_names_googles_reason(bundle: Path, refus
     assert google.calls[-1][:2] == ("DELETE", f"{API}/edits/e1")
     if refused != ":commit":
         assert not any(u.endswith(":commit") for _, u, _ in google.calls)
+
+
+class _DraftApp(_Play):
+    """An app never rolled out anywhere: Google takes only a draft release."""
+
+    def __init__(self, message: str = "Only releases with status draft may be created on draft app.") -> None:
+        super().__init__()
+        self.message = message
+
+    def put(self, url: str, **kwargs) -> _Response:
+        self.calls.append(("PUT", url, kwargs))
+        if kwargs["json"]["releases"][0]["status"] != "draft":
+            return _Response(400, {"error": {"message": self.message}})
+        return _Response(200, {"track": "internal"})
+
+
+def test_internal_testing_rolls_out_at_once(bundle: Path) -> None:
+    google = _Play()
+    version, status = play.publish(google, bundle, track="internal", status="completed", release_name="1.0.7")
+    assert (version, status) == (4201, "completed")
+    puts = [kwargs["json"]["releases"][0]["status"] for method, _, kwargs in google.calls if method == "PUT"]
+    assert puts == ["completed"]
+
+
+def test_a_first_release_google_takes_only_as_a_draft_is_kept_as_one(bundle: Path) -> None:
+    """Before the app's first rollout Google refuses `completed`; the bundle is
+    still delivered, as a draft, in the same edit, and the caller is told."""
+    google = _DraftApp()
+    version, status = play.publish(google, bundle, track="internal", status="completed", release_name="1.0.7")
+    assert (version, status) == (4201, "draft")
+    puts = [kwargs["json"]["releases"][0]["status"] for method, _, kwargs in google.calls if method == "PUT"]
+    assert puts == ["completed", "draft"]
+    assert google.calls[-1][:2] == ("POST", f"{API}/edits/e1:commit")
+    assert {u for _, u, _ in google.calls if "/edits/" in u and not u.endswith(":commit")} <= {
+        f"{play.UPLOAD_API}/{play.PACKAGE}/edits/e1/bundles",
+        f"{API}/edits/e1/tracks/internal",
+    }
+
+
+def test_any_other_refusal_is_not_retried_as_a_draft(bundle: Path) -> None:
+    google = _DraftApp(message="APK specifies a version code that has already been used.")
+    with pytest.raises(play.PlayError, match="already been used"):
+        play.publish(google, bundle, track="internal", status="completed", release_name="1.0.7")
+    assert [m for m, _, _ in google.calls].count("PUT") == 1
+    assert google.calls[-1][:2] == ("DELETE", f"{API}/edits/e1")
+
+
+def test_main_writes_the_status_google_accepted_into_the_run_summary(
+    bundle: Path, tmp_path: Path, monkeypatch, capsys
+) -> None:
+    summary = tmp_path / "summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    monkeypatch.setenv("PLAY_SERVICE_ACCOUNT_JSON", json.dumps({"type": "service_account", "client_email": "c@p"}))
+    monkeypatch.setattr(play, "publish", lambda *a, **k: (4201, "draft"))
+    # Stand-ins for google-auth, so the test needs neither it nor a network.
+    stubs = {name: types.ModuleType(name) for name in (
+        "google", "google.oauth2", "google.oauth2.service_account",
+        "google.auth", "google.auth.transport", "google.auth.transport.requests",
+    )}
+    stubs["google.oauth2.service_account"].Credentials = types.SimpleNamespace(
+        from_service_account_info=lambda *a, **k: None
+    )
+    stubs["google.auth.transport.requests"].AuthorizedSession = lambda credentials: object()
+    for name, module in stubs.items():
+        monkeypatch.setitem(sys.modules, name, module)
+
+    assert play.main(["--bundle", str(bundle), "--track", "internal", "--status", "completed", "--release-name", "1.0.7"]) == 0
+    out = capsys.readouterr().out
+    assert "::warning::" in out and "Start rollout" in out
+    assert "Start rollout" in summary.read_text(encoding="utf-8")
 
 
 def test_an_unknown_track_or_status_never_opens_an_edit(bundle: Path) -> None:

@@ -120,10 +120,9 @@ After ~10 minutes, open the finished run and download **reep-debug-apk**.
 (GitHub only shows this button once the workflow file is on the `main`
 branch.)
 
-These are **debug** APKs: right for testing, not for the Play Store. A Play
-Store upload needs a *release* build signed with your own key (Android Studio:
-**Build → Generate Signed App Bundle or APK**), and the key must be kept safe
-forever — losing it means you can never update the app.
+These are **debug** APKs: right for testing, not for the Play Store. The Play
+Store gets a signed *release* bundle, built by GitHub — see
+[8. Publish to Google Play](#8-publish-to-google-play).
 
 ## 6. iOS
 
@@ -149,6 +148,128 @@ your own (same sizes), or redraw REEP's with
 cd apps/web
 npm run mobile:icons
 ```
+
+## 8. Publish to Google Play
+
+The app is published **from the `feature/mobile-app` branch only**. `main` never
+builds or ships it. Every push to `feature/mobile-app` that changes the app
+runs **Actions → "Android app to Google Play"**
+(`.github/workflows/android-play.yml`). It builds a release bundle (`.aab`),
+signs it with your upload key, attaches it to the run as **reep-play-aab**,
+and, once you switch it on, uploads it to Google Play's **internal testing**
+track as a **draft**. Nothing reaches a phone until you press **Start rollout**
+in Play Console.
+
+### One-time setup, in this order
+
+1. **A Google Play developer account**: https://play.google.com/console/signup
+   (a one-time US$25 fee; Google checks your identity, which takes a few days).
+
+2. **Create the app** in Play Console → **Create app**: name *REEP*, *App*,
+   *Free*. Its package name is decided by the first upload and can never change
+   afterwards: `in.ac.bgscet.reep` (`capacitor.config.ts` and
+   `android/app/build.gradle`). Change both before step 5 if the college wants
+   a different one.
+
+3. **Make your upload key** on your own computer (Java comes with Android
+   Studio):
+   ```
+   keytool -genkeypair -v -keystore reep-upload.jks -alias reep-upload -keyalg RSA -keysize 2048 -validity 10000
+   ```
+   It asks for a password and a name. Keep `reep-upload.jks` and its password
+   in a password manager, **never in the repository** (`android/.gitignore`
+   refuses `*.jks` for that reason). Google keeps the key that signs what phones
+   install (Play App Signing); this one only proves an upload came from you.
+   Google can replace a lost upload key, but only after you ask them.
+
+   Turn it into text for GitHub:
+   - macOS: `base64 -i reep-upload.jks -o reep-upload.b64`
+   - Linux: `base64 -w0 reep-upload.jks > reep-upload.b64`
+   - Windows PowerShell:
+     `[Convert]::ToBase64String([IO.File]::ReadAllBytes("reep-upload.jks")) | Out-File reep-upload.b64 -Encoding ascii`
+
+4. **The `play-store` environment** on GitHub: **Settings → Environments → New
+   environment** → `play-store`.
+   - **Deployment branches and tags** → *Selected branches and tags* → add
+     `feature/mobile-app`. This is what keeps every other branch away from the
+     secrets below.
+   - **Required reviewers**, if your GitHub plan shows it: tick yourself, and
+     every release waits for your **Approve**.
+   - **Environment secrets**:
+
+     | Name | Value |
+     |---|---|
+     | `ANDROID_UPLOAD_KEYSTORE_BASE64` | everything in `reep-upload.b64` |
+     | `ANDROID_UPLOAD_KEYSTORE_PASSWORD` | the keystore password |
+     | `ANDROID_UPLOAD_KEY_ALIAS` | `reep-upload` |
+     | `ANDROID_UPLOAD_KEY_PASSWORD` | the key password (the same as the keystore's unless you typed a different one) |
+
+   - **Environment variables**: `REEP_API_ORIGIN` = your REEP server,
+     `https://…`, no `/` at the end (the same address as section 3, "Point
+     the app at your server").
+
+   Then delete `reep-upload.b64` (keep the `.jks`).
+
+5. **The first bundle goes up by hand**, because Google does not let its API
+   upload an app's very first one. Push to `feature/mobile-app` (or re-run the
+   latest "Android app to Google Play" run). When it is green, open it,
+   download **reep-play-aab** and unzip it. In Play Console: **Test and release
+   → Testing → Internal testing → Create new release** → accept **Play App
+   Signing** → upload `app-release.aab` → **Next** → **Save and publish**. Add
+   yourself under **Testers**.
+
+6. **Let GitHub upload every later one.**
+   - https://console.cloud.google.com → pick or create a project → **APIs &
+     Services → Library** → enable **Google Play Android Developer API**.
+   - **IAM & Admin → Service accounts → Create service account** (name it
+     `reep-play-upload`, give it no roles) → open it → **Keys → Add key → JSON**.
+     A file downloads.
+   - Play Console → **Users and permissions → Invite new users** → paste the
+     service account's email (`…@….iam.gserviceaccount.com`) → **App
+     permissions** → add REEP → tick **Release apps to testing tracks** (tick
+     the production release permission only if GitHub should be able to upload
+     to production too) → **Invite user**.
+   - GitHub, `play-store` environment: secret `PLAY_SERVICE_ACCOUNT_JSON` = the
+     whole JSON file; variable `PLAY_UPLOAD` = `true`. Delete the JSON file from
+     your computer.
+
+From then on every push to `feature/mobile-app` that touches `apps/web` puts a
+new draft on internal testing. Open Play Console and press **Start rollout**.
+
+### The environment's variables
+
+| Variable | When not set | What it does |
+|---|---|---|
+| `REEP_API_ORIGIN` | the run stops | the server the app talks to |
+| `PLAY_UPLOAD` | build and sign only | `true` uploads to Google Play; anything else attaches the bundle to the run and uploads nothing |
+| `PLAY_TRACK` | `internal` | `internal`, `alpha` (closed testing), `beta` (open testing) or `production` |
+| `PLAY_RELEASE_STATUS` | `draft` | `draft` waits for **Start rollout**; `completed` sends it to that track at once |
+
+Each run numbers its bundle `1.0.<run number>`, with version code
+`run number × 100 + attempt`, so the numbers only grow and a re-run never
+collides. Google refuses a version code it has seen before.
+
+### Before the app can be public
+
+Play Console's **Dashboard** lists what Google needs before a production
+release: a **privacy policy** web page (the app shows students' marks and
+attendance, so it needs a real one), the **Data safety** form, a **content
+rating**, the **target audience**, and the store listing's screenshots and
+description. A **personal** developer account made after November 2023 must
+also run a **closed test with at least 12 testers for 14 days** before Google
+allows production. An organisation account (the college's) does not have that
+rule. The server also needs `NATIVE_APP_ORIGINS` (section 1), or the published
+app cannot load anything.
+
+### Who can publish
+
+The workflow's first job refuses a push by anyone but the repository owner,
+and refuses every branch but `feature/mobile-app`. That job is part of the
+workflow file, though, and a collaborator with write access could push an
+edited copy of that file to `feature/mobile-app`. What actually closes that
+door is one of: adding `feature/mobile-app` to the **Lead review** ruleset
+(**Settings → Rules → Rulesets**), so only you can update the branch; or the
+**Required reviewers** box in step 4.
 
 ---
 

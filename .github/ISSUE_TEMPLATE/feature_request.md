@@ -63,8 +63,8 @@ Say which manifest, because the split is enforced by CI rather than by conventio
 - `apps/api-py/requirements-dev.txt` — test-only. A test runner has no business in a
   production image.
 - `apps/web/package.json` — the Angular build enforces a **bundle budget**. Initial is
-  ~142 kB and the budget is set close to it, so a heavy library reaching an eager path
-  fails `ng build` in CI rather than shipping quietly.
+  ~419 kB (framework included) against a 610 kB cap, so a heavy library reaching an
+  eager path fails `ng build` in CI rather than shipping quietly.
 
 ## What would it deliberately NOT do?
 

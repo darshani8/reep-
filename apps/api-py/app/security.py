@@ -364,3 +364,52 @@ def session_was_retired(token: str | None) -> bool:
     if state.disabled:
         return False
     return _claimed_version(claims) < state.version
+
+
+#: The value of `X-Reep-Session` on a 401 whose cookie belongs to an account the
+#: office DISABLED. See session_was_disabled.
+SESSION_DISABLED_VALUE = "disabled"
+
+
+def session_was_disabled(token: str | None) -> bool:
+    """Was this cookie genuine, but its account disabled by the Main Admin?
+
+    The other half of the comment above (2026-10-17, the owner's request):
+    "they get the plain Sign in required" left a student disabled mid-session
+    at a login screen with no word of why, signing in again into the same
+    refusal. The sign-in doors already tell them; this lets the login screen
+    say it too, the moment their open session is cut.
+
+    TRUE ONLY FOR A DISABLE, never for a removal. `account_state` folds both
+    into one flag because a cookie may not act for either, but the sentence the
+    screen prints is about a security issue the office is holding, and a
+    student removed from the roster has not been told that. So the row is read
+    again for `disabled_at` alone: one query, on the failure path of a cookie
+    that verified, which is rare.
+
+    A lookup that fails answers False, for `session_was_retired`'s reason: "we
+    could not check" must not be reported as a fact about the account.
+    """
+    if not token:
+        return False
+    try:
+        claims = jwt.decode(token, settings.auth_secret, algorithms=["HS256"])
+    except jwt.PyJWTError:
+        return False
+    if not isinstance(claims, dict) or not claims.get("userId") or not claims.get("role"):
+        return False
+    state = account_state(str(claims["userId"]))
+    if state.version < 0 or not state.disabled:
+        return False
+    try:
+        from .db import SessionLocal
+        from .models.user import User
+
+        with SessionLocal() as db:
+            disabled_at = db.scalar(
+                select(User.disabled_at).where(User.id == str(claims["userId"]))
+            )
+    except Exception:
+        log.exception("could not read disabled_at for user %s", claims["userId"])
+        return False
+    return disabled_at is not None

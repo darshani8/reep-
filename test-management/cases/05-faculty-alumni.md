@@ -190,7 +190,7 @@ session.
 | ER-1 | 1 | The page is headed "Mentee Log", with "Your mentees and the 1:1 meeting notes they can read." under it. The "My students" card lists one student, "Test Student", with "1BG24MBA001 · Sem 2 · EXCEL_ADVANCED", and that student is selected. |
 | ER-2 | 1 | The right-hand card reads "Log a meeting with Test Student", with the fields "Heading (optional)", "Linked action" and "Meeting note" and a Save note button, and a "Full record" link beside the heading. |
 | ER-3 | 1 | The seeded note is listed under the form: the heading "1:1 review · Cabin 3", its text, and a "1:1 scheduled" chip. |
-| ER-4 | 2 | The student's full record opens at `/admin/students/<id>`, for Test Student, read only: there is no Edit or Remove button. |
+| ER-4 | 2 | The student's full record opens at `/admin/students/<id>`, for Test Student, read only: there is no Edit or Remove button. Its tabs are Overview, Resume, Skills, Leaderboard, Academics, Interviews, Time sheet and Documents: there is no Access tab and no "Who can open this record" card, which are the Main Admin's alone. |
 
 ---
 

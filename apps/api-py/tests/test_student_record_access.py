@@ -24,6 +24,10 @@ WHAT THIS MODULE HOLDS DOWN, in the order a break would be quietest:
    Log's "Full record" link offer exactly the students the page opens.
 7. A MENTOR OPENS THEIR OWN MENTEES (2026-10-16). Mentoring a student is
    enough to read their record; it reaches nobody else and writes nothing.
+8. WHO ELSE CAN OPEN IT IS THE OFFICE'S (2026-10-17). The Access tab's reads
+   (the access list, recent sign-ins, the record's history and the reasons
+   for a disable or a removal) answer the Main Admin alone; a grant or a
+   mentee opens the record and not that.
 """
 
 from __future__ import annotations
@@ -193,7 +197,10 @@ def grant():
         db.commit()
 
 
-READS = ("/360", "/record", "/access")
+READS = ("/360", "/record")
+
+#: The Access tab's own read. No grant and no mentee opens it (2026-10-17).
+OFFICE_ONLY = ("/access",)
 
 
 # ------------------------------------------------------- 1. the widening --
@@ -209,6 +216,9 @@ def test_a_scoped_grant_opens_a_student_the_holder_does_not_mentor(client, login
     for path in READS:
         response = client.get(_base(world["student"]) + path, headers=stranger)
         assert response.status_code == 200, (path, response.text)
+    for path in OFFICE_ONLY:
+        refused = client.get(_base(world["student"]) + path, headers=stranger)
+        assert refused.status_code == 403 and "Main Admin" in refused.text, (path, refused.text)
     # The department named, and nobody outside it: the neighbour sits in the
     # other department, so the same grant is a 403 there.
     assert client.get(_base(world["neighbour"]) + "/360", headers=stranger).status_code == 403
@@ -437,15 +447,50 @@ def test_the_access_list_names_everybody_who_can_open_the_record(client, make_us
     # The batch is named by its course and year, never the bare year.
     assert body["reach_options"][1]["label"] == "Record Programme · 2025-27"
 
-    # A faculty member reading the record sees who else can, but not the
-    # office's reason for each grant or who made it (review of #180).
-    stranger = login(world["stranger_email"], TEST_PASSWORD)
-    seen = client.get(_base(world["student"]) + "/access", headers=stranger).json()
-    assert seen["can_manage"] is False
-    shown = [h for h in seen["holders"] if h["kind"] == "grant"]
-    assert [h["grant_id"] for h in shown] == [grant_id]
-    assert all(h["reason"] is None and h["granted_by"] is None for h in seen["holders"])
-    assert granted[0]["reason"], "the office still reads the reason"
+    assert granted[0]["reason"], "the office reads the reason for each grant"
+
+    # Nobody else reads the list at all (2026-10-17): not the faculty member
+    # the grant names, and not the student's own mentor.
+    for email in (world["stranger_email"], world["mentor_email"]):
+        refused = client.get(_base(world["student"]) + "/access", headers=login(email, TEST_PASSWORD))
+        assert refused.status_code == 403, (email, refused.text)
+        assert refused.json()["detail"] == "Main Admin access required."
+
+
+@requires_db
+def test_the_access_tab_half_of_the_record_is_the_offices(client, make_user, login, world, grant):
+    """`GET .../360` carries the sign-ins, the record's history and the reasons
+    the office wrote when it disabled the account. They are drawn on the Access
+    tab, so a reader on a grant or a mentee gets the record without them, and
+    still learns THAT the account is disabled."""
+    admin = make_user("rec-admin", Role.ADMIN)
+    login(world["student_email"], TEST_PASSWORD)  # a sign-in on the student's list
+    assert client.get(
+        _base(world["student"]) + f"/files/{world['cv']}?download=true", headers=admin.headers
+    ).status_code == 200  # a row on the student's history
+    with SessionLocal() as db:
+        row = db.scalar(select(Student).where(Student.id == world["student"]))
+        account = db.get(User, row.user_id)
+        account.disabled_at = datetime.now(timezone.utc)
+        account.disabled_by_user_id = admin.user_id
+        account.disable_reason = "E2E: under investigation for a shared password"
+        db.commit()
+
+    office = client.get(_base(world["student"]) + "/360", headers=admin.headers).json()
+    assert office["login"]["recent_sign_ins"], "the office reads the sign-ins"
+    assert office["recent_audit"], "the office reads the history"
+    assert office["login"]["disable_reason"].startswith("E2E: under investigation")
+
+    grant(world["stranger_user"], ScopeLevel.STUDENT, world["student"])
+    for email in (world["stranger_email"], world["mentor_email"]):
+        seen = client.get(_base(world["student"]) + "/360", headers=login(email, TEST_PASSWORD))
+        assert seen.status_code == 200, (email, seen.text)
+        body = seen.json()
+        assert body["login"]["recent_sign_ins"] == [], email
+        assert body["recent_audit"] == [], email
+        assert body["login"]["disabled"] is True, "the fact stays; the reason goes"
+        assert body["login"]["disable_reason"] is None, email
+        assert body["login"]["disabled_by_name"] is None, email
 
 
 # ------------------------------------------------------- the finding list --
@@ -525,6 +570,8 @@ def test_a_mentor_opens_their_own_mentees_record_and_nobody_elses(client, login,
     for path in READS:
         response = client.get(_base(world["student"]) + path, headers=mentor)
         assert response.status_code == 200, (path, response.text)
+    for path in OFFICE_ONLY:
+        assert client.get(_base(world["student"]) + path, headers=mentor).status_code == 403, path
     cv = client.get(_base(world["student"]) + f"/files/{world['cv']}", headers=mentor)
     assert cv.status_code == 200, cv.text
 

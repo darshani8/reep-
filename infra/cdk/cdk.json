@@ -33,6 +33,7 @@
     "apiArm64": true,
     "natInstance": true,
     "natGateway": false,
+    "natAmiId": "ami-0cf36b0c962e50fd7",
     "dbMultiAz": false,
     "dbInstanceClassTarget": "db.t4g.small",
     "vaultLockCompliance": false,

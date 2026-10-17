@@ -4,7 +4,7 @@ Run by .github/workflows/android-play.yml, never by hand on a laptop that
 holds the service account (docs/mobile-app.md, "Publish to Google Play").
 
     PLAY_SERVICE_ACCOUNT_JSON='{...}' python tools/play/upload_bundle.py \
-        --bundle app-release.aab --track internal --status draft --release-name 1.0.42
+        --bundle app-release.aab --track internal --status completed --release-name 1.0.42
 
 It speaks the Google Play Developer API (androidpublisher v3) directly with
 Google's own auth library rather than through a third-party GitHub Action,
@@ -33,6 +33,10 @@ TRACKS = ("internal", "alpha", "beta", "production")
 # draft: the release waits in Play Console until somebody presses "Start rollout".
 # completed: it goes to the track's testers (or, on production, to everybody) at once.
 STATUSES = ("draft", "completed")
+# Google's refusal of a non-draft release on an app that has never been rolled
+# out anywhere. Matched on this phrase alone, because it is the one refusal a
+# draft retry can answer; every other one is reported as it is.
+DRAFT_APP_REFUSAL = "draft app"
 SCOPE = "https://www.googleapis.com/auth/androidpublisher"
 API = "https://androidpublisher.googleapis.com/androidpublisher/v3/applications"
 UPLOAD_API = "https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications"
@@ -72,8 +76,14 @@ def service_account_info(raw: str) -> dict:
 
 
 def publish(session: Any, bundle: Path, *, track: str, status: str, release_name: str,
-            package: str = PACKAGE) -> int:
-    """Upload `bundle` and put it on `track`. Returns the versionCode Google recorded."""
+            package: str = PACKAGE) -> tuple[int, str]:
+    """Upload `bundle` and put it on `track`.
+
+    Returns the versionCode Google recorded and the status the release was
+    actually given: a `completed` release on an app that has never been rolled
+    out anywhere is refused by Google, and is then put on the track as a draft
+    in the same edit rather than failing the run with the bundle unsent.
+    """
     if track not in TRACKS:
         raise PlayError(f"unknown track {track!r}; expected one of {', '.join(TRACKS)}")
     if status not in STATUSES:
@@ -93,20 +103,32 @@ def publish(session: Any, bundle: Path, *, track: str, status: str, release_name
             "Uploading the bundle",
         )
         version_code = int(uploaded["versionCode"])
-        _ok(
-            session.put(
-                f"{API}/{package}/edits/{edit_id}/tracks/{track}",
-                json={
-                    "track": track,
-                    "releases": [{"name": release_name, "versionCodes": [str(version_code)], "status": status}],
-                },
-                timeout=TIMEOUT,
-            ),
-            f"Putting version {version_code} on the {track} track",
-        )
+
+        def put_on_track(release_status: str) -> None:
+            _ok(
+                session.put(
+                    f"{API}/{package}/edits/{edit_id}/tracks/{track}",
+                    json={
+                        "track": track,
+                        "releases": [
+                            {"name": release_name, "versionCodes": [str(version_code)], "status": release_status}
+                        ],
+                    },
+                    timeout=TIMEOUT,
+                ),
+                f"Putting version {version_code} on the {track} track",
+            )
+
+        try:
+            put_on_track(status)
+        except PlayError as refused:
+            if status == "draft" or DRAFT_APP_REFUSAL not in str(refused):
+                raise
+            status = "draft"
+            put_on_track(status)
         _ok(session.post(f"{API}/{package}/edits/{edit_id}:commit", timeout=TIMEOUT), "Committing the edit")
         committed = True
-        return version_code
+        return version_code, status
     finally:
         if not committed:
             # Best effort: an abandoned edit also expires on its own.
@@ -133,7 +155,7 @@ def main(argv: list[str] | None = None) -> int:
         from google.oauth2 import service_account
 
         credentials = service_account.Credentials.from_service_account_info(info, scopes=[SCOPE])
-        version_code = publish(
+        version_code, status = publish(
             AuthorizedSession(credentials), args.bundle,
             track=args.track, status=args.status, release_name=args.release_name,
         )
@@ -141,8 +163,24 @@ def main(argv: list[str] | None = None) -> int:
         print(f"::error::{exc}", file=sys.stderr)
         return 1
 
-    where = "waiting in Play Console for you to press Start rollout" if args.status == "draft" else "rolling out"
-    print(f"Uploaded {PACKAGE} version {version_code} ({args.release_name}) to the {args.track} track, {where}.")
+    if status != args.status:
+        print(
+            "::warning::Google Play accepts only a draft until the app's first release has been rolled out "
+            "in Play Console, so this version is a draft. Press Start rollout there once; later runs roll out "
+            "on their own."
+        )
+    if status == "draft":
+        where = "waiting in Play Console for you to press **Start rollout**"
+    elif args.track == "internal":
+        where = "rolling out to your internal testers now (usually within minutes)"
+    else:
+        where = "rolling out"
+    line = f"Version {args.release_name} (code {version_code}) is on the **{args.track}** track, {where}."
+    print(f"Uploaded {PACKAGE}. {line}")
+    summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary:
+        with open(summary, "a", encoding="utf-8") as out:
+            out.write(f"### Uploaded to Google Play\n{line}\n")
     return 0
 
 

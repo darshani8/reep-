@@ -11,8 +11,11 @@
 # builds a RELEASE bundle (.aab) signed with the Play upload key, keeps the
 # bundle as a download on the run ("reep-play-aab"), and, once PLAY_UPLOAD is
 # true, uploads it to Google Play through tools/play/upload_bundle.py. The
-# default is the INTERNAL testing track as a DRAFT: nothing reaches anybody's
-# phone until the owner presses "Start rollout" in Play Console.
+# default is the INTERNAL testing track, rolled out at once: Google does not
+# hold internal tests for its standard review, they reach the (at most 100)
+# testers the owner listed within minutes, and the 12-tester closed-test rule
+# for new personal accounts gates production only. Every other track defaults
+# to a DRAFT, which waits for "Start rollout" in Play Console.
 #
 # The one-time setup (Play Console app, upload key, service account, the
 # play-store environment and its secrets) is docs/mobile-app.md, "Publish to
@@ -84,7 +87,9 @@ jobs:
     env:
       API_ORIGIN: ${{ vars.REEP_API_ORIGIN }}
       PLAY_TRACK: ${{ vars.PLAY_TRACK || 'internal' }}
-      PLAY_RELEASE_STATUS: ${{ vars.PLAY_RELEASE_STATUS || 'draft' }}
+      # Internal testing goes out at once; any other track waits as a draft
+      # unless PLAY_RELEASE_STATUS says otherwise.
+      PLAY_RELEASE_STATUS: ${{ vars.PLAY_RELEASE_STATUS || ((vars.PLAY_TRACK || 'internal') == 'internal' && 'completed' || 'draft') }}
       BUNDLE: android/app/build/outputs/bundle/release/app-release.aab
     steps:
       - uses: actions/checkout@v4
@@ -213,6 +218,8 @@ jobs:
         with:
           python-version: "3.12"
 
+      # The script writes the run summary itself, because only it knows the
+      # status Google actually accepted (a first release can only be a draft).
       - name: Upload to Google Play
         if: vars.PLAY_UPLOAD == 'true'
         env:
@@ -221,13 +228,6 @@ jobs:
           python -m pip install --quiet "google-auth==2.59.1" "requests==2.34.2"
           python ../../tools/play/upload_bundle.py --bundle "$BUNDLE" \
             --track "$PLAY_TRACK" --status "$PLAY_RELEASE_STATUS" --release-name "$VERSION_NAME"
-          {
-            echo "### Uploaded to Google Play"
-            echo "Version $VERSION_NAME (code $VERSION_CODE) is on the **$PLAY_TRACK** track as **$PLAY_RELEASE_STATUS**."
-            if [ "$PLAY_RELEASE_STATUS" = draft ]; then
-              echo "Open Play Console and press **Start rollout** to send it to that track's users."
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Say why nothing was uploaded
         if: vars.PLAY_UPLOAD != 'true'

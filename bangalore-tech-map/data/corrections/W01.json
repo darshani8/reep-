@@ -1,0 +1,225 @@
+{
+ "key": "W01",
+ "corrections": [
+  {
+   "company": "abb",
+   "verdict": "keep",
+   "note": "Registered/corporate office 'Disha', Plot 5 & 6, 2nd Stage, Peenya Industrial Area IV confirmed by ABB India's Nov 2024 BSE filing (https://bseindia.com/xml-data/corpfiling/AttachHis/27600acf-563d-4525-a74e-f82e60ab3342.pdf); the Peenya-centroid office is the same Plot 5 & 6 campus recorded twice, the Mahadevapura POI is the ABB Innovation Center (AIC) at Brigade Southfield, Hoodi, and the Khanija Bhavan 'Corporate Research Center' POI is superseded by the CRC's listed address at AIC.",
+   "offices": [
+    {
+     "office": "abb~d0a0e7",
+     "verdict": "fix",
+     "note": "Confirmed from a primary statutory filing; label widened to cover the Peenya works on the same plot (the separate Peenya-centroid record is dropped as a duplicate). Pin left at the existing Peenya 2nd Stage point: no OSM object for the plot was found, so it is approximate.",
+     "set": {
+      "label": "Registered office 'Disha' and Peenya works (Plot 5 & 6)",
+      "evidence": "ABB India Ltd's November 2024 stock-exchange filing gives its registered and corporate office as 'Disha - 3rd Floor, Plot No. 5 & 6, 2nd Stage, Peenya Industrial Area IV, Peenya, Bengaluru 560058' (CIN L32202KA1949PLC032923): https://bseindia.com/xml-data/corpfiling/AttachHis/27600acf-563d-4525-a74e-f82e60ab3342.pdf . ABB press releases place manufacturing investment at Peenya (https://new.abb.com/news/detail/134105/abb-deepens-karnataka-footprint-with-new-investments-to-serve-high-growth-emerging-sectors). Pin is Peenya 2nd Stage, not the surveyed plot."
+     }
+    },
+    {
+     "office": "abb~bb9281",
+     "verdict": "drop",
+     "note": "Same Plot 5 & 6, 2nd Stage Peenya campus as the 'Disha' registered office (abb~d0a0e7, ~600 m away, both pins approximate); its coordinate was only the Peenya Industrial Area centroid. Detail merged onto abb~d0a0e7."
+    },
+    {
+     "office": "abb~55743c",
+     "verdict": "fix",
+     "note": "The OSM 'ABB' node 13245235393 lies inside the OSM polygon of Brigade Southfield (way/1097715842, centroid 12.987844,77.707923), and ABB's contact listing (per search snippet) gives its Corporate Research Center at 'AIC - Brigade Southfield, KEB Colony, Industrial Area, Hoodi 560048'. Pin kept (already inside the building polygon).",
+     "set": {
+      "label": "ABB Innovation Center (AIC) - Brigade Southfield, Hoodi",
+      "building": "Brigade Southfield",
+      "locality": "Hoodi / Mahadevapura (Whitefield Road)",
+      "address": "AIC, Brigade Southfield, KEB Colony, Hoodi Industrial Area, Bengaluru 560048",
+      "confidence": "high",
+      "evidence": "ABB's India contact listing gives the Corporate Research Center at 'AIC - Brigade Southfield, KEB Colony, Industrial Area, Hoodi 560048' (shop.in.abb.com/about-us; new.abb.com returned 503 to fetches), the AIC's 2022 inauguration is reported at https://powerline.net.in/2022/04/01/abb-inaugurates-abbs-innovation-center-aic-in-india/ , and OSM office POI 'ABB' (https://www.openstreetmap.org/node/13245235393) sits inside the Brigade Southfield polygon (https://www.openstreetmap.org/way/1097715842)."
+     }
+    },
+    {
+     "office": "abb~47487f",
+     "verdict": "drop",
+     "note": "Only an OSM POI 'ABB Corporate Research Center' at Khanija Bhavan; ABB now lists its Corporate Research Center at the AIC in Brigade Southfield, Hoodi (abb~55743c), so this is a stale pre-AIC location with no current evidence."
+    },
+    {
+     "office": "abb~85652e",
+     "verdict": "keep",
+     "note": "A web directory (worldorgs) also lists ABB Global Industries & Services at Bhoruka Tech Park, Whitefield Main Road, matching the OSM 'Block-1 (ABB)' building; ~750 m from the AIC so a distinct site, but no primary source reached, so it stays low."
+    }
+   ]
+  },
+  {
+   "company": "dealshare",
+   "verdict": "drop",
+   "note": "Its only Bengaluru office is two clustered OSM POIs in HSR Sector 3 with no primary or press confirmation; 2023 reporting (https://www.hrkatha.com/news/dealshare-b2b-unit-closure-renders-130-jobless/) said it was shifting its corporate HQ from Bengaluru to Delhi NCR, a 2024 YourStory piece calls it a Gurugram company, its entity Merabo Labs is registered in Jaipur, and Inc42 (Sep 2026, https://inc42.com/?p=572831) reports its online business at a near halt while it seeks a buyer - no current Bengaluru office is findable."
+  },
+  {
+   "company": "embitel-technologies",
+   "verdict": "keep",
+   "note": "Embitel's own contact page (https://www.embitel.com/contact-us) gives its Bengaluru HQ as Mobius Tower, SJR iPark, EPIP Whitefield, not Sigma Soft Tech Park; it is a subsidiary of Germany's diconium group within Volkswagen Group (eeNews Europe, 6 Jan 2025: https://www.eenewseurope.com/en/vw-restructures-its-india-software-activities/), so origin/category follow the foreign parent.",
+   "set": {
+    "category": "MNC",
+    "origin": "Foreign",
+    "hqCountry": "Germany",
+    "hqCity": "Stuttgart",
+    "description": "Bengaluru automotive-embedded and e-commerce engineering services firm, a subsidiary of the diconium group within Volkswagen Group (its Cariad business unit trades as Cariad India under licence since 2025); office in Mobius Tower, SJR iPark, EPIP Zone, Whitefield."
+   },
+   "offices": [
+    {
+     "office": "embitel-technologies~409a87",
+     "verdict": "fix",
+     "note": "The Sigma Soft Tech Park address came from stale directories; the company's own contact page names Mobius Tower, SJR iPark. Coordinates taken from the OSM building 'Mobius Tower' (way/354223318), which lies inside the SJR iPark polygon.",
+     "set": {
+      "label": "Mobius Tower, SJR iPark (EPIP Zone)",
+      "building": "Mobius Tower",
+      "techPark": "SJR iPark",
+      "locality": "EPIP Zone, Whitefield",
+      "address": "Mobius Tower, 2nd, 3rd & 6th Floor, SJR iPark, Plot 13-15, KIADB EPIP Industrial Area, Whitefield, Bengaluru 560066",
+      "lat": 12.981065,
+      "lng": 77.726169,
+      "confidence": "high",
+      "evidence": "Embitel's contact page lists 'Embitel Technologies India Pvt Ltd, Mobius Tower, 2nd, 3rd and 6th Floor, SJR I Park, No 13, 14 & 15, KIADB Industrial Area, EPIP, Whitefield, Bangalore 560066' as its headquarters (https://www.embitel.com/contact-us); pin is the OSM building Mobius Tower (https://www.openstreetmap.org/way/354223318)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "juki",
+   "verdict": "keep",
+   "note": "JUKI Corporation's own Sept 2023 notice gives JUKI India Pvt Ltd at Ground, 1st & 2nd Floor, No 1090/I, 18th Cross Road, 3rd Sector, HSR Layout, Bengaluru 560102 (https://www.juki.co.jp/en/wp-content/uploads/2023/09/n230901e.pdf), so a confirmed HQ is added; the Hardware Park polygon stays OSM-only and low.",
+   "offices": [
+    {
+     "office": "juki~adfbf7",
+     "verdict": "keep",
+     "note": "Still only the OSM industrial polygon; JUKI's own notice names the HSR Layout office, not this site, so it remains low."
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "JUKI India office - HSR Layout Sector 3",
+     "building": null,
+     "techPark": null,
+     "locality": "HSR Layout Sector 3",
+     "address": "Ground, 1st & 2nd Floor, No 1090/I, 18th Cross Road, 3rd Sector, HSR Layout, Bengaluru 560102",
+     "lat": 12.9119456,
+     "lng": 77.643064,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "JUKI Corporation notice (Sept 2023) lists JUKI India Pvt. Ltd. at 'Ground, 1st and 2nd Floor, No 1090/I, 18th Cross Road, 3rd Sector, HSR Layout, Bengaluru-560102' (https://www.juki.co.jp/en/wp-content/uploads/2023/09/n230901e.pdf); pin is Nominatim's 18th Cross Road, Sector 3 (OSM way/1292583899) midpoint, the street being ~300 m long, not the surveyed plot."
+    }
+   ]
+  },
+  {
+   "company": "mitsubishi-electric-india",
+   "verdict": "keep",
+   "note": "Mitsubishi Electric's global centres page (as of 7 Sep 2026, https://www.mitsubishielectric.com/traffic/overview/global/) lists the Bangalore branch at Esquire Centre, Ground Floor, B wing, M.G. Road 560001, and the India locations page names Bangalore without an address; the Prestige Emerald address exists only on an OSM POI, so it drops to low and Esquire Centre is added.",
+   "offices": [
+    {
+     "office": "mitsubishi-electric-india~2925e8",
+     "verdict": "fix",
+     "note": "Only source is OSM node 4489820754 (full address in its tags); Mitsubishi Electric's own pages list Esquire Centre, MG Road instead and no Mitsubishi page mentions Prestige Emerald, so confidence lowered; park set to the dataset's Prestige Emerald record whose centroid this pin already is.",
+     "set": {
+      "techPark": "Prestige Emerald",
+      "confidence": "low",
+      "evidence": "Only OpenStreetMap office POI 'Mitsubishi Electric India Pvt Ltd', tagged 'Municipal No. 2, 6th Floor, Prestige Emerald, Madras Bank Road, Lavelle Road 560001' (https://www.openstreetmap.org/node/4489820754); Mitsubishi Electric's own location pages list the Bangalore branch at Esquire Centre, MG Road instead (https://www.mitsubishielectric.com/traffic/overview/global/), so this may be an older or divisional office."
+     }
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "Bangalore branch - Esquire Centre, MG Road",
+     "building": "Esquire Centre",
+     "techPark": null,
+     "locality": "MG Road (Trinity Circle end)",
+     "address": "Esquire Centre, No. 9, Ground Floor, B Wing, M.G. Road, Bengaluru 560001",
+     "lat": 12.9736317,
+     "lng": 77.6166967,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Mitsubishi Electric's global centres list (as of 7 Sep 2026) gives 'Mitsubishi Electric Corporation Branch Office, Bangalore: Esquire Centre, Ground Floor, B wing, M.G Road, 560001' (https://www.mitsubishielectric.com/traffic/overview/global/), and its semiconductor locations page gives Esquire Centre, No. 9, Ground Floor, B-Block, MG Road (https://www.mitsubishielectric.com/semiconductors/locations/index.html); pin is the Nominatim/OSM building 'Esquire Center' (way/370301096)."
+    }
+   ]
+  },
+  {
+   "company": "pwc",
+   "verdict": "keep",
+   "note": "PwC's own India office-locations page (https://www.pwc.com/gx/en/about/office-locations/india.html) lists Bengaluru at The Millenia, # 1 & 2 Murphy Road, Ulsoor 560008 (Ground, 1st, 3rd-6th and 8th floors), confirming the RMZ Millenia office as PwC India's main Bengaluru office; the HQ flag moves to it from the PwC US acceleration-centre office at EGL, which nothing marks as a headquarters.",
+   "set": {
+    "description": "Big Four professional-services network; PwC India's main Bengaluru office is at The Millenia, Murphy Road (Ulsoor), and PwC's US Acceleration Center operates from Embassy GolfLinks and Bagmane Tech Park."
+   },
+   "offices": [
+    {
+     "office": "pwc~39f1fc",
+     "verdict": "fix",
+     "note": "Confirmed from PwC's own office-locations page; evidence now carries the URL and the record is marked as the main Bengaluru office.",
+     "set": {
+      "isHq": true,
+      "confidence": "high",
+      "address": "The Millenia, Tower D, Ground, 1st, 3rd-6th & 8th Floor, 1 & 2 Murphy Road, Ulsoor, Bengaluru 560008",
+      "evidence": "PwC's office-locations page for India lists 'The Millenia, Ground, 1st Floor, 3rd - 6th Floor, 8th Floor, # 1 & 2 Murphy Road, Ulsoor, Bengaluru 560008' with phone +91 80 4079 4000 (https://www.pwc.com/gx/en/about/office-locations/india.html); directories add Tower D; pin is the OSM polygon of RMZ Millenia (https://www.openstreetmap.org/way/112647576)."
+     }
+    },
+    {
+     "office": "pwc~2787bb",
+     "verdict": "fix",
+     "note": "Office itself is supported by OSM node 4445102215, but it is PwC US's acceleration-centre site, not PwC's main Bengaluru office; isHq cleared and the evidence's self-contradictory 'so medium' wording corrected (the record says high on one OSM source).",
+     "set": {
+      "isHq": false,
+      "confidence": "medium",
+      "evidence": "OpenStreetMap records 'PriceWaterhouseCoopers(US) Ltd, Inner Rd, Embassy Golf Links Business Park, Challaghatta 560071' with website pwc.com (https://www.openstreetmap.org/node/4445102215); single source, pwc.in refused automated fetches."
+     }
+    }
+   ]
+  },
+  {
+   "company": "shardul-amarchand-mangaldas",
+   "verdict": "keep",
+   "note": "SBI's empanelled-advocates list (https://sbi.co.in/webfiles/uploads/files_2425/241024-List%20of%20Empanelled%20Advocate-Law%20Firm%20for%20handling%20Banks%20IBC%20cases%20Above%20INR%20100%20Crores.pdf) places the firm at Prestige Sterling Square, Madras Bank Road, Off Lavelle Road, matching OSM node 12118791708 on that building's polygon and a directory giving the 2nd floor.",
+   "offices": [
+    {
+     "office": "shardul-amarchand-mangaldas~a9a4bd",
+     "verdict": "fix",
+     "note": "Two independent sources (SBI document, OSM POI) agree on Prestige Sterling Square; park set to the dataset's Prestige Sterling Square record, whose centroid is this pin.",
+     "set": {
+      "techPark": "Prestige Sterling Square",
+      "address": "2nd Floor, Prestige Sterling Square, Madras Bank Road, Off Lavelle Road, Bengaluru 560001",
+      "confidence": "high",
+      "evidence": "SBI's Oct 2024 list of empanelled law firms gives Shardul Amarchand Mangaldas & Co at Prestige Sterling Square, Madras Bank Road, Off Lavelle Road, Bengaluru (https://sbi.co.in/webfiles/uploads/files_2425/241024-List%20of%20Empanelled%20Advocate-Law%20Firm%20for%20handling%20Banks%20IBC%20cases%20Above%20INR%20100%20Crores.pdf); OSM office POI 'Shardul Amarchand Mangaldas' (https://www.openstreetmap.org/node/12118791708) sits on the building polygon; a firm directory gives the 2nd floor."
+     }
+    }
+   ]
+  },
+  {
+   "company": "state-bank-of-india",
+   "verdict": "keep",
+   "note": "The LHO at No. 65 St Mark's Road, Bengaluru 560001 is carried by the RBI-derived IFSC listing for SBI's 'Office Administration LHO Bangalore' unit (https://www.bankbazaar.com/ifsc-code/state-bank-of-india/karnataka/bangalore-urban/office-administration-lho-bangalore-branch.html) and other LHO-compound units, and Nominatim resolves SBI St Mark's Road to OSM relation 4602221 at the existing pin; SBI's own site was not readable (404 / unreadable PDF).",
+   "offices": [
+    {
+     "office": "state-bank-of-india~14d1c3",
+     "verdict": "fix",
+     "note": "Evidence now carries URLs; two independent sources (IFSC directory and OSM) agree on 65 St Mark's Road and the pin is the OSM building.",
+     "set": {
+      "confidence": "high",
+      "evidence": "IFSC listings for SBI units in the LHO compound (Office Administration LHO Bangalore; CCGRO Bengaluru) give 'Local Head Office, No. 65, St. Mark's Road, Bengaluru 560001' (https://www.bankbazaar.com/ifsc-code/state-bank-of-india/karnataka/bangalore-urban/office-administration-lho-bangalore-branch.html ; https://www.bankbazaar.com/ifsc-code/state-bank-of-india/karnataka/bengaluru/ccgro-bengaluru-branch.html); Nominatim resolves 'State Bank of India, St Marks Road' to the SBI building, OSM relation 4602221 (https://www.openstreetmap.org/relation/4602221)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "zivame",
+   "verdict": "keep",
+   "note": "Two independent directories (bitscale, dated 28 Nov 2025: https://bitscale.ai/directory/zivame ; Uplers: https://www.uplers.com/company/zivame-7955) agree on 5th Floor, Embassy Prime, Krishnappa Garden, CV Raman Nagar 560093; PitchBook's Indiranagar address is older. Zivame publishes no address and Embassy Prime has no OSM object, so the pin stays the Bagmane Tech Park centroid.",
+   "offices": [
+    {
+     "office": "zivame~783ee2",
+     "verdict": "fix",
+     "note": "Address corroborated by two independent directories, so raised to medium; pin is still the park centroid, not the building.",
+     "set": {
+      "confidence": "medium",
+      "evidence": "Company directories bitscale (dated 28 Nov 2025, https://bitscale.ai/directory/zivame) and Uplers (https://www.uplers.com/company/zivame-7955) both give '5th Floor, Embassy Prime, Krishnappa Garden, CV Raman Nagar, Bagmane Tech Park, Bangalore 560093'; PitchBook's 80 Feet Road, Indiranagar address is older (https://pitchbook.com/profiles/company/54073-72). Zivame publishes no address; pin is the Bagmane Tech Park centroid because Embassy Prime has no OSM object."
+     }
+    }
+   ]
+  }
+ ],
+ "notes": "Could not reach new.abb.com (503) or shop.in.abb.com (503) directly, so the AIC Brigade Southfield address rests on a search snippet of ABB's listing plus the OSM node inside the Brigade Southfield polygon; the Disha/Peenya pin is still the Peenya 2nd Stage point (no plot geometry found). ABB's Brigade Magnum and PwC's Brigade Magnum POIs (consecutive OSM node ids) and PwC's Bagmane Lakeview POI were left unchanged and unverified. Mitsubishi Electric India's 'Peenya' location (named on its India locations page without address) was not researched. SBI's own contact page and nodal-officer PDF were unreadable, so the LHO rests on IFSC directories plus OSM. DealShare was dropped rather than marked closed because no source ever confirmed the HSR Layout POIs as its office (JUKI India's confirmed office is ~160 m from them on the same 18th Cross Road, suggesting the POIs are stale). Zivame is now majority-owned by Reliance Retail; category left STARTUP pending a dataset-wide rule on acquired startups. Embitel's founding year was not checked."
+}

@@ -1,0 +1,375 @@
+{
+ "key": "V05",
+ "corrections": [
+  {
+   "company": "kwalee",
+   "verdict": "keep",
+   "note": "Kwalee's Bengaluru studio is real (company press since 2020, kwalee.com in 2026 still says 'studios in the UK and India'), and the registered office of Kwalee India Pvt Ltd (CIN U72900KA2020FTC137554) on RegistrationWala is 2nd Floor, Tower C, Global Tech Park, ORR, Bellandur 560103. That matches the Global Technology Park directory listing, so the office goes up to medium. Category changed to MNC because Kwalee is a UK-headquartered multinational (https://www.registrationwala.com/company/kwalee-india-private-limited/U72900KA2020FTC137554).",
+   "set": {
+    "category": "MNC",
+    "description": "UK mobile-games publisher (Leamington Spa) whose first overseas studio, opened in 2020 and expanded in 2021, is in Bengaluru; Kwalee India's registered office is in Tower C of Global Technology Park, Bellandur."
+   },
+   "offices": [
+    {
+     "office": "kwalee~d1fa61",
+     "verdict": "fix",
+     "note": "Two independent sources now agree on Global Technology Park: the MCA-derived registered office on RegistrationWala names Tower C, 2nd floor. The pin stays on the park centroid because Tower C is not in OSM. InstaFinancials gives the 2020 incorporation address as Prestige Trinity Centre, which reads as the pre-2021 address.",
+     "set": {
+      "building": "Tower C (2nd floor)",
+      "address": "2nd Floor, Tower C, Global Tech Park, Outer Ring Road, Bellandur, Bengaluru 560103",
+      "confidence": "medium",
+      "evidence": "RegistrationWala lists Kwalee India Pvt Ltd's registered office as '2nd Floor, Tower C, Global Tech Park, Outer Ring Road, Bellandur, Bengaluru 560103' (https://www.registrationwala.com/company/kwalee-india-private-limited/U72900KA2020FTC137554). A campus directory names 'Kwalee India' among the park's tenants (https://www.brandland.in/product/global-tech-park-bangalore/). Kwalee's 2021 press release says the studio is in 'one of the city's vibrant technology parks'. The pin is the park centroid."
+     }
+    }
+   ]
+  },
+  {
+   "company": "l-and-t-technology-services",
+   "verdict": "keep",
+   "note": "The flag is a false positive. Re-fetched https://www.ltts.com/contact-us: it lists three Bengaluru sites, Tower S1 at the L&T Campus, RGA Tech Park Unit VI and Vista Pixel in Jakkur. Tower S1 (OSM way/1188310714) and Vista Pixel (OSM way/1110808779) are separate buildings about 390 m apart, so both stay. The real duplicate was a second, street-geocoded Vista Pixel record, and Manyata C4 ELM is not on the contact page.",
+   "offices": [
+    {
+     "office": "l-and-t-technology-services~c64ea5",
+     "verdict": "keep",
+     "note": "Confirmed on the LTTS contact page as SEZ Unit I-IV, Tower S1, L&T Campus, Bellary Road, 560092. The pin is on the OSM Tower S1 building and the park is right. It is a different building from Vista Pixel, about 390 m away."
+    },
+    {
+     "office": "l-and-t-technology-services~5f9b75",
+     "verdict": "keep",
+     "note": "Confirmed on the LTTS contact page. The pin is on the OSM 'Vista Pixel' polygon, a standalone building outside the L&T Tech Park, so techPark null is correct."
+    },
+    {
+     "office": "l-and-t-technology-services~4f59dc",
+     "verdict": "drop",
+     "note": "Duplicate of l-and-t-technology-services~5f9b75: same Vista Pixel address, but street-geocoded about 850 m north of the OSM building polygon."
+    },
+    {
+     "office": "l-and-t-technology-services~4f6c46",
+     "verdict": "drop",
+     "note": "Manyata C4 ELM comes only from an undated IPC member directory. LTTS's current contact page enumerates its Bengaluru 'Other Locations' and does not include it, so it is treated as stale."
+    },
+    {
+     "office": "l-and-t-technology-services~20f167",
+     "verdict": "keep",
+     "note": "Confirmed on the LTTS contact page (Unit VI, Block 3 A Wing, RGA Tech Park SEZ)."
+    }
+   ]
+  },
+  {
+   "company": "light-and-wonder",
+   "verdict": "keep",
+   "note": "Several 2025 Built In Bengaluru job listings place the Light & Wonder Bengaluru office at Pattandur Agrahara Rd, Whitefield 560066, which is ITPB's own address (e.g. https://builtinbengaluru.in/job/software-engineer/4095209). This corroborates the ITPB Navigator tenancy, so the office goes up to medium. Navigator itself remains single-sourced.",
+   "set": {
+    "description": "Las Vegas gaming-technology company (renamed from Scientific Games in 2022); 2025 job listings place its Bengaluru game-development office at Pattandur Agrahara, Whitefield (ITPB), in the Navigator block according to a building tenant list."
+   },
+   "offices": [
+    {
+     "office": "light-and-wonder~a48124",
+     "verdict": "fix",
+     "note": "There is now a second, independent source that puts the office in ITPB. The building name (Navigator) still comes from one source, and the pin stays on the park centroid.",
+     "set": {
+      "confidence": "medium",
+      "evidence": "Built In Bengaluru job listings for Light & Wonder (2025) give the office as 'Pattandur Agrahara Rd, Pattandur Agrahara, Whitefield, Bengaluru 560066', which is ITPB's address (https://builtinbengaluru.in/job/software-engineer/4095209). The cityinfoservices Navigator page lists 'Scientific Games (Bally Technologies)' as a tenant (https://properties.cityinfoservices.com/international-tech-park-bangalore-navigator-whitefield-bangalore/g6yyoce/pjd). The pin is the park centroid."
+     }
+    }
+   ]
+  },
+  {
+   "company": "livspace",
+   "verdict": "keep",
+   "note": "Livspace's own contact page and privacy page give no address (privacy page returned 404). CB Insights, Craft, Prospeo and Clay all independently place the Bengaluru head office at Aurbis Business Park, Survey No. 58/7, Outer Ring Road (Dr Puneeth Rajkumar Rd), Devarabeesanahalli, 3rd floor, 560103. The only source for the Prestige Obelisk office is a circa-2016 OSM POI that no current source supports, so it is replaced (https://www.cbinsights.com/investor/livspace ; https://craft.co/livspace).",
+   "set": {
+    "description": "Bengaluru-headquartered home-interiors unicorn; company directories place its head office on the 3rd floor of Aurbis Business Park, Outer Ring Road, Devarabeesanahalli."
+   },
+   "offices": [
+    {
+     "office": "livspace~058404",
+     "verdict": "drop",
+     "note": "The only source is an old OSM POI (node/4308192383) on Prestige Obelisk. Every current directory names Aurbis Business Park on ORR instead, so this is treated as a superseded early office."
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "Head office - Aurbis Business Park, Outer Ring Road",
+     "building": "Aurbis Business Park (3rd floor)",
+     "techPark": "Aurbis Business Park",
+     "locality": "Devarabeesanahalli, Bellandur (Outer Ring Road)",
+     "address": "3rd Floor, Aurbis Business Park, Survey No. 58/7, Outer Ring Road, Devarabeesanahalli, Bellandur, Bengaluru 560103",
+     "lat": 12.930081,
+     "lng": 77.68686,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "CB Insights gives the HQ as 'Outer Ring Road, Devarabisanahalli Aurbis Business Park, 3rd floor, Bangalore 560103' (https://www.cbinsights.com/investor/livspace). Craft gives 'Survey No. 58/7, Dr Puneeth Rajkumar Rd, Devarabisanahalli, Bellandur', which is Aurbis's own survey number (https://craft.co/livspace). These are aggregators, not a company page. Coordinates are from OSM building way/1066436539 'Aurbis Business Park'."
+    }
+   ]
+  },
+  {
+   "company": "loco",
+   "verdict": "keep",
+   "note": "TechCrunch (26 Sep 2024, on Redwood buying a majority stake) calls it 'Bengaluru-based Loco', so the company really is in Bengaluru (https://techcrunch.com/2024/09/26/indian-game-streaming-startup-loco-sells-majority-stake-to-redwood/). Its 2023 Inc42 coverage still said Mumbai. No street address could be found (loco.com privacy page 404), so the office stays low at locality level. The alias 'Pocket Aces' is wrong: Pocket Aces is the separate Mumbai media company Loco spun out of, since sold to Saregama, and should not be treated as the same entity."
+  },
+  {
+   "company": "mahindra-and-mahindra",
+   "verdict": "keep",
+   "note": "EMobility+ (13 May 2022) reports that Mahindra Electric moved its EV Technology Centre (EVTEC) and part of Last Mile Mobility into a 500+-seat office at Velankani Tech Park, 43 Hosur Road, Electronic City Phase 1, and that the Bommasandra plant staff stay at the existing site (https://emobilityplus.com/2022/05/13/mahindra-electric-opens-new-office-in-bengaluru/). Added Velankani, kept Bommasandra at medium, and dropped the GEVTeC point that only OSM supports.",
+   "set": {
+    "description": "Indian automotive multinational (HQ Mumbai); its Bengaluru-born EV unit (Reva, later Mahindra Electric, now Mahindra Last Mile Mobility) has its plant in Bommasandra Industrial Area and its EV Technology Centre (EVTEC) at Velankani Tech Park, Electronic City."
+   },
+   "offices": [
+    {
+     "office": "mahindra-and-mahindra~724389",
+     "verdict": "fix",
+     "note": "Plant confirmed by 2018 Treo-launch coverage ('unveiled in Bommasandra industrial area') and the 2022 EMobility+ report. isHq set to false because M&M is headquartered in Mumbai. The plot is still unresolved, so the pin stays on the estate centroid.",
+     "set": {
+      "isHq": false,
+      "confidence": "medium",
+      "evidence": "News Minute (2018) reports Mahindra Electric unveiling its Treo e-auto line at its plant in Bommasandra industrial area (https://www.thenewsminute.com/article/mahindra-rolls-out-electric-autorickshaw-treo-bengaluru-91655). EMobility+ (May 2022) says the Bommasandra plant staff continue at that site (https://emobilityplus.com/2022/05/13/mahindra-electric-opens-new-office-in-bengaluru/). The plot is not resolved, so the pin is the OSM estate centroid (way/103293015)."
+     }
+    },
+    {
+     "office": "mahindra-and-mahindra~7ee08a",
+     "verdict": "drop",
+     "note": "Only an OSM feature resolved through Photon supports it. Trade press says EVTEC's entire workforce moved to Velankani Tech Park in 2022, so a separate active 'GEVTeC' at Bande Kodigehalli is unconfirmed and probably stale or a planned site."
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "Mahindra EV Technology Centre (EVTEC) & Last Mile Mobility office - Velankani Tech Park",
+     "building": "Velankani Tech Park",
+     "techPark": "Velankani Tech Park",
+     "locality": "Electronic City Phase 1 (Hosur Road)",
+     "address": "Velankani Tech Park, 43 Hosur Road, Electronic City Phase 1, Bengaluru 560100",
+     "lat": 12.849543,
+     "lng": 77.658871,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "EMobility+ (13 May 2022): Mahindra Electric opened an office at 'Velankani Tech Park 43, Hosur Road, Electronic City, Phase 1, Bengaluru' with seating for 500+, housing all of EVTEC and certain LMM functions (https://emobilityplus.com/2022/05/13/mahindra-electric-opens-new-office-in-bengaluru/). Not re-confirmed for 2025-26. Coordinates are from OSM polygon way/231526591 'Velankani'."
+    }
+   ]
+  },
+  {
+   "company": "makemytrip",
+   "verdict": "keep",
+   "note": "Confirmed from a group primary source. The contact page of Happay, MakeMyTrip's expense-management subsidiary (footer '© 2026 MakeMyTrip (India) Limited'), gives 'MakeMyTrip (India) Limited, 7th floor, Kalyani Helios Tech Park, Wing E, Kadubeesanahalli, Bengaluru 560103' (https://happay.com/contactus/). This matches the OSM POI's typed address. Category MID_SIZE stands: it is Indian and listed, with well under 10,000 staff.",
+   "offices": [
+    {
+     "office": "makemytrip~e47c30",
+     "verdict": "fix",
+     "note": "The primary source and the OSM POI agree, and the pin is inside the Helios Business Park polygon.",
+     "set": {
+      "building": "Kalyani Helios Tech Park, Wing E (7th floor)",
+      "address": "7th Floor, Wing E, Kalyani Helios Tech Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+      "confidence": "high",
+      "evidence": "Happay (a MakeMyTrip company) contact page: 'MakeMyTrip (India) Limited, 7th floor, Kalyani Helios Tech Park, Wing E, Kadubeesanahalli, Bengaluru 560103' (https://happay.com/contactus/). OSM POI 'MakeMyTrip India Pvt. Ltd' carries the same address (https://www.openstreetmap.org/node/12997655807)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "marks-and-spencer",
+   "verdict": "keep",
+   "note": "No current company page confirms the office. Apparel Resources reports an M&S Bangalore office of about 50 staff (sourcing and QA; undated, probably around 2010) and the company denying it would close. The OSM POI is a recent node (around 2025). This is weak but consistent evidence, so the record stays at low. isHq is set to false because the HQ is London (https://apparelresources.com/business-news/retail/apurba-ravi-part-ways-m-nidhi-dua-new-country-manager/).",
+   "offices": [
+    {
+     "office": "marks-and-spencer~195705",
+     "verdict": "fix",
+     "note": "Not confirmed as current; it stays low. isHq is corrected to false.",
+     "set": {
+      "isHq": false,
+      "evidence": "OSM office POI 'Marks and Spencer Pvt. Ltd.' (https://www.openstreetmap.org/node/12788139574). Apparel Resources reports an M&S Bangalore office of about 50 staff that the company said would continue operating (undated, probably around 2010) (https://apparelresources.com/business-news/retail/apurba-ravi-part-ways-m-nidhi-dua-new-country-manager/). No current company source was found."
+     }
+    }
+   ]
+  },
+  {
+   "company": "marlabs",
+   "verdict": "keep",
+   "note": "Fetched https://www.marlabs.com/contact-us. Its Bengaluru offices are 'Primeco Union City, 7th floor, Block 1, Sadaramangala Industrial Area, ITPL Main Rd, Whitefield 560067' and 'Prestige Blue Chip Software Park, Block-3, 1st floor, Hosur Road, Adugodi 560029'. The Bagmane WTC Citrine office is not on the list, so it is replaced. Category changed to MNC because Marlabs is a US-headquartered multinational.",
+   "set": {
+    "category": "MNC",
+    "description": "US-headquartered digital-engineering services firm with Bengaluru delivery offices in SJR Primeco Union City (ITPL Main Road, Whitefield) and Prestige Blue Chip (Hosur Road, Adugodi)."
+   },
+   "offices": [
+    {
+     "office": "marlabs~442a39",
+     "verdict": "drop",
+     "note": "The only source is an OSM POI on Bagmane WTC Citrine. Marlabs' own contact page lists Primeco Union City and Prestige Blue Chip instead, so this is a stale tenancy."
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "SJR Primeco Union City - Block 1, 7th floor",
+     "building": "Block 1 (7th floor)",
+     "techPark": "SJR Primeco Union City",
+     "locality": "Sadaramangala, ITPL Main Road, Whitefield",
+     "address": "Primeco Union City, 7th Floor, Block 1, Sadaramangala Industrial Area, ITPL Main Road, Whitefield, Bengaluru 560067",
+     "lat": 12.989057,
+     "lng": 77.732626,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Marlabs contact page: 'Primeco Union City, 7th floor, Block 1, Sadaramangala Industrial Area, ITPL Main Rd, Whitefield, Bengaluru - 560067' (https://www.marlabs.com/contact-us). Coordinates are from OSM polygon way/137772088 'SJR Primeco Union City'."
+    },
+    {
+     "label": "Prestige Blue Chip Software Park - Block 3",
+     "building": "Block 3 (1st floor)",
+     "techPark": "Prestige Blue Chip",
+     "locality": "Adugodi (Hosur Road)",
+     "address": "Prestige Blue Chip Software Park, Block-3, 1st Floor, Hosur Road, Adugodi, Bengaluru 560029",
+     "lat": 12.93761,
+     "lng": 77.605834,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Marlabs contact page: 'Prestige Blue Chip Software Park, Block-3, 1st floor, Hosur Road, Adugodi, Bengaluru - 560029' (https://www.marlabs.com/contact-us). Coordinates are from OSM polygon way/1242193200 'Prestige Blue Chip'."
+    }
+   ]
+  },
+  {
+   "company": "mastek",
+   "verdict": "keep",
+   "note": "The flag is a false positive. The pin is on the OSM DivyaSree NR Enclave polygon (way/116070091), which is exactly where the 2025 SEBI disclosure puts the office ('KIADB Export Promotion Industrial Area, Whitefield'). The dataset's EPIP centroid is just a nominal point for a large estate. Category MID_SIZE stands: it is Indian and listed, with under 10,000 staff."
+  },
+  {
+   "company": "metricstream",
+   "verdict": "keep",
+   "note": "Confirmed on MetricStream's own contact page (https://www.metricstream.com/about-us/contact.htm): 'AMR Tech Park - 3B, No. 23 & 24, IndiQube Building, 1st Floor, Hongasandra Village, Begur Hobli, Hosur Road, Bengaluru - 560068'. HQ San Jose is also confirmed (6201 America Center Drive). The OSM pin sits inside the AMR Tech Park polygon.",
+   "set": {
+    "description": "US governance-risk-compliance SaaS vendor (HQ San Jose) whose main engineering centre is in Bengaluru, at AMR Tech Park 3B (IndiQube building) on Hosur Road."
+   },
+   "offices": [
+    {
+     "office": "metricstream~399e99",
+     "verdict": "fix",
+     "note": "The primary source confirms the park and the building.",
+     "set": {
+      "building": "AMR Tech Park 3B (IndiQube Building), 1st floor",
+      "address": "AMR Tech Park - 3B, No. 23 & 24, IndiQube Building, 1st Floor, Hongasandra Village, Begur Hobli, Hosur Road, Bengaluru 560068",
+      "confidence": "high",
+      "evidence": "MetricStream contact page lists India at 'AMR Tech Park - 3B, No. 23 & 24, IndiQube Building, 1st Floor, Hongasandra Village, Begur Hobli, Hosur Road, Bengaluru - 560068' (https://www.metricstream.com/about-us/contact.htm). OSM POI 'MetricStream Inc.' is inside the AMR Tech Park polygon (https://www.openstreetmap.org/node/5566955521)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "moody-s",
+   "verdict": "keep",
+   "note": "Moody's own office directory (https://www.moodys.com/web/en/us/help-support/offices.html) lists both Bengaluru entities, Moody's Analytics (India) Pvt Ltd and Moody's Shared Services India Pvt Ltd, at the 8th Floor, Quay Building, Bagmane Tech Park, Byrasandra, C.V. Raman Nagar 560093. Embassy TechVillage / Building 2A appears nowhere on it. The Copal Amba office at ETV is therefore stale and is replaced.",
+   "set": {
+    "description": "US ratings and analytics group; its Bengaluru office (Moody's Analytics India and Moody's Shared Services India) is on the 8th floor of the Quay Building in Bagmane Tech Park, C.V. Raman Nagar. The older Copal Amba office at Embassy TechVillage is no longer listed."
+   },
+   "offices": [
+    {
+     "office": "moody-s~768f57",
+     "verdict": "drop",
+     "note": "Its sources are an old OSM 'Copal Amba' POI (node/4446245662) and a wiki tenant list. Moody's current office directory lists only the Bagmane Tech Park Quay Building for Bengaluru."
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "Bagmane Tech Park - Quay Building, 8th floor",
+     "building": "Quay Building (8th floor)",
+     "techPark": "Bagmane Tech Park",
+     "locality": "Byrasandra, C.V. Raman Nagar",
+     "address": "8th Floor, Quay Building, Bagmane Tech Park, Krishnarajapuram Hobli, C.V. Raman Nagar, Byrasandra, Bengaluru 560093",
+     "lat": 12.978694,
+     "lng": 77.662447,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Moody's office directory: 'Moody's Analytics (India) Private Ltd., Quay Building, 8th Floor, Bagmane Tech Park, Krishnarajapuram Hobli, C.V. Raman Nagar, Village Byrasandru, Bengaluru 560093', and Moody's Shared Services India at the same address (https://www.moodys.com/web/en/us/help-support/offices.html). The Quay Building is not in OSM, so the pin is the Bagmane Tech Park polygon centroid (way/323047914)."
+    }
+   ]
+  },
+  {
+   "company": "narayana-health",
+   "verdict": "keep",
+   "note": "The two Health City records about 170 m apart are one site. Kept the registered-office record and dropped the other. The company's BSE filings confirm the registered office at 258/A Bommasandra Industrial Area, 560099. Investywise, citing a BSE filing, reports the corporate office moved to Plot 84, West Avenue-1, Electronics City Phase 1 effective 21 Sep 2026, so that office is added. Category changed to MNC because the company is Indian, listed and has more than 10,000 employees (19,214) (https://www.investywise.com/narayana-health-corporate-office-relocation/).",
+   "set": {
+    "category": "MNC",
+    "description": "Listed hospital chain (19,214 employees, 2024) founded by Dr Devi Shetty; its registered office is at the Narayana Health City campus in Bommasandra Industrial Area, and from September 2026 its corporate office is in Electronics City Phase 1."
+   },
+   "offices": [
+    {
+     "office": "narayana-health~71c666",
+     "verdict": "fix",
+     "note": "Kept as the single Health City record. The building name is moved over from the dropped duplicate, and the evidence now cites the company's own BSE filing.",
+     "set": {
+      "building": "Narayana Health City",
+      "evidence": "Narayana Hrudayalaya's BSE filings give the registered office as '258/A, Bommasandra Industrial Area, Anekal Taluk, Bengaluru 560099' (https://bseindia.com/xml-data/corpfiling/AttachHis/44267f73-ca40-4f24-bdda-f5869cf83b1a.pdf). A September 2026 filing says the registered office is unchanged (https://www.investywise.com/narayana-health-corporate-office-relocation/). Nominatim resolves 'Narayana Hrudayalaya, Bommasandra' to this point."
+     }
+    },
+    {
+     "office": "narayana-health~e1d739",
+     "verdict": "drop",
+     "note": "Duplicate of narayana-health~71c666: the same Health City campus about 170 m away, with weaker evidence (Wikipedia plus a hospital building)."
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "Corporate office - Electronics City Phase 1 (from 21 Sep 2026)",
+     "building": "Plot No. 84, West Avenue-1 (8th & 9th floors)",
+     "techPark": "Electronics City Phase 1",
+     "locality": "Electronic City Phase 1",
+     "address": "8th & 9th Floor, Plot No. 84, Phase 1, West Avenue-1, Electronics City, Bengaluru 560100",
+     "lat": 12.847184,
+     "lng": 77.668169,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Investywise (21 Sep 2026), reporting a BSE filing: the corporate office relocated to '8th & 9th Floor, Plot No. 84, Phase 1, West Avenue - 1, Electronics City, Bengaluru - 560100' effective 21 Sep 2026, with the registered office unchanged (https://www.investywise.com/narayana-health-corporate-office-relocation/). The plot could not be geocoded (Nominatim matched West Avenue 3 in Phase 2), so the pin is the dataset's Electronics City Phase 1 centroid."
+    }
+   ]
+  },
+  {
+   "company": "netradyne",
+   "verdict": "keep",
+   "note": "Netradyne's own job postings say the Bengaluru roles are 'based out in HM Tech Park, Whitefield Bangalore' (https://nodeflair.com/jobs/netradyne-backend-sr-staff-staff-engineer-554322 ; startup.jobs listings). The OSM Netradyne POI sits inside the OSM 'HM Tech Park' polygon (way/145130697), so the office goes up to medium. isHq set to false because HQ is San Diego. STARTUP stands (venture-funded, founded 2015).",
+   "set": {
+    "description": "San Diego AI fleet-safety camera company (unicorn) with a large Bengaluru engineering team in HM Tech Park, east Whitefield."
+   },
+   "offices": [
+    {
+     "office": "netradyne~d6cccc",
+     "verdict": "fix",
+     "note": "Two independent sources (company job postings and OSM) agree on HM Tech Park. isHq is corrected to false.",
+     "set": {
+      "label": "HM Tech Park, Whitefield",
+      "building": "HM Tech Park",
+      "address": "HM Tech Park, Whitefield, Bengaluru 560066",
+      "isHq": false,
+      "confidence": "medium",
+      "evidence": "Netradyne job postings: 'based out in HM Tech Park, Whitefield Bangalore' (https://nodeflair.com/jobs/netradyne-backend-sr-staff-staff-engineer-554322). OSM office POI 'Netradyne' inside the OSM 'HM Tech Park' polygon (https://www.openstreetmap.org/node/12901416853 ; way/145130697)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "netskope",
+   "verdict": "keep",
+   "note": "Netskope listed on Nasdaq (NTSK) on 18 Sep 2025 after pricing its IPO at $19, so it is now a listed US multinational and no longer a private unicorn: category changed to MNC and isUnicorn to false (https://www.iposcoop.com/the-ipo-buzz-netskope-ntsk-prices-ipo-at-19-top-of-range/). Built In listings give the office as '1st floor, Sattva Knowledge Court, 20 & 21, 7th Cross Road, Green Domain Layout, EPIP Zone, Whitefield 560048', matching the OSM POI. The description wrongly said Bagmane Solarium City.",
+   "set": {
+    "category": "MNC",
+    "isUnicorn": false,
+    "description": "US cloud-security company (Santa Clara, founded 2012, Nasdaq-listed since September 2025) with a Bengaluru R&D and go-to-market office on the 1st floor of Sattva Knowledge Court, EPIP Whitefield."
+   },
+   "offices": [
+    {
+     "office": "netskope~37f644",
+     "verdict": "fix",
+     "note": "Job-listing address and OSM POI agree. The guessed 'Building 3' is replaced with the floor that was actually published. isHq is corrected to false.",
+     "set": {
+      "building": "Sattva Knowledge Court (1st floor)",
+      "address": "1st Floor, Sattva Knowledge Court, 20 & 21, 7th Cross Road, Green Domain Layout, EPIP Zone, Whitefield, Bengaluru 560048",
+      "isHq": false,
+      "confidence": "medium",
+      "evidence": "Built In Bengaluru listings for Netskope give the office as '1st floor, Sattva Knowledge Court, 20 and 21, 7th Cross Road, Green Domain Layout, EPIP Zone, Whitefield, Bengaluru 560048' (https://builtinbengaluru.in/job/staff-software-development-engineer-test-ims/8456442). OSM POI 'Netskope India' is inside the Knowledge Court polygon (https://www.openstreetmap.org/node/10978033374). A June 2023 news report confirms a new Bangalore office without naming the building (https://www.itvoice.in/netskope-opens-new-office-in-bangalore-as-india-team-doubles-in-size-in-two-years)."
+     }
+    }
+   ]
+  }
+ ],
+ "notes": "Not checked or still weak: (1) Loco: no street address anywhere (loco.com privacy page 404); its office is a locality-level point at PIN 560071 from aggregators, and the 'Pocket Aces' alias is wrong (separate company) but aliases are not settable here. (2) Marks & Spencer: no current company source; the Bengaluru office rests on a 2025 OSM POI plus an old trade report, so it is kept low and not confirmed as current. (3) Livspace: no company page gives an address; the Aurbis head office rests on four agreeing aggregators (medium). (4) Narayana Health's new Electronics City corporate office: Plot 84 West Avenue-1 could not be geocoded, so it is pinned to the Electronics City Phase 1 centroid, and the move is known only through Investywise's summary of a BSE filing, not the filing itself. (5) Kwalee: Tower C is not in OSM, so the pin is the Global Technology Park centroid. (6) Moody's Quay Building is not in OSM, so the pin is the Bagmane Tech Park centroid. (7) Mahindra: the Velankani EVTEC office comes from 2022 trade press and the Bommasandra plant plot is unresolved; neither was re-confirmed for 2025-26. (8) Marlabs' HQ city: its contact page lists New York (115 Broadway) first without calling it HQ; hqCity Piscataway is left unchanged. (9) Mastek's SEBI PDF was not re-fetched; it was judged on the pin matching the OSM building."
+}

@@ -1,0 +1,309 @@
+{
+ "key": "V08",
+ "corrections": [
+  {
+   "company": "truecaller",
+   "verdict": "keep",
+   "note": "Truecaller's own press release (16 Mar 2023) confirms a 30,443 sq ft Bengaluru office for up to 250 staff, its largest outside Stockholm (https://www.mfn.se/cis/a/truecaller/truecaller-ab-indian-minister-mr-rajeev-chandrasekhar-inaugurates-truecallers-new-office-in-india-619c7c7c); no source names the building, so the EGL pin rests on the OSM POI alone.",
+   "set": {
+    "description": "Swedish caller-ID company (Nasdaq Stockholm) whose largest market is India; its Bengaluru office, opened in March 2023 (30,443 sq ft, up to 250 staff), is its largest outside Stockholm. OSM places it in the Sunriver block of Embassy GolfLinks, where WeWork runs a centre."
+   },
+   "offices": [
+    {
+     "office": "truecaller~29a092",
+     "verdict": "fix",
+     "note": "Office existence now primary-confirmed (company press release); location still single-source (OSM POI node/10763268846 tagged website=truecaller.com, beside WeWork Sunriver, which wework.co.in lists at EGL). Raised low -> medium; pin unchanged.",
+     "set": {
+      "confidence": "medium",
+      "evidence": "Truecaller press release (16 Mar 2023) confirms a 30,443 sq ft Bengaluru office, its largest outside Stockholm (https://www.mfn.se/cis/a/truecaller/truecaller-ab-indian-minister-mr-rajeev-chandrasekhar-inaugurates-truecallers-new-office-in-india-619c7c7c); the building comes only from OSM office POI 'Truecaller' (website truecaller.com) beside the Sunriver block at EGL (https://www.openstreetmap.org/node/10763268846), where wework.co.in lists a WeWork Sunriver centre."
+     }
+    }
+   ]
+  },
+  {
+   "company": "uni-cards",
+   "verdict": "keep",
+   "note": "Address confirmed twice (GLEIF LEI record and a lender's digital-partner disclosure, https://poonawallafincorp.com/digital-partnership-unirewards-technologies) as IndiQube Sigma, No.3/B, Koramangala 3rd Block (SBI Colony) 560034; the pin was a Photon hit for Koramangala Industrial Area ~2 km away, moved to the OSM building.",
+   "offices": [
+    {
+     "office": "uni-cards~270d2f",
+     "verdict": "fix",
+     "note": "Pin moved ~2 km from the Koramangala Industrial Area Photon hit to OSM building way/347188676 'IndiQube Sigma' (No.3/B, 7th C Main Road, Koramangala 3rd Block, 560034; Nominatim agrees). Two independent address sources -> high.",
+     "set": {
+      "lat": 12.925418,
+      "lng": 77.631501,
+      "locality": "Koramangala 3rd Block (SBI Colony)",
+      "address": "IndiQube Sigma, No. 3/B, 7th C Main Road, Koramangala 3rd Block (SBI Colony), Bengaluru 560034",
+      "confidence": "high",
+      "evidence": "GLEIF LEI record of Uniorbit Technologies gives IndiQube Sigma, 3/B, Koramangala as legal/HQ address (https://search.gleif.org/#/record/254900GXANT2CCN8AJ78); a lender's partner disclosure gives 'No.3, B Nexus, 3rd Block, Koramangala 1A Block, SBI Colony, Koramangala 560034' (https://poonawallafincorp.com/digital-partnership-unirewards-technologies); point is OSM building way/347188676 'IndiQube Sigma'."
+     }
+    }
+   ]
+  },
+  {
+   "company": "vahan",
+   "verdict": "keep",
+   "note": "vahan.co's footer gives only 'Bangalore, India' and the company's Wellfound profile describes its office 'in the heart of Indiranagar' (https://wellfound.com/company/vahan-1/culture_and_benefits); no street address found. Sector was Logistics; it is a recruitment platform.",
+   "set": {
+    "sector": "Software & internet"
+   },
+   "offices": [
+    {
+     "office": "vahan~e4bb16",
+     "verdict": "fix",
+     "note": "Indiranagar now from two sources, one company-authored (Wellfound profile) plus highperformr; pin is still the Indiranagar locality node, so medium not high.",
+     "set": {
+      "confidence": "medium",
+      "evidence": "Company-authored Wellfound profile places the office 'in the heart of Indiranagar' (https://wellfound.com/company/vahan-1/culture_and_benefits); highperformr also lists Indiranagar, Bangalore (https://www.highperformr.ai/company/vahan-inc-); vahan.co footer says only 'Bangalore, India'. No street address is published, so the point is the Indiranagar locality node."
+     }
+    }
+   ]
+  },
+  {
+   "company": "visionet-systems",
+   "verdict": "keep",
+   "note": "A second, independent source puts Visionet's Bangalore office at 'Indiqube, AMR Tech Park Internal Rd., Garvebhavi Palya 560068' (https://legalvidhiya.com/legal-internship-with-visionet-solution-bangalore-apply-now/?amp=1), matching the OSM POI node/9253530902 inside AMR Tech Park; GPTW lists the India subsidiary's HQ as Bengaluru.",
+   "offices": [
+    {
+     "office": "visionet-systems~b2ac4a",
+     "verdict": "fix",
+     "note": "Corroborated by a 2nd source (IndiQube, AMR Tech Park, Garvebhavi Palya 560068); pin is the OSM POI, inside the park. Raised low -> medium.",
+     "set": {
+      "confidence": "medium",
+      "building": "IndiQube (AMR Tech Park)",
+      "address": "IndiQube, AMR Tech Park Internal Road, Garvebhavi Palya, Hosur Road, Bengaluru 560068",
+      "evidence": "OSM office POI 'Visionet Systems' inside AMR Tech Park (https://www.openstreetmap.org/node/9253530902) and an internship listing giving 'Indiqube, AMR Tech Park Internal Rd., Garvebhavi Palya, Bengaluru 560068' (https://legalvidhiya.com/legal-internship-with-visionet-solution-bangalore-apply-now/?amp=1); Visionet's own site gives no India address."
+     }
+    }
+   ]
+  },
+  {
+   "company": "volkswagen-group",
+   "verdict": "keep",
+   "note": "VW Group's own press release confirms the India tech unit (VWITS, renamed Volkswagen Group Digital Solutions [India] in Sep 2025) runs Pune, Gurugram and Bengaluru sites (https://www.volkswagen-group.com/en/press-releases/volkswagen-group-technology-solutions-india-to-double-it-workforce-by-2024-to-boost-new-auto-strategy-16560); the Helios Business Park location is still only The Executive Centre's sentence 'Goldman Sachs and the Volkswagen Group also call the park home', so the office stays low.",
+   "set": {
+    "description": "German automotive group; its India technology unit (Volkswagen Group Technology Solutions India, renamed Volkswagen Group Digital Solutions [India] in 2025, HQ Pune) runs a Bengaluru site, which a serviced-office operator places in Helios Business Park on the ORR (unconfirmed by Volkswagen)."
+   },
+   "offices": [
+    {
+     "office": "volkswagen-group~c78072",
+     "verdict": "keep",
+     "note": "Re-read the cited page: it does say 'Companies such as Goldman Sachs and the Volkswagen Group also call the park home' (https://www.executivecentre.com/en-in/office-space/helios-business-park/). No Volkswagen source names a Bengaluru building, so low is honest."
+    }
+   ]
+  },
+  {
+   "company": "w-rth-india",
+   "verdict": "keep",
+   "note": "Würth India Pvt Ltd's head office is in Mumbai (703/704 Windfall, Sahar Plaza, Andheri East, per the Indo-German Chamber directory https://indien.ahk.de/en/internal-ahk-folder/8634members-directory3786/members-directory/wuerth-india-pvt.-ltd), so the Bengaluru building is a branch, not the HQ; its only evidence is the OSM building way/609989206, kept at low.",
+   "set": {
+    "description": "Indian arm of the German Würth fastener and assembly-products group, headquartered in Mumbai; OSM maps a 'Wuerth India Pvt. Ltd.' building off Sarjapur Road near Doddakannelli, presumably a Bengaluru branch (not confirmed by the company)."
+   },
+   "offices": [
+    {
+     "office": "w-rth-india~f58368",
+     "verdict": "fix",
+     "note": "isHq was wrong: Würth India's head office is in Mumbai. Location remains single-source (OSM building way/609989206); an IndiaMart listing gives a different Bengaluru address (Jakkasandra, 560034), so confidence stays low.",
+     "set": {
+      "isHq": false,
+      "label": "Sarjapur Road branch (OSM building)",
+      "evidence": "OSM building way/609989206 named 'Wuerth India Pvt. Ltd.' (office=company) off Sarjapur Road near Doddakannelli (https://www.openstreetmap.org/way/609989206); Würth India's head office is in Mumbai per the Indo-German Chamber directory, and no company page confirms this Bengaluru site."
+     }
+    }
+   ]
+  },
+  {
+   "company": "walmart-global-tech",
+   "verdict": "keep",
+   "note": "Cessna SEZ Buildings 10/11 and the 'Prestige Tech Pacific Park' office are one site: both OSM Walmart POIs (node/3797616140, node/12287928395) sit 9 m outside the Cessna bbox where it overlaps the Tech Pacific polygon, and no source ties Walmart to Prestige Tech Pacific; kept the Cessna record with the POI pin. Prestige Tech Cloud confirmed by lease reports (https://therealtytoday.com/news/commercial/walmart-expands-bengaluru-footprint-leases-over-1-lakh-sq-ft-near-airport).",
+   "offices": [
+    {
+     "office": "walmart-global-tech~b7702a",
+     "verdict": "fix",
+     "note": "Kept as the one record of the Kadubeesanahalli hub: pin moved from the Cessna centroid to the OSM Walmart POIs (on the Cessna / Prestige Tech Pacific boundary, ~360 m NE), isHq moved here from the dropped duplicate (Building 11 is WM Global Technology Services India's registered address), and two company-derived address sources -> high.",
+     "set": {
+      "lat": 12.937706,
+      "lng": 77.696307,
+      "isHq": true,
+      "confidence": "high",
+      "evidence": "WM Global Technology Services India's registered address is 'Building 11, 1st Floor, SEZ - Cessna Business Park' (https://www.businessescolumn.com/walmart-cessna-business-park/) and a Walmart Global Tech job listing gives '4,5,6,7 Floor, Building 10, SEZ, Cessna Business Park' (https://builtinbengaluru.in/job/software-engineer-iii/4210236); pin is OSM office POIs 'Walmart Labs' node/3797616140 and 'Walmart' node/12287928395 at the park's north edge."
+     }
+    },
+    {
+     "office": "walmart-global-tech~2dc4a0",
+     "verdict": "drop",
+     "note": "Duplicate of the Cessna Buildings 10 & 11 office ~360 m away: its only evidence is the same two OSM Walmart POIs, which sit on the Cessna boundary, and searches found no source tying Walmart to Prestige Tech Pacific Park. Pin and isHq moved to walmart-global-tech~b7702a."
+    },
+    {
+     "office": "walmart-global-tech~74b3bc",
+     "verdict": "fix",
+     "note": "Now confirmed beyond OSM: property-registration reports say WM Global Technology Services India leased 1.01 lakh sq ft on three floors of Prestige Tech Cloud Building 2 (Cumulus), Devanahalli, five-year lease from Sep 2025, rent from Mar 2026. Raised low -> medium.",
+     "set": {
+      "building": "Building 2 (Cumulus)",
+      "confidence": "medium",
+      "evidence": "Reports from property-registration data (Propstack): WM Global Technology Services India leased 1.01 lakh sq ft (ground, 7th and 8th floors) at Prestige Tech Cloud Building 2 'Cumulus', Devanahalli, from Sep 2025 with rent from Mar 2026 (https://therealtytoday.com/news/commercial/walmart-expands-bengaluru-footprint-leases-over-1-lakh-sq-ft-near-airport ; https://dwello.in/news/bengaluru-office-market-gets-a-boost-as-walmart-global-tech-leases-101-lakh-sq-ft-at-49-lakhmonth); pin is OSM POI 'Walmart' node/13325832538 inside the Prestige Tech Cloud polygon."
+     }
+    },
+    {
+     "office": "walmart-global-tech~98c015",
+     "verdict": "keep",
+     "note": "Not re-checked beyond the cited Walmart job listing; ~550 m from the Cessna pin and in a different park, so not a duplicate."
+    }
+   ]
+  },
+  {
+   "company": "westermo",
+   "verdict": "keep",
+   "note": "Confirmed by Westermo's own contact page and its Mar 2025 news release on opening the India entity in Hebbal (https://www.westermo.com/news-and-events/news/2025-03-07-westermo-india-inauguration): Godrej Centre Hebbal, 1st floor, Sy. No. 26, Bellary Road, Sahakarnagar, Byatarayanapura 560092. The OSM POI lies inside the polygon OSM calls 'Godrej Downtown'.",
+   "set": {
+    "description": "Swedish industrial-networking maker (Beijer Electronics group); its India entity, opened in March 2025, is on the 1st floor of Godrej Centre Hebbal on Bellary Road."
+   },
+   "offices": [
+    {
+     "office": "westermo~a14e3a",
+     "verdict": "fix",
+     "note": "Primary source gives the building and address; the OSM POI node/13428525783 is inside the Godrej polygon on Bellary Road at Kodigehalli (560092), consistent with it, so pin unchanged; low -> high.",
+     "set": {
+      "label": "Westermo India - Godrej Centre Hebbal",
+      "building": "Godrej Centre Hebbal, 1st floor (OSM polygon 'Godrej Downtown')",
+      "locality": "Hebbal / Byatarayanapura (Bellary Road)",
+      "address": "1st floor, Godrej Centre Hebbal, Sy. No. 26, Bellary Road, Sahakarnagar, Byatarayanapura, Bengaluru 560092",
+      "confidence": "high",
+      "evidence": "Westermo's contact page lists 'Godrej Centre Hebbal, 1st floor, Sy. No. 26, Bellary Road, Sahakarnagar, Byatarayanapura, Bangalore 560092' (https://www.westermo.com/contact/main-contact-details); its 7 Mar 2025 release announces the Hebbal India entity (https://www.westermo.com/news-and-events/news/2025-03-07-westermo-india-inauguration); OSM POI 'Westermo' node/13428525783 sits in that building."
+     }
+    }
+   ]
+  },
+  {
+   "company": "wework-india",
+   "verdict": "keep",
+   "note": "wework.co.in's Bangalore page (Oct 2026) lists 26 centres, including both Galaxy (43 Field Marshal Cariappa Rd) and The Pavilion (62/63 Church Street) as separate centres, so they are not a duplicate; North Gate Business Park is not among them. https://wework.co.in/bangalore/",
+   "set": {
+    "description": "Flexible-workspace operator holding the WeWork franchise in India, majority-owned by the Embassy Group and registered at Prestige Central, Infantry Road; its Bengaluru site lists 26 centres (2026)."
+   },
+   "offices": [
+    {
+     "office": "wework-india~68070e",
+     "verdict": "fix",
+     "note": "Distinct from The Pavilion (~200 m apart, different building); the operator lists 'Galaxy: 43, Field Marshal Cariappa Rd' (= Residency Road). Medium -> high.",
+     "set": {
+      "confidence": "high",
+      "address": "WeWork Galaxy, 43 Field Marshal Cariappa Road (Residency Road), Bengaluru 560025",
+      "evidence": "wework.co.in lists 'Galaxy: 43, Field Marshal Cariappa Rd, Bangalore' under MG Road (https://wework.co.in/bangalore/); OSM maps the building 'WeWork Galaxy' (way/132782112)."
+     }
+    },
+    {
+     "office": "wework-india~82f2ec",
+     "verdict": "fix",
+     "note": "Distinct centre from Galaxy; operator lists 'The Pavilion: MG Road, 62/63 The Pavilion, Church Street'. Medium -> high.",
+     "set": {
+      "confidence": "high",
+      "evidence": "wework.co.in lists 'The Pavilion: MG Road, 62/63 The Pavilion, Church Street, Bangalore' (https://wework.co.in/bangalore/); OSM POI 'WeWork' at Church Street 62/63 (node/6569023748)."
+     }
+    },
+    {
+     "office": "wework-india~10e2b3",
+     "verdict": "fix",
+     "note": "The operator's name for the Block D3 centre is 'Manyata Redwood'; label and building corrected, pin unchanged.",
+     "set": {
+      "label": "WeWork Manyata Redwood (Block D3)",
+      "building": "Redwood (Block D3)",
+      "evidence": "wework.co.in lists 'Manyata Redwood: Embassy Manyata Business Park, Block D3, Nagavara' (https://wework.co.in/bangalore/); OSM POI 'WeWork Manyata' (https://www.openstreetmap.org/node/9811266167)."
+     }
+    },
+    {
+     "office": "wework-india~9d0e0a",
+     "verdict": "drop",
+     "note": "North Gate Business Park, Yelahanka is absent from the operator's full list of 26 Bangalore centres (https://wework.co.in/bangalore/); its only evidence was an OSM POI carrying a wework.com URL, so it is not a current WeWork India centre."
+    }
+   ]
+  },
+  {
+   "company": "wipro",
+   "verdict": "keep",
+   "note": "wipro.com/locations (fetched Oct 2026) lists five Bengaluru sites: SJP1, SJP2, EC4, EC5 SEZ (Electronics City Phase 1) and Kodathi; the EC1-EC3 entries 'Wipro Avenue' and 'Keonics 74/F' were the same OSM polygons recorded twice, merged; EC5 moved into the Wipro Electronic City Campus park. M3/M4 Madiwala and K1 Koramangala are not on the current page (OSM only, left low).",
+   "set": {
+    "description": "Indian IT services major (listed; ~230,000 staff) headquartered at Doddakannelli on Sarjapur Road (SJP1/SJP2), with development centres at Kodathi (SEZ) and in Electronic City (EC1-EC5)."
+   },
+   "offices": [
+    {
+     "office": "wipro~e497d7",
+     "verdict": "fix",
+     "note": "Kept as the single EC1-EC3 record; took the building and the '74/F, Keonics' address detail from the dropped duplicate wipro~815bbd. Pin is OSM way/231408285 'Wipro EC 2 / 3'. Not on Wipro's current locations page, so stays medium.",
+     "set": {
+      "building": "EC1, EC2/EC3 and EC2 Learning Center",
+      "address": "74/F, Wipro Avenue, Keonics Electronics City Phase 1, Hosur Road, Bengaluru 560100",
+      "evidence": "OSM maps 'Wipro EC 1' (way/231349458), 'Wipro EC 2 / 3' (way/231408285) and 'Wipro EC 2 Learning Center' (way/231409628) along Wipro Avenue; Wipro's FY2016-17 office list gives '74/F, Electronic City, Hosur Road' and 'Keonics Electronics City' (https://www.wipro.com/content/dam/nexus/en/investor/annual-reports/disclosure-related-to-annual-report-2016-2017/Wipro-Limited-Details-of-Office-Locations-FY-2016-17.pdf); the current https://www.wipro.com/locations/ lists only EC4 and EC5 in Electronic City."
+     }
+    },
+    {
+     "office": "wipro~815bbd",
+     "verdict": "drop",
+     "note": "Duplicate of wipro~e497d7: same EC1 and EC2/3 OSM polygons (way/231349458, way/231408285), 260 m apart; details moved onto the kept record."
+    },
+    {
+     "office": "wipro~455b24",
+     "verdict": "fix",
+     "note": "EC5 SEZ is a separate site on Wipro's current locations page ('SEZ, EC5, Electronics City Phase 1, 560100'), so not dropped; filed under the Wipro Electronic City Campus park to match EC1-EC3. No polygon is mapped for EC5, so the pin stays an approximate point beside the campus.",
+     "set": {
+      "techPark": "Wipro Electronic City Campus",
+      "evidence": "Wipro's locations page lists 'Electronic City Development Center (EC5): SEZ, EC5, Electronics City Phase 1, Electronic City Bengaluru 560100' (https://www.wipro.com/locations/); FY2016-17 list names it 'Wipro SEZ, Doddathogur Village, Begur Hobli'; EC5 is not mapped in OSM, so the point is approximate, beside the EC1-EC3 polygons."
+     }
+    }
+   ]
+  },
+  {
+   "company": "wsp",
+   "verdict": "keep",
+   "note": "WSP's Bengaluru office is confirmed by its own job postings (about 4,000 staff across Noida, Bengaluru and Mumbai; Bengaluru hosts the WSP India GCC, https://jobs.weekday.works/wkdyk4ps7z), and a directory places WSP Consultants India on the 11th floor of MFAR Greenheart Phase IV in Manyata, opposite BEL (https://in.worldorgs.com/catalog/bengaluru/engineering-consultant/swift-engineering), agreeing with the Wikipedia tenant roster.",
+   "set": {
+    "description": "Canadian engineering consultancy; its India arm (WSP Consultants India, ~4,000 staff in Noida, Bengaluru and Mumbai) runs a Bengaluru office and Global Capability Centre in the Greenheart Phase IV block of Embassy Manyata Business Park."
+   },
+   "offices": [
+    {
+     "office": "wsp~4f6c46",
+     "verdict": "fix",
+     "note": "Directory address (11th floor, MFAR Greenheart Phase IV, opposite BEL Corporate Office, 560045) plus the Wikipedia roster -> medium. Greenheart Phase IV is not mapped or geocodable, so the park centroid is kept, not an invented point.",
+     "set": {
+      "label": "WSP - Manyata (Greenheart Phase IV)",
+      "building": "MFAR Greenheart Phase IV, 11th floor",
+      "address": "11th Floor, MFAR Manyata Tech Park Greenheart Phase IV, Embassy Manyata Business Park, Outer Ring Road (opp. BEL Corporate Office), Nagavara, Bengaluru 560045",
+      "confidence": "medium",
+      "evidence": "A business directory lists WSP Consultants India at '11th floor, Mfar Manyata Tech Park Greenheart Phase IV, Embassy Manyata Business Park, Outer Ring Rd, opposite BEL Corporate Office, Nagavara 560045' (https://in.worldorgs.com/catalog/bengaluru/engineering-consultant/swift-engineering); WSP job postings confirm the Bengaluru office (https://jobs.weekday.works/wkdyk4ps7z); Wikipedia's Manyata tenant roster names WSP. The building is not mapped, so the point is the park centroid."
+     }
+    }
+   ]
+  },
+  {
+   "company": "zeta",
+   "verdict": "keep",
+   "note": "A Zeta (zeta.tech, Tachyon) job listing gives its location as 'Bangalore (Whitefield / Diamond District)' (https://builtinbengaluru.in/job/executive-assistant-cto-office/3568828), matching the OSM POI in Diamond District; Zeta's 2021 SoftBank round valued it at $1.45B, so isUnicorn was wrong.",
+   "set": {
+    "isUnicorn": true
+   },
+   "offices": [
+    {
+     "office": "zeta~3826cf",
+     "verdict": "fix",
+     "note": "Second, company-authored source (Zeta job listing naming Diamond District) agrees with the OSM POI; low -> medium. The tower is still unknown.",
+     "set": {
+      "label": "Bengaluru office - Diamond District",
+      "confidence": "medium",
+      "evidence": "A Zeta job listing (Next-Gen Banking Tech, Zeta Tachyon) gives the location 'Bangalore (Whitefield / Diamond District)' (https://builtinbengaluru.in/job/executive-assistant-cto-office/3568828); OSM office POI 'Zeta' sits inside the Diamond District polygon (https://www.openstreetmap.org/node/13563559848). The tower is not published."
+     }
+    }
+   ]
+  }
+ ],
+ "parkFixes": [
+  {
+   "park": "indiqube-sigma",
+   "set": {
+    "lat": 12.925418,
+    "lng": 77.631501
+   },
+   "note": "The park centroid was a Photon hit for Koramangala Industrial Area ~2 km away; OSM building way/347188676 'IndiQube Sigma' is at No.3/B, 7th C Main Road, Koramangala 3rd Block 560034 (Nominatim agrees)."
+  }
+ ],
+ "notes": "Unresolved: (1) Truecaller's building comes from one OSM POI only (no source names the street). (2) Volkswagen's Helios Business Park site comes from one serviced-office operator's marketing sentence; VW confirms a Bengaluru site but not the building. (3) Würth India has no company-confirmed Bengaluru address (HQ Mumbai; OSM building and an IndiaMart Jakkasandra listing disagree). (4) WSP's Greenheart Phase IV block and Wipro's EC5 SEZ are not mapped, so park centroid / approximate points were kept rather than invented. (5) Vahan publishes no street address; pin is the Indiranagar locality node. (6) Wipro M3/M4 (Madiwala) and K1 (Koramangala) are OSM-only and absent from wipro.com/locations; not re-checked for budget and left low. (7) Wework.co.in lists 26 Bangalore centres; ~14 are missing from the dataset (e.g. EGL Cherry Hills/Cinnabar Hills/Princeville/Sunriver, Embassy One, Prestige Atlanta, Embassy Vertex, Jupiter Prestige Tech Park, ETV Zinnia 8C, Vaishnavi Signature, Salarpuria Magnificia, Roshni Tech Hub, IWF Campus, Infinix Palladium, Vista Earth Centre). Not added, because each would need its own geocode. (8) The Walmart Salarpuria Touchstone office was not re-verified. (9) The Cessna Business Park and Prestige Tech Pacific Park OSM polygons overlap at their shared edge; the parks may be worth reviewing."
+}

@@ -1,0 +1,1041 @@
+{
+ "key": "G07-itpl",
+ "techParks": [
+  {
+   "name": "International Tech Park Bangalore",
+   "aliases": [
+    "ITPL",
+    "ITPB",
+    "International Tech Park Bengaluru",
+    "International Technology Park Ltd",
+    "Ascendas ITPL SEZ",
+    "Ascendas ITPB-SEZ"
+   ],
+   "locality": "Whitefield (Pattandur Agrahara)",
+   "developer": "CapitaLand India Trust (formerly Ascendas; original 1994 JV of a Singapore consortium led by Ascendas, the Tata Group and KIADB)",
+   "lat": 12.985228,
+   "lng": 77.736825,
+   "bbox": [
+    12.981491,
+    12.987764,
+    77.733699,
+    77.739693
+   ],
+   "areaSqFtMillions": 6.1,
+   "notableTenants": [
+    "Tata Consultancy Services",
+    "Applied Materials",
+    "Societe Generale",
+    "Mu Sigma",
+    "ExxonMobil",
+    "HCLTech",
+    "Conduent",
+    "General Motors Technical Centre India",
+    "Technicolor India (closed 2025)",
+    "Light & Wonder",
+    "Endava (GalaxE Solutions)",
+    "Amelia (IPsoft)",
+    "Harman International"
+   ],
+   "description": "Bengaluru's oldest tech park, begun in January 1994 as an India-Singapore joint venture (Singapore consortium led by Ascendas 47%, Tata Group 47%, KIADB 6%) and now owned and managed by CapitaLand India Trust, for which it is the largest asset at 6.1 million sq ft of floor area (30 June 2026) on a 69-acre integrated site about 18 km east of the centre, with 92% committed occupancy including the newly completed MTB 6. Blocks: Discoverer, Innovator, Creator (2000), Explorer, Inventor, Navigator (1998), Pioneer (TCS's own), Voyager (Jun 2011, 0.5 msf), Aviator (Jan 2014, 0.6 msf), Victor (Jun 2016, 0.6 msf), Anchor (May 2019, 0.5 msf, SEZ), Anchor Annex (Nov 2020, 0.7 msf), Endeavour / MTB 6 (Jan 2025, 0.8 msf, fully leased to Applied Materials), a smaller MTB 4, and Tower 8 planned for late 2027; the park also holds the 450,000 sq ft Park Square mall (2010), a Vivanta by Taj hotel, a CapitaLand data centre and a Bridge+ flex-work centre. Part of the campus is a notified SEZ (the Aviator/Voyager/Victor/Anchor cluster). The OSM landuse polygon used for the bbox covers the core blocks and may not span the full 69 acres.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/International_Tech_Park,_Bangalore",
+    "https://www.capitaland.com/en/find-a-property/global-property-listing/businesspark-industrial-logistics/international-techparkbangalore.html",
+    "https://www.capitaland.com/content/dam/capitaland-newsroom/International/2026/july/clint-1h2026-results/3.%20CLINT-Supplementary-Info-1H2026_29%20July%202026.pdf",
+    "https://properties.cityinfoservices.com/international-tech-park-bangalore-anchor-building-whitefield-bangalore/b6b6l3w/pjd",
+    "https://therealtytoday.com/news/commercial/applied-materials-signs-855-crore-lease-for-8-lakh-sq-ft-office-space-in-bengaluru/",
+    "https://en.channeliam.com/?p=119943",
+    "https://www.openstreetmap.org/way/26399624"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "Mu Sigma",
+   "aliases": [
+    "Mu Sigma Business Solutions Pvt. Ltd.",
+    "Mu Sigma Inc."
+   ],
+   "category": "MID_SIZE",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Decision-sciences and analytics services firm; its Global Innovation Center, the bulk of its workforce, occupies five floors of ITPB's Aviator block in the SEZ.",
+   "hqCity": "Austin",
+   "hqCountry": "United States",
+   "founded": 2004,
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "website": "https://www.mu-sigma.com",
+   "offices": [
+    {
+     "label": "Global Innovation Center - Aviator, 10th-14th floor",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Aviator",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "Aviator Building, 10th-14th Floor, Whitefield Road, Ascendas ITPL SEZ, Bengaluru 560066",
+     "lat": 12.983221,
+     "lng": 77.738332,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Mu Sigma's own contact page lists Mu Sigma Business Solutions Pvt. Ltd. at Aviator Building, 10th to 14th Floor, Whitefield Road, Ascendas-ITPL SEZ, Bengaluru 560066 (https://mu-sigma.com/contact-us); OSM node 12999157103 'Mu Sigma' sits on the Aviator footprint and the cityinfoservices Aviator page lists it as a tenant.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://mu-sigma.com/contact-us",
+    "https://en.wikipedia.org/wiki/Mu_Sigma",
+    "https://properties.cityinfoservices.com/international-tech-park-bangalore-aviator-whitefield-bangalore/pbmh4q2/pjd",
+    "https://en.wikipedia.org/wiki/International_Tech_Park,_Bangalore"
+   ]
+  },
+  {
+   "name": "Societe Generale",
+   "aliases": [
+    "Société Générale Global Solution Centre",
+    "SG GSC",
+    "SocGen"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "French universal bank; its Global Solution Centre (technology and operations GCC, set up 2000) runs from two ITPB SEZ blocks in Whitefield plus a Bellandur site, and is a CapitaLand India Trust top-10 tenant.",
+   "hqCity": "Paris",
+   "hqCountry": "France",
+   "founded": 1864,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "website": "https://www.societegenerale.com",
+   "offices": [
+    {
+     "label": "Global Solution Centre - Voyager, 10F",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Voyager",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "Voyager Building, 10F, ITPB, Whitefield Road, Bengaluru 560066",
+     "lat": 12.982667,
+     "lng": 77.737649,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Societe Generale's own Bangalore office page lists the Global Solution Centre at Voyager Building, 10F, ITPB, Whitefield Road, Bangalore 560066 (https://wholesale.banking.societegenerale.com/en/about/locations/worldwide-details/office/bangalore-global-solution-centre-1); the cityinfoservices Voyager page names it as a tenant and OSM node 12999157104 sits on the Voyager footprint.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Global Solution Centre - Victor, 2nd floor",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Victor",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "Victor Building, 2nd Floor, Whitefield Road, Ascendas ITPB SEZ, Bengaluru 560066",
+     "lat": 12.983863,
+     "lng": 77.738218,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Societe Generale's India country page lists a second Bangalore office at Victor Building, 2nd Floor, Whitefield Road, Ascendas ITPB SEZ, International Tech Park Bangalore 560066 (https://wholesale.banking.societegenerale.com/en/about/locations/country-details/country/india-2/); coordinates are the OSM Victor building footprint (way/490156675).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Pritech Park SEZ, Bellandur",
+     "techPark": "Pritech Park SEZ",
+     "building": null,
+     "locality": "Bellandur",
+     "address": "Pritech Park SEZ, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.9208604,
+     "lng": 77.6807689,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Societe Generale's India country page also lists a Bengaluru site at Pritech Park SEZ, Varthur Hobli, Bellandur Village, 560103 (https://wholesale.banking.societegenerale.com/en/about/locations/country-details/country/india-2/); the point is a Nominatim hit inside Pritech Park, not the SG building itself.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://wholesale.banking.societegenerale.com/en/about/locations/worldwide-details/office/bangalore-global-solution-centre-1",
+    "https://wholesale.banking.societegenerale.com/en/about/locations/country-details/country/india-2/",
+    "https://properties.cityinfoservices.com/international-tech-park-bangalore-voyager-whitefield-bangalore/u878794/pjd",
+    "https://www.capitaland.com/content/dam/capitaland-newsroom/International/2026/july/clint-1h2026-results/3.%20CLINT-Supplementary-Info-1H2026_29%20July%202026.pdf",
+    "https://en.wikipedia.org/wiki/International_Tech_Park,_Bangalore"
+   ]
+  },
+  {
+   "name": "Tata Consultancy Services",
+   "aliases": [
+    "TCS"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "India's largest IT services company and a founding JV partner of ITPL; in Whitefield it owns the Pioneer block, occupies the Anchor SEZ block and runs further named buildings at GR Tech Park and in the EPIP zone.",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 1968,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "website": "https://www.tcs.com",
+   "offices": [
+    {
+     "label": "ITPB - Pioneer",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Pioneer",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "Pioneer Building, ITPL, Whitefield Road, Bengaluru 560066",
+     "lat": 12.983296,
+     "lng": 77.736813,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wikipedia's ITPB article says the Pioneer building belongs to TCS (https://en.wikipedia.org/wiki/International_Tech_Park,_Bangalore), and OSM carries a landuse polygon named 'Tata Consultancy Services' (way/140022954) exactly over the Pioneer footprint (way/150212370).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "ITPB - Anchor (SEZ)",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Anchor",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "Anchor Building, ITPL, Pattandur Agrahara, Whitefield, Bengaluru 560066",
+     "lat": 12.98459,
+     "lng": 77.738511,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The cityinfoservices Anchor page (~510,000 sq ft, 12 floors, SEZ, completed 2019) says the building is currently occupied by TCS (https://properties.cityinfoservices.com/international-tech-park-bangalore-anchor-building-whitefield-bangalore/b6b6l3w/pjd); CLINT's 1H2026 supplementary lists TCS among its top-10 tenants, without naming the block.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "GR Tech Park - TCS Jal / Dhara",
+     "techPark": "GR Tech Park",
+     "building": "Jal / Dhara",
+     "locality": "Whitefield (Belathur)",
+     "address": "GR Tech Park, Whitefield Road, Belathur, Bengaluru 560067",
+     "lat": 12.986119,
+     "lng": 77.743023,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps two office buildings named 'TCS Jal' (way/159766766) and 'TCS Dhara' (way/159766775) inside the GR Salarpuria Tech Park polygon east of ITPB; OSM evidence only, no company page found.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Whitefield EPIP - TCS Abhilash",
+     "techPark": "EPIP Zone Whitefield",
+     "building": "Abhilash",
+     "locality": "Whitefield (EPIP Zone)",
+     "address": "EPIP Zone, Whitefield, Bengaluru 560066",
+     "lat": 12.975789,
+     "lng": 77.726274,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps an office building named 'Tata Consultancy Services - TCS Abhilash' (way/122668471) in the EPIP zone south of ITPL Main Road; OSM evidence only.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Whitefield EPIP - TCS L Centre",
+     "techPark": "EPIP Zone Whitefield",
+     "building": "L Centre",
+     "locality": "Whitefield (EPIP Zone)",
+     "address": "EPIP Zone, Whitefield, Bengaluru 560066",
+     "lat": 12.977569,
+     "lng": 77.728158,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps an office building named 'Tata Consultancy Services - L Center' (way/145672507) in the EPIP zone; OSM evidence only.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/International_Tech_Park,_Bangalore",
+    "https://properties.cityinfoservices.com/international-tech-park-bangalore-anchor-building-whitefield-bangalore/b6b6l3w/pjd",
+    "https://www.capitaland.com/content/dam/capitaland-newsroom/International/2026/july/clint-1h2026-results/3.%20CLINT-Supplementary-Info-1H2026_29%20July%202026.pdf",
+    "https://www.openstreetmap.org/"
+   ]
+  },
+  {
+   "name": "Applied Materials",
+   "aliases": [
+    "Applied Materials India Pvt. Ltd.",
+    "AMAT"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "Semiconductor-equipment maker whose Bengaluru engineering centre is its largest outside the US; it signed the biggest 2025 lease at ITPB, taking the whole new Endeavour (MTB 6) block, and remains a CapitaLand India Trust top-10 tenant.",
+   "hqCity": "Santa Clara",
+   "hqCountry": "United States",
+   "founded": 1967,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "website": "https://www.appliedmaterials.com",
+   "offices": [
+    {
+     "label": "ITPB - Endeavour (MTB 6)",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Endeavour (MTB 6)",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "ITPB-Endeavour (MTB 6), Pattandur Agrahara Road, Whitefield, Bengaluru 560066",
+     "lat": 12.985228,
+     "lng": 77.736825,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The Realty Today (updated 5 Sep 2025) reports Applied Materials leased 8.06 lakh sq ft - ground plus 15 floors of ITPB-Endeavour (MTB 6), Pattandur Agrahara Road - for 10 years from 1 April 2025 at Rs 855 crore (https://therealtytoday.com/news/commercial/applied-materials-signs-855-crore-lease-for-8-lakh-sq-ft-office-space-in-bengaluru/); CLINT lists MTB 6 (0.8 msf) completed Jan-25. Block not in OSM, so the park centroid is used.",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "ITPB - Navigator",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Navigator",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "Navigator Building, ITPL, Whitefield Road, Bengaluru 560066",
+     "lat": 12.986106,
+     "lng": 77.734245,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The cityinfoservices Navigator page lists Applied Materials among that block's tenants (https://properties.cityinfoservices.com/international-tech-park-bangalore-navigator-whitefield-bangalore/g6yyoce/pjd), Wikipedia names it among ITPB occupants, and OSM node 12999125375 'Applied Materials' sits inside the park; the node is used for the point although it lies nearer the Explorer/Innovator blocks.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "ITPB - Tower 8 (option)",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Tower 8",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "ITPB, Pattandur Agrahara, Whitefield, Bengaluru 560066",
+     "lat": 12.985228,
+     "lng": 77.736825,
+     "isHq": false,
+     "status": "planned",
+     "confidence": "low",
+     "evidence": "The same Realty Today report says Applied holds a hard option on a further 3 lakh sq ft in Tower 8 of the ITPB complex, expected ready by 1 October 2027 (https://therealtytoday.com/news/commercial/applied-materials-signs-855-crore-lease-for-8-lakh-sq-ft-office-space-in-bengaluru/); an option, not a signed lease, so recorded as planned/low.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://therealtytoday.com/news/commercial/applied-materials-signs-855-crore-lease-for-8-lakh-sq-ft-office-space-in-bengaluru/",
+    "https://properties.cityinfoservices.com/international-tech-park-bangalore-navigator-whitefield-bangalore/g6yyoce/pjd",
+    "https://www.capitaland.com/content/dam/capitaland-newsroom/International/2026/july/clint-1h2026-results/3.%20CLINT-Supplementary-Info-1H2026_29%20July%202026.pdf",
+    "https://en.wikipedia.org/wiki/International_Tech_Park,_Bangalore"
+   ]
+  },
+  {
+   "name": "ExxonMobil",
+   "aliases": [
+    "ExxonMobil Services and Technology Private Limited",
+    "ExxonMobil Bengaluru Technology Centre"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "US oil and gas major; its Bengaluru technology and business-services centre is based at Prestige Shantiniketan and in Q1 2026 added seven floors of ITPB's Inventor block.",
+   "hqCity": "Spring, Texas",
+   "hqCountry": "United States",
+   "founded": 1999,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "website": "https://corporate.exxonmobil.com",
+   "offices": [
+    {
+     "label": "Bengaluru Technology Centre - Prestige Shantiniketan",
+     "techPark": "Prestige Shantiniketan",
+     "building": null,
+     "locality": "Whitefield (Hoodi)",
+     "address": "Prestige Shantiniketan, Whitefield Main Road, Bengaluru 560048",
+     "lat": 12.989288,
+     "lng": 77.73113,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "ExxonMobil's India page gives its Bengaluru address as Prestige Shantiniketan, Whitefield Main Road, Bangalore 560048 (https://corporate.exxonmobil.com/locations/india); channeliam (9 Jul 2026) reports a five-year renewal of about 5.31 lakh sq ft there, and OSM node 6534475885 'ExxonMobil Services and Technology Private Limited' sits in the complex.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "ITPB - Inventor, seven floors",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Inventor",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "Inventor Building, ITPB, Whitefield Road, Bengaluru 560066",
+     "lat": 12.985968,
+     "lng": 77.735918,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "channeliam (9 Jul 2026) reports ExxonMobil Services and Technology leased 235,300 sq ft across seven floors (1-4, 6-8) of ITPB Inventor from Information Technology Park Ltd on a three-year term at Rs 79/sq ft/month (https://en.channeliam.com/?p=119943); OSM node 14028336557 'ExxonMobil' inside the park is used for the point.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://corporate.exxonmobil.com/locations/india",
+    "https://en.channeliam.com/?p=119943",
+    "https://www.openstreetmap.org/"
+   ]
+  },
+  {
+   "name": "HCLTech",
+   "aliases": [
+    "HCL Technologies"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Noida-headquartered IT services major; one of its many Bengaluru delivery sites is in ITPB's Aviator block (its larger campuses, such as the Jigani SEZ, are outside this lens).",
+   "hqCity": "Noida",
+   "hqCountry": "India",
+   "founded": 1991,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "website": "https://www.hcltech.com",
+   "offices": [
+    {
+     "label": "ITPB - Aviator, Wing B, 5th floor",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Aviator",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "Aviator Building, Wing B, 5th Floor, Ascendas ITPB-SEZ, Whitefield Road, Bengaluru 560066",
+     "lat": 12.982782,
+     "lng": 77.7383,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "An Explurger listing places HCL Technologies at Aviator Building, Wing B, 5th Floor, Ascendas ITPB-SEZ (https://www.explurger.com/pd/1ifsoay5jy0zu6qag); the cityinfoservices Aviator page lists HCL Technologies as a tenant and OSM nodes 12999157102 'HCL Tech' and 10695073056 'HCL' sit inside the park. No company page found, so medium.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.explurger.com/pd/1ifsoay5jy0zu6qag",
+    "https://properties.cityinfoservices.com/international-tech-park-bangalore-aviator-whitefield-bangalore/pbmh4q2/pjd",
+    "https://www.openstreetmap.org/"
+   ]
+  },
+  {
+   "name": "Conduent",
+   "aliases": [
+    "Conduent Business Services India LLP",
+    "Xerox Business Services",
+    "Affiliated Computer Services (ACS)"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "US business-process services company spun out of Xerox in 2017 (the ACS/Xerox lineage is why Wikipedia lists both Xerox and Conduent at ITPB); its Bengaluru voice-process delivery centre is on the ground floor of the Aviator block.",
+   "hqCity": "Florham Park",
+   "hqCountry": "United States",
+   "founded": 2017,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "website": "https://www.conduent.com",
+   "offices": [
+    {
+     "label": "ITPB - Aviator, Unit A, ground floor",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Aviator",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "Unit-A, Ground Floor, Aviator Building, ITPL, Whitefield Road, Bengaluru 560066",
+     "lat": 12.982925,
+     "lng": 77.738388,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Conduent walk-in drives were held at Conduent Business Services India LLP, Unit-A, Ground Floor, Aviator Building, ITPL, Whitefield Road, Bengaluru 560066 on 16 Jan 2025 (https://alexahire.in/?p=57831) and again on 31 Aug-1 Sep 2026 (https://careerstn.com/walk-in-interview-international-voice-process-at-conduent-bengaluru/); point is the OSM Aviator footprint (way/462494800).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://careerstn.com/walk-in-interview-international-voice-process-at-conduent-bengaluru/",
+    "https://alexahire.in/?p=57831",
+    "https://en.wikipedia.org/wiki/International_Tech_Park,_Bangalore"
+   ]
+  },
+  {
+   "name": "General Motors Technical Centre India",
+   "aliases": [
+    "GMTC-I",
+    "GM India Technical Center",
+    "General Motors"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "GM's Bengaluru engineering and design centre (opened 2003) sits in ITPB's Creator block; in 2019 TCS took over certain GMTC-I assets and 1,300+ staff, and GM's remaining footprint in the park could not be re-verified.",
+   "hqCity": "Detroit",
+   "hqCountry": "United States",
+   "founded": 1908,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "website": "https://www.gm.com",
+   "offices": [
+    {
+     "label": "ITPB - Creator, 3rd floor",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Creator",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "Units 4-8, 3rd Floor, Creator Building, ITPL, Whitefield Road, Bengaluru 560066",
+     "lat": 12.985448,
+     "lng": 77.736466,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "GM Authority's facility page (last updated 2018) gives GMTC-I's address as Units 4-8, 3rd Floor, Creator Building, International Tech Park, Whitefield Road, Bangalore 560066 (https://gmauthority.com/blog/wp-json/wp/v2/pages/156467) and the cityinfoservices Creator page lists General Motors Technical Center as a tenant; Autocar Pro (16 Sep 2019) reports TCS acquiring GMTC-I assets and 1,300+ staff while GM's Bangalore teams continue, so current size is uncertain.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://gmauthority.com/blog/wp-json/wp/v2/pages/156467",
+    "https://properties.cityinfoservices.com/international-tech-park-bangalore-creator-whitefield-bangalore/b3piqoa/pjd",
+    "https://autocarpro.in/news-national/tcs-in-strategic-deal-for-gm-technical-centre-india-assets-and-staff-44109",
+    "https://en.wikipedia.org/wiki/International_Tech_Park,_Bangalore"
+   ]
+  },
+  {
+   "name": "Technicolor India",
+   "aliases": [
+    "Technicolor Creative Studios",
+    "Technicolor Group",
+    "Moving Picture Company (MPC) Bangalore",
+    "The Mill",
+    "Mikros"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Media & gaming",
+   "description": "VFX and animation group whose Bengaluru studios (MPC Bangalore opened Oct 2010) were a CapitaLand India Trust top-10 tenant in 2021-22, spread over ITPB's Navigator and Creator blocks; the group entered administration in February 2025 and the Bangalore and Mumbai offices announced closure, with TransPerfect's March 2025 asset deal excluding India.",
+   "hqCity": "Paris",
+   "hqCountry": "France",
+   "founded": 1915,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "website": null,
+   "offices": [
+    {
+     "label": "ITPB - Navigator (closed 2025)",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Navigator",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "Navigator Building, ITPL, Whitefield Road, Bengaluru 560066",
+     "lat": 12.985228,
+     "lng": 77.736825,
+     "isHq": false,
+     "status": "closed",
+     "confidence": "medium",
+     "evidence": "The cityinfoservices Navigator page lists Technicolor India as a tenant (https://properties.cityinfoservices.com/international-tech-park-bangalore-navigator-whitefield-bangalore/g6yyoce/pjd) and CLINT's top-10 tenant table carries Technicolor for Dec-21 and Dec-22; Wikipedia's MPC article says the Bangalore office announced closure in February 2025 amid Technicolor's insolvency (https://en.wikipedia.org/wiki/Moving_Picture_Company). Navigator is not in OSM, so the park centroid is used.",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "ITPB - Creator (closed 2025)",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Creator",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "Creator Building, ITPL, Whitefield Road, Bengaluru 560066",
+     "lat": 12.985448,
+     "lng": 77.736466,
+     "isHq": false,
+     "status": "closed",
+     "confidence": "medium",
+     "evidence": "The cityinfoservices Creator page lists Technicolor India among that block's tenants (https://properties.cityinfoservices.com/international-tech-park-bangalore-creator-whitefield-bangalore/b3piqoa/pjd); closure per the February 2025 Technicolor Group administration (https://en.wikipedia.org/wiki/Technicolor_Creative_Studios).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/international-tech-park-bangalore-navigator-whitefield-bangalore/g6yyoce/pjd",
+    "https://properties.cityinfoservices.com/international-tech-park-bangalore-creator-whitefield-bangalore/b3piqoa/pjd",
+    "https://www.capitaland.com/content/dam/capitaland-newsroom/International/2026/july/clint-1h2026-results/3.%20CLINT-Supplementary-Info-1H2026_29%20July%202026.pdf",
+    "https://en.wikipedia.org/wiki/Moving_Picture_Company",
+    "https://en.wikipedia.org/wiki/Technicolor_Creative_Studios",
+    "https://en.wikipedia.org/wiki/International_Tech_Park,_Bangalore"
+   ]
+  },
+  {
+   "name": "Light & Wonder",
+   "aliases": [
+    "Scientific Games",
+    "Bally Technologies",
+    "SG Gaming India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Media & gaming",
+   "description": "Las Vegas gaming-technology company (renamed from Scientific Games in 2022) whose Indian game-development centre is listed in ITPB's Navigator block; currency of the tenancy not re-verified.",
+   "hqCity": "Las Vegas",
+   "hqCountry": "United States",
+   "founded": 1973,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "website": "https://www.lnw.com",
+   "offices": [
+    {
+     "label": "ITPB - Navigator",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Navigator",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "Navigator Building, ITPL, Whitefield Road, Bengaluru 560066",
+     "lat": 12.985228,
+     "lng": 77.736825,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "The cityinfoservices Navigator page lists 'Scientific Games (Bally Technologies)' as a tenant (https://properties.cityinfoservices.com/international-tech-park-bangalore-navigator-whitefield-bangalore/g6yyoce/pjd) and Wikipedia names Scientific Games among ITPB occupants; no company page or lease report found, and Navigator is not in OSM, so park centroid and low confidence.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/international-tech-park-bangalore-navigator-whitefield-bangalore/g6yyoce/pjd",
+    "https://en.wikipedia.org/wiki/International_Tech_Park,_Bangalore"
+   ]
+  },
+  {
+   "name": "Endava",
+   "aliases": [
+    "GalaxE Solutions",
+    "GalaxE.Solutions India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "London-listed IT services firm; GalaxE Solutions, which it acquired in 2024, ran its Bengaluru delivery centre in ITPB's Aviator block (galaxe.com now redirects to Endava). Post-acquisition tenancy not re-verified.",
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "founded": 2000,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "website": "https://www.endava.com",
+   "offices": [
+    {
+     "label": "ITPB - Aviator (ex-GalaxE)",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Aviator",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "Aviator Building, ITPL, Whitefield Road, Bengaluru 560066",
+     "lat": 12.982925,
+     "lng": 77.738388,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "The cityinfoservices Aviator page lists GalaxE Solutions as a tenant (https://properties.cityinfoservices.com/international-tech-park-bangalore-aviator-whitefield-bangalore/pbmh4q2/pjd) and Wikipedia names GalaxE Solutions among ITPB occupants; galaxe.com redirects to https://info.endava.com/galaxe-has-joined-endava. Point is the OSM Aviator footprint; low because no post-acquisition source.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/international-tech-park-bangalore-aviator-whitefield-bangalore/pbmh4q2/pjd",
+    "https://en.wikipedia.org/wiki/International_Tech_Park,_Bangalore",
+    "https://info.endava.com/galaxe-has-joined-endava"
+   ]
+  },
+  {
+   "name": "Amelia",
+   "aliases": [
+    "IPsoft",
+    "IPsoft Global Services",
+    "SoundHound AI"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Conversational-AI and IT-automation vendor (IPsoft until 2020, acquired by SoundHound AI in 2024) whose Bengaluru centre is listed in ITPB's Voyager block; currency not re-verified.",
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "founded": 1998,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "website": "https://amelia.ai",
+   "offices": [
+    {
+     "label": "ITPB - Voyager (IPsoft)",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Voyager",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "Voyager Building, ITPL, Whitefield Road, Bengaluru 560066",
+     "lat": 12.982531,
+     "lng": 77.737675,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "The cityinfoservices Voyager page lists IPsoft Global Services as a tenant (https://properties.cityinfoservices.com/international-tech-park-bangalore-voyager-whitefield-bangalore/u878794/pjd) and Wikipedia names IPsoft among ITPB occupants; no company page found, so low. Point is the OSM Voyager footprint (way/354223326).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/international-tech-park-bangalore-voyager-whitefield-bangalore/u878794/pjd",
+    "https://en.wikipedia.org/wiki/International_Tech_Park,_Bangalore"
+   ]
+  },
+  {
+   "name": "Harman International",
+   "aliases": [
+    "HARMAN Connected Services",
+    "Harman Digital Transformation Solutions (DTS)",
+    "Symphony Teleca",
+    "Aditi Technologies",
+    "Connected Services Corporation Wipro India Pvt. Ltd."
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Samsung-owned audio and connected-car group; its Bengaluru software-services arm (built from the 2014-15 Aditi Technologies and Symphony Teleca acquisitions) runs from the ex-Symphony campus in the EOIZ industrial area beside ITPB, with a site at Manyata and an office POI inside ITPB. BSI's 2026 certificate lists the EOIZ site's related entities as 'Connected Services Corporation Wipro India', suggesting the services unit has passed to Wipro - not independently verified here.",
+   "hqCity": "Stamford",
+   "hqCountry": "United States",
+   "founded": 1980,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "website": "https://www.harman.com",
+   "offices": [
+    {
+     "label": "Whitefield campus - EOIZ Industrial Area, Sadaramangala",
+     "techPark": null,
+     "building": null,
+     "locality": "Whitefield (Sadaramangala)",
+     "address": "Plot 3 & 3A, EOIZ Industrial Area, Sadaramangala Village, Whitefield, Bengaluru 560066",
+     "lat": 12.991661,
+     "lng": 77.736004,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "BSI's certificate directory lists HARMAN Connected Services at Plot No. 3 & 3A, EOIZ Industrial Area, Sy. No. 85 and 86, Sadaramangala Village, Krishnarajapuram Hobli, Bangalore 560066 (https://bsigroup.com/en-IN/products-and-services/assessment-and-certification/validation-and-verification/client-directory-certificate/IS%20562744); point is the OSM Sadaramangala Industrial Area centroid, not the plot.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "ITPB office",
+     "techPark": "International Tech Park Bangalore",
+     "building": null,
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "International Tech Park, Whitefield Road, Bengaluru 560066",
+     "lat": 12.986195,
+     "lng": 77.733287,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM node 10695073042 'Harman' sits inside the ITPB polygon near the Explorer/Innovator blocks; no company page or lease report names the block, so OSM evidence only.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Manyata Tech Park - C4 Block, Wing A",
+     "techPark": "Manyata Tech Park",
+     "building": "C4 Block, Wing A",
+     "locality": "Nagavara",
+     "address": "C4 Block, Wing A, Manyata Tech Park, Nagavara, Outer Ring Road, Bengaluru 560045",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "BSI's client-directory profile lists HARMAN Connected Services Technologies Pvt Ltd at C4 block, Wing A, Manayata Tech Park, Nagavara, Outer Ring Road, Bangalore (https://www.bsigroup.com/pl-PL/products-and-services/assessment-and-certification/validation-and-verification/client-directory-profile/SYMPHO-0047312355-000/); point is the Manyata Tech Park OSM centroid.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://bsigroup.com/en-IN/products-and-services/assessment-and-certification/validation-and-verification/client-directory-certificate/IS%20562744",
+    "https://www.bsigroup.com/pl-PL/products-and-services/assessment-and-certification/validation-and-verification/client-directory-profile/SYMPHO-0047312355-000/",
+    "https://en.wikipedia.org/wiki/Harman_International",
+    "https://www.openstreetmap.org/"
+   ]
+  },
+  {
+   "name": "Tata Elxsi",
+   "aliases": [
+    "Tata Elxsi Limited"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Listed Tata-group design and technology services company headquartered on ITPB Road, Whitefield - beside, not inside, the park - with further Bengaluru sites at Prestige Shantiniketan and Bhoruka Tech Park.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1989,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "website": "https://www.tataelxsi.com",
+   "offices": [
+    {
+     "label": "Global HQ - ITPB Road, Whitefield",
+     "techPark": null,
+     "building": null,
+     "locality": "Whitefield (Hoodi)",
+     "address": "ITPB Road, Whitefield, Bengaluru 560048",
+     "lat": 12.990777,
+     "lng": 77.724801,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Tata Elxsi's contact page lists its HQ at ITPB Road, Whitefield, Bangalore 560048 (https://www.tataelxsi.com/contact-us); OSM maps the Tata Elxsi building (way/435423119) on Whitefield Road, Hoodi, and the geocoder resolves the address to it.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Prestige Shantiniketan - Crescent 4, 9th floor",
+     "techPark": "Prestige Shantiniketan",
+     "building": "Crescent 4",
+     "locality": "Whitefield (Hoodi)",
+     "address": "Crescent 4, 9th Floor, Prestige Shantiniketan, Whitefield Road, Bengaluru 560048",
+     "lat": 12.988903,
+     "lng": 77.731042,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Tata Elxsi's contact page lists Crescent 4, 9th Floor, Prestige Shantiniketan, Whitefield Road, Bangalore 560048 (https://www.tataelxsi.com/contact-us); point is the OSM Prestige Shantiniketan complex (way/194740174), not the tower.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Bhoruka Tech Park - Block I, Hoodi",
+     "techPark": "Bhoruka Tech Park",
+     "building": "Block I",
+     "locality": "Mahadevapura (Hoodi)",
+     "address": "Block I, Bhoruka Tech Park, Mahadevapura Industrial Area, Hoodi, Bengaluru 560048",
+     "lat": 12.994174,
+     "lng": 77.705315,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Tata Elxsi's contact page lists Block I, Bhoruka Tech Park, Mahadevpura Industrial Area, Hoodi, Bangalore 560048 (https://www.tataelxsi.com/contact-us); point is the OSM Bhoruka Tech Park centroid (way/83231745).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.tataelxsi.com/contact-us",
+    "https://www.openstreetmap.org/"
+   ]
+  },
+  {
+   "name": "Alstom",
+   "aliases": [
+    "Alstom Transport India Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "French rail-transport group; its Bengaluru engineering centre (one of its largest globally, ~2,000 staff per 2024 press) is at Embassy Prime in Bagmane Tech Park, CV Raman Nagar - the ITPL tenancy suggested by the lens brief was not substantiated.",
+   "hqCity": "Saint-Ouen-sur-Seine",
+   "hqCountry": "France",
+   "founded": 1928,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "website": "https://www.alstom.com",
+   "offices": [
+    {
+     "label": "Engineering centre - Embassy Prime, Bagmane Tech Park",
+     "techPark": "Bagmane Tech Park",
+     "building": "Embassy Prime",
+     "locality": "CV Raman Nagar",
+     "address": "66/2, 3rd Floor, Embassy Prime, Bagmane Tech Park, CV Raman Nagar, Bengaluru 560093",
+     "lat": 12.978694,
+     "lng": 77.662447,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Alstom's India page gives its contact address as Alstom Transport India Limited, 66/2, 3rd Floor, Embassy Prime, Bagmane Tech Park, CV Raman Nagar, Bengaluru 560093 (https://www.alstom.com/alstom-india); point is the OSM Bagmane Tech Park centroid (way/323047914).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.alstom.com/alstom-india",
+    "https://www.peoplematters.in/news/talent-acquisition/alstom-india-to-hire-700-for-its-bengaluru-center-15862"
+   ]
+  },
+  {
+   "name": "Tesco Bengaluru",
+   "aliases": [
+    "Tesco Hindustan Service Centre (HSC)",
+    "Tesco Technology India",
+    "Tesco Business Services"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "Tesco plc's technology and business-services GCC (set up 2004) on its own campus in the EPIP zone, Whitefield - Wikipedia explicitly places it outside ITPB.",
+   "hqCity": "Welwyn Garden City",
+   "hqCountry": "United Kingdom",
+   "founded": 2004,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "website": "https://www.tescobengaluru.com",
+   "offices": [
+    {
+     "label": "Whitefield campus - 81 & 82 EPIP Area",
+     "techPark": "EPIP Zone Whitefield",
+     "building": null,
+     "locality": "Whitefield (EPIP Zone)",
+     "address": "81 & 82, EPIP Area, Whitefield, Bengaluru 560066",
+     "lat": 12.97399,
+     "lng": 77.728791,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Tesco Bengaluru job listings give the office as 81 & 82 EPIP Area, Whitefield, Bengaluru 560066 (https://builtinbengaluru.in/job/senior-associate-supplier-operations/4046944); OSM maps an office polygon named 'Tesco' (way/94685714) in the EPIP zone south of ITPL Main Road.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/job/senior-associate-supplier-operations/4046944",
+    "https://en.wikipedia.org/wiki/International_Tech_Park,_Bangalore",
+    "https://www.openstreetmap.org/"
+   ]
+  },
+  {
+   "name": "Capgemini",
+   "aliases": [
+    "Capgemini India Private Limited",
+    "iGATE",
+    "Capgemini Technology Services India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "French IT services major (absorbed iGATE in 2015, which the lens brief associates with ITPL); its Whitefield presence is its own EPIP-zone campus on ITPL Main Road rather than space inside ITPB, plus a Bellandur site.",
+   "hqCity": "Paris",
+   "hqCountry": "France",
+   "founded": 1967,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "website": "https://www.capgemini.com",
+   "offices": [
+    {
+     "label": "Whitefield campus - 117 & 118 EPIP Zone",
+     "techPark": "EPIP Zone Whitefield",
+     "building": null,
+     "locality": "Whitefield (EPIP Zone)",
+     "address": "117 & 118, Road No. 3, EPIP Zone, Whitefield, Bengaluru 560066",
+     "lat": 12.969715,
+     "lng": 77.724754,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps a Capgemini building (way/181461602) with the address 117 & 118, Rd Number 3, EPIP Zone, Whitefield, Bangalore 560037 and website capgemini.com; OSM evidence only.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Dartmoor Block - ITPL Main Road",
+     "techPark": "EPIP Zone Whitefield",
+     "building": "Dartmoor Block",
+     "locality": "Whitefield (EPIP Zone)",
+     "address": "ITPL Main Road, Whitefield, Bengaluru 560066",
+     "lat": 12.970957,
+     "lng": 77.717064,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps 'Capgemini Dartmoor Block' (way/347066608) on ITPL Main Road, Bangalore 560066; OSM evidence only.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Bellandur - 6B Adarsh Palm Retreat",
+     "techPark": null,
+     "building": null,
+     "locality": "Bellandur",
+     "address": "6B, Adarsh Palm Retreat, Bellandur, Bengaluru 560103",
+     "lat": 12.922688,
+     "lng": 77.681802,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM node 4444471701 'Capgemini India Private Limited' carries the address 6B, Adarsh Palm Retreat, Bellandur, Bangalore 560103; OSM evidence only.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/",
+    "https://en.wikipedia.org/wiki/International_Tech_Park,_Bangalore"
+   ]
+  },
+  {
+   "name": "SAP",
+   "aliases": [
+    "SAP Labs India",
+    "SAP Labs India Pvt. Ltd."
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "German enterprise-software group; SAP Labs India (est. 1998) is headquartered on its own campus at 138 EPIP Zone, Whitefield, with a second large Bengaluru site on Outer Ring Road - no evidence of space inside ITPB was found.",
+   "hqCity": "Walldorf",
+   "hqCountry": "Germany",
+   "founded": 1972,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "website": "https://www.sap.com",
+   "offices": [
+    {
+     "label": "SAP Labs India campus - 138 EPIP Zone",
+     "techPark": "EPIP Zone Whitefield",
+     "building": null,
+     "locality": "Whitefield (EPIP Zone)",
+     "address": "138, EPIP Zone, Whitefield, Bengaluru 560066",
+     "lat": 12.978846,
+     "lng": 77.714922,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM node 4489121316 'SAP Labs India Pvt. Ltd.' carries the address 138, EPIP Zone, Bengaluru 560066, and the geocoder resolves 'SAP Labs India, 138 EPIP Zone' to the same node; OSM evidence only.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "SAP Labs - Outer Ring Road, Bellandur",
+     "techPark": null,
+     "building": null,
+     "locality": "Bellandur",
+     "address": "Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.924486,
+     "lng": 77.670161,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM node 5622287724 'SAP Labs India Pvt Ltd' on Outer Ring Road, postcode 560103, with website sap.com; OSM evidence only.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/"
+   ]
+  },
+  {
+   "name": "Wipro GE Healthcare",
+   "aliases": [
+    "GE HealthCare",
+    "GE Healthcare India",
+    "Wipro GE Medical Systems"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "GE HealthCare's Indian JV with Wipro (1990), making and servicing medical imaging equipment; its head office and plant are in the Kadugodi/Sadaramangala industrial area just east of ITPB, with an office at Kalyani Platina in the EPIP zone - adjacent to, not inside, the park.",
+   "hqCity": "Chicago",
+   "hqCountry": "United States",
+   "founded": 1990,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "website": "https://www.gehealthcare.in",
+   "offices": [
+    {
+     "label": "Head office and plant - Kadugodi Industrial Area",
+     "techPark": null,
+     "building": null,
+     "locality": "Kadugodi (Whitefield)",
+     "address": "No. 4, Whitefield Main Road, Kadugodi Industrial Area, Bengaluru 560067",
+     "lat": 12.991547,
+     "lng": 77.746834,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "GE HealthCare's India branches page lists 'Bangalore - HO' at GE HealthCare 4, Whitefield Main Rd, Sadaramangala Industrial Area, Kadugodi 560067 and the footer address No. 4, Kadugodi Industrial Area for Wipro GE Healthcare Pvt Ltd (https://www.gehealthcare.com/en-in/about/ge-healthcare-service-branches); OSM relations 1964703 'Wipro GE Healthcare' and 2129025 'Wipro GE Medical Systems' map the site.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Kalyani Platina - Magnolia, ground floor",
+     "techPark": "Kalyani Platina",
+     "building": "Magnolia",
+     "locality": "Whitefield (EPIP Zone)",
+     "address": "Ground Floor, Magnolia, Kalyani Platina, EPIP Zone, Whitefield Road, Bengaluru 560066",
+     "lat": 12.972056,
+     "lng": 77.718544,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The same GE HealthCare page lists Ground Floor, Magnolia, Kalyani Platina, EPIP Zone, Whitefield Road, Brookefield 560066 (https://www.gehealthcare.com/en-in/about/ge-healthcare-service-branches); Kalyani Platina has no OSM polygon, so the point is another tenant's OSM POI carrying the park's address (node 4861726306).",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.gehealthcare.com/en-in/about/ge-healthcare-service-branches",
+    "https://www.openstreetmap.org/"
+   ]
+  }
+ ],
+ "coverageNotes": "Searches were cut short: the shared web-search budget ran out after ~24 queries, so the remaining verification was done with direct page fetches, the CapitaLand India Trust (CLINT) 1H2026 supplementary PDF, Wikipedia and OpenStreetMap. CONFIRMED in ITPB with company or press evidence: Mu Sigma (Aviator, own page), Societe Generale (Voyager and Victor, own pages), Applied Materials (Endeavour/MTB 6 lease 2025, press), ExxonMobil (Inventor lease 2026, press), TCS (Pioneer via Wikipedia + OSM, Anchor via a broker page); with listing/broker evidence only: HCLTech (Aviator), Conduent (Aviator, walk-in notices), GM Technical Centre (Creator, 2018 source), Technicolor (Navigator/Creator, closed Feb 2025), Light & Wonder, Endava/GalaxE, Amelia/IPsoft (all low). NOT SUBSTANTIATED inside ITPB and therefore LEFT OUT as park tenants, although the lens brief listed them: IBM (Wikipedia-mirror and broker mentions only; OSM places an IBM POI at First Technology Place across ITPL Main Road), Infosys (one unsourced broker blog), Mphasis, Dell, Tesco, Sapient, Mindtree/LTIMindtree, AOL/Yahoo, Airtel, Unisys (OSM shows it at SJR iPark and Residency Road), Delphi/Aptiv (OSM at Kalyani Platina and south Whitefield), NTT DATA/Perot (OSM at EPIP 2nd Road), Huawei (OSM at Kundalahalli), Xerox (covered via Conduent), SAP, Alstom and GE (the John F. Welch centre and Wipro GE are in EPIP/Kadugodi, outside the park). Wikipedia's tenant list also names AT&T, Soais, Sharp, Medtronic, Startek, GyanSys, Atos, Oracle, Unisys, First American and Airtel at ITPB; none could be tied to a block or a current page (GyanSys and First American contact pages were unreachable), so they are omitted. Broker tenant lists were used cautiously: loginrealty's block-by-block roster (e.g. Texas Instruments/Analog Devices in Innovator, Ericsson/Nokia in Explorer, CGI/Informatica in Victor, NXP in Voyager, Oracle/AT&T in Pioneer, Vodafone in Inventor, 'Pathfinder' and 'Discovery' blocks) contradicts better sources in several places and was not relied on without corroboration; cityinfoservices' block pages (Aviator, Voyager, Navigator, Creator, Anchor) were used for medium/low entries only. Small tenants named there (Nexgen Technology Services, Sycomp, Photon Infotech, CSS Corp/Movate, Slash Support, NTT Cloud Infrastructure, Sabre) are omitted for lack of a second source. CLINT's top-10 tenants (Amazon, Applied Materials, Bristol Myers Squibb, Capital One, Deloitte, Infosys, Societe Generale, Synechron, TCS, UnitedHealth Group as at 30 Jun 2026) are portfolio-wide across six Indian parks, so only those independently tied to ITPB are recorded. Coordinates: block footprints come from OSM (Discoverer, Innovator, Creator, Explorer, Pioneer, Voyager, Aviator, Victor, Anchor, Anchor Annex); Navigator, Inventor, Endeavour and Tower 8 have no OSM footprint and the geocoder returned garbage for them, so those offices use the park centroid or a same-company OSM POI and are capped at medium. The ITPB bbox is the OSM landuse polygon and may be smaller than the 69-acre site. GE HealthCare's branches page also lists an 'Inventor Building, 60 ITPL Main Rd, KIADB EPIP' service branch; the block name matches an ITPB building but the address is EPIP, and with no coordinate it was left out. Headcounts are null throughout because no source stated a Bengaluru-specific figure. Off-lens offices learned in passing (SocGen Pritech Park, Tata Elxsi, Alstom Bagmane, Capgemini EPIP, SAP Labs EPIP/ORR, Tesco EPIP, Wipro GE Kadugodi/Kalyani Platina, TCS GR Tech Park and EPIP buildings, Harman EOIZ/Manyata) are included for merging; the OSM-only ones are marked medium. Harman's EOIZ site is listed by BSI (SoA dated 27 May 2026) with related sites under 'Connected Services Corporation Wipro India Pvt Ltd', which suggests Harman's services unit has changed hands; this is flagged in aliases and not asserted."
+}

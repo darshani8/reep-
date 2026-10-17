@@ -1,0 +1,1813 @@
+{
+ "key": "G15-bannerghatta-jpnagar",
+ "techParks": [
+  {
+   "name": "IBC Knowledge Park",
+   "aliases": [
+    "IBC Knowlegde Park (OSM spelling)",
+    "IBC Tech Park"
+   ],
+   "locality": "Bannerghatta Road, S.G. Palya (near Dairy Circle)",
+   "developer": null,
+   "lat": 12.932234,
+   "lng": 77.602547,
+   "bbox": [
+    12.931499,
+    12.933611,
+    77.600926,
+    77.604239
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Accenture",
+    "Oracle",
+    "Byju's",
+    "ACL Digital",
+    "Ather Energy",
+    "LAPP India",
+    "Allegion"
+   ],
+   "description": "Multi-tower IT park at 4/1 Bannerghatta Main Road built around 2004, the corridor's anchor office campus: Accenture's Bannerghatta delivery centre, ACL Digital (Tower D), Ather Energy's corporate office and Byju's shrinking headquarters are here, and Swiggy ran its HQ from Tower D until it moved to Embassy TechVillage. Oracle's own Oracle Technology Park adjoins it to the north. Developer and total area were not confirmed.",
+   "sources": [
+    "https://www.acldigital.com/contact-us",
+    "https://yourstory.com/2024/03/byjus-gives-up-office-spaces-in-india",
+    "https://www.coworker.com/india/bengaluru/managed-offices-at-knowledge-park",
+    "https://3ds.com/partners/partner-details/200000000012953_ACCENTURE_SOLUTIONS_PRIVATE_LIMITED"
+   ]
+  },
+  {
+   "name": "Oracle Technology Park",
+   "aliases": [],
+   "locality": "Bannerghatta Road, S.G. Palya",
+   "developer": null,
+   "lat": 12.934307,
+   "lng": 77.602251,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Oracle"
+   ],
+   "description": "Oracle India's own building on Bannerghatta Main Road immediately north of IBC Knowledge Park, recorded in OSM as 'Oracle Technology Park'; one of Oracle's Bengaluru development sites.",
+   "sources": [
+    "https://www.openstreetmap.org/#map=18/12.934307/77.602251"
+   ]
+  },
+  {
+   "name": "Kalyani Magnum",
+   "aliases": [
+    "Kalyani Magnum Tech Park",
+    "Kalyani Magnum JP Nagar"
+   ],
+   "locality": "JP Nagar 7th Phase / Doraisanipalya, off Bannerghatta Road",
+   "developer": "Kalyani Developers",
+   "lat": 12.900462,
+   "lng": 77.596169,
+   "bbox": [
+    12.898695,
+    12.901685,
+    77.59497,
+    77.597827
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Oracle"
+   ],
+   "description": "Kalyani Developers' office campus (Blocks 1 and 2 with A/B wings) on the JP Nagar Ring Road beside Krishna Magnum and the Honeywell campus; OSM records Oracle India as the occupant, which could not be confirmed from Oracle or the developer.",
+   "sources": [
+    "https://www.kalyanidevelopers.com/",
+    "https://myhq.in/office-space-for-rent/kalyani-magnum--block-1-wing-a-jpnagar"
+   ]
+  },
+  {
+   "name": "Honeywell Technology Solutions Lab Campus",
+   "aliases": [
+    "Honeywell Bannerghatta campus",
+    "HTSL Doraisanipalya"
+   ],
+   "locality": "Doraisanipalya / Bilekahalli, Bannerghatta Road",
+   "developer": "Honeywell",
+   "lat": 12.899209,
+   "lng": 77.599272,
+   "bbox": [
+    12.89863,
+    12.899872,
+    77.598431,
+    77.600618
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Honeywell"
+   ],
+   "description": "Single-tenant campus of Honeywell Technology Solutions Lab at No. 151/1 Doraisanipalya, Bannerghatta Road 560076, the original home of Honeywell's India engineering arm. Honeywell's current locations page lists only its two Bellandur campuses, so whether this site is still occupied is unconfirmed.",
+   "sources": [
+    "https://companies.naukri.com/honeywell-jobs/contact",
+    "https://www.honeywell.com/in/en/careers/locations/india"
+   ]
+  },
+  {
+   "name": "RMZ Futura",
+   "aliases": [
+    "Futura 1 / Futura 2"
+   ],
+   "locality": "Arekere / JP Nagar 7th Phase, Bannerghatta Road",
+   "developer": "RMZ",
+   "lat": 12.891918,
+   "lng": 77.59972,
+   "bbox": [
+    12.891225,
+    12.892672,
+    77.598628,
+    77.600953
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "HSBC",
+    "Accenture"
+   ],
+   "description": "Two-block RMZ office campus on Bannerghatta Road at Arekere; OSM records HSBC and Accenture offices inside it, neither confirmed by a company or lease source.",
+   "sources": [
+    "https://www.openstreetmap.org/#map=18/12.891918/77.59972"
+   ]
+  },
+  {
+   "name": "Salarpuria Symbiosys",
+   "aliases": [
+    "Salarpuria Symbiosis",
+    "WeWork Salarpuria Symbiosis"
+   ],
+   "locality": "Arekere (Venugopal Reddy Layout), Bannerghatta Road",
+   "developer": "Salarpuria Sattva",
+   "lat": 12.88713,
+   "lng": 77.597318,
+   "bbox": [
+    12.886771,
+    12.887435,
+    77.596975,
+    77.597973
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "WeWork"
+   ],
+   "description": "Salarpuria Sattva office building on Bannerghatta Road at Arekere run as a WeWork managed campus (football pitch, gym), about 5 minutes from Fortis Hospital and Royal Meenakshi Mall.",
+   "sources": [
+    "https://wework.co.in/bangalore/bannerghatta-main-rd/salarpuria-symbiosis/"
+   ]
+  },
+  {
+   "name": "Subramanya Arcade",
+   "aliases": [],
+   "locality": "Bannerghatta Road, N.A.L Layout (near Dairy Circle)",
+   "developer": null,
+   "lat": 12.924638,
+   "lng": 77.601578,
+   "bbox": [
+    12.924032,
+    12.925467,
+    77.600432,
+    77.602735
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "IBM"
+   ],
+   "description": "Office complex at No.12 Bannerghatta Main Road 560029 that IBM gives as its India corporate address; OSM maps three IBM buildings in it.",
+   "sources": [
+    "https://www.ibm.com/in-en/contact"
+   ]
+  },
+  {
+   "name": "DivyaSree Towers",
+   "aliases": [
+    "Divyasree Towers"
+   ],
+   "locality": "Bannerghatta Road / BTM Layout 1st Stage",
+   "developer": "DivyaSree",
+   "lat": 12.919114,
+   "lng": 77.600694,
+   "bbox": [
+    12.918674,
+    12.919541,
+    77.600185,
+    77.601526
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "DivyaSree office building at 55 Bannerghatta Main Road; OSM shows Convergys (now Concentrix), CSG, WinWire and V2Soft nodes around it and Cleartrip and Valtech just south, none confirmed from a company source, so no tenants are asserted.",
+   "sources": [
+    "https://www.openstreetmap.org/#map=18/12.919114/77.600694"
+   ]
+  },
+  {
+   "name": "Bren Optimus",
+   "aliases": [
+    "Bren Optimus / Bren Artimus"
+   ],
+   "locality": "Dairy Circle, Dr M H Marigowda Road (Bannerghatta Road start)",
+   "developer": "Bren Corporation",
+   "lat": 12.937103,
+   "lng": 77.606806,
+   "bbox": [
+    12.936566,
+    12.937839,
+    77.6065,
+    77.607293
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Brillio"
+   ],
+   "description": "Bren Corporation office block at No 8/2 Dr M H Marigowda Road 560029, next to Prestige Blue Chip and Prestige Technopolis at the Bannerghatta-Hosur Road junction; Brillio's Bengaluru office is on its 4th floor.",
+   "sources": [
+    "https://www.brillio.com/contact-us/"
+   ]
+  },
+  {
+   "name": "AMR Tech Park",
+   "aliases": [
+    "AMR Tech Park II",
+    "AMR Tech Park-4",
+    "AMR Tech Park Hongasandra"
+   ],
+   "locality": "Hongasandra / Bommanahalli, Hosur Main Road",
+   "developer": "AMR Group",
+   "lat": 12.899424,
+   "lng": 77.630782,
+   "bbox": [
+    12.897262,
+    12.901057,
+    77.62976,
+    77.632151
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Tally Solutions",
+    "Sagility",
+    "Clear",
+    "Quinnox",
+    "Hinduja Global Solutions",
+    "MetricStream",
+    "Avaya",
+    "Mindteck",
+    "HL Mando",
+    "Visionet Systems"
+   ],
+   "description": "Multi-block Grade-A campus at No. 23 & 24 Hosur Road, Hongasandra (Bommanahalli) 560068, with Blocks 1, 2A/2B, 3A/3B and 4A/4B built from about 2012: the head office of Tally Solutions, headquarters of Sagility and Clear (ClearTax), Quinnox's India centre, and OSM-recorded offices of HGS, MetricStream, Avaya, Mindteck, Mando Softtech and Visionet. Cognizant, Lowe's, Mphasis and Yokogawa were checked and NOT found here.",
+   "sources": [
+    "https://tallysolutions.com/contact-us/",
+    "https://sagility.com/about/locations/",
+    "https://clear.in/s/contact-us",
+    "https://www.quinnox.com/contact-us/",
+    "https://myhq.in/office-space-for-rent/amr-tech-park--block-2a-hosurroad"
+   ]
+  },
+  {
+   "name": "Shilpa Emerald",
+   "aliases": [],
+   "locality": "Bommanahalli, Hosur Main Road",
+   "developer": null,
+   "lat": 12.900418,
+   "lng": 77.632321,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Softtek"
+   ],
+   "description": "Office building at 26/1 Hosur Main Road 560068 beside AMR Tech Park; Softtek's Bangalore office.",
+   "sources": [
+    "https://www.softtek.com/our-locations"
+   ]
+  },
+  {
+   "name": "HGS House",
+   "aliases": [],
+   "locality": "Vajpayee Nagar, Bommanahalli, Hosur Road",
+   "developer": "Hinduja Group",
+   "lat": 12.8990407,
+   "lng": 77.6333242,
+   "bbox": [
+    12.8988424,
+    12.8992494,
+    77.6330977,
+    77.6335216
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Hinduja Global Solutions"
+   ],
+   "description": "Hinduja Global Solutions' own building on Hosur Road at Vajpayee Nagar, Bommanahalli, recorded by OSM; HGS's registered office.",
+   "sources": [
+    "https://www.openstreetmap.org/way/201989328"
+   ]
+  },
+  {
+   "name": "Golden Tower",
+   "aliases": [],
+   "locality": "Rupena Agrahara, Bommanahalli, Hosur Main Road",
+   "developer": null,
+   "lat": 12.911499,
+   "lng": 77.625602,
+   "bbox": [
+    12.91132,
+    12.911792,
+    77.625238,
+    77.62585
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "emids"
+   ],
+   "description": "Office building on Hosur Main Road at Rupena Agrahara, Bommanahalli 560068; emids' India office.",
+   "sources": [
+    "https://www.emids.com/contact/"
+   ]
+  },
+  {
+   "name": "Gold Hill Square",
+   "aliases": [
+    "Gold Hill Supreme Software Park",
+    "Goldhill Square"
+   ],
+   "locality": "Bommanahalli, Hosur Road",
+   "developer": null,
+   "lat": 12.901864,
+   "lng": 77.632937,
+   "bbox": [
+    12.901077,
+    12.902348,
+    77.632305,
+    77.633381
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "Software-park building on Hosur Road at Bommanahalli opposite AMR Tech Park; no current tenant could be verified.",
+   "sources": [
+    "https://www.openstreetmap.org/#map=18/12.901864/77.632937"
+   ]
+  },
+  {
+   "name": "Ozone Manay Tech Park",
+   "aliases": [
+    "Ozone Manay Technology Park"
+   ],
+   "locality": "Garvebhavipalya, Hosur Road",
+   "developer": "Ozone Group",
+   "lat": 12.891607,
+   "lng": 77.637317,
+   "bbox": [
+    12.890944,
+    12.891997,
+    77.63672,
+    77.638372
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "Ozone Group IT park on Hosur Road at Garvebhavipalya, just north of Kudlu Gate; no current tenant could be verified within this lens.",
+   "sources": [
+    "https://www.openstreetmap.org/#map=18/12.891607/77.637317"
+   ]
+  },
+  {
+   "name": "Novel Tech Park",
+   "aliases": [],
+   "locality": "Kudlu Gate, Hosur Road",
+   "developer": null,
+   "lat": 12.89143,
+   "lng": 77.641255,
+   "bbox": [
+    12.891119,
+    12.891901,
+    77.640889,
+    77.641667
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "IT park at Kudlu Gate on Hosur Road next to AKR Tech Park; no current tenant could be verified.",
+   "sources": [
+    "https://www.openstreetmap.org/#map=18/12.89143/77.641255"
+   ]
+  },
+  {
+   "name": "AKR Tech Park",
+   "aliases": [
+    "AKR Tech Park Kudlu Gate"
+   ],
+   "locality": "Krishna Reddy Industrial Area, Kudlu Gate, Hosur Road",
+   "developer": "AKR Group",
+   "lat": 12.892385,
+   "lng": 77.642356,
+   "bbox": [
+    12.891578,
+    12.892864,
+    77.64188,
+    77.642672
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "BHIVE Workspace"
+   ],
+   "description": "Office park at No.112, 7th Mile Hosur Road, Krishna Reddy Industrial Area, Kudlu Gate 560068, a seven-minute walk from Kudlu Gate metro; it was Myntra's headquarters and A Block is now a BHIVE managed-office centre.",
+   "sources": [
+    "https://bhiveworkspace.com/locations-coworking/akr-tech-park/"
+   ]
+  },
+  {
+   "name": "Raheja Arcade",
+   "aliases": [],
+   "locality": "Koramangala",
+   "developer": null,
+   "lat": 12.934399,
+   "lng": 77.613347,
+   "bbox": [
+    12.934038,
+    12.934938,
+    77.612864,
+    77.61396
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Tally Solutions"
+   ],
+   "description": "Commercial complex in Koramangala 560095 that Tally Solutions gives as its registered office (Nos. 331-336).",
+   "sources": [
+    "https://tallysolutions.com/contact-us/"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "Zerodha",
+   "aliases": [
+    "Zerodha Broking Limited",
+    "Zerodha Commodities"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "India's largest retail stockbroker (Kite/Coin); bootstrapped, founded and headquartered in JP Nagar, Bengaluru.",
+   "founded": 2010,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://zerodha.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ (JP Nagar 4th Phase)",
+     "locality": "JP Nagar 4th Phase",
+     "lat": 12.904037,
+     "lng": 77.597257,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Zerodha's own contact page lists the HQ / registered office as #153/154, 4th Cross, Dollars Colony, Opp. Clarence Public School, JP Nagar 4th Phase, Bengaluru 560078 - https://zerodha.com/contact/",
+     "address": "#153/154, 4th Cross, Dollars Colony, JP Nagar 4th Phase, Bengaluru 560078",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Customer support centre - Kalyani Vista",
+     "locality": "JP Nagar 4th Phase / Bannerghatta Road",
+     "lat": 12.904517,
+     "lng": 77.601476,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Zerodha's contact page gives the support and mailing address as #192A, 4th Floor, Kalyani Vista, 3rd Main Road, JP Nagar 4th Phase, Bengaluru 560076; the OSM 'Zerodha' node on Bannerghatta Road is taken as this office - https://zerodha.com/contact/",
+     "address": "#192A, 4th Floor, Kalyani Vista, 3rd Main Road, JP Nagar 4th Phase, Bengaluru 560076",
+     "techPark": null,
+     "building": "Kalyani Vista",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://zerodha.com/contact/",
+    "https://en.wikipedia.org/wiki/Zerodha"
+   ]
+  },
+  {
+   "name": "IBM",
+   "aliases": [
+    "IBM India Pvt Ltd",
+    "International Business Machines"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "US technology and consulting major; its India corporate address is Subramanya Arcade on Bannerghatta Main Road, with large delivery campuses elsewhere in the city (Manyata, Embassy GolfLinks).",
+   "founded": 1911,
+   "hqCity": "Armonk",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.ibm.com/in-en",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "IBM India corporate office - Subramanya Arcade",
+     "locality": "Bannerghatta Road (Dairy Circle)",
+     "lat": 12.924638,
+     "lng": 77.601578,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "IBM's own India contact page gives the corporate address as IBM India Pvt Ltd, No.12, Subramanya Arcade, Bannerghatta Main Road, Bengaluru 560029 - https://www.ibm.com/in-en/contact",
+     "address": "No.12, Subramanya Arcade, Bannerghatta Main Road, Bengaluru 560029",
+     "techPark": null,
+     "building": "Subramanya Arcade",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.ibm.com/in-en/contact"
+   ]
+  },
+  {
+   "name": "Accenture",
+   "aliases": [
+    "Accenture Solutions Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Global consulting and IT services firm; Bengaluru is its largest delivery hub, with Bannerghatta Road (IBC Knowledge Park) one of several Bangalore Delivery Centres besides Pritech Park and Whitefield.",
+   "founded": 1989,
+   "hqCity": "Dublin",
+   "hqCountry": "Ireland",
+   "isUnicorn": false,
+   "website": "https://www.accenture.com/in-en",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "IBC Knowledge Park delivery centre",
+     "locality": "Bannerghatta Road (S.G. Palya)",
+     "lat": 12.933044,
+     "lng": 77.602068,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The Dassault Systemes partner directory lists Accenture Solutions Pvt Ltd at 4/1 IBC Knowledge Park, Bannerghatta Road, 560029, and OSM records 'Accenture, IBC Knowledge Park' at this point - https://3ds.com/partners/partner-details/200000000012953_ACCENTURE_SOLUTIONS_PRIVATE_LIMITED",
+     "address": "4/1, IBC Knowledge Park, Bannerghatta Main Road, Bengaluru 560029",
+     "techPark": "IBC Knowledge Park",
+     "building": null,
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "RMZ Futura, Bannerghatta Road",
+     "locality": "Arekere / JP Nagar 7th Phase",
+     "lat": 12.891553,
+     "lng": 77.600177,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only OpenStreetMap records an 'Accenture' office inside the RMZ Futura blocks on Bannerghatta Road; no Accenture or lease source found - https://www.openstreetmap.org/#map=18/12.891553/77.600177",
+     "address": "RMZ Futura, Bannerghatta Road, Arekere, Bengaluru 560076",
+     "techPark": "RMZ Futura",
+     "building": null,
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "BDC-9 (Dairy Circle, Hosur Road)",
+     "locality": "Dairy Circle / Adugodi",
+     "lat": 12.936851,
+     "lng": 77.607562,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OpenStreetMap records 'Accenture BDC-9' in the Prestige Technopolis / Bren Optimus cluster at the Bannerghatta-Hosur Road junction; unconfirmed by Accenture - https://www.openstreetmap.org/#map=18/12.936851/77.607562",
+     "address": "Prestige Technopolis area, Dr M H Marigowda Road / Hosur Road, Bengaluru 560029",
+     "techPark": "Prestige Technopolis",
+     "building": null,
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Pritech Park SEZ campus (BDC7)",
+     "locality": "Bellandur, Outer Ring Road",
+     "lat": 12.921114,
+     "lng": 77.681936,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM records 'Accenture BDC7' with the address Pritech Park (SEZ), Phase 1, RMZ Ecospace internal road, Bellandur, and a prospect profile names Pritech Park SEZ as an Accenture Bengaluru campus - https://prospeo.io/c/accenture-in-india-revenue",
+     "address": "Pritech Park SEZ, Phase 1, Bellandur, Bengaluru 560103",
+     "techPark": "Pritech Park SEZ",
+     "building": null,
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://3ds.com/partners/partner-details/200000000012953_ACCENTURE_SOLUTIONS_PRIVATE_LIMITED",
+    "https://prospeo.io/c/accenture-in-india-revenue",
+    "https://housing.com/news/top-10-it-companies-in-bangalore/"
+   ]
+  },
+  {
+   "name": "Oracle",
+   "aliases": [
+    "Oracle India Pvt Ltd",
+    "Oracle Financial Services Software"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "US enterprise software and cloud company with one of its largest India development centres in Bengaluru; the Bannerghatta corridor holds the long-standing Oracle Technology Park building near Dairy Circle and space at Kalyani Magnum in JP Nagar.",
+   "founded": 1977,
+   "hqCity": "Austin",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.oracle.com/in/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Oracle Technology Park, Bannerghatta Road",
+     "locality": "Bannerghatta Road (S.G. Palya)",
+     "lat": 12.934307,
+     "lng": 77.602251,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM records 'Oracle Technology Park' immediately north of IBC Knowledge Park, and leasing listings name Oracle among the Bannerghatta Road / IBC Knowledge Park corporate tenants; Oracle's own India office page could not be fetched (HTTP 403) - https://www.coworker.com/india/bengaluru/managed-offices-at-knowledge-park",
+     "address": "Oracle Technology Park, Bannerghatta Main Road, Bengaluru 560029",
+     "techPark": null,
+     "building": "Oracle Technology Park",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Kalyani Magnum development centre",
+     "locality": "JP Nagar 7th Phase / Doraisanipalya",
+     "lat": 12.89981,
+     "lng": 77.59725,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only OpenStreetMap records 'Oracle India Pvt. Ltd.' inside the Kalyani Magnum campus; Kalyani Developers' site names no tenants and the lens search found no confirming source - https://www.openstreetmap.org/#map=18/12.89981/77.59725",
+     "address": "Kalyani Magnum, JP Nagar 7th Phase, Bannerghatta Road, Bengaluru 560076",
+     "techPark": "Kalyani Magnum",
+     "building": null,
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.coworker.com/india/bengaluru/managed-offices-at-knowledge-park",
+    "https://www.kalyanidevelopers.com/"
+   ]
+  },
+  {
+   "name": "Byju's",
+   "aliases": [
+    "Think & Learn Pvt Ltd",
+    "BYJU'S"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "EdTech",
+   "description": "Once India's most valuable edtech startup; in March 2024 it gave up every Indian office except its IBC Knowledge Park headquarters on Bannerghatta Road while in an insolvency and investor dispute, so the HQ is recorded as closing.",
+   "founded": 2011,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://byjus.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Headquarters - IBC Knowledge Park",
+     "locality": "Bannerghatta Road (S.G. Palya)",
+     "lat": 12.932659,
+     "lng": 77.603493,
+     "isHq": true,
+     "status": "closing",
+     "confidence": "medium",
+     "evidence": "YourStory and Storyboard18 (March 2024) report Byju's vacated all offices across India and retained only its headquarters at IBC Knowledge Park, Bengaluru - https://yourstory.com/2024/03/byjus-gives-up-office-spaces-in-india",
+     "address": "IBC Knowledge Park, 4/1 Bannerghatta Main Road, Bengaluru 560029",
+     "techPark": "IBC Knowledge Park",
+     "building": "Tower D",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://yourstory.com/2024/03/byjus-gives-up-office-spaces-in-india",
+    "https://www.storyboard18.com/how-it-works/byjus-gives-up-all-offices-across-india-retains-only-headquarters-in-bengaluru-26144.htm",
+    "https://inc42.com/buzz/byjus-vacates-offices-save-costs"
+   ]
+  },
+  {
+   "name": "Ather Energy",
+   "aliases": [
+    "Ather Energy Limited"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Mobility & EV",
+   "description": "Electric two-wheeler maker (450 series, Rizta), listed in 2025; registered and corporate office in Tower D of IBC Knowledge Park on Bannerghatta Road, with factories in Hosur (TN) and Chhatrapati Sambhajinagar.",
+   "founded": 2013,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://www.atherenergy.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered & corporate office - IBC Knowledge Park Tower D",
+     "locality": "Bannerghatta Road (S.G. Palya)",
+     "lat": 12.932711,
+     "lng": 77.603596,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OpenStreetMap records 'Ather Energy' with its website at IBC Inner Road, Bannerghatta Main Road (IBC Knowledge Park); Ather's own contact and legal pages returned 404 so the Tower D address is unconfirmed here - https://www.openstreetmap.org/#map=18/12.932711/77.603596",
+     "address": "IBC Knowledge Park, 4/1 Bannerghatta Main Road, Bengaluru 560029",
+     "techPark": "IBC Knowledge Park",
+     "building": "Tower D",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.atherenergy.com/",
+    "https://www.openstreetmap.org/#map=18/12.932711/77.603596"
+   ]
+  },
+  {
+   "name": "ACL Digital",
+   "aliases": [
+    "ALTEN Calsoft Labs",
+    "Alten Calsoft Labs India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Design-led digital engineering arm of France's ALTEN group; its Bengaluru offices are in Tower D of IBC Knowledge Park and at Prestige Shantiniketan, Whitefield.",
+   "founded": 2003,
+   "hqCity": "Boulogne-Billancourt",
+   "hqCountry": "France",
+   "isUnicorn": false,
+   "website": "https://www.acldigital.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "IBC Knowledge Park - Tower D, 7th Floor",
+     "locality": "Bannerghatta Road (S.G. Palya)",
+     "lat": 12.932935,
+     "lng": 77.603702,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "ACL Digital's contact page lists 7th Floor, Tower D, IBC Knowledge Park, 4/1 Bannerghatta Main Road, Bengaluru 560029 - https://www.acldigital.com/contact-us",
+     "address": "7th Floor, Tower D, IBC Knowledge Park, 4/1 Bannerghatta Main Road, Bengaluru 560029",
+     "techPark": "IBC Knowledge Park",
+     "building": "Tower D",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Prestige Shantiniketan - Business Precinct Tower A",
+     "locality": "Whitefield",
+     "lat": 12.988903,
+     "lng": 77.731042,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "ACL Digital's contact page lists No.63/TA/601, 6th Floor, The Business Precinct, Tower A, Prestige Shantiniketan, Whitefield Main Road, Bengaluru 560048; coordinates are OSM's Prestige Shantiniketan complex - https://www.acldigital.com/contact-us",
+     "address": "6th Floor, Tower A, The Business Precinct, Prestige Shantiniketan, Whitefield Main Road, Bengaluru 560048",
+     "techPark": "Prestige Shantiniketan",
+     "building": "Business Precinct Tower A",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.acldigital.com/contact-us"
+   ]
+  },
+  {
+   "name": "LAPP India",
+   "aliases": [
+    "LAPP India Pvt Ltd",
+    "Lapp Group"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Indian subsidiary of Germany's LAPP cable and connection-technology group; OSM records its Bengaluru corporate office inside IBC Knowledge Park (its factory is at Jigani, south of the city).",
+   "founded": 1959,
+   "hqCity": "Stuttgart",
+   "hqCountry": "Germany",
+   "isUnicorn": false,
+   "website": "https://e.lapp.com/in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - IBC Knowledge Park",
+     "locality": "Bannerghatta Road (S.G. Palya)",
+     "lat": 12.932924,
+     "lng": 77.603585,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OpenStreetMap records 'LAPP India Pvt. Ltd.' with its website at IBC Inner Road (IBC Knowledge Park); LAPP's own India pages could not be fetched (404 / rate-limited) - https://www.openstreetmap.org/#map=18/12.932924/77.603585",
+     "address": "IBC Knowledge Park, 4/1 Bannerghatta Main Road, Bengaluru 560029",
+     "techPark": "IBC Knowledge Park",
+     "building": null,
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://e.lapp.com/in",
+    "https://www.openstreetmap.org/#map=18/12.932924/77.603585"
+   ]
+  },
+  {
+   "name": "Allegion",
+   "aliases": [
+    "Allegion India",
+    "Allegion plc"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Irish-domiciled security-products group (Schlage, Von Duprin); OSM records an Allegion India office in IBC Knowledge Park on Bannerghatta Road.",
+   "founded": 2013,
+   "hqCity": "Dublin",
+   "hqCountry": "Ireland",
+   "isUnicorn": false,
+   "website": "https://www.allegion.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Allegion India - IBC Knowledge Park",
+     "locality": "Bannerghatta Road (S.G. Palya)",
+     "lat": 12.932868,
+     "lng": 77.603002,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only OpenStreetMap records 'Allegion India' inside IBC Knowledge Park; Allegion's locations page returned 404 - https://www.openstreetmap.org/#map=18/12.932868/77.603002",
+     "address": "IBC Knowledge Park, 4/1 Bannerghatta Main Road, Bengaluru 560029",
+     "techPark": "IBC Knowledge Park",
+     "building": null,
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/#map=18/12.932868/77.603002"
+   ]
+  },
+  {
+   "name": "Honeywell",
+   "aliases": [
+    "Honeywell Technology Solutions Lab Pvt Ltd",
+    "HTSL",
+    "Honeywell Technology Solutions"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "US industrial and aerospace conglomerate whose Indian engineering arm HTSL began on Bannerghatta Road (151/1 Doraisanipalya); Honeywell's own locations page now lists only two Bellandur campuses and a 4 lakh sq ft RMZ Ecoworld lease starts in 2026, so the Bannerghatta campus is recorded with low confidence.",
+   "founded": 1906,
+   "hqCity": "Charlotte",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.honeywell.com/in/en",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Honeywell Technology Solutions Lab campus - Doraisanipalya",
+     "locality": "Bilekahalli / Doraisanipalya, Bannerghatta Road",
+     "lat": 12.899209,
+     "lng": 77.599272,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM maps the 'Honeywell Technology Solutions Lab Pvt Ltd' campus here and directories give No. 151/1, Doraisanipalya, Bannerghatta Road, 560076, but Honeywell's own India locations page lists only the two Varthur Hobli campuses, so this site may have been vacated - https://companies.naukri.com/honeywell-jobs/contact",
+     "address": "No. 151/1, Doraisanipalya, Bannerghatta Road, Bengaluru 560076",
+     "techPark": "Honeywell Technology Solutions Lab Campus",
+     "building": null,
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Bangalore Campus 1 - Devarabisanahalli",
+     "locality": "Devarabisanahalli / Bellandur",
+     "lat": 12.924965,
+     "lng": 77.686859,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Honeywell's India locations page lists Campus 1 at No. 19/2, Adarsh Prime Project, Devarabisanahalli Village, Varthur Hobli, Bengaluru 560103; coordinates are OSM's 'Honeywell Technology Solutions' node - https://www.honeywell.com/in/en/careers/locations/india",
+     "address": "No. 19/2, Adarsh Prime Project, Devarabisanahalli Village, Varthur Hobli, Bengaluru 560103",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "RMZ Ecoworld lease (from Jan 2026)",
+     "locality": "Bellandur, Outer Ring Road",
+     "lat": 12.924615,
+     "lng": 77.68846,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The Realty Today reports Honeywell Technology Solutions Lab signed an 84-month lease from 1 Jan 2026 for about 399,220 sq ft at RMZ Ecoworld, Bellandur; coordinates are an OSM node inside the RMZ Ecoworld campus - https://therealtytoday.com/news/commercial/honeywell-signs-seven-year-lease-for-nearly-4-lakh-sq-ft-office-in-bellandur",
+     "address": "RMZ Ecoworld, Bellandur, Outer Ring Road, Bengaluru 560103",
+     "techPark": "RMZ Ecoworld",
+     "building": null,
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.honeywell.com/in/en/careers/locations/india",
+    "https://therealtytoday.com/news/commercial/honeywell-signs-seven-year-lease-for-nearly-4-lakh-sq-ft-office-in-bellandur",
+    "https://companies.naukri.com/honeywell-jobs/contact"
+   ]
+  },
+  {
+   "name": "Tally Solutions",
+   "aliases": [
+    "Tally Solutions Private Limited",
+    "TallyPrime"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "SaaS",
+   "description": "Bengaluru-born maker of the Tally accounting software used by most Indian SMEs; head office in AMR Tech Park II on Hosur Main Road, registered office at Raheja Arcade, Koramangala.",
+   "founded": 1986,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://tallysolutions.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Head office - AMR Tech Park II",
+     "locality": "Hongasandra / Bommanahalli, Hosur Main Road",
+     "lat": 12.899109,
+     "lng": 77.631071,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Tally's contact page gives the India head office as AMR Tech Park II, No. 23 & 24, Hongasandra, Hosur Main Road, Bengaluru 560068 - https://tallysolutions.com/contact-us/",
+     "address": "AMR Tech Park II, No. 23 & 24, Hongasandra, Hosur Main Road, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": "AMR Tech Park II",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Registered office - Raheja Arcade",
+     "locality": "Koramangala",
+     "lat": 12.934399,
+     "lng": 77.613347,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Tally's contact page gives the registered office as No. 331-336, Raheja Arcade, Koramangala, Bangalore 560095 - https://tallysolutions.com/contact-us/",
+     "address": "No. 331-336, Raheja Arcade, Koramangala, Bengaluru 560095",
+     "techPark": null,
+     "building": "Raheja Arcade",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://tallysolutions.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Sagility",
+   "aliases": [
+    "Sagility India Limited",
+    "Sagility Health",
+    "HGS Healthcare"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Consulting & professional services",
+   "description": "Healthcare-focused BPM company carved out of HGS Healthcare in 2022 and listed on Indian exchanges in 2024; its Bengaluru headquarters is in AMR Tech Park, Bommanahalli, with further centres at Global Village and Electronic City Phase II.",
+   "founded": 2021,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://sagility.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Headquarters - AMR Tech Park Buildings 1 & 2A",
+     "locality": "Hongasandra / Bommanahalli, Hosur Road",
+     "lat": 12.900378,
+     "lng": 77.630903,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Sagility's locations page lists 23 & 24, Bldg 2A (1st & 3rd Floor) and Bldg 1 (2nd Floor), AMR Tech Park, Hongasandra Village, Off Hosur Road, Bommanahalli, Bengaluru 560068 - https://sagility.com/about/locations/",
+     "address": "23 & 24, Bldg 2A and Bldg 1, AMR Tech Park, Hongasandra Village, Off Hosur Road, Bommanahalli, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": "Buildings 1 & 2A",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Global Village SEZ - Tower F",
+     "locality": "Mylasandra / RVCE Post, Mysuru Road",
+     "lat": 12.9185,
+     "lng": 77.5025,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Sagility's locations page lists SEZ Tower #F, 9th Floor, Global Village, IT Sector SEZ, Pattanagere/Mylasandra, RVCE Post, Bangalore 560059; coordinates are the Global Village park centroid from OSM POIs - https://sagility.com/about/locations/",
+     "address": "SEZ Tower F, 9th Floor, Global Village, Pattanagere/Mylasandra, RVCE Post, Bengaluru 560059",
+     "techPark": "Global Village Tech Park",
+     "building": "Tower F",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://sagility.com/about/locations/"
+   ]
+  },
+  {
+   "name": "Hinduja Global Solutions",
+   "aliases": [
+    "HGS",
+    "Hinduja Global Solutions Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Consulting & professional services",
+   "description": "Listed Hinduja-group BPM and digital-services company (HGS House on Hosur Road, Bommanahalli is its registered office); after selling its healthcare arm (now Sagility) it keeps CX delivery space in AMR Tech Park next door.",
+   "founded": 1993,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://hgs.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HGS House - registered office",
+     "locality": "Vajpayee Nagar, Bommanahalli, Hosur Road",
+     "lat": 12.8990407,
+     "lng": 77.6333242,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OpenStreetMap maps the building 'HGS House, Vajpayee Nagar, Bommanahalli, Hosur Road' (way 201989328); HGS's own site is JavaScript-rendered and could not be read, so the registered-office status is from OSM and general knowledge only - https://www.openstreetmap.org/way/201989328",
+     "address": "HGS House, Vajpayee Nagar, Bommanahalli, Hosur Road, Bengaluru 560068",
+     "techPark": null,
+     "building": "HGS House",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "AMR Tech Park delivery centre",
+     "locality": "Hongasandra / Bommanahalli, Hosur Road",
+     "lat": 12.8999,
+     "lng": 77.631192,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only OpenStreetMap records 'Hinduja Global Solutions Ltd.' inside AMR Tech Park - https://www.openstreetmap.org/#map=18/12.8999/77.631192",
+     "address": "AMR Tech Park, No. 23 & 24, Hongasandra, Hosur Main Road, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": null,
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://hgs.com",
+    "https://www.openstreetmap.org/way/201989328"
+   ]
+  },
+  {
+   "name": "Clear",
+   "aliases": [
+    "ClearTax",
+    "Defmacro Software Private Limited",
+    "Clear (cleartax.in)"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Tax-filing, GST and invoicing SaaS startup (formerly ClearTax), backed by Y Combinator, Peak XV and others; headquartered in Block 1 of AMR Tech Park on Hosur Main Road.",
+   "founded": 2011,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://clear.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Headquarters - AMR Tech Park Block 1",
+     "locality": "Hongasandra / Bommanahalli, Hosur Main Road",
+     "lat": 12.900108,
+     "lng": 77.631184,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Clear's contact page lists Defmacro Software Private Ltd, 23,24 AMR Tech Park, Block 1, 1st floor, Hosur main road, Hongasandra, Bangalore 560068 - https://clear.in/s/contact-us",
+     "address": "23, 24 AMR Tech Park, Block 1, 1st Floor, Hosur Main Road, Hongasandra, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": "Block 1",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://clear.in/s/contact-us"
+   ]
+  },
+  {
+   "name": "Quinnox",
+   "aliases": [
+    "Quinnox Consultancy Services Ltd",
+    "Quinnox Inc"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "US-headquartered mid-size IT services and automation firm (about 2,000 staff) whose India delivery centre is in AMR Tech Park-4 on Hosur Road.",
+   "founded": 1996,
+   "hqCity": "Naperville",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.quinnox.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India delivery centre - AMR Tech Park-4",
+     "locality": "Hongasandra / Bommanahalli, Hosur Road",
+     "lat": 12.897681,
+     "lng": 77.630888,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Quinnox's contact page lists Quinnox Consultancy Services Ltd, No. 23, 24, Third Floor, AMR Tech Park-4, Hosur Road, Bangalore 560068 - https://www.quinnox.com/contact-us/",
+     "address": "No. 23, 24, Third Floor, AMR Tech Park-4, Hosur Road, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": "AMR Tech Park-4",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.quinnox.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Softtek",
+   "aliases": [
+    "Softtek India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Mexican IT services multinational; its Bangalore office is in Shilpa Emerald on Hosur Main Road, Bommanahalli, next to AMR Tech Park.",
+   "founded": 1982,
+   "hqCity": "Monterrey",
+   "hqCountry": "Mexico",
+   "isUnicorn": false,
+   "website": "https://www.softtek.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bangalore office - Shilpa Emerald",
+     "locality": "Bommanahalli, Hosur Main Road",
+     "lat": 12.900496,
+     "lng": 77.63244,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Softtek's locations page lists the Bangalore office as Shilpa Emerald, 26/1 Hosur Main Road, Bangalore 560068 - https://www.softtek.com/our-locations",
+     "address": "Shilpa Emerald, 26/1 Hosur Main Road, Bengaluru 560068",
+     "techPark": null,
+     "building": "Shilpa Emerald",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.softtek.com/our-locations"
+   ]
+  },
+  {
+   "name": "MetricStream",
+   "aliases": [
+    "MetricStream Inc",
+    "MetricStream Infotech India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "US governance-risk-compliance SaaS vendor whose main engineering centre is in Bengaluru; OSM places it in AMR Tech Park on Hosur Road.",
+   "founded": 1999,
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.metricstream.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru engineering centre - AMR Tech Park",
+     "locality": "Hongasandra / Bommanahalli, Hosur Road",
+     "lat": 12.898108,
+     "lng": 77.630836,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only OpenStreetMap records 'MetricStream Inc.' inside AMR Tech Park; MetricStream's contact pages returned 404 or were rate-limited - https://www.openstreetmap.org/#map=18/12.898108/77.630836",
+     "address": "AMR Tech Park, No. 23 & 24, Hongasandra, Hosur Main Road, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": null,
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/#map=18/12.898108/77.630836"
+   ]
+  },
+  {
+   "name": "emids",
+   "aliases": [
+    "emids Technologies Pvt Ltd",
+    "Emids"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Nashville-based healthcare IT services company with most of its workforce in Bengaluru; its India office is Golden Tower in Rupena Agrahara, Bommanahalli, on Hosur Main Road.",
+   "founded": 1999,
+   "hqCity": "Nashville",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.emids.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India office - Golden Tower, Bommanahalli",
+     "locality": "Rupena Agrahara / Bommanahalli, Hosur Main Road",
+     "lat": 12.911499,
+     "lng": 77.625602,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "emids' contact page lists Golden Tower, Rupena Agrahara, Bommanahalli, Hosur Main Road, Bengaluru 560068 - https://www.emids.com/contact/",
+     "address": "Golden Tower, Rupena Agrahara, Bommanahalli, Hosur Main Road, Bengaluru 560068",
+     "techPark": null,
+     "building": "Golden Tower",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.emids.com/contact/"
+   ]
+  },
+  {
+   "name": "Mindteck",
+   "aliases": [
+    "Mindteck (India) Limited"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Small listed Bengaluru IT and engineering services company (about 1,000 staff); OSM places its office in AMR Tech Park on Hosur Road.",
+   "founded": 1991,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.mindteck.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "AMR Tech Park office",
+     "locality": "Hongasandra / Bommanahalli, Hosur Road",
+     "lat": 12.899811,
+     "lng": 77.6312,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only OpenStreetMap records 'Mindteck' inside AMR Tech Park; mindteck.com returned HTTP 503 on every attempt - https://www.openstreetmap.org/#map=18/12.899811/77.6312",
+     "address": "AMR Tech Park, No. 23 & 24, Hongasandra, Hosur Main Road, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": null,
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/#map=18/12.899811/77.6312"
+   ]
+  },
+  {
+   "name": "Avaya",
+   "aliases": [
+    "Avaya India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Telecom & networking",
+   "description": "US enterprise communications vendor; OSM records an Avaya office in AMR Tech Park on Hosur Road (its other Bengaluru node is on MG Road).",
+   "founded": 2000,
+   "hqCity": "Morristown",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.avaya.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "AMR Tech Park office",
+     "locality": "Hongasandra / Bommanahalli, Hosur Road",
+     "lat": 12.899169,
+     "lng": 77.631068,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only OpenStreetMap records 'Avaya' inside AMR Tech Park - https://www.openstreetmap.org/#map=18/12.899169/77.631068",
+     "address": "AMR Tech Park, No. 23 & 24, Hongasandra, Hosur Main Road, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": null,
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/#map=18/12.899169/77.631068"
+   ]
+  },
+  {
+   "name": "HL Mando",
+   "aliases": [
+    "Mando Softtech India Pvt Ltd",
+    "Mando Corporation"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Korean auto-components group (brakes, steering, ADAS) whose Indian software arm Mando Softtech India is recorded by OSM in AMR Tech Park on Hosur Road.",
+   "founded": 1962,
+   "hqCity": "Seongnam",
+   "hqCountry": "South Korea",
+   "isUnicorn": false,
+   "website": "https://www.hlmando.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Mando Softtech India - AMR Tech Park",
+     "locality": "Hongasandra / Bommanahalli, Hosur Road",
+     "lat": 12.900558,
+     "lng": 77.631178,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only OpenStreetMap records 'Mando Softtech India Pvt Ltd' inside AMR Tech Park; HL Mando's network page redirected to a 404 - https://www.openstreetmap.org/#map=18/12.900558/77.631178",
+     "address": "AMR Tech Park, No. 23 & 24, Hongasandra, Hosur Main Road, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": null,
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/#map=18/12.900558/77.631178"
+   ]
+  },
+  {
+   "name": "Visionet Systems",
+   "aliases": [
+    "Visionet Systems India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "New Jersey-headquartered IT services and BPM firm with a large Bengaluru delivery centre; OSM places it in AMR Tech Park on Hosur Road.",
+   "founded": 1995,
+   "hqCity": "Cranbury",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.visionet.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "AMR Tech Park delivery centre",
+     "locality": "Hongasandra / Bommanahalli, Hosur Road",
+     "lat": 12.900004,
+     "lng": 77.631186,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only OpenStreetMap records 'Visionet Systems' inside AMR Tech Park; Visionet's contact page lists no India address - https://www.openstreetmap.org/#map=18/12.900004/77.631186",
+     "address": "AMR Tech Park, No. 23 & 24, Hongasandra, Hosur Main Road, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": null,
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.visionet.com/contact-us",
+    "https://www.openstreetmap.org/#map=18/12.900004/77.631186"
+   ]
+  },
+  {
+   "name": "Brillio",
+   "aliases": [
+    "Brillio Technologies Pvt Ltd"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Digital-engineering services firm spun out of Collabera in 2014, HQ Santa Clara with most delivery in India; its Bengaluru head office is Bren Optimus at Dairy Circle (Dr M H Marigowda Road), with a second office on Sarjapur Road and space at RMZ Ecospace.",
+   "founded": 2014,
+   "hqCity": "Santa Clara",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.brillio.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru-Adugodi office - Bren Optimus",
+     "locality": "Dairy Circle / Adugodi (Bannerghatta Road start)",
+     "lat": 12.93682,
+     "lng": 77.606834,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Brillio's contact page lists 4th Floor of Bren Optimus No 8/2, Dr.M.H Marigowda Road, Bangalore 560029 - https://www.brillio.com/contact-us/",
+     "address": "4th Floor, Bren Optimus, No 8/2, Dr M H Marigowda Road, Bengaluru 560029",
+     "techPark": null,
+     "building": "Bren Optimus",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "RMZ Ecospace - 4A Block",
+     "locality": "Bellandur, Outer Ring Road",
+     "lat": 12.925008,
+     "lng": 77.680363,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM records 'Brillio' with the address 4A Block, 6th Floor, RMZ Ecospace, Outer Ring Road, Bellandur; not on Brillio's current contact page - https://www.openstreetmap.org/#map=18/12.925008/77.680363",
+     "address": "4A Block, 6th Floor, RMZ Ecospace, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "techPark": "RMZ Ecospace",
+     "building": "4A Block",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.brillio.com/contact-us/"
+   ]
+  },
+  {
+   "name": "KIOCL",
+   "aliases": [
+    "KIOCL Limited",
+    "Kudremukh Iron Ore Company"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Other",
+   "description": "Central public-sector iron-ore pellet and mining company under the Ministry of Steel; registered and corporate office in Block II, Koramangala (its pellet plant is in Mangaluru).",
+   "founded": 1976,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.kioclltd.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered & corporate office - Koramangala Block II",
+     "locality": "Koramangala 2nd Block",
+     "lat": 12.924369,
+     "lng": 77.627483,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "KIOCL's website gives the registered and corporate office as Block II, Koramangala, Sarjapur Road, Bengaluru 560034 - https://www.kioclltd.in/",
+     "address": "Block II, Koramangala, Sarjapur Road, Bengaluru 560034",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.kioclltd.in/"
+   ]
+  },
+  {
+   "name": "WeWork",
+   "aliases": [
+    "WeWork India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Real estate & infrastructure",
+   "description": "Flexible-workspace operator (WeWork India is Embassy-group-run); in this corridor it runs the Salarpuria Symbiosis building on Bannerghatta Road at Arekere and Prestige Cube on Hosur Road.",
+   "founded": 2010,
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://wework.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "WeWork Salarpuria Symbiosis",
+     "locality": "Arekere, Bannerghatta Road",
+     "lat": 12.887087,
+     "lng": 77.597453,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "WeWork India's building page gives the address WeWork Salarpuria Symbiosis, Venugopal Reddy Layout, Arekere, Bangalore 560076, on Bannerghatta Road - https://wework.co.in/bangalore/bannerghatta-main-rd/salarpuria-symbiosis/",
+     "address": "Salarpuria Symbiosis, Venugopal Reddy Layout, Arekere, Bannerghatta Road, Bengaluru 560076",
+     "techPark": "Salarpuria Symbiosys",
+     "building": "Salarpuria Symbiosis",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "WeWork Prestige Cube",
+     "locality": "Hosur Road / Koramangala",
+     "lat": 12.936449,
+     "lng": 77.610797,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM records this WeWork with its building page URL for Prestige Cube on Hosur Road - https://www.wework.com/buildings/prestige-cube--bengaluru--Karnataka",
+     "address": "Prestige Cube, Hosur Road, Bengaluru 560029",
+     "techPark": null,
+     "building": "Prestige Cube",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://wework.co.in/bangalore/bannerghatta-main-rd/salarpuria-symbiosis/",
+    "https://www.wework.com/buildings/prestige-cube--bengaluru--Karnataka"
+   ]
+  },
+  {
+   "name": "BHIVE Workspace",
+   "aliases": [
+    "BHIVE",
+    "Bhive Workspace Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Bengaluru coworking and managed-office operator; its AKR Tech Park centre at Kudlu Gate occupies the former Myntra headquarters building.",
+   "founded": 2014,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://bhiveworkspace.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "BHIVE AKR Tech Park",
+     "locality": "Kudlu Gate / Krishna Reddy Industrial Area, Hosur Road",
+     "lat": 12.892469,
+     "lng": 77.642315,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "BHIVE's location page gives No.112, AKR Tech Park, A Block, 7th Mile Hosur Road, Krishna Reddy Industrial Area, Bengaluru 560068 and notes the building was previously Myntra HQ - https://bhiveworkspace.com/locations-coworking/akr-tech-park/",
+     "address": "No.112, AKR Tech Park, A Block, 7th Mile Hosur Road, Krishna Reddy Industrial Area, Bengaluru 560068",
+     "techPark": "AKR Tech Park",
+     "building": "A Block",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://bhiveworkspace.com/locations-coworking/akr-tech-park/"
+   ]
+  },
+  {
+   "name": "Kaleyra",
+   "aliases": [
+    "Tata Communications Kaleyra",
+    "Solutions Infini",
+    "Kaleyra Inc"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Telecom & networking",
+   "description": "CPaaS (SMS, voice, WhatsApp API) business that grew out of Bengaluru's Solutions Infini and was acquired by Tata Communications in 2023; OSM places its Bengaluru office in Meu Square on Bannerghatta Road.",
+   "founded": 2009,
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.kaleyra.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - Meu Square, Bannerghatta Road",
+     "locality": "Bilekahalli / JP Nagar 3rd Phase, Bannerghatta Road",
+     "lat": 12.90401,
+     "lng": 77.60129,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OpenStreetMap records 'Kaleyra' at Meu Square on Bannerghatta Road; Tata Communications' site confirms Kaleyra is part of Tata Communications but lists no Bengaluru address - https://www.tatacommunications.com/contact-us/contact-sales-kaleyra",
+     "address": "Meu Square, Bannerghatta Main Road, Bilekahalli, Bengaluru 560076",
+     "techPark": null,
+     "building": "Meu Square",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.tatacommunications.com/contact-us/contact-sales-kaleyra",
+    "https://www.openstreetmap.org/#map=18/12.90401/77.60129"
+   ]
+  },
+  {
+   "name": "HSBC",
+   "aliases": [
+    "HSBC Software Development India",
+    "HSBC Electronic Data Processing India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "UK bank with large technology and operations centres in Bengaluru; OSM records an HSBC office in the RMZ Futura blocks on Bannerghatta Road at Arekere (other nodes at Bellandur and Whitefield).",
+   "founded": 1865,
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://www.hsbc.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Futura, Bannerghatta Road",
+     "locality": "Arekere / JP Nagar 7th Phase",
+     "lat": 12.892151,
+     "lng": 77.599469,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only OpenStreetMap records 'HSBC' inside RMZ Futura on Bannerghatta Road; no HSBC or lease source was found - https://www.openstreetmap.org/#map=18/12.892151/77.599469",
+     "address": "RMZ Futura, Bannerghatta Road, Arekere, Bengaluru 560076",
+     "techPark": "RMZ Futura",
+     "building": null,
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/#map=18/12.892151/77.599469"
+   ]
+  },
+  {
+   "name": "Safran",
+   "aliases": [
+    "Safran Engineering Services India Pvt Ltd",
+    "Safran Engineering Services"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "French aerospace group; its engineering-services subsidiary has a Bengaluru centre that OSM places in JP Nagar 7th Phase beside the Kalyani / Krishna Magnum campuses, with a second node in Bellandur.",
+   "founded": 2005,
+   "hqCity": "Paris",
+   "hqCountry": "France",
+   "isUnicorn": false,
+   "website": "https://www.safran-group.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Safran Engineering Services India - JP Nagar 7th Phase",
+     "locality": "JP Nagar 7th Phase / Doraisanipalya",
+     "lat": 12.898391,
+     "lng": 77.594417,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OpenStreetMap records 'Safran Engineering Services India' with its website at this point next to Krishna Magnum; Safran's own pages returned HTTP 403 - https://www.openstreetmap.org/#map=18/12.898391/77.594417",
+     "address": "JP Nagar 7th Phase (beside Kalyani Magnum / Krishna Magnum), Bengaluru 560078",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Safran Engineering Services - Bellandur",
+     "locality": "Bellandur, Outer Ring Road",
+     "lat": 12.920252,
+     "lng": 77.668621,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only OpenStreetMap records 'Safran Engineering Services' at this point near the Outer Ring Road in Bellandur - https://www.openstreetmap.org/#map=18/12.920252/77.668621",
+     "address": "Bellandur, Outer Ring Road, Bengaluru 560103",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/#map=18/12.898391/77.594417",
+    "https://safran-engineering.com"
+   ]
+  },
+  {
+   "name": "Cleartrip",
+   "aliases": [
+    "Cleartrip Private Limited",
+    "Cleartrip India Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "Online travel agency founded in 2006 and acquired by Flipkart in 2021; OSM records its Bengaluru office on 1st Main Road just off Bannerghatta Road (the DivyaSree Towers area), but Cleartrip's JavaScript-only site could not be read to confirm the building.",
+   "founded": 2006,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.cleartrip.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office off Bannerghatta Road",
+     "locality": "BTM Layout 1st Stage / Bannerghatta Road",
+     "lat": 12.915054,
+     "lng": 77.598851,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only OpenStreetMap records 'Cleartrip India Pvt. Ltd.' with its website on 1st Main Road off Bannerghatta Road; cleartrip.com's about, contact and legal pages returned no readable text - https://www.openstreetmap.org/#map=18/12.915054/77.598851",
+     "address": "1st Main Road, off Bannerghatta Main Road, Bengaluru 560029",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/#map=18/12.915054/77.598851",
+    "https://www.cleartrip.com"
+   ]
+  },
+  {
+   "name": "Porter",
+   "aliases": [
+    "Smartshift Logistics Solutions Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Logistics",
+   "description": "Intra-city truck and two-wheeler logistics marketplace that became a unicorn in 2025; OSM maps a 'Porter Head Office' site on Bannerghatta Road near Jayadeva, which could not be confirmed because porter.in blocks automated fetches.",
+   "founded": 2014,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": true,
+   "website": "https://porter.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Head office - Bannerghatta Road",
+     "locality": "Bannerghatta Road (near Jayadeva / N.A.L Layout)",
+     "lat": 12.926049,
+     "lng": 77.60016,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OpenStreetMap maps a commercial site named 'Porter Head Office' and a 'Porter' office node here; porter.in returned HTTP 403 so the address is unconfirmed - https://www.openstreetmap.org/#map=18/12.926049/77.60016",
+     "address": "Bannerghatta Main Road, Bengaluru 560029",
+     "techPark": null,
+     "building": null,
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/#map=18/12.926049/77.60016",
+    "https://porter.in"
+   ]
+  },
+  {
+   "name": "Wipro",
+   "aliases": [
+    "Wipro Limited"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Indian IT services major headquartered at Sarjapur Road / Electronic City; in this corridor OSM maps its M3/M4 office blocks at Madiwala on Hosur Road near Central Silk Board, and the K1 building in Koramangala.",
+   "founded": 1945,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.wipro.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Wipro M3 / M4 - Madiwala, Hosur Road",
+     "locality": "Madiwala / BTM Layout, Hosur Road",
+     "lat": 12.920424,
+     "lng": 77.621652,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only OpenStreetMap maps the commercial site 'Wipro M3 / M4' at Madiwala beside Central Silk Board on Hosur Road - https://www.openstreetmap.org/#map=18/12.920424/77.621652",
+     "address": "Hosur Main Road, Madiwala, Bengaluru 560068",
+     "techPark": null,
+     "building": "M3 / M4",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Wipro K1 office - Koramangala",
+     "locality": "Koramangala Industrial Layout",
+     "lat": 12.933827,
+     "lng": 77.617878,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only OpenStreetMap records 'Wipro K1 office' in Koramangala Industrial Layout - https://www.openstreetmap.org/#map=18/12.933827/77.617878",
+     "address": "Koramangala Industrial Layout, Bengaluru 560095",
+     "techPark": null,
+     "building": "K1",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/#map=18/12.920424/77.621652"
+   ]
+  }
+ ],
+ "coverageNotes": "LENS: Bannerghatta Road, Bilekahalli, Arekere, JP Nagar, Jayanagar, BTM 2nd Stage, Bommanahalli and Hosur Road to Kudlu Gate. TOOLS: the shared WebSearch budget ran out after my first eleven searches, so most verification was done by fetching company pages directly and by scanning the offline OSM datasets inside the lens bounding box (lat 12.86-12.945, lng 77.56-77.655); several sites could not be read (Oracle 403, Honeywell campus list only, HGS/Cleartrip/Myntra JavaScript-only or down, Mindteck 503, Porter/Safran 403, MetricStream/LAPP/Allegion 404 or rate-limited). Every office whose only source is OSM is marked low. CONFIRMED FROM PRIMARY PAGES (high): Zerodha HQ and Kalyani Vista support centre; IBM India corporate office at Subramanya Arcade; ACL Digital Tower D IBC Knowledge Park; Tally head office AMR Tech Park II and registered office Raheja Arcade; Sagility HQ AMR Tech Park; Clear/ClearTax AMR Block 1; Quinnox AMR Tech Park-4; Softtek Shilpa Emerald; emids Golden Tower; Brillio Bren Optimus; KIOCL Koramangala; WeWork Salarpuria Symbiosis; BHIVE AKR Tech Park; Honeywell Campus 1 Devarabisanahalli. LENS CLAIMS CHECKED AND NOT CONFIRMED (left out): Swiggy's IBC Knowledge Park HQ (Tower D) was given up when it moved to Embassy TechVillage, and its 2026 filing moves the registered office again to Sumadhura Capitol Towers, so it is omitted under rule 5 (the exit predates 2023); Fidelity is at Embassy GolfLinks and Manyata, not IBC; Mindtree/LTIMindtree has no Bannerghatta presence in any source (OSM puts it at Global Village and Hebbal); Infosys shows only in two unlabelled OSM nodes in JP Nagar and an old Deccan Herald mention of Mohan Chambers, no current source, omitted; Mphasis, Zensar, L&T (LTTS lists Bellary Road, RGA Tech Park and Jakkur only), Cognizant, Lowe's (its own site gives Manyata) and Yokogawa were not found at AMR Tech Park or anywhere in the lens; Tata Elxsi's own contact page lists only Whitefield/Hoodi, no Hosur Road office; Red Hat and Reltio appear in OSM at IBC and AMR but their own pages now give Bagmane Constellation and RMZ Ecoworld, so both OSM entries are stale and were dropped; Practo's OSM Bannerghatta node is stale (its site now gives Clayworks, Koramangala); Myntra's AKR Tech Park HQ is 'previously Myntra HQ' per BHIVE with no exit date, so it is omitted and noted on the park; VMware/Broadcom nodes in JP Nagar (Kalyani Vista area) could not be checked and were left out; Convergys/Concentrix, CSG, WinWire, V2Soft and Valtech OSM nodes around DivyaSree Towers are unverified and omitted; 'Prestige?' and 'Apollo? (no hospital)' produced no non-hospital office; Royal Meenakshi Mall and Gopalan Innovation Mall have no verified office tenants. LOW-CONFIDENCE INCLUSIONS (OSM only, flagged): Oracle at Kalyani Magnum; Accenture at RMZ Futura and BDC-9; Ather Energy, LAPP India and Allegion at IBC; HGS House and HGS at AMR; MetricStream, Avaya, HL Mando, Visionet and Mindteck at AMR; HSBC at RMZ Futura; Safran Engineering Services in JP Nagar 7th Phase; Kaleyra at Meu Square; Cleartrip and Porter on Bannerghatta Road; Wipro M3/M4 Madiwala. Honeywell's Doraisanipalya campus is recorded active/low because Honeywell's own locations page omits it; its Bellandur Campus 2 and Sagility's Electronic City (Surya Wave) and Brillio's Sarjapur 'The Hub' offices were confirmed from primary pages but could not be geocoded, so they are omitted rather than given invented coordinates. OUT-OF-LENS ADDITIONS for the merger: Honeywell RMZ Ecoworld lease (2026), ACL Digital Prestige Shantiniketan, Sagility Global Village, Tally Raheja Arcade, Brillio RMZ Ecospace, Accenture Pritech Park, WeWork Prestige Cube, Wipro K1, Safran Bellandur. Red Hat (Bagmane Constellation) and Reltio (RMZ Ecoworld) were verified from their own pages but not added since they are no longer in this lens. Factories recorded by OSM in Bommanahalli (Shahi Exports, Peter England/ABFRL) and British Biologicals at Arekere were not included for lack of any non-OSM source. Headcounts and park areas were not stated by any source consulted and are null."
+}

@@ -1,0 +1,3000 @@
+{
+ "key": "G06-bagmane-mahadevapura",
+ "techParks": [
+  {
+   "name": "Bagmane World Technology Center",
+   "aliases": [
+    "Bagmane WTC",
+    "Bagmane World Technology Centre",
+    "Bagmane WTC SEZ",
+    "World Technology Center SEZ"
+   ],
+   "locality": "Mahadevapura (Doddanekundi village), Outer Ring Road",
+   "developer": "Bagmane",
+   "lat": 12.985291,
+   "lng": 77.694672,
+   "bbox": [
+    12.979985,
+    12.988634,
+    77.692421,
+    77.697466
+   ],
+   "areaSqFtMillions": 4.5,
+   "notableTenants": [
+    "Samsung",
+    "Ericsson",
+    "Dell Technologies",
+    "Visa",
+    "AB InBev",
+    "Accenture",
+    "EY",
+    "Marlabs",
+    "Microland",
+    "Iron Mountain",
+    "Extreme Networks"
+   ],
+   "description": "Bagmane's 52-acre SEZ campus on the Outer Ring Road at Mahadevapura, launched 2007, with gem-named blocks (Amber, Citrine, Coral, Garnet, Opal, Aquamarine) and the Goldstone tower; the Bagmane REIT deck lists it at 4.5 msf with ~98% committed occupancy. Samsung's 4 lakh sq ft Goldstone lease (2019, renewed 2024) is the best-documented tenancy; Ericsson, Dell EMC, Visa and AB InBev's GCC are mapped on its blocks.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Bagmane_Group",
+    "https://www.electronicsforyou.biz/industry-buzz/samsung-rd-institute-bangalore-to-shift-its-business-functions-to-new-office/",
+    "https://naredco.in/node/1975",
+    "https://www.samco.in/knowledge-center/articles/bagmane-prime-office-reit-ipo-details-price-band-lot-size-and-company-overview/",
+    "https://nsearchives.nseindia.com/corporate/BAGMANE_20072026183927_BagmaneREITUnitholderPresentationFirstAnnualMeeting.pdf",
+    "https://www.openstreetmap.org/way/91237236"
+   ]
+  },
+  {
+   "name": "Bagmane Constellation Business Park",
+   "aliases": [
+    "Bagmane Constellation",
+    "Constellation Business Park",
+    "Bagmane Constellation Tech Park"
+   ],
+   "locality": "Doddanekundi (Ferns City), Outer Ring Road",
+   "developer": "Bagmane",
+   "lat": 12.980938,
+   "lng": 77.697153,
+   "bbox": [
+    12.978625,
+    12.983996,
+    77.694879,
+    77.700592
+   ],
+   "areaSqFtMillions": 5.3,
+   "notableTenants": [
+    "Amazon",
+    "Qualcomm",
+    "Arm",
+    "Samsung",
+    "Boeing",
+    "Nvidia",
+    "Red Hat",
+    "Google",
+    "Deloitte",
+    "Publicis Sapient"
+   ],
+   "description": "30-acre, 5.3 msf park at Doddanekundi Circle on the ORR, launched 2007, with eight buildings named after constellations: Phoenix (Samsung), Virgo (Qualcomm), Carina (Red Hat), Orion (Boeing, Nvidia), Taurus 1-4 (Amazon in Taurus 3, Arm in Taurus 4 North Tower) and Aquila (Amazon). Fully committed per the Bagmane REIT.",
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-constellation-business-park",
+    "https://therealtytoday.com/news/commercial/semiconductor-giant-qualcomm-leases-256-lakh-sq-ft-at-bagmane-constellation-for-184-cr/",
+    "https://www.arm.com/company/offices",
+    "https://www.aboutamazon.in/workplace/corporate-offices",
+    "https://events.gnome.org/event/258/page/485-the-venue",
+    "https://www.openstreetmap.org/way/732010480"
+   ]
+  },
+  {
+   "name": "Bagmane Capital",
+   "aliases": [
+    "Bagmane Capital Tech Park",
+    "Bagmane Capital Business Park",
+    "Bagmane Capital Tech"
+   ],
+   "locality": "Doddanekundi, Outer Ring Road (north of Doddanekundi Circle)",
+   "developer": "Bagmane",
+   "lat": 12.984991,
+   "lng": 77.702489,
+   "bbox": [
+    12.982441,
+    12.988185,
+    77.700496,
+    77.704824
+   ],
+   "areaSqFtMillions": 10.5,
+   "notableTenants": [
+    "Google",
+    "Amazon",
+    "Nvidia",
+    "Synopsys",
+    "Microsoft",
+    "GSK",
+    "American Express",
+    "Wayfair",
+    "Samsung",
+    "BNP Paribas",
+    "Qualcomm",
+    "Databricks",
+    "Arm"
+   ],
+   "description": "42-acre campus launched 2017 (5.5 msf completed, 1.5 msf under construction, 10.5 msf planned) anchored by a central park, with towers Luxor N/S, Kyoto E/W (Google, 8.7 lakh sq ft), Rome N/S (Amazon), Angkor E/W (Samsung SSIR, Wayfair), Apollo, Troy (Synopsys) and the new Memphis towers (Nvidia's 760,000 sq ft lease from April 2026).",
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-capital",
+    "https://therealtytoday.com/news/google-renews-90-crore-lease-for-87-lakh-sq-ft-office-space-in-bengaluru",
+    "https://finance.yahoo.com/sectors/technology/articles/nvidia-expands-india-ai-demand-123817341.html",
+    "https://therealtytoday.com/news/trending/bengalurus-office-leasing-market-soars-major-deals-by-amazon-synopsys-and-honeywell/",
+    "https://www.aboutamazon.in/news/amazon-offices/amazon-office-bagmane-bangalore",
+    "https://www.openstreetmap.org/way/732010482"
+   ]
+  },
+  {
+   "name": "Bagmane Rio Business Park",
+   "aliases": [
+    "Bagmane Rio",
+    "Rio Business Park",
+    "Google Ananta"
+   ],
+   "locality": "Mahadevapura, Outer Ring Road (west of Bagmane WTC)",
+   "developer": "Bagmane",
+   "lat": 12.982359,
+   "lng": 77.691357,
+   "bbox": [
+    12.981088,
+    12.984099,
+    77.690124,
+    77.692842
+   ],
+   "areaSqFtMillions": 1.1,
+   "notableTenants": [
+    "Google"
+   ],
+   "description": "Bagmane's built-to-suit park beside the WTC campus; OpenStreetMap names its main building 'Google Ananta', the 1.6 msf, 5,000-seat campus Google inaugurated in February 2025 as its largest in India. The Bagmane REIT records Rio as a 1.1 msf asset (93% stake being acquired), so the 1.6 msf press figure likely includes space beyond the REIT's leasable area.",
+   "sources": [
+    "https://analyticsindiamag.com/ai-news-updates/google-expands-in-bengaluru-with-its-4th-campus-ananta",
+    "https://www.therealtytoday.com/news/google-inaugurates-ananta-its-biggest-india-campus-ai-powered-workspace-with-5000-seats-and-eco-friendly-features",
+    "https://www.samco.in/knowledge-center/articles/bagmane-prime-office-reit-ipo-details-price-band-lot-size-and-company-overview/",
+    "https://www.openstreetmap.org/way/888606703",
+    "https://www.openstreetmap.org/way/1087930060"
+   ]
+  },
+  {
+   "name": "Bagmane Solarium City",
+   "aliases": [
+    "Bagmane Solarium",
+    "Solarium City"
+   ],
+   "locality": "Kundalahalli Colony / Brookefield, at the ORR-Whitefield cusp (Doddanekundi)",
+   "developer": "Bagmane",
+   "lat": 12.969934,
+   "lng": 77.708425,
+   "bbox": [
+    12.967266,
+    12.973182,
+    77.705221,
+    77.711449
+   ],
+   "areaSqFtMillions": 10.5,
+   "notableTenants": [
+    "Cognizant",
+    "Carelon Global Solutions",
+    "Shell",
+    "Schneider Electric",
+    "Tekion",
+    "Northern Trust",
+    "Baker Hughes",
+    "Zebra Technologies",
+    "Omnicom (DDB)",
+    "Visteon",
+    "IBM"
+   ],
+   "description": "82-acre campus launched 2017 (3.8 msf completed, 1 msf under construction, 10.5 msf planned) with buildings named after noble gases: Neon-W, Xenon-N, Xenon-S, Argon-N, Helium and Radon. Schneider Electric's ~0.48 msf R&D centre (2023) and Cognizant, Baker Hughes and Carelon are its anchor tenants.",
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city",
+    "https://equipmentindia.com/construction-machinery-news/top-equipment-news/webexclusive/Schneider-Electric-expands-Bengaluru-presence/128980",
+    "https://www.openstreetmap.org/way/414833858"
+   ]
+  },
+  {
+   "name": "Prestige Technostar",
+   "aliases": [
+    "Prestige Techno Star",
+    "Technostar"
+   ],
+   "locality": "Doddanekundi Industrial Area 2, Phase 1, Brookefield (ITPL Main Road)",
+   "developer": "Prestige",
+   "lat": 12.973147,
+   "lng": 77.710782,
+   "bbox": [
+    12.972264,
+    12.974385,
+    77.709114,
+    77.711508
+   ],
+   "areaSqFtMillions": 1.05,
+   "notableTenants": [
+    "The Executive Centre",
+    "AMD",
+    "o9 Solutions",
+    "Netskope"
+   ],
+   "description": "Prestige Group's ~8.5-acre, ~10.5 lakh sq ft office park on ITPL Main Road in the Doddanekundi Industrial Area, with B1-B3 blocks, food courts and The Executive Centre's serviced offices on Level 8 of B3. Tenant disclosure is thin; AMD, o9 Solutions and Netskope are mapped inside it on OSM.",
+   "sources": [
+    "https://www.executivecentre.com/en-in/office-space/prestige-technostar/",
+    "https://www.instantoffices.com/de/in/buroraume/bengaluru-bangalore/brookefield-53908",
+    "https://www.openstreetmap.org/way/414837848"
+   ]
+  },
+  {
+   "name": "Prestige Featherlite Tech Park",
+   "aliases": [
+    "Featherlite Tech Park",
+    "Prestige Featherlite"
+   ],
+   "locality": "Plot 148, EPIP Zone Phase 2, Whitefield Road (Kaveri Nagar / Doddanekundi side)",
+   "developer": "Prestige",
+   "lat": 12.98152,
+   "lng": 77.721127,
+   "bbox": [
+    12.981212,
+    12.981727,
+    77.720605,
+    77.721887
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Srijan Technologies"
+   ],
+   "description": "Small Prestige office building at Plot 148, EPIP Zone, Whitefield Road, opposite KTPO and beside Sattva's Mindcomp Tech Park, marketed largely as serviced/startup space (INR 14,000 per seat per month in one listing). No anchor tenant could be confirmed; OSM places Srijan Technologies inside it. Not to be confused with Prestige Featherlite Tech Hub in Kadubeesanahalli.",
+   "sources": [
+    "https://www.officefreedom.com/india/ka/bengaluru/office-space/plot-no148-prestige-featherlite-tech-park--epip-zone-whitefield-road-bengaluru-56066-ref-57530",
+    "https://www.openstreetmap.org/way/122668438"
+   ]
+  },
+  {
+   "name": "Salarpuria Sattva Mindcomp Tech Park",
+   "aliases": [
+    "Sattva Mindcomp Tech Park",
+    "Mindcomp Tech Park",
+    "Salarpuria Mindcomp"
+   ],
+   "locality": "EPIP Zone Phase 2, Whitefield Road (Kaveri Nagar / Doddanekundi side)",
+   "developer": "Salarpuria Sattva",
+   "lat": 12.98223,
+   "lng": 77.72099,
+   "bbox": [
+    12.981727,
+    12.982881,
+    77.719541,
+    77.721937
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "Completed Salarpuria Sattva office park ('Sattva Mindcomp Tech Park, Whitefield' on the developer's project list) on the EPIP Zone frontage of Whitefield Road, adjoining Prestige Featherlite Tech Park and the STT data centre. No tenant could be confirmed from a primary or press source; Microchip Technology's Plot 149-B office lies on its edge.",
+   "sources": [
+    "https://www.sattvagroup.com/commercial/",
+    "https://www.openstreetmap.org/way/1151907061"
+   ]
+  },
+  {
+   "name": "Brigade Metropolis",
+   "aliases": [
+    "Brigade Summit",
+    "Summit @ Brigade Metropolis",
+    "The Arcade @ Brigade Metropolis"
+   ],
+   "locality": "Garudachar Palya, Mahadevapura (Whitefield Road / ITPL Main Road)",
+   "developer": "Brigade",
+   "lat": 12.9924,
+   "lng": 77.7035,
+   "bbox": [
+    12.991607,
+    12.99304,
+    77.703049,
+    77.703828
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Awfis",
+    "Kapture CX",
+    "Capgemini",
+    "Volvo Group",
+    "EY"
+   ],
+   "description": "Brigade's 40-acre integrated township on Whitefield Road; its office component is Summit (Towers A/B, the B-9 building on ITPL Main Road) plus The Arcade retail-and-small-office block. Awfis runs a coworking centre there and Kapture CX is headquartered on the 11th floor; Capgemini, Volvo and EY offices are mapped on the Summit towers.",
+   "sources": [
+    "http://www.brigadegroup.com/commercial/legacy-projects",
+    "https://liquidspace.com/in/ka/bengaluru/awfis-coworking-brigade-metropolis",
+    "https://www.openstreetmap.org/way/122738030",
+    "https://www.openstreetmap.org/way/122738028"
+   ]
+  },
+  {
+   "name": "GR Tech Park",
+   "aliases": [
+    "Sattva GR Tech Park",
+    "G R Tech Park"
+   ],
+   "locality": "Whitefield Road, Belathur (east Whitefield)",
+   "developer": "Salarpuria Sattva",
+   "lat": 12.986516,
+   "lng": 77.744817,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "Completed Salarpuria Sattva office park listed as 'Sattva GR Tech Park, Whitefield'; Nominatim places it on Whitefield Road at Belathur (east of ITPB), i.e. outside the Mahadevapura cluster this lens expected. No tenant could be confirmed.",
+   "sources": [
+    "https://www.sattvagroup.com/commercial/",
+    "https://www.openstreetmap.org/node/825453269"
+   ]
+  },
+  {
+   "name": "Shell Technology Centre Bangalore",
+   "aliases": [
+    "Shell Technology Centre Bangalore",
+    "STCB",
+    "Shell Technology Centre India"
+   ],
+   "locality": "KIADB Hardware Park (SEZ), Mahadevakodigehalli, Bagalur / Devanahalli",
+   "developer": "Shell",
+   "lat": 13.156474,
+   "lng": 77.701876,
+   "bbox": [
+    13.154307,
+    13.158047,
+    77.698673,
+    77.704161
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Shell"
+   ],
+   "description": "Shell's 52-acre, purpose-built R&D campus near Kempegowda International Airport, opened March 2017 for up to 1,500 scientists and engineers, consolidating Bengaluru teams previously spread across the city; one of Shell's three global technology hubs (with Amsterdam and Houston).",
+   "sources": [
+    "https://worldoil.com/news/2017/3/31/shell-opens-new-technology-center-in-bangalore-india/",
+    "https://www.thechemicalengineer.com/news/shell-opens-bangalore-technology-centre/",
+    "https://www.openstreetmap.org/way/203058241"
+   ]
+  },
+  {
+   "name": "Bhoruka Tech Park",
+   "aliases": [
+    "Bhoruka Tech Park Hoodi"
+   ],
+   "locality": "Mahadevapura Industrial Area, Hoodi (Whitefield Road)",
+   "developer": null,
+   "lat": 12.993688,
+   "lng": 77.705462,
+   "bbox": [
+    12.993134,
+    12.994941,
+    77.704882,
+    77.706057
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Tata Elxsi",
+    "ABB",
+    "Hitachi Energy"
+   ],
+   "description": "Older industrial-estate office campus on Whitefield Road at Garudachar Palya/Hoodi, next to Brigade Metropolis; Tata Elxsi's own contact page lists Block I here, and OSM maps an ABB block and a Hitachi Energy office on the same plot.",
+   "sources": [
+    "https://www.tataelxsi.com/contact-us",
+    "https://www.openstreetmap.org/way/83231745"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "Google",
+   "aliases": [
+    "Google India",
+    "Google IT Services India",
+    "Google Connect Services India",
+    "Alphabet"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Search, Android, Cloud and DeepMind engineering; Bengaluru is Google's largest India site with the 1.6 msf Ananta campus plus the Kyoto towers next door.",
+   "hqCity": "Mountain View",
+   "hqCountry": "United States",
+   "founded": 1998,
+   "website": "https://about.google",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Ananta campus (Bagmane Rio)",
+     "techPark": "Bagmane Rio Business Park",
+     "building": "Ananta",
+     "locality": "Mahadevapura, Outer Ring Road",
+     "address": "Outer Ring Road, Mahadevapura (Bagmane Rio Business Park), Bengaluru 560048",
+     "lat": 12.982827,
+     "lng": 77.691729,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Press (Feb 2025) places the 1.6 msf, 5,000-seat Ananta campus in Mahadevapura built by Bagmane; OSM/Nominatim names the building 'Google Ananta, Bagmane Rio Business Park' https://analyticsindiamag.com/ai-news-updates/google-expands-in-bengaluru-with-its-4th-campus-ananta ; https://www.openstreetmap.org/way/1087930060",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Kyoto campus (Bagmane Capital)",
+     "techPark": "Bagmane Capital",
+     "building": "Kyoto West & Kyoto East Towers",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Capital Park, Kyoto West Tower, Doddanekundi Circle, Outer Ring Road, Bengaluru 560048",
+     "lat": 12.985307,
+     "lng": 77.701836,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Google IT Services India renewed 8.7 lakh sq ft across Kyoto West and Kyoto East towers, Bagmane Capital Business Park, Doddanekkundi (lease from 25 Nov 2024) https://therealtytoday.com/news/google-renews-90-crore-lease-for-87-lakh-sq-ft-office-space-in-bengaluru ; building polygon https://www.openstreetmap.org/way/1065147889",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "RMZ Infinity (Old Madras Road)",
+     "techPark": "RMZ Infinity",
+     "building": null,
+     "locality": "Benniganahalli, Old Madras Road",
+     "address": "RMZ Infinity, Old Madras Road, Bengaluru 560016",
+     "lat": 12.99363,
+     "lng": 77.66047,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Analytics India Magazine lists Google's 'RMZ Infinity Campus on Old Madras Road' among its Bengaluru offices; OSM has a Google office POI there https://analyticsindiamag.com/ai-news-updates/google-expands-in-bengaluru-with-its-4th-campus-ananta ; https://www.openstreetmap.org/node/850751644",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://analyticsindiamag.com/ai-news-updates/google-expands-in-bengaluru-with-its-4th-campus-ananta",
+    "https://therealtytoday.com/news/exxonmobil-renews-5-year-lease-for-531-lakh-sq-ft-office-in-bengalurus-whitefield-it-hub",
+    "https://therealtytoday.com/news/google-renews-90-crore-lease-for-87-lakh-sq-ft-office-space-in-bengaluru",
+    "https://www.bagmanegroup.com/portfolio/bagmane-capital",
+    "https://www.openstreetmap.org/way/1087930060",
+    "https://www.therealtytoday.com/news/google-inaugurates-ananta-its-biggest-india-campus-ai-powered-workspace-with-5000-seats-and-eco-friendly-features"
+   ]
+  },
+  {
+   "name": "Amazon",
+   "aliases": [
+    "Amazon Development Centre India",
+    "Amazon Seller Services",
+    "AWS"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "E-commerce & consumer internet",
+   "description": "Amazon Development Centre India: engineering, AWS and retail tech; its largest Bengaluru campuses are in the Bagmane Constellation and Bagmane Capital parks on the ORR.",
+   "hqCity": "Seattle",
+   "hqCountry": "United States",
+   "founded": 1994,
+   "website": "https://www.aboutamazon.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Taurus 3, Bagmane Constellation",
+     "techPark": "Bagmane Constellation Business Park",
+     "building": "Taurus 3",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Taurus 3, Bagmane Constellation Business Park, Doddanekundi, Bengaluru 560048",
+     "lat": 12.980903,
+     "lng": 77.698096,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Amazon's own corporate-offices page describes Taurus 3, Bagmane Constellation Business Park (676,000 sq ft, 5,000+ seats) as its newest Bengaluru facility; a 6.76 lakh sq ft 5-year extension was reported https://www.aboutamazon.in/workplace/corporate-offices ; https://therealtytoday.com/news/trending/bengalurus-office-leasing-market-soars-major-deals-by-amazon-synopsys-and-honeywell/",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Aquila, Bagmane Constellation",
+     "techPark": "Bagmane Constellation Business Park",
+     "building": "Aquila",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Aquila Building, Bagmane Constellation Business Park, Doddanekundi Village, Bengaluru 560048",
+     "lat": 12.981355,
+     "lng": 77.695825,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Directory listings place Amazon on the 4th-12th floors of the Aquila building, Bagmane Constellation (Ferns City, Doddanekkundi); OSM has Amazon POIs on the Aquila polygon https://www.explurger.com/pd/53kl1sbkv4h6zgz19 ; https://www.openstreetmap.org/node/10738611869",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Rome South & North (BLR27), Bagmane Capital",
+     "techPark": "Bagmane Capital",
+     "building": "Rome South / Rome North",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Capital, Rome South Tower, Doddanekundi, Bengaluru 560048",
+     "lat": 12.985187,
+     "lng": 77.703963,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Amazon's own page describes the Amazon Development Centre in Bagmane Capital Tech, Rome South (six floors, 318,627 sq ft) twinned with Rome North via a skybridge https://www.aboutamazon.in/news/amazon-offices/amazon-office-bagmane-bangalore",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "World Trade Center Bengaluru (Brigade Gateway)",
+     "techPark": "World Trade Center Bengaluru (Brigade Gateway)",
+     "building": "WTC tower",
+     "locality": "Rajajinagar / Malleshwaram West",
+     "address": "World Trade Center, Brigade Gateway, Dr Rajkumar Road, Bengaluru 560055",
+     "lat": 13.012247,
+     "lng": 77.556174,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Amazon's corporate-offices page: 18 of 30 floors at World Trade Centre Bangalore, Brigade Gateway, ~5,300 people https://www.aboutamazon.in/workplace/corporate-offices",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://therealtytoday.com/news/trending/bengalurus-office-leasing-market-soars-major-deals-by-amazon-synopsys-and-honeywell/",
+    "https://www.aboutamazon.in/news/amazon-offices/amazon-office-bagmane-bangalore",
+    "https://www.aboutamazon.in/workplace/corporate-offices",
+    "https://www.bagmanegroup.com/portfolio/bagmane-capital",
+    "https://www.bagmanegroup.com/portfolio/bagmane-constellation-business-park",
+    "https://www.explurger.com/pd/53kl1sbkv4h6zgz19"
+   ]
+  },
+  {
+   "name": "Qualcomm",
+   "aliases": [
+    "Qualcomm India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "Qualcomm India's largest design centre is in Bengaluru (modem, RF, software); long-standing EPIP Whitefield campus plus new Bagmane Constellation and Bagmane Capital floors.",
+   "hqCity": "San Diego",
+   "hqCountry": "United States",
+   "founded": 1985,
+   "website": "https://www.qualcomm.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Virgo Tower, Bagmane Constellation",
+     "techPark": "Bagmane Constellation Business Park",
+     "building": "Virgo Tower",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Virgo Tower, Bagmane Constellation Business Park, Doddanekundi, Bengaluru 560048",
+     "lat": 12.982077,
+     "lng": 77.696871,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Qualcomm India leased 2.56 lakh sq ft on the 5th, 6th, 7th and 11th floors of Virgo Tower, Bagmane Constellation, for Rs 184 cr over five years (registered Aug 2025); developer lists Qualcomm as occupier https://therealtytoday.com/news/commercial/semiconductor-giant-qualcomm-leases-256-lakh-sq-ft-at-bagmane-constellation-for-184-cr/ ; https://www.bagmanegroup.com/portfolio/bagmane-constellation-business-park",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Bagmane Capital (Angkor East)",
+     "techPark": "Bagmane Capital",
+     "building": "Angkor East (per OSM POI)",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Capital, Doddanekundi, Bengaluru 560048",
+     "lat": 12.987455,
+     "lng": 77.704073,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bagmane Capital's occupier list names Qualcomm; OSM records a Qualcomm office POI on the Angkor East block https://www.bagmanegroup.com/portfolio/bagmane-capital ; https://www.openstreetmap.org/node/11472015243",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "EPIP Whitefield campus",
+     "techPark": "EPIP Zone Whitefield",
+     "building": null,
+     "locality": "EPIP Zone, Brookefield / Whitefield",
+     "address": "Plot 24, Block 1, EPIP Zone, Whitefield, Bengaluru 560066",
+     "lat": 12.97278,
+     "lng": 77.71832,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM records five Qualcomm office POIs around Plot 24, Block 1, EPIP Zone, Brookefield (its long-standing Bangalore design centre) https://www.openstreetmap.org/node/3743283303",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://therealtytoday.com/news/commercial/semiconductor-giant-qualcomm-leases-256-lakh-sq-ft-at-bagmane-constellation-for-184-cr/",
+    "https://www.bagmanegroup.com/portfolio/bagmane-capital",
+    "https://www.bagmanegroup.com/portfolio/bagmane-constellation-business-park",
+    "https://www.openstreetmap.org/node/3743283303"
+   ]
+  },
+  {
+   "name": "Arm",
+   "aliases": [
+    "ARM Embedded Technologies Pvt Ltd",
+    "Arm Holdings"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "CPU/GPU IP designer; Bengaluru is Arm's third-largest office globally, occupying the whole North Tower of Taurus 4 in Bagmane Constellation.",
+   "hqCity": "Cambridge",
+   "hqCountry": "United Kingdom",
+   "founded": 1990,
+   "website": "https://www.arm.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Taurus 4 North Tower, Bagmane Constellation",
+     "techPark": "Bagmane Constellation Business Park",
+     "building": "Taurus 4, North Tower",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Taurus 4 Building, North Tower, Survey No 58/2 & 42/3, Bagmane Constellation Business Park, Doddanekkundi Village, Bengaluru 560048",
+     "lat": 12.980323,
+     "lng": 77.698983,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Arm's office directory lists 'Bagmane Constellation Business Park, Taurus 4 Building, North Tower, Doddanekkundi Village, Bengaluru 560048' (ground to 11th floor); lease of ~409,450 sq ft reported Jan 2026 https://www.arm.com/company/offices ; https://www.scconline.com/blog/post/2026/01/12/cyril-amarchand-mangaldas-advises-arm-embedded-technologies-bagmane-constellation-lease/",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://careers.arm.com/Bengaluru-office",
+    "https://www.arm.com/company/offices",
+    "https://www.scconline.com/blog/post/2026/01/12/cyril-amarchand-mangaldas-advises-arm-embedded-technologies-bagmane-constellation-lease/"
+   ]
+  },
+  {
+   "name": "Samsung Electronics",
+   "aliases": [
+    "Samsung R&D Institute India-Bangalore",
+    "SRI-B",
+    "Samsung Semiconductor India Research",
+    "SSIR",
+    "SISO"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "Samsung R&D Institute India-Bangalore (SRI-B), Samsung's largest R&D centre outside Korea, plus Samsung Semiconductor India Research (SSIR); all three Bengaluru sites are in Bagmane parks on the ORR.",
+   "hqCity": "Suwon",
+   "hqCountry": "South Korea",
+   "founded": 1969,
+   "website": "https://research.samsung.com/sri-b",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "SRI-B main office, Bagmane Constellation (Phoenix)",
+     "techPark": "Bagmane Constellation Business Park",
+     "building": "Phoenix",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Samsung R&D Institute India, Bagmane Constellation Business Park, Doddanekundi, Bengaluru 560048",
+     "lat": 12.98021,
+     "lng": 77.6975,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wikipedia: SRI-B's main office moved to Bagmane Constellation Business Park, Doddanekkundi in 2012; developer page shows Samsung as occupier of the Phoenix building; OSM POI 'Samsung R&D Institute India - Bangalore' on Phoenix https://en.wikipedia.org/wiki/Samsung_R%26D_Institute_India,_Bengaluru ; https://www.bagmanegroup.com/portfolio/bagmane-constellation-business-park",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Goldstone tower, Bagmane WTC campus",
+     "techPark": "Bagmane World Technology Center",
+     "building": "Goldstone",
+     "locality": "Mahadevapura, Outer Ring Road",
+     "address": "Bagmane Goldstone, Bagmane World Technology Center, Mahadevapura, Bengaluru 560048",
+     "lat": 12.985512,
+     "lng": 77.692407,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "SRI-B took 4 lakh sq ft at Bagmane Goldstone (part of Bagmane WTC) in Feb 2019 and renewed 4.02 lakh sq ft there in 2024 https://www.electronicsforyou.biz/industry-buzz/samsung-rd-institute-bangalore-to-shift-its-business-functions-to-new-office/ ; https://naredco.in/node/1975",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "SSIR, Angkor West, Bagmane Capital",
+     "techPark": "Bagmane Capital",
+     "building": "Angkor West",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Capital, Angkor West, Doddanekundi, Bengaluru 560048",
+     "lat": 12.987496,
+     "lng": 77.703594,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Samsung Semiconductor India Research opened a new semiconductor R&D office at Bagmane Capital Tech Park, Angkor-West in Feb 2024 (700 hires planned); OSM POI 'Samsung Semiconductor India' on Angkor West https://yourstory.com/enterprise-story/2024/02/samsung-opens-new-semiconductor-research-office-bengaluru-hire-700-professionals ; https://www.openstreetmap.org/node/11676386406",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Samsung_R%26D_Institute_India,_Bengaluru",
+    "https://naredco.in/node/1975",
+    "https://tattvammedia.com/?p=11347",
+    "https://www.bagmanegroup.com/portfolio/bagmane-capital",
+    "https://www.bagmanegroup.com/portfolio/bagmane-constellation-business-park",
+    "https://www.electronicsforyou.biz/industry-buzz/samsung-rd-institute-bangalore-to-shift-its-business-functions-to-new-office/",
+    "https://yourstory.com/enterprise-story/2024/02/samsung-opens-new-semiconductor-research-office-bengaluru-hire-700-professionals"
+   ]
+  },
+  {
+   "name": "Nvidia",
+   "aliases": [
+    "NVIDIA Graphics Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "GPU and AI computing; signed India's largest single-tenant office lease (760,000 sq ft, Memphis South, Bagmane Capital) in 2026 on top of its existing Bagmane Constellation space.",
+   "hqCity": "Santa Clara",
+   "hqCountry": "United States",
+   "founded": 1993,
+   "website": "https://www.nvidia.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Memphis South Tower, Bagmane Capital",
+     "techPark": "Bagmane Capital",
+     "building": "Memphis South",
+     "locality": "Mahadevapura / Doddanekundi, Outer Ring Road",
+     "address": "Memphis South Tower, Bagmane Capital, Doddanekundi, Bengaluru 560048",
+     "lat": 12.986137,
+     "lng": 77.702155,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "10-year lease for ~760,000 sq ft across 12 floors of Bagmane Capital's Memphis South Tower, Mahadevpura, effective 1 Apr 2026 (fit-out status not verified) https://finance.yahoo.com/sectors/technology/articles/nvidia-expands-india-ai-demand-123817341.html ; building polygon https://www.openstreetmap.org/way/1368779189",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Orion, Bagmane Constellation",
+     "techPark": "Bagmane Constellation Business Park",
+     "building": "Orion",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Orion, Bagmane Constellation Business Park, Doddanekundi, Bengaluru 560048",
+     "lat": 12.979967,
+     "lng": 77.695726,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bagmane's Constellation page shows Nvidia (with Boeing) as occupier of the Orion building https://www.bagmanegroup.com/portfolio/bagmane-constellation-business-park",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://finance.yahoo.com/sectors/technology/articles/nvidia-expands-india-ai-demand-123817341.html",
+    "https://housiey.com/blogs/nvidias-mega-bengaluru-move-%E2%82%B91230-crore-lease-signals-indias-rising-tech-power",
+    "https://www.bagmanegroup.com/portfolio/bagmane-capital",
+    "https://www.bagmanegroup.com/portfolio/bagmane-constellation-business-park",
+    "https://www.samco.in/knowledge-center/articles/bagmane-prime-office-reit-ipo-details-price-band-lot-size-and-company-overview/"
+   ]
+  },
+  {
+   "name": "Microsoft",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Microsoft India Development Center and cloud teams; the Bagmane Capital occupier list names Microsoft (tower not published).",
+   "hqCity": "Redmond",
+   "hqCountry": "United States",
+   "founded": 1975,
+   "website": "https://www.microsoft.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Capital",
+     "techPark": "Bagmane Capital",
+     "building": null,
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Capital, Doddanekundi, Bengaluru 560048",
+     "lat": 12.984991,
+     "lng": 77.702489,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bagmane Capital's 'Our Occupiers' list names Microsoft; tower not stated, so the park centroid is used https://www.bagmanegroup.com/portfolio/bagmane-capital",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-capital"
+   ]
+  },
+  {
+   "name": "Synopsys",
+   "aliases": [
+    "Synopsys India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "EDA and silicon IP; Synopsys India's Bengaluru centre took 4.3 lakh sq ft in the Troy building of Bagmane Capital in 2024.",
+   "hqCity": "Sunnyvale",
+   "hqCountry": "United States",
+   "founded": 1986,
+   "website": "https://www.synopsys.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Troy, Bagmane Capital",
+     "techPark": "Bagmane Capital",
+     "building": "Troy",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Troy, Bagmane Capital, Doddanekundi, Bengaluru 560048",
+     "lat": 12.987387,
+     "lng": 77.702592,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Synopsys leased 4.3 lakh sq ft at Bagmane Capital Troy (registered Sept 2024, Rs 4.19 cr/month); OSM has a Synopsys POI on the Troy polygon https://therealtytoday.com/news/trending/bengalurus-office-leasing-market-soars-major-deals-by-amazon-synopsys-and-honeywell/ ; https://www.openstreetmap.org/node/12316542715",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://therealtytoday.com/news/trending/bengalurus-office-leasing-market-soars-major-deals-by-amazon-synopsys-and-honeywell/",
+    "https://www.openstreetmap.org/node/12316542715"
+   ]
+  },
+  {
+   "name": "Red Hat",
+   "aliases": [
+    "Red Hat India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Open-source enterprise software (IBM subsidiary); Red Hat India's Bengaluru engineering office is in the Carina building of Bagmane Constellation.",
+   "hqCity": "Raleigh",
+   "hqCountry": "United States",
+   "founded": 1993,
+   "website": "https://www.redhat.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Carina East Tower, Bagmane Constellation",
+     "techPark": "Bagmane Constellation Business Park",
+     "building": "Carina, East Tower, 10th floor",
+     "locality": "Doddanekundi Circle, Outer Ring Road",
+     "address": "10th Floor, East Tower, Carina, Bagmane Constellation Business Park, Doddanekundi Circle, Bengaluru 560037",
+     "lat": 12.98208,
+     "lng": 77.699142,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Event venue page gives Red Hat's address as '10th Floor, East Tower, Carina building, Bagmane Constellation Business Park, Doddanekundi Circle, KR Puram-Marathahalli ORR, Bengaluru 560037'; OSM POI carries the same address https://events.gnome.org/event/258/page/485-the-venue ; https://www.openstreetmap.org/node/5571222419",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://events.gnome.org/event/258/page/485-the-venue",
+    "https://www.openstreetmap.org/node/5571222419"
+   ]
+  },
+  {
+   "name": "Boeing",
+   "aliases": [
+    "Boeing India",
+    "BIETC"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "Boeing India Engineering & Technology Center (BIETC): aerospace engineering and software; Bagmane ORR offices plus a 43-acre campus near the airport.",
+   "hqCity": "Arlington",
+   "hqCountry": "United States",
+   "founded": 1916,
+   "website": "https://www.boeing.co.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Orion, Bagmane Constellation",
+     "techPark": "Bagmane Constellation Business Park",
+     "building": "Orion",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Orion, Bagmane Constellation Business Park, Doddanekundi, Bengaluru 560048",
+     "lat": 12.979967,
+     "lng": 77.695726,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bagmane's Constellation page shows Boeing (with Nvidia) as occupier of the Orion building https://www.bagmanegroup.com/portfolio/bagmane-constellation-business-park",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "BIETC, Bagmane Tech Park",
+     "techPark": "Bagmane Tech Park",
+     "building": null,
+     "locality": "C V Raman Nagar",
+     "address": "Bagmane Tech Park, C V Raman Nagar, Bengaluru 560093",
+     "lat": 12.978694,
+     "lng": 77.662447,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "2023 press: the majority of engineers 'will continue to work from the Boeing India Engineering & Technology Centre in Bengaluru's Bagmane Tech Park'; Wikipedia lists Boeing India among Bagmane Tech Park tenants https://aviationa2z.com/index.php/2023/02/01/boeing-will-open-its-second-largest-campus-by-the-end-of-2023-near-kempegowda-international-airport/ ; https://en.wikipedia.org/wiki/Bagmane_Group",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "BIETC campus, Aerospace Park Devanahalli",
+     "techPark": "Boeing India Engineering and Technology Center",
+     "building": null,
+     "locality": "Devanahalli (Hi-Tech Defence & Aerospace Park)",
+     "address": "Hi-Tech Defence and Aerospace Park, Devanahalli, Bengaluru 562149",
+     "lat": 13.182291,
+     "lng": 77.722178,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "43-acre, $200m+ Boeing campus in Aerospace Park, Devanahalli, scheduled to open end-2023; OSM polygon 'Boeing India Engineering and Technology Center' https://aviationa2z.com/index.php/2023/02/01/boeing-will-open-its-second-largest-campus-by-the-end-of-2023-near-kempegowda-international-airport/ ; https://www.openstreetmap.org/way/991727364",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://aviationa2z.com/index.php/2023/02/01/boeing-will-open-its-second-largest-campus-by-the-end-of-2023-near-kempegowda-international-airport/",
+    "https://en.wikipedia.org/wiki/Bagmane_Group",
+    "https://www.bagmanegroup.com/portfolio/bagmane-constellation-business-park"
+   ]
+  },
+  {
+   "name": "Schneider Electric",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "Energy management and industrial automation; its Bengaluru R&D and technology centre took ~0.48 msf at Bagmane Solarium City in 2023 (capacity 4,800).",
+   "hqCity": "Rueil-Malmaison",
+   "hqCountry": "France",
+   "founded": 1836,
+   "website": "https://www.se.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Solarium City",
+     "techPark": "Bagmane Solarium City",
+     "building": null,
+     "locality": "Kundalahalli / Doddanekundi, ORR-Whitefield",
+     "address": "Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037",
+     "lat": 12.970602,
+     "lng": 77.710048,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Schneider leased ~0.48 mn sq ft at Bagmane Solarium for an R&D and technology centre (10-year deal, Nov 2023); developer lists Schneider as occupier; OSM POI https://equipmentindia.com/construction-machinery-news/top-equipment-news/webexclusive/Schneider-Electric-expands-Bengaluru-presence/128980 ; https://www.bagmanegroup.com/portfolio/bagmane-solarium-city",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://equipmentindia.com/construction-machinery-news/top-equipment-news/webexclusive/Schneider-Electric-expands-Bengaluru-presence/128980",
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city",
+    "https://www.openstreetmap.org/node/11975926129"
+   ]
+  },
+  {
+   "name": "Shell",
+   "aliases": [
+    "Shell India Markets",
+    "Shell Technology Centre Bangalore",
+    "STCB",
+    "Shell Business Operations"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "Shell Technology Centre Bangalore (one of Shell's three global R&D hubs) on a 52-acre campus near the airport, plus Shell business/IT operations at Bagmane Solarium City.",
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "founded": 1907,
+   "website": "https://www.shell.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Shell Technology Centre Bangalore",
+     "techPark": "Shell Technology Centre Bangalore",
+     "building": null,
+     "locality": "KIADB Hardware Park, Mahadevakodigehalli, Devanahalli",
+     "address": "Shell Technology Centre Bangalore, KIADB Hardware Park, Mahadevakodigehalli, Bengaluru 562149",
+     "lat": 13.156474,
+     "lng": 77.701876,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Shell opened its 52-acre custom-built technology centre housing up to 1,500 experts near Devanahalli in March 2017; OSM polygon 'Shell Technology Centre Bangalore' https://worldoil.com/news/2017/3/31/shell-opens-new-technology-center-in-bangalore-india/ ; https://www.openstreetmap.org/way/203058241",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Bagmane Solarium City",
+     "techPark": "Bagmane Solarium City",
+     "building": "Xenon North (per OSM POI)",
+     "locality": "Kundalahalli / Doddanekundi, ORR-Whitefield",
+     "address": "Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037",
+     "lat": 12.97127,
+     "lng": 77.707868,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bagmane Solarium City's occupier list names Shell; OSM has a Shell office POI on the Xenon North block https://www.bagmanegroup.com/portfolio/bagmane-solarium-city ; https://www.openstreetmap.org/node/9980237103",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://worldoil.com/news/2017/3/31/shell-opens-new-technology-center-in-bangalore-india/",
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city",
+    "https://www.thechemicalengineer.com/news/shell-opens-bangalore-technology-centre/"
+   ]
+  },
+  {
+   "name": "Cognizant",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "IT services and consulting; one of several Bengaluru delivery centres sits in Bagmane Solarium City.",
+   "hqCity": "Teaneck",
+   "hqCountry": "United States",
+   "founded": 1994,
+   "website": "https://www.cognizant.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Solarium City",
+     "techPark": "Bagmane Solarium City",
+     "building": null,
+     "locality": "Kundalahalli / Doddanekundi, ORR-Whitefield",
+     "address": "Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037",
+     "lat": 12.972345,
+     "lng": 77.708756,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Developer occupier list and a 2023 press report both name Cognizant at Bagmane Solarium; OSM POI https://www.bagmanegroup.com/portfolio/bagmane-solarium-city ; https://equipmentindia.com/construction-machinery-news/top-equipment-news/webexclusive/Schneider-Electric-expands-Bengaluru-presence/128980",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://equipmentindia.com/construction-machinery-news/top-equipment-news/webexclusive/Schneider-Electric-expands-Bengaluru-presence/128980",
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city"
+   ]
+  },
+  {
+   "name": "Baker Hughes",
+   "aliases": [
+    "BHGE",
+    "Baker Hughes GE"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "Energy technology; its Bengaluru engineering centre (ex-BHGE) is in Bagmane Solarium City.",
+   "hqCity": "Houston",
+   "hqCountry": "United States",
+   "founded": 1907,
+   "website": "https://www.bakerhughes.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Solarium City",
+     "techPark": "Bagmane Solarium City",
+     "building": null,
+     "locality": "Kundalahalli / Doddanekundi, ORR-Whitefield",
+     "address": "Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037",
+     "lat": 12.972165,
+     "lng": 77.708308,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Developer lists 'BHGE' as occupier; 2023 press names Baker Hughes among Solarium tenants; OSM POI https://www.bagmanegroup.com/portfolio/bagmane-solarium-city ; https://equipmentindia.com/construction-machinery-news/top-equipment-news/webexclusive/Schneider-Electric-expands-Bengaluru-presence/128980",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://equipmentindia.com/construction-machinery-news/top-equipment-news/webexclusive/Schneider-Electric-expands-Bengaluru-presence/128980",
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city"
+   ]
+  },
+  {
+   "name": "Carelon Global Solutions",
+   "aliases": [
+    "Legato Health Technologies",
+    "Elevance Health"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Elevance Health's healthcare technology and operations captive (formerly Legato Health Technologies); Bengaluru centre at Bagmane Solarium City.",
+   "hqCity": "Indianapolis",
+   "hqCountry": "United States",
+   "founded": null,
+   "website": "https://www.carelonglobal.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Solarium City",
+     "techPark": "Bagmane Solarium City",
+     "building": "Xenon South (per OSM POI)",
+     "locality": "Kundalahalli / Doddanekundi, ORR-Whitefield",
+     "address": "Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037",
+     "lat": 12.970561,
+     "lng": 77.708184,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Developer occupier list names Carelon; 2023 press names 'Legato' (its former name) at Solarium; OSM POI with carelon.com website on Xenon South https://www.bagmanegroup.com/portfolio/bagmane-solarium-city ; https://www.openstreetmap.org/node/9880645605",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://equipmentindia.com/construction-machinery-news/top-equipment-news/webexclusive/Schneider-Electric-expands-Bengaluru-presence/128980",
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city"
+   ]
+  },
+  {
+   "name": "Northern Trust",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "Asset servicing and wealth management; Bengaluru operations centre at Bagmane Solarium City.",
+   "hqCity": "Chicago",
+   "hqCountry": "United States",
+   "founded": 1889,
+   "website": "https://www.northerntrust.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Solarium City",
+     "techPark": "Bagmane Solarium City",
+     "building": null,
+     "locality": "Kundalahalli / Doddanekundi, ORR-Whitefield",
+     "address": "Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037",
+     "lat": 12.970835,
+     "lng": 77.709773,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Developer occupier list names Northern Trust; OSM office POI inside the park https://www.bagmanegroup.com/portfolio/bagmane-solarium-city ; https://www.openstreetmap.org/node/11532953848",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city"
+   ]
+  },
+  {
+   "name": "Zebra Technologies",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "Enterprise mobile computing, barcode and RFID hardware; Bengaluru R&D at Bagmane Solarium City.",
+   "hqCity": "Lincolnshire",
+   "hqCountry": "United States",
+   "founded": 1969,
+   "website": "https://www.zebra.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Solarium City",
+     "techPark": "Bagmane Solarium City",
+     "building": null,
+     "locality": "Kundalahalli / Doddanekundi, ORR-Whitefield",
+     "address": "Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037",
+     "lat": 12.970881,
+     "lng": 77.710205,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Developer occupier list names Zebra; OSM office POI with zebra.com website https://www.bagmanegroup.com/portfolio/bagmane-solarium-city ; https://www.openstreetmap.org/node/11159466325",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city"
+   ]
+  },
+  {
+   "name": "Tekion",
+   "aliases": [],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "Cloud platform for automotive retail (unicorn); its large Bengaluru engineering centre is in Bagmane Solarium City.",
+   "hqCity": "Pleasanton",
+   "hqCountry": "United States",
+   "founded": 2016,
+   "website": "https://tekion.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Solarium City",
+     "techPark": "Bagmane Solarium City",
+     "building": null,
+     "locality": "Kundalahalli / Doddanekundi, ORR-Whitefield",
+     "address": "Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037",
+     "lat": 12.971938,
+     "lng": 77.70809,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Developer occupier list names Tekion; two OSM Tekion office POIs inside the park (Xenon North and Helium blocks) https://www.bagmanegroup.com/portfolio/bagmane-solarium-city ; https://www.openstreetmap.org/node/9811266165",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city"
+   ]
+  },
+  {
+   "name": "Omnicom Group",
+   "aliases": [
+    "DDB",
+    "DDB Mudra",
+    "Omnicom Global Solutions"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Media & gaming",
+   "description": "Advertising and marketing holding company (DDB, Omnicom Global Solutions); Bengaluru hub at Bagmane Solarium City.",
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "founded": 1986,
+   "website": "https://www.omnicomgroup.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Solarium City",
+     "techPark": "Bagmane Solarium City",
+     "building": "Helium (per OSM POI)",
+     "locality": "Kundalahalli / Doddanekundi, ORR-Whitefield",
+     "address": "Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037",
+     "lat": 12.969663,
+     "lng": 77.7075,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Developer occupier list names 'DDB'; OSM has an 'Omnicom' office POI on the Helium block https://www.bagmanegroup.com/portfolio/bagmane-solarium-city ; https://www.openstreetmap.org/node/11895297475",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city"
+   ]
+  },
+  {
+   "name": "Visteon",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Automotive cockpit electronics; Bengaluru technical centre listed by Bagmane at Solarium City.",
+   "hqCity": "Van Buren Township",
+   "hqCountry": "United States",
+   "founded": 2000,
+   "website": "https://www.visteon.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Solarium City",
+     "techPark": "Bagmane Solarium City",
+     "building": null,
+     "locality": "Kundalahalli / Doddanekundi, ORR-Whitefield",
+     "address": "Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037",
+     "lat": 12.969934,
+     "lng": 77.708425,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bagmane Solarium City's occupier list names Visteon; no building given, park centroid used https://www.bagmanegroup.com/portfolio/bagmane-solarium-city",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city"
+   ]
+  },
+  {
+   "name": "IBM",
+   "aliases": [
+    "IBM India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "IBM India has many Bengaluru sites; OSM mappers record IBM offices in Bagmane Solarium City (Radon) and Bagmane Capital (Luxor).",
+   "hqCity": "Armonk",
+   "hqCountry": "United States",
+   "founded": 1911,
+   "website": "https://www.ibm.com/in-en",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Radon, Bagmane Solarium City",
+     "techPark": "Bagmane Solarium City",
+     "building": "Radon (per OSM POI)",
+     "locality": "Kundalahalli / Doddanekundi, ORR-Whitefield",
+     "address": "Bagmane Solarium City, Brookefield, Bengaluru 560037",
+     "lat": 12.968367,
+     "lng": 77.706186,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'IBM' on the Radon block of Bagmane Solarium City; no primary source found https://www.openstreetmap.org/node/13633679990",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Luxor, Bagmane Capital",
+     "techPark": "Bagmane Capital",
+     "building": "Luxor (per OSM POI)",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Capital, Doddanekundi, Bengaluru 560048",
+     "lat": 12.983621,
+     "lng": 77.703633,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'IBM India' on the Luxor South block of Bagmane Capital; no primary source found https://www.openstreetmap.org/node/13945629500",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13633679990",
+    "https://www.openstreetmap.org/node/13945629500"
+   ]
+  },
+  {
+   "name": "Thermo Fisher Scientific",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Life-science instruments and services; OSM records a Thermo Fisher office in Bagmane Solarium City.",
+   "hqCity": "Waltham",
+   "hqCountry": "United States",
+   "founded": 1956,
+   "website": "https://www.thermofisher.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Solarium City",
+     "techPark": "Bagmane Solarium City",
+     "building": null,
+     "locality": "Kundalahalli / Doddanekundi, ORR-Whitefield",
+     "address": "Bagmane Solarium City, Brookefield, Bengaluru 560037",
+     "lat": 12.971398,
+     "lng": 77.708102,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI with thermofisher.com website inside Bagmane Solarium City; not on the developer's list https://www.openstreetmap.org/node/11488303738",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11488303738"
+   ]
+  },
+  {
+   "name": "SAP Fioneer",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "Financial-services software spun out of SAP; OSM records its Bengaluru office in Bagmane Solarium City.",
+   "hqCity": "Walldorf",
+   "hqCountry": "Germany",
+   "founded": 2021,
+   "website": "https://www.sapfioneer.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Solarium City",
+     "techPark": "Bagmane Solarium City",
+     "building": null,
+     "locality": "Kundalahalli / Doddanekundi, ORR-Whitefield",
+     "address": "Bagmane Solarium City, Brookefield, Bengaluru 560037",
+     "lat": 12.971224,
+     "lng": 77.708409,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'SAP Fioneer' inside Bagmane Solarium City; no primary source found https://www.openstreetmap.org/node/10093104868",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/10093104868"
+   ]
+  },
+  {
+   "name": "Ericsson",
+   "aliases": [
+    "Ericsson India Global Services"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Telecom & networking",
+   "description": "Telecom equipment and services; Ericsson India Global Services' Bengaluru R&D and services hub in Bagmane World Technology Center.",
+   "hqCity": "Stockholm",
+   "hqCountry": "Sweden",
+   "founded": 1876,
+   "website": "https://www.ericsson.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane World Technology Center (Aquamarine)",
+     "techPark": "Bagmane World Technology Center",
+     "building": "Aquamarine (per OSM POI)",
+     "locality": "Mahadevapura, Outer Ring Road",
+     "address": "Bagmane World Technology Center, Outer Ring Road, Mahadevapura, Bengaluru 560048",
+     "lat": 12.983308,
+     "lng": 77.693172,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Three OSM office POIs ('Ericsson', 'Ericsson Global', 'Ericsson India Global Services') on the Aquamarine/Citrine blocks of Bagmane WTC; Wikipedia lists Ericsson among Bagmane Group tenants https://www.openstreetmap.org/node/9781379766 ; https://en.wikipedia.org/wiki/Bagmane_Group",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Bagmane_Group",
+    "https://www.openstreetmap.org/node/9781379766"
+   ]
+  },
+  {
+   "name": "Dell Technologies",
+   "aliases": [
+    "Dell EMC",
+    "Dell International Services India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "PCs, servers and storage; Dell EMC's Bengaluru engineering towers sit in Bagmane World Technology Center (other Dell sites are in Bagmane Tech Park and Divyasree).",
+   "hqCity": "Round Rock",
+   "hqCountry": "United States",
+   "founded": 1984,
+   "website": "https://www.dell.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Dell EMC Towers A & B, Bagmane WTC",
+     "techPark": "Bagmane World Technology Center",
+     "building": "Dell EMC Tower A / Tower B",
+     "locality": "Mahadevapura, Outer Ring Road",
+     "address": "Bagmane World Technology Center, Outer Ring Road, Mahadevapura, Bengaluru 560048",
+     "lat": 12.982631,
+     "lng": 77.693886,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps two buildings named 'Dell EMC Tower A' and 'Dell EMC Tower B' inside Bagmane WTC; Wikipedia lists Dell among Bagmane tenants https://www.openstreetmap.org/way/150582730 ; https://en.wikipedia.org/wiki/Bagmane_Group",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Bagmane_Group",
+    "https://www.openstreetmap.org/way/150582730"
+   ]
+  },
+  {
+   "name": "Visa",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "Payments network; Visa's Bengaluru technology centre is recorded by OSM inside Bagmane World Technology Center.",
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "founded": 1958,
+   "website": "https://www.visa.co.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane World Technology Center",
+     "techPark": "Bagmane World Technology Center",
+     "building": null,
+     "locality": "Mahadevapura, Outer Ring Road",
+     "address": "Bagmane World Technology Center, Outer Ring Road, Mahadevapura, Bengaluru 560048",
+     "lat": 12.983879,
+     "lng": 77.693991,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Visa' (2nd Cross Road) inside Bagmane WTC; no primary source reached https://www.openstreetmap.org/node/4373627030",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4373627030"
+   ]
+  },
+  {
+   "name": "AB InBev",
+   "aliases": [
+    "Anheuser-Busch InBev",
+    "AB InBev GCC India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "World's largest brewer; its Global Capability Centre (GCC India) for analytics and tech is in Bagmane World Technology Center.",
+   "hqCity": "Leuven",
+   "hqCountry": "Belgium",
+   "founded": 2008,
+   "website": "https://ab-inbev.in/gcc-india",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "GCC India, Bagmane WTC",
+     "techPark": "Bagmane World Technology Center",
+     "building": null,
+     "locality": "Mahadevapura, Outer Ring Road",
+     "address": "Bagmane World Technology Center, Outer Ring Road, Mahadevapura, Bengaluru 560048",
+     "lat": 12.985739,
+     "lng": 77.695167,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'GCC ABInBev India' (operator ABInBev, website ab-inbev.in/gcc-india) inside Bagmane WTC https://www.openstreetmap.org/node/11290231969",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11290231969"
+   ]
+  },
+  {
+   "name": "Accenture",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "IT consulting and outsourcing with 20+ Bengaluru delivery centres; two are mapped in Bagmane WTC (Coral and Garnet blocks).",
+   "hqCity": "Dublin",
+   "hqCountry": "Ireland",
+   "founded": 1989,
+   "website": "https://www.accenture.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane World Technology Center (Coral/Garnet)",
+     "techPark": "Bagmane World Technology Center",
+     "building": "Coral / Garnet (per OSM POIs)",
+     "locality": "Mahadevapura, Outer Ring Road",
+     "address": "Bagmane World Technology Center, Outer Ring Road, Mahadevapura, Bengaluru 560048",
+     "lat": 12.985691,
+     "lng": 77.695283,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Two OSM office POIs 'Accenture' on the Coral and Garnet blocks of Bagmane WTC https://www.openstreetmap.org/node/9781379720 ; https://www.openstreetmap.org/node/9781359214",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/9781379720"
+   ]
+  },
+  {
+   "name": "EY",
+   "aliases": [
+    "Ernst & Young",
+    "EY GDS"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Professional services; EY Global Delivery Services has several Bengaluru sites, including Bagmane WTC.",
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "founded": 1989,
+   "website": "https://www.ey.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane World Technology Center (Coral)",
+     "techPark": "Bagmane World Technology Center",
+     "building": "Coral (per OSM POI)",
+     "locality": "Mahadevapura, Outer Ring Road",
+     "address": "Bagmane World Technology Center, Outer Ring Road, Mahadevapura, Bengaluru 560048",
+     "lat": 12.985017,
+     "lng": 77.695326,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Ernst & Young' on the Coral block of Bagmane WTC (a second EY POI sits on Orion in Constellation) https://www.openstreetmap.org/node/9781379722",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/9781379722"
+   ]
+  },
+  {
+   "name": "Marlabs",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "US-headquartered digital engineering services firm with a large Bengaluru delivery centre in Bagmane WTC.",
+   "hqCity": "Piscataway",
+   "hqCountry": "United States",
+   "founded": 1996,
+   "website": "https://www.marlabs.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Citrine, Bagmane WTC",
+     "techPark": "Bagmane World Technology Center",
+     "building": "Citrine (per OSM POI)",
+     "locality": "Mahadevapura, Outer Ring Road",
+     "address": "Bagmane World Technology Center, Mahadevapura, Bengaluru 560048",
+     "lat": 12.984428,
+     "lng": 77.693352,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Marlabs' on the Citrine block of Bagmane WTC; no primary source reached https://www.openstreetmap.org/node/9781379831",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/9781379831"
+   ]
+  },
+  {
+   "name": "Microland",
+   "aliases": [],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Bengaluru-headquartered IT infrastructure services company (~4,500 staff); HQ at RMZ Ecospace with a second office in Bagmane WTC.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1989,
+   "website": "https://www.microland.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ, RMZ Ecospace",
+     "techPark": "RMZ Ecospace",
+     "building": "1B",
+     "locality": "Bellandur, Outer Ring Road",
+     "address": "1B, Ecospace, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.92619,
+     "lng": 77.67996,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Microland' with address '1B, Ecospace, Outer Ring Road' (its registered HQ) https://www.openstreetmap.org/node/3551348536",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Bagmane World Technology Center",
+     "techPark": "Bagmane World Technology Center",
+     "building": "Citrine (per OSM POI)",
+     "locality": "Mahadevapura, Outer Ring Road",
+     "address": "Bagmane World Technology Center, Mahadevapura, Bengaluru 560048",
+     "lat": 12.984232,
+     "lng": 77.692888,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Microland' on the Citrine block of Bagmane WTC https://www.openstreetmap.org/node/9781379832",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/3551348536",
+    "https://www.openstreetmap.org/node/9781379832"
+   ]
+  },
+  {
+   "name": "Iron Mountain",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Other",
+   "description": "Information management and data-centre services; OSM records a Bengaluru office in Bagmane WTC.",
+   "hqCity": "Boston",
+   "hqCountry": "United States",
+   "founded": 1951,
+   "website": "https://www.ironmountain.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane World Technology Center",
+     "techPark": "Bagmane World Technology Center",
+     "building": null,
+     "locality": "Mahadevapura, Outer Ring Road",
+     "address": "Bagmane World Technology Center, Mahadevapura, Bengaluru 560048",
+     "lat": 12.984421,
+     "lng": 77.692907,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Iron Mountain' inside Bagmane WTC; no primary source reached https://www.openstreetmap.org/node/5503456948",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/5503456948"
+   ]
+  },
+  {
+   "name": "Extreme Networks",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Telecom & networking",
+   "description": "Cloud networking vendor; its Bengaluru R&D office is mapped on the Amber block of Bagmane WTC.",
+   "hqCity": "Morrisville",
+   "hqCountry": "United States",
+   "founded": 1996,
+   "website": "https://www.extremenetworks.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Amber, Bagmane WTC",
+     "techPark": "Bagmane World Technology Center",
+     "building": "Amber (per OSM POI)",
+     "locality": "Mahadevapura, Outer Ring Road",
+     "address": "Bagmane World Technology Center, Mahadevapura, Bengaluru 560048",
+     "lat": 12.987737,
+     "lng": 77.694044,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Extreme Networks' on the Amber block of Bagmane WTC; no primary source reached https://www.openstreetmap.org/node/9781379721",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/9781379721"
+   ]
+  },
+  {
+   "name": "Publicis Sapient",
+   "aliases": [
+    "Sapient"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Digital transformation consultancy; one of its Bengaluru offices is mapped in Bagmane Constellation (Wikipedia also lists it among Bagmane tenants).",
+   "hqCity": "Boston",
+   "hqCountry": "United States",
+   "founded": 1990,
+   "website": "https://www.publicissapient.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Constellation Business Park",
+     "techPark": "Bagmane Constellation Business Park",
+     "building": null,
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Constellation Business Park, Doddanekundi, Bengaluru 560048",
+     "lat": 12.98246,
+     "lng": 77.696973,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Publicis Sapient' between the Virgo and Carina blocks of Bagmane Constellation; Wikipedia lists Publicis Sapient among Bagmane Group tenants https://www.openstreetmap.org/node/4668341913 ; https://en.wikipedia.org/wiki/Bagmane_Group",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Bagmane_Group",
+    "https://www.openstreetmap.org/node/4668341913"
+   ]
+  },
+  {
+   "name": "Finastra",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Fintech",
+   "description": "Banking software vendor; its Bengaluru office is mapped in Bagmane Constellation.",
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "founded": 2017,
+   "website": "https://www.finastra.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Constellation Business Park",
+     "techPark": "Bagmane Constellation Business Park",
+     "building": null,
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Constellation Business Park, Doddanekundi, Bengaluru 560048",
+     "lat": 12.982426,
+     "lng": 77.69729,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Finastra' inside Bagmane Constellation; no primary source reached https://www.openstreetmap.org/node/6201924570",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/6201924570"
+   ]
+  },
+  {
+   "name": "NatWest Group",
+   "aliases": [
+    "NatWest Digital Services India",
+    "RBS"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "UK bank whose India technology arm (NatWest Digital Services) has a Bengaluru office mapped at Taurus 4, Bagmane Constellation.",
+   "hqCity": "Edinburgh",
+   "hqCountry": "United Kingdom",
+   "founded": 1968,
+   "website": "https://www.natwestgroup.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Taurus 4, Bagmane Constellation",
+     "techPark": "Bagmane Constellation Business Park",
+     "building": "Taurus 4 (per OSM POI)",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Constellation Business Park, Doddanekundi, Bengaluru 560048",
+     "lat": 12.980124,
+     "lng": 77.698907,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'NatWest' on the Taurus 4 polygon of Bagmane Constellation; no primary source reached https://www.openstreetmap.org/node/12287928394",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12287928394"
+   ]
+  },
+  {
+   "name": "Deloitte",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Professional services; a 2025 lease report names Deloitte among the multinationals based in Bagmane Constellation (tower unknown).",
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "founded": 1845,
+   "website": "https://www.deloitte.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Constellation Business Park",
+     "techPark": "Bagmane Constellation Business Park",
+     "building": null,
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Constellation Business Park, Doddanekundi, Bengaluru 560048",
+     "lat": 12.980938,
+     "lng": 77.697153,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "The Realty Today (Nov 2025) describes Bagmane Constellation as 'home to ... Amazon, Samsung, Google, and Deloitte'; no tower given, park centroid used https://therealtytoday.com/news/commercial/semiconductor-giant-qualcomm-leases-256-lakh-sq-ft-at-bagmane-constellation-for-184-cr/",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://therealtytoday.com/news/commercial/semiconductor-giant-qualcomm-leases-256-lakh-sq-ft-at-bagmane-constellation-for-184-cr/"
+   ]
+  },
+  {
+   "name": "American Express",
+   "aliases": [
+    "AMEX"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "Card and payments company; its Bengaluru technology centre is in Bagmane Capital.",
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "founded": 1850,
+   "website": "https://www.americanexpress.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Capital",
+     "techPark": "Bagmane Capital",
+     "building": "Rome / Apollo area (per OSM POIs)",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Capital, Doddanekundi, Bengaluru 560048",
+     "lat": 12.985924,
+     "lng": 77.703973,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bagmane Capital's occupier list names AMEX; three OSM 'American Express' office POIs around the Rome/Apollo blocks https://www.bagmanegroup.com/portfolio/bagmane-capital ; https://www.openstreetmap.org/node/10738611867",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-capital",
+    "https://www.openstreetmap.org/node/10738611867"
+   ]
+  },
+  {
+   "name": "GSK",
+   "aliases": [
+    "GlaxoSmithKline"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Pharmaceuticals; GSK's Bengaluru global capability centre is in the Luxor block of Bagmane Capital.",
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "founded": 2000,
+   "website": "https://www.gsk.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Luxor, Bagmane Capital",
+     "techPark": "Bagmane Capital",
+     "building": "Luxor (per OSM POI)",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Capital, Doddanekundi, Bengaluru 560048",
+     "lat": 12.984517,
+     "lng": 77.704188,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bagmane Capital's occupier list names GSK; OSM office POI 'GlaxoSmithKline' on the Luxor block https://www.bagmanegroup.com/portfolio/bagmane-capital ; https://www.openstreetmap.org/node/9783611912",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-capital",
+    "https://www.openstreetmap.org/node/9783611912"
+   ]
+  },
+  {
+   "name": "Wayfair",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "E-commerce & consumer internet",
+   "description": "US online furniture retailer; Wayfair's Bengaluru technology centre is in Angkor West, Bagmane Capital.",
+   "hqCity": "Boston",
+   "hqCountry": "United States",
+   "founded": 2002,
+   "website": "https://www.wayfair.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Angkor West, Bagmane Capital",
+     "techPark": "Bagmane Capital",
+     "building": "Angkor West (per OSM POI)",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Capital, Doddanekundi, Bengaluru 560048",
+     "lat": 12.987348,
+     "lng": 77.703547,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bagmane Capital's occupier list names Wayfair; OSM office POI 'Wayfair Global' on the Angkor West block https://www.bagmanegroup.com/portfolio/bagmane-capital ; https://www.openstreetmap.org/node/11821456358",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-capital",
+    "https://www.openstreetmap.org/node/11821456358"
+   ]
+  },
+  {
+   "name": "BNP Paribas",
+   "aliases": [
+    "BNP Paribas India Solutions"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "French bank; BNP Paribas India Solutions is listed by Bagmane as an occupier of Bagmane Capital (tower not published).",
+   "hqCity": "Paris",
+   "hqCountry": "France",
+   "founded": 2000,
+   "website": "https://group.bnpparibas",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Capital",
+     "techPark": "Bagmane Capital",
+     "building": null,
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Capital, Doddanekundi, Bengaluru 560048",
+     "lat": 12.984991,
+     "lng": 77.702489,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bagmane Capital's 'Our Occupiers' list names BNP Paribas; no tower given, park centroid used https://www.bagmanegroup.com/portfolio/bagmane-capital",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-capital"
+   ]
+  },
+  {
+   "name": "Databricks",
+   "aliases": [],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "Data and AI platform (unicorn); Bagmane lists Databricks among occupiers of Bagmane Capital.",
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "founded": 2013,
+   "website": "https://www.databricks.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Capital",
+     "techPark": "Bagmane Capital",
+     "building": null,
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Capital, Doddanekundi, Bengaluru 560048",
+     "lat": 12.984991,
+     "lng": 77.702489,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bagmane Capital's 'Our Occupiers' list names Databricks; no tower given, park centroid used https://www.bagmanegroup.com/portfolio/bagmane-capital",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-capital"
+   ]
+  },
+  {
+   "name": "Salesforce",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "CRM software; OSM records a Salesforce office on the Apollo block of Bagmane Capital (its other Bengaluru site is on the Sarjapur ORR).",
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "founded": 1999,
+   "website": "https://www.salesforce.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Apollo, Bagmane Capital",
+     "techPark": "Bagmane Capital",
+     "building": "Apollo (per OSM POI)",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Capital, Doddanekundi, Bengaluru 560048",
+     "lat": 12.98664,
+     "lng": 77.704094,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Salesforce' on the Apollo block of Bagmane Capital; not on the developer's published list https://www.openstreetmap.org/node/12287928396",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12287928396"
+   ]
+  },
+  {
+   "name": "LinkedIn",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Professional network (Microsoft); OSM records a LinkedIn office near the Troy/Memphis blocks of Bagmane Capital.",
+   "hqCity": "Sunnyvale",
+   "hqCountry": "United States",
+   "founded": 2002,
+   "website": "https://www.linkedin.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Capital (Troy area)",
+     "techPark": "Bagmane Capital",
+     "building": null,
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Capital, Doddanekundi, Bengaluru 560048",
+     "lat": 12.986791,
+     "lng": 77.702292,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'LinkedIn' beside the Troy and Memphis North blocks of Bagmane Capital; no primary source reached https://www.openstreetmap.org/node/13945482073",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13945482073"
+   ]
+  },
+  {
+   "name": "HCLTech",
+   "aliases": [
+    "HCL Technologies"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Indian IT services major; OSM records an HCL office in the Luxor block of Bagmane Capital (other Bengaluru campuses are in Jigani SEZ and Electronic City).",
+   "hqCity": "Noida",
+   "hqCountry": "India",
+   "founded": 1991,
+   "website": "https://www.hcltech.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Luxor, Bagmane Capital",
+     "techPark": "Bagmane Capital",
+     "building": "Luxor (per OSM POI)",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Capital, Doddanekundi, Bengaluru 560048",
+     "lat": 12.983793,
+     "lng": 77.703668,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'HCL Technologies' on the Luxor South block of Bagmane Capital; no primary source reached https://www.openstreetmap.org/node/13945642506",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13945642506"
+   ]
+  },
+  {
+   "name": "EPAM Systems",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Digital engineering services; OSM records an EPAM office in the Luxor block of Bagmane Capital.",
+   "hqCity": "Newtown",
+   "hqCountry": "United States",
+   "founded": 1993,
+   "website": "https://www.epam.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Luxor, Bagmane Capital",
+     "techPark": "Bagmane Capital",
+     "building": "Luxor (per OSM POI)",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Capital, Doddanekundi, Bengaluru 560048",
+     "lat": 12.983764,
+     "lng": 77.703861,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Epam System' on the Luxor block of Bagmane Capital; no primary source reached https://www.openstreetmap.org/node/13945642505",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13945642505"
+   ]
+  },
+  {
+   "name": "Encora",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Digital engineering services; OSM records 'Encora Innovations' in the Luxor block of Bagmane Capital.",
+   "hqCity": "Scottsdale",
+   "hqCountry": "United States",
+   "founded": null,
+   "website": "https://www.encora.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Luxor, Bagmane Capital",
+     "techPark": "Bagmane Capital",
+     "building": "Luxor (per OSM POI)",
+     "locality": "Doddanekundi, Outer Ring Road",
+     "address": "Bagmane Capital, Doddanekundi, Bengaluru 560048",
+     "lat": 12.984567,
+     "lng": 77.70377,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Encora Innovations' on the Luxor North block of Bagmane Capital; no primary source reached https://www.openstreetmap.org/node/13945629499",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13945629499"
+   ]
+  },
+  {
+   "name": "Tata Elxsi",
+   "aliases": [],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Tata group design and technology services firm headquartered in Whitefield; three Bengaluru offices listed on its own contact page.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1989,
+   "website": "https://www.tataelxsi.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Headquarters, ITPB Road Whitefield",
+     "techPark": null,
+     "building": null,
+     "locality": "Whitefield (ITPB Road)",
+     "address": "ITPB Road, Whitefield, Bengaluru 560048",
+     "lat": 12.990777,
+     "lng": 77.724801,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Tata Elxsi's contact page lists its HQ as 'ITPB Road, Whitefield, Bangalore 560048'; OSM building 'Tata Elxsi' on ITPB Road https://www.tataelxsi.com/contact-us ; https://www.openstreetmap.org/way/435423119",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Bhoruka Tech Park, Hoodi",
+     "techPark": "Bhoruka Tech Park",
+     "building": "Block I",
+     "locality": "Mahadevapura Industrial Area, Hoodi",
+     "address": "Block I, Bhoruka Tech Park, Mahadevapura Industrial Area, Hoodi, Bengaluru 560048",
+     "lat": 12.993537,
+     "lng": 77.705557,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Tata Elxsi's contact page lists 'Bhoruka Tech Park, Block I, Mahadevpura Industrial Area Hoodi, Krishnarajapuram Hobli, Bangalore 560048'; OSM POI on the Bhoruka Tech Park polygon https://www.tataelxsi.com/contact-us ; https://www.openstreetmap.org/node/11215663854",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Prestige Shantiniketan, Crescent 4",
+     "techPark": "Prestige Shantiniketan",
+     "building": "Crescent 4, 9th floor",
+     "locality": "Whitefield (Hoodi)",
+     "address": "Crescent 4, 9th Floor, Prestige Shantiniketan, Whitefield Road, Bengaluru 560048",
+     "lat": 12.992412,
+     "lng": 77.727955,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Tata Elxsi's contact page lists 'Crescent 4, 9th Floor, Prestige Shantiniketan, Whitefield Road, Bangalore 560048'; coordinates from Photon for a Shantiniketan tower https://www.tataelxsi.com/contact-us",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/435423119",
+    "https://www.tataelxsi.com/contact-us"
+   ]
+  },
+  {
+   "name": "ABB",
+   "aliases": [
+    "ABB India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Electrification and automation; OSM maps 'Block-1 (ABB)' at Bhoruka Tech Park on Whitefield Road, Mahadevapura (ABB's main Bengaluru campus is Peenya).",
+   "hqCity": "Zurich",
+   "hqCountry": "Switzerland",
+   "founded": 1988,
+   "website": "https://new.abb.com/indian-subcontinent",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bhoruka Tech Park, Mahadevapura",
+     "techPark": "Bhoruka Tech Park",
+     "building": "Block-1",
+     "locality": "Mahadevapura Industrial Area, Hoodi",
+     "address": "Bhoruka Tech Park, Whitefield Road, Mahadevapura, Bengaluru 560048",
+     "lat": 12.99369,
+     "lng": 77.705459,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM maps a building named 'Block-1 (ABB)' inside Bhoruka Tech Park, Whitefield Road; no primary source reached https://www.openstreetmap.org/way/83070744",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/83070744"
+   ]
+  },
+  {
+   "name": "Hitachi Energy",
+   "aliases": [
+    "ABB Power Grids"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "Power grids business (ex-ABB Power Grids); OSM records a Hitachi Energy office at Bhoruka Tech Park, Mahadevapura.",
+   "hqCity": "Zurich",
+   "hqCountry": "Switzerland",
+   "founded": 2020,
+   "website": "https://www.hitachienergy.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bhoruka Tech Park, Mahadevapura",
+     "techPark": "Bhoruka Tech Park",
+     "building": null,
+     "locality": "Mahadevapura Industrial Area, Hoodi",
+     "address": "Bhoruka Tech Park, Whitefield Road, Mahadevapura, Bengaluru 560048",
+     "lat": 12.993529,
+     "lng": 77.705376,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Hitachi Energy' on the Bhoruka Tech Park polygon beside the ABB block; no primary source reached https://www.openstreetmap.org/node/11215663853",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11215663853"
+   ]
+  },
+  {
+   "name": "Kapture CX",
+   "aliases": [
+    "Adjetter Media Network"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "SaaS",
+   "description": "Bengaluru-founded customer-support automation SaaS (Adjetter Media), headquartered in Brigade Summit, Brigade Metropolis.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2011,
+   "website": "https://www.kapture.cx",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Brigade Summit, Brigade Metropolis",
+     "techPark": "Brigade Metropolis",
+     "building": "Summit (B-9), 11th floor",
+     "locality": "Garudachar Palya, Mahadevapura",
+     "address": "B-9, 11th Floor, Brigade Summit, ITPL Main Road, Brigade Metropolis, Garudachar Palya, Bengaluru 560048",
+     "lat": 12.992024,
+     "lng": 77.703572,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI with full address 'B-9, 11th Floor, Brigade Summit, ITPL Main Road, Brigade Metropolis, Garudachar Palya' and website kapture.cx https://www.openstreetmap.org/node/12740766401",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12740766401"
+   ]
+  },
+  {
+   "name": "Awfis",
+   "aliases": [
+    "Awfis Space Solutions"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Listed flexible-workspace operator (founded 2015); runs a coworking centre in the B-9 Summit building of Brigade Metropolis.",
+   "hqCity": "New Delhi",
+   "hqCountry": "India",
+   "founded": 2015,
+   "website": "https://www.awfis.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Awfis Brigade Metropolis",
+     "techPark": "Brigade Metropolis",
+     "building": "Summit (B-9)",
+     "locality": "Garudachar Palya, Mahadevapura",
+     "address": "B-9, ITPL Main Road, Brigade Metropolis, Garudachar Palya, Mahadevapura, Bengaluru 560048",
+     "lat": 12.992032,
+     "lng": 77.70349,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Listing gives Awfis's address as 'B-9, ITPL Main Rd, Brigade Metropolis, Garudachar Palya, Mahadevapura, Bengaluru 560048'; B-9 is the Summit tower (Photon) https://liquidspace.com/in/ka/bengaluru/awfis-coworking-brigade-metropolis",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "http://www.brigadegroup.com/commercial/legacy-projects",
+    "https://liquidspace.com/in/ka/bengaluru/awfis-coworking-brigade-metropolis"
+   ]
+  },
+  {
+   "name": "Capgemini",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "IT services and consulting; large EPIP Whitefield campus plus an office mapped in Summit 1, Brigade Metropolis.",
+   "hqCity": "Paris",
+   "hqCountry": "France",
+   "founded": 1967,
+   "website": "https://www.capgemini.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "EPIP Whitefield campus",
+     "techPark": "EPIP Zone Whitefield",
+     "building": null,
+     "locality": "EPIP Zone, Whitefield",
+     "address": "117 & 118, Road No 3, EPIP Zone, Whitefield, Bengaluru 560066",
+     "lat": 12.969715,
+     "lng": 77.724754,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps Capgemini buildings at '117 & 118, Road No 3, EPIP Zone, Whitefield' with capgemini.com website (plus the Dartmoor block on ITPL Main Road) https://www.openstreetmap.org/way/181461602",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Summit 1, Brigade Metropolis",
+     "techPark": "Brigade Metropolis",
+     "building": "Summit 1",
+     "locality": "Garudachar Palya, Mahadevapura",
+     "address": "Summit, Brigade Metropolis, Whitefield Road, Mahadevapura, Bengaluru 560048",
+     "lat": 12.992871,
+     "lng": 77.703457,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Capgemini' on the Summit 1 building of Brigade Metropolis; no primary source reached https://www.openstreetmap.org/node/1097756160",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/1097756160",
+    "https://www.openstreetmap.org/way/181461602"
+   ]
+  },
+  {
+   "name": "Volvo Group",
+   "aliases": [
+    "Volvo Group India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Trucks and construction equipment; Volvo Group India's Bengaluru offices are mapped in Bagmane Tech Park and Summit 2, Brigade Metropolis.",
+   "hqCity": "Gothenburg",
+   "hqCountry": "Sweden",
+   "founded": 1927,
+   "website": "https://www.volvogroup.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Tech Park",
+     "techPark": "Bagmane Tech Park",
+     "building": null,
+     "locality": "C V Raman Nagar",
+     "address": "Bagmane Tech Park, C V Raman Nagar, Bengaluru 560093",
+     "lat": 12.97899,
+     "lng": 77.66587,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Volvo Group India Private Limited', CV Raman Nagar (Bagmane Tech Park); Wikipedia lists Volvo among Bagmane Tech Park tenants https://www.openstreetmap.org/node/5571447701 ; https://en.wikipedia.org/wiki/Bagmane_Group",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Summit 2, Brigade Metropolis",
+     "techPark": "Brigade Metropolis",
+     "building": "Summit 2",
+     "locality": "Garudachar Palya, Mahadevapura",
+     "address": "Summit, Brigade Metropolis, Whitefield Road, Mahadevapura, Bengaluru 560048",
+     "lat": 12.991912,
+     "lng": 77.703447,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Volvo' on the Summit 2 building of Brigade Metropolis; no primary source reached https://www.openstreetmap.org/node/1839605386",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Bagmane_Group",
+    "https://www.openstreetmap.org/node/1839605386",
+    "https://www.openstreetmap.org/node/5571447701"
+   ]
+  },
+  {
+   "name": "The Executive Centre",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Real estate & infrastructure",
+   "description": "Hong Kong flexible-workspace operator; its Bengaluru east centre is Level 8, B3 Building, Prestige Technostar.",
+   "hqCity": "Hong Kong",
+   "hqCountry": "Hong Kong",
+   "founded": 1994,
+   "website": "https://www.executivecentre.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Technostar, B3 Building",
+     "techPark": "Prestige Technostar",
+     "building": "B3 Building, Level 8",
+     "locality": "Doddanekundi Industrial Area 2, Brookefield",
+     "address": "Level 8, B3 Building, Prestige Technostar, Doddanekundi Industrial Area 2, Phase 1, Brookefield, Bengaluru 560048",
+     "lat": 12.973216,
+     "lng": 77.710183,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Operator's own page: 'Level 8, Prestige Technostar, B3 Building, Doddanakundi Industrial Area 2, Phase 1, Brookefield, Bangalore 560048'; OSM POI inside the park https://www.executivecentre.com/en-in/office-space/prestige-technostar/ ; https://www.openstreetmap.org/node/10291118239",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.executivecentre.com/en-in/office-space/prestige-technostar/",
+    "https://www.instantoffices.com/de/in/buroraume/bengaluru-bangalore/brookefield-53908"
+   ]
+  },
+  {
+   "name": "AMD",
+   "aliases": [
+    "Advanced Micro Devices",
+    "AMD India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "CPU/GPU designer; AMD India's Bengaluru sites mapped by OSM include the EPIP Whitefield campus (Plots 102-103) and an office in Prestige Technostar.",
+   "hqCity": "Santa Clara",
+   "hqCountry": "United States",
+   "founded": 1969,
+   "website": "https://www.amd.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "EPIP Whitefield campus",
+     "techPark": "EPIP Zone Whitefield",
+     "building": "100Whitefield",
+     "locality": "EPIP Zone, Whitefield",
+     "address": "Plot 102-103, EPIP Zone, Whitefield, Bengaluru 560066",
+     "lat": 12.975342,
+     "lng": 77.725791,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'AMD' with address '102-103, EPIP Zone' (the 100Whitefield building) https://www.openstreetmap.org/node/1821738998",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Prestige Technostar",
+     "techPark": "Prestige Technostar",
+     "building": null,
+     "locality": "Doddanekundi Industrial Area 2, Brookefield",
+     "address": "Prestige Technostar, Doddanekundi Industrial Area 2, Brookefield, Bengaluru 560048",
+     "lat": 12.973285,
+     "lng": 77.709989,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'AMD' inside the Prestige Technostar polygon; no primary source reached https://www.openstreetmap.org/node/9811266170",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/1821738998",
+    "https://www.openstreetmap.org/node/9811266170"
+   ]
+  },
+  {
+   "name": "o9 Solutions",
+   "aliases": [],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "AI-driven supply-chain planning platform (unicorn); Bengaluru engineering office in Prestige Technostar.",
+   "hqCity": "Dallas",
+   "hqCountry": "United States",
+   "founded": 2009,
+   "website": "https://o9solutions.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Technostar",
+     "techPark": "Prestige Technostar",
+     "building": null,
+     "locality": "Doddanekundi, ITPL Main Road",
+     "address": "Prestige Technostar, ITPL Main Road, Doddanekundi, Bengaluru 560048",
+     "lat": 12.973366,
+     "lng": 77.710112,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'o9 Solutions' (ITPL Main Road, Doddanekundi, website o9solutions.com) inside Prestige Technostar; company page not reachable https://www.openstreetmap.org/node/10750816339",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/10750816339"
+   ]
+  },
+  {
+   "name": "Netskope",
+   "aliases": [
+    "Netskope India"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "Cloud security (SASE) vendor; Netskope India's Bengaluru engineering office is mapped in Prestige Technostar.",
+   "hqCity": "Santa Clara",
+   "hqCountry": "United States",
+   "founded": 2012,
+   "website": "https://www.netskope.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Technostar",
+     "techPark": "Prestige Technostar",
+     "building": null,
+     "locality": "Doddanekundi, ITPL Main Road",
+     "address": "Prestige Technostar, Doddanekundi, Bengaluru 560048",
+     "lat": 12.973723,
+     "lng": 77.711811,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Netskope India' at the eastern edge of the Prestige Technostar polygon; no primary source reached https://www.openstreetmap.org/node/10978033374",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/10978033374"
+   ]
+  },
+  {
+   "name": "WNS",
+   "aliases": [
+    "WNS Global Services"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Business process management (listed, ~60,000 staff); OSM records a WNS office just north of Prestige Technostar on ITPL Main Road, Doddanekundi.",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 1996,
+   "website": "https://www.wns.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "ITPL Main Road, Doddanekundi",
+     "techPark": null,
+     "building": null,
+     "locality": "Doddanekundi Industrial Area",
+     "address": "ITPL Main Road, Doddanekundi, Bengaluru 560048",
+     "lat": 12.975352,
+     "lng": 77.711304,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'WNS' on ITPL Main Road beside Prestige Technostar; no primary source reached https://www.openstreetmap.org/node/10702472537",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/10702472537"
+   ]
+  },
+  {
+   "name": "Harman",
+   "aliases": [
+    "Harman International",
+    "Harman Connected Services"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Samsung's connected-car and audio subsidiary; OSM labels a 'Harman Corporate Headquarters' building on ITPL Main Road, Doddanekundi (Harman also has Whitefield and ORR sites).",
+   "hqCity": "Stamford",
+   "hqCountry": "United States",
+   "founded": 1980,
+   "website": "https://www.harman.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "ITPL Main Road, Doddanekundi",
+     "techPark": null,
+     "building": null,
+     "locality": "Doddanekundi Industrial Area",
+     "address": "ITPL Main Road, Doddanekundi, Bengaluru 560048",
+     "lat": 12.974465,
+     "lng": 77.711589,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Harman Corporate Headquarters' on ITPL Main Road just outside the Prestige Technostar polygon; corporate locations page not reachable https://www.openstreetmap.org/node/10702472536",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/10702472536"
+   ]
+  },
+  {
+   "name": "GE Aerospace",
+   "aliases": [
+    "General Electric",
+    "JFWTC",
+    "GE India Technology Centre"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "John F. Welch Technology Centre, GE's first and largest R&D centre outside the US, on EPIP Phase 2 Whitefield (now GE Aerospace).",
+   "hqCity": "Evendale",
+   "hqCountry": "United States",
+   "founded": 1892,
+   "website": "https://www.geaerospace.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "John F. Welch Technology Centre",
+     "techPark": "John F. Welch Technology Centre",
+     "building": null,
+     "locality": "EPIP Zone Phase 2, Whitefield",
+     "address": "Plot 122, EPIP Phase 2, Whitefield Road, Bengaluru 560066",
+     "lat": 12.973354,
+     "lng": 77.724192,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps the 'John F. Welch Technology Centre' campus (operator General Electric, website ge.com/research .../bengaluru) on EPIP Phase 2; a 'GE 5G Innovation Lab' POI sits beside it https://www.openstreetmap.org/way/180969776",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/180969776"
+   ]
+  },
+  {
+   "name": "Microchip Technology",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "Microcontroller and analog chipmaker; its Bengaluru design centre is at Plot 149-B, EPIP Industrial Area, adjacent to the Mindcomp and Featherlite parks.",
+   "hqCity": "Chandler",
+   "hqCountry": "United States",
+   "founded": 1989,
+   "website": "https://www.microchip.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Plot 149-B, EPIP Industrial Area",
+     "techPark": null,
+     "building": null,
+     "locality": "EPIP Zone, Whitefield Road (Doddanekundi side)",
+     "address": "Plot 149-B, EPIP Industrial Area, Whitefield Road, Bengaluru 560066",
+     "lat": 12.981854,
+     "lng": 77.721583,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM office POI 'Microchip Technology India Pvt Ltd' with address 'Plot No. 149-B, EPIP Industrial area'; it falls on the edge of the Mindcomp Tech Park polygon https://www.openstreetmap.org/node/3440420564",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/3440420564"
+   ]
+  },
+  {
+   "name": "Srijan Technologies",
+   "aliases": [
+    "Material+",
+    "Srijan"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Delhi-headquartered digital engineering firm (part of Material); OSM records its Bengaluru office inside Prestige Featherlite Tech Park.",
+   "hqCity": "New Delhi",
+   "hqCountry": "India",
+   "founded": 2002,
+   "website": "https://www.srijan.net",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Featherlite Tech Park",
+     "techPark": "Prestige Featherlite Tech Park",
+     "building": null,
+     "locality": "EPIP Zone, Whitefield Road (Doddanekundi side)",
+     "address": "Plot 148, Prestige Featherlite Tech Park, EPIP Zone, Whitefield Road, Bengaluru 560066",
+     "lat": 12.981509,
+     "lng": 77.720992,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'SrijanTechnologies Bangalore' lies inside the Prestige Featherlite Tech Park polygon; no primary source reached https://www.openstreetmap.org/node/10715829318",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/10715829318"
+   ]
+  },
+  {
+   "name": "ST Telemedia Global Data Centres",
+   "aliases": [
+    "STT GDC India",
+    "Tata Communications Data Centres (former)"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Telecom & networking",
+   "description": "Singapore-headquartered data-centre operator; its Bengaluru Whitefield data centre occupies Plots 142-145, EPIP Zone, next to Mindcomp Tech Park.",
+   "hqCity": "Singapore",
+   "hqCountry": "Singapore",
+   "founded": 2014,
+   "website": "https://www.sttelemediagdc.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "STT Bengaluru data centre, EPIP",
+     "techPark": null,
+     "building": null,
+     "locality": "EPIP Zone, Whitefield Road",
+     "address": "Plots 142-145, EPIP Zone, Whitefield Road, Bengaluru 560066",
+     "lat": 12.981233,
+     "lng": 77.719978,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps the 'STTelemedia Global Data Centeres' building with housenumbers '142,143,144,145' on EPIP Zone; no primary source reached https://www.openstreetmap.org/way/1151907065",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/1151907065"
+   ]
+  },
+  {
+   "name": "Hindustan Aeronautics Limited",
+   "aliases": [
+    "HAL",
+    "HAL ARDC"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "description": "State-owned aerospace manufacturer headquartered in Bengaluru; its Aircraft Research & Design Centre (ARDC) sits on the ORR at Marathahalli, at the western edge of this lens.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1940,
+   "website": "https://hal-india.co.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Aircraft Research and Design Centre (ARDC)",
+     "techPark": null,
+     "building": null,
+     "locality": "Marathahalli, Outer Ring Road",
+     "address": "Aircraft Research and Design Centre, Marathahalli, Outer Ring Road, Bengaluru 560037",
+     "lat": 12.963189,
+     "lng": 77.68668,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps the 'Aircraft Research and Design Centre' (office=research) complex on the ORR at Marathahalli; HAL's main complex is at Vimanapura (other lens) https://www.openstreetmap.org/way/347058402",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/347058402"
+   ]
+  },
+  {
+   "name": "Netradyne",
+   "aliases": [],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "AI & deep tech",
+   "description": "AI fleet-safety camera company (unicorn) with a large Bengaluru engineering team; OSM places its office in east Whitefield, not in the Bagmane parks.",
+   "hqCity": "San Diego",
+   "hqCountry": "United States",
+   "founded": 2015,
+   "website": "https://www.netradyne.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Whitefield office",
+     "techPark": null,
+     "building": null,
+     "locality": "Whitefield (east, near Kadugodi)",
+     "address": "Whitefield, Bengaluru 560066",
+     "lat": 12.98292,
+     "lng": 77.75123,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Netradyne' in east Whitefield; company contact page not reachable, so the exact building is unconfirmed https://www.openstreetmap.org/node/12901416853",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12901416853"
+   ]
+  }
+ ],
+ "coverageNotes": "WebSearch budget for the shared run was exhausted after ~12 queries, so most verification came from WebFetch of primary pages (Bagmane's Constellation/Capital/Solarium occupier pages, arm.com, aboutamazon.in, executivecentre.com, tataelxsi.com), lease news (Realty Today, Cyril Amarchand, Yahoo Finance, Equipment India, Electronics For You/HT via NAREDCO) and the OSM office POI and landuse extracts; OSM-only tenancies are marked low (medium only where the POI carries a street address, a named building or an official website). Could not confirm in this lens: Siemens, Walmart Global Tech (OSM puts Walmart Labs at Kadubeesanahalli), Juniper, Oracle, Nokia (OSM: Manyata), Intel (OSM: RMZ Ecospace/Sarjapur ORR), Sabre, Kyndryl and Zoho - no office of theirs was found in the Bagmane/Mahadevapura parks, so they are omitted rather than guessed. Infineon's reported ~6.3 lakh sq ft lease at 'Solarium City' appeared only in a search snippet that mis-named the developer and could not be fetched, so it is left out. Arm's older Citrine Block office in Bagmane WTC (still an OSM POI) is omitted because arm.com now lists only Taurus 4. Deloitte, Microsoft, BNP Paribas, Databricks and Visteon rest on a developer occupier list or a single press mention with no tower, and use park centroids. Nvidia's Memphis South office is recorded active on the strength of a lease effective 1 Apr 2026; fit-out/occupation was not verified. Google Ananta's park is taken from the OSM/Nominatim name 'Google Ananta, Bagmane Rio Business Park' plus press placing it in Mahadevapura built by Bagmane; the REIT's 1.1 msf figure for Rio does not match the 1.6 msf press figure, noted in the park description. Prestige Technopolis geocodes to S.G. Palya / Hosur Road (12.937, 77.608), far outside this lens, and GR Tech Park resolves to Whitefield Road at Belathur (east Whitefield), so both were treated as not part of the Mahadevapura cluster (GR Tech Park is listed with no tenants). Tenants of Prestige Featherlite Tech Park and Sattva Mindcomp Tech Park could not be confirmed from any primary or press source (operator pages returned 403/empty). Deliberately left to neighbouring lenses although visible in the OSM extract: Brigade Tech Gardens (Mercedes-Benz R&D, JLR, Aptiv), Kalyani Platina (HPE, Byju's, Delphi), the EPIP/ITPL Whitefield campuses (Capgemini, Accenture, Intel ITPL Rd, Tesco, Huawei, Hindustan Unilever, ExxonMobil, Applied Materials, Texas Instruments) and Brigade Nalapad Centre (McKinsey, Flipkart, Quantiphi, Airbus POIs - OSM only). Capgemini EPIP, AMD EPIP, GE JFWTC, Qualcomm EPIP and Tata Elxsi Whitefield are included only because the same companies also have offices inside this lens. No PSU other than HAL's ARDC was found in the lens; Airports Authority of India has an office in Doddanekundi (OSM) but its function could not be confirmed."
+}

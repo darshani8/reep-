@@ -1,0 +1,405 @@
+{
+ "key": "V04",
+ "corrections": [
+  {
+   "company": "himatsingka-seide",
+   "verdict": "keep",
+   "note": "Registered office moved from 10/24 Kumara Krupa Road to No. 4/1-2 Crescent Road, Bengaluru 560001 effective 23 Oct 2024 per the company's NSE intimation https://nsearchives.nseindia.com/corporate/HIMATSEIDE_23102024125240_SEIntimation_Change_RO.pdf; office re-pinned to the Nominatim geocode of Crescent Road (High Grounds).",
+   "set": {
+    "description": "Home-textiles maker; registered office moved in October 2024 from Kumara Krupa Road to Crescent Road, High Grounds (plants at Hassan and Doddaballapur are outside the metro box)."
+   },
+   "offices": [
+    {
+     "office": "himatsingka-seide~586d8d",
+     "verdict": "fix",
+     "note": "Old Kumara Krupa Road address is stale since 23 Oct 2024; moved to Crescent Road per NSE filing. Pin is Nominatim's Crescent Road way/36912473 centroid, not the building, hence medium.",
+     "set": {
+      "label": "Registered office - 4/1-2 Crescent Road",
+      "locality": "High Grounds",
+      "address": "No. 4/1-2, Crescent Road, High Grounds, Bengaluru 560001",
+      "lat": 12.987547,
+      "lng": 77.582661,
+      "confidence": "medium",
+      "evidence": "Himatsingka Seide's NSE intimation of change of registered office (effective 23 Oct 2024) moves it from 10/24 Kumara Krupa Road to No. 4/1-2, Crescent Road, Bengaluru 560001: https://nsearchives.nseindia.com/corporate/HIMATSEIDE_23102024125240_SEIntimation_Change_RO.pdf ; pin is the Nominatim geocode of Crescent Road (way/36912473), not the building."
+     }
+    }
+   ]
+  },
+  {
+   "company": "hinduja-global-solutions",
+   "verdict": "keep",
+   "note": "HGS's BSE/NSE filings (2023-2026) give its Bengaluru corporate office as Gold Hill Square Software Park, No. 690, 1st Floor, Hosur Road, Bommanahalli 560068 (registered office is in Mumbai, BKC); HGS House record re-pointed there and the AMR Tech Park OSM node (240 m away, a building now occupied by HGS's divested healthcare arm Sagility) dropped as a duplicate/stale record. https://bseindia.com/xml-data/corpfiling/AttachLive/0ddcae8d-0d22-4c9b-a77a-e140e54b8c8b.pdf",
+   "set": {
+    "description": "Hinduja group customer-experience and digital-media services company (listed); registered office in Mumbai, corporate office at Gold Hill Square Software Park on Hosur Road, Bommanahalli, plus a recorded office in Pritech Park (Bellandur). Its healthcare BPM business became Sagility in 2021-22."
+   },
+   "offices": [
+    {
+     "office": "hinduja-global-solutions~59dc01",
+     "verdict": "fix",
+     "note": "Filings name Gold Hill Square Software Park (No. 690, Hosur Road), ~300 m north of the OSM 'HGS House' polygon; re-pinned to Photon's Gold Hill Square way/128211143.",
+     "set": {
+      "label": "Corporate office - Gold Hill Square Software Park, Hosur Road",
+      "building": "Gold Hill Square Software Park",
+      "locality": "Bommanahalli (Hosur Road)",
+      "address": "Gold Hill Square Software Park, No. 690, 1st Floor, Hosur Road, Bommanahalli, Bengaluru 560068",
+      "lat": 12.901598,
+      "lng": 77.632974,
+      "confidence": "high",
+      "evidence": "HGS exchange filings (BSE 2023, NSE 2026) give the corporate office as Gold Hill Square Software Park, No. 690, 1st Floor, Hosur Road, Bommanahalli, Bengaluru 560068, tel +91-80-4643 1000: https://bseindia.com/xml-data/corpfiling/AttachLive/0ddcae8d-0d22-4c9b-a77a-e140e54b8c8b.pdf ; pin is Photon's Gold Hill Square (OSM way/128211143)."
+     }
+    },
+    {
+     "office": "hinduja-global-solutions~ab6059",
+     "verdict": "drop",
+     "note": "Under 400 m from the corporate-office record and supported only by an OSM node; AMR Tech Park (Building 2) is Sagility's registered office and OSM carries two Sagility Health nodes there, so the HGS node is most likely a pre-divestment leftover."
+    }
+   ]
+  },
+  {
+   "company": "hindustan-aeronautics-ltd",
+   "verdict": "keep",
+   "note": "Duplicates resolved: ARDC was recorded twice (Design Complex record from HAL's own mailing list kept) and the Bangalore Complex was recorded twice (OSM 'HAL Main Gate' record kept, HAL-airport-runway pin dropped); offices whose pins sit inside the HAL Bangalore Complex park polygon now carry that park. https://hal-india.co.in/backend/wp-content/uploads/career/Annexure-II%20Mailing%20Addresses%20of%20Divisions_1753697332.pdf",
+   "offices": [
+    {
+     "office": "hindustan-aeronautics-ltd~d7c38a",
+     "verdict": "drop",
+     "note": "Same ARDC campus as hindustan-aeronautics-ltd~100c5f (about 200 m apart, OSM way/347058402 vs way/165830055); the Design Complex record carries HAL's own mailing-list evidence and the park."
+    },
+    {
+     "office": "hindustan-aeronautics-ltd~d18889",
+     "verdict": "drop",
+     "note": "Same 'Bangalore Complex - Aircraft, Engine, Overhaul, Foundry & Forge divisions' entity as hindustan-aeronautics-ltd~4abe9d; this one is pinned on the HAL Airport runway (Nominatim) rather than a gate, so the OSM HAL Main Gate record is kept."
+    },
+    {
+     "office": "hindustan-aeronautics-ltd~ecd83e",
+     "verdict": "drop",
+     "note": "OSM-only 'Facilities Management division' node about 210 m from the Bangalore Complex main-gate record; a support division inside the same complex, not a separate office."
+    },
+    {
+     "office": "hindustan-aeronautics-ltd~4abe9d",
+     "verdict": "fix",
+     "note": "Pin (OSM HAL Main Gate) lies inside the HAL Bangalore Complex park bbox; park was missing.",
+     "set": {
+      "techPark": "HAL Bangalore Complex"
+     }
+    },
+    {
+     "office": "hindustan-aeronautics-ltd~db6044",
+     "verdict": "fix",
+     "note": "Helicopter Division polygon centroid lies inside the HAL Bangalore Complex park bbox; park was missing.",
+     "set": {
+      "techPark": "HAL Bangalore Complex"
+     }
+    },
+    {
+     "office": "hindustan-aeronautics-ltd~b8cb2a",
+     "verdict": "fix",
+     "note": "Tejas Phase 2 polygon centroid lies inside the HAL Bangalore Complex park bbox; park was missing.",
+     "set": {
+      "techPark": "HAL Bangalore Complex"
+     }
+    },
+    {
+     "office": "hindustan-aeronautics-ltd~8d7632",
+     "verdict": "fix",
+     "note": "Aerospace Division polygon centroid lies inside the HAL Bangalore Complex park bbox; park was missing.",
+     "set": {
+      "techPark": "HAL Bangalore Complex"
+     }
+    }
+   ]
+  },
+  {
+   "company": "hl-mando",
+   "verdict": "keep",
+   "note": "HL Mando Softtech India's own site lists two offices, Gurugram (WorldMark, Sector 65) and Bengaluru at AMR Tech Park 1A, Ground Floor, Hongasandra 560068, matching the OSM pin: https://www.hlmandosofttech.com/",
+   "set": {
+    "description": "Korean auto-components group (brakes, steering, ADAS); its Indian software arm HL Mando Softtech India has offices in Gurugram and in AMR Tech Park on Hosur Road, Bengaluru."
+   },
+   "offices": [
+    {
+     "office": "hl-mando~cbf0a3",
+     "verdict": "fix",
+     "note": "Confirmed by the company's own site; building and address refined.",
+     "set": {
+      "label": "HL Mando Softtech India - AMR Tech Park (Block 1A)",
+      "building": "AMR Tech Park Block 1A",
+      "address": "AMR Tech Park, 1A, Ground Floor, Sy No 23 & 24, Hongasandra Village, Hosur Main Road, Bengaluru 560068",
+      "confidence": "high",
+      "evidence": "HL Mando Softtech India's website lists its Bengaluru office at 'AMR Tech Park, 1a, Ground Floor, Sy No 23 and 24, Hongasandra Village, Hongasandra, Bengaluru - 560068' (https://www.hlmandosofttech.com/); OSM node/9253530904 'Mando Softtech India Pvt Ltd' sits at the same spot."
+     }
+    }
+   ]
+  },
+  {
+   "company": "humanetics",
+   "verdict": "keep",
+   "note": "Humanetics' contact page lists 'Humanetics India, August Center, 3HVX+VCV, Yelahanka Bypass, Kempegowda Int'l Airport Rd, Yelahanka, Bengaluru 560064'; the plus code decodes to ~13.0946, 77.5985, within ~30 m of the existing pin: https://humaneticsgroup.com/about-us/contact-us",
+   "offices": [
+    {
+     "office": "humanetics~d4bfb8",
+     "verdict": "fix",
+     "note": "Confirmed by the company's contact page; pin agrees with the published plus code.",
+     "set": {
+      "label": "Humanetics India - August Center, Yelahanka",
+      "address": "August Center, 3HVX+VCV, Opp. Cafe Coffee Day, Yelahanka Bypass, Kempegowda International Airport Road, Yelahanka, Bengaluru 560064",
+      "confidence": "high",
+      "evidence": "Humanetics' contact page lists Humanetics India at August Center, 3HVX+VCV, Yelahanka Bypass, Kempegowda Int'l Airport Rd, Yelahanka, Bengaluru 560064 (https://humaneticsgroup.com/about-us/contact-us); the plus code and OSM node/12071642792 agree with the pin."
+     }
+    }
+   ]
+  },
+  {
+   "company": "huron",
+   "verdict": "keep",
+   "note": "Huron's locations page lists two Bengaluru offices of Huron Eurasia India: Global Technology Park Tower A 9th Floor (confirmed) and Primeco Towers Block A, Bannerghatta Road (added): https://www.huronconsultinggroup.com/company/about-us/locations",
+   "set": {
+    "description": "Chicago-based consultancy; its India arm Huron Eurasia India runs two Bengaluru offices, at Global Technology Park (ORR, Devarabeesanahalli) and Primeco Towers (Bannerghatta Road, Arekere)."
+   },
+   "offices": [
+    {
+     "office": "huron~d1fa61",
+     "verdict": "fix",
+     "note": "Confirmed on Huron's own locations page; floor/tower added.",
+     "set": {
+      "building": "Tower A, 9th Floor",
+      "address": "Global Technology Park, Tower A, 9th Floor, Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+      "confidence": "high",
+      "evidence": "Huron's locations page lists 'Global Technology Park, Tower A, 9th Floor, Outer Ring Road, Devarabeesanahalli, Bengaluru 560103' for Huron Eurasia India Private Limited: https://www.huronconsultinggroup.com/company/about-us/locations"
+     }
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "Primeco Towers - Bannerghatta Road",
+     "building": "SJR Primeco Towers, Block A",
+     "locality": "Arekere / Panduranga Nagar (Bannerghatta Road)",
+     "address": "Primeco Towers, Block A, 3rd and 12th Floors, Bannerughatta Main Road, Arekere MICO Layout Main Road, Panduranga Nagar, Bengaluru 560076",
+     "lat": 12.891682,
+     "lng": 77.596373,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "evidence": "Huron's locations page lists Huron Eurasia India Pvt Ltd at 'Primeco Towers, Block A, 3rd and 12th Floors, Bannerughatta Main Road, Arekere MICO Layout Main Road, Panduranga Naga, Bengaluru 560076' (https://www.huronconsultinggroup.com/company/about-us/locations); pin is Nominatim's 'SJR Primeco Towers' (OSM way/1149959379)."
+    }
+   ]
+  },
+  {
+   "company": "indeed",
+   "verdict": "keep",
+   "note": "Could not confirm: indeed.com/about/offices returns HTTP 403 and three searches found no company, press or registry source for a Bengaluru office; the only evidence remains OSM node/4308189999 in Prestige Obelisk, so the office stays low."
+  },
+  {
+   "company": "indiqube",
+   "verdict": "keep",
+   "note": "Symphony and Logos are two distinct IndiQube centres in Craig Park Layout (separate OSM features; CoworkingCafe lists Symphony, myHQ lists Logos at 206 MG Road), so neither is dropped; the registered & corporate office is Plot #53, Careernet Campus, Kariyammana Agrahara Road, Devarabeesanahalli 560103 per 2026 NSE filings, not Kudlu Gate - added. https://nsearchives.nseindia.com/corporate/INDIQUBE_01062026165203_INDIQUBE1.pdf",
+   "set": {
+    "description": "Bengaluru-headquartered, NSE-listed (2025) managed-workspace operator; registered and corporate office at the Careernet Campus on Kariyammana Agrahara Road (ORR, Devarabeesanahalli), with a cluster of CBD centres around MG Road, Richmond Road and St Mark's Road."
+   },
+   "offices": [
+    {
+     "office": "indiqube~e4484e",
+     "verdict": "fix",
+     "note": "Distinct from IndiQube Symphony (~330 m away, separate OSM features); address corrected to the listed 206 MG Road, Craig Park Layout.",
+     "set": {
+      "label": "IndiQube Logos - MG Road (Craig Park Layout)",
+      "locality": "MG Road / Craig Park Layout",
+      "address": "IndiQube Logos, 206, Mahatma Gandhi Road, Craig Park Layout, Ashok Nagar, Bengaluru 560001",
+      "evidence": "OSM coworking POI 'IndiQube Logos' (operator IndiQube, house number 206, Ashok Nagar 560001; node/10138074572) and a myHQ listing giving '206, Mahatma Gandhi Rd, Craig Park Layout, Ashok Nagar, Bengaluru 560001' (https://myhq.in/managed-office/indiqube-ashoknagar-2)."
+     }
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "Registered & corporate office - Careernet Campus, Kariyammana Agrahara Road",
+     "building": "Careernet Campus",
+     "locality": "Devarabeesanahalli (Outer Ring Road)",
+     "address": "Plot #53, Careernet Campus, Kariyammanna Agrahara Road, Devarabisanahalli, Outer Ring Road, Bengaluru 560103",
+     "lat": 12.932194,
+     "lng": 77.68609,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "evidence": "IndiQube Spaces Ltd's June 2026 NSE filing gives the registered and corporate office as Plot #53, Careernet Campus, Kariyammanna Agrahara Road, Devarabisanahalli, Outer Ring Road, Bengaluru 560103 (CIN L45400KA2015PLC133523): https://nsearchives.nseindia.com/corporate/INDIQUBE_01062026165203_INDIQUBE1.pdf ; pin is OSM node/2987449040 'CareerNet Technologies' (Photon), beside OSM coworking node 'IndiQube iNiche'."
+    }
+   ]
+  },
+  {
+   "company": "infibeam-avenues",
+   "verdict": "keep",
+   "note": "ia.ooo now 301-redirects to avenuesai.com, whose contact page names 'AvenuesAI Limited' at Infibeam's GIFT City registered address (company renamed); no Bengaluru address there, but the group's BillAvenue contact page lists Level 9, Raheja Tower, MG Road (added), and the OSM Sanjaynagar office's address is corrected from its own tags. https://www.billavenue.com/contact_us.jsp",
+   "set": {
+    "name": "AvenuesAI (Infibeam Avenues)",
+    "website": "https://www.avenuesai.com",
+    "description": "Gandhinagar (GIFT City)-registered listed payments company formerly named Infibeam Avenues (CCAvenue, BillAvenue), now AvenuesAI Limited; its BillAvenue arm lists a Bengaluru office in Raheja Towers on MG Road, and OSM records another at Sanjaynagar."
+   },
+   "offices": [
+    {
+     "office": "infibeam-avenues~f132e1",
+     "verdict": "fix",
+     "note": "The OSM node's own tags give '3rd floor, Cornerwoods, Sanjaynagar Main Road, 560094' (Nominatim agrees within 20 m); the Kodigehalli/560092 label was wrong. Still unconfirmed by the company, so stays low.",
+     "set": {
+      "label": "Cornerwoods - Sanjaynagar Main Road (OSM-recorded)",
+      "building": "Cornerwoods",
+      "locality": "Sanjaynagar",
+      "address": "3rd floor, Cornerwoods, Sanjaynagar Main Road, Bengaluru 560094",
+      "evidence": "OSM-only: node/11368650330 'Infibeam Avenues' (website ia.ooo) tagged '3rd floor, Cornerwoods, Sanjaynagar Main Road, 560094'; not listed on the company's own contact page (https://www.avenuesai.com/contact-us)."
+     }
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "Raheja Towers - MG Road (BillAvenue)",
+     "building": "Raheja Towers",
+     "locality": "MG Road",
+     "address": "Level 9, Raheja Tower, 27-37, M G Road, Bengaluru 560001",
+     "lat": 12.973388,
+     "lng": 77.613879,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": "Raheja Towers",
+     "evidence": "The contact page of BillAvenue, Infibeam Avenues' bill-payments platform, lists a Bengaluru office at 'Level 9, Raheja Tower, 27-37, M G Road, Bengaluru - 560001' (https://www.billavenue.com/contact_us.jsp); pin is the OSM Raheja Towers polygon (way/369295558)."
+    }
+   ]
+  },
+  {
+   "company": "ingersoll-rand",
+   "verdict": "keep",
+   "note": "Ingersoll-Rand (India) Ltd's registered office is First Floor, Subramanya Arcade, No. 12/1, Bannerghatta Road, Bengaluru 560029 (moved from IBC Knowledge Park on 1 Jan 2020, repeated in 2024 BSE filings); the unaddressed OSM POI near Infantry Road is replaced by it. https://bseindia.com/xml-data/corpfiling/AttachHis/55805cf6-3e12-45d4-8b29-ba3a6ab2d4d2.pdf",
+   "set": {
+    "description": "US compressor and industrial-tools group whose listed Indian arm, Ingersoll-Rand (India) Ltd, has its registered office in Subramanya Arcade on Bannerghatta Road, Bengaluru."
+   },
+   "offices": [
+    {
+     "office": "ingersoll-rand~31e35b",
+     "verdict": "fix",
+     "note": "The OSM-only Infantry Road POI has no address and no corroboration; the filings' registered office replaces it, pinned to Photon's 'Subramanya Arcade, Bannerghatta Road' node/922289018.",
+     "set": {
+      "label": "Registered office - Subramanya Arcade, Bannerghatta Road",
+      "building": "Subramanya Arcade",
+      "locality": "Bannerghatta Road (N.A.L. Layout)",
+      "address": "First Floor, Subramanya Arcade, No. 12/1, Bannerghatta Road, Bengaluru 560029",
+      "lat": 12.924695,
+      "lng": 77.601296,
+      "confidence": "high",
+      "evidence": "Ingersoll-Rand (India) Ltd BSE filings give the registered office (from 1 Jan 2020) as First Floor, Subramanya Arcade, No. 12/1, Bannerghatta Road, Bengaluru 560029, CIN L05190KA1921PLC036321: https://bseindia.com/xml-data/corpfiling/AttachHis/55805cf6-3e12-45d4-8b29-ba3a6ab2d4d2.pdf ; pin is Photon's 'Subramanya Arcade' (OSM node/922289018)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "iron-mountain",
+   "verdict": "keep",
+   "note": "Iron Mountain's India contact page lists its Global Delivery Center at Level 10, Citrine Block, Bagmane World Technology Centre, Mahadevapura (confirmed), and its data-centre page lists BLR-1 at 564, Survey No 107, Pattandur Agrahara, Whitefield (added); corporate HQ is Portsmouth, New Hampshire. https://www.ironmountain.com/in/contact",
+   "set": {
+    "hqCity": "Portsmouth, New Hampshire",
+    "description": "Information-management and data-centre company; Bengaluru hosts its Global Delivery Center in Bagmane WTC (Mahadevapura) and the BLR-1 colocation data centre (ex-Web Werks) at Pattandur Agrahara, Whitefield."
+   },
+   "offices": [
+    {
+     "office": "iron-mountain~0fb243",
+     "verdict": "fix",
+     "note": "Confirmed by Iron Mountain's own India contact page; block and floor added.",
+     "set": {
+      "label": "Global Delivery Center - Bagmane WTC (Citrine block)",
+      "building": "WTC-4 Citrine",
+      "address": "Level 10, Citrine Block, Bagmane World Technology Centre, K R Puram-Marathahalli Road, Mahadevapura, Bengaluru 560048",
+      "confidence": "high",
+      "evidence": "Iron Mountain's India contact page lists 'Iron Mountain Services Pvt Ltd - Global Delivery Center, Level 10, Citrine Block, Bagmane World Technology Centre, K R Puram-Marathalli Road, Mahadevapura, Bangalore 560 048' (https://www.ironmountain.com/in/contact); OSM node/5503456948 sits inside Bagmane WTC."
+     }
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "BLR-1 data centre - Pattandur Agrahara, Whitefield",
+     "building": null,
+     "locality": "Pattandur Agrahara (Whitefield)",
+     "address": "564, Survey No 107, off Whitefield Main Road, Pattandur Agrahara, Bengaluru 560066",
+     "lat": 12.987639,
+     "lng": 77.737772,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "evidence": "Iron Mountain's data-centre page lists BLR-1 at '564, Survey No 107 (off Whitefield Main Rd), Pattandur Agrahara, Bengaluru, Karnataka 560066' (https://www.ironmountain.com/data-centers/locations/bengaluru-data-center); pin is Nominatim's Pattandur Agrahara locality node/5760197749, not the building, hence medium."
+    }
+   ]
+  },
+  {
+   "company": "ivanti",
+   "verdict": "keep",
+   "note": "Ivanti's own contacts page lists one Bengaluru office: Ivanti Technology India Pvt Ltd, Bagmane Tech Park, Bagmane Tridib Rd, C V Raman Nagar 560093, matching the OSM pin: https://www.ivanti.com/company/contacts",
+   "offices": [
+    {
+     "office": "ivanti~a58815",
+     "verdict": "fix",
+     "note": "Confirmed by Ivanti's contacts page.",
+     "set": {
+      "label": "Ivanti India Development Center - Bagmane Tech Park (Tridib)",
+      "building": "Bagmane Tridib",
+      "address": "Ivanti Technology India Pvt Ltd, Bagmane Tech Park, Bagmane Tridib Road, C V Raman Nagar, Bengaluru 560093",
+      "confidence": "high",
+      "evidence": "Ivanti's contacts page lists Bengaluru: 'Ivanti Technology India Pvt Ltd, Bagmane Tech Park, Bagmane Tridib Rd, Cauveri Colony, GM Palya, C V Raman Nagar, Bengaluru 560093' (https://www.ivanti.com/company/contacts); OSM node/13437519345 'Ivanti India Development Center' is beside the Tridib block."
+     }
+    }
+   ]
+  },
+  {
+   "company": "koo",
+   "verdict": "keep",
+   "note": "Shutdown in July 2024 is recorded by Wikipedia and Inc42 and the office is already marked closed/low; the exact Indiranagar address was not re-checked (budget), so it stays low."
+  },
+  {
+   "company": "kreditbee",
+   "verdict": "keep",
+   "note": "KrazyBee Services Ltd's bond key-information documents (2023-Aug 2026) give the registered and corporate office as 3rd Floor, No. 128/9, Maruthi Sapphire, HAL Airport Road, Murugeshpalya 560017 - added as HQ; the OSM-only Old Madras Road node is kept as an unconfirmed non-HQ office. https://bond.bseindia.com/PPMFiles/2024/APR/PPM/522/8017.pdf",
+   "set": {
+    "description": "Bengaluru consumer-lending fintech operated through the NBFC KrazyBee Services Ltd (CIN U65100KA2016PLC086990), registered and corporate office at Maruthi Sapphire on HAL Old Airport Road; OSM also records an office on Old Madras Road at Benniganahalli."
+   },
+   "offices": [
+    {
+     "office": "kreditbee~7250e1",
+     "verdict": "fix",
+     "note": "Not the HQ: filings name Maruthi Sapphire, HAL Airport Road; this OSM node stays as an unconfirmed secondary office.",
+     "set": {
+      "label": "Old Madras Road office (OSM-recorded)",
+      "isHq": false
+     }
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "Registered & corporate office - Maruthi Sapphire, HAL Airport Road",
+     "building": "Maruthi Sapphire",
+     "locality": "Murugeshpalya (HAL Old Airport Road)",
+     "address": "3rd Floor, No. 128/9, Maruthi Sapphire, HAL Airport Road, Murugeshpalya, Bengaluru 560017",
+     "lat": 12.959137,
+     "lng": 77.652647,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "techPark": null,
+     "evidence": "KrazyBee Services Ltd's BSE bond placement documents (2024; same address in an Aug 2026 KID) give the registered and corporate office as 3rd Floor, No.128/9, Maruthi Sapphire, HAL Airport Road, Murugeshpalya, Bengaluru 560017: https://bond.bseindia.com/PPMFiles/2024/APR/PPM/522/8017.pdf ; pin is the OSM Maruthi Sapphire building way/332396296."
+    }
+   ]
+  },
+  {
+   "company": "kuvera",
+   "verdict": "keep",
+   "note": "The two Gandhi Bazaar records (~190 m apart) are the same address (CB Insights repeats the lapsed LEI's address); the LEI-based record is kept and the CB Insights one dropped. No current (post-CRED) address could be confirmed - one directory says Uttarahalli Main Road - so the remaining office stays low.",
+   "offices": [
+    {
+     "office": "kuvera~12054e",
+     "verdict": "drop",
+     "note": "Duplicate of kuvera~a7bcab: same 'No. 106, 3rd Floor, above Bank of Baroda, Gandhi Bazaar Main Road' address, sourced only from CB Insights."
+    }
+   ]
+  }
+ ],
+ "parkFixes": [],
+ "parkMerges": [],
+ "notes": "Not confirmed: Indeed (indeed.com/about/offices 403, no other source; OSM-only office left at low) and Koo's exact former Indiranagar address (closed, left low). HGS filings could not be opened directly (NSE 503) - the Gold Hill Square address is taken from search-quoted BSE/NSE filings. HGS's Global Village Tower A record was not re-checked and stays low (may be Sagility only). Kuvera's post-CRED-acquisition address is unknown; the Gandhi Bazaar address comes from a lapsed LEI. Himatsingka's Crescent Road and Iron Mountain BLR-1 pins are road/locality geocodes, not buildings. Infibeam Avenues was renamed AvenuesAI Limited (ia.ooo redirects to avenuesai.com); the name was set to 'AvenuesAI (Infibeam Avenues)' so the old name stays searchable - keep 'Infibeam Avenues' as an alias if the merge step supports it. Iron Mountain's HQ changed to Portsmouth, NH from my own knowledge of its 10-K address, not re-fetched."
+}

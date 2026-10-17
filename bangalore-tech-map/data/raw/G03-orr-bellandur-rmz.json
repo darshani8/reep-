@@ -1,0 +1,2566 @@
+{
+ "key": "G03-orr-bellandur-rmz",
+ "techParks": [
+  {
+   "name": "RMZ Ecoworld",
+   "aliases": [
+    "Ecoworld",
+    "Ecoworld Bengaluru",
+    "Arliga Ecoworld",
+    "Brookfield Ecoworld",
+    "RMZ Ecoworld SEZ",
+    "RMZ Ecoworld 20",
+    "RMZ Ecoworld 30",
+    "Ecoworld 2.0",
+    "Adarsh Tech Park (original developer name)"
+   ],
+   "locality": "Devarabeesanahalli, Bellandur (Outer Ring Road)",
+   "developer": "RMZ Corp (developer); Brookfield Properties / Brookfield India REIT owns the original campuses (Arliga Ecoworld Business Parks Pvt Ltd); RMZ retains Ecoworld 20 and Ecoworld 30",
+   "lat": 12.922737,
+   "lng": 77.686326,
+   "bbox": [
+    12.919377,
+    12.927099,
+    77.683266,
+    77.688737
+   ],
+   "areaSqFtMillions": 7.7,
+   "description": "The largest office campus on the Bellandur stretch of ORR, established 2016 on about 48 acres with 15 completed Grade-A blocks (Campus 1-9, each split into A/B/C/D towers) and 7.7 million sq ft of leasable space, 94% committed as of Brookfield's FY2026 note; it is the single largest asset in the Brookfield India REIT. RMZ's own newer phases, Ecoworld 20 (where Disney leased floors 6-7 in 2026) and Ecoworld 30 (Campus 30-33, 3.55 million sq ft in four towers, home to Ryan, Haleon and several flexible-office operators), carry the same name. Key occupiers named by the owner are Honeywell, Morgan Stanley, Shell, KPMG, Deloitte, State Street, Standard Chartered and Cadence; Capgemini, KPIT, BT, Allstate, Virtusa and BCG also give Ecoworld addresses. Centroid and bbox are derived from the OSM building polygons for Campus 1-9 and 30-33, because OSM has no landuse polygon for the park itself.",
+   "notableTenants": [
+    "Honeywell",
+    "Morgan Stanley",
+    "Shell",
+    "KPMG",
+    "Deloitte",
+    "State Street",
+    "Standard Chartered",
+    "Cadence Design Systems",
+    "Capgemini",
+    "KPIT Technologies",
+    "BT Group",
+    "Allstate",
+    "Virtusa",
+    "Boston Consulting Group",
+    "Ryan",
+    "Haleon",
+    "D. E. Shaw",
+    "Disney"
+   ],
+   "sources": [
+    "https://www.rmz.com/real-estate/rmz-office/spaces/rmz-ecoworld",
+    "https://www.rmz.com/real-estate/rmz-office/spaces/rmz-ecoworld-30",
+    "https://www.rmz.com/real-estate/rmz-office/spaces/rmz-ecoworld-20",
+    "https://www.dnb.co.in/EVENTS/GCC-HYD/IMAGES/2026/BRANDED-CONTENT/Advertisements/Brookprop.pdf",
+    "https://therealtytoday.com/news/commercial/honeywell-signs-seven-year-lease-for-nearly-4-lakh-sq-ft-office-in-bellandur",
+    "https://addressadvisors.com/news/disney-expands-bengaluru-presence-with-1-74-lakh-sq-ft-lease-at-rmz-ecoworld-2"
+   ]
+  },
+  {
+   "name": "RMZ Ecospace",
+   "aliases": [
+    "Ecospace",
+    "Ecospace Business Park",
+    "Brookfield Ecospace"
+   ],
+   "locality": "Bellandur (Outer Ring Road, beside Adarsh Palm Retreat)",
+   "developer": "RMZ Corp (developer); Brookfield Properties (owner since 2020)",
+   "lat": 12.923868,
+   "lng": 77.681327,
+   "bbox": [
+    12.920082,
+    12.928193,
+    77.678204,
+    77.682839
+   ],
+   "areaSqFtMillions": 1.5,
+   "description": "RMZ's first large ORR campus, a roughly 12-year-old low-rise Grade-A park of nine office buildings (Campus 1A/1B/1C, 2, 3A/3B, 4A/4B) on 18-25 acres with about 1.5 million sq ft of offices (RMZ's own page quotes 2.13 million sq ft across 9 towers), sold to Brookfield in 2020. Deloitte (Ecospace 3A), Microland (its headquarters at 1B), Broadcom (1A/1C), Bosch and Shell Business Operations (1B) are the occupiers substantiated here. Note that the adjoining Pritech Park SEZ shares its internal road and is routinely addressed as 'Ecospace' by tenants, and the OSM polygon used for the centroid covers both.",
+   "notableTenants": [
+    "Deloitte",
+    "Microland",
+    "Broadcom",
+    "Bosch Global Software Technologies",
+    "Shell"
+   ],
+   "sources": [
+    "https://www.rmz.com/real-estate/rmz-office/spaces/rmz-ecospace",
+    "https://www.brookfieldproperties.com/en/our-approach/case-studies/2024/05/20/a-green-marvel-in-bengaluru",
+    "https://www.deloitte.com/in/en/offices/bengaluru-ecospace.html",
+    "https://www.microland.com/contact"
+   ]
+  },
+  {
+   "name": "Pritech Park SEZ",
+   "aliases": [
+    "Pritech Park",
+    "PrITech Park",
+    "Pritech Park (SEZ)",
+    "Primal Projects SEZ",
+    "RGA Software Systems SEZ",
+    "Pritech Annexe",
+    "Ecospace (colloquial)"
+   ],
+   "locality": "Bellandur Village (Outer Ring Road)",
+   "developer": "RGA Software Systems / Primal Projects Pvt Ltd (Pritech Projects as landlord)",
+   "lat": 12.923301,
+   "lng": 77.681108,
+   "bbox": [
+    12.920706,
+    12.924955,
+    77.679569,
+    77.682071
+   ],
+   "areaSqFtMillions": 4.3,
+   "description": "A 38-acre IT/ITeS Special Economic Zone of about 4.3 million sq ft in numbered blocks (4A, 5A/5B, 6, 7A/7B, 8, 9A/9B, 10, 12B, 14, Annexe/15) completed from 2008, sharing an internal road with RMZ Ecospace and therefore often written as 'Pritech Park (Ecospace)'. Accenture is the anchor (Blocks 7, 10, 14 and 15, consolidated to 566,617 sq ft in a 2026 renewal), with Intuit (4A, 6A, 8), Capgemini (6B), HP (Block 6), Subex (Block 9) and Impetus (14B) among the others. Centroid and bbox derived from the OSM building polygons for its blocks.",
+   "notableTenants": [
+    "Accenture",
+    "Intuit",
+    "Capgemini",
+    "HP Inc",
+    "Subex",
+    "Impetus Technologies",
+    "HGS",
+    "Altisource",
+    "Synamedia",
+    "Societe Generale",
+    "Mphasis"
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/pritech-park-block-7a-7b-bellandur-bangalore/8innsjn/pjd",
+    "https://www.freepressjournal.in/tech/accenture-leases-560000-sq-ft-in-bengalurus-pritech-park-sez-for-269-crore-all-details",
+    "https://www.accenture.com/in-en/about/location-index",
+    "https://intuit.com/in/company/locations",
+    "https://www.subex.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Global Technology Park",
+   "aliases": [
+    "GTP",
+    "Global Tech Park",
+    "Mapletree Global Technology Park",
+    "Global Technology Park (Maple Tree)"
+   ],
+   "locality": "Devarabeesanahalli / Bellandur (Marathahalli-Sarjapur Outer Ring Road)",
+   "developer": "Mapletree Investments (Singapore)",
+   "lat": 12.925617,
+   "lng": 77.682708,
+   "bbox": [
+    12.922584,
+    12.928752,
+    77.681819,
+    77.683577
+   ],
+   "areaSqFtMillions": 1.9,
+   "description": "Mapletree's 12-acre, LEED Gold business park of about 1.9 million sq ft in Towers A-E (Phase 1 Towers A and B of ~480,000 sq ft each, Phase 2 Towers C, D and E), the original tenant being LSI Logic in 2011. Property listings name Arista Networks, Vodafone Global Services/_VOIS, LinkedIn, GSN Games, SoftwareONE and Tangoe as occupiers; Marvell's own site gives Towers D and E. Mapletree has been reported to be marketing the park for sale with bids from Embassy, Actis and GIC.",
+   "notableTenants": [
+    "LinkedIn",
+    "Arista Networks",
+    "Vodafone (_VOIS)",
+    "Marvell",
+    "EPAM",
+    "Saviynt",
+    "Kwalee",
+    "Huron"
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/global-technology-park-maple-tree-phase-1-tower-a-marathahalli-sarjapur-outer-ring-road-bangalore/ldosnrc/pjd",
+    "https://properties.cityinfoservices.com/global-technology-park-maple-tree-phase-1-tower-b-marathahalli-sarjapur-outer-ring-road-bangalore/gyqsnng/pjd",
+    "https://www.brandland.in/product/global-tech-park-bangalore/",
+    "https://www.mapletree.com.sg/india/bengaluru",
+    "https://www.dealstreetasia.com/stories/embassy-actis-mapletree-park-158959",
+    "https://www.marvell.com/company/offices.html"
+   ]
+  },
+  {
+   "name": "Mantri Commercio",
+   "aliases": [
+    "Commercio",
+    "Mantri Commercio Tower A",
+    "Mantri Commercio Tower B"
+   ],
+   "locality": "Devarabeesanahalli, Bellandur (Outer Ring Road, near Sakra World Hospital)",
+   "developer": "Mantri Developers",
+   "lat": 12.932449,
+   "lng": 77.683813,
+   "bbox": [
+    12.931675,
+    12.933694,
+    77.683151,
+    77.684224
+   ],
+   "areaSqFtMillions": null,
+   "description": "A two-tower (A and B) mid-size office complex on the lake side of ORR at Devarabeesanahalli, best known as an early Flipkart office. Blue Yonder's own site gives Tower A as its Bangalore office; Rapido and a cluster of flexible-office operators (Innov8 on the 5th floor, 2gethr in Tower B, Spatium in Tower A) are the other substantiated occupiers. A broker page claims about 6,500 people work on the campus.",
+   "notableTenants": [
+    "Blue Yonder",
+    "Rapido"
+   ],
+   "sources": [
+    "https://www.brandland.in/product/mantri-commercio-bangalore/",
+    "https://blueyonder.com/about/locations",
+    "https://myhq.in/managed-office/2gethr-workspaces-mantri-commercio",
+    "https://myhq.in/dedicated/coworking-space/innov8-mantri-commercio"
+   ]
+  },
+  {
+   "name": "Salarpuria Sattva Softzone",
+   "aliases": [
+    "Sattva Softzone",
+    "Salarpuria Softzone",
+    "Softzone"
+   ],
+   "locality": "Bellandur (Outer Ring Road, Green Glen Layout)",
+   "developer": "Salarpuria Sattva",
+   "lat": 12.924165,
+   "lng": 77.67037,
+   "bbox": [
+    12.923288,
+    12.925219,
+    77.669654,
+    77.671441
+   ],
+   "areaSqFtMillions": 1.0,
+   "description": "An IGBC Platinum office complex of about 1.0 million sq ft leasable (91% committed as of March 2025, per Sattva) on Survey Nos. 80/1, 81/1 and 81/2 of Bellandur Village, under 1 km from the coming Bellandur and Iblur metro stations. PhonePe's registered office is on the 5th floor of Block A, Wing A, and Deloitte occupies the 2nd to 4th floors.",
+   "notableTenants": [
+    "PhonePe",
+    "Deloitte"
+   ],
+   "sources": [
+    "https://sattvagroup.com/commercial/sattva-softzone/",
+    "https://www.phonepe.com/contact-us/",
+    "https://www2.deloitte.com/ui/en/footerlinks/office-locator/bengaluru/blockb.html"
+   ]
+  },
+  {
+   "name": "Intel India SRR Campus",
+   "aliases": [
+    "Intel Bengaluru campus",
+    "Intel SRR",
+    "Sarjapur Ring Road campus",
+    "SRR1-SRR5"
+   ],
+   "locality": "Devarabeesanahalli, Bellandur (Outer Ring Road, opposite Global Technology Park)",
+   "developer": "Intel (owner-occupied)",
+   "lat": 12.926615,
+   "lng": 77.68482,
+   "bbox": [
+    12.922469,
+    12.929484,
+    77.683024,
+    77.68583
+   ],
+   "areaSqFtMillions": null,
+   "description": "Intel's own 44-acre campus on the Outer Ring Road at Devarabeesanahalli, its largest design and engineering site outside the United States, with buildings SRR1-SRR5; the 620,000 sq ft SRR4 design house opened in 2022 after an announced Rs 1,100 crore expansion. Owner-occupied, so not a multi-tenant park, but it is the single largest employer site on this stretch other than Ecoworld. Centroid from the OSM landuse polygon named 'Intel'.",
+   "notableTenants": [
+    "Intel"
+   ],
+   "sources": [
+    "https://cxotoday.com/media-coverage/intel-india-opens-a-new-state-of-the-art-design-engineering-center-in-bengaluru/",
+    "https://www.voicendata.com/intel-to-invest-rs-1100-crore-to-expand-rd-and-innovation-in-bengaluru",
+    "https://www.openstreetmap.org/way/232892803"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "Accenture",
+   "aliases": [
+    "Accenture Solutions Pvt Ltd",
+    "Accenture BDC7"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Global IT services and consulting firm; its Bellandur campus in Pritech Park SEZ (Blocks 7, 10, 14, 15) is one of its largest Bengaluru delivery centres, consolidated to 566,617 sq ft in a 2026 renewal.",
+   "hqCity": "Dublin",
+   "hqCountry": "Ireland",
+   "founded": 1989,
+   "website": "https://www.accenture.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Pritech Park SEZ - Block 7 (BDC7 Towers A & B)",
+     "techPark": "Pritech Park SEZ",
+     "building": "Block 7 (BDC7 Towers A & B)",
+     "locality": "Bellandur",
+     "address": "Block 7, Pritech Park SEZ, Outer Ring Road, Bellandur Village, Bengaluru 560103",
+     "lat": 12.921114,
+     "lng": 77.681936,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Accenture's own location index lists 'Block 7, Outer Ring Road, Pritech Park, Bellandur, 560103'; OSM node 'Accenture BDC7' carries the same Pritech Park address (https://www.accenture.com/in-en/about/location-index)."
+    },
+    {
+     "label": "Pritech Park SEZ - Block 10",
+     "techPark": "Pritech Park SEZ",
+     "building": "Block 10",
+     "locality": "Bellandur",
+     "address": "Block 10, Pritech Park SEZ, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.923301,
+     "lng": 77.681108,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "evidence": "Accenture's own location index lists 'Block 10, Outer Ring Road, Pritech Park, Bellandur, 560103'; no OSM building for Block 10, so the park centroid is used (https://www.accenture.com/in-en/about/location-index)."
+    },
+    {
+     "label": "Pritech Park SEZ - Building 14 (Bengaluru Innovation Hub)",
+     "techPark": "Pritech Park SEZ",
+     "building": "Building 14",
+     "locality": "Bellandur",
+     "address": "Building 14, Pritech Park SEZ, Bellandur Village, Varthur Hobli, Bengaluru 560103",
+     "lat": 12.920706,
+     "lng": 77.680912,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Accenture's location index lists the Bengaluru Innovation Hub at 'Building 14, Primal Projects Pvt Ltd SEZ, Pritech Park, Belandur Village'; coordinates from the OSM building polygon 'Building 14' (https://www.accenture.com/in-en/about/location-index)."
+    },
+    {
+     "label": "Pritech Park SEZ - Pritech Annexe Block 15 ('Eco Space')",
+     "techPark": "Pritech Park SEZ",
+     "building": "Pritech Annexe, Block 15",
+     "locality": "Bellandur",
+     "address": "Pritech Annexe, Block 15, Outer Ring Road, Bellandur Village, Bengaluru 560103",
+     "lat": 12.923301,
+     "lng": 77.681108,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "evidence": "Accenture's location index lists 'Eco Space, Pritech Annexe, Block 15, Outer Ring Road, Bellandur Village'; Propstack data reported in Sept 2026 show Accenture renewed 441,000 sq ft and added 126,000 sq ft in Pritech Park SEZ (https://www.freepressjournal.in/tech/accenture-leases-560000-sq-ft-in-bengalurus-pritech-park-sez-for-269-crore-all-details)."
+    },
+    {
+     "label": "Bagmane SEZ-II Doddanekundi (Bagmane World Technology Center)",
+     "techPark": "Bagmane World Technology Center",
+     "building": null,
+     "locality": "Doddanekundi, Mahadevapura",
+     "address": "Bagmane Developers SEZ-II, Doddanekundi Village, KR Puram Hobli, Bengaluru 560048",
+     "lat": 12.985291,
+     "lng": 77.694672,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "evidence": "Accenture's location index lists 'Bagmane Developers Pvt Ltd SEZ-II, Doddanekundi Village, KR Puram Hobli, 560048', which is the Bagmane WTC campus; park centroid used (https://www.accenture.com/in-en/about/location-index)."
+    },
+    {
+     "label": "Divyasree Technopark SEZ, Whitefield",
+     "techPark": "Divyasree Technopark",
+     "building": null,
+     "locality": "Kundalahalli, Whitefield",
+     "address": "Divyasree Technopark SEZ, 36/2 Kundalahalli Village, Whitefield, Bengaluru 560037",
+     "lat": 12.967977,
+     "lng": 77.723964,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "photon",
+     "evidence": "Accenture's location index lists 'Divyasree Technopark SEZ, 36/2, Kundalahalli Village, K.R. Puram Hobli, Whitefield, 560037'; geocoded via Photon to the Divyashree Technopark polygon (https://www.accenture.com/in-en/about/location-index)."
+    },
+    {
+     "label": "Prestige Technopolis, Adugodi",
+     "techPark": "Prestige Technopolis",
+     "building": null,
+     "locality": "Adugodi",
+     "address": "8/1 Prestige Technopolis, Dr. M.H. Marigowda Road, Adugodi, Bengaluru 560029",
+     "lat": 12.936825,
+     "lng": 77.60746,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "evidence": "Accenture's location index lists '8/1, Prestige Technopolis, Dr. MH Maregowda Road, Audugodi, 560029'; park centroid from OSM (https://www.accenture.com/in-en/about/location-index)."
+    },
+    {
+     "label": "Godrej Centre, Hebbal",
+     "techPark": null,
+     "building": null,
+     "locality": "Byatarayanapura, Hebbal",
+     "address": "Godrej Centre, Byatarayanapura Village, Yelahanka Hobli, Hebbal, Bengaluru 560092",
+     "lat": 13.061026,
+     "lng": 77.591117,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "photon",
+     "evidence": "Accenture's location index lists 'Bytarayanapura Village, Yelahanka Hobli, Godrej Centre, Hebbal, 560092'; Photon resolved the query to the Godrej Downtown polygon at Byatarayanapura, so the point is approximate (https://www.accenture.com/in-en/about/location-index)."
+    }
+   ],
+   "sources": [
+    "https://www.accenture.com/in-en/about/location-index",
+    "https://www.freepressjournal.in/tech/accenture-leases-560000-sq-ft-in-bengalurus-pritech-park-sez-for-269-crore-all-details",
+    "https://www.businessparkzone.com/accenture-bdc7-tower-a-and-b-varthur-bengaluru/",
+    "https://www.openstreetmap.org/node/4443385198"
+   ]
+  },
+  {
+   "name": "Intuit",
+   "aliases": [
+    "Intuit Technology Services Pvt Ltd",
+    "Intuit India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Maker of QuickBooks and TurboTax; Intuit Technology Services' India development centre sits in Pritech Park SEZ (addressed as 'Ecospace') across Campus 4A, 6A and 8.",
+   "hqCity": "Mountain View",
+   "hqCountry": "United States",
+   "founded": 1983,
+   "website": "https://www.intuit.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Pritech Park (Ecospace) - Campus 4A, 7th & 8th floors",
+     "techPark": "Pritech Park SEZ",
+     "building": "Campus 4A, 7th & 8th floors",
+     "locality": "Bellandur",
+     "address": "Campus 4A, PrITech Park (Ecospace), Pritech Road, Bellandur, Bengaluru 560103",
+     "lat": 12.924904,
+     "lng": 77.680326,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Intuit's India locations page gives 'Campus 4A, PrITech Park (Ecospace), 7th and 8th Floor, Belandur Village' for Intuit Technology Services; OSM node carries the same address (https://intuit.com/in/company/locations)."
+    },
+    {
+     "label": "Pritech Park (Ecospace) - Campus 6A",
+     "techPark": "Pritech Park SEZ",
+     "building": "Campus 6A",
+     "locality": "Bellandur",
+     "address": "Campus 6A, Pritech Park, Pritech Road, Bellandur, Bengaluru 560103",
+     "lat": 12.922717,
+     "lng": 77.682381,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Intuit's India contact page lists 'EcoSpace, Intuit Campus 8, Campus 4A, Campus 6A, Pritech Rd, Bellandur'; OSM node 'INTUIT' is tagged '6A, No 1 Adarsh Palm Retreat, Bellandur' (https://www.intuit.com/in/company/contact)."
+    },
+    {
+     "label": "Pritech Park (Ecospace) - Campus 8",
+     "techPark": "Pritech Park SEZ",
+     "building": "Campus 8",
+     "locality": "Bellandur",
+     "address": "Campus 8, Pritech Park, Pritech Road, Bellandur, Bengaluru 560103",
+     "lat": 12.92375,
+     "lng": 77.681288,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "evidence": "Intuit's India contact page lists 'Intuit Campus 8' at EcoSpace/Pritech Rd; coordinates from the OSM building polygon labelled 'Buliding 8' on the Ecospace internal road (https://www.intuit.com/in/company/contact)."
+    }
+   ],
+   "sources": [
+    "https://intuit.com/in/company/locations",
+    "https://www.intuit.com/in/company/contact",
+    "https://www.openstreetmap.org/node/4446543249"
+   ]
+  },
+  {
+   "name": "Capgemini",
+   "aliases": [
+    "Capgemini Technology Services India Ltd",
+    "Capgemini India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "French IT services major; its two Bellandur offices (RMZ Ecoworld 5B and the Pritech/Ecospace 6B building) house about 3,000 staff, beside larger campuses in Whitefield and at Prestige Tech Park.",
+   "hqCity": "Paris",
+   "hqCountry": "France",
+   "founded": 1967,
+   "website": "https://www.capgemini.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Pritech Park / RMZ Ecospace - 6B Building",
+     "techPark": "Pritech Park SEZ",
+     "building": "6B Building",
+     "locality": "Bellandur",
+     "address": "6B Building, Pritech Park, RMZ Eco Space, Marathahalli Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.922688,
+     "lng": 77.681802,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Capgemini's global locations page lists '6B Building, Pritech Park, RMZ Eco Space, Marathalli Outer Ring Road, Bellandur, Bangalore-560103'; its Bengaluru careers page describes 'RMZ Ecoworld (5B) & RMZ Ecospace (6B)' as two offices with ~3,000 team members (https://www.capgemini.com/jp-jp/about-us/locations/)."
+    },
+    {
+     "label": "RMZ Ecoworld - Campus 5B, 6th floor",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 5B, 6th floor",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Campus 5B, RMZ Ecoworld SEZ, Sarjapur-Marathahalli Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.922121,
+     "lng": 77.683626,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Capgemini's locations page lists 'Capgemini Technology Services India Limited (5B) RMZ Ecoworld, Campus 5B, 6th Floor, RMZ Ecoworld SEZ, Sarjapur Marathhalli Outer ring road, Varthur Hobli, 560103'; coordinates from the OSM 'Campus 5B' polygon (https://www.capgemini.com/in-en/careers/lets-connect/our-offices/capgemini-bengaluru/)."
+    },
+    {
+     "label": "Prestige Tech Park - Vector Block (CG ER&D Valdel)",
+     "techPark": "Prestige Tech Park",
+     "building": "Vector Block (Valdel Business Park)",
+     "locality": "Kadubeesanahalli",
+     "address": "Vector Block, Prestige Tech Park, Marathahalli-Sarjapur Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "lat": 12.940838,
+     "lng": 77.689241,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Capgemini's Bengaluru careers page places its 2,200-seat ER&D 'Valdel' facility in the Vector Block of the Prestige Tech Park complex; coordinates from the OSM building 'Vector' (https://www.capgemini.com/in-en/careers/lets-connect/our-offices/capgemini-bengaluru/)."
+    },
+    {
+     "label": "Divyasree Tech Park, Whitefield (DTP)",
+     "techPark": "Divyasree Technopark",
+     "building": null,
+     "locality": "Kundalahalli, Whitefield",
+     "address": "Divyasree Technopark, Kundalahalli, Whitefield, Bengaluru 560037",
+     "lat": 12.967977,
+     "lng": 77.723964,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "photon",
+     "evidence": "Capgemini's Bengaluru careers page describes a four-building 'Divyasree Tech Park Facility (DTP)' with over 5,000 team members; geocoded via Photon to the Divyashree Technopark polygon in Kundalahalli (https://www.capgemini.com/in-en/careers/lets-connect/our-offices/capgemini-bengaluru/)."
+    }
+   ],
+   "sources": [
+    "https://www.capgemini.com/jp-jp/about-us/locations/",
+    "https://www.capgemini.com/in-en/careers/lets-connect/our-offices/capgemini-bengaluru/",
+    "https://www.openstreetmap.org/node/4444471701"
+   ]
+  },
+  {
+   "name": "HP Inc",
+   "aliases": [
+    "Hewlett-Packard",
+    "HP PPS India Operations Pvt Ltd",
+    "HP India Sales Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "PC and printer maker; HP PPS India Operations runs a software/operations site in Block 6 of Pritech Park SEZ, one of five HP sites in Bengaluru listed on its India office page.",
+   "hqCity": "Palo Alto",
+   "hqCountry": "United States",
+   "founded": 1939,
+   "website": "https://www.hp.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Pritech Park SEZ - 6th Block, Wing A (PSR)",
+     "techPark": "Pritech Park SEZ",
+     "building": "6th Block, Wing A",
+     "locality": "Bellandur",
+     "address": "Sy No. 51-64/4, 6th Block Wing A, Pritech Park SEZ, Bellandur Village, Bengaluru 560103",
+     "lat": 12.92214,
+     "lng": 77.682338,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "HP's India office-locations page lists 'HP PPS India Operations Pvt Ltd, SY No. 51-64 4, 6th Block Wing A, Pritech Park- SEZ, Bellandur Village, 560103'; OSM node 'Hewlett Packard Inc' is tagged 'Pritech Park, Bellandur 6' (https://www.hp.com/in-en/contact-hp/office-locations.html)."
+    },
+    {
+     "label": "Embassy Prime, Bagmane Tech Park (BEP)",
+     "techPark": "Bagmane Tech Park",
+     "building": "Embassy Prime",
+     "locality": "C V Raman Nagar",
+     "address": "66/2 Embassy Prime, Bagmane Tech Park, C V Raman Nagar, Bengaluru 560093",
+     "lat": 12.978694,
+     "lng": 77.662447,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "evidence": "HP's India office-locations page lists 'No 66/2 Ward no 83, Embassy prime, Bagmane Tech park, CV Raman Nagar, 560093' for HP Computing & Printing Systems India and HP PPS Service India; park centroid used (https://www.hp.com/in-en/contact-hp/office-locations.html)."
+    },
+    {
+     "label": "Salarpuria (Kothari) Arena, Adugodi - sales (SAU)",
+     "techPark": null,
+     "building": null,
+     "locality": "Adugodi",
+     "address": "24 Kothari/Salarpuria Arena, 2nd Floor, Hosur Main Road, Adugodi, Bengaluru 560030",
+     "lat": 12.936942,
+     "lng": 77.609993,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-park",
+     "evidence": "HP's India office-locations page lists HP India Sales at '24, Kothari arena, 2nd Floor, Hosur Main Road, Adugodi, 560030' under the heading 'Salarpuria Arena'; OSM polygon 'Salarpuria Arena' used (https://www.hp.com/in-en/contact-hp/office-locations.html)."
+    },
+    {
+     "label": "Kalyani Platina, Whitefield (ECN)",
+     "techPark": "Kalyani Platina",
+     "building": "KTP Ebony Building",
+     "locality": "Kundalahalli, Whitefield",
+     "address": "Kalyani Platina, Kundalahalli Village, Whitefield, Bengaluru 560066",
+     "lat": 12.969732,
+     "lng": 77.71753,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "park-centroid",
+     "evidence": "HP's India office-locations page lists 'Kalyani Platina, Survey No 1,6 24 of Kundalahalli Village, KTP Ebony Building, Opp Brooke Field Hospital, White field, 560066'; no OSM polygon for Kalyani Platina, so the adjoining Kalyani Tech Park centroid is used and the point is approximate (https://www.hp.com/in-en/contact-hp/office-locations.html)."
+    },
+    {
+     "label": "Tower 1 E-City, Electronic City Phase 1 (ECP)",
+     "techPark": "Electronics City Phase 1",
+     "building": "Tower 1 E-City",
+     "locality": "Electronic City Phase 1",
+     "address": "Tower 1 E-City, Sy Nos 94/1c & 94/2, Veerasandra Village, Electronic City Phase 1, Bengaluru 560100",
+     "lat": 12.847184,
+     "lng": 77.670733,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "nominatim",
+     "evidence": "HP's India office-locations page lists 'Tower 1 E city, Sy Nos 94 1c and 94 2, Veerasandra village, Attibele Hobli, Electronic City Phase -1, 560100'; geocoded only to the Electronic City Phase 1 locality, so the point is approximate (https://www.hp.com/in-en/contact-hp/office-locations.html)."
+    }
+   ],
+   "sources": [
+    "https://www.hp.com/in-en/contact-hp/office-locations.html",
+    "https://www.openstreetmap.org/node/4444318971"
+   ]
+  },
+  {
+   "name": "Deloitte",
+   "aliases": [
+    "Deloitte USI",
+    "Deloitte Consulting India Pvt Ltd",
+    "Deloitte Touche Tohmatsu India LLP"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Big Four professional-services network; Deloitte's US-India (USI) and India practices occupy several Bellandur buildings, with Ecospace 3A and Salarpuria Softzone given on Deloitte's own office pages and Ecoworld named by the park's owner.",
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "founded": 1845,
+   "website": "https://www.deloitte.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecospace - 3A Campus",
+     "techPark": "RMZ Ecospace",
+     "building": "Campus 3A",
+     "locality": "Bellandur",
+     "address": "Ecospace 3A Campus, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.923868,
+     "lng": 77.681327,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "evidence": "Deloitte India's office page lists 'Ecospace 3 A Campus, Bellandur, Outer Ring Road, Bengaluru 560103'; no OSM building for 3A, so the Ecospace polygon centroid is used (https://www.deloitte.com/in/en/offices/bengaluru-ecospace.html)."
+    },
+    {
+     "label": "Salarpuria Softzone - 2nd to 4th floors",
+     "techPark": "Salarpuria Sattva Softzone",
+     "building": "Block B, floors 2-4",
+     "locality": "Bellandur",
+     "address": "Salarpuria Softzone, Sy Nos 80/1, 81/1 & 81/2, Outer Ring Road, Bellandur Village, Bengaluru 560103",
+     "lat": 12.924165,
+     "lng": 77.67037,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-park",
+     "evidence": "Deloitte's office locator lists 'Salarpuria Softzone, Survey No. 80/1, 81/1 and 81/2, 2nd, 3rd, and 4th [floors], Outer Ring Road, Bellandur Village, Varthur Hobli, Bengaluru 560103' (https://www2.deloitte.com/ui/en/footerlinks/office-locator/bengaluru/blockb.html)."
+    },
+    {
+     "label": "RMZ Ecoworld - Campus 4D",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 4D (per OSM pin)",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "RMZ Ecoworld, Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.92687,
+     "lng": 77.688226,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "evidence": "Brookfield's FY2026 Ecoworld asset note names Deloitte among the campus's key occupiers, and an OSM office node 'Deloitte' sits on the Campus 4D building (https://www.dnb.co.in/EVENTS/GCC-HYD/IMAGES/2026/BRANDED-CONTENT/Advertisements/Brookprop.pdf)."
+    }
+   ],
+   "sources": [
+    "https://www.deloitte.com/in/en/offices/bengaluru-ecospace.html",
+    "https://www2.deloitte.com/ui/en/footerlinks/office-locator/bengaluru/blockb.html",
+    "https://www.dnb.co.in/EVENTS/GCC-HYD/IMAGES/2026/BRANDED-CONTENT/Advertisements/Brookprop.pdf",
+    "https://www.openstreetmap.org/node/12287928347"
+   ]
+  },
+  {
+   "name": "KPMG",
+   "aliases": [
+    "KPMG Global Services Pvt Ltd",
+    "KGS",
+    "KPMG Global Delivery Center Pvt Ltd",
+    "KPMG in India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Big Four network; KPMG Global Services and KPMG Global Delivery Center, its US/UK offshore delivery arms, occupy six floors of Campus 7 at RMZ Ecoworld, while KPMG in India sits at Embassy GolfLinks.",
+   "hqCity": "Amstelveen",
+   "hqCountry": "Netherlands",
+   "founded": 1987,
+   "website": "https://kpmg.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld - Campus 7, floors 1-6 (KPMG Global Services / GDC)",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 7, floors 1-6",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "RMZ Ecoworld, Campus 7, Devarabeesanahalli, Marathahalli Outer Ring Road, Bengaluru 560103",
+     "lat": 12.920942,
+     "lng": 77.683266,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "KPMG India's offices page lists KPMG Global Services at 'RMZ Eco world, Campus 7, Floor 1-5, Devarabeesanahalli' and KPMG Global Delivery Center at 'Campus 7, Floor 6'; Brookfield names KPMG a key Ecoworld occupier (https://kpmg.com/in/en/about/offices.html)."
+    },
+    {
+     "label": "Embassy GolfLinks - Pebble Beach, B Block",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "Pebble Beach, B Block, floors 1-2",
+     "locality": "Domlur / Challaghatta",
+     "address": "Pebble Beach, B Block, Embassy GolfLinks Business Park, Off Intermediate Ring Road, Bengaluru 560071",
+     "lat": 12.950254,
+     "lng": 77.644071,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "evidence": "KPMG India's offices page lists 'Embassy Golf Links Business Park, Pebble Beach, 13/02, B Block, 1st & 2nd Floor, Off Intermediate Ring Road'; park centroid used (https://kpmg.com/in/en/about/offices.html)."
+    }
+   ],
+   "sources": [
+    "https://kpmg.com/in/en/about/offices.html",
+    "https://www.dnb.co.in/EVENTS/GCC-HYD/IMAGES/2026/BRANDED-CONTENT/Advertisements/Brookprop.pdf",
+    "https://www.openstreetmap.org/node/4445290175"
+   ]
+  },
+  {
+   "name": "Cadence Design Systems",
+   "aliases": [
+    "Cadence Design Systems (India) Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "EDA and IP company; its Bengaluru site at RMZ Ecoworld, opened in 2016 at 192,000 sq ft, is Cadence's third-largest site worldwide.",
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "founded": 1988,
+   "website": "https://www.cadence.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld - Campus 4A & 4B, floors 1-3",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 4A & 4B, floors 1-3",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Campus 4A & 4B, RMZ Ecoworld SEZ, Sarjapur Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.92456,
+     "lng": 77.68858,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Cadence's media page gives 'Cadence Design Systems (I) Pvt Ltd, 1st, 2nd and 3rd floor, Campus 4A & 4B, RMZ Ecoworld-SEZ, Sarjapur Ring Road, Bangalore 560103', matching the 2016 opening press coverage and the OSM node (https://newstaging.cadence.com/en_US/home/company/newsroom/media-resources.html)."
+    }
+   ],
+   "sources": [
+    "https://newstaging.cadence.com/en_US/home/company/newsroom/media-resources.html",
+    "https://www.electronicsforu.com/technology-trends/cadence-opens-new-world-class-facility-bengaluru-third-largest-site-worldwide",
+    "https://www.dnb.co.in/EVENTS/GCC-HYD/IMAGES/2026/BRANDED-CONTENT/Advertisements/Brookprop.pdf",
+    "https://www.openstreetmap.org/node/4445385041"
+   ]
+  },
+  {
+   "name": "Shell",
+   "aliases": [
+    "Shell India Markets Pvt Ltd",
+    "Shell Business Operations Bangalore",
+    "SBO Bangalore",
+    "Shell Technology Centre Bangalore"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "Energy major; Shell Business Operations Bangalore, its largest offshore delivery centre, runs from RMZ Ecoworld Campus 4A/4B (with a registered unit at Ecospace 1B), separate from the Shell Technology Centre Bangalore in the north of the city.",
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "founded": 1907,
+   "website": "https://www.shell.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld - Campus 4A & 4B (Shell Business Operations)",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 4A & 4B",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Campus 4A & 4B, RMZ Ecoworld, Sarjapur-Marathahalli Outer Ring Road, Bengaluru 560103",
+     "lat": 12.92456,
+     "lng": 77.68858,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Shell's Bangalore contact listing gives 'Shell India Markets Pvt Ltd, RMZ Ecoworld, Campus 4A & 4B, Sarjapur Marathahalli Outer Ring Road, Bangalore 560103', and Brookfield names Shell a key Ecoworld occupier (https://companies.naukri.com/shellnew-jobs/contact-us)."
+    },
+    {
+     "label": "RMZ Ecospace - Campus 1B, units 601-602 (SBO Bangalore)",
+     "techPark": "RMZ Ecospace",
+     "building": "Campus 1B, 6th floor",
+     "locality": "Bellandur",
+     "address": "Units 601-602, Campus 1B, RMZ Ecospace, Sarjapur Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.926187,
+     "lng": 77.679959,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "evidence": "A GST registration record for Shell India Markets Pvt Ltd gives '6, 601 and 602, SBO Bangalore, RMZ Ecospace, Campus 1B, Sarjapur Outer Ring Road, Bellandur'; coordinates from the OSM pin on the 1B building (https://piceapp.com/gst-number-search/shell-india-markets-private-limited-29aaics1404p1zz/)."
+    },
+    {
+     "label": "Shell Technology Centre Bangalore",
+     "techPark": "Shell Technology Centre Bangalore",
+     "building": null,
+     "locality": "Mahadeva Kodigehalli (KIADB Hardware SEZ), Bengaluru North",
+     "address": "Shell Technology Centre Bangalore, Mahadeva Kodigehalli, Bengaluru 562149",
+     "lat": 13.157034,
+     "lng": 77.70211,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "photon",
+     "evidence": "Shell's India contact page lists a Bengaluru technology centre separate from its Gurgaon corporate office; geocoded to the OSM polygon 'Shell Technology Centre Bangalore, KIADB Hardware SEZ' (https://shell.in/about-us/contact-us.html)."
+    }
+   ],
+   "sources": [
+    "https://companies.naukri.com/shellnew-jobs/contact-us",
+    "https://www.dnb.co.in/EVENTS/GCC-HYD/IMAGES/2026/BRANDED-CONTENT/Advertisements/Brookprop.pdf",
+    "https://piceapp.com/gst-number-search/shell-india-markets-private-limited-29aaics1404p1zz/",
+    "https://shell.in/about-us/contact-us.html",
+    "https://www.openstreetmap.org/node/13372172801"
+   ]
+  },
+  {
+   "name": "Honeywell",
+   "aliases": [
+    "Honeywell Technology Solutions Lab Pvt Ltd",
+    "HTS",
+    "HTSL"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Industrial conglomerate; Honeywell Technology Solutions Lab signed a seven-year lease for 399,220 sq ft at RMZ Ecoworld from January 2026 (about Rs 429 crore), one of Bengaluru's largest 2026 office deals.",
+   "hqCity": "Charlotte",
+   "hqCountry": "United States",
+   "founded": 1906,
+   "website": "https://www.honeywell.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld - HTS Lab (399,220 sq ft lease from Jan 2026)",
+     "techPark": "RMZ Ecoworld",
+     "building": null,
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "RMZ Ecoworld, Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.924965,
+     "lng": 77.686859,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Property-registration data reported by Propstack show Honeywell Technology Solutions Lab Pvt Ltd leasing 399,220 sq ft at RMZ Ecoworld from Arliga Ecoworld Business Parks for 84 months from 1 Jan 2026, with an expansion option in Campus 5B; the filing does not name the main block, and the OSM pin 'Honeywell Technology Solutions' sits on Campus 3A (https://therealtytoday.com/news/commercial/honeywell-signs-seven-year-lease-for-nearly-4-lakh-sq-ft-office-in-bellandur)."
+    }
+   ],
+   "sources": [
+    "https://therealtytoday.com/news/commercial/honeywell-signs-seven-year-lease-for-nearly-4-lakh-sq-ft-office-in-bellandur",
+    "https://booknewproperty.com/news/honeywell-leases-399220-sq-ft-at-rmz-ecoworld-bengaluru-grade-a-office-space-deal/",
+    "https://www.dnb.co.in/EVENTS/GCC-HYD/IMAGES/2026/BRANDED-CONTENT/Advertisements/Brookprop.pdf",
+    "https://www.openstreetmap.org/node/11553915354"
+   ]
+  },
+  {
+   "name": "Disney",
+   "aliases": [
+    "The Walt Disney Company",
+    "Disney India",
+    "Disney Star"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Media & gaming",
+   "description": "Media and entertainment group; Disney India took about 1.74-1.75 lakh sq ft on the 6th and 7th floors of RMZ Ecoworld 20 in Bellandur on a five-year lease from February 2026.",
+   "hqCity": "Burbank",
+   "hqCountry": "United States",
+   "founded": 1923,
+   "website": "https://thewaltdisneycompany.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld 20 (Series 20) - floors 6-7",
+     "techPark": "RMZ Ecoworld",
+     "building": "Ecoworld 20 (Series 20), floors 6-7",
+     "locality": "Bellandur",
+     "address": "RMZ Ecoworld 20, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.922737,
+     "lng": 77.686326,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "evidence": "Address Advisors and Book New Property report Disney India leasing ~1.74 lakh sq ft on floors six and seven of RMZ Ecoworld Series 20 from Vismaya Infrastructure Pvt Ltd for five years from 1 February (2026); Ecoworld 20 has no OSM polygon so the park centroid is used (https://addressadvisors.com/news/disney-expands-bengaluru-presence-with-1-74-lakh-sq-ft-lease-at-rmz-ecoworld-2)."
+    }
+   ],
+   "sources": [
+    "https://addressadvisors.com/news/disney-expands-bengaluru-presence-with-1-74-lakh-sq-ft-lease-at-rmz-ecoworld-2",
+    "https://booknewproperty.com/news/disney-leases-174000-sq-ft-at-rmz-ecoworld-20-campus-bellandur-bengaluru/",
+    "https://www.rmz.com/real-estate/rmz-office/spaces/rmz-ecoworld-20"
+   ]
+  },
+  {
+   "name": "Morgan Stanley",
+   "aliases": [
+    "Morgan Stanley Advantage Services"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "US investment bank; registration documents show a new five-year lease from January 2026 for 1,58,533 sq ft on the 8th and 9th floors of an Ecoworld block, and Brookfield names it a key Ecoworld occupier.",
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "founded": 1935,
+   "website": "https://www.morganstanley.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld - 8th & 9th floors (1.58 lakh sq ft, from Jan 2026)",
+     "techPark": "RMZ Ecoworld",
+     "building": null,
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "RMZ Ecoworld, Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.922737,
+     "lng": 77.686326,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "evidence": "The Realty Today (Feb 2026) reports Morgan Stanley leasing a chargeable 1,58,533 sq ft across the 8th (79,618 sq ft) and 9th (78,914 sq ft) floors at Brookfield's Ecoworld on ORR for five years from 10 Jan 2026; the block is not named so the park centroid is used (https://therealtytoday.com/news/commercial/morgan-stanley-secures-16-lakh-sq-ft-grade-a-office-space-in-bengaluru/)."
+    }
+   ],
+   "sources": [
+    "https://therealtytoday.com/news/commercial/morgan-stanley-secures-16-lakh-sq-ft-grade-a-office-space-in-bengaluru/",
+    "https://www.dnb.co.in/EVENTS/GCC-HYD/IMAGES/2026/BRANDED-CONTENT/Advertisements/Brookprop.pdf"
+   ]
+  },
+  {
+   "name": "State Street",
+   "aliases": [
+    "State Street Corporation",
+    "State Street HCL Services"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "US custody bank and asset servicer; named by Brookfield as a key occupier of RMZ Ecoworld, its Bengaluru global hub.",
+   "hqCity": "Boston",
+   "hqCountry": "United States",
+   "founded": 1792,
+   "website": "https://www.statestreet.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld",
+     "techPark": "RMZ Ecoworld",
+     "building": null,
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "RMZ Ecoworld, Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.922737,
+     "lng": 77.686326,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "evidence": "Brookfield Properties' FY2026 Ecoworld asset note lists State Street among the campus's key occupiers; no block is named so the park centroid is used (https://www.dnb.co.in/EVENTS/GCC-HYD/IMAGES/2026/BRANDED-CONTENT/Advertisements/Brookprop.pdf)."
+    }
+   ],
+   "sources": [
+    "https://www.dnb.co.in/EVENTS/GCC-HYD/IMAGES/2026/BRANDED-CONTENT/Advertisements/Brookprop.pdf"
+   ]
+  },
+  {
+   "name": "Standard Chartered",
+   "aliases": [
+    "Standard Chartered Global Business Services",
+    "SCB GBS"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "UK-headquartered bank; its Global Business Services centre in Bengaluru is at RMZ Ecoworld, named by Brookfield as a key occupier and pinned by OSM at Campus 6B.",
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "founded": 1969,
+   "website": "https://www.sc.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld - Campus 6B (Global Business Services)",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 6B (per OSM pin)",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Campus 6B, RMZ Ecoworld, Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.921149,
+     "lng": 77.685063,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "evidence": "Brookfield names Standard Chartered a key Ecoworld occupier and an OSM office node 'Standard Chartered Bank' is tagged '6B' on the Campus 6A/6B building (https://www.dnb.co.in/EVENTS/GCC-HYD/IMAGES/2026/BRANDED-CONTENT/Advertisements/Brookprop.pdf)."
+    }
+   ],
+   "sources": [
+    "https://www.dnb.co.in/EVENTS/GCC-HYD/IMAGES/2026/BRANDED-CONTENT/Advertisements/Brookprop.pdf",
+    "https://www.openstreetmap.org/node/5179373222"
+   ]
+  },
+  {
+   "name": "Boston Consulting Group",
+   "aliases": [
+    "BCG",
+    "BCG ACC Bengaluru"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Strategy consultancy; BCG's Advanced Capabilities Center Bengaluru is on the 9th floor of Building 7 at (Arliga) RMZ Ecoworld.",
+   "hqCity": "Boston",
+   "hqCountry": "United States",
+   "founded": 1963,
+   "website": "https://www.bcg.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld - Building 7, 9th floor (Advanced Capabilities Center)",
+     "techPark": "RMZ Ecoworld",
+     "building": "Building 7, 9th floor",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "9th Floor, Building 7, Arliga Ecoworld, Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.920942,
+     "lng": 77.683266,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "BCG's own office page gives '9th Floor, Building No. 7, Arliga Eco World, Outer Ring Road, Devarbeesanahalli Village, Bellandur, Bengaluru 560103'; coordinates from the OSM 'Campus 7' polygon (https://www.bcg.com/ja-jp/offices/acc-bengaluru)."
+    }
+   ],
+   "sources": [
+    "https://www.bcg.com/ja-jp/offices/acc-bengaluru"
+   ]
+  },
+  {
+   "name": "Ryan",
+   "aliases": [
+    "Ryan LLC",
+    "Ryan Tax Services India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Dallas-based tax services and software firm; its Bengaluru office is in Campus 31 of RMZ Ecoworld 30.",
+   "hqCity": "Dallas",
+   "hqCountry": "United States",
+   "founded": 1991,
+   "website": "https://ryan.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld 30 - Campus 31, Unit 202",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 31, Unit 202, 2nd floor",
+     "locality": "Bhoganahalli / Bellandur",
+     "address": "Unit 202, Campus 31, RMZ Ecoworld 30, Bhoganahalli Village, Varthur Hobli, Bengaluru 560103",
+     "lat": 12.920626,
+     "lng": 77.68647,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Ryan's own office page lists 'RMZ Ecoworld, Campus 31, Unit No. 202, 2nd Floor, Bhoganahalli Village, Varthur Hobli, Bengaluru 560103'; coordinates from the OSM 'Campus 31' polygon (https://ryan.com/asia-pacific/locations/bengaluru-office/)."
+    }
+   ],
+   "sources": [
+    "https://ryan.com/asia-pacific/locations/bengaluru-office/"
+   ]
+  },
+  {
+   "name": "Allstate",
+   "aliases": [
+    "Allstate India Pvt Ltd",
+    "Allstate Solutions"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "US insurer; Allstate India, its technology and operations centre, is on the 7th floor of Building 1 (1A) at RMZ Ecoworld.",
+   "hqCity": "Northbrook",
+   "hqCountry": "United States",
+   "founded": 1931,
+   "website": "https://www.allstate.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld - Building 1 (Campus 1A), 7th floor",
+     "techPark": "RMZ Ecoworld",
+     "building": "Building 1 / Campus 1A, 7th floor",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "7th Floor, Building 1, RMZ Ecoworld, Devarabeesanahalli Village, Varthur Hobli, Bengaluru 560103",
+     "lat": 12.925718,
+     "lng": 77.686492,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "evidence": "Two OSM office nodes place Allstate India at 'RMZ Ecoworld, 7th Floor, Building No. 1, Devarabeesanahalli Village' and 'RMZ Eco World Road 1A' (https://www.openstreetmap.org/node/4445326789)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4445326789",
+    "https://www.openstreetmap.org/node/13385748604"
+   ]
+  },
+  {
+   "name": "BT Group",
+   "aliases": [
+    "British Telecom",
+    "BT e-Serv (India) Pvt Ltd",
+    "BT Global Services"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Telecom & networking",
+   "description": "UK telecom operator; BT's India captive (BT e-Serv / BT Global Services) occupies the 10th and 11th floors of Campus 4A & 4B at RMZ Ecoworld.",
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "founded": 1980,
+   "website": "https://www.bt.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld - Campus 4A & 4B, 10th-11th floors",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 4A & 4B, floors 10-11",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Campus 4A & 4B, 10th & 11th Floor, RMZ Ecoworld, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.924615,
+     "lng": 77.68846,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "evidence": "OSM office nodes 'British Telecom Eco World 4A, 4B' and 'BT e-Serv (India) Private Limited' both give 'Campus 4A & 4B, 10th & 11th Floor, RMZ Ecoworld, Devarabeesanahalli' (https://www.openstreetmap.org/node/4445380785)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4445380785",
+    "https://www.openstreetmap.org/node/4445373809"
+   ]
+  },
+  {
+   "name": "Virtusa",
+   "aliases": [
+    "Virtusa Consulting Services Pvt Ltd",
+    "Polaris (merged)"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "US-headquartered IT services firm (Baring PE-owned) with a Bengaluru delivery centre at RMZ Ecoworld.",
+   "hqCity": "Southborough",
+   "hqCountry": "United States",
+   "founded": 1996,
+   "website": "https://www.virtusa.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld - #21, 3rd floor",
+     "techPark": "RMZ Ecoworld",
+     "building": "Plot 21 (Campus 1/2 area), 3rd floor",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "#21, RMZ Ecoworld, 3rd Floor, Sarjapur-Marathahalli Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.925806,
+     "lng": 77.68705,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "evidence": "OSM office node gives 'Virtusa Consulting Services Pvt. Ltd., 21, RMZ Eco World, 3rd Floor, Sarjapur-Marathahalli Outer Ring Road, Deverabeesanahalli, Varthur Hobli' (https://www.openstreetmap.org/node/4445354862)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4445354862"
+   ]
+  },
+  {
+   "name": "KPIT Technologies",
+   "aliases": [
+    "KPIT Technologies Ltd",
+    "KPIT Cummins"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "description": "Pune-listed automotive software company (~13,000 staff); its Bengaluru development centre spans two RMZ Ecoworld buildings, the original 'ATP' block (#20 & 21) and Campus 5B.",
+   "hqCity": "Pune",
+   "hqCountry": "India",
+   "founded": 1990,
+   "website": "https://www.kpit.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld - #20 & 21 (ATP block B1), 2nd floor West Wing",
+     "techPark": "RMZ Ecoworld",
+     "building": "Plots 20 & 21 (ATP B1), 2nd floor West Wing",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "#20 & 21, RMZ Ecoworld Infrastructure SEZ, Sarjapur Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.925527,
+     "lng": 77.687046,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "KPIT's contact page lists 'No. 20 & 21 East wing and West wing RMZ Eco world infra. Pvt Ltd SEZ, Formerly Adarsh Prime Projects, Sarjapur Outer Ring Road, Devarabesanahalli, 560103'; OSM node 'KPIT' carries the same plot numbers (https://www.kpit.com/contact/)."
+    },
+    {
+     "label": "RMZ Ecoworld - Campus 5B, 1st & 9th floors",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 5B, floors 1 & 9",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Campus 5B, RMZ Ecoworld SEZ, Devarabeesanahalli, Sarjapur Outer Ring Road, Bengaluru 560103",
+     "lat": 12.922121,
+     "lng": 77.683626,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "KPIT's contact page lists 'Plot B, Campus 5B, 1st Floor and 9th Floor, RMZ Ecoworld Infrastructure Pvt Ltd, SEZ, Devarabeesanahalli'; coordinates from the OSM 'Campus 5B' polygon (https://www.kpit.com/contact/)."
+    }
+   ],
+   "sources": [
+    "https://www.kpit.com/contact/",
+    "https://www.openstreetmap.org/node/4445348265"
+   ]
+  },
+  {
+   "name": "Haleon",
+   "aliases": [
+    "Haleon GCC",
+    "GSK Consumer Healthcare"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Consumer-health company spun out of GSK in 2022; its Global Capability Center in Bengaluru is on the 10th floor of Campus 31, RMZ Ecoworld 30.",
+   "hqCity": "Weybridge",
+   "hqCountry": "United Kingdom",
+   "founded": 2022,
+   "website": "https://www.haleon.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld 30 - Campus 31, 10th floor (GCC)",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 31, 10th floor",
+     "locality": "Bhoganahalli / Bellandur",
+     "address": "10th Floor, Campus 31, RMZ Ecoworld 30, Bellandur, Bengaluru 560103",
+     "lat": 12.920735,
+     "lng": 77.686314,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "evidence": "OSM office node 'Haleon Global Capability Center' is tagged '10th Floor, Campus 31, Adarsh Palm Retreat Internal Road, Bellandur' (https://www.openstreetmap.org/node/11078235537)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11078235537"
+   ]
+  },
+  {
+   "name": "D. E. Shaw",
+   "aliases": [
+    "D. E. Shaw India Pvt Ltd",
+    "DE Shaw"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "Quantitative investment firm; D. E. Shaw India's Bengaluru office (opened 2023) is pinned by OSM at Campus 31 of RMZ Ecoworld 30.",
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "founded": 1988,
+   "website": "https://www.deshawindia.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld 30 - Campus 31 area",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 31 (per OSM pin)",
+     "locality": "Bhoganahalli / Bellandur",
+     "address": "RMZ Ecoworld 30, Bellandur, Bengaluru 560103",
+     "lat": 12.920744,
+     "lng": 77.686062,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "evidence": "OSM office node 'DE Shaw India' sits on the Campus 31 building of Ecoworld 30; no address text on the node and the company's site does not list the address, so unconfirmed (https://www.openstreetmap.org/node/11554519757)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11554519757"
+   ]
+  },
+  {
+   "name": "AppLogic Networks",
+   "aliases": [
+    "Sandvine",
+    "Sandvine India"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Foreign",
+   "sector": "Telecom & networking",
+   "description": "Canadian network-intelligence vendor (renamed from Sandvine in 2025) with an engineering office in Campus 1A of RMZ Ecoworld.",
+   "hqCity": "Waterloo",
+   "hqCountry": "Canada",
+   "founded": 2001,
+   "website": "https://www.applogicnetworks.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld - Campus 1A",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 1A",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "1A, RMZ Ecoworld, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.925686,
+     "lng": 77.687288,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "evidence": "Two OSM office nodes 'Applogic Networks' are tagged '1A, RMZ Eco World Road' and '1A, RMZ Ecoworld Internal Road' (https://www.openstreetmap.org/node/4445359078)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4445359078",
+    "https://www.openstreetmap.org/node/12691427301"
+   ]
+  },
+  {
+   "name": "SiTime",
+   "aliases": [
+    "SiTime Corporation"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "Nasdaq-listed MEMS timing chip maker with an India design centre on the 1st floor of Campus 1A, RMZ Ecoworld.",
+   "hqCity": "Santa Clara",
+   "hqCountry": "United States",
+   "founded": 2005,
+   "website": "https://www.sitime.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld - Campus 1A, floor 1",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 1A, 1st floor",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "1A, RMZ Ecoworld, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.925518,
+     "lng": 77.687113,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "evidence": "OSM office node 'Si Time' is tagged '1A, floor 1, RMZ Ecoworld Internal Road' (https://www.openstreetmap.org/node/12925434601)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12925434601"
+   ]
+  },
+  {
+   "name": "Freshworks",
+   "aliases": [
+    "Freshdesk"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "Nasdaq-listed SaaS company of Indian origin (HQ San Mateo, main India base Chennai); an OSM pin places a Bengaluru office at RMZ Ecoworld, unconfirmed.",
+   "hqCity": "San Mateo",
+   "hqCountry": "United States",
+   "founded": 2010,
+   "website": "https://www.freshworks.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld - Campus 6A/6B area",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 6A/6B (per OSM pin)",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "RMZ Ecoworld, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.921223,
+     "lng": 77.684106,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "evidence": "OSM office node 'Freshworks' sits on the Campus 6A/6B building at RMZ Ecoworld; no address text and the company's locations page could not be fetched, so unconfirmed (https://www.openstreetmap.org/node/12055268756)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12055268756"
+   ]
+  },
+  {
+   "name": "SAP",
+   "aliases": [
+    "SAP Labs India",
+    "SAP Ariba"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "German enterprise-software major (main Bengaluru campus is SAP Labs in Whitefield); OSM pins place an SAP Ariba unit at RMZ Ecoworld and SAP Labs at Salarpuria Softzone, neither confirmed by SAP.",
+   "hqCity": "Walldorf",
+   "hqCountry": "Germany",
+   "founded": 1972,
+   "website": "https://www.sap.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecoworld - SAP Ariba (Campus 8A area)",
+     "techPark": "RMZ Ecoworld",
+     "building": "Campus 8A (per OSM pin)",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "RMZ Ecoworld, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.91972,
+     "lng": 77.684871,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "evidence": "OSM office node 'SAP Ariba' (website ariba.com) sits on the Campus 8A building at RMZ Ecoworld; unconfirmed by SAP (https://www.openstreetmap.org/node/11553915382)."
+    },
+    {
+     "label": "Salarpuria Softzone - SAP Labs unit",
+     "techPark": "Salarpuria Sattva Softzone",
+     "building": null,
+     "locality": "Bellandur",
+     "address": "Salarpuria Softzone, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.924486,
+     "lng": 77.670161,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "evidence": "Two OSM office nodes ('SAP', 'SAP Labs India Pvt Ltd, Outer Ring Road 560103') sit inside the Salarpuria Softzone polygon and Wikipedia lists SAP Labs among Bellandur's firms; unconfirmed by SAP (https://www.openstreetmap.org/node/5622287724)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11553915382",
+    "https://www.openstreetmap.org/node/5622287724",
+    "https://en.wikipedia.org/wiki/Bellandur"
+   ]
+  },
+  {
+   "name": "Microsoft",
+   "aliases": [
+    "Microsoft India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Microsoft's Bengaluru office (sales, Azure and engineering teams distinct from the Hyderabad IDC) is at Prestige Ferns Galaxy on the Bellandur stretch of ORR.",
+   "hqCity": "Redmond",
+   "hqCountry": "United States",
+   "founded": 1975,
+   "website": "https://www.microsoft.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Ferns Galaxy, Bellandur",
+     "techPark": "Prestige Ferns Galaxy",
+     "building": null,
+     "locality": "Bellandur (Iblur end of ORR)",
+     "address": "Prestige Ferns Galaxy, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.921624,
+     "lng": 77.66883,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "evidence": "Wikipedia's Bellandur article lists Microsoft among the firms in the suburb and an OSM office node 'Microsoft' sits on the Prestige Ferns Galaxy building (geocoded 12.92143, 77.66929) (https://www.openstreetmap.org/node/5984858240)."
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Bellandur",
+    "https://www.openstreetmap.org/node/5984858240"
+   ]
+  },
+  {
+   "name": "Intel",
+   "aliases": [
+    "Intel Technology India Pvt Ltd",
+    "Intel India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "Intel India's 44-acre owner-occupied campus on the Outer Ring Road at Devarabeesanahalli (buildings SRR1-SRR5) is its largest design and engineering centre outside the US; the 6.2 lakh sq ft SRR4 opened in 2022.",
+   "hqCity": "Santa Clara",
+   "hqCountry": "United States",
+   "founded": 1968,
+   "website": "https://www.intel.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Intel India SRR campus (SRR1-SRR5)",
+     "techPark": "Intel India SRR Campus",
+     "building": "SRR1-SRR5",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Intel Technology India Pvt Ltd, Sarjapur Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.926615,
+     "lng": 77.68482,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-park",
+     "evidence": "Press coverage of the SRR4 opening describes the 620,000 sq ft design house on Intel's 44-acre Bengaluru campus, and OSM carries a landuse polygon 'Intel' on the ORR at Devarabeesanahalli with buildings SRR3/SRR4/SRR5 (https://cxotoday.com/media-coverage/intel-india-opens-a-new-state-of-the-art-design-engineering-center-in-bengaluru/)."
+    }
+   ],
+   "sources": [
+    "https://cxotoday.com/media-coverage/intel-india-opens-a-new-state-of-the-art-design-engineering-center-in-bengaluru/",
+    "https://www.voicendata.com/intel-to-invest-rs-1100-crore-to-expand-rd-and-innovation-in-bengaluru",
+    "https://www.openstreetmap.org/way/232892803",
+    "https://en.wikipedia.org/wiki/Bellandur"
+   ]
+  },
+  {
+   "name": "Broadcom",
+   "aliases": [
+    "VMware",
+    "Avago",
+    "LSI Logic",
+    "Broadcom Inc"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "Semiconductor and infrastructure-software group (now including VMware); its Bellandur presence traces to the LSI/Avago design centre at RMZ Ecospace Campus 1A/1C, with a VMware listing at Global Technology Park.",
+   "hqCity": "Palo Alto",
+   "hqCountry": "United States",
+   "founded": 1991,
+   "website": "https://www.broadcom.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecospace - Campus 1A & 1C",
+     "techPark": "RMZ Ecospace",
+     "building": "Campus 1A & 1C",
+     "locality": "Bellandur",
+     "address": "Campus 1A & 1C, RMZ Ecospace, Sarjapur Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.926929,
+     "lng": 77.680417,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "evidence": "OSM maps a building 'Broadcom' with the address 'Ecospace, Campus 1A and 1C, Sarjapur Outer Ring Road, Belandur 560103' (https://www.openstreetmap.org/way/85691873)."
+    },
+    {
+     "label": "Global Technology Park (VMware unit)",
+     "techPark": "Global Technology Park",
+     "building": null,
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Global Technology Park, Marathahalli-Sarjapur Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.925617,
+     "lng": 77.682708,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "park-centroid",
+     "evidence": "A campus marketing directory lists 'VMware Software Pvt Ltd' among Global Technology Park's companies, and the park's first tenant in 2011 was LSI Logic (now Broadcom); unconfirmed by Broadcom, whose main VMware campus is in J.P. Nagar (https://www.brandland.in/product/global-tech-park-bangalore/)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/85691873",
+    "https://www.brandland.in/product/global-tech-park-bangalore/",
+    "https://www.track2realty.track2media.com/?p=4588"
+   ]
+  },
+  {
+   "name": "Microland",
+   "aliases": [
+    "Microland Ltd"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Bengaluru-born IT infrastructure services company (~4,500 staff); its headquarters and registered office is building 1B at RMZ Ecospace.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1989,
+   "website": "https://www.microland.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - RMZ Ecospace 1B",
+     "techPark": "RMZ Ecospace",
+     "building": "Campus 1B",
+     "locality": "Bellandur",
+     "address": "1B, Ecospace, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.926187,
+     "lng": 77.679959,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Microland's contact page lists its Headquarters and Registered Office as '1B, Ecospace, Bellandur, Outer Ring Road, Bengaluru 560103'; OSM node carries the same address (https://www.microland.com/contact)."
+    }
+   ],
+   "sources": [
+    "https://www.microland.com/contact",
+    "https://www.openstreetmap.org/node/3551348536"
+   ]
+  },
+  {
+   "name": "Bosch Global Software Technologies",
+   "aliases": [
+    "RBEI",
+    "Robert Bosch Engineering and Business Solutions",
+    "BGSW"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Bosch's software and engineering arm (formerly Robert Bosch Engineering and Business Solutions), headquartered at Adugodi; OSM records a satellite office in Campus 1B of RMZ Ecospace.",
+   "hqCity": "Gerlingen",
+   "hqCountry": "Germany",
+   "founded": 1997,
+   "website": "https://www.bosch-softwaretechnologies.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "RMZ Ecospace - Campus 1B",
+     "techPark": "RMZ Ecospace",
+     "building": "Campus 1B",
+     "locality": "Bellandur",
+     "address": "Campus 1B, RMZ Ecospace, Service Road, Bellandur, Bengaluru 560103",
+     "lat": 12.926528,
+     "lng": 77.679808,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "evidence": "OSM office node 'Robert Bosch Engineering and Business Solutions Limited' is tagged 'Campus 1B EcoSpace, Varthur Hobli, Service Rd, Adarsh Palm Retreat, Bellandur' with the bosch-india-software.com website (https://www.openstreetmap.org/node/3551347251)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/3551347251"
+   ]
+  },
+  {
+   "name": "Subex",
+   "aliases": [
+    "Subex Ltd"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Telecom & networking",
+   "description": "Bengaluru-listed telecom analytics and revenue-assurance software company; its headquarters moved to Block 9 of Pritech Park SEZ (an older OSM pin shows it at RMZ Ecoworld).",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1992,
+   "website": "https://www.subex.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Pritech Park SEZ Block 9, 4th floor B Wing",
+     "techPark": "Pritech Park SEZ",
+     "building": "Block 9, 4th floor, B Wing",
+     "locality": "Bellandur",
+     "address": "Block 9, 4th Floor B Wing, Pritech Park SEZ, Sy No. 51-64/4, Outer Ring Road, Bellandur Village, Bengaluru 560103",
+     "lat": 12.923623,
+     "lng": 77.680586,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Subex's contact page gives its headquarters as 'Pritech Park, SEZ Block-09, 4th Floor B Wing, Survey No. 51 to 64/4 Outer Ring Road, Bellandur Village, Varthur Hobli, Bengaluru 560103'; coordinates from the OSM polygon 'Block 9A and 9B' (https://www.subex.com/contact-us/)."
+    }
+   ],
+   "sources": [
+    "https://www.subex.com/contact-us/",
+    "https://www.openstreetmap.org/node/4445361533"
+   ]
+  },
+  {
+   "name": "Impetus Technologies",
+   "aliases": [
+    "Impetus Infotech India Pvt Ltd"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "US-headquartered (Los Gatos) data-engineering services firm of Indian origin; its Bengaluru office is Tower 14B in Pritech Park SEZ.",
+   "hqCity": "Los Gatos",
+   "hqCountry": "United States",
+   "founded": 1991,
+   "website": "https://www.impetus.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Pritech Park SEZ - Tower 14B",
+     "techPark": "Pritech Park SEZ",
+     "building": "Tower 14B",
+     "locality": "Bellandur",
+     "address": "Tower 14B, Pritech Park SEZ, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.920706,
+     "lng": 77.680912,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Impetus's contact page lists 'Impetus Technologies India Pvt. Ltd., Tower 14 B, SEZ Pritech Park, Bengaluru 560103'; coordinates from the OSM 'Building 14' polygon (https://www.impetus.com/contact)."
+    }
+   ],
+   "sources": [
+    "https://www.impetus.com/contact",
+    "https://www.openstreetmap.org/node/4444516315"
+   ]
+  },
+  {
+   "name": "HGS",
+   "aliases": [
+    "Hinduja Global Solutions Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Hinduja Global Solutions, a listed BPM and digital services company; OSM and a Pritech Park overview place a Bengaluru delivery centre in Building 14 of Pritech Park SEZ.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2000,
+   "website": "https://hgs.cx",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Pritech Park SEZ - Building 14",
+     "techPark": "Pritech Park SEZ",
+     "building": "Building 14",
+     "locality": "Bellandur",
+     "address": "Building 14, Pritech Park SEZ, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.921066,
+     "lng": 77.680741,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "evidence": "OSM office node 'Hinduja Global Solutions, (HGS)' is tagged 'Building 14, Pritech Park, Outer Ring Road', and a Pritech Park overview names HGS among the park's tenants alongside Intuit and eBay (https://www.openstreetmap.org/node/6801839057)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/6801839057",
+    "https://www.prestigeevergreenvarthur.in/blog/pritech-park-sez.html"
+   ]
+  },
+  {
+   "name": "Altisource",
+   "aliases": [
+    "Altisource Business Solutions Pvt Ltd",
+    "Ocwen Financial Solutions (co-located)"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "Luxembourg-headquartered mortgage and real-estate services provider; its large Bengaluru operations centre (shared historically with Ocwen) is Building 12B on the Ecospace internal road inside Pritech Park SEZ.",
+   "hqCity": "Luxembourg",
+   "hqCountry": "Luxembourg",
+   "founded": 2009,
+   "website": "https://www.altisource.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Pritech Park SEZ - Building 12B",
+     "techPark": "Pritech Park SEZ",
+     "building": "Building 12B",
+     "locality": "Bellandur",
+     "address": "Building 12B, Pritech Park SEZ (Ecospace internal road), Bellandur, Bengaluru 560103",
+     "lat": 12.923018,
+     "lng": 77.679896,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "evidence": "OSM office nodes for 'Altisource Business Solutions Pvt Ltd' and 'Ocwen Financial Solutions Pvt Ltd' are both tagged 'Building 12B, RMZ Ecospace Internal Rd, Bellandur 560103' (https://www.openstreetmap.org/node/4446463782)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4446463782",
+    "https://www.openstreetmap.org/node/4446442141"
+   ]
+  },
+  {
+   "name": "Synamedia",
+   "aliases": [
+    "Cisco Video Technology India Pvt Ltd",
+    "NDS"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Foreign",
+   "sector": "Telecom & networking",
+   "description": "Video-software company carved out of Cisco's NDS/video business in 2018; the former 'Cisco Video Technology India' site in Blocks 9A & 9B of Pritech Park SEZ is still mapped under the old name.",
+   "hqCity": "Staines-upon-Thames",
+   "hqCountry": "United Kingdom",
+   "founded": 2018,
+   "website": "https://www.synamedia.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Pritech Park SEZ - Block 9A & 9B",
+     "techPark": "Pritech Park SEZ",
+     "building": "Block 9A & 9B",
+     "locality": "Bellandur",
+     "address": "Block 9A & 9B, Pritech Park SEZ, Sarjapur Outer Ring Road, Bellandur Village, Bengaluru 560103",
+     "lat": 12.923801,
+     "lng": 77.68049,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "evidence": "OSM office node 'Cisco Video Technology India Pvt. Ltd.' is tagged 'Block 9A & 9B, Pritech Park SEZ, Survey No 51-64/4, Sarjapur Outer Ring Road, Bellandur Village'; the business became Synamedia in 2018 and current occupancy is unconfirmed (https://www.openstreetmap.org/node/3671350511)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/3671350511"
+   ]
+  },
+  {
+   "name": "Mphasis",
+   "aliases": [
+    "Mphasis Ltd",
+    "MphasiS"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Bengaluru-headquartered listed IT services company (~30,000 staff) with its registered office at Bagmane World Technology Center; a directory lists a Bellandur unit in Block 5 of Pritech Park SEZ.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1998,
+   "website": "https://www.mphasis.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Pritech Park SEZ - Block 5, Wing A, 2nd floor",
+     "techPark": "Pritech Park SEZ",
+     "building": "Block 5, Wing A, 2nd floor",
+     "locality": "Bellandur",
+     "address": "2nd Floor, Wing A, Block 5, Pritech Park SEZ, Outer Ring Road, Bellandur Village, Bengaluru 560103",
+     "lat": 12.923665,
+     "lng": 77.682071,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "evidence": "A company directory lists Mphasis at 'Pritech Park SEZ, second floor, Wing A, Block 5, Outer Ring Road, Bellandur Village, 560103'; single secondary source, coordinates from the OSM 'Building 5' polygon (https://in.worldorgs.com/catalog/bengaluru/software-company/mphasis)."
+    },
+    {
+     "label": "Registered office - Bagmane World Technology Center",
+     "techPark": "Bagmane World Technology Center",
+     "building": null,
+     "locality": "Doddanekundi, Mahadevapura",
+     "address": "Bagmane World Technology Center, Marathahalli Outer Ring Road, Doddanekundi, Mahadevapura, Bengaluru 560048",
+     "lat": 12.985291,
+     "lng": 77.694672,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "evidence": "Mphasis's own contact details and company profiles give the registered office as 'Bagmane World Technology Center, Marathahalli Outer Ring Road, Doddanakundi Village, Mahadevapura, Bangalore 560048'; park centroid used (https://www.globaldata.com/company-profile/mphasis/locations/)."
+    }
+   ],
+   "sources": [
+    "https://in.worldorgs.com/catalog/bengaluru/software-company/mphasis",
+    "https://www.globaldata.com/company-profile/mphasis/locations/"
+   ]
+  },
+  {
+   "name": "Societe Generale",
+   "aliases": [
+    "Societe Generale Global Solution Centre",
+    "SG GSC",
+    "SocGen"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "French bank; its Global Solution Centre is in ITPB Whitefield, while SocGen's locations page gives a Pritech Park SEZ, Bellandur address for its Securities Services custody unit.",
+   "hqCity": "Paris",
+   "hqCountry": "France",
+   "founded": 1864,
+   "website": "https://www.societegenerale.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Pritech Park SEZ - Securities Services (custody) unit",
+     "techPark": "Pritech Park SEZ",
+     "building": null,
+     "locality": "Bellandur",
+     "address": "Pritech Park SEZ, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.923301,
+     "lng": 77.681108,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "evidence": "Societe Generale's group locations page lists a Bangalore 560103 address at Pritech Park SEZ, Bellandur for its Securities Services custody unit; block not given, so the park centroid is used (https://societegenerale.com/en/group/locations)."
+    },
+    {
+     "label": "Global Solution Centre - ITPB Whitefield (Victor / Voyager buildings)",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Victor Building (2nd floor) / Voyager Building (10th floor)",
+     "locality": "Whitefield",
+     "address": "Victor Building, ITPB SEZ, Whitefield Road, Bengaluru 560066",
+     "lat": 12.985228,
+     "lng": 77.736825,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "evidence": "SocGen's India page lists the Global Solution Centre at 'Victor Building, 2nd Floor, Whitefield Road, Ascendas ITPB SEZ, International Tech Park, Bangalore 560066' (and the Voyager Building, 10th floor); ITPB park centroid used (https://wholesale.banking.societegenerale.com/en/about/locations/country-details/country/india-2/)."
+    }
+   ],
+   "sources": [
+    "https://societegenerale.com/en/group/locations",
+    "https://wholesale.banking.societegenerale.com/en/about/locations/country-details/country/india-2/"
+   ]
+  },
+  {
+   "name": "Arista Networks",
+   "aliases": [
+    "Arista Networks India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Telecom & networking",
+   "description": "Cloud-networking vendor; its Bangalore R&D office is on the 9th and 11th floors of Tower A, Global Technology Park.",
+   "hqCity": "Santa Clara",
+   "hqCountry": "United States",
+   "founded": 2004,
+   "website": "https://www.arista.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Technology Park - Tower A, 9th & 11th floors (R&D)",
+     "techPark": "Global Technology Park",
+     "building": "Tower A, floors 9 & 11",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Tower A, Global Technology Park, Marathahalli Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.92708,
+     "lng": 77.682784,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Arista's contact page lists 'Global Technology Park Tower A, 9th & 11th Floor, Marathahalli Outer Ring Road, Devarabeesanahalli Village, Varthur Hobli, Bengaluru 560103' as an R&D office; property listings also name Arista in Towers A and B (https://www.arista.com/en/company/contact-us)."
+    }
+   ],
+   "sources": [
+    "https://www.arista.com/en/company/contact-us",
+    "https://properties.cityinfoservices.com/global-technology-park-maple-tree-phase-1-tower-a-marathahalli-sarjapur-outer-ring-road-bangalore/ldosnrc/pjd",
+    "https://www.openstreetmap.org/node/9783642017"
+   ]
+  },
+  {
+   "name": "LinkedIn",
+   "aliases": [
+    "LinkedIn Technology Information Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Microsoft-owned professional network; LinkedIn Technology Information Pvt Ltd's Bengaluru engineering office is in Towers A and B of Global Technology Park.",
+   "hqCity": "Sunnyvale",
+   "hqCountry": "United States",
+   "founded": 2002,
+   "website": "https://www.linkedin.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Technology Park - Towers A & B",
+     "techPark": "Global Technology Park",
+     "building": "Towers A & B",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Global Technology Park, Marathahalli-Sarjapur Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.927257,
+     "lng": 77.682803,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Property listings for both Tower A and Tower B of Global Technology Park name 'LinkedIn Technology Information' among current occupiers, a campus directory lists LinkedIn, and an OSM office node 'LinkedIn' sits on Tower A (https://properties.cityinfoservices.com/global-technology-park-maple-tree-phase-1-tower-a-marathahalli-sarjapur-outer-ring-road-bangalore/ldosnrc/pjd)."
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/global-technology-park-maple-tree-phase-1-tower-a-marathahalli-sarjapur-outer-ring-road-bangalore/ldosnrc/pjd",
+    "https://properties.cityinfoservices.com/global-technology-park-maple-tree-phase-1-tower-b-marathahalli-sarjapur-outer-ring-road-bangalore/gyqsnng/pjd",
+    "https://www.brandland.in/product/global-tech-park-bangalore/",
+    "https://www.openstreetmap.org/node/9783642019"
+   ]
+  },
+  {
+   "name": "Vodafone (_VOIS)",
+   "aliases": [
+    "Vodafone Intelligent Solutions",
+    "Vodafone Global Services",
+    "VOIS",
+    "Vodafone Shared Services India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Telecom & networking",
+   "description": "Vodafone Group's shared-services arm _VOIS (Vodafone Intelligent Solutions, formerly Vodafone Global Services) runs a Bengaluru centre in Towers A and B of Global Technology Park.",
+   "hqCity": "Newbury",
+   "hqCountry": "United Kingdom",
+   "founded": 1991,
+   "website": "https://www.vodafone.com/careers/vois",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Technology Park - Towers A & B",
+     "techPark": "Global Technology Park",
+     "building": "Towers A & B",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Global Technology Park, Marathahalli-Sarjapur Outer Ring Road, Devarabeesanahalli, Bengaluru 560103",
+     "lat": 12.926417,
+     "lng": 77.682867,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Property listings for Towers A and B of Global Technology Park name 'Vodafone Global Services' among current occupiers and a campus directory lists 'Vodafone Intelligent Solutions' (https://properties.cityinfoservices.com/global-technology-park-maple-tree-phase-1-tower-b-marathahalli-sarjapur-outer-ring-road-bangalore/gyqsnng/pjd)."
+    }
+   ],
+   "sources": [
+    "https://properties.cityinfoservices.com/global-technology-park-maple-tree-phase-1-tower-a-marathahalli-sarjapur-outer-ring-road-bangalore/ldosnrc/pjd",
+    "https://properties.cityinfoservices.com/global-technology-park-maple-tree-phase-1-tower-b-marathahalli-sarjapur-outer-ring-road-bangalore/gyqsnng/pjd",
+    "https://www.brandland.in/product/global-tech-park-bangalore/"
+   ]
+  },
+  {
+   "name": "Marvell",
+   "aliases": [
+    "Marvell Semiconductor",
+    "Marvell India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "Data-infrastructure chip designer; its Bangalore design centre spans the 9th-11th floors of Towers D and E at Global Technology Park.",
+   "hqCity": "Santa Clara",
+   "hqCountry": "United States",
+   "founded": 1995,
+   "website": "https://www.marvell.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Technology Park - Towers D & E, floors 9-11",
+     "techPark": "Global Technology Park",
+     "building": "Towers D & E, floors 9-11",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Towers D & E, Global Technology Park, Marathahalli-Sarjapur Outer Ring Road, Bengaluru 560103",
+     "lat": 12.925617,
+     "lng": 77.682708,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "park-centroid",
+     "evidence": "Marvell's offices page lists 'Global Technology Park, 9th Floor Tower E, 10th Floor Tower D & E, 11th Floor Tower E, Marathahalli-Sarjapur Outer Ring Road, Bangalore 560103'; Towers D/E have no OSM polygon so the park centroid is used (https://www.marvell.com/company/offices.html)."
+    }
+   ],
+   "sources": [
+    "https://www.marvell.com/company/offices.html",
+    "https://www.brandland.in/product/global-tech-park-bangalore/",
+    "https://www.openstreetmap.org/node/9783642018"
+   ]
+  },
+  {
+   "name": "EPAM Systems",
+   "aliases": [
+    "EPAM"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "US-listed digital engineering services firm; a campus directory lists 'EPAM Bangalore' at Global Technology Park, unconfirmed by EPAM.",
+   "hqCity": "Newtown",
+   "hqCountry": "United States",
+   "founded": 1993,
+   "website": "https://www.epam.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Technology Park",
+     "techPark": "Global Technology Park",
+     "building": null,
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Global Technology Park, Marathahalli-Sarjapur Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.925617,
+     "lng": 77.682708,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "park-centroid",
+     "evidence": "A campus marketing directory names 'EPAM Bangalore' among Global Technology Park's companies; EPAM's own offices page could not be fetched, so unconfirmed (https://www.brandland.in/product/global-tech-park-bangalore/)."
+    }
+   ],
+   "sources": [
+    "https://www.brandland.in/product/global-tech-park-bangalore/"
+   ]
+  },
+  {
+   "name": "Saviynt",
+   "aliases": [
+    "Saviynt India"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "Venture-backed identity-governance SaaS vendor; a campus directory lists it at Global Technology Park, unconfirmed.",
+   "hqCity": "El Segundo",
+   "hqCountry": "United States",
+   "founded": 2010,
+   "website": "https://saviynt.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Technology Park",
+     "techPark": "Global Technology Park",
+     "building": null,
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Global Technology Park, Marathahalli-Sarjapur Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.925617,
+     "lng": 77.682708,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "park-centroid",
+     "evidence": "A campus marketing directory names Saviynt among Global Technology Park's companies; the company's contact page returned 404, so unconfirmed (https://www.brandland.in/product/global-tech-park-bangalore/)."
+    }
+   ],
+   "sources": [
+    "https://www.brandland.in/product/global-tech-park-bangalore/"
+   ]
+  },
+  {
+   "name": "Kwalee",
+   "aliases": [
+    "Kwalee India"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Foreign",
+   "sector": "Media & gaming",
+   "description": "UK mobile-games publisher with an India studio; a campus directory lists 'Kwalee India' at Global Technology Park, unconfirmed.",
+   "hqCity": "Leamington Spa",
+   "hqCountry": "United Kingdom",
+   "founded": 2011,
+   "website": "https://www.kwalee.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Technology Park",
+     "techPark": "Global Technology Park",
+     "building": null,
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Global Technology Park, Marathahalli-Sarjapur Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.925617,
+     "lng": 77.682708,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "park-centroid",
+     "evidence": "A campus marketing directory names 'Kwalee India' among Global Technology Park's companies; unconfirmed by the company (https://www.brandland.in/product/global-tech-park-bangalore/)."
+    }
+   ],
+   "sources": [
+    "https://www.brandland.in/product/global-tech-park-bangalore/"
+   ]
+  },
+  {
+   "name": "Huron",
+   "aliases": [
+    "Huron Consulting Group",
+    "Huron Eurasia India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Chicago-based consultancy; a campus directory lists 'Huron Eurasia India' at Global Technology Park, unconfirmed.",
+   "hqCity": "Chicago",
+   "hqCountry": "United States",
+   "founded": 2002,
+   "website": "https://www.huronconsultinggroup.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Technology Park",
+     "techPark": "Global Technology Park",
+     "building": null,
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Global Technology Park, Marathahalli-Sarjapur Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.925617,
+     "lng": 77.682708,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "park-centroid",
+     "evidence": "A campus marketing directory names 'Huron Eurasia India Private Limited' among Global Technology Park's companies; unconfirmed by the company (https://www.brandland.in/product/global-tech-park-bangalore/)."
+    }
+   ],
+   "sources": [
+    "https://www.brandland.in/product/global-tech-park-bangalore/"
+   ]
+  },
+  {
+   "name": "Blue Yonder",
+   "aliases": [
+    "JDA Software",
+    "Blue Yonder India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "Supply-chain software company (formerly JDA Software, owned by Panasonic); its Bangalore office is Tower A of Mantri Commercio.",
+   "hqCity": "Scottsdale",
+   "hqCountry": "United States",
+   "founded": 1985,
+   "website": "https://blueyonder.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Mantri Commercio - Tower A",
+     "techPark": "Mantri Commercio",
+     "building": "Tower A",
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Tower A, Mantri Commercio, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.932449,
+     "lng": 77.683813,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-park",
+     "evidence": "Blue Yonder's locations page lists 'Blue Yonder India Private Limited, Tower A, Mantri Commercio, Nr Sakra World Hospital, Outer Ring Road, Bellandur, Bangalore 560103'; an older OSM node 'jda software' sits on the same complex (https://blueyonder.com/about/locations)."
+    }
+   ],
+   "sources": [
+    "https://blueyonder.com/about/locations",
+    "https://www.brandland.in/product/mantri-commercio-bangalore/",
+    "https://www.openstreetmap.org/node/4447209004"
+   ]
+  },
+  {
+   "name": "Rapido",
+   "aliases": [
+    "Roppen Transportation Services Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Mobility & EV",
+   "description": "Bike-taxi and ride-hailing unicorn (2024) founded in Bengaluru; its Bengaluru corporate office is in Mantri Commercio (the registered office is in Hyderabad).",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2015,
+   "website": "https://rapido.bike",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - Mantri Commercio",
+     "techPark": "Mantri Commercio",
+     "building": null,
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Mantri Commercio, Outer Ring Road, Devarabeesanahalli, Bellandur, Bengaluru 560103",
+     "lat": 12.93213,
+     "lng": 77.683685,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "evidence": "A campus directory lists Rapido first among Mantri Commercio's companies and an OSM office node 'Rapido Office' sits on the complex; Rapido's own contact page gives only its Hyderabad registered office, so the Bengaluru building is not company-confirmed (https://www.brandland.in/product/mantri-commercio-bangalore/)."
+    }
+   ],
+   "sources": [
+    "https://www.brandland.in/product/mantri-commercio-bangalore/",
+    "https://www.openstreetmap.org/node/13997547101",
+    "https://rapido.bike/Contact"
+   ]
+  },
+  {
+   "name": "Analog Devices",
+   "aliases": [
+    "Maxim Integrated",
+    "Maxim India Integrated Circuit Design Pvt Ltd",
+    "ADI"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "US analog-chip maker; the former Maxim Integrated design centre ('Maxim India Integrated Circuit Design') is listed at Mantri Commercio by a campus directory, unconfirmed since the 2021 acquisition.",
+   "hqCity": "Wilmington",
+   "hqCountry": "United States",
+   "founded": 1965,
+   "website": "https://www.analog.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Mantri Commercio (ex-Maxim design centre)",
+     "techPark": "Mantri Commercio",
+     "building": null,
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Mantri Commercio, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.932449,
+     "lng": 77.683813,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "park-centroid",
+     "evidence": "A campus marketing directory lists 'Maxim India Integrated Circuit Design Pvt. Ltd' among Mantri Commercio's companies; Maxim became part of Analog Devices in 2021 and current occupancy is unconfirmed (https://www.brandland.in/product/mantri-commercio-bangalore/)."
+    }
+   ],
+   "sources": [
+    "https://www.brandland.in/product/mantri-commercio-bangalore/"
+   ]
+  },
+  {
+   "name": "PhonePe",
+   "aliases": [
+    "PhonePe Pvt Ltd",
+    "PhonePe Ltd",
+    "PhonePe Lending Services"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "India's largest UPI payments app (Walmart-controlled, Bengaluru-headquartered); its registered office is on the 5th floor of Block A, Wing A, Salarpuria Softzone.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2015,
+   "website": "https://www.phonepe.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Salarpuria Softzone, Block A Wing A, 5th floor",
+     "techPark": "Salarpuria Sattva Softzone",
+     "building": "Block A, Wing A, 5th floor (Office-2)",
+     "locality": "Bellandur",
+     "address": "Office-2, Floor 5, Wing A, Block A, Salarpuria Softzone, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "lat": 12.924165,
+     "lng": 77.67037,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-park",
+     "evidence": "PhonePe's contact page gives its registered address as 'Office-2, Floor 5, Wing A, Block A, Salarpuria Softzone, Bellandur Village, Varthur Hobli, Outer Ring Road, Bangalore 560103' (https://www.phonepe.com/contact-us/)."
+    }
+   ],
+   "sources": [
+    "https://www.phonepe.com/contact-us/",
+    "https://payufin.in/dlp-details/phonepe"
+   ]
+  },
+  {
+   "name": "Sobha",
+   "aliases": [
+    "Sobha Ltd",
+    "Sobha Developers"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Listed real-estate developer; its corporate headquarters is a standalone building on the Sarjapur-Marathahalli Outer Ring Road at Devarabisanahalli, Bellandur.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1995,
+   "website": "https://www.sobha.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate HQ - Sarjapur-Marathahalli ORR, Devarabisanahalli",
+     "techPark": null,
+     "building": null,
+     "locality": "Devarabeesanahalli, Bellandur",
+     "address": "Sobha Ltd, Sarjapur-Marathahalli Outer Ring Road, Devarabisanahalli, Bellandur Post, Bengaluru 560103",
+     "lat": 12.932325,
+     "lng": 77.684413,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Sobha's contact page gives 'SOBHA LIMITED, Sarjapur - Marthahalli Outer Ring Road (ORR), Devarabisanahalli, Bellandur Post, Bangalore 560103'; OSM node 'Sobha Developers Corporate Office' marks the building (https://www.sobha.com/contact-us/)."
+    }
+   ],
+   "sources": [
+    "https://www.sobha.com/contact-us/",
+    "https://www.openstreetmap.org/node/12059211990"
+   ]
+  },
+  {
+   "name": "Zetwerk",
+   "aliases": [
+    "Zetwerk Manufacturing Businesses Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "description": "Manufacturing-services unicorn; Zetwerk Manufacturing Businesses Ltd's Bengaluru office is the ground and first floors of Vaishnavi Sovereign at Green Glen Layout, Bellandur.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2018,
+   "website": "https://www.zetwerk.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Vaishnavi Sovereign, Green Glen Layout",
+     "techPark": null,
+     "building": "Vaishnavi Sovereign, ground & 1st floors",
+     "locality": "Bellandur",
+     "address": "84/1 Vaishnavi Sovereign, Green Glen Layout, Bellandur, Bengaluru 560103",
+     "lat": 12.927777,
+     "lng": 77.669025,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "Zetwerk's contact page lists '# 84/1, Vaishnavi Sovereign, Ground & 1st Floor, Green Glen Layout, Bellandur, Bengaluru 560103'; coordinates from the OSM polygon 'Vaishnavi Sovereign', with an OSM 'Zetwerk Manufacturing' node beside it (https://www.zetwerk.com/contact-us/)."
+    }
+   ],
+   "sources": [
+    "https://www.zetwerk.com/contact-us/",
+    "https://www.openstreetmap.org/node/11237402130"
+   ]
+  },
+  {
+   "name": "Navi",
+   "aliases": [
+    "Navi Technologies Ltd",
+    "Navi Finserv"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Sachin Bansal's lending, insurance and UPI fintech; its headquarters is in Vaishnavi Tech Square at the Iblur end of the Bellandur ORR stretch.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2018,
+   "website": "https://navi.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Vaishnavi Tech Square, Iblur",
+     "techPark": "Vaishnavi Tech Square",
+     "building": null,
+     "locality": "Iblur / Bellandur",
+     "address": "Vaishnavi Tech Square, Iblur Village, Sarjapur Outer Ring Road, Bellandur, Bengaluru 560102",
+     "lat": 12.92677,
+     "lng": 77.666028,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "evidence": "An OSM office node 'Navi' (navi.com) sits on the Vaishnavi Tech Square building at Iblur; Navi's own site blocked fetching, so the building is corroborated only by the map pin and public filings naming Vaishnavi Tech Square (https://www.openstreetmap.org/node/11237374568)."
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/11237374568",
+    "https://www.openstreetmap.org/way/1167872058"
+   ]
+  }
+ ],
+ "coverageNotes": "WEB SEARCH BUDGET: the shared per-turn WebSearch limit was exhausted about two-thirds of the way through, so the later companies were verified only through direct fetches of company pages and the two OSM extracts; several fetches were blocked (403/429/404: Mapletree property page, Brookfield India REIT Ecoworld PDF, Intuit locations page on retry, SocGen locations page, Navi, Allstate, EPAM, Saviynt, State Street, Standard Chartered GBS, Haleon, HGS). PARKS: Vaswani Centropolis is NOT in this lens - every listing places it at No. 21 Langford Road, Shanti Nagar; the Bellandur 'Simpliwork - Vaswani Centropolis' hit is a flexible-office operator in Shakti Statesman, so no Centropolis park entry was written. Bagmane Solarium City is in Mahadevapura (12.9699, 77.7084), outside this stretch, and was left out. RMZ Ecoworld has no OSM landuse polygon, so its centroid/bbox are derived from the OSM building polygons for Campus 1-9 and 30-33; Ecoworld 20 and Ecoworld 30 (RMZ-retained) are folded into the one CANON entry with aliases rather than split. Pritech Park SEZ and RMZ Ecospace share an internal road and tenants address both as 'Ecospace'; blocks 4A and above with 'Pritech' in the company's own address are filed under Pritech Park SEZ, Campus 1A/1B/1C/3A under RMZ Ecospace, and the single OSM polygon 'RMZ Ecospace' covers both. Intel's owner-occupied SRR campus is recorded as a named corporate campus because it is the largest single site on the stretch outside Ecoworld. TENANTS ASKED ABOUT BUT NOT PLACED HERE: Amazon (no Bellandur evidence; its ORR offices are Bagmane WTC/Constellation and Brigade WTC), Micron (OSM pin is inside Embassy TechVillage, another lens; its listed addresses are Ulsoor), Uber (OSM pins at Sarjapur Road and near Prestige Lakeshore Drive, no address and no company confirmation), Amadeus (Amadeus Labs is at Prestige Tech Park, Kadubeesanahalli - other lens), Rolls-Royce (its GCC is at Manyata Embassy Business Park, opened Sept 2025 - other lens), Lowe's, ServiceNow and Alstom (no source placed them on this stretch), Workday (Dec 2025 press release says it has no Bengaluru office yet), Infosys BPM (HQ Electronics City, nothing here), Visa (its 2015 tech centre is at Bagmane WTC). VMware/Broadcom is recorded under Broadcom with a medium Ecospace 1A/1C office and a low GTP listing; Broadcom's main VMware campus is in J.P. Nagar. DELIBERATELY LEFT OUT: Flipkart at Mantri Commercio (OSM pin from its early years; HQ is Embassy TechVillage), Replicon at Mantri Commercio (Deltek's site now gives Salarpuria Supreme, Marathahalli), Firstsource at Pritech 5B (its site now lists only Brigade Tech Gardens/Brigade Tech Park), Ivanti/MobileIron at Ecoworld (Ivanti's site gives Bagmane Tech Park), Freescale/NXP at Ecospace 1C (2015 OSM pin, no current evidence), Minacs (now Concentrix), Cargill Business Services, Northern Trust (Northern Operating Services), QuEST Global, PayPal, ETAS, Microsemi/Microchip, TEKsystems, Sodexo, Waters, GrayMatter, Zieta, Deluxe and the 2015-vintage Softzone pins for Dell, HSBC, AT&T, Genpact, National Instruments, Brocade, Airvana and Movik - all OSM-only pins without company confirmation; they are leads for a follow-up pass. Also left out: coworking operators (Cowrks, IndiQube, Redbrick, Simpliwork, Innov8, 2gethr, Spatium, WeWork Vaishnavi Signature), GSN Games/Scopely, SoftwareONE, Tangoe, Fastenal, West Pharmaceutical, Yazaki, Versa Networks, Impact Analytics, SkyPoint and Silverline (GTP directory names only), lastminute.com and Pantaloons (Mantri Commercio directory names only), Zepto (OSM polygon 'Zepto HQ-Bharat IT Park' at Ambalipura/Sarjapur Road is outside this stretch and zeptonow.com returned no address), Meesho, Myntra, Walmart, Salesforce, JPMorgan, Wells Fargo, Cisco (Cessna), Adobe, Nutanix, Confluent, Western Digital and other pins that fall inside Embassy TechVillage, Cessna Business Park or Prestige Tech Park (other lenses). CONFIDENCE: 'high' offices rest on the company's own page, a lease filing reported by two outlets, or an official page plus OSM; 'medium' offices rest on one secondary source (OSM node with a full address, a property listing, Brookfield's occupier list) or on a confirmed tenancy whose block is unknown and is therefore placed at the park centroid; 'low' offices are single marketing-directory or bare OSM pins. Deltek/Replicon aside, no 2023+ closures were found on this stretch, so no status other than 'active' is used. Headcounts were not stated by any source consulted and are null throughout."
+}

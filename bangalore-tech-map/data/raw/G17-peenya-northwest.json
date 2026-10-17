@@ -1,0 +1,1487 @@
+{
+ "key": "G17-peenya-northwest",
+ "techParks": [
+  {
+   "name": "World Trade Center Bengaluru (Brigade Gateway)",
+   "aliases": [
+    "World Trade Center Bangalore",
+    "WTC Bengaluru",
+    "WTCB",
+    "WTC Brigade Gateway",
+    "Brigade Gateway",
+    "WTC Annexe"
+   ],
+   "locality": "Malleswaram West / Rajajinagar",
+   "developer": "Brigade",
+   "lat": 13.012255,
+   "lng": 77.556175,
+   "bbox": [
+    13.0118925,
+    13.0126182,
+    77.5557535,
+    77.5565971
+   ],
+   "areaSqFtMillions": 1.1,
+   "notableTenants": [
+    "Amazon",
+    "Brigade Enterprises",
+    "IWG (Regus)",
+    "Toyota Tsusho India",
+    "Siemens",
+    "KPMG"
+   ],
+   "description": "The 128 m, 32-storey World Trade Center Bengaluru (completed 2010, WTCA-licensed, ~1.1 million sq ft with 40,000 sq ft floor plates) anchors Brigade Gateway, Brigade Group's 40-acre mixed-use enclave on Dr Rajkumar Road with Orion Mall, Sheraton Grand, Manipal Hospital, Brigade School and 1,200+ flats. The low-rise WTC Annexe (over 1 lakh sq ft, home to Brigade's BuzzWorks managed offices since March 2024) stands beside it. Amazon India has held ~18 floors since opening but announced in Nov 2024 a move to a Sattva site near the airport.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/World_Trade_Center_Bangalore",
+    "https://brigadegroup.com/commercial/projects/bengaluru/world-trade-center",
+    "https://office-hub.com/in/buildings/bangalore-world-trade-centre-karnataka-a363m000002W3ArAAK",
+    "https://realtynmore.com/brigade-group-launches-managed-offices-buzzworks-at-wtc-annexe-bengaluru/",
+    "https://businesstoday.in/technology/news/story/amazon-india-to-relocate-bengaluru-hq-for-better-cost-efficiency-report-454075-2024-11-18"
+   ]
+  },
+  {
+   "name": "Rajajinagar IT Park",
+   "aliases": [
+    "KSSIDC IT/BT Park Rajajinagar",
+    "Rajaji Nagar IT Park"
+   ],
+   "locality": "Rajajinagar Industrial Estate",
+   "developer": "KSSIDC",
+   "lat": 12.978022,
+   "lng": 77.550916,
+   "bbox": [
+    12.977469,
+    12.978393,
+    77.550505,
+    77.55119
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "ABB India"
+   ],
+   "description": "A small Karnataka State Small Industries Development Corporation IT/BT park inside the Rajajinagar Industrial Estate on Chord Road; ABB India's Bengaluru engineering office (Plot 1-4, 18th A Main) is its known anchor. Mapped as a commercial landuse in OSM (way 781588921).",
+   "sources": [
+    "https://www.openstreetmap.org/way/781588921",
+    "https://builtinbengaluru.in/job/r-d-test-engineer/7920330"
+   ]
+  },
+  {
+   "name": "Rajajinagar Industrial Estate",
+   "aliases": [
+    "Rajajinagar Industrial Town",
+    "Rajajinagar Industrial Suburb"
+   ],
+   "locality": "Rajajinagar",
+   "developer": "KSSIDC",
+   "lat": 12.979194,
+   "lng": 77.551463,
+   "bbox": [
+    12.976429,
+    12.980716,
+    77.549129,
+    77.552981
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "ABB India"
+   ],
+   "description": "1950s-era state industrial estate along Chord Road in Rajajinagar, now a mix of small engineering units, the Government Tool Room and Training Centre, and the KSSIDC IT park where ABB sits (OSM way 58516968).",
+   "sources": [
+    "https://www.openstreetmap.org/way/58516968"
+   ]
+  },
+  {
+   "name": "Peenya Industrial Area",
+   "aliases": [
+    "Peenya Industrial Estate",
+    "Peenya 1st Phase",
+    "Peenya 2nd Phase",
+    "Peenya 3rd Phase",
+    "Peenya 4th Phase",
+    "Peenya Special Investment Region"
+   ],
+   "locality": "Peenya",
+   "developer": "KIADB / KSSIDC",
+   "lat": 13.0160478,
+   "lng": 77.5045057,
+   "bbox": [
+    13.0073481,
+    13.0452092,
+    77.4967164,
+    77.5334633
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "ABB India",
+    "Kirloskar Electric Company",
+    "Ace Designers",
+    "ISRO",
+    "Wipro Infrastructure Engineering"
+   ],
+   "description": "One of Asia's largest industrial areas, laid out from the late 1970s on the Tumkur Road (NH-4) in north-west Bengaluru: about 1,461 acres in four phases hosting some 13,000 MSMEs in machine tools, electrical goods, die-casting, hydraulics and textiles, notified as a Special Investment Region in 2025. Anchors include ABB's campus, Kirloskar Electric's corporate office, Ace Designers, Wipro's hydraulics works and ISRO's ISTRAC mission-control centre.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Peenya",
+    "https://www.india-briefing.com/news/karnataka-notifies-peenya-as-special-investment-region-38147.html/",
+    "https://nominatim.openstreetmap.org/ui/details.html?osmtype=R&osmid=17570284"
+   ]
+  },
+  {
+   "name": "Brigade Rubix",
+   "aliases": [
+    "Rubix, HMT Road"
+   ],
+   "locality": "Yeshwanthpur / Peenya (HMT Township)",
+   "developer": "Brigade",
+   "lat": 13.037551,
+   "lng": 77.535766,
+   "bbox": [
+    13.0373025,
+    13.0377988,
+    77.5355118,
+    77.5360193
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "Brigade Group's 2-basement + ground + 11-floor office building on HMT Link Road near the HMT township, with 14,000 sq ft typical floor plates, marketed to firms wanting to be near Wipro and ABB in Peenya; tenants not published.",
+   "sources": [
+    "https://www.brigadegroup.com/commercial/projects/bengaluru/brigade-rubix",
+    "https://www.openstreetmap.org/way/1189997376"
+   ]
+  },
+  {
+   "name": "Brigade Twin Towers",
+   "aliases": [],
+   "locality": "Goraguntepalya / Yeshwanthpur",
+   "developer": "Brigade",
+   "lat": 13.030252,
+   "lng": 77.542421,
+   "bbox": [
+    13.028865,
+    13.032003,
+    77.540875,
+    77.543704
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "Twin office towers by Brigade on the Tumkur Road / Outer Ring Road junction at Goraguntepalya, opposite the under-construction RNS Business Park; mapped in OSM (way 133883061). No tenant list was found.",
+   "sources": [
+    "https://www.openstreetmap.org/way/133883061"
+   ]
+  },
+  {
+   "name": "BEL Bengaluru Complex (Jalahalli)",
+   "aliases": [
+    "BEL Industrial Estate Jalahalli",
+    "BEL Jalahalli",
+    "Bharat Electronics Bangalore Complex"
+   ],
+   "locality": "Jalahalli East",
+   "developer": "Bharat Electronics",
+   "lat": 13.049862,
+   "lng": 77.5620244,
+   "bbox": [
+    13.0404921,
+    13.0551578,
+    77.5539628,
+    77.5683619
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Bharat Electronics",
+    "BEL-Thales Systems"
+   ],
+   "description": "BEL's original 1954 manufacturing township at Jalahalli East: the Bengaluru Complex factories, Central Research Laboratory, Product Development & Innovation Centre, BEL Academy for Excellence, BEL Hospital and the BEL-Thales Systems joint venture, next to the HMT Jalahalli campus.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Jalahalli",
+    "https://en.wikipedia.org/wiki/Bharat_Electronics",
+    "https://www.openstreetmap.org/relation/14592079"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "Amazon",
+   "aliases": [
+    "Amazon Development Centre India",
+    "Amazon India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "E-commerce & consumer internet",
+   "hqCity": "Seattle",
+   "hqCountry": "United States",
+   "founded": 1994,
+   "isUnicorn": false,
+   "website": "https://www.aboutamazon.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "E-commerce and cloud group; its India corporate headquarters has occupied ~500,000 sq ft over 18 floors of World Trade Center Bengaluru in Brigade Gateway since the building opened.",
+   "offices": [
+    {
+     "label": "World Trade Center Bengaluru (India HQ)",
+     "techPark": "World Trade Center Bengaluru (Brigade Gateway)",
+     "building": "World Trade Center tower",
+     "locality": "Malleswaram West / Rajajinagar",
+     "address": "26/1 Dr Rajkumar Road, Malleswaram West, Bengaluru 560055",
+     "lat": 13.012255,
+     "lng": 77.556175,
+     "isHq": true,
+     "status": "closing",
+     "confidence": "high",
+     "evidence": "Business Today / Mint (18 Nov 2024) report Amazon India's HQ occupies ~500,000 sq ft across 18 floors of WTC, Malleswaram, and plans to relocate to a Sattva-owned site near the airport between April 2025 and April 2026 (Brigade says the lease is not terminated); completion of the move is unverified, hence 'closing'. https://businesstoday.in/technology/news/story/amazon-india-to-relocate-bengaluru-hq-for-better-cost-efficiency-report-454075-2024-11-18 ; a 2011 Business Standard report first named Amazon as a WTC tenant https://www.business-standard.com/article/companies/brigade-monetises-commercial-spaces-in-gateway-project-111041400051_1.html",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://businesstoday.in/technology/news/story/amazon-india-to-relocate-bengaluru-hq-for-better-cost-efficiency-report-454075-2024-11-18",
+    "https://www.business-standard.com/article/companies/brigade-monetises-commercial-spaces-in-gateway-project-111041400051_1.html",
+    "https://en.wikipedia.org/wiki/World_Trade_Center_Bangalore"
+   ]
+  },
+  {
+   "name": "Brigade Enterprises",
+   "aliases": [
+    "Brigade Group"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1986,
+   "isUnicorn": false,
+   "website": "https://www.brigadegroup.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Listed Bengaluru property developer (residential, offices, malls, hotels); developer and owner of Brigade Gateway and World Trade Center Bengaluru, where its own corporate HQ sits on the top two floors.",
+   "offices": [
+    {
+     "label": "Corporate HQ - WTC 29th & 30th floors",
+     "techPark": "World Trade Center Bengaluru (Brigade Gateway)",
+     "building": "World Trade Center tower, floors 29-30",
+     "locality": "Malleswaram West / Rajajinagar",
+     "address": "29th & 30th Floors, World Trade Center, Brigade Gateway Campus, 26/1 Dr Rajkumar Road, Malleswaram-Rajajinagar, Bengaluru 560055",
+     "lat": 13.012255,
+     "lng": 77.556175,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Brigade's own contact page gives the Bengaluru headquarters as the 29th & 30th floors of World Trade Center, Brigade Gateway Campus, 26/1 Dr Rajkumar Road. https://www.brigadegroup.com/contact-us",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.brigadegroup.com/contact-us",
+    "https://en.wikipedia.org/wiki/Brigade_Group",
+    "https://brigadegroup.com/commercial/projects/bengaluru/world-trade-center"
+   ]
+  },
+  {
+   "name": "IWG (Regus)",
+   "aliases": [
+    "Regus",
+    "International Workplace Group"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Real estate & infrastructure",
+   "hqCity": "Zug",
+   "hqCountry": "Switzerland",
+   "founded": 1989,
+   "isUnicorn": false,
+   "website": "https://www.regus.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Flexible-office operator; runs a Regus business centre inside World Trade Center Bengaluru (one of many Regus centres in the city).",
+   "offices": [
+    {
+     "label": "Regus - World Trade Center Bengaluru",
+     "techPark": "World Trade Center Bengaluru (Brigade Gateway)",
+     "building": "World Trade Center tower",
+     "locality": "Malleswaram West / Rajajinagar",
+     "address": "26/1 Dr Rajkumar Road, Malleswaram, Bengaluru 560055",
+     "lat": 13.012255,
+     "lng": 77.556175,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Office-hub's building listing for Bangalore World Trade Centre names Regus (India) as the operator with 13 private offices to rent at 26/1 Brigade Gateway, Dr Rajkumar Road. https://office-hub.com/in/buildings/bangalore-world-trade-centre-karnataka-a363m000002W3ArAAK",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://office-hub.com/in/buildings/bangalore-world-trade-centre-karnataka-a363m000002W3ArAAK",
+    "https://www.regus.com/en/in/10535"
+   ]
+  },
+  {
+   "name": "Toyota Tsusho India",
+   "aliases": [
+    "Toyota Tsusho Corporation",
+    "TTIPL"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "hqCity": "Nagoya",
+   "hqCountry": "Japan",
+   "founded": 1948,
+   "isUnicorn": false,
+   "website": "https://www.toyota-tsusho.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Trading and supply-chain arm of the Toyota group; its Indian subsidiary's Bengaluru office is recorded in the Brigade Gateway campus.",
+   "offices": [
+    {
+     "label": "Brigade Gateway campus office",
+     "techPark": "World Trade Center Bengaluru (Brigade Gateway)",
+     "building": null,
+     "locality": "Malleswaram West / Rajajinagar",
+     "address": "Brigade Gateway Campus, Dr Rajkumar Road, Malleshwaram West, Bengaluru 560055",
+     "lat": 13.012512,
+     "lng": 77.556088,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OpenStreetMap office POI (node 4488744179) named 'Toyota Tsusho India Pvt Ltd, Brigade Gateway Campus, Dr Rajkumar Road' places it here; Toyota Tsusho's own network page could not be fetched, so this is unconfirmed. https://www.openstreetmap.org/node/4488744179",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4488744179"
+   ]
+  },
+  {
+   "name": "Siemens",
+   "aliases": [
+    "Siemens Ltd",
+    "Siemens Technology and Services"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "hqCity": "Munich",
+   "hqCountry": "Germany",
+   "founded": 1847,
+   "isUnicorn": false,
+   "website": "https://www.siemens.com/in",
+   "bengaluruEmployeesApprox": null,
+   "description": "German industrial and automation group; a 2011 report named it among the first lessees at World Trade Center Bengaluru. Its larger Bengaluru campuses (Electronic City) are in other lenses.",
+   "offices": [
+    {
+     "label": "World Trade Center Bengaluru office (2011 lease)",
+     "techPark": "World Trade Center Bengaluru (Brigade Gateway)",
+     "building": "World Trade Center tower",
+     "locality": "Malleswaram West / Rajajinagar",
+     "address": "26/1 Dr Rajkumar Road, Malleswaram West, Bengaluru 560055",
+     "lat": 13.012255,
+     "lng": 77.556175,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Business Standard (14 Apr 2011) reported that Amazon, Siemens and KPMG had taken space on rent in the WTC; whether Siemens still occupies it in 2026 is unverified. https://www.business-standard.com/article/companies/brigade-monetises-commercial-spaces-in-gateway-project-111041400051_1.html",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.business-standard.com/article/companies/brigade-monetises-commercial-spaces-in-gateway-project-111041400051_1.html"
+   ]
+  },
+  {
+   "name": "KPMG",
+   "aliases": [
+    "KPMG India",
+    "KPMG Assurance and Consulting Services LLP"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "hqCity": "Amstelveen",
+   "hqCountry": "Netherlands",
+   "founded": 1987,
+   "isUnicorn": false,
+   "website": "https://kpmg.com/in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Big Four professional-services network; a 2011 report named it among the first lessees at World Trade Center Bengaluru. Its main Bengaluru offices (Embassy Golf Links) are in other lenses.",
+   "offices": [
+    {
+     "label": "World Trade Center Bengaluru office (2011 lease)",
+     "techPark": "World Trade Center Bengaluru (Brigade Gateway)",
+     "building": "World Trade Center tower",
+     "locality": "Malleswaram West / Rajajinagar",
+     "address": "26/1 Dr Rajkumar Road, Malleswaram West, Bengaluru 560055",
+     "lat": 13.012255,
+     "lng": 77.556175,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Business Standard (14 Apr 2011) reported that Amazon, Siemens and KPMG had taken space on rent in the WTC; current occupancy unverified. https://www.business-standard.com/article/companies/brigade-monetises-commercial-spaces-in-gateway-project-111041400051_1.html",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.business-standard.com/article/companies/brigade-monetises-commercial-spaces-in-gateway-project-111041400051_1.html"
+   ]
+  },
+  {
+   "name": "ABB India",
+   "aliases": [
+    "ABB India Ltd",
+    "Asea Brown Boveri",
+    "ABB"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "hqCity": "Zurich",
+   "hqCountry": "Switzerland",
+   "founded": 1949,
+   "isUnicorn": false,
+   "website": "https://new.abb.com/indian-subcontinent",
+   "bengaluruEmployeesApprox": null,
+   "description": "Electrification and automation multinational; its Indian listed arm is headquartered in Bengaluru with an engineering/office site on the Rajajinagar Industrial Estate and a manufacturing-and-R&D campus in Peenya (home of the ABB Innovation Center), plus plants at Nelamangala outside the metro box.",
+   "offices": [
+    {
+     "label": "Rajajinagar Industrial Estate office",
+     "techPark": "Rajajinagar IT Park",
+     "building": null,
+     "locality": "Rajajinagar",
+     "address": "Plot No. 1-4, 18th A Main Road, Rajajinagar Industrial Estate (KSSIDC IT/BT Park), Bengaluru 560010",
+     "lat": 12.978,
+     "lng": 77.550857,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "An ABB job listing gives the Bengaluru office as 'Rajaji Nagar Industrial Estate, KSSIDC IT/BT Park, Bengaluru 560010' (https://builtinbengaluru.in/job/r-d-test-engineer/7920330) and OSM node 4489715363 records 'ABB India Limited, Plot No. 1,2,3,4, Rajajinagar, 560010' with website abb.co.in.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Peenya campus (factory, Innovation Center)",
+     "techPark": "Peenya Industrial Area",
+     "building": null,
+     "locality": "Peenya Industrial Area, 2nd Stage",
+     "address": "2nd Stage, Peenya Industrial Area, Bengaluru 560058",
+     "lat": 13.0160478,
+     "lng": 77.5045057,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "ABB press releases describe new manufacturing investment at Peenya and Nelamangala and an eight-floor ABB Innovation Center in Bengaluru (https://new.abb.com/news/detail/134105/abb-deepens-karnataka-footprint-with-new-investments-to-serve-high-growth-emerging-sectors ; https://new.abb.com/news/detail/89417/abb-innovation-center-aic-one-of-its-largest-globally-inaugurated-in-india), and Wikipedia's Peenya article lists ABB among its establishments; the ABB pages returned 503 to this researcher, so the coordinate is the Peenya Industrial Area centroid, not the plot.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/job/r-d-test-engineer/7920330",
+    "https://www.openstreetmap.org/node/4489715363",
+    "https://new.abb.com/news/detail/134105/abb-deepens-karnataka-footprint-with-new-investments-to-serve-high-growth-emerging-sectors",
+    "https://new.abb.com/news/detail/89417/abb-innovation-center-aic-one-of-its-largest-globally-inaugurated-in-india",
+    "https://en.wikipedia.org/wiki/Peenya"
+   ]
+  },
+  {
+   "name": "Kennametal India",
+   "aliases": [
+    "Kennametal India Ltd",
+    "WIDIA India",
+    "Kennametal Widia India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "hqCity": "Pittsburgh",
+   "hqCountry": "United States",
+   "founded": 1964,
+   "isUnicorn": false,
+   "website": "https://www.kennametal.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Listed Indian subsidiary of the US tooling group Kennametal (formerly WIDIA India); its registered office, machine-tool and metal-cutting-insert plants are one campus on Tumkur Road at the 8/9th mile.",
+   "offices": [
+    {
+     "label": "India HQ and plant - 8/9th Mile Tumkur Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Bagalakunte / Tumkur Road",
+     "address": "8/9th Mile, Tumkur Road, Manjunatha Nagar, Bagalakunte, Bengaluru 560073",
+     "lat": 13.051078,
+     "lng": 77.499172,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Kennametal's own HQ page lists 'India Headquarters, Kennametal India Limited, 8/9th Mile, Tumkur Road, Bangalore 560073' and its investor-relations page gives the same registered office; a 2023 BSE filing announced a new metal-cutting inserts facility on this Bengaluru campus. https://www.kennametal.com/in/en/support/kennametal-global-headquarters.html ; https://kennametalindialtd.gcs-web.com/corporate-governance/governance-contacts",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.kennametal.com/in/en/support/kennametal-global-headquarters.html",
+    "https://kennametalindialtd.gcs-web.com/corporate-governance/governance-contacts",
+    "https://themachinemaker.com/?p=47825",
+    "https://www.openstreetmap.org/way/45919485"
+   ]
+  },
+  {
+   "name": "IKEA",
+   "aliases": [
+    "IKEA India",
+    "Ingka Group"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "hqCity": "Leiden",
+   "hqCountry": "Netherlands",
+   "founded": 1943,
+   "isUnicorn": false,
+   "website": "https://www.ikea.com/in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Swedish-origin furniture retailer; its Bengaluru store at Nagasandra on Tumkur Road (opened 2022, with a direct bridge from Nagasandra metro) is the group's one physical site in the city. Recorded as a store, not an office.",
+   "offices": [
+    {
+     "label": "IKEA Nagasandra store",
+     "techPark": null,
+     "building": null,
+     "locality": "Nagasandra / Tumkur Road",
+     "address": "Nelamangala-Majestic Service Road, Manjunatha Nagar, Nagasandra, Bengaluru 560073",
+     "lat": 13.0479536,
+     "lng": 77.5001422,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "IKEA's own store page gives 'IKEA Nagasandra, Bengaluru, Nelamangala - Majestic Service Rd, Manjunatha Nagar, Nagasandra, 560073' (https://www.ikea.com/in/en/stores/bengaluru/); Wikipedia's Nagasandra metro article records the foot overbridge to the IKEA store opened 18 Oct 2023. Coordinate is the Nagasandra/Tumkur Road locality node from Photon.",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.ikea.com/in/en/stores/bengaluru/",
+    "https://en.wikipedia.org/wiki/Nagasandra"
+   ]
+  },
+  {
+   "name": "Aptean",
+   "aliases": [
+    "Aptean India",
+    "CDC Software",
+    "Ross Systems"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "hqCity": "Alpharetta",
+   "hqCountry": "United States",
+   "founded": 2012,
+   "isUnicorn": false,
+   "website": "https://www.aptean.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "US enterprise-software (ERP) vendor; OpenStreetMap records an Aptean India office in Rajajinagar 4th M Block.",
+   "offices": [
+    {
+     "label": "Rajajinagar 4th M Block office",
+     "techPark": null,
+     "building": null,
+     "locality": "Rajajinagar",
+     "address": "5th floor, 1st Main Road, Rajajinagar 4th M Block, Bengaluru 560010",
+     "lat": 12.982735,
+     "lng": 77.559085,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI (node 5904737645, 'Aptean India, 5th floor, 1st Main Road, Rajajinagar 4M Block, 560010') places it here; Aptean's locations page returned 404, so unconfirmed. https://www.openstreetmap.org/node/5904737645",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/5904737645"
+   ]
+  },
+  {
+   "name": "BETA CAE Systems (Cadence)",
+   "aliases": [
+    "BETA CAE Systems India",
+    "Cadence Design Systems"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "hqCity": "Root",
+   "hqCountry": "Switzerland",
+   "founded": 1999,
+   "isUnicorn": false,
+   "website": "https://www.beta-cae.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "CAE simulation-software house (acquired by Cadence in 2024); its Indian subsidiary's office is recorded on Dr Rajkumar Road near Brigade Gateway.",
+   "offices": [
+    {
+     "label": "Dr Rajkumar Road office",
+     "techPark": null,
+     "building": null,
+     "locality": "Rajajinagar / Subramanyanagar",
+     "address": "Dr Rajkumar Road, Subramanya Nagar 2nd Stage, Bengaluru 560010",
+     "lat": 13.007664,
+     "lng": 77.554652,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI (node 5804054862, 'BETA CAE Systems India Pvt. Ltd., Dr. Rajkumar Road, 560010', website beta-cae.com) places it here; unconfirmed by the company. https://www.openstreetmap.org/node/5804054862",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/5804054862"
+   ]
+  },
+  {
+   "name": "Kirloskar Electric Company",
+   "aliases": [
+    "KEC",
+    "Kirloskar Electric"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1946,
+   "isUnicorn": false,
+   "website": "https://www.kirloskarelectric.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Listed maker of electric motors, generators, transformers and drives, founded in Bengaluru in 1946; corporate office in Peenya 1st Stage (the older Malleswaram works are not listed on its site today).",
+   "offices": [
+    {
+     "label": "Corporate office - Peenya 1st Stage",
+     "techPark": "Peenya Industrial Area",
+     "building": null,
+     "locality": "Peenya Industrial Area, 1st Stage",
+     "address": "No. 19, 2nd Main Road, Peenya 1st Stage, Phase-1, Peenya, Bengaluru 560058",
+     "lat": 13.0160478,
+     "lng": 77.5045057,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Kirloskar Electric's own website gives the corporate office as 'No.19, 2nd Main Road, Peenya 1st Stage, Phase-1, Peenya, Bengaluru 560058' and says the company was established in 1946 (https://www.kirloskarelectric.com/); the plot did not geocode, so the coordinate is the Peenya Industrial Area centroid.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.kirloskarelectric.com/"
+   ]
+  },
+  {
+   "name": "Ace Designers",
+   "aliases": [
+    "Ace Designers Ltd",
+    "Ace Micromatic Group",
+    "Micromatic Machine Tools",
+    "Ace Manufacturing Systems"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1979,
+   "isUnicorn": false,
+   "website": "https://ace-designers.acemicromatic.net",
+   "bengaluruEmployeesApprox": null,
+   "description": "India's largest CNC lathe and machining-centre maker (Ace Micromatic Group, Kotak-backed), headquartered in Peenya II Phase with a national warehouse also in Peenya.",
+   "offices": [
+    {
+     "label": "HQ and plant - Peenya II Phase",
+     "techPark": "Peenya Industrial Area",
+     "building": null,
+     "locality": "Peenya Industrial Area, 2nd Phase",
+     "address": "Plot No. 7 & 8, 80 Feet Road, Peenya II Phase, Bengaluru 560058",
+     "lat": 13.034639,
+     "lng": 77.513544,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "The company's own site gives 'Plot No. 7 & 8, 80 Feet Rd, Peenya II Phase, Bengaluru 560058', founding in 1979 and a Peenya national warehouse (https://ace-designers.acemicromatic.net/); OSM node 4487910117 records Ace Designers at Plot 7, 80 Feet Road, Peenya II Phase.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://ace-designers.acemicromatic.net/",
+    "https://www.openstreetmap.org/node/4487910117",
+    "https://www.tofler.in/blog/?p=5586"
+   ]
+  },
+  {
+   "name": "Bharat Fritz Werner",
+   "aliases": [
+    "BFW"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1961,
+   "isUnicorn": false,
+   "website": "https://www.bfw.co.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Machine-tool manufacturer (CNC machining centres) headquartered on its own campus off Tumkur Road between Yeshwanthpur and Peenya, next to CMTI.",
+   "offices": [
+    {
+     "label": "HQ and works - off Tumkur Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Yeshwanthpur / Goraguntepalya",
+     "address": "Off Tumkur Road, Peenya, Bengaluru 560022",
+     "lat": 13.038479,
+     "lng": 77.533724,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps a named industrial campus 'Bharat Fritz Weiner' (way 36676089) in HMT ward off Tumkur Road, which Photon also resolves for the company name; BFW's own site returned 503, so the street address is unconfirmed. https://www.openstreetmap.org/way/36676089",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/36676089"
+   ]
+  },
+  {
+   "name": "Jindal Aluminium",
+   "aliases": [
+    "Jindal Aluminium Limited",
+    "JAL"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1968,
+   "isUnicorn": false,
+   "website": "https://www.jindalaluminium.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "India's largest aluminium extrusion and flat-rolled products maker, headquartered at its plant on Tumkur Road at Dasarahalli (Jindal Nagar), north-west Bengaluru.",
+   "offices": [
+    {
+     "label": "HQ and extrusion plant - Jindal Nagar, Tumkur Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Dasarahalli / Madhavara",
+     "address": "Jindal Nagar, Tumkur Road, Bengaluru 560073",
+     "lat": 13.055784,
+     "lng": 77.482972,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps the 'Jindal Aluminium Limited' industrial campus (way 45919626) at Anchepalya/Madhavara on Tumkur Road and Nominatim resolves the company name to it; the company site returned 503, so the postal address is unconfirmed here. https://www.openstreetmap.org/way/45919626",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/45919626"
+   ]
+  },
+  {
+   "name": "Himalaya Wellness Company",
+   "aliases": [
+    "The Himalaya Drug Company",
+    "Himalaya Global Holdings"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1930,
+   "isUnicorn": false,
+   "website": "https://himalayawellness.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Herbal healthcare and personal-care maker (about 10,000 employees); operating HQ and main plant at Makali on Tumkur Road at the metro's north-west edge. Origin marked Foreign only because its parent Himalaya Global Holdings is Cayman Islands-registered; the business is Indian-run from Bengaluru.",
+   "offices": [
+    {
+     "label": "Head office and plant - Makali",
+     "techPark": null,
+     "building": null,
+     "locality": "Makali / Tumkur Road",
+     "address": "Makali, Bengaluru 562162",
+     "lat": 13.0655449,
+     "lng": 77.4533438,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Himalaya's own contact page gives the address as 'Himalaya Wellness Company, Makali, Bengaluru - 562162' (https://himalayawellness.in/pages/contact-us); Wikipedia gives the Cayman-registered parent and ~10,000 employees. Coordinate is the Makali village node from Nominatim, not the campus gate.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://himalayawellness.in/pages/contact-us",
+    "https://en.wikipedia.org/wiki/Himalaya_Wellness_Company"
+   ]
+  },
+  {
+   "name": "Wipro Infrastructure Engineering",
+   "aliases": [
+    "Wipro Enterprises",
+    "Wipro Fluid Power",
+    "Wipro Hydraulics"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1976,
+   "isUnicorn": false,
+   "website": "https://www.wiproinfra.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Hydraulic-cylinder and aerospace-components arm of the unlisted Wipro Enterprises (Azim Premji group); its Bengaluru hydraulics works sits in Peenya Industrial Area beside the Goraguntepalya flyover. Classed MID_SIZE because Wipro Enterprises is unlisted.",
+   "offices": [
+    {
+     "label": "Peenya hydraulics plant",
+     "techPark": "Peenya Industrial Area",
+     "building": null,
+     "locality": "Peenya Industrial Area / Goraguntepalya",
+     "address": "Tumkur Road, Peenya Industrial Area, Bengaluru 560058",
+     "lat": 13.0379066,
+     "lng": 77.5244599,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Nominatim/OSM map a 'Wipro Infrastructure Engineering' industrial site (way 730851633) on Tumkur Road in Peenya Industrial Area; Wikipedia's Peenya article lists Wipro among the area's establishments and Brigade's Rubix page describes the HMT-township area as 'close proximity to industry giants like Wipro and ABB'. https://www.openstreetmap.org/way/730851633",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/730851633",
+    "https://en.wikipedia.org/wiki/Peenya",
+    "https://www.brigadegroup.com/commercial/projects/bengaluru/brigade-rubix",
+    "https://www.wiproinfra.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Cloudphysician",
+   "aliases": [
+    "Cloudphysician Healthcare"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "HealthTech & pharma",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": null,
+   "isUnicorn": false,
+   "website": "https://www.cloudphysician.ai",
+   "bengaluruEmployeesApprox": null,
+   "description": "Venture-backed tele-ICU / AI inpatient-monitoring startup (Smart-ICU, Smart-NICU; $10.5M round led by Peak XV); India office on Bellary Road at Ganganagar, just east of Mathikere/New BEL Road.",
+   "offices": [
+    {
+     "label": "India office - Bellary Road, Ganganagar",
+     "techPark": null,
+     "building": null,
+     "locality": "Ganganagar / Bellary Road",
+     "address": "7, Bellary Road, Ganganagar, Bengaluru 560032",
+     "lat": 13.0209141,
+     "lng": 77.5844951,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Cloudphysician's own site lists its India office at '7, Bellary Road, Ganganagar, Bangalore, KA 560032' (https://www.cloudphysician.ai/), matching OSM node 7257189846.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.cloudphysician.ai/",
+    "https://www.openstreetmap.org/node/7257189846"
+   ]
+  },
+  {
+   "name": "Ati Motors",
+   "aliases": [
+    "Ati Robotics",
+    "Ati Motors Pvt Ltd"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "AI & deep tech",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2017,
+   "isUnicorn": false,
+   "website": "https://www.atirobotics.ai",
+   "bengaluruEmployeesApprox": null,
+   "description": "Venture-funded industrial autonomous-mobile-robot maker (Sherpa tuggers, Ativerse software), now branded Ati Robotics with offices in Michigan, Mexico and Thailand; its Bengaluru HQ and works are at Goraguntepalya on the Outer Ring Road.",
+   "offices": [
+    {
+     "label": "HQ and works - Goraguntepalya",
+     "techPark": null,
+     "building": null,
+     "locality": "Goraguntepalya / Yeshwanthpur",
+     "address": "19/A, 2nd Stage, Outer Ring Road, Goraguntepalya, Bengaluru 560022",
+     "lat": 13.0298237,
+     "lng": 77.5363189,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Ati Robotics' contact page lists its India office at '19/A, 2nd Stage, Outer Ring Rd, Goraguntepalya, Bengaluru 560022' (https://www.atirobotics.ai/contact/); OSM maps 'Ati Motors' as an industrial site at Goraguntepalya (way 1212235843).",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.atirobotics.ai/contact/",
+    "https://www.openstreetmap.org/way/1212235843"
+   ]
+  },
+  {
+   "name": "Bharat Electronics",
+   "aliases": [
+    "BEL",
+    "Bharat Electronics Limited"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1954,
+   "isUnicorn": false,
+   "website": "https://bel-india.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Navratna defence-electronics PSU (8,844 employees, FY25) founded in Bengaluru in 1954; corporate office on the Outer Ring Road at Nagavara and its original manufacturing complex, Central Research Laboratory, PD&IC and the BEL-Thales JV at Jalahalli.",
+   "offices": [
+    {
+     "label": "Corporate office - Outer Ring Road, Nagavara",
+     "techPark": null,
+     "building": null,
+     "locality": "Nagavara",
+     "address": "Outer Ring Road, Nagavara, Bengaluru 560045",
+     "lat": 13.0404247,
+     "lng": 77.6165243,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia records Bengaluru as BEL's corporate head office and OSM maps a 'Bharath Electronics Limited' building on Outer Ring Road, Nagavara (way 232657594); BEL's own site returned 503. https://en.wikipedia.org/wiki/Bharat_Electronics",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Bengaluru Complex - Jalahalli",
+     "techPark": "BEL Bengaluru Complex (Jalahalli)",
+     "building": null,
+     "locality": "Jalahalli East",
+     "address": "Jalahalli Post, Bengaluru 560013",
+     "lat": 13.049862,
+     "lng": 77.5620244,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Nominatim resolves 'Bharat Electronics Limited' to a large OSM relation (14592079) at Doddabommasandra/Jalahalli; Wikipedia's Jalahalli article says Jalahalli East houses BEL and HMT, and BEL's article places BEL-Thales Systems 'in the BEL Industrial Estate, Jalahalli'. https://en.wikipedia.org/wiki/Jalahalli",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Bharat_Electronics",
+    "https://en.wikipedia.org/wiki/Jalahalli",
+    "https://www.openstreetmap.org/relation/14592079",
+    "https://www.openstreetmap.org/way/232657594"
+   ]
+  },
+  {
+   "name": "HMT Limited",
+   "aliases": [
+    "HMT",
+    "Hindustan Machine Tools",
+    "HMT Machine Tools Limited"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1953,
+   "isUnicorn": false,
+   "website": "https://www.hmtindia.com",
+   "bengaluruEmployeesApprox": null,
+   "description": "Central PSU founded 1953 as a machine-tool maker; holding company at HMT Bhavan on Bellary Road and the still-operating HMT Machine Tools Bangalore Complex at Jalahalli. The Jalahalli watch factory closed in 2016 and is therefore not listed.",
+   "offices": [
+    {
+     "label": "HMT Bhavan - corporate office",
+     "techPark": null,
+     "building": null,
+     "locality": "Ganganagar / Bellary Road",
+     "address": "59, Bellary Road, Bengaluru 560032",
+     "lat": 13.019998,
+     "lng": 77.584765,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "HMT's own website gives '59, Bellary Road, Bangalore - 560 032' as its address (https://www.hmtindia.com/); OSM maps 'HMT Bhavan' there (way 777638998).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "HMT Machine Tools - Bangalore Complex, Jalahalli",
+     "techPark": null,
+     "building": null,
+     "locality": "Jalahalli",
+     "address": "HMT Bangalore Complex, Jalahalli, HMT P.O., Bengaluru 560013",
+     "lat": 13.052039,
+     "lng": 77.544001,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "HMT Machine Tools' site gives 'HMT Bangalore Complex, Jalahalli, HMT P.O., Bangalore-560013' and lists the lathes, machining centres and grinders built there (https://www.hmtmachinetools.com/bangalore-complex); OSM maps the 'Hindustan Machine Tools' campus (way 37108080).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.hmtindia.com/",
+    "https://www.hmtmachinetools.com/bangalore-complex",
+    "https://en.wikipedia.org/wiki/HMT_(company)"
+   ]
+  },
+  {
+   "name": "ISRO",
+   "aliases": [
+    "Indian Space Research Organisation",
+    "Department of Space",
+    "ISTRAC"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Space",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1969,
+   "isUnicorn": false,
+   "website": "https://www.isro.gov.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "India's national space agency, headquartered at Antariksh Bhavan on New BEL Road; its ISTRAC mission-control and tracking centre is in Peenya 2nd Phase. URSC and LEOS (Old Airport Road / Peenya-Jalahalli fringe) belong to other lenses.",
+   "offices": [
+    {
+     "label": "ISRO Headquarters - Antariksh Bhavan",
+     "techPark": null,
+     "building": null,
+     "locality": "New BEL Road / Mathikere",
+     "address": "Antariksh Bhavan, New BEL Road, Bengaluru 560094",
+     "lat": 13.036604,
+     "lng": 77.570959,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "ISRO's own HQ page gives 'Antariksh Bhavan, New BEL Road, Bengaluru 560 094' (https://www.isro.gov.in/ISRO_HQ_list.html); OSM maps the ISRO campus polygon on New BEL Road (way 42396273, website isro.gov.in).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "ISTRAC - Peenya",
+     "techPark": "Peenya Industrial Area",
+     "building": null,
+     "locality": "Peenya Industrial Area, 2nd Phase",
+     "address": "Plot No. 12 & 13, 3rd Main, 2nd Phase, Peenya Industrial Area, Bengaluru 560058",
+     "lat": 13.034725,
+     "lng": 77.511422,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "ISRO's ISTRAC page gives 'Plot No. 12 & 13, 3rd Main, 2nd Phase, Peenya Industrial Area, Bengaluru 560 058' (https://www.isro.gov.in/ISTRAC.html); OSM maps 'ISRO Telemetry, Tracking and Command Network' there (way 801974072).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.isro.gov.in/ISRO_HQ_list.html",
+    "https://www.isro.gov.in/ISTRAC.html",
+    "https://en.wikipedia.org/wiki/ISRO_Telemetry,_Tracking_and_Command_Network"
+   ]
+  },
+  {
+   "name": "Karnataka Soaps and Detergents",
+   "aliases": [
+    "KSDL",
+    "Government Soap Factory",
+    "Mysore Sandal Soap"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Retail & consumer goods",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1916,
+   "isUnicorn": false,
+   "website": "https://www.mysoresandal.co.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Government of Karnataka PSU (founded 1916 as the Government Sandalwood Oil Factory) making Mysore Sandal soap and toiletries; head office and main factory on Tumkur Road at Yeshwanthpur, which gives the 'Sandal Soap Factory' metro station its name.",
+   "offices": [
+    {
+     "label": "Head office and factory - Yeshwanthpur",
+     "techPark": null,
+     "building": null,
+     "locality": "Yeshwanthpur / Tumkur Road",
+     "address": "Bangalore-Pune Highway (Tumkur Road), Yeshwanthpur, Bengaluru 560022",
+     "lat": 13.015509,
+     "lng": 77.552304,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wikipedia records KSDL as Karnataka-government owned with manufacturing in Bengaluru (https://en.wikipedia.org/wiki/Karnataka_Soaps_and_Detergents_Limited); Photon/OSM map the 'Government Soap Factory' campus on Tumkur Road (way 44830529).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Karnataka_Soaps_and_Detergents_Limited",
+    "https://www.openstreetmap.org/way/44830529"
+   ]
+  },
+  {
+   "name": "Central Manufacturing Technology Institute",
+   "aliases": [
+    "CMTI"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1962,
+   "isUnicorn": false,
+   "website": "https://cmti.res.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Government of India (Ministry of Heavy Industries) R&D institute for machine tools and manufacturing technology, on Tumkur Road at Goraguntepalya beside BFW and HMT.",
+   "offices": [
+    {
+     "label": "CMTI campus - Tumkur Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Goraguntepalya / Tumkur Road",
+     "address": "Tumkur Road, Bengaluru 560022",
+     "lat": 13.0338736,
+     "lng": 77.5364946,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Nominatim places 'CMTI Goragunte Palya, Tumkur Road, 560022' and OSM maps the Central Manufacturing Technology Institute campus (way 38968934); Wikipedia's Jalahalli article lists CMTI among the area's PSUs. cmti.res.in returned 503. https://en.wikipedia.org/wiki/Jalahalli",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Jalahalli",
+    "https://www.openstreetmap.org/way/38968934"
+   ]
+  },
+  {
+   "name": "Central Power Research Institute",
+   "aliases": [
+    "CPRI"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Energy",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1960,
+   "isUnicorn": false,
+   "website": "https://www.cpri.res.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Ministry of Power's national power-equipment testing and research institute, founded 1960; headquarters campus on Sir C.V. Raman Road, Sadashivanagar, between Malleswaram and Mathikere.",
+   "offices": [
+    {
+     "label": "CPRI headquarters - Sadashivanagar",
+     "techPark": null,
+     "building": null,
+     "locality": "Sadashivanagar",
+     "address": "Sir C.V. Raman Road, Sadashivanagar, Bengaluru 560080",
+     "lat": 13.0211806,
+     "lng": 77.5747766,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "CPRI's own site gives 'Central Power Research Institute, Sir C. V. Raman Road, Post Box No. 8066, Sadashivanagar, Bengaluru 560080' under the Ministry of Power, founded 1960 (https://www.cpri.res.in/); OSM maps the campus (way 37107313).",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://www.cpri.res.in/",
+    "https://www.openstreetmap.org/way/37107313"
+   ]
+  },
+  {
+   "name": "ALIMCO",
+   "aliases": [
+    "Artificial Limbs Manufacturing Corporation of India"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "HealthTech & pharma",
+   "hqCity": "Kanpur",
+   "hqCountry": "India",
+   "founded": 1972,
+   "isUnicorn": false,
+   "website": "https://www.alimco.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Central PSU (Ministry of Social Justice) making prosthetics and assistive devices; OSM records its Bengaluru auxiliary production centre on Tumkur Road next to HMT.",
+   "offices": [
+    {
+     "label": "Bengaluru auxiliary production centre",
+     "techPark": null,
+     "building": null,
+     "locality": "Goraguntepalya / Tumkur Road",
+     "address": "Tumkur Road, Bengaluru 560022",
+     "lat": 13.037542,
+     "lng": 77.537867,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM industrial polygon named 'ALIMCO' (way 1353147603) on Tumkur Road places the unit here; not confirmed from the company. https://www.openstreetmap.org/way/1353147603",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/1353147603"
+   ]
+  },
+  {
+   "name": "BEML",
+   "aliases": [
+    "BEML Limited",
+    "Bharat Earth Movers Limited"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1964,
+   "isUnicorn": false,
+   "website": "https://www.bemlindia.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "Defence, mining and rail-coach PSU (6,973 employees FY25). Cross-check for this lens: its HQ 'BEML Soudha' is in Sampangiramanagar (central Bengaluru), not the north-west, and its Bengaluru rail & metro complex is at New Thippasandra in the east.",
+   "offices": [
+    {
+     "label": "BEML Soudha - corporate HQ",
+     "techPark": null,
+     "building": null,
+     "locality": "Sampangiramanagar (central)",
+     "address": "BEML Soudha, No. 23/1, 4th Main, Sampangiramanagar, Bengaluru 560027",
+     "lat": 12.965218,
+     "lng": 77.591462,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wikipedia's infobox gives 'BEML Soudha, No 23/1, IV Main, Sampangiramanagar, Bangalore' (https://en.wikipedia.org/wiki/BEML_Limited); OSM maps 'BEML Head Quarter Offices' there (way 38758048).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Bangalore Complex - Rail & Metro Division",
+     "techPark": null,
+     "building": null,
+     "locality": "New Thippasandra (east)",
+     "address": "New Thippasandra Post, Bengaluru 560075",
+     "lat": 12.9771932,
+     "lng": 77.6568164,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Wikipedia says 'Railcoaches are made in the Bengaluru complex' (Rail & Metro Division); Photon resolves the complex only to an adjacent OSM polygon 'BEML Scrapyard, New Thippasandra' (way 323047913), so the point is approximate. https://en.wikipedia.org/wiki/BEML_Limited",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/BEML_Limited",
+    "https://www.openstreetmap.org/way/38758048"
+   ]
+  },
+  {
+   "name": "ITI Limited",
+   "aliases": [
+    "Indian Telephone Industries",
+    "ITI"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Telecom & networking",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1948,
+   "isUnicorn": false,
+   "website": "https://www.itiltd.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "India's first telecom-equipment PSU (1,368 employees, Apr 2025). Cross-check for this lens: its HQ 'ITI Bhavan' and Bengaluru plant are at Dooravani Nagar on Old Madras Road in the east, not the north-west.",
+   "offices": [
+    {
+     "label": "ITI Bhavan - HQ and Bengaluru plant",
+     "techPark": null,
+     "building": null,
+     "locality": "Dooravani Nagar / K.R. Puram (east)",
+     "address": "ITI Bhavan, Old Madras Road, Dooravani Nagar, Bengaluru 560016",
+     "lat": 13.0070425,
+     "lng": 77.6911835,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia records the Bengaluru HQ and a 1948 Bangalore manufacturing unit (https://en.wikipedia.org/wiki/ITI_Limited); OSM maps 'ITI Bhavan, Old Madras Road, Duravani Nagar' (way 239758169).",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/ITI_Limited",
+    "https://www.openstreetmap.org/way/239758169"
+   ]
+  },
+  {
+   "name": "CSIR-National Aerospace Laboratories",
+   "aliases": [
+    "NAL",
+    "National Aerospace Laboratories"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1959,
+   "isUnicorn": false,
+   "website": "https://www.nal.res.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "CSIR's civil-aerospace laboratory (~2,500 staff). Cross-check for this lens: NAL is at Kodihalli on Old Airport Road with a second (wind-tunnel) campus at Belur/Yemalur, both in east Bengaluru, not the north-west.",
+   "offices": [
+    {
+     "label": "Kodihalli campus (HQ)",
+     "techPark": null,
+     "building": null,
+     "locality": "Kodihalli / Old Airport Road (east)",
+     "address": "HAL Old Airport Road, Kodihalli, Bengaluru 560017",
+     "lat": 12.964546,
+     "lng": 77.651621,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia records NAL as based in Bengaluru under CSIR with ~2,500 staff (https://en.wikipedia.org/wiki/National_Aerospace_Laboratories); OSM maps the 'National Aerospace Laboratories' campus at Kodihalli/Jeevan Bhimanagar (way 41722461).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Belur campus - Wind Tunnel Centre",
+     "techPark": null,
+     "building": null,
+     "locality": "Belur / Yemalur (east)",
+     "address": "Belur Campus, Yemalur, Bengaluru 560037",
+     "lat": 12.943464,
+     "lng": 77.667375,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps the 'NAL Wind Tunnel Centre' (operator NAL, way 217568940) at Belur/Yemalur; NAL's own site was not fetched. https://www.openstreetmap.org/way/217568940",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/National_Aerospace_Laboratories",
+    "https://www.openstreetmap.org/way/41722461",
+    "https://www.openstreetmap.org/way/217568940"
+   ]
+  },
+  {
+   "name": "DRDO",
+   "aliases": [
+    "Defence Research and Development Organisation",
+    "ADE",
+    "LRDE",
+    "GTRE",
+    "CABS",
+    "CAIR",
+    "ADA"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "hqCity": "New Delhi",
+   "hqCountry": "India",
+   "founded": 1958,
+   "isUnicorn": false,
+   "website": "https://www.drdo.gov.in",
+   "bengaluruEmployeesApprox": null,
+   "description": "India's defence R&D organisation. Cross-check for this lens: every Bengaluru DRDO laboratory named in the brief (ADE, LRDE, GTRE, CAIR, CABS) and the affiliated ADA sits in EAST Bengaluru (C.V. Raman Nagar DRDO Complex, New Thippasandra, Yemalur, Vimanapura), none in the north-west.",
+   "offices": [
+    {
+     "label": "ADE - Aeronautical Development Establishment",
+     "techPark": null,
+     "building": null,
+     "locality": "New Thippasandra / C.V. Raman Nagar (east)",
+     "address": "New Thippasandra, Bengaluru 560075",
+     "lat": 12.978194,
+     "lng": 77.6502177,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wikipedia gives ADE's location as New Thippasandra, Bangalore 560075 (https://en.wikipedia.org/wiki/Aeronautical_Development_Establishment); OSM maps the campus (way 41722454).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "GTRE - Gas Turbine Research Establishment",
+     "techPark": null,
+     "building": null,
+     "locality": "C.V. Raman Nagar (east)",
+     "address": "C.V. Raman Nagar, Bengaluru 560093",
+     "lat": 12.9821165,
+     "lng": 77.6528514,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia records GTRE as a DRDO lab in Bengaluru (https://en.wikipedia.org/wiki/Gas_Turbine_Research_Establishment); OSM maps the campus at Nagavarapalya/C.V. Raman Nagar (way 35311978).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "CAIR - Centre for Artificial Intelligence and Robotics",
+     "techPark": null,
+     "building": null,
+     "locality": "C.V. Raman Nagar (east)",
+     "address": "DRDO Complex, C.V. Raman Nagar, Bengaluru 560093",
+     "lat": 12.987152,
+     "lng": 77.6684986,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wikipedia gives CAIR's address as 'DRDO Complex, C.V. Raman Nagar, Bangalore-560 093' (https://en.wikipedia.org/wiki/Centre_for_Artificial_Intelligence_and_Robotics); OSM maps the centre (way 164050955).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "LRDE - Electronics and Radar Development Establishment",
+     "techPark": null,
+     "building": null,
+     "locality": "C.V. Raman Nagar (east)",
+     "address": "DRDO Complex, C.V. Raman Nagar, Bengaluru 560093",
+     "lat": 12.987152,
+     "lng": 77.6684986,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia gives LRDE's address as 'DRDO Complex, C.V. Raman Nagar, Bengaluru-560 093' (https://en.wikipedia.org/wiki/Electronics_and_Radar_Development_Establishment); no separate OSM polygon was found, so the point is the DRDO Complex (CAIR) polygon it shares.",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "CABS - Centre for Airborne Systems",
+     "techPark": null,
+     "building": null,
+     "locality": "Yemalur / Belur (east)",
+     "address": "Belur, Yemalur Post, Bengaluru 560037",
+     "lat": 12.9439086,
+     "lng": 77.6632859,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia records CABS as a DRDO lab in Bengaluru founded 1991 (https://en.wikipedia.org/wiki/Centre_for_Airborne_Systems); OSM maps the campus at Yemalur (way 193666538).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "ADA - Aeronautical Development Agency (affiliate)",
+     "techPark": null,
+     "building": null,
+     "locality": "Vimanapura / Doddanekkundi (east)",
+     "address": "Vimanapura Post, Bengaluru 560017",
+     "lat": 12.9628551,
+     "lng": 77.6827431,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia places ADA, the MoD society affiliated to DRDO, at Vimanapura, Doddanekkundi (https://en.wikipedia.org/wiki/Aeronautical_Development_Agency); OSM maps the campus (way 165830059).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Defence_Research_and_Development_Organisation",
+    "https://en.wikipedia.org/wiki/Aeronautical_Development_Establishment",
+    "https://en.wikipedia.org/wiki/Electronics_and_Radar_Development_Establishment",
+    "https://en.wikipedia.org/wiki/Gas_Turbine_Research_Establishment",
+    "https://en.wikipedia.org/wiki/Centre_for_Airborne_Systems",
+    "https://en.wikipedia.org/wiki/Centre_for_Artificial_Intelligence_and_Robotics",
+    "https://en.wikipedia.org/wiki/Aeronautical_Development_Agency"
+   ]
+  }
+ ],
+ "coverageNotes": "WEB-SEARCH BUDGET: the shared WebSearch quota ran out after my first ~6 queries, so everything after that was built from direct fetches of company, ISRO, Brigade and Wikipedia pages plus the OSM extracts and Nominatim/Photon geocoding; several company sites (ABB, BEL, BFW, Jindal Aluminium, CMTI, Toyota Tsusho, KPMG, Siemens, Aptean) returned 404/503 or were rate-limited, so those offices carry medium/low confidence and say so. WTC BENGALURU TENANTS: confirmed Amazon (18 floors, moving out 2025-26), Brigade Enterprises HQ (floors 29-30) and Regus; Toyota Tsusho only from an OSM POI; Siemens and KPMG only from a 2011 lease report. The brief's other guesses are WRONG for WTC on the evidence found: Sabre's Bengaluru office is at ITPB Whitefield (sabre.com), Kyndryl's are RMZ Titanium and Manyata (kyndryl.com), Rakuten/Publicis Sapient/Deloitte/Huawei/Shell appear in OSM only at Bagmane, Bellandur, Palace Road, Whitefield and Ecoworld respectively, and ABB's offices are Rajajinagar and Peenya; none was placed at WTC, so none is listed there. LEFT OUT: HMT Watches Jalahalli (closed 2016, before the 2023 cutoff) and Mysore Lamps Malleswaram (closed decades ago); BHEL's Malleswaram site (OSM polygon exists but bhel.com now lists only EDN/ESD/SBD at Mysore Road for Bengaluru, so the Electro Porcelain Division's status could not be confirmed); Bosch at Jalahalli (no evidence of any Bosch site there; Bosch's Bengaluru campuses are Adugodi, Bellandur, Naganathapura and Koramangala); 'Bengaluru Signature' could not be identified (OSM has only Vaishnavi Signature in Bellandur and Brigade Signature Towers in Whitefield); Mantri Square and Orion Mall are retail with no corporate tenants found; Honda Motorcycle south regional office, SICK India, Belden, ProMinent, LabCorp, Kardex Remstar, Nash Industries, Avery Dennison and John Crane are all mentioned by OSM, Wikipedia's Peenya list or a property listing for this belt but could not be substantiated to a building, so they are omitted; BEL-Thales Systems is noted under the BEL park rather than as a company. CROSS-CHECKS the brief asked for: BEML's HQ is BEML Soudha in Sampangiramanagar (central) and its rail complex at New Thippasandra (east); ITI's HQ is Dooravani Nagar (east); NAL is Kodihalli/Belur (east); every DRDO lab named (ADE, LRDE, GTRE, CAIR, CABS) plus ADA is in east Bengaluru -- all included for the merge but flagged as outside the north-west. ISRO HQ coordinates come from an OSM polygon oddly labelled 'Vijinapura Campus' that sits on New BEL Road exactly where Antariksh Bhavan is. COORDINATES: ABB Peenya and Kirloskar Electric use the Peenya Industrial Area centroid (plots did not geocode); Himalaya uses the Makali village node; IKEA uses the Nagasandra locality node; LRDE uses the shared DRDO Complex polygon; all are marked in geocodeSource. Headcounts per Bengaluru site were not stated by any source, so bengaluruEmployeesApprox is null throughout. STARTUPS: the north-west is an industrial belt, and only two venture-backed startups could be substantiated (Cloudphysician on Bellary Road, Ati Motors at Goraguntepalya); Satyukt Analytics and Belaku Innovations appear in OSM near Sanjaynagar/Malleswaram but are too small and unverified to list."
+}

@@ -1,0 +1,168 @@
+{
+ "key": "W03",
+ "corrections": [
+  {
+   "company": "buhler",
+   "verdict": "keep",
+   "note": "Bühler's own India-Bengaluru location page confirms its South Asia headquarters, factory and Bühler Academy at 12-D/13-D/13-C/13-B KIADB Industrial Area, Attibele 562107 with about 1,800 employees (https://www.buhlergroup.com/global/en/locations/India-Bengaluru.html); the OSM pin sits inside the Attibele estate.",
+   "set": {
+    "bengaluruEmployeesApprox": 1800,
+    "description": "Swiss food-processing, grain-milling and die-casting machinery group; its South Asia headquarters, factory, application centre and Bühler Academy (about 1,800 people) are in the Attibele KIADB estate."
+   },
+   "offices": [
+    {
+     "office": "buhler~4ac29f",
+     "verdict": "fix",
+     "note": "Primary source confirms the site and its role as South Asia HQ; pin left on the OSM-mapped plot (inside the Attibele Industrial Area footprint).",
+     "set": {
+      "label": "South Asia HQ & factory - Attibele",
+      "address": "12-D, 13-D, 13-C and 13-B, KIADB Industrial Area, Attibele, Anekal Taluk, Bengaluru 562107",
+      "isHq": true,
+      "confidence": "high",
+      "evidence": "Bühler's location page names 'South Asia Headquarters' at '12-D, 13-D, 13-C and 13-B, KIADB Industrial Area, Attibele, Karnataka 562107' (corporate office, factory, application and training centre, Bühler Academy; ~1,800 employees) (https://www.buhlergroup.com/global/en/locations/India-Bengaluru.html); OSM maps the plot 'Buhler (India) Ltd' (https://www.openstreetmap.org/way/1119938417)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "edgeverve-systems",
+   "verdict": "keep",
+   "note": "EdgeVerve's statutory MGT-7 annual return (hosted on finacle.com) gives the registered office as Plot No. 44, Electronic City, Hosur Main Road, Bengaluru 560100 and CIN U72200KA2014PLC073660 (incorporated 2014) - the Infosys Electronics City campus (https://www.finacle.com/content/dam/infosys-finacle/pdf/corporate-dovernance/edgeverve-annual-return-2021-22.pdf).",
+   "set": {
+    "founded": 2014,
+    "description": "Wholly owned software-products subsidiary of Infosys (incorporated 2014), home of the Finacle core-banking suite and AI/automation platforms; its registered office is Plot 44 on the Infosys Electronics City campus."
+   },
+   "offices": [
+    {
+     "office": "edgeverve-systems~ffc8d2",
+     "verdict": "fix",
+     "note": "Registered office confirmed from the company's own annual-return filing (seen via search; the PDF host returns 403 to direct fetch, so medium not high); pin is the Infosys campus polygon centroid, so the park is the Infosys campus rather than generic Electronics City Phase 1.",
+     "set": {
+      "label": "Registered office - Plot 44, Infosys Electronics City campus",
+      "address": "Plot No. 44, Electronic City, Hosur Main Road, Bengaluru 560100",
+      "techPark": "Infosys Electronics City Campus",
+      "confidence": "medium",
+      "evidence": "EdgeVerve Systems Ltd's MGT-7 annual return for 2021-22 gives the registered office as 'Plot No. 44, Electronic City, Hosur Main Road, Bengaluru 560100' with CIN U72200KA2014PLC073660 (https://www.finacle.com/content/dam/infosys-finacle/pdf/corporate-dovernance/edgeverve-annual-return-2021-22.pdf); coordinate is the OSM 'Infosys Technologies Limited' campus polygon centroid (https://www.openstreetmap.org/way/364872809)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "hasura",
+   "verdict": "keep",
+   "note": "Hasura's own 'The Terrace @ Hasura' page gives 3rd Floor, Building No 37/38, SBI Colony, 80 Feet Rd, Koramangala 1A Block, 560034 (https://theterrace.hasura.io, last dated 2022), matching the directory's 2nd-floor listing for the same building; hasura.io/careers now redirects to promptql.io/careers, which names no office, so current occupancy is unconfirmed.",
+   "offices": [
+    {
+     "office": "hasura~760ba7",
+     "verdict": "fix",
+     "note": "Two sources (Hasura's own Terrace page and a GST directory) agree on the building, so raised to medium; pin is ~240 m from the geocoded SBI Colony/Koramangala point and was left as is.",
+     "set": {
+      "building": "Building No 37/38, SBI Colony (2nd-3rd floor)",
+      "confidence": "medium",
+      "evidence": "Hasura's own community-space page lists 'The Terrace @ Hasura, 3rd Floor, Building No 37/38, SBI Colony, 80 Feet Rd, Koramangala 1A Block, Bengaluru - 560034' (https://theterrace.hasura.io, footer 2022), and a GST directory lists the 2nd floor of the same building (https://www.easyleadz.com/company/hasura/gst). hasura.io/careers now redirects to promptql.io/careers, which names no office, so 2025-26 occupancy is not confirmed. Point is a locality-level pin, not the building."
+     }
+    }
+   ]
+  },
+  {
+   "company": "mastercard",
+   "verdict": "keep",
+   "note": "A Mastercard 2024 press release on the Pune hub lists Bengaluru among its Indian offices (https://www.mastercard.com/news/ap/en/newsroom/press-releases/en/2024/mastercard-opens-new-state-of-the-art-tech-hub-in-pune-india/, seen via search; direct fetch 403), but neither Mastercard's careers locations page nor Built In Bengaluru's office list gives a Bengaluru address, so the Brigade Gateway address stays blog-only.",
+   "offices": [
+    {
+     "office": "mastercard~ff78e0",
+     "verdict": "fix",
+     "note": "Presence in Bengaluru confirmed from a Mastercard press release; the building is still unconfirmed, so confidence stays low.",
+     "set": {
+      "evidence": "Mastercard's 2024 Pune tech-hub press release lists offices in Gurugram, Mumbai, Hyderabad, Bengaluru and Vadodara (https://www.mastercard.com/news/ap/en/newsroom/press-releases/en/2024/mastercard-opens-new-state-of-the-art-tech-hub-in-pune-india/). The Brigade Gateway 6th-floor address comes only from a marketing blog (https://tattvammedia.com/blog/mastercard-offices-in-india/); Mastercard's careers locations page (https://careers.mastercard.com/us/en/locations) and Built In Bengaluru's office list (https://builtinbengaluru.in/company/mastercard/offices) give no Bengaluru address."
+     }
+    }
+   ]
+  },
+  {
+   "company": "onesource-specialty-pharma",
+   "verdict": "keep",
+   "note": "The R&D facility pin (12.823202, 77.68261) sits within 20 m of the centroid of OSM way/1419688897 'Stellis Biopharma' (12.82333, 77.68266, fetched from the OSM API); the site is on the Jigani Link Road just west of Hosur Road, outside the KIADB Bommasandra estate polygon east of the highway, but inside the area the park's own alias 'Bommasandra-Jigani Link Road Industrial Area' covers, so the pin and park are both kept.",
+   "offices": [
+    {
+     "office": "onesource-specialty-pharma~95a131",
+     "verdict": "keep",
+     "note": "Pin matches the OSM 'Stellis Biopharma' industrial polygon (way/1419688897, bbox 12.82269-12.82397 / 77.68231-77.68305); the 0.5 km QA gap is to the KIADB Bommasandra estate polygon across Hosur Road, not an error in the pin."
+    }
+   ]
+  },
+  {
+   "company": "quikr",
+   "verdict": "keep",
+   "note": "Quikr is still a Bengaluru-headquartered operating company (third-party profiles report ~136 employees in mid-2025); PitchBook gives its corporate office as 'Number 106, SRK Nagar Post, Krishnarajpuram Hobli, Thanisandra Main Road, 560045' (https://pitchbook.com/profiles/company/54073-09), the same Rachenahalli/Thanisandra address as the GLEIF record.",
+   "offices": [
+    {
+     "office": "quikr~eb5e9f",
+     "verdict": "fix",
+     "note": "Two independent sources (GLEIF and PitchBook) agree on the address, so raised to medium; pin is still the Rachenahalli village node (Nominatim node/7299778032), about 1 km west of the geocoded Thanisandra Main Road segment, as no building-level POI exists.",
+     "set": {
+      "confidence": "medium",
+      "evidence": "Quikr India's LEI record (lapsed May 2022) gives '106, Sub No. 5-9, Rachenahalli Village, SRK Nagar Post, K R Puram Hobli, Bengaluru 560045' (https://search.gleif.org/#/record/335800WHK3TWCGFEOW64), and PitchBook lists the corporate office at 'Number 106, SRK Nagar Post, Krishnarajpuram Hobli, Thanisandra Main Road, Bengaluru 560045' (https://pitchbook.com/profiles/company/54073-09). Current occupancy is not confirmed from Quikr itself; the point is the Rachenahalli village node, not the building."
+     }
+    }
+   ]
+  },
+  {
+   "company": "standard-chartered",
+   "verdict": "keep",
+   "note": "Merged the two RMZ Ecoworld GBS records (park centroid vs the OSM-tagged Campus 6B node, ~480 m apart, same centre) and confirmed the M G Road branch from Standard Chartered's own branch list (https://www.sc.com/global/av/in-website-upload-final-30-jan17.pdf: 'M G Road ... Raheja Towers, 26/27, M G Rd, Bangalore 560001', IFSC SCBL0036074).",
+   "offices": [
+    {
+     "office": "standard-chartered~fbcf5a",
+     "verdict": "drop",
+     "note": "Duplicate of standard-chartered~dd6df2: both are the GBS centre at RMZ Ecoworld, and this one is only the park centroid; its press-release evidence and isHq flag move onto dd6df2."
+    },
+    {
+     "office": "standard-chartered~dd6df2",
+     "verdict": "fix",
+     "note": "Kept as the single RMZ Ecoworld GBS record (OSM node pin); takes over isHq and the press-release evidence from the dropped centroid record.",
+     "set": {
+      "label": "GBS centre - RMZ Ecoworld Campus 6B",
+      "building": "Campus 6B",
+      "isHq": true,
+      "evidence": "Standard Chartered's press release says the GBS centre opened on 10 Oct 2017 'in the 43,000 square metre RMZ Ecoworld complex' (https://www.sc.com/en/press-release/post-11064/); an OSM office node 'Standard Chartered Bank' is tagged housenumber '6B' on the Campus 6A/6B building (https://www.openstreetmap.org/node/5179373222), and Brookfield names Standard Chartered a key Ecoworld occupier (https://www.dnb.co.in/EVENTS/GCC-HYD/IMAGES/2026/BRANDED-CONTENT/Advertisements/Brookprop.pdf)."
+     }
+    },
+    {
+     "office": "standard-chartered~5ed17c",
+     "verdict": "fix",
+     "note": "Confirmed from the bank's own branch list (2017) and the still-listed IFSC SCBL0036074; Nominatim's 'Raheja Towers, MG Road' query resolves to a node ~25 m from the existing pin, so the pin is kept.",
+     "set": {
+      "label": "M G Road branch - Raheja Towers",
+      "address": "Raheja Towers, 26/27, M G Road, Bengaluru 560001",
+      "confidence": "medium",
+      "evidence": "Standard Chartered's own India branch list gives 'M G Road ... Raheja Towers, 26/27, M G Rd, Bangalore 560001', IFSC SCBL0036074 (https://www.sc.com/global/av/in-website-upload-final-30-jan17.pdf, Jan 2017); the IFSC is still listed for the M G Road branch (https://cleartax.in/ifsc-code/standard-chartered-bank/bangalore/m-g-road/SCBL0036074/)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "trelleborg",
+   "verdict": "keep",
+   "note": "Trelleborg's own site confirms a full-service Trelleborg Sealing Solutions manufacturing plant in Bengaluru since 1998 plus a metal-parts unit at Jigani (https://www.trelleborg.com/en/seals/about-us/manufacturing-capabilities/bangalore-india); the OSM 'Trelleborg' node at Chikkathoguru is ~0.4 km from the Beratena Agrahara point named in a directory address for Trelleborg India Pvt Ltd.",
+   "set": {
+    "description": "Swedish engineered-polymers group; Trelleborg Sealing Solutions has run a full-service seal manufacturing plant in Bengaluru (Hosur Road / Hosa Road area) since 1998, with a metal-parts unit at Jigani and a consolidated greenfield Bengaluru plant announced for 2026."
+   },
+   "offices": [
+    {
+     "office": "trelleborg~a200e2",
+     "verdict": "fix",
+     "note": "Company's Bengaluru plant confirmed from a primary source and the OSM node agrees with a directory street address (Beratena Agrahara geocodes to 12.8639, 77.6579, ~0.4 km from the node), so raised to medium; pin kept on the OSM node.",
+     "set": {
+      "label": "Trelleborg Sealing Solutions plant - Hosur Road (Beratena Agrahara)",
+      "locality": "Beratena Agrahara / Chikkathoguru (Hosur Road)",
+      "address": "No. 22/9, Beratena Agrahara, Naganathapura, Hosur Road, Bengaluru 560100",
+      "confidence": "medium",
+      "evidence": "Trelleborg says its Bengaluru site is 'a full-service manufacturing facility' established in 1998 (https://www.trelleborg.com/en/seals/about-us/manufacturing-capabilities/bangalore-india); OSM maps a company office 'Trelleborg' at Chikkathoguru on Hosur Road (https://www.openstreetmap.org/node/9858691346); a directory lists Trelleborg India Pvt Ltd at 'No 22/9, Beratena Agrahara Naganathapura, Bangalore 560100' (https://www.dial4trade.com/trelleborg-india-pvt-ltd/), and job listings give the site as 'Bangalore - Hosa Road'."
+     }
+    }
+   ]
+  }
+ ],
+ "notes": "Not checked or left open: (1) Bühler's Global Shared Services Center in Electronic City is named on its own page but with no street address, so it was not added. (2) Trelleborg plans to replace its three Bengaluru properties with a greenfield plant 'in the Bangalore area' (start-up first planned for H1 2026; one 2026 item reports only a groundbreaking), and its location is unknown, so the Hosur Road office stays active and the Jigani unit (no address) was not added. (3) Mastercard's Bengaluru building is still blog-only; the Mastercard press release, EdgeVerve's MGT-7 on finacle.com and the YourStory Quikr-campus article all returned 403 to direct fetch, so those are cited from search results. (4) Hasura/PromptQL's 2025-26 Bengaluru occupancy could not be confirmed (careers page names no office). (5) Standard Chartered's Cessna Business Park (Umiya Business Bay 2) office was not re-checked; SC's 2017 branch list also shows Koramangala (Serenity, 5th Block) and Whitefield (Inorbit Mall) retail branches, which were not added as they are retail branches with no current confirmation. (6) OneSource's Bannerghatta Road corporate office and its other Bengaluru manufacturing units were not re-checked."
+}

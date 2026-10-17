@@ -1,0 +1,270 @@
+{
+ "key": "V07",
+ "corrections": [
+  {
+   "company": "schuco",
+   "verdict": "keep",
+   "note": "Confirmed: schueco.com/in/investors/contact lists the Bangalore regional office at Unit No. 201, August Center, KIA Road, Yelahanka 560064 (registered office is Mumbai); the OSM node sits inside the OSM 'August Center' polygon (way/1381019966), so the pin stands and confidence rises to high. https://www.schueco.com/in/investors/contact",
+   "set": {
+    "description": "German window, door and facade systems maker; Schueco India's Bangalore regional office and showroom are at August Center, Yelahanka (registered office in Mumbai)."
+   },
+   "offices": [
+    {
+     "office": "schuco~67133d",
+     "verdict": "fix",
+     "note": "Company contact page gives the exact unit and road; pin is the OSM node inside the August Center polygon.",
+     "set": {
+      "label": "Bangalore regional office and showroom - August Center, Yelahanka",
+      "building": "August Center, Unit No. 201",
+      "address": "Unit No. 201, August Center, Kempe Gowda International Airport Road, Yelahanka, Bengaluru 560064",
+      "confidence": "high",
+      "evidence": "Schueco's own India contact page lists 'Schueco India Private Limited, Unit No.201, August Center, ... Kempe Gowda International Airport Road, Yelahanka, Bangalore - 560 064' (https://www.schueco.com/in/investors/contact); OSM POI node/12071642791 lies inside the 'August Center' polygon way/1381019966."
+     }
+    }
+   ]
+  },
+  {
+   "company": "seg-automotive",
+   "verdict": "keep",
+   "note": "Bloomberg's LEI record for SEG Automotive India Pvt Ltd gives its address as 'Bosch Limited Naganathapura, Bangalore 560100', which agrees with the OSM 'SEG Automotive' polygon inside the Bosch Naganathapura complex; raised to medium (no SEG page reached). https://lei.bloomberg.com/leis/view/529900V8IK6TLXTSW604",
+   "offices": [
+    {
+     "office": "seg-automotive~205b5d",
+     "verdict": "fix",
+     "note": "Second independent source (LEI registry) agrees with the OSM polygon; pin unchanged.",
+     "set": {
+      "address": "c/o Bosch Limited, Naganathapura, Electronic City PO, Bengaluru 560100",
+      "confidence": "medium",
+      "evidence": "LEI registry entry for SEG Automotive India Private Limited (active) lists 'Bosch Limited Naganathapura, Bangalore, 560100' (https://lei.bloomberg.com/leis/view/529900V8IK6TLXTSW604); OSM maps 'SEG Automotive' (way/691215095) inside the Naganathapura Bosch complex beside 'Bosch NhP'."
+     }
+    }
+   ]
+  },
+  {
+   "company": "shriram-properties",
+   "verdict": "keep",
+   "note": "The recorded address was wrong: company exchange filings (incl. a 2026 filing) give the corporate office as Shriram House, No. 31, 2nd Main, T. Chowdaiah Road, Sadashivanagar 560080 (registered office Chennai). Geocoders could not resolve Shriram House; the existing pin is ~0.38 km from Chowdiah Memorial Hall on T. Chowdaiah Road, so it is kept as approximate and confidence set to medium. https://www.bseindia.com/xml-data/corpfiling/Attachhis/983911c0-eb7e-48f5-818d-3cc65d9751b4.pdf",
+   "offices": [
+    {
+     "office": "shriram-properties~6b5e35",
+     "verdict": "fix",
+     "note": "Address corrected from '40/43, 8th Main, 4th Cross' to Shriram House on T. Chowdaiah Road per filings; pin locality-level.",
+     "set": {
+      "label": "Corporate office - Shriram House, Sadashivanagar",
+      "building": "Shriram House",
+      "address": "Shriram House, No. 31, 2nd Main Road, T. Chowdaiah Road, Sadashivanagar, Bengaluru 560080",
+      "confidence": "medium",
+      "evidence": "Shriram Properties' BSE/NSE filings give 'Corporate address: Shriram House, 31 Second Main, T. Chowdaiah Road, Sadashivanagar, Bengaluru 560 080' (registered office: Lakshmi Neela Rite Choice Chambers, Bazullah Road, Chennai) (https://www.bseindia.com/xml-data/corpfiling/Attachhis/983911c0-eb7e-48f5-818d-3cc65d9751b4.pdf). Pin is approximate (Sadashivanagar, ~0.4 km from Chowdiah Memorial Hall on T. Chowdaiah Road); the building itself is not in OSM."
+     }
+    }
+   ]
+  },
+  {
+   "company": "software-ag",
+   "verdict": "keep",
+   "note": "Software AG's own Asia-Pacific office directory lists Bangalore at 5th & 6th Floor, 2A East Tower, Embassy TechVillage, ORR, Devarabisanahalli 560103 (and notes it now trades as Software GmbH), so the ETV tenancy is current per the company; raised to medium (page undated). https://softwareag.com/en_corporate/company/offices/asia-pacific.html",
+   "set": {
+    "description": "German enterprise-software company (taken private by Silver Lake in 2023, now Software GmbH; webMethods and StreamSets sold to IBM in 2024); its office directory lists the Bangalore office at 2A East Tower, Embassy TechVillage."
+   },
+   "offices": [
+    {
+     "office": "software-ag~f55b83",
+     "verdict": "fix",
+     "note": "Company office page names the tower and floors; pin left at the ETV centroid (tower not mapped).",
+     "set": {
+      "building": "2A East Tower (5th & 6th floors)",
+      "address": "5th & 6th Floor, 2A East Tower, Embassy TechVillage, Marathahalli Outer Ring Road, Devarabisanahalli, Varthur Hobli, Bengaluru 560103",
+      "confidence": "medium",
+      "evidence": "Software AG's Asia-Pacific offices page lists 'Bangalore: 5th & 6th Floor, 2A East Tower, Marathahalli Outer Ring Road, Devarabisanahalli, Varthur Hobli, Bangalore 560103', tel +91 80 4640 5000 (https://softwareag.com/en_corporate/company/offices/asia-pacific.html); Embassy TechVillage also listed it as a top occupier (https://www.embassytechvillage.com/). Pin is the park centroid."
+     }
+    }
+   ]
+  },
+  {
+   "company": "spinny",
+   "verdict": "keep",
+   "note": "Spinny's own launch blog and a PTI report (Nov 2022) place 'Spinny Park', a 5-acre used-car experience hub, near Yelahanka on the KIA road by Hunasamaranahalli lake; the OSM 'Spinny Park' polygon lies inside the Hunasamaranahalli boundary, so confidence rises to high. https://www.spinny.com/blog/spinny-park-bengaluru-launch/",
+   "offices": [
+    {
+     "office": "spinny~79f38c",
+     "verdict": "fix",
+     "note": "Company blog + press confirm the hub and its area; OSM polygon gives the exact site.",
+     "set": {
+      "label": "Spinny Park (used-car experience hub), Hunasamaranahalli",
+      "locality": "Hunasamaranahalli, Yelahanka",
+      "address": "Spinny Park, Hunasamaranahalli, Kempegowda International Airport Road (NH 44), Yelahanka, Bengaluru",
+      "confidence": "high",
+      "evidence": "Spinny's blog announces Spinny Park Bengaluru, a 5-acre hub near Yelahanka on the airport road (https://www.spinny.com/blog/spinny-park-bengaluru-launch/); PTI via Udayavani (Nov 2022) places it by Hunasamaranahalli lake (https://www.udayavani.com/english-news/spinny-opens-five-acre-automobile-experiential-hub-in-bengaluru); OSM polygon way/1116926302 'Spinny Park' lies inside the Hunasamaranahalli boundary (relation/17417776)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "srijan-technologies",
+   "verdict": "keep",
+   "note": "srijan.net now 302-redirects to materialplus.io/srijan-is-now-material ('Srijan is now Material', (c) Material Holdings, LLC; acquired Sept 2022), so the parent is US-based Material and origin/category are corrected; no source beyond the single OSM POI confirms a Bengaluru office, so the office stays low. https://materialplus.io/srijan-is-now-material",
+   "set": {
+    "origin": "Foreign",
+    "hqCountry": "United States",
+    "hqCity": "Los Angeles",
+    "category": "MNC",
+    "description": "Delhi-founded digital engineering firm acquired by US-based Material (Material Holdings LLC) in 2022 and since rebranded as Material; its only Bengaluru trace is an OSM office POI in Prestige Featherlite Tech Park."
+   }
+  },
+  {
+   "company": "stpi",
+   "verdict": "keep",
+   "note": "STPI Bengaluru's own contact page gives the office as 3rd floor, Nos. 76, 77 (part) & 78, Electronic City Phase 1, next to Cyber Park, in use since 24 Feb 2025; the OSM STPI polygon is 125 m from the OSM 'Cyber Park' polygon, so the pin stands and confidence rises to high. https://bengaluru.stpi.in/en/stpi-bengaluru-contact-us",
+   "offices": [
+    {
+     "office": "stpi~4de6f8",
+     "verdict": "fix",
+     "note": "Primary source (STPI Bengaluru contact page) confirms the site; address made exact.",
+     "set": {
+      "address": "3rd Floor, Nos. 76, 77 (part) & 78, Electronic City Phase 1 (next to Cyber Park), Hosur Road, Bengaluru 560100",
+      "confidence": "high",
+      "evidence": "STPI Bengaluru's contact page gives its address as Nos. 76, 77 (part) & 78, Electronic City Phase 1, Bengaluru 560100, next to the Cyber Park building, operating from this new facility since 24 Feb 2025 (https://bengaluru.stpi.in/en/stpi-bengaluru-contact-us); OSM polygon way/231354813 'Software Technology Parks of India' adjoins 'Cyber Park' (way/841058216)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "syngene-international",
+   "verdict": "keep",
+   "note": "Registered office in Biocon Park (Bommasandra Phase IV, Jigani Link Road) confirmed by filings; the OSM 'Syngene' polygon (way/1419688896) is a real mapped site but lies ~0.6 km west of the Bommasandra Industrial Estate polygon, so it is unfiled from that park rather than moved. A third-party listing places a Syngene office at Velankani Tech Park, Electronic City Phase 1, consistent with the low-confidence E-City record (left unchanged). https://www.openstreetmap.org/way/1419688896",
+   "offices": [
+    {
+     "office": "syngene-international~66e11f",
+     "verdict": "fix",
+     "note": "Pin kept (it is the OSM polygon itself); park removed because the pin is outside the mapped estate footprint and no source ties it to the KIADB estate.",
+     "set": {
+      "techPark": null,
+      "label": "Bommasandra / Hosur Road site (OSM)",
+      "locality": "Bommasandra (Hosur Road, west of the KIADB estate)",
+      "evidence": "OSM maps an industrial polygon named 'Syngene' at Bommasandra, ~0.6 km west of the Bommasandra Industrial Estate polygon (https://www.openstreetmap.org/way/1419688896); filings also list a Syngene plant at 113-C-2 Bommasandra Industrial Area, 560099, which may be this site but is not confirmed."
+     }
+    }
+   ]
+  },
+  {
+   "company": "taegutec",
+   "verdict": "keep",
+   "note": "A directory gives TaeguTec India's HQ as Plot Nos. 119 & 120, Bommasandra Industrial Area Phase 4, 560099 and the company's webshop about page describes a ~10,000 m2 Bangalore plant; the OSM 'Taegutec' polygon sits on the Jigani Link Road ~1 km from Biocon Park (also Phase IV), so the pin is right but the park (the Phase I-III KIADB estate, 2.5 km away) was wrong. https://www.ampliz.com/company/taegutec-india-pvt-ltd/82256213",
+   "offices": [
+    {
+     "office": "taegutec~06d321",
+     "verdict": "fix",
+     "note": "Pin kept (OSM polygon, consistent with Phase IV address); park cleared; two independent sources agree so medium.",
+     "set": {
+      "techPark": null,
+      "locality": "Bommasandra Industrial Area Phase IV (Jigani Link Road)",
+      "address": "Plot Nos. 119 & 120, Bommasandra Industrial Area Phase IV, Bengaluru 560099",
+      "confidence": "medium",
+      "evidence": "Directory listing gives TaeguTec India's HQ at Plot Nos. 119 & 120, Bommasandra Industrial Area, Phase 4, Bengaluru 560099 (https://www.ampliz.com/company/taegutec-india-pvt-ltd/82256213); OSM polygon 'Taegutec' (way/170315987) lies on the Bommasandra-Jigani Link Road ~1 km NE of Biocon Park (Phase IV); company webshop about page describes the Bangalore facility (https://webshop.taegutec-india.com/content/page/aboutus, not fetchable in this run)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "tata-communications-kaleyra",
+   "verdict": "keep",
+   "note": "Bengaluru presence confirmed at company level (Wikipedia lists Bangalore among Kaleyra's headquarters; Indeed shows Bengaluru roles), but no source corroborates the OSM 'Kaleyra' POI at Meu Square, Bannerghatta Road, so the office stays low. https://en.wikipedia.org/wiki/Kaleyra"
+  },
+  {
+   "company": "tata-elxsi",
+   "verdict": "keep",
+   "note": "Contact page re-checked: three Bengaluru sites (HQ ITPB Road; Prestige Shantiniketan Crescent 4, 9th floor; Bhoruka Tech Park Block I). The two Crescent 4 records were the same office twice, so the Photon-pinned one is dropped; the HQ is a separate building, ~0.7 km from the kept Shantiniketan record. FY2024-25 integrated report counts 12,414 employees, so as a listed Indian firm with >10,000 staff it is MNC by the rules. https://www.tataelxsi.com/contact-us",
+   "set": {
+    "category": "MNC"
+   },
+   "offices": [
+    {
+     "office": "tata-elxsi~919dee",
+     "verdict": "drop",
+     "note": "Duplicate of tata-elxsi~021596 (same 'Crescent 4, 9th Floor, Prestige Shantiniketan' address on the contact page); this copy had only a Photon tower guess and sat 0.39 km from the HQ."
+    }
+   ]
+  },
+  {
+   "company": "terrapay",
+   "verdict": "keep",
+   "note": "TerraPay's own locations page lists TerraPay Solutions India at 5th Floor, B Wing, Brigade Magnum, Kodigehalli 560092 and its HQ as 107 Cheapside, London (the Hague entity is regional), so the pin moves 0.44 km to the OSM Brigade Magnum polygon and the description's 'Netherlands-headquartered' is corrected. https://www.terrapay.com/connect/",
+   "set": {
+    "description": "London-headquartered cross-border payments network (founded 2014, VC-funded) with its India entity and large engineering team at Brigade Magnum, Kodigehalli (Hebbal)."
+   },
+   "offices": [
+    {
+     "office": "terrapay~237d5a",
+     "verdict": "fix",
+     "note": "Company page names Brigade Magnum; coordinates are the centroid of OSM polygon way/631823255 'Brigade Magnum' (the earlier OSM 'Terrapay' node in Godrej Downtown is 0.44 km north and conflicts with the company's address).",
+     "set": {
+      "label": "TerraPay Solutions India - Brigade Magnum, Kodigehalli",
+      "building": "Brigade Magnum, B Wing, 5th Floor",
+      "locality": "Kodigehalli (Hebbal), Bellary Road",
+      "address": "5th Floor, B Wing, Brigade Magnum, Kodigehalli, Bengaluru 560092",
+      "lat": 13.057298,
+      "lng": 77.59444,
+      "confidence": "high",
+      "evidence": "TerraPay's locations page lists 'TerraPay Solutions India Pvt. Ltd., 5th Floor, B Wing, Brigade Magnum, Kodigehalli, Bengaluru 560092' (https://www.terrapay.com/connect/); pinned to the OSM 'Brigade Magnum' polygon (way/631823255), confirmed by Photon geocode. An OSM 'Terrapay' node (node/12032606668) 0.44 km north in Godrej Downtown may be stale."
+     }
+    }
+   ]
+  },
+  {
+   "company": "tesla",
+   "verdict": "keep",
+   "note": "Multiple independent Jan 2021 reports (TheNewsMinute, Khaleej Times/IANS) place Tesla India's registered office on Lavelle Road, Bengaluru, and an April 2025 Storyboard18 report still describes the Bengaluru registered office alongside Pune and Mumbai sites; with the OSM 'Tesla India' node on Lavelle Road, confidence rises to medium. https://www.storyboard18.com/brand-marketing/tesla-expands-india-footprint-with-new-mumbai-office-amid-strategic-growth-plans-63448.htm",
+   "offices": [
+    {
+     "office": "tesla~b0650b",
+     "verdict": "fix",
+     "note": "Registered office corroborated by independent press across 2021 and 2025; exact building not confirmed.",
+     "set": {
+      "confidence": "medium",
+      "evidence": "Tesla India Motors and Energy Pvt Ltd was incorporated 8 Jan 2021 with its registered office on Lavelle Road, Bengaluru (https://www.thenewsminute.com/article/tesla-enters-india-market-registers-company-bengaluru-141360, https://www.khaleejtimes.com/business/tesla-finally-enters-india-first-stop-is-bengaluru); Storyboard18 (Apr 2025) still lists the Bengaluru registered office besides Pune and Mumbai offices (https://www.storyboard18.com/brand-marketing/tesla-expands-india-footprint-with-new-mumbai-office-amid-strategic-growth-plans-63448.htm); OSM node/10236050010 'Tesla India' on Lavelle Road."
+     }
+    }
+   ]
+  },
+  {
+   "company": "thales",
+   "verdict": "keep",
+   "note": "Thales's 2018 press release ('Thales strengthens its local presence with new office in Bengaluru') gives the office as 100/2 Anchorage 2, Wing A, Richmond Road; the OSM 'Thales' brand POI sits within 15 m of the OSM 'Anchorage' building on Richmond Road, so the pin is confirmed (medium: status after the 2019 ECC and 2023 second building not re-confirmed). Thales India's HQ is Noida, so isHq is false. https://www.thalesgroup.com/en/news-centre/press-releases/thales-strengthens-its-local-presence-new-office-bengaluru",
+   "set": {
+    "description": "French defence-electronics group (India HQ Noida); its Bengaluru office opened in 2018 at Anchorage, Richmond Road, and its Engineering Competence Centre (2019, 500+ staff) gained a second, unnamed building in November 2023."
+   },
+   "offices": [
+    {
+     "office": "thales~01bd80",
+     "verdict": "fix",
+     "note": "Address from Thales press release matches the OSM POI / Anchorage building; not the India HQ.",
+     "set": {
+      "label": "Richmond Road office - Anchorage 2, Wing A",
+      "building": "Anchorage 2, Wing A",
+      "address": "100/2 Anchorage 2, Wing A, Richmond Road, Bengaluru 560025",
+      "isHq": false,
+      "confidence": "medium",
+      "evidence": "Thales's April 2018 press release on its new Bengaluru office gives the address 100/2, Anchorage 2, Wing A, Richmond Road (https://www.thalesgroup.com/en/news-centre/press-releases/thales-strengthens-its-local-presence-new-office-bengaluru); OSM brand POI node/11542415992 'Thales' lies within 15 m of the 'Anchorage' building (Nominatim way/352714469). The 2023 second ECC building (https://www.thalesgroup.com/en/news-centre/press-releases/thales-expands-footprint-india-second-office-bengaluru) is not located."
+     }
+    }
+   ]
+  },
+  {
+   "company": "toyota-kirloskar-motor",
+   "verdict": "keep",
+   "note": "Main Bidadi HQ/plant (Wikipedia + OSM 'Toyota Kirloskar' polygon) confirmed; the second 'Toyota' polygon is a small (~250 m) unattributed parcel 3.6 km north of the plant and 2.8 km outside the Bidadi Industrial Area, with no source tying it to TKM, so it is dropped. hqCountry/hqCity were 'India/Bidadi' while origin is Foreign; set to the parent (Toyota Motor Corp., Toyota City, Japan) to match the dataset's other subsidiaries (e.g. Toyota Tsusho India -> Japan/Nagoya). https://en.wikipedia.org/wiki/Toyota_Kirloskar_Motor",
+   "set": {
+    "hqCountry": "Japan",
+    "hqCity": "Toyota City (Aichi)"
+   },
+   "offices": [
+    {
+     "office": "toyota-kirloskar-motor~80f6d9",
+     "verdict": "drop",
+     "note": "OSM-only polygon named just 'Toyota' (way/841058200), too small for a car plant, outside the Bidadi Industrial Area; could be a supplier or logistics yard (TKAP/TIEI sit inside the main Plot 1 complex) and no source attributes it to TKM."
+    }
+   ]
+  }
+ ],
+ "notes": "Could not fetch: syngeneintl.com and taegutec-india.com (403/503), terrapay.com (403; address taken from the search index of its own page), Thales press-release pages (empty render; address from search summary of the 2018 release). Shriram House could not be geocoded, so its pin stays an approximate Sadashivanagar point. Kaleyra's Meu Square office and Srijan/Material's Featherlite office remain OSM-only (low); neither company's site lists a Bengaluru address, but both have other evidence of Bengaluru presence, so neither was dropped. Material's HQ city (Los Angeles) is from prior knowledge of its LRW Group origins and was not re-fetched. The Thales ECC's 2019/2023 buildings and Software AG's exact ETV tower position are not mapped; pins are the Anchorage building and the ETV centroid respectively. Syngene's two Electronic City OSM POIs (possibly Velankani Tech Park, per a third-party listing) were left unchanged."
+}

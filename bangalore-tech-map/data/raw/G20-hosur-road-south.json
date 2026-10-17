@@ -1,0 +1,2412 @@
+{
+ "key": "G20-hosur-road-south",
+ "techParks": [
+  {
+   "name": "Bommasandra Industrial Area",
+   "aliases": [
+    "Bommasandra Industrial Estate",
+    "KIADB Bommasandra",
+    "Bommasandra-Jigani Link Road Industrial Area"
+   ],
+   "locality": "Bommasandra / Hebbagodi, Hosur Road, Anekal Taluk 560099",
+   "developer": "KIADB",
+   "lat": 12.81729,
+   "lng": 77.695091,
+   "bbox": [
+    12.805196,
+    12.822558,
+    77.687614,
+    77.703259
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Narayana Health",
+    "Syngene International",
+    "OneSource Specialty Pharma",
+    "SKF",
+    "Delta Electronics",
+    "Mersen",
+    "Micro Labs",
+    "Anthem Biosciences",
+    "Sansera Engineering",
+    "Siemens Healthineers",
+    "Mahindra & Mahindra"
+   ],
+   "description": "KIADB's manufacturing estate on Hosur Road immediately south of Electronic City (OSM way/103293015, operator KIADB). Its plots run from Hebbagodi down Hosur Road to Narayana Health City and west along the Bommasandra-Jigani link road (Phase IV), where Biocon Park, Apotex, Atotech and TaeguTec sit; company addresses on that road read 'Bommasandra Industrial Area' even several kilometres from the core polygon. Tenants confirmed from company pages here include Mersen (No. 5 and No. 19), Anthem Biosciences (No. 49 Canara Bank Road), Sansera Engineering (several plants), Micro Labs (three Bommasandra sites), OneSource (#293 Jigani Link Road) and Narayana Health City (258/A); SKF, Delta, Syngene and a Siemens Healthineers construction site are OSM-mapped.",
+   "sources": [
+    "https://www.openstreetmap.org/way/103293015",
+    "https://en.wikipedia.org/wiki/Bommasandra",
+    "https://in.mersen.com/en/contact",
+    "https://www.sansera.in/contact-us",
+    "https://www.anthembio.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Jigani Industrial Area",
+   "aliases": [
+    "Jigani Industrial Estate",
+    "KIADB Jigani"
+   ],
+   "locality": "Jigani, Anekal Taluk 560105",
+   "developer": "KIADB",
+   "lat": 12.779041,
+   "lng": 77.632773,
+   "bbox": [
+    12.761856,
+    12.791421,
+    77.624476,
+    77.64907
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Otis",
+    "LAPP",
+    "Tata Advanced Systems",
+    "Sansera Engineering",
+    "Velankani Group"
+   ],
+   "description": "KIADB estate at Jigani, south-west of Bommasandra (OSM way/103293010), mixing granite exporters, food and packaging units and small engineering shops with Otis India's plot-92 elevator factory, LAPP India's cable plant, Sansera's Plants 9 and 14 and the Tata composites works where TASL opened an Airbus composite-structures plant in November 2025. Wikipedia's Jigani article also names HCL, APC and Toyota among the firms that brought workers here.",
+   "sources": [
+    "https://www.openstreetmap.org/way/103293010",
+    "https://en.wikipedia.org/wiki/Jigani",
+    "https://www.otis.com/en/in/contact-us",
+    "https://www.sansera.in/contact-us"
+   ]
+  },
+  {
+   "name": "Biocon Park",
+   "aliases": [
+    "Biocon SEZ",
+    "Biocon Park Bommasandra"
+   ],
+   "locality": "Bommasandra-Jigani Link Road (Kyalasanahalli) 560099",
+   "developer": "Biocon",
+   "lat": 12.803405,
+   "lng": 77.659343,
+   "bbox": [
+    12.799095,
+    12.809277,
+    77.657561,
+    77.663633
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Biocon",
+    "Syngene International"
+   ],
+   "description": "Biocon's research and biologics-manufacturing campus and SEZ on the Bommasandra-Jigani link road; Wikipedia pictures the Biocon Research Centre inside it, and Syngene International is headquartered here. Mapped in OpenStreetMap as way/545039647 with a 'Biocon' building inside (way/279472179).",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Biocon",
+    "https://www.openstreetmap.org/way/545039647"
+   ]
+  },
+  {
+   "name": "HCL Technologies SEZ Jigani",
+   "aliases": [
+    "HCL Jigani campus",
+    "HCL SEZ Jigani"
+   ],
+   "locality": "Bommasandra-Jigani Link Road, Jigani 560105",
+   "developer": "HCL Technologies",
+   "lat": 12.788593,
+   "lng": 77.651755,
+   "bbox": [
+    12.785434,
+    12.790152,
+    77.649577,
+    77.653583
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "HCLTech"
+   ],
+   "description": "HCLTech's SEZ delivery campus off the Bommasandra-Jigani link road (OSM way/170320607), with an 'HCL Autonomous Car Test Area' mapped inside it; Aragen's biologics plant adjoins it to the west. Wikipedia's Jigani article names HCL among the companies that brought workers to the area.",
+   "sources": [
+    "https://www.openstreetmap.org/way/170320607",
+    "https://www.openstreetmap.org/node/5243090663",
+    "https://en.wikipedia.org/wiki/Jigani"
+   ]
+  },
+  {
+   "name": "Attibele Industrial Area",
+   "aliases": [
+    "KIADB Attibele",
+    "Attibele KIADB Industrial Area"
+   ],
+   "locality": "Attibele / Icchanguru / Balegaranahalli, Anekal Taluk 562107",
+   "developer": "KIADB",
+   "lat": 12.78167,
+   "lng": 77.74269,
+   "bbox": [
+    12.776208,
+    12.78699,
+    77.73718,
+    77.748463
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Michell Bearings",
+    "Sandhar Technologies",
+    "Aliaxis",
+    "Buhler",
+    "FORVIA",
+    "Essae-Teraoka"
+   ],
+   "description": "KIADB estate on Hosur Road just short of the Karnataka-Tamil Nadu border at Attibele (OSM way/1119637972), with about 150 mapped plots of auto-component, granite, chemical and engineering units. Michell Bearings (plot 8D) and Sandhar (plots 7A and 12-C) are confirmed from company pages; Ashirvad, Buhler (India), a Faurecia seating plant and Essae-Teraoka are OSM-mapped. Heritage Foods' Yadavanahalli dairy lies just north of it.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1119637972",
+    "https://www.michellbearings.com/michell-bearings-india/",
+    "https://www.sandhargroup.com/about/national"
+   ]
+  },
+  {
+   "name": "Iggalur Industrial Area",
+   "aliases": [
+    "KIADB Iggalur"
+   ],
+   "locality": "Iggalur, Chandapura-Anekal Road, Anekal Taluk",
+   "developer": "KIADB",
+   "lat": 12.781813,
+   "lng": 77.700888,
+   "bbox": [
+    12.779127,
+    12.783595,
+    77.699202,
+    77.703853
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "Small KIADB industrial area south of Chandapura (OSM way/1119637971, tagged industrial=factory); no tenant could be confirmed during this run, so the tenant list is empty.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1119637971"
+   ]
+  },
+  {
+   "name": "Bengaluru Lifesciences Research District",
+   "aliases": [
+    "BLR District"
+   ],
+   "locality": "Bhaktipura village, Attibele Hobli, Anekal Taluk 562106",
+   "developer": null,
+   "lat": 12.757254,
+   "lng": 77.765326,
+   "bbox": [
+    12.755872,
+    12.758933,
+    77.763902,
+    77.767888
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "A 50-acre life-sciences research district at Survey Nos. 41-44/4, Bhaktipura Village, Attibele Hobli, marketed for the Attibele-Jigani-Bommasandra pharma cluster; its site names no tenants or developer (leasing contacts use an rxpropellant.com address) and does not say whether it is built, so treat it as a development rather than an operating park. OSM maps it as way/1163804912.",
+   "sources": [
+    "https://blrdistrict.in/",
+    "https://www.openstreetmap.org/way/1163804912"
+   ]
+  },
+  {
+   "name": "IndoSpace Logistics Complex Bommasandra",
+   "aliases": [
+    "IndoSpace Bommasandra"
+   ],
+   "locality": "Masthanahalli Road, Rajapura, Bommasandra-Jigani Link Road 560099",
+   "developer": "IndoSpace",
+   "lat": 12.7964626,
+   "lng": 77.6631837,
+   "bbox": [
+    12.7956145,
+    12.7973108,
+    77.6626366,
+    77.6637307
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "Warehousing and logistics park off the Bommasandra-Jigani link road, mapped in OSM as way/1335879047; tenants were not confirmed.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1335879047"
+   ]
+  },
+  {
+   "name": "Narayana Health City",
+   "aliases": [
+    "Narayana Hrudayalaya campus",
+    "NH City Bommasandra"
+   ],
+   "locality": "258/A Bommasandra Industrial Area, Hosur Road 560099",
+   "developer": "Narayana Health",
+   "lat": 12.808022,
+   "lng": 77.6947837,
+   "bbox": [
+    12.805485,
+    12.8100235,
+    77.6935074,
+    77.6966096
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Narayana Health"
+   ],
+   "description": "Narayana Health's flagship hospital campus and headquarters on Hosur Road at Bommasandra, holding the Narayana Institute of Cardiac Sciences and the Mazumdar Shaw Medical Center at 258/A Bommasandra Industrial Area; Narayana Nethralaya and Sparsh hospitals are mapped beside it. The bbox is that of the OSM 'Narayana Hrudayalaya' polygon.",
+   "sources": [
+    "https://www.narayanahealth.org/hospitals/bangalore/mazumdar-shaw-medical-center-bommasandra",
+    "https://www.openstreetmap.org/way/188320000"
+   ]
+  },
+  {
+   "name": "AMR Tech Park",
+   "aliases": [
+    "AMR Tech Park II",
+    "AMR Tech Park-4"
+   ],
+   "locality": "Hongasandra / Bommanahalli, Hosur Main Road 560068",
+   "developer": "AMR Group",
+   "lat": 12.899424,
+   "lng": 77.630782,
+   "bbox": [
+    12.897262,
+    12.901057,
+    77.62976,
+    77.632151
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Tally Solutions",
+    "Sagility",
+    "Quinnox",
+    "Clear",
+    "Hinduja Global Solutions",
+    "Mindteck",
+    "MetricStream",
+    "Avaya",
+    "Visionet Systems",
+    "HL Mando"
+   ],
+   "description": "Multi-building office park (AMR 1/1A, 2/2A/2B, 3A/3B, 4/4A in OSM) at No. 23 & 24 Hongasandra on Hosur Main Road, Bommanahalli. Tally Solutions' head office (AMR Tech Park II), Sagility's Buildings 1 and 2A, Quinnox (AMR Tech Park-4) and Clear (Block 1) are confirmed from company pages; HGS, Mindteck, MetricStream, Avaya, Visionet and Mando Softtech are OSM-mapped. Softtek sits next door in Shilpa Emerald.",
+   "sources": [
+    "https://tallysolutions.com/contact-us/",
+    "https://sagility.com/about/locations/",
+    "https://www.quinnox.com/contact-us/",
+    "https://clear.in/s/contact-us",
+    "https://www.openstreetmap.org/way/349654005"
+   ]
+  },
+  {
+   "name": "AKR Tech Park",
+   "aliases": [],
+   "locality": "Kudlu Gate / Krishna Reddy Industrial Area, 7th Mile Hosur Road 560068",
+   "developer": null,
+   "lat": 12.892385,
+   "lng": 77.642356,
+   "bbox": [
+    12.891578,
+    12.892864,
+    77.64188,
+    77.642672
+   ],
+   "areaSqFtMillions": 0.3,
+   "notableTenants": [
+    "BHIVE Workspace"
+   ],
+   "description": "Office park at No. 112, 7th Mile Hosur Road by Kudlu Gate; BHIVE runs a 3 lakh sq ft, 5,000+ seat coworking campus in its A and B blocks and labels the building Myntra's former headquarters (OSM still carries a 'Myntra Designs Pvt Ltd' building there).",
+   "sources": [
+    "https://bhiveworkspace.com/locations-coworking/akr-tech-park/",
+    "https://www.openstreetmap.org/way/1071061035",
+    "https://www.openstreetmap.org/way/335578196"
+   ]
+  },
+  {
+   "name": "Ozone Manay Tech Park",
+   "aliases": [
+    "Ozone Manay Technology Park"
+   ],
+   "locality": "Garvebhavipalya, Hosur Road 560068",
+   "developer": "Ozone Group",
+   "lat": 12.891607,
+   "lng": 77.637317,
+   "bbox": [
+    12.890944,
+    12.891997,
+    77.63672,
+    77.638372
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "Mid-rise IT park on the Hosur Road service road at Garvebhavipalya, near Kudlu Gate (OSM way/1257330725), beside Chamundi Towers and Novel Tech Park; no tenant was confirmed during this run.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1257330725"
+   ]
+  },
+  {
+   "name": "Novel Tech Park",
+   "aliases": [],
+   "locality": "Kudlu Gate, Hosur Road 560068",
+   "developer": null,
+   "lat": 12.89143,
+   "lng": 77.641255,
+   "bbox": [
+    12.891119,
+    12.891901,
+    77.640889,
+    77.641667
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [],
+   "description": "Small office park on Hosur Road at Kudlu Gate between Ozone Manay Tech Park and AKR Tech Park (OSM way/1257330721); no tenant was confirmed during this run.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1257330721"
+   ]
+  },
+  {
+   "name": "360 Business Park",
+   "aliases": [
+    "360 Degree Business Park"
+   ],
+   "locality": "Electronic City Phase 1 (Neeladri Road side) 560100",
+   "developer": null,
+   "lat": 12.8436744,
+   "lng": 77.6549438,
+   "bbox": [
+    12.8392383,
+    12.8476511,
+    77.6533479,
+    77.6587795
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Bosch Global Software Technologies"
+   ],
+   "description": "Business park on the western edge of Electronic City Phase 1 (OSM way/1070952274); Bosch Global Software Technologies lists an engineering centre here and OSM maps a 'Bosch' office node inside it.",
+   "sources": [
+    "https://www.bosch-softwaretechnologies.com/en/locations/",
+    "https://www.openstreetmap.org/way/1070952274",
+    "https://www.openstreetmap.org/node/11949923277"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "Biocon",
+   "aliases": [
+    "Biocon Limited",
+    "Biocon Biologics"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "HealthTech & pharma",
+   "description": "Listed biopharmaceutical group (biosimilars, generics APIs, research services via Syngene); headquartered on Hosur Road at Hebbagodi with its R&D and biologics campus at Biocon Park, Bommasandra.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1978,
+   "website": "https://www.biocon.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate HQ campus - 20th KM Hosur Road",
+     "locality": "Hebbagodi / Electronic City",
+     "lat": 12.83097,
+     "lng": 77.678427,
+     "evidence": "Wikipedia gives Biocon's headquarters as Electronic City, Bengaluru (https://en.wikipedia.org/wiki/Biocon) and OSM maps the 'Biocon' company campus polygon on Hosur Road at Hebbagodi (https://www.openstreetmap.org/way/1082360491).",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "address": "20th KM Hosur Road, Electronic City, Bengaluru 560100",
+     "techPark": null,
+     "building": null,
+     "isHq": true,
+     "status": "active"
+    },
+    {
+     "label": "Biocon Park - research centre and biologics manufacturing",
+     "locality": "Bommasandra-Jigani Link Road (Kyalasanahalli)",
+     "lat": 12.803405,
+     "lng": 77.659343,
+     "evidence": "Wikipedia pictures the 'Biocon Research Centre in Biocon Park, Bommasandra, Bangalore' (https://en.wikipedia.org/wiki/Biocon) and OSM maps the Biocon Park polygon with a 'Biocon' building inside it (https://www.openstreetmap.org/way/545039647).",
+     "confidence": "high",
+     "geocodeSource": "osm-park",
+     "address": "Biocon Park, Bommasandra-Jigani Link Road, Bengaluru 560099",
+     "techPark": "Biocon Park",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Biocon",
+    "https://www.openstreetmap.org/way/1082360491",
+    "https://www.openstreetmap.org/way/545039647",
+    "https://www.openstreetmap.org/way/279472179"
+   ]
+  },
+  {
+   "name": "Syngene International",
+   "aliases": [
+    "Syngene"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "HealthTech & pharma",
+   "description": "Listed contract research, development and manufacturing organisation (Biocon subsidiary) headquartered in Biocon Park, Bommasandra.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1993,
+   "website": "https://www.syngeneintl.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HQ and research campus - Biocon Park",
+     "locality": "Bommasandra-Jigani Link Road (Kyalasanahalli)",
+     "lat": 12.803405,
+     "lng": 77.659343,
+     "evidence": "Wikipedia lists Syngene International as Biocon's listed research-services subsidiary and places Biocon Park at Bommasandra (https://en.wikipedia.org/wiki/Biocon); syngeneintl.com answered 403 during this run, so the pin is the Biocon Park polygon (https://www.openstreetmap.org/way/545039647).",
+     "confidence": "medium",
+     "geocodeSource": "osm-park",
+     "address": "Biocon Park, Bommasandra-Jigani Link Road, Bengaluru 560099",
+     "techPark": "Biocon Park",
+     "building": null,
+     "isHq": true,
+     "status": "active"
+    },
+    {
+     "label": "Bommasandra Industrial Estate unit (OSM-mapped)",
+     "locality": "Bommasandra / Hebbagodi",
+     "lat": 12.822387,
+     "lng": 77.681924,
+     "evidence": "OSM maps an industrial site named 'Syngene' beside SKF and Stelis at the Hosur Road end of the Jigani link road (https://www.openstreetmap.org/way/1419688896); not confirmed from a company page.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "Bommasandra Industrial Area, Bengaluru 560099",
+     "techPark": "Bommasandra Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Biocon",
+    "https://www.openstreetmap.org/way/545039647",
+    "https://www.openstreetmap.org/way/1419688896"
+   ]
+  },
+  {
+   "name": "Narayana Health",
+   "aliases": [
+    "Narayana Hrudayalaya",
+    "Narayana Hrudayalaya Ltd",
+    "NH"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "HealthTech & pharma",
+   "description": "Listed hospital chain (19,214 employees in 2024, with a Cayman Islands hospital) headquartered at Narayana Health City on Hosur Road, Bommasandra.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2000,
+   "website": "https://www.narayanahealth.org",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Narayana Health City - HQ campus (Narayana Institute of Cardiac Sciences)",
+     "locality": "Bommasandra, Hosur Road",
+     "lat": 12.808022,
+     "lng": 77.6947837,
+     "evidence": "Narayana Health's own hospital page gives '258/A, Bommasandra Industrial Area, Hosur Road, Anekal Taluk, Bangalore 560099' inside the Narayana Health City campus (https://www.narayanahealth.org/hospitals/bangalore/mazumdar-shaw-medical-center-bommasandra); Nominatim resolves the OSM hospital polygon 'Narayana Hrudayalaya' here.",
+     "confidence": "high",
+     "geocodeSource": "nominatim",
+     "address": "258/A, Bommasandra Industrial Area, Hosur Road, Anekal Taluk, Bengaluru 560099",
+     "techPark": "Narayana Health City",
+     "building": null,
+     "isHq": true,
+     "status": "active"
+    },
+    {
+     "label": "Mazumdar Shaw Medical Center",
+     "locality": "Bommasandra, Hosur Road",
+     "lat": 12.8064933,
+     "lng": 77.6946443,
+     "evidence": "Narayana Health's page for Mazumdar Shaw Medical Center gives 258/A Bommasandra Industrial Area, Hosur Road within Narayana Health City (https://www.narayanahealth.org/hospitals/bangalore/mazumdar-shaw-medical-center-bommasandra); Nominatim maps the building (OSM way 608640669).",
+     "confidence": "high",
+     "geocodeSource": "nominatim",
+     "address": "258/A, Bommasandra Industrial Area, Hosur Road, Bengaluru 560099",
+     "techPark": "Narayana Health City",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Narayana_Health",
+    "https://www.narayanahealth.org/hospitals/bangalore/mazumdar-shaw-medical-center-bommasandra",
+    "https://www.openstreetmap.org/way/188320000",
+    "https://www.openstreetmap.org/way/608640669"
+   ]
+  },
+  {
+   "name": "Siemens Healthineers",
+   "aliases": [
+    "Siemens Healthcare Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "German medical-technology group (separately listed from Siemens AG) building a INR 1,300 crore Bengaluru campus combining its R&D centre with a medical-imaging factory.",
+   "hqCity": "Erlangen",
+   "hqCountry": "Germany",
+   "founded": null,
+   "website": "https://www.siemens-healthineers.com/en-in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "New innovation and manufacturing campus (under construction)",
+     "locality": "Bommasandra, Hosur Road",
+     "lat": 12.8105033,
+     "lng": 77.6972853,
+     "evidence": "Siemens Healthineers announced a INR 1,300 crore Bengaluru campus of about 70,000 sq m of R&D offices plus a 5,000 sq m factory (https://www.siemens-healthineers.com/en-in/press-room/press-releases/pr-20201020-hc.html), and OSM maps a construction site 'Siemens Healthineers (u/c)' operated by Siemens Group in Bommasandra (https://www.openstreetmap.org/way/906374935).",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "address": "Bommasandra Industrial Area, Hosur Road, Bengaluru 560099",
+     "techPark": "Bommasandra Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "planned"
+    }
+   ],
+   "sources": [
+    "https://www.siemens-healthineers.com/en-in/press-room/press-releases/pr-20201020-hc.html",
+    "https://www.siemens-healthineers.com/en-in/pr-20210604-hc",
+    "https://www.openstreetmap.org/way/906374935"
+   ]
+  },
+  {
+   "name": "OneSource Specialty Pharma",
+   "aliases": [
+    "Stelis Biopharma",
+    "Stellis Biopharma",
+    "OneSource CDMO"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "HealthTech & pharma",
+   "description": "Listed biologics and complex-injectables CDMO (formerly Stelis Biopharma) with its global R&D hub on the Jigani link road in Bommasandra and a corporate office on Bannerghatta Road.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2007,
+   "website": "https://www.onesourcecdmo.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global R&D Facility - #293 Jigani Link Road",
+     "locality": "Bommasandra / Hebbagodi",
+     "lat": 12.823202,
+     "lng": 77.68261,
+     "evidence": "OneSource's facility page gives the Global R&D Facility at '#293, Jigani Link Road, Bommasandra, Anekal Taluk, Bangalore 560105' (https://www.onesourcecdmo.com/facilities/global-rd-facility/), and OSM maps an industrial site named 'Stellis Biopharma' at the Hosur Road end of that road (https://www.openstreetmap.org/way/1419688897).",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "address": "#293, Jigani Link Road, Bommasandra, Anekal Taluk, Bengaluru 560105",
+     "techPark": "Bommasandra Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Corporate office - Star 1, Bilekahalli",
+     "locality": "Bilekahalli, Bannerghatta Road",
+     "lat": 12.9007941,
+     "lng": 77.6011827,
+     "evidence": "OneSource's contact page lists the corporate office as 'Star 1, Opp IIM Bangalore, Bilekahalli, Bannerghatta Road, Bengaluru 560076' (https://www.onesourcecdmo.com/contact-us); the building was not geocodable, so the pin is the Bilekahalli point on Bannerghatta Road.",
+     "confidence": "medium",
+     "geocodeSource": "nominatim",
+     "address": "Star 1, Opp IIM Bangalore, Bilekahalli, Bannerghatta Road, Bengaluru 560076",
+     "techPark": null,
+     "building": null,
+     "isHq": true,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.onesourcecdmo.com/facilities/global-rd-facility/",
+    "https://www.onesourcecdmo.com/contact-us",
+    "https://www.openstreetmap.org/way/1419688897"
+   ]
+  },
+  {
+   "name": "Anthem Biosciences",
+   "aliases": [
+    "Anthem Biosciences Limited",
+    "NeoAnthem Lifesciences"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "HealthTech & pharma",
+   "description": "Listed contract research and manufacturing (CRDMO) company whose Unit I and company office are in Bommasandra Industrial Area Phase I.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2006,
+   "website": "https://www.anthembio.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Unit I and company office - Canara Bank Road",
+     "locality": "Bommasandra Industrial Area Phase I",
+     "lat": 12.81729,
+     "lng": 77.695091,
+     "evidence": "Anthem's contact page lists Unit I at 'No 49, F1&F2 Canara Bank Road, Hosur Rd, Electronics City Phase 1, Bommasandra Industrial Area' and the investor-grievance office at the same Bommasandra Phase I address (https://www.anthembio.com/contact-us/); the plot is not mapped, so the pin is the Bommasandra estate centroid.",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "address": "No 49, F1 & F2, Canara Bank Road, Bommasandra Industrial Area Phase I, Bengaluru 560099",
+     "techPark": "Bommasandra Industrial Area",
+     "building": null,
+     "isHq": true,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.anthembio.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Aragen Life Sciences",
+   "aliases": [
+    "GVK Biosciences",
+    "Aragen Biologics"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "HealthTech & pharma",
+   "description": "Hyderabad-headquartered contract research and manufacturing organisation (formerly GVK Biosciences) running its biologics manufacturing facility on the Bommasandra-Jigani link road.",
+   "hqCity": "Hyderabad",
+   "hqCountry": "India",
+   "founded": 2001,
+   "website": "https://www.aragen.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Biologics manufacturing facility - Plot 284 Part A",
+     "locality": "Jigani (Bommasandra-Jigani Link Road)",
+     "lat": 12.782308,
+     "lng": 77.6492371,
+     "evidence": "Aragen's contact page lists its 'Biologics Manufacturing Facility, Plot No. 284 Part A, Bommasandra Jigani Link Road, Jigani, Bengaluru 562106' (https://www.aragen.com/contact-us/), and OSM maps the works as 'Aragen Biologics' beside the HCL SEZ (https://www.openstreetmap.org/way/841048420).",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "address": "Plot No. 284 Part A, Bommasandra Jigani Link Road, Jigani, Bengaluru 562106",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.aragen.com/contact-us/",
+    "https://www.openstreetmap.org/way/841048420"
+   ]
+  },
+  {
+   "name": "Apotex",
+   "aliases": [
+    "Apotex Research Pvt Ltd",
+    "Apotex Pharmachem India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Canadian generic-drug maker whose Indian R&D arm (Apotex Research) and API unit (Apotex Pharmachem India) sit on Site 1A, 4th Phase of the Bommasandra-Jigani link road.",
+   "hqCity": "Toronto",
+   "hqCountry": "Canada",
+   "founded": 1974,
+   "website": "https://www.apotex.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Apotex Research / Apotex Pharmachem India - Site 1A, 4th Phase",
+     "locality": "Bommasandra-Jigani Link Road (Hulimangala)",
+     "lat": 12.812402,
+     "lng": 77.659066,
+     "evidence": "OSM records 'Apotex Research Pvt. Ltd.' at 'Site No. 1A, 4th Phase, Jigani Link Road, Bommasandra Ind. Area' with an apotex.com/in contact link (https://www.openstreetmap.org/node/4487854637) beside a works polygon 'Apotex Pharmachem india pvt. ltd.' (https://www.openstreetmap.org/way/841048449); apotex.com answered 403, so this is OSM evidence only.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "Site No. 1A, 4th Phase, Bommasandra-Jigani Link Road, Bengaluru 560099",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4487854637",
+    "https://www.openstreetmap.org/way/841048449"
+   ]
+  },
+  {
+   "name": "Micro Labs",
+   "aliases": [
+    "Micro Labs Limited"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "HealthTech & pharma",
+   "description": "Bengaluru-headquartered pharmaceutical maker (Dolo-650) with seven plants in and around Bengaluru, the largest cluster in Bommasandra.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1973,
+   "website": "https://www.microlabsltd.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Head office - 31 Race Course Road",
+     "locality": "Race Course Road, High Grounds",
+     "lat": 12.984302,
+     "lng": 77.578985,
+     "evidence": "OSM records 'Micro Labs Limited', 31 Race Course Road, Bengaluru 560001 with the microlabsltd.com website (https://www.openstreetmap.org/node/7276500339); the company page lists its Bengaluru phone lines but no street address.",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "address": "31, Race Course Road, Bengaluru 560001",
+     "techPark": null,
+     "building": null,
+     "isHq": true,
+     "status": "active"
+    },
+    {
+     "label": "Bommasandra plants (domestic wing, API plant, sterile regulated-market site)",
+     "locality": "Bommasandra Industrial Area",
+     "lat": 12.81729,
+     "lng": 77.695091,
+     "evidence": "Micro Labs' manufacturing-plants page names Bommasandra (Bangalore) for its domestic cephalosporin wing, 'one of the largest' API plants in India and a sterile eye-drop/injectable site (https://www.microlabsltd.com/manufacturing-plants); no plot numbers are given, so the pin is the estate centroid.",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "address": "Bommasandra Industrial Area, Bengaluru 560099",
+     "techPark": "Bommasandra Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Veerasandra plant (beta-lactam solids)",
+     "locality": "Veerasandra, Electronics City Phase 2",
+     "lat": 12.842262,
+     "lng": 77.681315,
+     "evidence": "Micro Labs' manufacturing-plants page lists a regulated-market beta-lactam site at Veerasandra (https://www.microlabsltd.com/manufacturing-plants); pinned to the Veerasandra Industrial Estate centroid.",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "address": "Veerasandra Industrial Area, Electronic City, Bengaluru 560100",
+     "techPark": "Electronics City Phase 2",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Kumbalgodu plant (anti-TB solids)",
+     "locality": "Kumbalgodu, Mysore Road",
+     "lat": 12.8716396,
+     "lng": 77.4432274,
+     "evidence": "Micro Labs' manufacturing-plants page lists a regulated-market anti-TB site at Kumbalgodu (https://www.microlabsltd.com/manufacturing-plants); pinned to the Kumbalagodu Industrial Area centroid.",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "address": "Kumbalagodu Industrial Area, Mysore Road, Bengaluru",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Peenya plant",
+     "locality": "Peenya Industrial Area",
+     "lat": 13.0160478,
+     "lng": 77.5045057,
+     "evidence": "Micro Labs' manufacturing-plants page lists a Peenya plant for domestic and emerging markets (https://www.microlabsltd.com/manufacturing-plants); pinned to the Peenya Industrial Area centroid.",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "address": "Peenya Industrial Area, Bengaluru 560058",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.microlabsltd.com/manufacturing-plants",
+    "https://www.microlabsltd.com/manufacturing",
+    "https://www.openstreetmap.org/node/7276500339"
+   ]
+  },
+  {
+   "name": "Sansera Engineering",
+   "aliases": [
+    "Sansera Engineering Limited"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "description": "Listed precision-forged and machined components maker (automotive, aerospace) headquartered in Bommasandra with most of its plants along the Bommasandra-Jigani link road.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1981,
+   "website": "https://www.sansera.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office and Plant 7 - Plot 143/A, Jigani Link Road",
+     "locality": "Bommasandra-Jigani Link Road",
+     "lat": 12.8010236,
+     "lng": 77.6617985,
+     "evidence": "Sansera's contact page gives the registered office as 'Plant 7, No. 143/A, Jigani Link Road, Bommasandra Industrial Area, Bangalore 560105' (https://www.sansera.in/contact-us); the plot is not mapped, so the pin is the centroid of the Jigani link road.",
+     "confidence": "medium",
+     "geocodeSource": "photon",
+     "address": "Plant 7, No. 143/A, Jigani Link Road, Bommasandra Industrial Area, Bengaluru 560105",
+     "techPark": null,
+     "building": null,
+     "isHq": true,
+     "status": "active"
+    },
+    {
+     "label": "Plant 1 - Yarandahalli, Jigani Hobli",
+     "locality": "Yarandahalli (Bommasandra)",
+     "lat": 12.8087698,
+     "lng": 77.6673579,
+     "evidence": "Sansera's contact page lists Plant 1 at '#26/6, Yarandahalli, Jigani Hobli, Anekal Taluk, Bommasandra Industrial Area, Bangalore 560099' (https://www.sansera.in/contact-us); pinned to the Yarandahalli village point.",
+     "confidence": "medium",
+     "geocodeSource": "nominatim",
+     "address": "#26/6, Yarandahalli, Jigani Hobli, Anekal Taluk, Bengaluru 560099",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Plant 2 - Plots 260/A, 261/C, 262/A Bommasandra",
+     "locality": "Bommasandra Industrial Area",
+     "lat": 12.81729,
+     "lng": 77.695091,
+     "evidence": "Sansera's contact page lists Plant 2 at 'Plot No. 260/A, 261/C and 262/A, Bommasandra Industrial Area, Attibele Hobli, Anekal Taluk' (https://www.sansera.in/contact-us); pinned to the estate centroid.",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "address": "Plot No. 260/A, 261/C & 262/A, Bommasandra Industrial Area, Anekal Taluk, Bengaluru",
+     "techPark": "Bommasandra Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Plant 3 - Plot 1, Bommasandra-Jigani Link Road",
+     "locality": "Bommasandra-Jigani Link Road",
+     "lat": 12.8010236,
+     "lng": 77.6617985,
+     "evidence": "Sansera's contact page lists Plant 3 at 'Plot No. 1, Bommasandra, Jigani Link Road, Industrial Area' (https://www.sansera.in/contact-us); pinned to the link-road centroid.",
+     "confidence": "medium",
+     "geocodeSource": "photon",
+     "address": "Plot No. 1, Bommasandra-Jigani Link Road Industrial Area, Bengaluru",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Plant 8 - Plot 100, Bommasandra-Jigani Link Road",
+     "locality": "Bommasandra-Jigani Link Road",
+     "lat": 12.8010236,
+     "lng": 77.6617985,
+     "evidence": "Sansera's contact page lists Plant 8 at 'Plot No. 100, Bommasandra, Jigani Link Road, Industrial Area, Jigani Hobli' (https://www.sansera.in/contact-us); pinned to the link-road centroid.",
+     "confidence": "medium",
+     "geocodeSource": "photon",
+     "address": "Plot No. 100, Bommasandra-Jigani Link Road Industrial Area, Jigani Hobli, Bengaluru",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Plant 10 - Plot 102, Bommasandra-Jigani Link Road",
+     "locality": "Bommasandra-Jigani Link Road",
+     "lat": 12.8010236,
+     "lng": 77.6617985,
+     "evidence": "Sansera's contact page lists Plant 10 at 'Plot No. 102, Bommsandra Jigani Link Road, Anekal Taluk' (https://www.sansera.in/contact-us); pinned to the link-road centroid.",
+     "confidence": "medium",
+     "geocodeSource": "photon",
+     "address": "Plot No. 102, Bommasandra-Jigani Link Road, Anekal Taluk, Bengaluru",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Plant 12 - No. 143, B-8 Bommasandra (Hosur Road)",
+     "locality": "Bommasandra Industrial Area",
+     "lat": 12.81729,
+     "lng": 77.695091,
+     "evidence": "Sansera's contact page lists Plant 12 at 'No. 143, B-8, Bommasandra Industrial Area, Hosur Road' (https://www.sansera.in/contact-us); pinned to the estate centroid.",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "address": "No. 143, B-8, Bommasandra Industrial Area, Hosur Road, Bengaluru",
+     "techPark": "Bommasandra Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Plant 9 - Muneshwara Farm, KIADB Jigani Phase 2",
+     "locality": "Jigani Industrial Area",
+     "lat": 12.779041,
+     "lng": 77.632773,
+     "evidence": "Sansera's contact page lists Plant 9 at 'Sy No. 101/3, 101/4 & 105/3, Muneshwara Farm, KIADB Phase 2, Jigani Industrial Area, Anekal Taluk 560105' (https://www.sansera.in/contact-us); pinned to the Jigani estate centroid.",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "address": "Sy No. 101/3, 101/4 & 105/3, Muneshwara Farm, KIADB Phase 2, Jigani Industrial Area, Bengaluru 560105",
+     "techPark": "Jigani Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Plant 14 - Plots 34-36, Jigani Industrial Area II Phase",
+     "locality": "Jigani Industrial Area",
+     "lat": 12.779041,
+     "lng": 77.632773,
+     "evidence": "Sansera's contact page lists Plant 14 at 'Plot No. 34, 35 and 36, Jigani Industrial Area, II Phase, Jigani Hobli, Anekal Taluk' (https://www.sansera.in/contact-us); pinned to the Jigani estate centroid.",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "address": "Plot No. 34-36, Jigani Industrial Area II Phase, Anekal Taluk, Bengaluru",
+     "techPark": "Jigani Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Plant 11 - Bidadi Industrial Area",
+     "locality": "Bidadi Industrial Area (Ramanagara)",
+     "lat": 12.7806489,
+     "lng": 77.4162689,
+     "evidence": "Sansera's contact page lists Plant 11 at 'Plot No. 48, 2nd Phase, 2nd Sector, Bidadi Industrial Area, Ramanagaram' (https://www.sansera.in/contact-us); pinned to the Bidadi Industrial Area centroid.",
+     "confidence": "medium",
+     "geocodeSource": "nominatim",
+     "address": "Plot No. 48, 2nd Phase, 2nd Sector, Bidadi Industrial Area, Ramanagara",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.sansera.in/contact-us"
+   ]
+  },
+  {
+   "name": "Mersen",
+   "aliases": [
+    "Mersen India",
+    "Carbone Lorraine"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "French electrical-power and advanced-materials group; Mersen India's fuse/surge-protection plant and graphite/carbon-brush plant are both in Bommasandra Industrial Area.",
+   "hqCity": "Courbevoie (La Defense)",
+   "hqCountry": "France",
+   "founded": 1891,
+   "website": "https://in.mersen.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Mersen India HQ and Advanced Materials plant - No. 5",
+     "locality": "Bommasandra Industrial Area",
+     "lat": 12.81729,
+     "lng": 77.695091,
+     "evidence": "Mersen India's site lists 'MERSEN India Pvt. Ltd #5, Bommasandra Industrial Area, Bangalore 560099' as its address and the Advanced Materials (graphite, carbon brushes) plant plus sales teams there (https://in.mersen.com/en/contact); pinned to the estate centroid.",
+     "confidence": "high",
+     "geocodeSource": "park-centroid",
+     "address": "No. 5, Bommasandra Industrial Area, Anekal Taluk, Bengaluru 560099",
+     "techPark": "Bommasandra Industrial Area",
+     "building": null,
+     "isHq": true,
+     "status": "active"
+    },
+    {
+     "label": "Electrical Power plant - No. 19, 4th Cross",
+     "locality": "Bommasandra Industrial Area",
+     "lat": 12.81729,
+     "lng": 77.695091,
+     "evidence": "Mersen India's site lists its Electrical Power unit (fuses, PV combiner boxes, surge protection) at 'No 19, 4th Cross, Bommasandra Industrial Area, Anekal Taluk, Bangalore 560099' (https://in.mersen.com/); Wikipedia's Bommasandra article also pictures the Mersen office (https://en.wikipedia.org/wiki/Bommasandra).",
+     "confidence": "high",
+     "geocodeSource": "park-centroid",
+     "address": "No. 19, 4th Cross, Bommasandra Industrial Area, Anekal Taluk, Bengaluru 560099",
+     "techPark": "Bommasandra Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://in.mersen.com/",
+    "https://in.mersen.com/en/contact",
+    "https://en.wikipedia.org/wiki/Mersen",
+    "https://en.wikipedia.org/wiki/Bommasandra"
+   ]
+  },
+  {
+   "name": "Mahindra & Mahindra",
+   "aliases": [
+    "Mahindra Last Mile Mobility",
+    "Mahindra Electric",
+    "Reva Electric Car Company"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Mobility & EV",
+   "description": "Mumbai-headquartered conglomerate whose electric three- and four-wheeler unit (Mahindra Last Mile Mobility, ex-Mahindra Electric / Reva) originated in Bengaluru.",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 1945,
+   "website": "https://www.mahindra.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Mahindra Last Mile Mobility (ex-Mahindra Electric / Reva) plant - Bommasandra",
+     "locality": "Bommasandra Industrial Area",
+     "lat": 12.81729,
+     "lng": 77.695091,
+     "evidence": "Wikipedia records Mahindra Electric (founded 1994 as Reva, renamed Mahindra Last Mile Mobility in 2023) as Bangalore-headquartered (https://en.wikipedia.org/wiki/Mahindra_Electric), but neither it nor the company's contact page (Mumbai addresses only) names the Bommasandra plot, and OSM has no feature for it, so this is a lead pinned to the estate centroid.",
+     "confidence": "low",
+     "geocodeSource": "park-centroid",
+     "address": "Bommasandra Industrial Area, Bengaluru 560099",
+     "techPark": "Bommasandra Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Mahindra_Electric",
+    "https://mahindralastmilemobility.com/contactus"
+   ]
+  },
+  {
+   "name": "SKF",
+   "aliases": [
+    "SKF India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Swedish bearings maker; SKF India runs a plant in Bommasandra Industrial Area at Hebbagodi.",
+   "hqCity": "Gothenburg",
+   "hqCountry": "Sweden",
+   "founded": 1907,
+   "website": "https://www.skf.com/in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bommasandra plant (OSM-mapped)",
+     "locality": "Bommasandra / Hebbagodi",
+     "lat": 12.821931,
+     "lng": 77.683753,
+     "evidence": "OSM maps an industrial site named 'SKF' inside the Bommasandra estate beside Syngene and Delta (https://www.openstreetmap.org/way/170320606); skf.com/in gave no address text, so this is OSM evidence only.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "Bommasandra Industrial Area, Hosur Road, Bengaluru 560099",
+     "techPark": "Bommasandra Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/170320606"
+   ]
+  },
+  {
+   "name": "Delta Electronics",
+   "aliases": [
+    "Delta Electronics India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "Taiwanese power-electronics maker; OSM records a Delta Electronics site in Bommasandra at Hebbagodi.",
+   "hqCity": "Taipei",
+   "hqCountry": "Taiwan",
+   "founded": 1971,
+   "website": "https://www.deltaelectronicsindia.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Hebbagodi / Bommasandra site (OSM-mapped)",
+     "locality": "Bommasandra / Hebbagodi",
+     "lat": 12.823324,
+     "lng": 77.683506,
+     "evidence": "OSM maps a commercial site named 'Delta Electronics' next to SKF in Bommasandra (https://www.openstreetmap.org/way/1419688898); Delta India's home page lists no Bengaluru address, so this is an OSM lead only.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "Bommasandra Industrial Area, Hosur Road, Bengaluru 560099",
+     "techPark": "Bommasandra Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/1419688898",
+    "https://www.deltaelectronicsindia.com/"
+   ]
+  },
+  {
+   "name": "TaeguTec",
+   "aliases": [
+    "TaeguTec India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Korean cutting-tool maker (IMC Group); TaeguTec India's plant sits on the Bommasandra-Jigani link road.",
+   "hqCity": "Daegu",
+   "hqCountry": "South Korea",
+   "founded": 1916,
+   "website": "https://www.taegutec-india.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "TaeguTec India plant (OSM-mapped)",
+     "locality": "Bommasandra-Jigani Link Road",
+     "lat": 12.810831,
+     "lng": 77.664246,
+     "evidence": "OSM maps an industrial site named 'Taegutec' on the Bommasandra-Jigani link road near Apotex and Atotech (https://www.openstreetmap.org/way/170315987); taegutec.co.in did not resolve, so this is OSM evidence only.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "Bommasandra-Jigani Link Road, Bengaluru 560099",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/170315987"
+   ]
+  },
+  {
+   "name": "Atotech",
+   "aliases": [
+    "MKS Atotech",
+    "Atotech India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "Specialty-chemicals and plating-equipment business (now part of MKS Instruments) with an Electronic City development centre and a Bommasandra plant.",
+   "hqCity": "Berlin",
+   "hqCountry": "Germany",
+   "founded": null,
+   "website": "https://www.atotech.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Atotech Development Center - 74/B West Phase, Electronic City Phase 1",
+     "locality": "Electronics City Phase 1",
+     "lat": 12.8445,
+     "lng": 77.6615,
+     "evidence": "Atotech's contact page lists 'Atotech Development Center Private Limited, 74/B, West Phase, Electronic city Phase 1, Bengaluru 560100' as a customer support lab (https://www.atotech.com/contact/); the building was not geocodable, so the pin is the Phase 1 centroid.",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "address": "74/B, West Phase, Electronic City Phase 1, Bengaluru 560100",
+     "techPark": "Electronics City Phase 1",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Atotech India plant - Plots 111 & 112, Phase IV (OSM-mapped)",
+     "locality": "Bommasandra-Jigani Link Road (Koppa)",
+     "lat": 12.81114,
+     "lng": 77.663402,
+     "evidence": "OSM records 'Atotech, India' at 'Plot No 111&112 phase iv, Koppa, Bommasandra Industrial Area 560099' (https://www.openstreetmap.org/node/4167059887); the company contact page does not list this site, so it may be dated.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "Plot No. 111 & 112, Phase IV, Bommasandra Industrial Area, Bengaluru 560099",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.atotech.com/contact/",
+    "https://www.openstreetmap.org/node/4167059887"
+   ]
+  },
+  {
+   "name": "HCLTech",
+   "aliases": [
+    "HCL Technologies",
+    "HCL Technologies Limited"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Indian IT services major; its Jigani SEZ campus off the Bommasandra-Jigani link road is one of its large Bengaluru delivery campuses.",
+   "hqCity": "Noida",
+   "hqCountry": "India",
+   "founded": 1991,
+   "website": "https://www.hcltech.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HCL Technologies SEZ - Jigani campus",
+     "locality": "Jigani (Bommasandra-Jigani Link Road)",
+     "lat": 12.788593,
+     "lng": 77.651755,
+     "evidence": "OSM maps the 'HCL Technologies SEZ' campus polygon with an 'HCL Autonomous Car Test Area' inside it (https://www.openstreetmap.org/way/170320607), and Wikipedia's Jigani article names HCL among the firms that brought workers to Jigani (https://en.wikipedia.org/wiki/Jigani).",
+     "confidence": "high",
+     "geocodeSource": "osm-park",
+     "address": "Bommasandra-Jigani Link Road, Jigani, Bengaluru 560105",
+     "techPark": "HCL Technologies SEZ Jigani",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/170320607",
+    "https://www.openstreetmap.org/node/5243090663",
+    "https://en.wikipedia.org/wiki/Jigani"
+   ]
+  },
+  {
+   "name": "Otis",
+   "aliases": [
+    "Otis Elevator Company (India)",
+    "Otis India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "US elevator maker; Otis India's Bengaluru manufacturing plant is at plot 92 in the Jigani KIADB estate.",
+   "hqCity": "Farmington (Connecticut)",
+   "hqCountry": "United States",
+   "founded": 1853,
+   "website": "https://www.otis.com/en/in/",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Manufacturing plant - No. 92, KIADB Jigani Phase II",
+     "locality": "Jigani Industrial Area",
+     "lat": 12.779264,
+     "lng": 77.631116,
+     "evidence": "Otis India's contact page lists 'Manufacturing Bengaluru: No.92, KIADB Indl. Estate, Phase II Jingani Indl. Area, Anekal Taluk, Bengaluru 560105' (https://www.otis.com/en/in/contact-us), and OSM maps the 'Otis Elevator Company (India) Ltd' works at plot 92 (https://www.openstreetmap.org/way/722828169).",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "address": "No. 92, KIADB Industrial Estate, Phase II, Jigani Industrial Area, Anekal Taluk, Bengaluru 560105",
+     "techPark": "Jigani Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.otis.com/en/in/contact-us",
+    "https://www.openstreetmap.org/way/722828169"
+   ]
+  },
+  {
+   "name": "LAPP",
+   "aliases": [
+    "LAPP India",
+    "Lapp Kabel India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "German cable and connector maker; LAPP India's cable plant is in the Jigani KIADB estate.",
+   "hqCity": "Stuttgart",
+   "hqCountry": "Germany",
+   "founded": 1959,
+   "website": "https://www.lappindia.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "LAPP India plant - plots 98-J, 98-K Jigani (OSM-mapped)",
+     "locality": "Jigani Industrial Area",
+     "lat": 12.774079,
+     "lng": 77.631807,
+     "evidence": "OSM maps the works 'Lapp Kabel India Pvt Ltd' at plots 98-J and 98-K of the Jigani Industrial Area (https://www.openstreetmap.org/way/841048410); LAPP India's own site answered 503/404 in this run, so this is OSM evidence only.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "98-J, 98-K, Jigani Industrial Area, Anekal Taluk, Bengaluru 560105",
+     "techPark": "Jigani Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/841048410"
+   ]
+  },
+  {
+   "name": "Tata Advanced Systems",
+   "aliases": [
+    "TASL",
+    "Tata Advanced Materials",
+    "TAML"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "description": "Tata group aerospace and defence manufacturer; it opened a composite-structures plant for Airbus programmes in Jigani in November 2025.",
+   "hqCity": "Hyderabad",
+   "hqCountry": "India",
+   "founded": 2007,
+   "website": "https://www.tataadvancedsystems.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Composite structures facility - Jigani",
+     "locality": "Jigani Industrial Area",
+     "lat": 12.776534,
+     "lng": 77.640004,
+     "evidence": "TASL's site reports that its 'new composite structures manufacturing facility for the Airbus programs' was inaugurated in Jigani, Bengaluru on 27 Nov 2025 (https://www.tataadvancedsystems.com/); OSM maps a works polygon named 'Tata Advanced Materials' (the group's composites unit) in the Jigani estate (https://www.openstreetmap.org/way/722828166), but the plot of the new plant is not stated.",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "address": "Jigani Industrial Area, Anekal Taluk, Bengaluru 560105",
+     "techPark": "Jigani Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.tataadvancedsystems.com/",
+    "https://www.openstreetmap.org/way/722828166"
+   ]
+  },
+  {
+   "name": "Velankani Group",
+   "aliases": [
+    "Velankani Electronics & Automotive"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Bengaluru group (electronics manufacturing, tech parks, hospitality) with its third electronics and automotive unit at Rajapura village, Jigani.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": null,
+   "website": "https://www.velankanigroup.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Velankani Electronics & Automotive Unit-3 - Rajapura, Jigani Hobli",
+     "locality": "Rajapura (Jigani)",
+     "lat": 12.7831791,
+     "lng": 77.6631594,
+     "evidence": "Velankani's site lists Unit-3 of Velankani Electronics & Automotive at '138 and 144/2, Rajapura Village, Jigani Hobli, Anekal Taluk, Bengaluru 560105' (https://www.velankanigroup.com/); the plot is not mapped, so the pin is the Rajapura village centroid.",
+     "confidence": "medium",
+     "geocodeSource": "photon",
+     "address": "138 & 144/2, Rajapura Village, Jigani Hobli, Anekal Taluk, Bengaluru 560105",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Velankani Electronics & Automotive Unit-2 - Veerasandra",
+     "locality": "Veerasandra, Electronics City Phase 2",
+     "lat": 12.842262,
+     "lng": 77.681315,
+     "evidence": "Velankani's site lists Unit-2 at 'Plot#8, Veerasandra Industrial Area, Sy#27, 28 & 29, Electronic City Phase-II, Bengaluru 560100' (https://www.velankanigroup.com/); pinned to the Veerasandra estate centroid.",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "address": "Plot 8, Veerasandra Industrial Area, Electronic City Phase II, Bengaluru 560100",
+     "techPark": "Electronics City Phase 2",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.velankanigroup.com/"
+   ]
+  },
+  {
+   "name": "Aliaxis",
+   "aliases": [
+    "Ashirvad Pipes",
+    "Ashirvad by Aliaxis"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Belgian plastic-piping group; its Indian business Ashirvad (Ashirvad by Aliaxis) is headquartered on the Bommasandra-Jigani link road with a plant in Attibele.",
+   "hqCity": "Brussels",
+   "hqCountry": "Belgium",
+   "founded": 2003,
+   "website": "https://www.ashirvad.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Ashirvad registered office - Plots 27-P to 30, Bommasandra-Jigani Link Road",
+     "locality": "Bommasandra-Jigani Link Road (Jigani)",
+     "lat": 12.8010236,
+     "lng": 77.6617985,
+     "evidence": "Ashirvad's contact page gives the registered office as 'Ashirvad Pipes Pvt Ltd, Plot No. 27-P, 28-P, 29 & 30, Bommasandra, Jigani Link Road, Jigani, Anekal, Bengaluru 560105' and says the company is headquartered in Bangalore (https://www.ashirvad.com/contact-us); pinned to the link-road centroid.",
+     "confidence": "medium",
+     "geocodeSource": "photon",
+     "address": "Plot No. 27-P, 28-P, 29 & 30, Bommasandra-Jigani Link Road, Jigani, Anekal, Bengaluru 560105",
+     "techPark": null,
+     "building": null,
+     "isHq": true,
+     "status": "active"
+    },
+    {
+     "label": "Ashirvad Pipes plant - Attibele (OSM-mapped)",
+     "locality": "Attibele Industrial Area",
+     "lat": 12.782726,
+     "lng": 77.743856,
+     "evidence": "OSM maps an industrial site named 'Ashirvad Pipes Pvt Ltd' in the Attibele KIADB estate (https://www.openstreetmap.org/way/1119938378); the company page lists no factory addresses.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "Attibele Industrial Area, Anekal Taluk, Bengaluru 562107",
+     "techPark": "Attibele Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.ashirvad.com/contact-us",
+    "https://www.openstreetmap.org/way/1119938378"
+   ]
+  },
+  {
+   "name": "Sandhar Technologies",
+   "aliases": [
+    "Sandhar Technologies Ltd",
+    "Winnercom Sandhar Technologies"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "description": "Listed Gurugram-based auto-component maker (locks, die-castings, stampings) with two Attibele units, a Bommasandra-Jigani plant and two Peenya units.",
+   "hqCity": "Gurugram",
+   "hqCountry": "India",
+   "founded": null,
+   "website": "https://www.sandhargroup.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Sandhar Automotives / Winnercom Sandhar - Plot 8, Bommasandra-Jigani",
+     "locality": "Bommasandra-Jigani Link Road",
+     "lat": 12.8010236,
+     "lng": 77.6617985,
+     "evidence": "Sandhar's national-presence page lists Sandhar Automotives at 'Plot No. 8, Bommasandra-Jigani Industrial Area, Anekal Taluk' and Winnercom Sandhar Technologies at 'Plot No. 8, Bommasandra Jigani Link Road' (https://www.sandhargroup.com/about/national); pinned to the link-road centroid.",
+     "confidence": "medium",
+     "geocodeSource": "photon",
+     "address": "Plot No. 8, Bommasandra-Jigani Link Road, Anekal Taluk, Bengaluru",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Sandhar Components Unit-1 - Plot 7A, Attibele",
+     "locality": "Attibele Industrial Area",
+     "lat": 12.780175,
+     "lng": 77.742392,
+     "evidence": "Sandhar's national-presence page lists Sandhar Components Unit-1 at 'Plot 7A, KIADB Industrial Area, Attibele, Anekal Taluk' (https://www.sandhargroup.com/about/national), and OSM maps a 'Sandhar Technologies Ltd' building in the Attibele estate (https://www.openstreetmap.org/way/1119938344); which of the two Attibele plots that building is was not confirmed.",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "address": "Plot 7A, KIADB Industrial Area, Attibele, Anekal Taluk, Bengaluru",
+     "techPark": "Attibele Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Sandhar Automach - Plot 12-C, Attibele",
+     "locality": "Attibele Industrial Area",
+     "lat": 12.78167,
+     "lng": 77.74269,
+     "evidence": "Sandhar's national-presence page lists Sandhar Automach at '12-C, KIADB Industrial Area, Attibele, Anekal Taluk' (https://www.sandhargroup.com/about/national); pinned to the Attibele estate centroid.",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "address": "12-C, KIADB Industrial Area, Attibele, Anekal Taluk, Bengaluru",
+     "techPark": "Attibele Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Mag Engineering Unit-A - 46/A Peenya",
+     "locality": "Peenya Industrial Area",
+     "lat": 13.0160478,
+     "lng": 77.5045057,
+     "evidence": "Sandhar's national-presence page lists Mag Engineering Unit-A (Sandhar Technologies Ltd) at '46/A, Peenya Industrial Area, Bangalore 560058' (https://www.sandhargroup.com/about/national); pinned to the Peenya centroid.",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "address": "46/A, Peenya Industrial Area, Bengaluru 560058",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Mag Engineering Unit-B - 34/B, 2nd Phase Peenya",
+     "locality": "Peenya Industrial Area",
+     "lat": 13.0160478,
+     "lng": 77.5045057,
+     "evidence": "Sandhar's national-presence page lists Mag Engineering Unit-B at '34/B, 4th Cross, 2nd Phase, Peenya Industrial Area, Bangalore 560058' (https://www.sandhargroup.com/about/national); pinned to the Peenya centroid.",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "address": "34/B, 4th Cross, 2nd Phase, Peenya Industrial Area, Bengaluru 560058",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.sandhargroup.com/about/national",
+    "https://www.sandhargroup.com/",
+    "https://www.openstreetmap.org/way/1119938344"
+   ]
+  },
+  {
+   "name": "Michell Bearings",
+   "aliases": [
+    "Michell Bearings India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "British maker of hydrodynamic bearings (British Engines Group) that has manufactured in Bengaluru's Attibele estate since 1995.",
+   "hqCity": "South Shields / Newcastle upon Tyne",
+   "hqCountry": "United Kingdom",
+   "founded": null,
+   "website": "https://www.michellbearings.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Michell Bearings India - 8D Attibele Industrial Area",
+     "locality": "Attibele Industrial Area",
+     "lat": 12.782114,
+     "lng": 77.741652,
+     "evidence": "Michell's India page gives '8D, Attibele Industrial Area, Bangalore 562107' and says it has been 'Manufacturing in Bangalore since 1995' (https://www.michellbearings.com/michell-bearings-india/); OSM maps the 'Michell Bearings (India) Pvt Ltd' plot (https://www.openstreetmap.org/way/1119938331).",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "address": "8D, Attibele Industrial Area, Bengaluru 562107",
+     "techPark": "Attibele Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.michellbearings.com/michell-bearings-india/",
+    "https://www.michellbearings.com/",
+    "https://www.openstreetmap.org/way/1119938331"
+   ]
+  },
+  {
+   "name": "Buhler",
+   "aliases": [
+    "Buhler Group",
+    "Buhler India",
+    "Bühler"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Swiss food-processing and die-casting machinery group; OSM maps Buhler (India) Ltd's plant in the Attibele KIADB estate.",
+   "hqCity": "Uzwil",
+   "hqCountry": "Switzerland",
+   "founded": 1860,
+   "website": "https://www.buhlergroup.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Buhler (India) plant - Attibele (OSM-mapped)",
+     "locality": "Attibele Industrial Area",
+     "lat": 12.784433,
+     "lng": 77.738449,
+     "evidence": "OSM maps an industrial plot 'Buhler (India) Ltd' (https://www.openstreetmap.org/way/1119938417) and a separate 'Buhler' company node in the Attibele estate (https://www.openstreetmap.org/node/2175280668); buhlergroup.com's location pages returned no India address, so this is OSM evidence only.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "KIADB Industrial Area, Attibele, Anekal Taluk, Bengaluru 562107",
+     "techPark": "Attibele Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/1119938417",
+    "https://www.openstreetmap.org/node/2175280668",
+    "https://en.wikipedia.org/wiki/B%C3%BChler_Group"
+   ]
+  },
+  {
+   "name": "FORVIA",
+   "aliases": [
+    "Faurecia",
+    "Faurecia Automotive Seating India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "French automotive supplier (Faurecia + HELLA); OSM maps a Faurecia automotive-seating plant in the Attibele estate.",
+   "hqCity": "Nanterre",
+   "hqCountry": "France",
+   "founded": null,
+   "website": "https://www.forvia.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Faurecia Automotive Seating plant - Attibele (OSM-mapped)",
+     "locality": "Attibele Industrial Area",
+     "lat": 12.777553,
+     "lng": 77.742086,
+     "evidence": "OSM maps an industrial plot 'Faurecia Automotive Seating I P Ltd' in the Attibele KIADB estate (https://www.openstreetmap.org/way/1119938395); no company page could be reached to confirm it, so this is a lead.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "KIADB Industrial Area, Attibele, Anekal Taluk, Bengaluru",
+     "techPark": "Attibele Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/1119938395"
+   ]
+  },
+  {
+   "name": "Essae-Teraoka",
+   "aliases": [
+    "Essae Teraoka Pvt Ltd",
+    "Eaase-Teraoka"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Automotive & industrial",
+   "description": "Bengaluru maker of weighing scales, POS systems and milk analysers, headquartered in Koramangala with a factory in Bengaluru.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": null,
+   "website": "https://www.essae.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HQ and R&D - 410, 100 Feet Road, Koramangala 4th Block",
+     "locality": "Koramangala 4th Block",
+     "lat": 12.932947,
+     "lng": 77.623504,
+     "evidence": "Essae's contact page gives its corporate office (HQ and R&D) as '# 410, 100ft Road 4th Block, Koramangala, Bengaluru 560034' (https://www.essae.com/contact-us), and OSM maps 'Essae - Teraoka Private Limited' there (https://www.openstreetmap.org/node/5915230910).",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "address": "#410, 100 Feet Road, 4th Block, Koramangala, Bengaluru 560034",
+     "techPark": null,
+     "building": null,
+     "isHq": true,
+     "status": "active"
+    },
+    {
+     "label": "Factory - Attibele (OSM-mapped)",
+     "locality": "Attibele Industrial Area (Balegaranahalli)",
+     "lat": 12.785786,
+     "lng": 77.740257,
+     "evidence": "Essae's contact page lists a 'Bengaluru (Factory)' without an address (https://www.essae.com/contact-us), and OSM maps a plot 'Eaase-Teraoka Limited' in the Attibele estate (https://www.openstreetmap.org/way/906374931).",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "address": "KIADB Industrial Area, Attibele, Anekal Taluk, Bengaluru",
+     "techPark": "Attibele Industrial Area",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.essae.com/contact-us",
+    "https://www.essae.com/",
+    "https://www.openstreetmap.org/node/5915230910",
+    "https://www.openstreetmap.org/way/906374931"
+   ]
+  },
+  {
+   "name": "Heritage Foods",
+   "aliases": [
+    "Heritage Foods Limited"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Retail & consumer goods",
+   "description": "Listed Hyderabad-based dairy company; its Karnataka processing plant is at Yadavanahalli, beside the Attibele estate.",
+   "hqCity": "Hyderabad",
+   "hqCountry": "India",
+   "founded": 1992,
+   "website": "https://www.heritagefoods.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Yadavanahalli dairy plant (Bangalore PS)",
+     "locality": "Yadavanahalli (Attibele)",
+     "lat": 12.793755,
+     "lng": 77.740279,
+     "evidence": "Heritage Foods' processing-plants page lists 'Yadavanahalli (Bangalore PS)' as its Karnataka plant (https://www.heritagefoods.in/diary/processing_plants), and OSM maps an industrial site 'Heritage Foods' inside Yadavanahalli village (https://www.openstreetmap.org/way/1119204857).",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "address": "Yadavanahalli, Attibele Hobli, Anekal Taluk, Bengaluru",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.heritagefoods.in/diary/processing_plants",
+    "https://www.openstreetmap.org/way/1119204857"
+   ]
+  },
+  {
+   "name": "Bosch",
+   "aliases": [
+    "Bosch Limited",
+    "Robert Bosch Automotive Electronics India",
+    "RBAI"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "German engineering group; its Naganathapura (NhP) automotive-electronics plant sits on Hosur Road between Singasandra and Electronic City.",
+   "hqCity": "Gerlingen (Stuttgart)",
+   "hqCountry": "Germany",
+   "founded": 1886,
+   "website": "https://www.bosch.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Naganathapura plant (Bosch Automotive Electronics India / NhP)",
+     "locality": "Naganathapura (Hosur Road)",
+     "lat": 12.8705,
+     "lng": 77.663552,
+     "evidence": "OSM maps the 'Bosch NhP' industrial site with buildings tagged '701 Production', '720 R&D Testing', 'Admin Block' and 'Bosch RBAI' (Robert Bosch Automotive Electronics India) (https://www.openstreetmap.org/way/24580022, https://www.openstreetmap.org/way/71559709); no Bosch page was reachable to cross-check.",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "address": "Naganathapura, Hosur Road, Electronic City Post, Bengaluru 560100",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/24580022",
+    "https://www.openstreetmap.org/way/71559709",
+    "https://www.openstreetmap.org/way/71949155"
+   ]
+  },
+  {
+   "name": "Bosch Global Software Technologies",
+   "aliases": [
+    "BGSW",
+    "RBEI",
+    "Robert Bosch Engineering and Business Solutions"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Bosch's software and engineering-services arm (formerly RBEI) with engineering centres in Koramangala and at 360 Business Park, Electronic City.",
+   "hqCity": "Gerlingen",
+   "hqCountry": "Germany",
+   "founded": 1997,
+   "website": "https://www.bosch-softwaretechnologies.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Engineering centre - 360 Business Park, Electronic City Phase 1",
+     "locality": "Electronics City Phase 1",
+     "lat": 12.842158,
+     "lng": 77.654168,
+     "evidence": "BGSW's locations page lists 'Bosch Global Software Technologies Private Limited, 360 Business Park, Electronic City Phase I, Bengaluru 560100' (https://www.bosch-softwaretechnologies.com/en/locations/), and OSM maps a 'Bosch' office node inside 360 Business Park (https://www.openstreetmap.org/node/11949923277).",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "address": "360 Business Park, Electronic City Phase I, Bengaluru 560100",
+     "techPark": "360 Business Park",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "Engineering centre - 123 Industrial Layout, Koramangala",
+     "locality": "Koramangala Industrial Layout (Hosur Road)",
+     "lat": 12.935438,
+     "lng": 77.612414,
+     "evidence": "BGSW's locations page lists '123, Industrial Layout, Hosur Road, Koramangala, Bangalore 560095' as an engineering centre and sales office (https://www.bosch-softwaretechnologies.com/en/locations/), and OSM maps the 'Bosch RBEI 905' office building on Hosur Road, Koramangala (https://www.openstreetmap.org/way/111833872).",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "address": "123, Industrial Layout, Hosur Road, Koramangala, Bengaluru 560095",
+     "techPark": null,
+     "building": null,
+     "isHq": true,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.bosch-softwaretechnologies.com/en/locations/",
+    "https://www.openstreetmap.org/node/11949923277",
+    "https://www.openstreetmap.org/way/111833872"
+   ]
+  },
+  {
+   "name": "Trelleborg",
+   "aliases": [
+    "Trelleborg Sealing Solutions India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Swedish engineered-polymers group; OSM records a Trelleborg office on Hosur Road at Chikkathoguru, near Singasandra.",
+   "hqCity": "Trelleborg",
+   "hqCountry": "Sweden",
+   "founded": 1905,
+   "website": "https://www.trelleborg.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Hosur Road office (OSM-mapped)",
+     "locality": "Chikkathoguru / Singasandra (Hosur Road)",
+     "lat": 12.867148,
+     "lng": 77.656348,
+     "evidence": "OSM records a company office named 'Trelleborg' on Hosur Road, Chikkathoguru (https://www.openstreetmap.org/node/9858691346); no Trelleborg India page was reachable to confirm the entity or address.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "Hosur Road, Chikkathoguru, Bengaluru 560100",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/9858691346"
+   ]
+  },
+  {
+   "name": "Shahi Exports",
+   "aliases": [
+    "Shahi"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Retail & consumer goods",
+   "description": "India's largest apparel exporter (100,000+ employees, privately held, Faridabad HQ); OSM maps one of its garment factories at Hongasandra, Bommanahalli.",
+   "hqCity": "Faridabad",
+   "hqCountry": "India",
+   "founded": 1974,
+   "website": "https://shahi.co.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Garment factory - Hongasandra, Bommanahalli (OSM-mapped)",
+     "locality": "Hongasandra / Bommanahalli",
+     "lat": 12.901924,
+     "lng": 77.62293,
+     "evidence": "OSM maps an industrial site named 'Shahi Exports' at Hongasandra, Bommanahalli (https://www.openstreetmap.org/way/236700838); Shahi's own site gives only its Faridabad address and '1,00,000+' employees (https://shahi.co.in/), so the unit is unconfirmed.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "Hongasandra, Bommanahalli, Bengaluru 560068",
+     "techPark": null,
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/236700838",
+    "https://shahi.co.in/"
+   ]
+  },
+  {
+   "name": "Tally Solutions",
+   "aliases": [
+    "Tally",
+    "Tally Solutions Pvt Ltd"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Software & internet",
+   "description": "Bengaluru business-accounting software company (TallyPrime) headquartered in AMR Tech Park II on Hosur Road.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1986,
+   "website": "https://tallysolutions.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Head office - AMR Tech Park II",
+     "locality": "Hongasandra / Bommanahalli (Hosur Main Road)",
+     "lat": 12.899109,
+     "lng": 77.631071,
+     "evidence": "Tally's contact page gives its head office as 'AMR Tech Park II, No. 23 & 24, Hongasandra, Hosur Main Road, Bengaluru 560068' (https://tallysolutions.com/contact-us/); OSM maps the Tally office node there (https://www.openstreetmap.org/node/9253551418).",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "address": "AMR Tech Park II, No. 23 & 24, Hongasandra, Hosur Main Road, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": "AMR Tech Park II",
+     "isHq": true,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://tallysolutions.com/contact-us/",
+    "https://www.openstreetmap.org/node/9253551418"
+   ]
+  },
+  {
+   "name": "Sagility",
+   "aliases": [
+    "Sagility India Ltd",
+    "HGS Healthcare"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Consulting & professional services",
+   "description": "Listed healthcare business-process company (spun out of HGS) with delivery centres in AMR Tech Park and Electronic City Phase II.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": null,
+   "website": "https://sagility.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "AMR Tech Park - Buildings 1 & 2A",
+     "locality": "Hongasandra / Bommanahalli (Hosur Road)",
+     "lat": 12.900378,
+     "lng": 77.630903,
+     "evidence": "Sagility's locations page lists '23 & 24, Bldg 2A (1st & 3rd Floor) and Bldg 1 (2nd Floor), AMR Tech Park, Hongasandra Village, Off Hosur Road, Bommanahalli, Bengaluru 560068' (https://sagility.com/about/locations/); OSM maps two 'Sagility Health' nodes there (https://www.openstreetmap.org/node/12969032575).",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "address": "23 & 24, AMR Tech Park, Hongasandra, Off Hosur Road, Bommanahalli, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": "Buildings 1 and 2A",
+     "isHq": true,
+     "status": "active"
+    },
+    {
+     "label": "Surya Wave - Electronic City Phase II",
+     "locality": "Doddathogur, Electronics City Phase 2",
+     "lat": 12.847,
+     "lng": 77.678,
+     "evidence": "Sagility's locations page lists 'Surya Wave, Sy. No. 61 (P), Doddathogur Village, Begur Hobli, Electronic City Phase II Industrial Area, Bangalore 560100' (https://sagility.com/about/locations/); the building did not geocode, so the pin is the Phase 2 centroid.",
+     "confidence": "medium",
+     "geocodeSource": "park-centroid",
+     "address": "Surya Wave, Sy. No. 61 (P), Doddathogur Village, Electronic City Phase II, Bengaluru 560100",
+     "techPark": "Electronics City Phase 2",
+     "building": "Surya Wave",
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://sagility.com/about/locations/",
+    "https://www.openstreetmap.org/node/12969032575"
+   ]
+  },
+  {
+   "name": "Quinnox",
+   "aliases": [
+    "Quinnox Consultancy Services"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Chicago-headquartered IT services firm whose Indian delivery centre is in AMR Tech Park-4 on Hosur Road.",
+   "hqCity": "Chicago",
+   "hqCountry": "United States",
+   "founded": null,
+   "website": "https://www.quinnox.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "AMR Tech Park-4, 3rd floor",
+     "locality": "Hongasandra / Bommanahalli (Hosur Road)",
+     "lat": 12.897681,
+     "lng": 77.630888,
+     "evidence": "Quinnox's contact page lists 'Quinnox Consultancy Services Ltd. No. 23, 24, Third Floor AMR Tech Park-4, Hosur Road Bangalore 560 068' (https://www.quinnox.com/contact-us/); OSM maps 'Quinnox Inc' there (https://www.openstreetmap.org/node/9253530916).",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "address": "No. 23, 24, Third Floor, AMR Tech Park-4, Hosur Road, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": "AMR Tech Park-4",
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.quinnox.com/contact-us/",
+    "https://www.openstreetmap.org/node/9253530916"
+   ]
+  },
+  {
+   "name": "Clear",
+   "aliases": [
+    "ClearTax",
+    "Defmacro Software Private Limited"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Fintech",
+   "description": "Venture-funded tax and financial-compliance software company (ClearTax) headquartered in AMR Tech Park, Block 1.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2011,
+   "website": "https://clear.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HQ - AMR Tech Park, Block 1",
+     "locality": "Hongasandra / Bommanahalli (Hosur Main Road)",
+     "lat": 12.900108,
+     "lng": 77.631184,
+     "evidence": "Clear's contact page lists 'Defmacro Software Private Ltd., 23,24 AMR Tech Park, Block 1, 1st floor, Hosur main road, Hongasandra, Bangalore 560068' (https://clear.in/s/contact-us); OSM maps a 'ClearTax' office node there (https://www.openstreetmap.org/node/5661132609).",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "address": "23, 24 AMR Tech Park, Block 1, 1st floor, Hosur Main Road, Hongasandra, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": "Block 1",
+     "isHq": true,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://clear.in/s/contact-us",
+    "https://www.openstreetmap.org/node/5661132609"
+   ]
+  },
+  {
+   "name": "Softtek",
+   "aliases": [
+    "Softtek India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Mexican IT services company whose Bangalore office is in Shilpa Emerald on Hosur Main Road, beside AMR Tech Park.",
+   "hqCity": "Monterrey",
+   "hqCountry": "Mexico",
+   "founded": 1982,
+   "website": "https://www.softtek.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bangalore office - Shilpa Emerald",
+     "locality": "Garvebhavipalya / Bommanahalli (Hosur Main Road)",
+     "lat": 12.90041,
+     "lng": 77.63224,
+     "evidence": "Softtek's locations page gives 'Shilpa Emerald, 26/1 Hosur Main Road, Bangalore 560068' (https://www.softtek.com/our-locations); Nominatim resolves the 'Shilpa Emerald' office building (OSM way 1411398443).",
+     "confidence": "high",
+     "geocodeSource": "nominatim",
+     "address": "Shilpa Emerald, 26/1 Hosur Main Road, Bengaluru 560068",
+     "techPark": null,
+     "building": "Shilpa Emerald",
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.softtek.com/our-locations",
+    "https://www.openstreetmap.org/way/1411398443"
+   ]
+  },
+  {
+   "name": "Hinduja Global Solutions",
+   "aliases": [
+    "HGS",
+    "HGS Limited"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Listed Hinduja-group business-process and digital-services company with HGS House on Hosur Road, Bommanahalli.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": null,
+   "website": "https://hgs.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HGS House - Vajpayee Nagar, Bommanahalli",
+     "locality": "Bommanahalli (Hosur Road)",
+     "lat": 12.899053,
+     "lng": 77.633223,
+     "evidence": "OSM maps the building 'HGS House', No 614 Vajpayee Nagar, Bommanahalli, Hosur Road 560068 (https://www.openstreetmap.org/way/201989328); HGS's own pages could not be read, so this is OSM evidence only.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "No 614, Vajpayee Nagar, Bommanahalli, Hosur Road, Bengaluru 560068",
+     "techPark": null,
+     "building": "HGS House",
+     "isHq": false,
+     "status": "active"
+    },
+    {
+     "label": "AMR Tech Park delivery centre (OSM-mapped)",
+     "locality": "Hongasandra / Bommanahalli (Hosur Road)",
+     "lat": 12.8999,
+     "lng": 77.631192,
+     "evidence": "OSM maps a 'Hinduja Global Solutions Ltd.' office node inside AMR Tech Park (https://www.openstreetmap.org/node/9253530906); not confirmed from a company page.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "AMR Tech Park, No. 23 & 24, Hosur Main Road, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/201989328",
+    "https://www.openstreetmap.org/node/9253530906"
+   ]
+  },
+  {
+   "name": "Mindteck",
+   "aliases": [
+    "Mindteck (India) Limited"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Bengaluru engineering and IT services company listed in India; OSM places an office in AMR Tech Park.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1991,
+   "website": "https://www.mindteck.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Mindteck (AMR Tech Park)",
+     "locality": "Hongasandra / Bommanahalli (Hosur Road)",
+     "lat": 12.899811,
+     "lng": 77.6312,
+     "evidence": "OSM maps a 'Mindteck' office node inside AMR Tech Park, No. 23 & 24 Hosur Road (https://www.openstreetmap.org/node/9253530907); not confirmed from a company page, so this is an OSM lead.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "AMR Tech Park, No. 23 & 24, Hosur Main Road, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/9253530907"
+   ]
+  },
+  {
+   "name": "MetricStream",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS",
+   "description": "US governance, risk and compliance software company with large Bengaluru engineering operations; OSM places an office in AMR Tech Park.",
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "founded": 1999,
+   "website": "https://www.metricstream.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "MetricStream Inc. (AMR Tech Park)",
+     "locality": "Hongasandra / Bommanahalli (Hosur Road)",
+     "lat": 12.898108,
+     "lng": 77.630836,
+     "evidence": "OSM maps a 'MetricStream Inc.' office node inside AMR Tech Park, No. 23 & 24 Hosur Road (https://www.openstreetmap.org/node/5566955521); not confirmed from a company page, so this is an OSM lead.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "AMR Tech Park, No. 23 & 24, Hosur Main Road, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/5566955521"
+   ]
+  },
+  {
+   "name": "Avaya",
+   "aliases": [],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Telecom & networking",
+   "description": "US communications-software company; OSM places a Bengaluru office in AMR Tech Park.",
+   "hqCity": "Morristown, New Jersey",
+   "hqCountry": "United States",
+   "founded": 2000,
+   "website": "https://www.avaya.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Avaya (AMR Tech Park)",
+     "locality": "Hongasandra / Bommanahalli (Hosur Road)",
+     "lat": 12.899169,
+     "lng": 77.631068,
+     "evidence": "OSM maps a 'Avaya' office node inside AMR Tech Park, No. 23 & 24 Hosur Road (https://www.openstreetmap.org/node/9253551417); not confirmed from a company page, so this is an OSM lead.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "AMR Tech Park, No. 23 & 24, Hosur Main Road, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/9253551417"
+   ]
+  },
+  {
+   "name": "Visionet Systems",
+   "aliases": [
+    "Visionet Systems India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "US IT and digital-services firm; OSM places a delivery centre in AMR Tech Park.",
+   "hqCity": "Cranbury",
+   "hqCountry": "United States",
+   "founded": 1995,
+   "website": "https://www.visionet.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Visionet Systems (AMR Tech Park)",
+     "locality": "Hongasandra / Bommanahalli (Hosur Road)",
+     "lat": 12.900004,
+     "lng": 77.631186,
+     "evidence": "OSM maps a 'Visionet Systems' office node inside AMR Tech Park, No. 23 & 24 Hosur Road (https://www.openstreetmap.org/node/9253530902); not confirmed from a company page, so this is an OSM lead.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "AMR Tech Park, No. 23 & 24, Hosur Main Road, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/9253530902"
+   ]
+  },
+  {
+   "name": "HL Mando",
+   "aliases": [
+    "Mando Softtech India Pvt Ltd",
+    "Mando Corporation"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Korean auto-parts maker; its software arm Mando Softtech India is mapped in AMR Tech Park.",
+   "hqCity": "Seongnam",
+   "hqCountry": "South Korea",
+   "founded": 1962,
+   "website": "https://www.hlmando.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Mando Softtech India Pvt Ltd (AMR Tech Park)",
+     "locality": "Hongasandra / Bommanahalli (Hosur Road)",
+     "lat": 12.900558,
+     "lng": 77.631178,
+     "evidence": "OSM maps a 'Mando Softtech India Pvt Ltd' office node inside AMR Tech Park, No. 23 & 24 Hosur Road (https://www.openstreetmap.org/node/9253530904); not confirmed from a company page, so this is an OSM lead.",
+     "confidence": "low",
+     "geocodeSource": "osm-poi",
+     "address": "AMR Tech Park, No. 23 & 24, Hosur Main Road, Bengaluru 560068",
+     "techPark": "AMR Tech Park",
+     "building": null,
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/9253530904"
+   ]
+  },
+  {
+   "name": "BHIVE Workspace",
+   "aliases": [
+    "BHIVE"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Real estate & infrastructure",
+   "description": "Bengaluru coworking operator running a 5,000+ seat campus in AKR Tech Park at Kudlu Gate, the building that was formerly Myntra's headquarters.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2014,
+   "website": "https://bhiveworkspace.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "BHIVE AKR Tech Park campus",
+     "locality": "Kudlu Gate / Krishna Reddy Industrial Area (Hosur Road)",
+     "lat": 12.892469,
+     "lng": 77.642315,
+     "evidence": "BHIVE's location page gives 'No.112, AKR Tech Park, A and B Block, 7th Mile Hosur Rd, Krishna Reddy Industrial Area, Bengaluru 560068', a '5000+ Seater Space (3 Lakh sq. ft.)', and labels it 'previously Myntra HQ' (https://bhiveworkspace.com/locations-coworking/akr-tech-park/); OSM maps the BHIVE node there (https://www.openstreetmap.org/node/9828625308).",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "address": "No. 112, AKR Tech Park, 7th Mile Hosur Road, Krishna Reddy Industrial Area, Bengaluru 560068",
+     "techPark": "AKR Tech Park",
+     "building": "A and B Block",
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://bhiveworkspace.com/locations-coworking/akr-tech-park/",
+    "https://www.openstreetmap.org/node/9828625308"
+   ]
+  }
+ ],
+ "coverageNotes": "SEARCH LIMIT: the shared WebSearch budget was already exhausted when this lens ran (every WebSearch call returned 'budget used up'), and the Overpass API failed on three mirrors, so discovery used the OSM extracts, the OSM editing API's map call for six small boxes (Bommasandra, the Jigani link road, Hebbagodi, Jigani, Attibele, Chandapura, Kudlu/Singasandra), the geocoder, and direct WebFetch of company pages and Wikipedia. CONFIRMED FROM PRIMARY PAGES: Sansera (10 plants, all listed on its contact page, incl. Bidadi Plant 11), Mersen (No. 5 and No. 19 Bommasandra), Anthem (Unit I), Aragen (Plot 284 Part A biologics plant), OneSource (ex-Stelis) Global R&D at #293 Jigani Link Road, Micro Labs (Bommasandra, Veerasandra, Kumbalgodu, Peenya named but without plot numbers), Ashirvad/Aliaxis registered office, Sandhar (Bommasandra Plot 8, Attibele 7A and 12-C, two Peenya units), Michell Bearings (8D Attibele), Heritage Foods (Yadavanahalli), Essae-Teraoka (Koramangala HQ), Velankani Unit-3 (Rajapura) and Unit-2, Otis (No. 92 Jigani), TASL's Jigani composites plant (Nov 2025), Narayana Health City (258/A), Siemens Healthineers' INR 1,300 cr Bengaluru campus (location from OSM), BGSW's 360 Business Park and Koramangala centres, Atotech's E-City development centre, and the AMR Tech Park tenants Tally, Sagility, Quinnox, Clear plus Softtek and BHIVE. OSM-ONLY, LOW CONFIDENCE: SKF, Delta Electronics, TaeguTec, LAPP, Buhler (India) in Attibele, the Faurecia (FORVIA) seating plant in Attibele, Ashirvad's Attibele plant, Atotech's Bommasandra plant, Apotex Research/Pharmachem (apotex.com 403), Trelleborg (Chikkathoguru), Shahi Exports' Bommanahalli factory, the Mahindra Last Mile Mobility Bommasandra plant (no plot found anywhere; estate centroid), and the OSM-only AMR tenants HGS, Mindteck, MetricStream, Avaya, Visionet and Mando Softtech. COORDINATES: many plots on the Bommasandra-Jigani link road are not mapped, so Sansera's Plants 3/7/8/10, Sandhar's Plot 8 and Ashirvad's HQ share the link-road centroid (12.8010, 77.6618), and Bommasandra or Jigani addresses without a mapped plot share the estate centroids; these are marked park-centroid/photon with medium confidence. CATEGORY CALLS: Narayana Health is MNC (listed, 19,214 employees, Cayman Islands hospital) although other lenses filed it MID_SIZE; Sagility is filed Indian (Bengaluru-headquartered, NSE-listed) where G09 said Foreign; Shahi Exports (100,000+ staff but unlisted) is filed MID_SIZE because the MNC rule for Indian firms requires a listing. OUT OF BOX / OUT OF LENS: Hosur IT Park (OSM way/1338543702 at 12.761, 77.843) and the Ashok Leyland/TVS/Ather/Titan plants are in Hosur, Tamil Nadu, east of the Attibele border check-post, and are excluded; Ola Electric (Krishnagiri), Simple Energy's Shoolagiri plant, Volvo (Hoskote) and Toyota (Bidadi) are outside this lens; Anthem's Units II-III (Harohalli, ~12.68 N), OneSource's Doddaballapura DS/DP site (~13.27 N) and Strides' KRS Gardens plant (Suragajakkanahalli, not geocodable inside the box) are excluded. Britannia, Himalaya, Wipro Consumer Care, Jubilant, ITC, Toshiba, Timken, Yokogawa, Hical and Centum have no Bengaluru presence in this belt that could be found (their sites are in Whitefield, Makali, Sarjapur Road, Yeshwanthpur, E-City or Yelahanka and are covered by other lenses); Ultraviolette's and Simple Energy's Bengaluru offices are covered by E09/G09. NOT CONFIRMED / LEFT OUT: data centres (no operator page or datacentermap listing could be read - datacentermap returned 429, Web Werks 503 - and no data-centre feature exists in OSM in this belt); OSM 'Kirloskar Toyota' works in Jigani (way/722828168; entity - possibly Kirloskar Toyota Textile Machinery - unconfirmed); Suretex Prophylactics, Intermed Labs, Microtrol, BonAyu, Avon Plastic, Shetron, Dove Tail, Times of India press (Bommasandra) and the 150-odd small Attibele/Jigani units (small or unconfirmed); 'Bostik' (only as a landmark in another node's address); Peter England factory node at Hongasandra (could be an outlet); Bosch/RBEI node at Gold Hill Square No. 690 Hosur Road (not on BGSW's current locations page, likely stale); Myntra at AKR Tech Park (BHIVE now labels the building 'previously Myntra HQ'; G02/G09 place Myntra at Embassy TechVillage and the move predates 2023, so it is excluded under the closure rule); Sattva Texonic and IndoSpace (unknown tenants; IndoSpace kept as a park only); emids and CreditBee nodes in Bommanahalli (company pages 404/503; emids is in G15). Bengaluru headcounts were not found for any company and are null."
+}

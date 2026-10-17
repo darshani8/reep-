@@ -1,0 +1,776 @@
+{
+ "key": "X09-gaps",
+ "techParks": [
+  {
+   "name": "Kalyani Roshni Tech Hub",
+   "aliases": [
+    "Roshni Tech Hub",
+    "WeWork Roshni Tech Hub",
+    "WeWork Marathahalli (Roshni Tech Hub)"
+   ],
+   "locality": "Marathahalli (EPIP Zone, Chinnapanna Halli)",
+   "lat": 12.963897,
+   "lng": 77.702438,
+   "bbox": [
+    12.962974,
+    12.964391,
+    77.702094,
+    77.702691
+   ],
+   "developer": null,
+   "areaSqFtMillions": null,
+   "description": "Nine-floor office building on Marathahalli Main Road in the EPIP Zone, Chinnapanna Halli (BBMP Khatha No. 1395, Sy. No. 26 (P), Bengaluru 560037), run as a large WeWork centre. Listings call it 'Kalyani Roshni Tech Hub', which suggests a Kalyani developer, but no source names the developer, so it is left null. Coordinates are the OSM 'Kalyani Roshni Tech Hub' landuse footprint.",
+   "notableTenants": [
+    "WeWork",
+    "Emergent"
+   ],
+   "sources": [
+    "https://wework.co.in/bangalore/marathahalli/kalyani-roshni-tech-hub",
+    "https://emergent.sh/info",
+    "https://gharpe.com/bangalore/wework-roshni-tech-hub"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "Hector Beverages",
+   "aliases": [
+    "Paper Boat",
+    "Hector Beverages Private Limited",
+    "Paper Boat Drinks"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "FMCG / packaged beverages and foods",
+   "description": "Maker of the Paper Boat drinks and foods brand, founded in 2009 and backed by Sequoia (Peak XV), Catamaran and Sofina. It was Gurugram-based in its early years; its only listed address is now in the EPIP Zone, Whitefield, Bengaluru.",
+   "founded": 2009,
+   "isUnicorn": false,
+   "website": "https://www.hectorbeverages.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - EPIP Zone, Whitefield",
+     "techPark": "EPIP Zone Whitefield",
+     "building": "Plot 128-P2 (near Ginger Hotel)",
+     "locality": "Whitefield (EPIP Zone)",
+     "address": "Plot No. 128-P2, Ground Floor, Near Ginger Hotel, EPIP Zone, Whitefield, Bengaluru 560066",
+     "lat": 12.9768602,
+     "lng": 77.718597,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "photon: Ginger Hotel, EPIP Phase II (osm way 181466412), the adjacent landmark named in the address",
+     "evidence": "Hector Beverages' own contact page lists 'Hector Beverages, Plot No: 128-P2, Ground Floor, Near Ginger Hotel, EPIP Zone, Whitefield, Bengaluru, Karnataka, Pin-560066' (paperboatdrinks.com redirects there); PitchBook and CB Insights give the same plot as the headquarters, and job listings describe the company as Whitefield-headquartered. The point is the Ginger Hotel (EPIP Phase II) that the address names as its neighbour, not the plot itself. https://www.hectorbeverages.com/contact-us ; https://pitchbook.com/profiles/company/57050-74"
+    }
+   ],
+   "sources": [
+    "https://www.hectorbeverages.com/contact-us",
+    "https://pitchbook.com/profiles/company/57050-74",
+    "https://www.cbinsights.com/investor/hector-beverages",
+    "https://en.wikipedia.org/wiki/Paper_Boat",
+    "https://www.sofinagroup.com/project/en-paper-boat/"
+   ]
+  },
+  {
+   "name": "Mokobara",
+   "aliases": [
+    "Mokobara Lifestyle Private Limited",
+    "Mokobara Lifestyle Pvt. Ltd."
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "D2C consumer brand / premium luggage and travel goods",
+   "description": "Premium luggage and travel-accessories D2C brand founded in 2020 by former Urban Ladder executives Sangeet Agrawal and Navin Parwal; Peak XV-backed (Series B). Its corporate address is a desk on CMH Road, Indiranagar. Its Bengaluru retail stores (Phoenix Marketcity, Phoenix Mall of Asia, 12th Main Indiranagar) are shops, not offices, and are not mapped.",
+   "founded": 2020,
+   "isUnicorn": false,
+   "website": "https://mokobara.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - CMH Road, Indiranagar",
+     "techPark": null,
+     "building": "#198 CMH Road (2nd floor)",
+     "locality": "Indiranagar",
+     "address": "#198, CMH Road, 2nd Floor, Desk No. 275, Indiranagar 1st Stage, Bengaluru 560038",
+     "lat": 12.9785334,
+     "lng": 77.6437489,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "nominatim: Chinmaya Mission Hospital Road, Indiranagar (street-level, osm way 492431226)",
+     "evidence": "Mokobara's site footer gives 'Mokobara Lifestyle Pvt. Ltd., #198, CMH Road, 2nd Floor, Desk No.275, Indira Nagar 1st Stage, Bengaluru, Karnataka 560038', and CB Insights lists the same address as the headquarters. 'Desk No.' suggests a coworking seat. The point is the CMH Road street centroid, because no geocoder resolves No. 198. https://mokobara.com/policies/terms-of-service ; https://www.cbinsights.com/company/mokobara"
+    }
+   ],
+   "sources": [
+    "https://mokobara.com/policies/terms-of-service",
+    "https://www.cbinsights.com/company/mokobara",
+    "https://en.wikipedia.org/wiki/Mokobara",
+    "https://www.indiaretailing.com/2023/11/06/travel-brand-mokobara-opens-its-3rd-retail-store-in-bengaluru/"
+   ]
+  },
+  {
+   "name": "redBus",
+   "aliases": [
+    "redBus.in",
+    "Ibibo Group Private Limited (redBus)",
+    "Pilani Soft Labs"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Travel tech / online bus ticketing",
+   "description": "India's largest online bus-ticketing platform, founded in 2006 in Bengaluru and venture-funded before ibibo bought it in 2013. It is now part of the MakeMyTrip (go-MMT) group, operating under Ibibo Group Pvt Ltd. Kept as STARTUP on the Urban Ladder / Zivame precedent: founded after 2005 and venture-funded before the acquisition.",
+   "founded": 2006,
+   "isUnicorn": false,
+   "website": "https://www.redbus.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Leela Galleria, Old Airport Road",
+     "techPark": null,
+     "building": "Leela Galleria (IndiQube), The Leela Palace complex",
+     "locality": "Kodihalli (HAL Old Airport Road)",
+     "address": "IndiQube Leela Galleria, 5th Floor, No. 23, Old Airport Road, HAL 2nd Stage, Kodihalli, Bengaluru 560008",
+     "lat": 12.9614749,
+     "lng": 77.6486573,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "nominatim: Leela Palace, Kodihalli (osm way 30801153), the complex containing Leela Galleria",
+     "evidence": "Ibibo Group Pvt Ltd's Karnataka GST registration (29AAHCP1178L1C7) gives 'Leela Galleria, 5th, Municipal 23, Airport Road, HAL II Stage, Kodihalli, 560008', and CB Insights lists redBus's headquarters as 'Indiqube Leela Galleria, 5th Floor, No. 23, Old Airport Road, HAL 2nd Stage, Kodihalli'. These are two independent records. Older directories show earlier Old Airport Road addresses (Karle Premium; B1 Golden Enclave). The point is The Leela Palace complex that contains Leela Galleria. redbus.in returned 503 to automated fetches. https://www.knowyourgst.com/gst-number-search/ibibo-group-private-limited-29AAHCP1178L1C7/ ; https://www.cbinsights.com/company/redbus/financials"
+    }
+   ],
+   "sources": [
+    "https://www.knowyourgst.com/gst-number-search/ibibo-group-private-limited-29AAHCP1178L1C7/",
+    "https://www.cbinsights.com/company/redbus/financials",
+    "https://www.complaintsboard.com/redbus-b127017/contacts",
+    "https://dbpedia.org/page/RedBus"
+   ]
+  },
+  {
+   "name": "Setu",
+   "aliases": [
+    "Brokentusk Technologies Pvt. Ltd.",
+    "BrokenTusk Technologies",
+    "Setu (Pine Labs)"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech / API infrastructure (UPI, Account Aggregator, BBPS)",
+   "description": "Fintech API-infrastructure company founded in 2018. It provides UPI, Account Aggregator (with its own AA arm), bill-payment (BBPS) and data APIs. Pine Labs bought it in June 2022 (~US$70m) and runs it as a wholly owned subsidiary.",
+   "founded": 2018,
+   "isUnicorn": false,
+   "website": "https://setu.co",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Embassy Icon Annexe, Infantry Road",
+     "techPark": "Embassy Icon",
+     "building": "Embassy Icon Annexe",
+     "locality": "Vasanth Nagar (Infantry Road, CBD)",
+     "address": "Third Floor, No. 2/1, Embassy Icon Annexe, Infantry Road, Vasanth Nagar, Bengaluru 560001",
+     "lat": 12.9839897,
+     "lng": 77.5958387,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "photon: Embassy Icon, Infantry Road (osm way 124760636)",
+     "evidence": "Setu's grievance policy gives its nodal-officer address as 'Third floor, No. 2/1, Embassy Icon Annexe, Infantry Road, Bengaluru - 560001' and its customer-care post address as '2, 2nd Floor, Embassy Icon, Infantry Rd, Vasanth Nagar, Bengaluru 560001'. CB Insights and Mergr list the same Embassy Icon Annexe headquarters. The point is the Embassy Icon building footprint, of which the Annexe is part. https://setu.co/grievance-policy ; https://www.cbinsights.com/company/setu"
+    }
+   ],
+   "sources": [
+    "https://setu.co/grievance-policy",
+    "https://www.cbinsights.com/company/setu",
+    "https://mergr.com/company/setu",
+    "https://entrackr.com/?p=29369"
+   ]
+  },
+  {
+   "name": "HyperVerge",
+   "aliases": [
+    "HyperVerge Inc.",
+    "HyperVerge Technologies Pvt Ltd",
+    "HyperVerge ONE"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "hqCity": "Palo Alto",
+   "hqCountry": "United States",
+   "sector": "AI identity verification / KYC",
+   "description": "AI identity-verification and KYC platform founded in 2014 by IIT Madras alumni and used widely by Indian fintechs and lenders. HyperVerge Inc. lists Palo Alto as its headquarters (primary location on its about page and LinkedIn), so origin is Foreign, the dataset's convention for Indian-founded, US-headquartered startups. Bengaluru (HSR Layout) is its main India office, alongside Coimbatore and Mumbai.",
+   "founded": 2014,
+   "isUnicorn": false,
+   "website": "https://hyperverge.co",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - HSR Layout Sector 7",
+     "techPark": null,
+     "building": "No. 12, 17th Cross Road",
+     "locality": "HSR Layout",
+     "address": "No. 12, 17th Cross Road, Sector 7, HSR Layout, Bengaluru 560102",
+     "lat": 12.9121673,
+     "lng": 77.6347685,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "photon: POI on 17th Cross Road, HSR Layout (street-level)",
+     "evidence": "HyperVerge's about page and its LinkedIn locations both list 'No:12, 17th Cross Rd, Sector 7, HSR Layout, Bengaluru, Karnataka - 560102' as the Bangalore office. The point is on 17th Cross Road, HSR Layout (street-level geocode), not the building. https://hyperverge.co/about-us/ ; https://www.linkedin.com/company/hyperverge"
+    }
+   ],
+   "sources": [
+    "https://hyperverge.co/about-us/",
+    "https://www.linkedin.com/company/hyperverge",
+    "https://www.sify.com/ai-analytics/hyperverge-how-an-iit-madras-start-up-built-worlds-leading-image-ai-tech/"
+   ]
+  },
+  {
+   "name": "Bureau",
+   "aliases": [
+    "Bureau.id",
+    "BureauID India Private Limited",
+    "Bureau Inc."
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "sector": "Identity verification / fraud-risk intelligence",
+   "description": "Identity and fraud-risk decisioning platform founded in 2020 by Ranjan Reddy. It raised a US$30m Series B led by Sorenson Capital, with PayPal Ventures, announced in December 2024 (not 2025). It is described as San Francisco-headquartered, with offices in Bengaluru, Singapore and Dubai; its Indian entity is BureauID India Pvt Ltd.",
+   "founded": 2020,
+   "isUnicorn": false,
+   "website": "https://www.bureau.id",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - Koramangala 8th Block",
+     "techPark": null,
+     "building": null,
+     "locality": "Koramangala",
+     "address": "Nanjappa Reddy Layout, Koramangala 8th Block, Bengaluru 560095",
+     "lat": 12.9408685,
+     "lng": 77.617338,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "nominatim: Koramangala 8th Block area centroid (locality-level)",
+     "evidence": "Biometric Update's company profile for Bureau (bureau.id) lists 'Nanjappa Reddy Layout, Koramangala 8th Block, Koramangala, Bengaluru, Karnataka 560095'. Bureau's own site and privacy policy name BureauID India Private Limited but give no street address, so this rests on one secondary source. The point is the Koramangala 8th Block area centroid; Nanjappa Reddy Layout itself does not geocode. https://www.biometricupdate.com/companies/bureau ; https://www.fintechfutures.com/cybersecurity/us-fintech-bureau-raises-30m-series-b-led-by-sorenson-capital"
+    }
+   ],
+   "sources": [
+    "https://www.biometricupdate.com/companies/bureau",
+    "https://www.bureau.id/privacy-policy",
+    "https://www.fintechfutures.com/cybersecurity/us-fintech-bureau-raises-30m-series-b-led-by-sorenson-capital",
+    "https://entrackr.com/snippets/fraud-prevention-platform-bureau-raises-30-mn-in-series-b-round-8451021"
+   ]
+  },
+  {
+   "name": "Freo",
+   "aliases": [
+    "MoneyTap",
+    "MWYN Tech Private Limited",
+    "Freo Money"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech / consumer credit line and neobanking",
+   "description": "Credit-line and neobank fintech, founded in 2015 as MoneyTap and rebranded Freo, operated by MWYN Tech Pvt Ltd (CIN U72200KA2015PTC083534).",
+   "founded": 2015,
+   "isUnicorn": false,
+   "website": "https://freo.money",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Sigma Soft Tech Park, Whitefield",
+     "techPark": "Sigma Soft Tech Park",
+     "building": "Gamma Block",
+     "locality": "Whitefield (Varthur Road)",
+     "address": "G-405, 4th Floor, Gamma Block, Sigma Soft Tech Park, Varthur Kodi, Whitefield, Bengaluru 560066",
+     "lat": 12.957685,
+     "lng": 77.744263,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-park-centroid (Sigma Soft Tech Park, way 360342802)",
+     "evidence": "Freo's contact page and site footer give 'MWYN Tech Private Limited, CIN: U72200KA2015PTC083534, G-405, 4th Floor - Gamma Block, Sigma Soft Tech Park, Varthur, Kodi Whitefield Post, Bangalore - 560066'. The point is the Sigma Soft Tech Park centroid, not the Gamma Block. https://freo.money/contact-us"
+    }
+   ],
+   "sources": [
+    "https://freo.money/contact-us",
+    "https://www.freo.money/about"
+   ]
+  },
+  {
+   "name": "OkCredit",
+   "aliases": [
+    "Psi Phi Global Solutions Pvt. Ltd.",
+    "OkCredit Psi Phi Global Solutions"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech / MSME digital ledger and lending",
+   "description": "Digital credit-ledger (bahi-khata) app for small merchants, founded in 2017 by Harsh Pokharna, Gaurav Kumar and Aditya Prasad, and operated by Psi Phi Global Solutions Pvt Ltd. It also runs a lending business with NBFC partners.",
+   "founded": 2017,
+   "isUnicorn": false,
+   "website": "https://okcredit.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Incubex HQ, HSR Layout Sector 6",
+     "techPark": null,
+     "building": "Incubex HQ",
+     "locality": "HSR Layout",
+     "address": "5th Floor, Incubex HQ, No. 339, 14th B Cross Road, Sector 6, HSR Layout, Bengaluru 560102",
+     "lat": 12.9166964,
+     "lng": 77.6258308,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "photon: 14th B Cross Road, HSR Layout (street-level, osm way 27934983)",
+     "evidence": "OkCredit's grievance-redressal policy gives its customer-support address as '5th Floor, Incubex HQ, 339, 14th B Cross Rd, Sector 6, HSR Layout, Bangalore, Karnataka - 560102'. Zaubacorp lists the same No. 339, 14th B Cross, 6th Sector as the registered address of the founders' sister company OkCapital Pvt Ltd. The point is on 14th B Cross Road, HSR Layout (street-level); OSM's 'Incubex' POI is a different branch in Sector 1. https://okcredit.in/grievance-redressal-policy ; https://www.zaubacorp.com/OKCAPITAL-PRIVATE-LIMITED-U64990KA2023FTC181512"
+    }
+   ],
+   "sources": [
+    "https://okcredit.in/grievance-redressal-policy",
+    "https://okcredit.in/",
+    "https://www.zaubacorp.com/OKCAPITAL-PRIVATE-LIMITED-U64990KA2023FTC181512",
+    "https://yourstory.com/companies/okcredit/amp"
+   ]
+  },
+  {
+   "name": "FloBiz",
+   "aliases": [
+    "myBillBook",
+    "Valorem Stack Private Limited"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "SMB SaaS / GST billing, invoicing and accounting",
+   "description": "Maker of myBillBook, a GST billing and accounting app for small businesses. It was founded in 2019 by Rahul Raj, Aditya Naik and Rakesh Yadav, and raised a US$31m Series B in 2021 led by Sequoia India and Think Investments. The legal entity is Valorem Stack Pvt Ltd.",
+   "founded": 2019,
+   "isUnicorn": false,
+   "website": "https://mybillbook.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Mangammanapalya (HSR / Bommanahalli)",
+     "techPark": null,
+     "building": null,
+     "locality": "Mangammanapalya (near HSR Layout)",
+     "address": "11/3, Service Road, Popular Colony, Mangammanapalya, Bengaluru 560068",
+     "lat": 12.9070833,
+     "lng": 77.6351607,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "nominatim: Mangammanapalya locality node (osm node 1428116573)",
+     "evidence": "The myBillBook site footer gives 'Valorem Stack Private Limited, 11/3, Service Rd, Popular Colony, Mangammanapalya, Bengaluru, Karnataka 560068'. CB Insights still shows an older address, 257, 5th Main, 16th Cross, HSR Layout 560102. The point is the Mangammanapalya locality node; the building is not geocodable. https://mybillbook.in/ ; https://www.cbinsights.com/company/flobiz/"
+    }
+   ],
+   "sources": [
+    "https://mybillbook.in/",
+    "https://www.cbinsights.com/company/flobiz/",
+    "https://yourstory.com/2021/09/neobank-startup-flobiz-series-b-funding-smbs-sequoia-capital/amp",
+    "https://www.hiration.com/jobs/company/flobiz-34ec5ac7"
+   ]
+  },
+  {
+   "name": "Vyapar",
+   "aliases": [
+    "Vyapar App",
+    "Simply Vyapar Apps Private Limited"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "SMB SaaS / billing, inventory and accounting",
+   "description": "Accounting, invoicing and inventory app for small businesses, operated by Simply Vyapar Apps Pvt Ltd (incorporated 2018, CIN U74110KA2018PTC110858). In 2025 it took ~90,000 sq ft (~2,200 workstations) at Enzyme Office Spaces' new Sarjapura Road centre.",
+   "founded": 2018,
+   "isUnicorn": false,
+   "website": "https://vyaparapp.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - GGR Towers 3 (Enzyme), Ambalipura, Sarjapur Road",
+     "techPark": null,
+     "building": "GGR Towers 3 (Enzyme Office Spaces)",
+     "locality": "Ambalipura (Bellandur / Sarjapur Road)",
+     "address": "GGR Towers 3, 18/2B, Ambalipura Village, Varthur Hobli (Sarjapur Road), Bengaluru 560103",
+     "lat": 12.9197964,
+     "lng": 77.6706855,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "photon: GGR Towers (osm way 1252351195)",
+     "evidence": "Vyapar's contact page and footer give 'Simply Vyapar Apps Pvt. Ltd., GGR Towers -3 18/2B, Ambilipura Village, Varthur hobli, Bengaluru, Karnataka 560103'. The Week / PTI and Realty Today (June 2025) report that Vyapar leased 90,000 sq ft, about 2,200 workstations, at Enzyme Office Spaces' new Sarjapura Road centre, and OSM maps an 'Enzyme Offices' building inside the GGR Towers campus. The point is the GGR Towers campus geocode. https://vyaparapp.in/contact-us ; https://www.theweek.in/wire-updates/business/2025/06/02/dcm34-biz-realty-enzyme.html"
+    }
+   ],
+   "sources": [
+    "https://vyaparapp.in/contact-us",
+    "https://www.theweek.in/wire-updates/business/2025/06/02/dcm34-biz-realty-enzyme.html",
+    "https://therealtytoday.com/news/vyapar-acquires-90000-sq-ft-office-space-at-enzyme-office-spaces-new-bengaluru-centre",
+    "https://www.registerkaro.in/company/simply-vyapar-apps-private-limited-U74110KA2018PTC110858"
+   ]
+  },
+  {
+   "name": "Propelld",
+   "aliases": [
+    "Bluebear Technology Pvt. Ltd."
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech / education loans",
+   "description": "Education-loan fintech founded in 2017 by IIT Madras alumni Bibhu Prasad Das, Victor Senapaty and Brijesh Samantaray (legal name per Preqin: Bluebear Technology Pvt Ltd). It raised a US$35m Series B led by WestBridge Capital in 2022, and later rounds.",
+   "founded": 2017,
+   "isUnicorn": false,
+   "website": "https://propelld.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - HSR Layout Sector 1",
+     "techPark": null,
+     "building": "Enzyme (1654, 19th Main)",
+     "locality": "HSR Layout",
+     "address": "1654, Enzyme, 7th Cross, 19th Main, Sector 1, HSR Layout, Bengaluru 560102",
+     "lat": 12.9195277,
+     "lng": 77.6461989,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "nominatim: 7th Cross Road, Sector 1, HSR Layout (street-level, osm way 232239392)",
+     "evidence": "CB Insights lists the headquarters as '1654, Enzyme 7th cross, 19th main, 1st sector, HSR layout, Bangalore 560102', and Bajaj Finserv Markets' Propelld partner page gives the same address. An older (2021) listing gives 4th floor, No. 257, 14th Main, Sector 7, HSR Layout. Propelld's own site publishes no address. The point is on 7th Cross Road, HSR Sector 1 (street-level). https://www.cbinsights.com/company/propelld ; https://www.bajajfinservmarkets.in/partners/propelld.html"
+    }
+   ],
+   "sources": [
+    "https://www.cbinsights.com/company/propelld",
+    "https://www.bajajfinservmarkets.in/partners/propelld.html",
+    "https://www.fintechfutures.com/baas/education-financing-platform-propelld-raises-35m-series-b",
+    "https://www.preqin.com/data/profile/asset/propelld/290395"
+   ]
+  },
+  {
+   "name": "greytHR",
+   "aliases": [
+    "Greytip Software Pvt Ltd",
+    "Greytip Software",
+    "greytip"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "HR tech / payroll and HRMS SaaS",
+   "description": "Payroll and HR SaaS (greytHR) used by tens of thousands of Indian SMEs. Greytip Software was founded in Bengaluru in 1994 by Girish Rowjee and Sayeed Anjum and launched greytHR as a cloud product in 2011. Backers include Blume, Info Edge and, since 2024, Apax Digital Funds (Series F). It is classed MID_SIZE, not STARTUP, because it was founded before the 2005 cut-off.",
+   "founded": 1994,
+   "isUnicorn": false,
+   "website": "https://www.greythr.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Grape Garden, Koramangala 6th Block",
+     "techPark": null,
+     "building": "Grape Garden #29 & 30",
+     "locality": "Koramangala 6th Block",
+     "address": "Grape Garden, #29 & 30, 17th Main, Koramangala 6th Block, Bengaluru 560095",
+     "lat": 12.933832,
+     "lng": 77.618562,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi of adjacent Grape Garden building (node 5915409408, No. 32, 17th H Main)",
+     "evidence": "greytHR's Bengaluru contact page lists 'Grape Garden, #29 & 30, 17th Main, 6th Block, Koramangala, Bengaluru - 560095' first among its offices (Chennai, Delhi, Hyderabad, Mumbai, Pune, Dubai), and Bitscale gives the same address as the HQ. The point is the OSM POI of the neighbouring Grape Garden building at No. 32, 17th H Main (Tavant), not Nos. 29-30 themselves. https://www.greythr.com/contact-us/bengaluru/ ; https://bitscale.ai/directory/greythr"
+    }
+   ],
+   "sources": [
+    "https://www.greythr.com/contact-us/bengaluru/",
+    "https://bitscale.ai/directory/greythr",
+    "https://www.softwaresuggest.com/blog/greythr-founder-interview/",
+    "https://www.greythr.com/greythr-pressrelease/greythr-secures-strategic-investment-from-the-apax-digital-funds-for-r&d-and-growth/"
+   ]
+  },
+  {
+   "name": "Sprinto",
+   "aliases": [
+    "Sprinto Technology Private Limited",
+    "Sprinto, Inc."
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "SaaS / compliance automation and GRC",
+   "description": "Compliance-automation and GRC SaaS (SOC 2, ISO 27001 and similar), founded in 2020 and Accel-backed. It contracts through Sprinto, Inc. and Sprinto Technology Pvt Ltd. CB Insights lists a Bengaluru headquarters, while some profiles say it now lists San Francisco. Its job ads describe it as 100% remote, so the Bengaluru address is a coworking registered/mailing address rather than a staffed campus.",
+   "founded": 2020,
+   "isUnicorn": false,
+   "website": "https://sprinto.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ address - 91springboard, Bannerghatta Road",
+     "techPark": null,
+     "building": "91springboard JP Nagar (coworking)",
+     "locality": "JP Nagar (Bannerghatta Road)",
+     "address": "175/176, 91springboard, Bannerghatta Road, JP Nagar, Bengaluru 560076",
+     "lat": 12.903584,
+     "lng": 77.601175,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi (node 5374238410, 91springboard, 175-176 Bannerghatta Road)",
+     "evidence": "CB Insights gives Sprinto's headquarters as '175/176, 91 Springboard, J P Nagar, Bannerghatta Road, Bangalore 560076', and a second directory (Business of GCC / Axial) repeats it. The point is the exact OSM POI of 91springboard at 175-176 Bannerghatta Road. Confidence is held at medium because the company advertises itself as remote-first, so this may be a registered/mailing seat rather than a working office. https://www.cbinsights.com/company/sprinto ; https://www.businessofgcc.com/gcc-partners/sprinto"
+    }
+   ],
+   "sources": [
+    "https://www.cbinsights.com/company/sprinto",
+    "https://www.businessofgcc.com/gcc-partners/sprinto",
+    "https://builtinbengaluru.in/job/senior-manager-finance-operations/8074842",
+    "https://inc42.com/?p=451429"
+   ]
+  },
+  {
+   "name": "CloudSEK",
+   "aliases": [
+    "CloudSEK Information Security Pvt Ltd",
+    "CloudSEK Research Pte Ltd",
+    "CloudSEK Inc."
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "hqCity": "Singapore",
+   "hqCountry": "Singapore",
+   "sector": "Cybersecurity / AI threat intelligence and digital-risk protection",
+   "description": "AI-driven cyber-threat intelligence and digital-risk-protection company founded in 2015 by Rahul Sasi. LinkedIn and Built In give its headquarters as Singapore (CloudSEK Research Pte Ltd), so origin is Foreign by the dataset's convention. Its operating base and most of its staff are in Bengaluru (CloudSEK Information Security Pvt Ltd).",
+   "founded": 2015,
+   "isUnicorn": false,
+   "website": "https://www.cloudsek.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - Cambridge Road, Halasuru",
+     "techPark": null,
+     "building": "16/1 Cambridge Road (likely IndiQube Brigade Square)",
+     "locality": "Halasuru (Cambridge Layout, Jogupalya)",
+     "address": "16/1, Cambridge Road, Halasuru, Cambridge Layout, Jogupalya, Bengaluru 560008",
+     "lat": 12.973365,
+     "lng": 77.626236,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi on same road/layout (way 1137152703, IndiQube Brigade Square)",
+     "evidence": "CloudSEK's contact page lists 'CloudSEK Information Security Pvt Ltd., 16/1, Cambridge Rd, Halasuru, Cambridge Layout, Jogupalya, Bengaluru, Karnataka - 560008' as its India office. The point is the OSM 'IndiQube Brigade Square' coworking on Cambridge Road in the same Cambridge Layout; that the two are the same building is likely but not confirmed. https://www.cloudsek.com/contact"
+    },
+    {
+     "label": "Bengaluru office - MSM Corner, HAL 2nd Stage, Indiranagar",
+     "techPark": null,
+     "building": "MSM Corner",
+     "locality": "Indiranagar (HAL 2nd Stage)",
+     "address": "901, MSM Corner, 7th Main Road, HAL 2nd Stage, Indiranagar, Bengaluru 560038",
+     "lat": 12.972457,
+     "lng": 77.639257,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "osm-poi (way 416717247, MSM Corner, No. 901)",
+     "evidence": "CloudSEK's LinkedIn locations list 'CloudSek Info Security Pvt. Ltd.: 901, MSM Corner, 7th Main Rd, HAL 2nd Stage, Appareddipalya, Indiranagar, Bangalore 560038', and several Built In Bengaluru job ads give the same address. The current contact page lists only Cambridge Road, so this may be an earlier office the company has left, and confidence is low. The point is the exact OSM 'MSM Corner' building (No. 901). https://www.linkedin.com/company/cloudsek ; https://builtinbengaluru.in/company/cloudsek-0"
+    }
+   ],
+   "sources": [
+    "https://www.cloudsek.com/contact",
+    "https://www.linkedin.com/company/cloudsek",
+    "https://builtinbengaluru.in/company/cloudsek-0",
+    "https://india.entrepreneur.com/news-and-trends/cybersecurity-firm-cloudsek-bags-usd-10-mn-to-expand-us/501887"
+   ]
+  },
+  {
+   "name": "Vymo",
+   "aliases": [
+    "Vymo Solutions Private Limited",
+    "getvymo"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Enterprise SaaS / sales and collections engagement for banks and insurers",
+   "description": "Sales-engagement and collections platform for banks, insurers and other financial institutions, founded in 2013 (Vymo Solutions Pvt Ltd, CIN U72200KA2013PTC068853) by Yamini Bhat and Venkat Malladi. It has offices in Sunnyvale, Singapore and Tokyo.",
+   "founded": 2013,
+   "isUnicorn": false,
+   "website": "https://getvymo.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Koramangala 3rd Block",
+     "techPark": null,
+     "building": "No. 611, 2nd Cross Road",
+     "locality": "Koramangala 3rd Block",
+     "address": "No. 611, 2nd Cross Road, 3rd Block, Koramangala, Bengaluru 560034",
+     "lat": 12.9263692,
+     "lng": 77.6261179,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "nominatim: 2nd Cross Road, Koramangala 3rd Block (street-level, osm way 27785711)",
+     "evidence": "Vymo's LinkedIn page gives Bangalore as its headquarters, with primary location '611, 2nd Cross Road, 3rd Block, Koramangala, Bangalore, Karnataka 560034', and the MCA-derived Infyner profile gives the same address as the registered office (filings to FY2022-23). These are two independent records. The point is the 2nd Cross Road, Koramangala 3rd Block street centroid, not No. 611. https://www.linkedin.com/company/vymo ; https://www.infyner.com/company/vymo-solutions-private-limited/U72200KA2013PTC068853"
+    }
+   ],
+   "sources": [
+    "https://www.linkedin.com/company/vymo",
+    "https://www.infyner.com/company/vymo-solutions-private-limited/U72200KA2013PTC068853",
+    "https://builtin.com/company/vymo",
+    "https://www.signalhire.com/companies/vymo"
+   ]
+  },
+  {
+   "name": "Hevo Data",
+   "aliases": [
+    "Hevo Data Inc.",
+    "Hevo Technologies India Pvt. Ltd.",
+    "Hevo"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "sector": "Data infrastructure SaaS / no-code ELT data pipelines",
+   "description": "No-code data-pipeline (ELT) platform founded in 2017 by Manish Jethani and Sourabh Agarwal. Its privacy policy calls Hevo Data Inc. 'a California based corporation' (1390 Market St, San Francisco), so origin is Foreign by the dataset's convention. Engineering and most staff sit in its HSR Layout office (Hevo Technologies India Pvt Ltd).",
+   "founded": 2017,
+   "isUnicorn": false,
+   "website": "https://hevodata.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - HSR Layout Sector 6",
+     "techPark": null,
+     "building": "No. 1177, 5th Main Road",
+     "locality": "HSR Layout",
+     "address": "1177, 5th Main Road, Sector 6, HSR Layout, Bengaluru 560102",
+     "lat": 12.9152877,
+     "lng": 77.6323171,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "nominatim: 5th Main Road, Sector 6, HSR Layout (street-level, osm way 735135995)",
+     "evidence": "Hevo's contact page lists the 'Bangalore Office: 1177, 5th Main Rd, Sector 6, HSR Layout, Bengaluru, Karnataka 560102' beside its San Francisco office; Craft.co and AmbitionBox (entity Hevo Technologies India Pvt Ltd) give the same address. The point is the 5th Main Road, HSR Sector 6 street centroid, not No. 1177. https://hevodata.com/contact/ ; https://hevodata.com/privacy/"
+    }
+   ],
+   "sources": [
+    "https://hevodata.com/contact/",
+    "https://hevodata.com/privacy/",
+    "https://craft.co/hevo-data",
+    "https://ambitionbox.com/jobs/hevo-data-jobs-cmp"
+   ]
+  },
+  {
+   "name": "Gnani.ai",
+   "aliases": [
+    "Gnani Innovations Private Limited",
+    "Gnani"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "AI / voice AI and speech foundation models",
+   "description": "Voice-AI company founded in 2016 by Ganesh Gopalan and Ananth Nagaraj, publishing as Gnani Innovations Pvt Ltd. It was selected under the IndiaAI Mission to build a sovereign voice foundation model. Its LinkedIn page names San Francisco as headquarters, but the operating company is the Bengaluru-registered Indian entity, and directory profiles place the headquarters in Bengaluru.",
+   "founded": 2016,
+   "isUnicorn": false,
+   "website": "https://www.gnani.ai",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - MN Krishna Rao Road, Basavanagudi",
+     "techPark": null,
+     "building": "37/3 MN Krishna Rao Road",
+     "locality": "Basavanagudi / VV Puram",
+     "address": "37/3, 1st Floor, MN Krishna Rao Road, Basavanagudi, Bengaluru 560004",
+     "lat": 12.9469449,
+     "lng": 77.5795085,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "photon: United Lodge of Theosophists on MN Krishna Rao Road (road-level landmark, osm way 1312350863)",
+     "evidence": "CB Insights lists the headquarters as 'MN Krishna Rao Road Number 37/3, 1st Floor, Bengaluru, 560004', a second directory profile gives '37/3, MN Krishna Rao Road, Bengaluru 560004', and Gnani's LinkedIn lists a Bengaluru 560004 location. Gnani's own site publishes no address. The point is the United Lodge of Theosophists, a landmark on MN Krishna Rao Road near Lalbagh West Gate. It marks the road, not No. 37/3. https://www.cbinsights.com/company/gnani ; https://www.linkedin.com/company/gnani-ai"
+    }
+   ],
+   "sources": [
+    "https://www.cbinsights.com/company/gnani",
+    "https://www.linkedin.com/company/gnani-ai",
+    "https://www.gnani.ai/privacy",
+    "https://www.outlookbusiness.com/corporate/voice-ai-firm-gnaniai-secures-10mn-funding-for-global-expansion"
+   ]
+  },
+  {
+   "name": "Emergent",
+   "aliases": [
+    "Emergent Labs",
+    "Emergent.sh",
+    "Agione Technologies Private Limited"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "sector": "AI / agentic app-builder (vibe-coding platform)",
+   "description": "YC S24 AI app builder founded in 2024 by brothers Mukund Jha (ex-Dunzo) and Madhav Jha. In July 2026 it became a unicorn with a US$130m Series C at a US$1.5bn valuation; earlier it raised a US$70m Series B in January 2026 (SoftBank Vision Fund 2, Khosla). Its funding releases are datelined San Francisco, where Emergent Labs has its US office, but TechCrunch reports most of its ~200 staff work in Bengaluru. The Indian legal entity is Agione Technologies Pvt Ltd.",
+   "founded": 2024,
+   "isUnicorn": true,
+   "website": "https://emergent.sh",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru operating office - WeWork Roshni Tech Hub, Marathahalli",
+     "techPark": "Kalyani Roshni Tech Hub",
+     "building": "Roshni Tech Hub (WeWork)",
+     "locality": "Marathahalli (EPIP Zone, Chinnapanna Halli)",
+     "address": "WeWork Roshni Tech Hub, BBMP Khatha No. 1395, Sy. No. 26 (P), Marathahalli Main Road, EPIP Zone, Chinnapanna Halli, Bengaluru 560037",
+     "lat": 12.963897,
+     "lng": 77.702438,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm landuse footprint centroid (way 1099848875, Kalyani Roshni Tech Hub)",
+     "evidence": "Emergent's own company-info page gives its India operating address as 'Emergent labs, WeWork Roshni Tech Hub, Marathahalli, BBMP Khatha No. 1395, Sy.No. 26 (P), Marathahalli Main Road, EPIP Zone, Chinnapanna Halli, Bangalore, KA 560037', and WeWork's own listing confirms the centre at that address. The point is the OSM footprint of the Kalyani Roshni Tech Hub building. https://emergent.sh/info ; https://wework.co.in/bangalore/marathahalli/kalyani-roshni-tech-hub"
+    },
+    {
+     "label": "Registered office (Agione Technologies) - Salarpuria Sattva Magnificia, KR Puram",
+     "techPark": "Salarpuria Magnificia",
+     "building": "Salarpuria Sattva Magnificia, Unit B-1103",
+     "locality": "KR Puram (Old Madras Road, Tin Factory)",
+     "address": "B-1103, Salarpuria Sattva Magnificia, Tin Factory, Krishnarajapuram R.S., Bengaluru 560016",
+     "lat": 12.996042,
+     "lng": 77.66929,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "park centroid (Salarpuria Magnificia, as in G18)",
+     "evidence": "The same Emergent company-info page gives the legal entity as 'Agione Technologies Private Limited, B-1103, Salarpuria Sattva Magnificia, Tin Factory, Krishnarajapuram R.S., Bangalore, KA 560016'. This is a registered-office address and may not be a staffed office. The point is the Salarpuria Magnificia campus centroid used elsewhere in the dataset. https://emergent.sh/info"
+    }
+   ],
+   "sources": [
+    "https://emergent.sh/info",
+    "https://wework.co.in/bangalore/marathahalli/kalyani-roshni-tech-hub",
+    "https://www.businesstoday.in/amp/technology/story/1-5-bn-valuation-12-mn-apps-emergent-becomes-unicorn-within-a-year-of-public-launch-543203-2026-07-15",
+    "https://www.rutlandherald.com/news/business/emergent-raises-series-c-at-1-5b-valuation-to-help-entrepreneurs-and-smbs-build-the/article_8c068306-8f8b-5fad-8273-dfe5605fe712.html",
+    "https://ycombinator.com/companies/emergent",
+    "https://techcrunch.com/?p=3142019"
+   ]
+  }
+ ],
+ "coverageNotes": "X09 gap-fill: 18 of the 20 named companies placed, with 20 Bengaluru offices. None of the 20 was already in the dataset under another name; every raw file's names and aliases were checked. LEFT OUT (2): Zluri and Appsmith. Zluri: its contact page, LinkedIn and CB Insights all give only US addresses (Milpitas / San Francisco), its privacy policy puts the Indian entity's registered office in Kompally, Hyderabad, and no Bengaluru street address could be found, even though press releases are datelined Bengaluru. Appsmith: a Bengaluru office is confirmed (Insight Partners: 'offices in San Francisco and Bengaluru'; LinkedIn lists 'Bengaluru, Karnataka 560102', i.e. the HSR Layout pin code), but no street address exists in any source checked, and a pin-code centroid is not a building. Appsmith Inc. is San Francisco-headquartered. CATEGORY / ORIGIN DECISIONS: greytHR (Greytip Software) is MID_SIZE because it was founded in 1994, before the 2005 startup cut-off. HyperVerge (Palo Alto), Bureau (San Francisco), CloudSEK (Singapore), Hevo Data (California corp, San Francisco) and Emergent (San Francisco) are origin=Foreign under the dataset's existing convention for Indian-founded startups headquartered abroad (Postman, Whatfix, Hasura, Observe.AI). Sprinto and Gnani.ai stay Indian/Bengaluru: CB Insights gives Bengaluru headquarters for both and the operating entities are Indian, although some profiles and Gnani's LinkedIn name San Francisco. redBus (a MakeMyTrip subsidiary) and Setu (a Pine Labs subsidiary) stay STARTUP on the Urban Ladder / Zivame precedent (founded after 2005, venture-funded before acquisition). Emergent is isUnicorn=true: a US$130m Series C at a US$1.5bn valuation in July 2026. CORRECTION TO THE CRITIC: Bureau's US$30m Series B was announced in December 2024, not 2025. COORDINATES: Only Sprinto (91springboard POI), CloudSEK's MSM Corner (OSM building), Setu (Embassy Icon footprint), Vyapar (GGR Towers) and Emergent's WeWork (Roshni Tech Hub footprint) are pinned on the building itself. The rest are street-, landmark- or park-level, each marked medium with the method in geocodeSource. Bureau (Koramangala 8th Block centroid) and Gnani (a landmark on MN Krishna Rao Road) are the coarsest. NOT MAPPED ON PURPOSE: Mokobara's Bengaluru retail stores (shops, not offices); Vyapar's older Enzyme Diamond address in HSR Sector 1, which aggregators still show (superseded by the 2025 Sarjapura Road move; the site lists only GGR Towers); FloBiz's older HSR address (CB Insights); redBus's older Old Airport Road addresses (Karle Premium, Golden Enclave); and an OSM 'Red Bus' POI in Domlur that no source confirms. CloudSEK carries two offices: Cambridge Road (current contact page) and MSM Corner, Indiranagar (LinkedIn and job ads, low confidence because it may have been vacated). Emergent carries its WeWork operating office and its legal entity's registered office. No headcounts are recorded; none was substantiated per office. One new tech park was added: Kalyani Roshni Tech Hub (Marathahalli)."
+}

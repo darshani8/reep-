@@ -1,0 +1,695 @@
+{
+ "key": "X03-gaps",
+ "techParks": [
+  {
+   "name": "Godrej Centre",
+   "aliases": [
+    "Godrej Centre Indiranagar",
+    "Godrej Centre, Old Madras Road"
+   ],
+   "locality": "Old Madras Road, B.M. Kaval (Indiranagar / Byappanahalli)",
+   "developer": "Godrej Properties",
+   "lat": 12.987643,
+   "lng": 77.646906,
+   "bbox": [
+    12.986744,
+    12.988127,
+    77.646314,
+    77.647807
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "TOYO MODEC OFS India"
+   ],
+   "description": "An office building on Old Madras Road at B.M. Kaval, near Indiranagar (postcode 560038). TOYO MODEC OFS India took about 100,000 sq ft on its 7th floor in June 2025. It is a different building from the Godrej Centre / Godrej Downtown site in Hebbal (OSM way/1040899007), which the dataset cites for Accenture. The footprint is from OSM.",
+   "sources": [
+    "https://www.openstreetmap.org/way/998192575",
+    "https://www.modec.com/news/2025/20250618_pr_OFS-India.html",
+    "https://search.gleif.org/#/record/33580084DYLBRKM6H903"
+   ]
+  },
+  {
+   "name": "Gopalan Fortune City",
+   "aliases": [
+    "Fortune City"
+   ],
+   "locality": "Mahadevapura (Outer Ring Road)",
+   "developer": "Gopalan Enterprises",
+   "lat": 12.982397,
+   "lng": 77.689291,
+   "bbox": [
+    12.978837,
+    12.985573,
+    77.686682,
+    77.691296
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Samsara"
+   ],
+   "description": "A Gopalan Enterprises office development at Chinappa Layout, Mahadevapura, on the Outer Ring Road near K.R. Puram. Samsara's India office is on the 11th floor of Block 2. The footprint is from OSM.",
+   "sources": [
+    "https://www.openstreetmap.org/way/888606702",
+    "https://www.samsara.com/company/careers/locations"
+   ]
+  },
+  {
+   "name": "Brigade IRV Centre",
+   "aliases": [
+    "Brigade IRV Center",
+    "Brigade IRV"
+   ],
+   "locality": "Nallurhalli, Whitefield",
+   "developer": "Brigade Group",
+   "lat": 12.970346,
+   "lng": 77.731037,
+   "bbox": [
+    12.969625,
+    12.9709,
+    77.730204,
+    77.731855
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Samsara (registered office)"
+   ],
+   "description": "A Brigade Group office building at Nallurhalli, Whitefield. Samsara Technologies India's registered office is on its 9th and 10th floors. The footprint is from OSM.",
+   "sources": [
+    "https://www.openstreetmap.org/way/136997475",
+    "https://search.gleif.org/#/record/3358009L37FRJ9YHRY36"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "TOYO MODEC OFS India",
+   "aliases": [
+    "OFS India",
+    "TOYO MODEC OFS India Private Limited",
+    "Offshore Frontier Solutions India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Offshore energy engineering (FPSO / FEED and detailed engineering)",
+   "description": "Global capability centre of Offshore Frontier Solutions (a MODEC group company) and Toyo Engineering India, set up to do FEED and detailed engineering for floating production systems. It opened on 13 June 2025 on the 7th floor (about 100,000 sq ft) of Godrej Centre on Old Madras Road near Indiranagar, with nearly 200 staff and a plan for 750 within three years.",
+   "hqCity": "Tokyo",
+   "hqCountry": "Japan",
+   "founded": 2024,
+   "website": "https://www.modec.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": 200,
+   "offices": [
+    {
+     "label": "Global capability centre - Godrej Centre, Old Madras Road (Indiranagar)",
+     "techPark": "Godrej Centre",
+     "building": "Godrej Centre, 7th floor",
+     "locality": "Old Madras Road, B.M. Kaval (Indiranagar / Byappanahalli)",
+     "address": "7th Floor, Godrej Centre Indiranagar, Municipal No. 1-15, Old Madras Road, B.M. Kaval, Bengaluru 560038",
+     "lat": 12.987643,
+     "lng": 77.646906,
+     "isHq": true,
+     "confidence": "high",
+     "evidence": "MODEC's release says OFS India opened in Bengaluru on 13 June 2025, 'occupying approximately 100,000 sq ft on the 7th floor of Godrej Centre Indiranagar', with nearly 200 staff and plans for 750 (https://www.modec.com/news/2025/20250618_pr_OFS-India.html); the GLEIF record for TOYO MODEC OFS INDIA PRIVATE LIMITED gives '7th Floor ... Godrej Centre Indiranagar, Old Madras Road ... BM Kaval, Bengaluru 560038' (https://search.gleif.org/#/record/33580084DYLBRKM6H903). Pin is OSM's 'Godrej Centre' polygon on Old Madras Road (https://www.openstreetmap.org/way/998192575), not the Hebbal Godrej site.",
+     "geocodeSource": "osm-poi (Godrej Centre, way/998192575)",
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.modec.com/news/2025/20250618_pr_OFS-India.html",
+    "https://www.modec.com/news/2024/20241003_pr_OFS-India.html",
+    "https://search.gleif.org/#/record/33580084DYLBRKM6H903",
+    "https://www.openstreetmap.org/way/998192575"
+   ]
+  },
+  {
+   "name": "Guidewire Software",
+   "aliases": [
+    "Guidewire",
+    "Guidewire Software Solutions India Private Limited",
+    "Cyence India Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Insurance software (P&C core systems, SaaS)",
+   "description": "US insurance-software company. Its India R&D began with the Cyence acquisition in 2017. It opened a Bengaluru development centre in 2021 (128 staff at its first anniversary). In September 2025 it moved to a larger office in Electra (Exora Business Park) at Prestige Tech Park; 540 engineers work on global product development across Bengaluru and Chennai.",
+   "hqCity": "San Mateo",
+   "hqCountry": "United States",
+   "founded": 2001,
+   "website": "https://www.guidewire.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru development centre - Electra, Prestige Tech Park",
+     "techPark": "Prestige Tech Park",
+     "building": "Electra (Exora Business Park), 8th floor, Wings A & B",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "address": "8th Floor, Electra Wing A & B, Exora Business Park, Prestige Tech Park, Kadubeesanahalli, Outer Ring Road, Bengaluru 560103",
+     "lat": 12.942946,
+     "lng": 77.692079,
+     "confidence": "high",
+     "evidence": "Guidewire's careers locations page lists Bengaluru at '8th Floor, Electra Wing A & B, Exora Business Park, Prestige Tech Park, Kadubeesanahalli, Outer Ring Road, Bengaluru 560103' (https://www.guidewire.com/about/careers/locations); its 16 Sep 2025 release announces 'its new office at Prestige Tech Park, Bengaluru' (https://www.guidewire.com/about/press-center/press-releases/20250916/guidewire-celebrates-expansion-in-india-with-new-bengaluru-office). Pin is the OSM Electra building (way/221933635).",
+     "geocodeSource": "osm-poi (Electra, way/221933635)",
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.guidewire.com/about/careers/locations",
+    "https://www.guidewire.com/about/press-center/press-releases/20250916/guidewire-celebrates-expansion-in-india-with-new-bengaluru-office",
+    "https://www.guidewire.com/about/press-center/press-releases/20230726/guidewire-celebrates-first-year-of-bengaluru-office",
+    "https://search.gleif.org/#/record/254900CIFH7HLGDZZU58"
+   ]
+  },
+  {
+   "name": "Celonis",
+   "aliases": [
+    "Celonis India Private Limited",
+    "Celonis SE"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Enterprise software (process mining / process intelligence)",
+   "description": "German-American process-intelligence company. Its Indian subsidiary was incorporated in Karnataka in 2021, and its Bengaluru office hosts a dedicated global innovation hub. The registered office is in Table Space Towers in the Devasandra Industrial Area off Whitefield Road.",
+   "hqCity": "Munich",
+   "hqCountry": "Germany",
+   "founded": 2011,
+   "website": "https://www.celonis.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India office and innovation hub - Table Space Towers, Devasandra Industrial Area",
+     "techPark": null,
+     "building": "Table Space Towers, 9th floor",
+     "locality": "Devasandra Industrial Area, Mahadevapura (Whitefield Road)",
+     "address": "Table Space Towers, 9th Floor, Plot No. 6, Devasandra Industrial Area, Whitefield, Bengaluru 560048",
+     "lat": 12.998081,
+     "lng": 77.691507,
+     "isHq": true,
+     "confidence": "medium",
+     "evidence": "The GLEIF record for CELONIS INDIA PRIVATE LIMITED (CIN U72200KA2021FTC147777) gives 'Table Space Towers, 9th Floor, Plot No.6, Devasandra Industrial Area, White Field, Bangalore 560048' (https://search.gleif.org/#/record/984500C3F8DBA8C2F538); Celonis' release on its India innovation hub places it 'at its Bengaluru office' (https://www.celonis.com/news/press/celonis-launches-global-innovation-hub-in-india). The building could not be geocoded, so the pin is the centroid of OSM's Devasandra Industrial Estate polygon (way/159853852), an area-level pin.",
+     "geocodeSource": "osm-area-centroid (Devasandra Industrial Estate, way/159853852)",
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/984500C3F8DBA8C2F538",
+    "https://www.celonis.com/news/press/celonis-launches-global-innovation-hub-in-india",
+    "https://www.celonis.com/news/press/celonis-hosts-bengaluru-process-intelligence-day"
+   ]
+  },
+  {
+   "name": "CME Group",
+   "aliases": [
+    "CME India Private Limited",
+    "CME India Technology and Support Services Private Limited",
+    "Chicago Mercantile Exchange"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Financial market infrastructure (derivatives exchange)",
+   "description": "Chicago derivatives-exchange operator. Its Indian technology and support subsidiary, CME India, was incorporated in Karnataka in 2015 and sits in the Tridib building at Bagmane Tech Park, C.V. Raman Nagar.",
+   "hqCity": "Chicago",
+   "hqCountry": "United States",
+   "founded": 1898,
+   "website": "https://www.cmegroup.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "CME India technology centre - Tridib, Bagmane Tech Park",
+     "techPark": "Bagmane Tech Park",
+     "building": "Tridib, Block B, Level 6",
+     "locality": "C.V. Raman Nagar (Byrasandra)",
+     "address": "Level 6 (corresponding to 5th Floor), Tridib Building, Block B, 65/2 Bagmane Tech Park, C.V. Raman Nagar, Bengaluru 560093",
+     "lat": 12.978524,
+     "lng": 77.663325,
+     "isHq": true,
+     "confidence": "high",
+     "evidence": "The GLEIF record for CME INDIA PRIVATE LIMITED (formerly CME India Technology and Support Services; CIN U74900KA2015FTC080943) gives 'Level 6 (corresponding to 5th floor) Tridib Building Block B 65/2 Bagmane Tech Park, C.V. Raman Nagar, Bangalore 560093' (https://search.gleif.org/#/record/3358005VVHSWVKOBW786); a Bagmane Tech Park tenant listing reviewed for this dataset (G05) also names CME Group. Pin is the OSM Bagmane Tridib building (way/201986088).",
+     "geocodeSource": "osm-poi (Bagmane Tridib, way/201986088)",
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/3358005VVHSWVKOBW786",
+    "https://www.openstreetmap.org/way/201986088"
+   ]
+  },
+  {
+   "name": "Rockstar India",
+   "aliases": [
+    "Rockstar Games India",
+    "Rockstar Interactive India LLP",
+    "Take-Two Interactive India Private Limited",
+    "Rockstar Games India Private Limited",
+    "Dhruva Interactive"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Video games (game art and technology studio)",
+   "description": "Rockstar Games' Bengaluru studio, set up in 2016. In 2019 it absorbed Dhruva Interactive, India's oldest game-art studio, whose 1998 company is now Take-Two Interactive India. Wikipedia gives 1,600+ staff in 2026. The studio's LLP is registered in Tower C of Prestige Shantiniketan in Whitefield.",
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "founded": 2016,
+   "website": "https://www.rockstargames.com/careers/offices/rockstar-india",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": 1600,
+   "offices": [
+    {
+     "label": "Rockstar India studio - Tower C, Prestige Shantiniketan",
+     "techPark": "Prestige Shantiniketan",
+     "building": "Tower C, 13th floor",
+     "locality": "Whitefield (Hoodi / Whitefield Main Road)",
+     "address": "13th Floor, Tower C, Prestige Shantiniketan, Sadaramangala, Hoodi Village, K.R. Puram Hobli, Bengaluru 560048",
+     "lat": 12.988903,
+     "lng": 77.731042,
+     "isHq": true,
+     "confidence": "medium",
+     "evidence": "The GLEIF record for ROCKSTAR INTERACTIVE INDIA LLP (created Feb 2016, direct parent Take-Two Interactive Software, Inc.) gives '13th Floor, Tower C, Prestige Shantiniketan, Sadar-Managala, Hoodi Village, Krishnarajapuram Hobli, Bangalore 560048' (https://search.gleif.org/#/record/335800TPAWTSKCBHWQ81); Wikipedia confirms Rockstar India is based in Bengaluru with 1,600+ staff (https://en.wikipedia.org/wiki/Rockstar_India). This is a registry address only. Pin is the OSM Prestige Shantiniketan commercial building (way/194740174).",
+     "geocodeSource": "osm-poi (Prestige Shantiniketan commercial building, way/194740174)",
+     "status": "active"
+    },
+    {
+     "label": "Take-Two Interactive India (former Dhruva Interactive / Rockstar Games India company) - registered office, Jayanagar",
+     "techPark": null,
+     "building": "No. A/4, 1st floor",
+     "locality": "Jayanagar 7th Block",
+     "address": "No. A/4, 1st Floor, 32nd Cross, 3rd Main Road, Jayanagar 7th Block, Bengaluru 560070",
+     "lat": 12.9273033,
+     "lng": 77.5777251,
+     "confidence": "low",
+     "evidence": "The GLEIF record for TAKE-TWO INTERACTIVE INDIA PRIVATE LIMITED (other name: Rockstar Games India Private Limited; CIN U72900KA1998PTC023382, the 1998 company acquired with Dhruva; parent Take-Two Interactive) gives this Jayanagar 7th Block address (https://search.gleif.org/#/record/3358006O4JVYFLDV7990). It may be only a registered office. Pin is a street-level geocode of 32nd Cross Road (photon way/1219764571).",
+     "geocodeSource": "photon (street: 32nd Cross Road, Jayanagar 7th Block)",
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800TPAWTSKCBHWQ81",
+    "https://search.gleif.org/#/record/3358006O4JVYFLDV7990",
+    "https://en.wikipedia.org/wiki/Rockstar_India",
+    "https://www.rockstargames.com/careers/offices/rockstar-india"
+   ]
+  },
+  {
+   "name": "Dolby Laboratories",
+   "aliases": [
+    "Dolby",
+    "Dolby Technology India Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Media and audio/imaging technology",
+   "description": "US audio and imaging technology company. Its Indian subsidiary, Dolby Technology India, is registered in Mumbai and also has Chennai and Bengaluru offices. The Bengaluru office is in a WeWork in the Zinnia block of Embassy TechVillage.",
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "founded": 1965,
+   "website": "https://www.dolby.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - WeWork ETV Zinnia, Embassy TechVillage",
+     "techPark": "Embassy TechVillage",
+     "building": "Zinnia (Block 8C), WeWork, ground floor",
+     "locality": "Devarabeesanahalli / Kadubeesanahalli (Outer Ring Road)",
+     "address": "WeWork ETV Zinnia 8C, Ground Floor, Embassy TechVillage, Outer Ring Road, Kadubeesanahalli, Bellandur, Bengaluru 560103",
+     "lat": 12.93004,
+     "lng": 77.690611,
+     "confidence": "medium",
+     "evidence": "Dolby's 'Dolby offices worldwide' page lists Bangalore at 'WeWork ETV Zinnia 8C, Ground Floor, Embassy TechVillage, Outer Ring Road, Kadubeesanahalli, Bellandur, Bangalore, KA 560103' (https://www.dolby.com/about/support/dolby-offices-worldwide/). The Zinnia block is not in OSM, so the pin is the Embassy TechVillage park centroid.",
+     "geocodeSource": "osm-park (Embassy TechVillage centroid)",
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.dolby.com/about/support/dolby-offices-worldwide/",
+    "https://search.gleif.org/#/record/254900M1QTUTXA15WG52"
+   ]
+  },
+  {
+   "name": "Dover",
+   "aliases": [
+    "Dover Corporation",
+    "Dover India Private Limited",
+    "Dover India Innovation Center",
+    "DIIC"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Diversified industrial manufacturing (engineering and innovation centre)",
+   "description": "US diversified industrial group. Its Indian company, Dover India, incorporated in Karnataka in 1994, is registered in Bagmane Laurel at Bagmane Tech Park, which also houses the Dover India Innovation Center engineering operation.",
+   "hqCity": "Downers Grove",
+   "hqCountry": "United States",
+   "founded": 1955,
+   "website": "https://www.dovercorporation.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Dover India / Dover India Innovation Center - Bagmane Laurel, Bagmane Tech Park",
+     "techPark": "Bagmane Tech Park",
+     "building": "Bagmane Laurel, Block C, Level 2",
+     "locality": "C.V. Raman Nagar (Byrasandra)",
+     "address": "Bagmane Laurel, Block C, Level 02, Bagmane Tech Park, C.V. Raman Nagar, Bengaluru 560093",
+     "lat": 12.978397,
+     "lng": 77.664855,
+     "isHq": true,
+     "confidence": "high",
+     "evidence": "The GLEIF record for DOVER INDIA PRIVATE LIMITED (CIN U29141KA1994PTC054955) gives 'Bagmane Laurel, Block-C, Level-02, Bagmane Tech Park, CV Raman Nagar, Bangalore 560093' (https://search.gleif.org/#/record/335800BJ16OHB7OEZ793); a Bagmane Tech Park tenant listing reviewed for this dataset (G05) also names Dover. Pin is the OSM Bagmane Laurel building (way/201986089).",
+     "geocodeSource": "osm-poi (Bagmane Laurel, way/201986089)",
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800BJ16OHB7OEZ793",
+    "https://www.openstreetmap.org/way/201986089"
+   ]
+  },
+  {
+   "name": "Avery Dennison",
+   "aliases": [
+    "Avery Dennison RBIS India Private Limited",
+    "Avery Dennison (India) Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Materials science (labels, RFID and apparel branding)",
+   "description": "US materials and labelling company. Its Bengaluru site is the RBIS (apparel labels and tags) company at Plot 6B in the KIADB Peenya Industrial Area. Avery Dennison's other India entity is registered in New Delhi. No separate Bengaluru capability centre could be placed.",
+   "hqCity": "Mentor",
+   "hqCountry": "United States",
+   "founded": 1935,
+   "website": "https://www.averydennison.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Avery Dennison RBIS India - Plot 6B, Peenya Industrial Area",
+     "techPark": null,
+     "building": "Plot 6B",
+     "locality": "Peenya Industrial Area",
+     "address": "Plot 6B, 1st Main, KIADB Peenya Industrial Area, Bengaluru 560058",
+     "lat": 13.0160478,
+     "lng": 77.5045057,
+     "isHq": true,
+     "confidence": "medium",
+     "evidence": "The GLEIF record for AVERY DENNISON RBIS INDIA PRIVATE LIMITED (updated Sep 2026) gives 'Plot 6B, 1st Main, KIADB Peenya Industrial Area, Bengaluru 560058' (https://search.gleif.org/#/record/9845000F84D6F6F44F28); Avery Dennison publishes a facility certificate titled 'Avery-Dennison-India-pvt-Ltd-6B' (https://www.averydennison.com/content/dam/avery_dennison/corporate-new/global/english/esg/higg/2022-certificates/Avery-Dennison-India-pvt-Ltd-6B.pdf). The plot is not in OSM, so the pin is the Peenya Industrial Area centroid (Nominatim relation 17570284), an area-level pin.",
+     "geocodeSource": "nominatim (Peenya Industrial Area area centroid)",
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/9845000F84D6F6F44F28",
+    "https://www.averydennison.com/en/home/news/press-releases/avery-dennison-fortifies-its-presence-in-india.html"
+   ]
+  },
+  {
+   "name": "Intuitive Surgical",
+   "aliases": [
+    "Intuitive",
+    "Intuitive Surgical India Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Medical devices (robotic-assisted surgery)",
+   "description": "US maker of the da Vinci surgical robot. Its Indian subsidiary, incorporated in Karnataka in 2014, is registered on the 6th floor of St. Andrews at Embassy GolfLinks Business Park.",
+   "hqCity": "Sunnyvale",
+   "hqCountry": "United States",
+   "founded": 1995,
+   "website": "https://www.intuitive.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Intuitive Surgical India - St. Andrews, Embassy GolfLinks",
+     "techPark": "Embassy GolfLinks Business Park",
+     "building": "St. Andrews, 6th floor",
+     "locality": "Challaghatta / Domlur (Intermediate Ring Road)",
+     "address": "6th Floor, St. Andrews, Embassy Golf Links Business Park, Off Intermediate Ring Road, Challaghatta Village, Domlur, Bengaluru 560071",
+     "lat": 12.951036,
+     "lng": 77.644137,
+     "isHq": true,
+     "confidence": "medium",
+     "evidence": "The GLEIF record for INTUITIVE SURGICAL INDIA PRIVATE LIMITED (CIN U62099KA2014FTC146332, updated Jun 2026) gives '6th Floor, St Andrews, Embassy Golf Link Business Park, Off Intermediate Ring Road, Domlur, Chalaghatta Village ... Bangalore 560071' (https://search.gleif.org/#/record/335800NDHWRCR2HMAA28). Intuitive's own office-locations page is script-rendered and could not be read. Pin is the OSM St. Andrews building (way/119924857).",
+     "geocodeSource": "osm-poi (St. Andrews, way/119924857)",
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800NDHWRCR2HMAA28",
+    "https://www.openstreetmap.org/way/119924857"
+   ]
+  },
+  {
+   "name": "SABIC",
+   "aliases": [
+    "Saudi Basic Industries Corporation",
+    "SABIC Research and Technology Private Limited",
+    "SABIC India Technology Center",
+    "SABIC Technology Center Bangalore"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Chemicals and petrochemicals (R&D and technology centre)",
+   "description": "Saudi petrochemical major, majority-owned by Saudi Aramco. Its R&D company, SABIC Research and Technology, runs the SABIC India Technology Center on Plots 81-85 at Chikkadunnasandra, off the Sarjapura-Attibele highway in Anekal taluk.",
+   "hqCity": "Riyadh",
+   "hqCountry": "Saudi Arabia",
+   "founded": 1976,
+   "website": "https://www.sabic.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "SABIC India Technology Center - Chikkadunnasandra (Sarjapura-Attibele road)",
+     "techPark": null,
+     "building": "SABIC India Technology Center campus",
+     "locality": "Chikkadunnasandra, Anekal taluk (off Sarjapura-Attibele State Highway)",
+     "address": "Plot No. 81 to 85, Chikkadunnasandra Village, Anekal Taluk, Off Sarjapura-Attibele State Highway, near St. Philomena School, Bengaluru 562125",
+     "lat": 12.84384,
+     "lng": 77.770331,
+     "isHq": false,
+     "confidence": "high",
+     "evidence": "The GLEIF record for SABIC RESEARCH AND TECHNOLOGY PRIVATE LIMITED (HQ address Riyadh) gives 'Plot No.81 to 85, Village: Chikkadunnasandra, Anekal Taluk, Off. Sarjapura-Attibele State Highway ... Bangalore 562125' (https://search.gleif.org/#/record/2138007GD21ZTN4HW608), and OSM maps a 'SABIC India Technology Center' research campus at the same spot (https://www.openstreetmap.org/way/1077021236).",
+     "geocodeSource": "osm-poi (SABIC India Technology Center, way/1077021236)",
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/2138007GD21ZTN4HW608",
+    "https://www.openstreetmap.org/way/1077021236",
+    "https://search.gleif.org/#/record/213800HV8PVMVM553N87"
+   ]
+  },
+  {
+   "name": "Abercrombie & Fitch",
+   "aliases": [
+    "Abercrombie & Fitch Global Capability Center Private Limited",
+    "A&F",
+    "Abercrombie & Fitch Co."
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Apparel retail (global capability centre)",
+   "description": "US apparel retailer. Its Indian GCC company was incorporated in Karnataka in September 2025 and is registered in J Block of Embassy Manyata Business Park.",
+   "hqCity": "New Albany",
+   "hqCountry": "United States",
+   "founded": 1892,
+   "website": "https://corporate.abercrombie.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "A&F Global Capability Center - J Block, Embassy Manyata Business Park",
+     "techPark": "Manyata Tech Park",
+     "building": "J Block, 1st floor",
+     "locality": "Nagavara / Hebbal (Outer Ring Road)",
+     "address": "1st Floor, J Block, Embassy Manyata Business Park, Outer Ring Road, Bengaluru 560045",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "isHq": true,
+     "confidence": "medium",
+     "evidence": "The GLEIF record for ABERCROMBIE & FITCH GLOBAL CAPABILITY CENTER PRIVATE LIMITED (CIN U62099KA2025FTC209169, created 29 Sep 2025, updated Sep 2026) gives '1st Floor J Block Manyata, Embassy Park Outer Ring Rd, Arabic College, Bangalore 560045' (https://search.gleif.org/#/record/64884CLO58U8UG9W0252). This is a registry record only. J Block has no OSM polygon, so the pin is the Manyata Tech Park centroid.",
+     "geocodeSource": "osm-park (Manyata Tech Park centroid)",
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/64884CLO58U8UG9W0252"
+   ]
+  },
+  {
+   "name": "JLL",
+   "aliases": [
+    "Jones Lang LaSalle",
+    "JLL Technologies",
+    "JLL Technology, Data and Information Management CoE",
+    "Jones Lang LaSalle Property Consultants (India) Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Real estate services",
+   "description": "Global commercial real-estate services firm. Its India companies are registered in New Delhi. In Bengaluru, besides its city brokerage practice, it opened its global Technology, Data and Information Management (TDIM) centre of excellence in 2018 in about 20,000 sq ft at Prestige Trade Tower with 170 tech staff; the office won LEED v4 Platinum in 2019.",
+   "hqCity": "Chicago",
+   "hqCountry": "United States",
+   "founded": 1783,
+   "website": "https://www.jll.com/en-in/locations/bangalore",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "JLL global TDIM centre of excellence - Prestige Trade Tower",
+     "techPark": "Prestige Trade Tower",
+     "building": "Prestige Trade Tower",
+     "locality": "Palace Road / High Grounds",
+     "address": "Prestige Trade Tower, Palace Road, High Grounds, Bengaluru 560001",
+     "lat": 12.985811,
+     "lng": 77.58782,
+     "confidence": "medium",
+     "evidence": "JLL's 14 Nov 2018 release says the global CoE for technology, data and information is 'spread over 20,000 sq.ft. at Prestige Trade Towers in Bangalore' and would 'open with 170' tech staff (https://www.jll.com/en-in/newsroom/jll-launches-global-centre-for-technology-data-and-information); a 24 Oct 2019 release reports the 'TDIM CoE, Bangalore' office earned LEED v4 Platinum (https://www.jll.com/en-in/newsroom/jll-bengaluru-global-center-of-expertise). Current occupancy after 2019 is not confirmed. Pin is OSM's Prestige Trade Tower polygon (way/775169704).",
+     "geocodeSource": "osm-poi (Prestige Trade Tower, way/775169704)",
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.jll.com/en-in/newsroom/jll-launches-global-centre-for-technology-data-and-information",
+    "https://www.jll.com/en-in/newsroom/jll-bengaluru-global-center-of-expertise",
+    "https://www.jll.com/en-in/locations/bangalore"
+   ]
+  },
+  {
+   "name": "Acuity Analytics",
+   "aliases": [
+    "Acuity Knowledge Partners",
+    "Acuity Knowledge Services (India) Private Limited",
+    "Copal Amba"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Research and analytics outsourcing (KPO for banks and asset managers)",
+   "description": "London-headquartered research, analytics and data provider to financial-services firms, owned by Permira. It was formerly Acuity Knowledge Partners and before that Moody's Copal Amba, and now trades as Acuity Analytics. Its Indian delivery centres are Gurugram (registered office), Bengaluru and Pune. The Bengaluru office is on Residency Road.",
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "founded": 2019,
+   "website": "https://www.acuityanalytics.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru delivery centre - Elixir Chancery, Residency Road",
+     "techPark": null,
+     "building": "Elixir Chancery Building, 7th floor",
+     "locality": "Residency Road (CBD / Shanthala Nagar)",
+     "address": "7th Floor, Elixir Chancery Building, Municipal Door No. 135/1-2, Residency Road, Bengaluru 560025",
+     "lat": 12.9692682,
+     "lng": 77.6022207,
+     "confidence": "high",
+     "evidence": "Acuity Analytics' contact page lists 'Bangalore: Acuity Analytics, Elixir Chancery Building, 7th Floor, Municipal Door No. 135\\1-2, Residency Road, Bangalore - 560 025' (https://www.acuityanalytics.com/contact-us/; acuitykp.com redirects there). The building is not in OSM, so the pin is a Nominatim street-level geocode of Residency Road, Shanthala Nagar (way/461556535).",
+     "geocodeSource": "nominatim (street: Residency Road, Shanthala Nagar)",
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.acuityanalytics.com/contact-us/",
+    "https://search.gleif.org/#/record/335800MSA9JOGJZJB672"
+   ]
+  },
+  {
+   "name": "Samsara",
+   "aliases": [
+    "Samsara Inc.",
+    "Samsara Technologies India Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IoT / connected-operations SaaS (fleet telematics)",
+   "description": "US connected-operations (fleet IoT) cloud company, listed on the NYSE. Its Indian subsidiary was set up in Bengaluru in 2024 for R&D, business technology and support. The careers page gives its office as Gopalan Fortune City in Mahadevapura. The subsidiary's registered office is in Brigade IRV Centre, Whitefield.",
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "founded": 2015,
+   "website": "https://www.samsara.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Samsara India R&D hub - Gopalan Fortune City, Mahadevapura",
+     "techPark": "Gopalan Fortune City",
+     "building": "Block 2, 11th floor",
+     "locality": "Mahadevapura (Outer Ring Road)",
+     "address": "Block 2, 11th Floor, Gopalan Fortune City, Chinappa Layout, Mahadevapura, Bengaluru 560048",
+     "lat": 12.982397,
+     "lng": 77.689291,
+     "isHq": true,
+     "confidence": "medium",
+     "evidence": "Samsara's careers locations page lists India at 'Block 2, 11th Floor, Gopalan Fortune City, Chinappa Layout, Mahadevapura, Bengaluru, Karnataka, 560048' (https://www.samsara.com/company/careers/locations); its 20 Jun 2024 post announces the Bengaluru subsidiary (https://www.samsara.com/blog/samsara-bengaluru-technology-hub). The source is primary, but Block 2 is not in OSM, so the pin is the Gopalan Fortune City park centroid (way/888606702).",
+     "geocodeSource": "osm-park (Gopalan Fortune City centroid, way/888606702)",
+     "status": "active"
+    },
+    {
+     "label": "Samsara Technologies India - registered office, Brigade IRV Centre, Whitefield",
+     "techPark": "Brigade IRV Centre",
+     "building": "Brigade IRV, 9th & 10th floors",
+     "locality": "Nallurhalli, Whitefield",
+     "address": "Brigade IRV, 9th & 10th Floor, Nallurhalli, Whitefield, Bengaluru 560066",
+     "lat": 12.970346,
+     "lng": 77.731037,
+     "confidence": "medium",
+     "evidence": "The GLEIF record for SAMSARA TECHNOLOGIES INDIA PRIVATE LIMITED (CIN U72100KA2024FTC185360, updated Feb 2026) gives 'Samsara Brigade IRV 9th & 10th Floor Nallurhalli, Whitefield, Bangalore 560066' (https://search.gleif.org/#/record/3358009L37FRJ9YHRY36). It may be the first office or still in use alongside Gopalan Fortune City; that is not confirmed. Pin is OSM's Brigade IRV Center polygon (way/136997475).",
+     "geocodeSource": "osm-park (Brigade IRV Center, way/136997475)",
+     "isHq": false,
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.samsara.com/company/careers/locations",
+    "https://www.samsara.com/blog/samsara-bengaluru-technology-hub",
+    "https://www.samsara.com/blog/inside-samsaras-bengaluru-expansion-new-r-and-d-hub-powering-innovation",
+    "https://search.gleif.org/#/record/3358009L37FRJ9YHRY36"
+   ]
+  },
+  {
+   "name": "Anthropic",
+   "aliases": [
+    "Anthropic India Private Limited",
+    "Anthropic PBC"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Artificial intelligence (frontier AI lab)",
+   "description": "US AI company. Its first India office, and its second in Asia after Tokyo, was announced in October 2025 and officially opened in Bengaluru on 16 February 2026 under India managing director Irina Ghose. The Indian subsidiary was incorporated in Karnataka in January 2026 with its registered office in Kaman Amaryllis, Domlur.",
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "founded": 2021,
+   "website": "https://www.anthropic.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Anthropic India office - registered address, Kaman Amaryllis (Domlur)",
+     "techPark": null,
+     "building": "Kaman Amaryllis",
+     "locality": "Domlur / Konena Agrahara (Old Airport Road side)",
+     "address": "201 / Level Ground, Kaman Amaryllis, No. 139/26-1, Domlur, Bengaluru 560071",
+     "lat": 12.9544421,
+     "lng": 77.6422548,
+     "isHq": true,
+     "confidence": "medium",
+     "evidence": "Anthropic's 16 Feb 2026 post says its Bengaluru office 'has officially opened' (https://www.anthropic.com/news/bengaluru-office-partnerships-across-india), following the 7 Oct 2025 announcement (https://www.anthropic.com/news/expanding-global-operations-to-india). The building comes only from the GLEIF record for ANTHROPIC INDIA PRIVATE LIMITED (CIN U62099KA2026FTC215006), registered at '201/Level Ground, Kaman Amaryllis, No. 139/26-1, Bangalore 560071' (https://search.gleif.org/#/record/6488007143MT7RSSUE72), and may be a registered address rather than the working office. Pin is OSM's Kaman Amaryllis building via Photon (way/1125371215).",
+     "geocodeSource": "photon (OSM building Kaman Amaryllis, way/1125371215)",
+     "status": "active"
+    }
+   ],
+   "sources": [
+    "https://www.anthropic.com/news/bengaluru-office-partnerships-across-india",
+    "https://www.anthropic.com/news/expanding-global-operations-to-india",
+    "https://www.anthropic.com/news/anthropic-appoints-irina-ghose-as-managing-director-of-india",
+    "https://search.gleif.org/#/record/6488007143MT7RSSUE72"
+   ]
+  }
+ ],
+ "coverageNotes": "Gap list X03: 20 names checked, 15 recorded, 5 left out. NONE OF THE 20 WAS ALREADY IN THE DATASET: all raw files were searched by name and alias, and the only hits were notes in E01 (Coinbase), E04 (Sun Life), E12 (Bayer), G05 (CME Group and Dover as unverified Bagmane tenants) and G17 (Avery Dennison as an unverified Peenya name). METHOD: the shared web-search budget was used up before this run started, so no search-engine queries were made. Every finding comes from direct fetches of company pages (MODEC, Guidewire, Celonis, Dolby, Samsara, Anthropic, JLL, Acuity, Avery Dennison, Rockstar/Wikipedia), the GLEIF legal-entity registry API (registered addresses, creation dates, parent links) and the OSM extracts. A GLEIF registered address alone is graded medium, because a registered office need not be the working office; Samsara shows the gap, with a registered office at Brigade IRV and a careers-page office at Gopalan Fortune City. LEFT OUT, NOT PLACEABLE IN BENGALURU: (1) Coinbase: both Indian entities (Coinbase India, Coinbase India Services) are registered in Malviya Nagar, New Delhi, and no Bengaluru office was found. This agrees with E01. (2) Bayer: all eight Indian Bayer entities in GLEIF are registered at Bayer House, Thane. bayer.com/en/in returned 403, and E12 had already documented the Bengaluru captive (~1,100 staff) without an address. (3) Ferguson: Ferguson Global India is registered at WeWork Berger Delhi One, Noida. Ferguson's sites sit behind a Cloudflare challenge and ANSR's sitemap has no news pages, so no Bengaluru building was found for the ANSR-built GCC. (4) Alvarez & Marsal: A&M Global Capability Center Pvt Ltd is registered at DLF Cyber City, Gurugram, and A&M India in Lower Parel, Mumbai. alvarezandmarsal.com refused every fetch with 403, so the Bengaluru digital/AI centre could not be placed. (5) Sun Life: Sun Life Global Solutions is registered at Pioneer Square, Sector 62, Gurugram, and no Bengaluru site could be substantiated. PARTIAL: JLL: the critic's 'Level 3, Concorde, UB City' could not be verified, because jll.com/en-in/locations/bangalore fills its address in by script and the address is not in the HTML. Only JLL's own 2018 and 2019 releases on the TDIM centre of excellence at Prestige Trade Tower are recorded, at medium confidence because occupancy after 2019 is not confirmed. Avery Dennison: no Bengaluru 'capability centre' was found; the Peenya RBIS site is recorded instead. Dover: the PSG and Markem-Imaje labs were not placed, and Markem-Imaje India is registered in New Delhi. Rockstar India: the studio pin uses the LLP's registered office (Prestige Shantiniketan Tower C; parent Take-Two; created 2016, the year the studio was set up). The Jayanagar address of the 1998 company acquired with Dhruva is recorded at low confidence as a likely registered office only. Acuity Knowledge Partners now trades as Acuity Analytics (acuitykp.com redirects to acuityanalytics.com), so it is filed under the new name with the old one as an alias. GODREJ CENTRE RESOLVED: TOYO MODEC's 'Godrej Centre Indiranagar' is the Old Madras Road building at B.M. Kaval, 560038 (OSM way/998192575, about 12.988, 77.647). It is not the Hebbal Godrej Centre / Godrej Downtown that the dataset uses for Accenture (OSM way/1040899007). G08's mention of a 'Godrej Centre in Hebbal' for Hitachi Energy should be checked against this. AREA-LEVEL PINS, deliberately graded medium: Celonis (the Table Space Towers building would not geocode, so the pin is the Devasandra Industrial Estate centroid, about 0.5-1 km uncertainty), Avery Dennison (Peenya Industrial Area centroid), Dolby (Embassy TechVillage centroid), Abercrombie & Fitch (Manyata centroid) and Samsara Gopalan (park centroid). BY-CATCH for whoever handles the Zynga gap: GLEIF registers ZYNGA GAME NETWORK INDIA PRIVATE LIMITED at Prestige Falcon Tower, 4th & 5th Floor, 19 Brunton Road, Richmond Town, Bengaluru 560025 (LEI 335800HBAT9DKGT1JK25). It was not added here because Zynga is not on this list."
+}

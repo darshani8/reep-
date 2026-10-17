@@ -1,0 +1,343 @@
+{
+ "key": "V02",
+ "corrections": [
+  {
+   "company": "capillary-technologies",
+   "verdict": "keep",
+   "note": "Confirmed from Capillary's own NSE filings (e.g. https://nsearchives.nseindia.com/corporate/CAPILLARY12_04082026135653_Press_release_Q1.pdf): registered & corporate office is #360 (PID 101), 15th Cross Rd, Sector 4, HSR Layout, Bengaluru 560102; the OSM POI used before sits 1.6 km west near Silk Board (inside 'Golden Tower'), so the office is re-pinned to the Nominatim geocode of 15th Cross Road, Sector 4, HSR Layout (way 1308999493). Category STARTUP kept, consistent with other recently listed venture-backed companies in the dataset (Groww, Swiggy).",
+   "set": {
+    "description": "Loyalty and customer-engagement SaaS founded in Bengaluru in 2008 and listed on NSE/BSE in November 2025; its registered and corporate office is on 15th Cross Road, Sector 4, HSR Layout."
+   },
+   "offices": [
+    {
+     "office": "capillary-technologies~2a2218",
+     "verdict": "fix",
+     "note": "Address from NSE filings; pin moved ~1.65 km from an unrelated OSM POI to the geocoded street (Nominatim way 1308999493).",
+     "set": {
+      "label": "Registered & corporate office - HSR Layout Sector 4",
+      "locality": "HSR Layout Sector 4",
+      "address": "#360 (PID No. 101), 15th Cross Road, Sector 4, HSR Layout, Bengaluru 560102",
+      "lat": 12.91423,
+      "lng": 77.640983,
+      "confidence": "high",
+      "evidence": "Capillary's NSE filings (2026) give 'Regd. Office - 360, bearing PID No: 101, 360, 15th Cross Rd, Sector 4, HSR Layout, Bengaluru 560102' (https://nsearchives.nseindia.com/corporate/CAPILLARY12_04082026135653_Press_release_Q1.pdf); pin is the Nominatim geocode of 15th Cross Road, Sector 4, HSR Layout (street-level)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "caterpillar",
+   "verdict": "keep",
+   "note": "Caterpillar opened a Cat Digital office in Whitefield in Dec 2024 (https://cxotoday.com/media-coverage/caterpillar-expands-its-tech-capacity-in-karnataka/ , building not named), which corroborates the OSM 'Caterpillar' POI at Belathur/Kadugodi; cat.com's India Cat Financial contact page gives the registered office of Caterpillar Financial Services India at Crescent-1, Prestige Shantiniketan, Hoodi, added below.",
+   "set": {
+    "description": "US construction and mining equipment maker; Cat Digital opened a Whitefield office in December 2024 (about 30% of Cat Digital's India staff), and Caterpillar Financial Services India is registered at Prestige Shantiniketan, Hoodi."
+   },
+   "offices": [
+    {
+     "office": "caterpillar~e1a9b1",
+     "verdict": "fix",
+     "note": "Raised to medium: press confirms a Cat Digital office in Whitefield; the OSM POI gives the pin but the building is still unnamed.",
+     "set": {
+      "label": "Cat Digital office, Whitefield (OSM pin at Belathur/Kadugodi)",
+      "confidence": "medium",
+      "evidence": "Caterpillar inaugurated a Cat Digital office in Whitefield, Bengaluru in Dec 2024 (https://cxotoday.com/media-coverage/caterpillar-expands-its-tech-capacity-in-karnataka/ ; https://machinist.in/2024/12/caterpillar-expands-digital-operations-with-new-bangalore-office/); OSM office node 'Caterpillar' at Belathur/Kadugodi gives the pin (https://www.openstreetmap.org/node/13781586354); building not confirmed."
+     }
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "Caterpillar Financial Services India - registered office, Prestige Shantiniketan Crescent 1",
+     "techPark": "Prestige Shantiniketan",
+     "building": "Crescent 1",
+     "locality": "Hoodi / Whitefield",
+     "address": "Ground Floor, Crescent-1, Prestige Shantiniketan, Whitefield, Hoodi, Bengaluru 560048",
+     "lat": 12.988903,
+     "lng": 77.731042,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "cat.com's India Cat Financial contact page gives Caterpillar Financial Services India Pvt Ltd's registered office as Ground Floor, Crescent-1, Prestige Shantiniketan, Whitefield, Hoodi, Bengaluru 560048 (https://cat.com/en_IN/support/financing-protection/about-us/contact-us.html); pin is the Prestige Shantiniketan OSM park centroid (building not separately mapped)."
+    }
+   ]
+  },
+  {
+   "company": "citi",
+   "verdict": "keep",
+   "note": "Citi's own custody-services branch list (https://www.citigroup.citi.bank.in/rcs/citi-india/storage/public/India/custody-services/list-of-branches-and-nodal-officer-for-BT.pdf) gives a Citibank N.A. Bengaluru branch at No 5, Ranga Complex, M.G. Road 560001 (added); the Brigade Magnum office is corroborated only by OSM, a Fishbowl post about 'the Brigade Magnum building ... for Citibank Bangalore' and Brigade's blog naming Citi among Hebbal tenants, so raised only to medium.",
+   "set": {
+    "description": "US bank; Citibank N.A. lists a Bengaluru branch on M.G. Road, and OSM plus employee posts place a Citi office at Brigade Magnum, Hebbal."
+   },
+   "offices": [
+    {
+     "office": "citi~d9176f",
+     "verdict": "fix",
+     "note": "Raised to medium on three weak but independent signals; no company page names Brigade Magnum.",
+     "set": {
+      "confidence": "medium",
+      "evidence": "OSM office node 'Citi' at Brigade Magnum (https://www.openstreetmap.org/node/11280734328); a Fishbowl thread asks about PGs 'around the Brigade Magnum building ... for Citibank Bangalore' (https://www.fishbowlapp.com/post/can-anyone-suggest-any-flats-or-pgs-around-the-brigade-magnum-building-for-men-for-citibank-bangalore); Brigade lists Citi Group among Hebbal office occupiers (https://www.brigadegroup.com/blog/commercial/hebbal-the-newest-hotspot-for-commercial-real-estate)."
+     }
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "Citibank N.A. Bengaluru branch - M.G. Road",
+     "techPark": null,
+     "building": "Ranga Complex",
+     "locality": "M.G. Road",
+     "address": "No 5, Ranga Complex, M.G. Road, Bengaluru 560001",
+     "lat": 12.975526,
+     "lng": 77.60679,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Citi India's custody-services 'list of branches and nodal officer' PDF gives the Bengaluru branch as 'No 5, Ranga complex, M.G. Road, Bangalore 560001' (https://www.citigroup.citi.bank.in/rcs/citi-india/storage/public/India/custody-services/list-of-branches-and-nodal-officer-for-BT.pdf); the building is not mapped, so the pin is Nominatim's M.G. Road (560001) street node 6400857554 - street-level only."
+    }
+   ]
+  },
+  {
+   "company": "cleartrip",
+   "verdict": "keep",
+   "note": "Cleartrip's Karnataka GST registration (29AACCC6016B1CF) gives Suraj Ganga Soft Park 34, 1st Floor, 1st Main Road, 3rd Phase, J P Nagar 560078 (https://www.knowyourgst.com/gst-number-search/cleartrip-private-limited-29AACCC6016B1CF/), matching the OSM 'Cleartrip India Pvt. Ltd.' POI on 1st Main Road, so the pin stands and confidence rises to medium. The registered office is still Mumbai (Vikhroli) per registry aggregators and PitchBook lists a corporate office at Flipkart's Embassy Tech Village; neither was confirmed from a primary page, so nothing added. Not a duplicate of Flipkart (separate brand and entity).",
+   "set": {
+    "description": "Online travel agency founded in Mumbai in 2006 and acquired by Flipkart in 2021; its Karnataka GST registration and OSM place a Bengaluru office at Suraj Ganga Soft Park on 1st Main Road, J P Nagar 3rd Phase (off Bannerghatta Road)."
+   },
+   "offices": [
+    {
+     "office": "cleartrip~140613",
+     "verdict": "fix",
+     "note": "Building and address from the GST registration; pin kept (OSM POI).",
+     "set": {
+      "label": "Suraj Ganga Soft Park, J P Nagar 3rd Phase",
+      "building": "Suraj Ganga Soft Park",
+      "locality": "J P Nagar 3rd Phase / Bannerghatta Road",
+      "address": "Suraj Ganga Soft Park, No. 34, 1st Floor, 1st Main Road, 3rd Phase, J P Nagar, Bengaluru 560078",
+      "confidence": "medium",
+      "evidence": "Karnataka GST registration 29AACCC6016B1CF lists Suraj Ganga Soft Park 34, 1st Floor, 1st Main Road, 3rd Phase, J P Nagar 560078 (https://www.knowyourgst.com/gst-number-search/cleartrip-private-limited-29AACCC6016B1CF/); OSM POI 'Cleartrip India Pvt. Ltd.' on 1st Main Road (https://www.openstreetmap.org/#map=18/12.915054/77.598851)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "coca-cola-hindustan-coca-cola-beverages",
+   "verdict": "keep",
+   "note": "Bidadi pin is the OSM 'Coca-Cola' industrial parcel (way/796362858), which is the plant itself; the OSM 'Bidadi Industrial Area' polygon only covers the Toyota-estate phase 2.7 km south, while KIADB's Bidadi area spans several phases and the plant's address is '18, Bidadi Industrial Area, Bidadi 562109' (https://rrce.org/news/hindustan-coca-cola-beverages-pvt-ltd), so pin and park are both kept. HQ at Brigade Magnum already primary-sourced.",
+   "offices": [
+    {
+     "office": "coca-cola-hindustan-coca-cola-beverages~8ae25f",
+     "verdict": "keep",
+     "note": "Pin is the named OSM plant parcel; the park footprint flag reflects the OSM park polygon covering only one phase of KIADB Bidadi, not a wrong pin. HCCB's Bidadi plant is also reported as India's first carbon-neutral Coca-Cola plant (https://www.indianretailer.com/news/retail-india-news-hccbs-bidadi-facility-attains-carbon-neutrality-elevates-sustainability)."
+    }
+   ]
+  },
+  {
+   "company": "coinswitch",
+   "verdict": "keep",
+   "note": "Two directories (https://builtinbengaluru.in/company/coinswitch and https://craft.co/coinswitch) give CoinSwitch's HQ as 1st Floor, Wing A, Electra, Exora Business Park, Prestige Tech Park II, matching the OSM 'Coinswitch / Peepalco' POI in the Electra footprint; raised to medium. No primary company page was reachable.",
+   "offices": [
+    {
+     "office": "coinswitch~5126fd",
+     "verdict": "fix",
+     "note": "Address detail and confidence raised to medium on directory + OSM agreement.",
+     "set": {
+      "building": "Electra (Exora Business Park), Wing A",
+      "confidence": "medium",
+      "address": "1st Floor, Wing A, Electra, Exora Business Park, Prestige Tech Park, Marathahalli-Sarjapur Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+      "evidence": "Directories give 'Infinity, Electra Block, 1st Floor Wing A Exora Business Park Prestige Tech Park II, Bellandur' as CoinSwitch's HQ (https://builtinbengaluru.in/company/coinswitch ; https://craft.co/coinswitch); OSM POI 'Coinswitch / Peepalco' (website coinswitch.co) sits in the Electra footprint (https://www.openstreetmap.org/node/11948821069)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "creditaccess-grameen",
+   "verdict": "keep",
+   "note": "Registered & corporate office confirmed in CreditAccess Grameen's own exchange filings (Q4 FY25 results https://nsearchives.nseindia.com/corporate/CREDITACC_16052025175609_CAGL_FinancialResults_16052025.pdf and the 2026 BRSR) as New No. 49 (Old No. 725), 46th Cross, 8th Block, Jayanagar 560070 'next to Rajalakshmi Kalyana Mantap'; pin moved ~390 m onto the OSM POI 'Grameen Kota' on 46th Cross (node/6777843507). Category changed to MNC under the dataset rule (Indian, listed since 2018, >10,000 employees: GlobalData reports 21,941, https://www.globaldata.com/company-profile/creditaccess-grameen-ltd/). Origin left Indian, though its promoter CreditAccess India B.V. is Dutch-registered.",
+   "set": {
+    "category": "MNC"
+   },
+   "offices": [
+    {
+     "office": "creditaccess-grameen~cf4eb0",
+     "verdict": "fix",
+     "note": "Primary filing confirms the address; pin moved to the OSM POI for the former Grameen Koota office on 46th Cross.",
+     "set": {
+      "label": "Registered & corporate office - Jayanagar 8th Block",
+      "lat": 12.916938,
+      "lng": 77.579811,
+      "confidence": "high",
+      "evidence": "Q4 FY2025 results and the FY2025-26 BRSR give the registered and corporate office as New No. 49 (Old No. 725), 46th Cross, 8th Block, Jayanagar, Bengaluru 560070 (https://nsearchives.nseindia.com/corporate/CREDITACC_16052025175609_CAGL_FinancialResults_16052025.pdf); pin is the OSM POI 'Grameen Kota' on 46th Cross Road (https://www.openstreetmap.org/node/6777843507)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "cuemath",
+   "verdict": "drop",
+   "note": "Cuemath's own terms page (https://www.cuemath.com/terms/) gives Cue Learn Pvt Ltd's registered office as DLF Qutab Complex, Gurugram and its India office as Golf Course Road, Gurugram, and its contact page lists only Gurugram; the only Bengaluru addresses are conflicting, undated aggregator entries (Craft: Vaishnavi Tech Park; CB Insights: 80 Feet Road, Koramangala), so no Bengaluru office could be confirmed."
+  },
+  {
+   "company": "d-e-shaw",
+   "verdict": "keep",
+   "note": "D. E. Shaw's own contact pages (https://www.deshawindia.com/contact , https://deshaw.com/contact) give D. E. Shaw India's Bengaluru office as 11th Floor, Campus 31, RMZ Ecoworld, Bengaluru 560103 - exactly where the OSM pin sits; opened April 2023 with 150+ staff per its press release.",
+   "set": {
+    "description": "Quantitative investment firm; D. E. Shaw India opened its Bengaluru office in April 2023 on the 11th floor of Campus 31, RMZ Ecoworld (its main India hub remains Hyderabad)."
+   },
+   "offices": [
+    {
+     "office": "d-e-shaw~7dec34",
+     "verdict": "fix",
+     "note": "Building and floor confirmed from the company's contact page; pin unchanged.",
+     "set": {
+      "label": "RMZ Ecoworld - Campus 31, 11th floor",
+      "building": "Campus 31",
+      "address": "11th Floor, Campus 31, RMZ Ecoworld, Devarabeesanahalli, Bengaluru 560103",
+      "confidence": "high",
+      "evidence": "D. E. Shaw contact page: 'D. E. Shaw India Private Limited, 11th Floor, Campus 31, RMZ Ecoworld, Bengaluru 560 103' (https://www.deshawindia.com/contact); OSM node 'DE Shaw India' on Campus 31 (https://www.openstreetmap.org/node/11554519757)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "defence-research-and-development-organisation",
+   "verdict": "keep",
+   "note": "Two labs were recorded twice: GTRE (4169ec / 77f4eb, both inside OSM polygon way/35311978, ~160 m apart) and ADE (cf0992 / 2039ed, both inside way/41722454, ~165 m apart). Kept the DRDO-PDF-evidenced records (4169ec, cf0992) and dropped the Wikipedia-only twins. LRDE and CAIR addresses literally read 'DRDO Complex, C.V. Raman Nagar', so they are filed under that park, consistent with GTRE.",
+   "offices": [
+    {
+     "office": "defence-research-and-development-organisation~77f4eb",
+     "verdict": "drop",
+     "note": "Duplicate of GTRE office ~4169ec (same OSM polygon way/35311978, ~160 m apart); ~4169ec carries the DRDO DIIG primary source."
+    },
+    {
+     "office": "defence-research-and-development-organisation~4169ec",
+     "verdict": "keep",
+     "note": "Kept as the single GTRE record: DRDO DIIG SPOC list (PB 9302, C V Raman Nagar 560093) plus OSM polygon way/35311978; Wikipedia (https://en.wikipedia.org/wiki/Gas_Turbine_Research_Establishment) corroborates."
+    },
+    {
+     "office": "defence-research-and-development-organisation~2039ed",
+     "verdict": "drop",
+     "note": "Duplicate of ADE office ~cf0992 (same OSM polygon way/41722454, ~165 m apart); ~cf0992 carries the DRDO DIIG source and Wikipedia."
+    },
+    {
+     "office": "defence-research-and-development-organisation~f9407d",
+     "verdict": "fix",
+     "note": "LRDE's address is 'DRDO Complex, C.V. Raman Nagar'; pin (OSM polygon way/35326939) is ~300 m from that park's centroid.",
+     "set": {
+      "techPark": "DRDO Complex, C V Raman Nagar"
+     }
+    },
+    {
+     "office": "defence-research-and-development-organisation~4e4d80",
+     "verdict": "fix",
+     "note": "CAIR's address is 'DRDO Complex, C.V. Raman Nagar' (Wikipedia); pin is within 90 m of OSM polygon way/164050955.",
+     "set": {
+      "techPark": "DRDO Complex, C V Raman Nagar"
+     }
+    }
+   ]
+  },
+  {
+   "company": "delta-electronics",
+   "verdict": "keep",
+   "note": "Delta inaugurated its new India headquarters and Global R&D Centre (61,000 sq m, LEED Gold, up to 3,000 staff) in Bommasandra Industrial Area, Bengaluru on 9 Sept 2024 (https://brandnews.deltaww.com/EN/SpecialDetail/12597 ; https://www.taiwannews.com.tw/en/news/5933839); the OSM 'Delta Electronics' parcel (way/1419688898) at Hebbagodi beside Syngene and SKF is that campus, so the office is now the India HQ at high confidence.",
+   "set": {
+    "description": "Taiwanese power-electronics group whose India headquarters and Global R&D Centre (61,000 sq m, opened September 2024) is in Bommasandra Industrial Area on Hosur Road."
+   },
+   "offices": [
+    {
+     "office": "delta-electronics~24c90f",
+     "verdict": "fix",
+     "note": "Company release confirms the HQ/R&D campus in Bommasandra Industrial Area; pin is the named OSM parcel.",
+     "set": {
+      "label": "India HQ & Global R&D Centre - Bommasandra Industrial Area",
+      "isHq": true,
+      "confidence": "high",
+      "locality": "Hebbagodi / Bommasandra Industrial Area",
+      "address": "Bommasandra Industrial Area (Hebbagodi), Hosur Road, Bengaluru 560099",
+      "evidence": "Delta's own release and trade press: new India HQ and Global R&D Centre in Bommasandra Industrial Area, inaugurated 9 Sept 2024 (https://brandnews.deltaww.com/EN/SpecialDetail/12597 ; https://autocarpro.in/news/delta-unveils-new-leed-gold-certified-india-hq-and-global-rd-centre-in-bengaluru-122476); OSM parcel 'Delta Electronics' way/1419688898."
+     }
+    }
+   ]
+  },
+  {
+   "company": "dxc-technology",
+   "verdict": "keep",
+   "note": "Xchanging Solutions Ltd ('a DXC Technology Company', listed) moved its registered office on 30 July 2026 from HP Avenue, 39/40 Electronic City, Hosur Main Road to Prestige Lakeshore Drive, Varthur Hobli, Bengaluru 560103 (NSE filing https://nsearchives.nseindia.com/corporate/XCHANGING_30072026175833_RO_Change_intimation.pdf, read via search summary because the PDF returned 503); the OSM 'DXC' node lies inside the Prestige Lakeshore Drive polygon, so that office rises to medium. DXC also opened a 200,000 sq ft Customer Experience Center in Bengaluru on 7 July 2026 (https://www.deccanchronicle.com/technology/dxc-opens-ai-first-customer-experience-center-in-bengaluru-1969067), location not published.",
+   "set": {
+    "description": "US IT services company formed from CSC and HPE Enterprise Services; its group company Xchanging moved its registered office to Prestige Lakeshore Drive on the Bellandur ORR in July 2026, and DXC opened a 200,000 sq ft Customer Experience Center in Bengaluru the same month."
+   },
+   "offices": [
+    {
+     "office": "dxc-technology~7ff264",
+     "verdict": "fix",
+     "note": "OSM 'DXC' node is inside the Prestige Lakeshore Drive polygon, where the DXC group's Xchanging registered office moved in July 2026.",
+     "set": {
+      "label": "Prestige Lakeshore Drive, Outer Ring Road",
+      "techPark": "Prestige Lakeshore Drive",
+      "locality": "Yemalur / Bellandur (ORR)",
+      "address": "Prestige Lakeshore Drive, Outer Ring Road, Varthur Hobli, Bengaluru 560103",
+      "confidence": "medium",
+      "evidence": "Xchanging Solutions Ltd (a DXC Technology Company) RO change intimation, effective 30 July 2026, names Prestige Lakeshore Drive, Varthur Hobli, Bengaluru 560103 (https://nsearchives.nseindia.com/corporate/XCHANGING_30072026175833_RO_Change_intimation.pdf); OSM office node 'DXC' inside the Prestige Lakeshore Drive polygon (https://www.openstreetmap.org/node/13242482266)."
+     }
+    },
+    {
+     "office": "dxc-technology~04fdd1",
+     "verdict": "keep",
+     "note": "Left low: the OSM 'DXC' polygon duplicates the HP GlobalSoft campus (HP Avenue, 39/40 Electronic City) that HPE's record also claims, and the DXC group's Xchanging moved its registered office out of HP Avenue in July 2026, so current DXC occupancy is unconfirmed."
+    }
+   ]
+  },
+  {
+   "company": "elastic",
+   "verdict": "keep",
+   "note": "Elastic Technologies (India) Pvt Ltd's LEI record (https://www.leikart.com/leicert/254900JDJ2IXYEBVJW05) gives its legal address as 1st Floor, Sunriver Wing A, Embassy Golf Links Business Park, Intermediate Ring Road, Bengaluru 560071 (direct parent Elastic N.V.), agreeing with the careers aggregator; pin moved ~280 m from the park centroid to the OSM 'Sunriver' building (way/105322158). Sunriver is a WeWork building, so this may be flexible space.",
+   "offices": [
+    {
+     "office": "elastic~c45ed7",
+     "verdict": "fix",
+     "note": "Raised to medium on LEI registry + aggregator agreement; re-pinned to the OSM Sunriver building.",
+     "set": {
+      "building": "Sunriver, Wing A",
+      "lat": 12.951232,
+      "lng": 77.64094,
+      "confidence": "medium",
+      "address": "1st Floor, Sunriver Wing A, Embassy Golf Links Business Park, Intermediate Ring Road, Domlur, Bengaluru 560071",
+      "evidence": "LEI record for Elastic Technologies (India) Pvt Ltd gives the legal address 1st Floor, Sunriver Wing A, Embassy Golf Links Business Park, Bangalore 560071 (https://www.leikart.com/leicert/254900JDJ2IXYEBVJW05); careers aggregator agrees (https://www.ownyourcareer.in/companies/elastic); pin is the OSM 'Sunriver' building way/105322158."
+     }
+    }
+   ]
+  },
+  {
+   "company": "emudhra",
+   "verdict": "keep",
+   "note": "eMudhra's contact page (https://www.emudhra.com/contact-us) lists one Bengaluru address, the eMudhra Digital Campus, No 12-P1-A & 12-P1-B, Hi-Tech Defence and Aerospace Park (IT Sector), Jala Hobli, B.K. Palya 562149. ~ed128b (pinned on the OSM 'eMudhra' parcel way/1065507088) and ~5ae054 (pinned on the KIADB park centroid 6.5 km away) are the same campus, so ~5ae054 is dropped. The parcel lies 0.9 km outside the dataset's aerospace-SEZ polygon because the address is the park's separate IT Sector; park kept.",
+   "offices": [
+    {
+     "office": "emudhra~5ae054",
+     "verdict": "drop",
+     "note": "Duplicate of ~ed128b (same address); its pin is the Hi-Tech Defence and Aerospace Park centroid, not the campus."
+    },
+    {
+     "office": "emudhra~ed128b",
+     "verdict": "fix",
+     "note": "Keeps the precise OSM parcel; building name moved over from the dropped duplicate.",
+     "set": {
+      "building": "eMudhra Digital Campus"
+     }
+    },
+    {
+     "office": "emudhra~9669da",
+     "verdict": "keep",
+     "note": "Left low: OSM-only, and the company's contact page no longer lists the Devarabeesanahalli (Sai Arcade) address; no closure notice found, so status is left active."
+    }
+   ]
+  },
+  {
+   "company": "encora",
+   "verdict": "merge_into",
+   "into": "coforge",
+   "note": "Coforge completed the Encora acquisition on 23 April 2026 (https://news.coforge.com/newsroom/press-release/coforge-announces-the-successful-closure-of-the-encora-acquisition) and encora.com redirects to coforge.com, so Encora is now part of Coforge; its two Bengaluru offices (Bagmane Capital, Dickenson Road) are OSM-only leads and should come across at low confidence, if at all."
+  }
+ ],
+ "parkFixes": [],
+ "parkMerges": [],
+ "notes": "Could not read primary pages for: Cleartrip (JS-only site; GST registry aggregator used), CoinSwitch (directories only), Citi's Brigade Magnum office (no company page names it), Elastic (LEI registry, no elastic.co office page found), the Xchanging/DXC RO-change PDF (503; used the search engine's reading of it) and DXC's July 2026 Customer Experience Center, whose building is unpublished. The Citi M.G. Road branch and the Capillary office are pinned by street-level geocodes because the buildings are not in OSM. Caterpillar's Cat Digital building in Whitefield is still unnamed. DRDO labs DARE and DEBEL (C V Raman Nagar) are missing but had no OSM POI to pin them, so they were not added. CreditAccess Grameen's employee count rests on GlobalData (21,941); its promoter is a Dutch holding company, origin left Indian. Cuemath dropped because its own pages list only Gurugram."
+}

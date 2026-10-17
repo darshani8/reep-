@@ -1,0 +1,329 @@
+{
+ "key": "V03",
+ "corrections": [
+  {
+   "company": "endava",
+   "verdict": "keep",
+   "note": "Bengaluru presence confirmed only indirectly (Endava India lists open Bengaluru roles on Indeed, https://in.indeed.com/cmp/Endava/jobs; India headcount 1k-5k on AmbitionBox); endava.com/contact and /who-we-are/locations list no India addresses, so the ex-GalaxE ITPB Aviator tenancy stays unconfirmed at low.",
+   "offices": [
+    {
+     "office": "endava~63b123",
+     "verdict": "keep",
+     "note": "Pin is on the OSM Aviator footprint (way/462494800) as claimed; no post-acquisition source names the building, so confidence stays low."
+    }
+   ]
+  },
+  {
+   "company": "epam-systems",
+   "verdict": "keep",
+   "note": "EPAM's 2024 announcement (reported by CXOToday 15 Jul 2024, https://cxotoday.com/media-coverage/epam-expands-it-operations-in-india-with-new-state-of-the-art-offices-in-bengaluru-and-chennai/) puts its new Bengaluru ODC at RMZ Ecoworld, and EPAM's India contact address is 402, RMZ Ecoworld Building 30 Series, Campus 32 - that office was missing and is added; the two existing offices stay low.",
+   "set": {
+    "description": "US product-engineering services company; its main Bengaluru office opened in 2024 at RMZ Ecoworld (Campus 32, ODC sized with Chennai for 2,100+ staff), with OSM/directory leads at Global Technology Park and Bagmane Capital."
+   },
+   "offices": [
+    {
+     "office": "epam-systems~d1fa61",
+     "verdict": "keep",
+     "note": "Only a park marketing directory and a Glassdoor listing (Smartworks, Global Technology Park Block C) support this; EPAM's own contact address names RMZ Ecoworld instead, so this may be a superseded coworking seat. Left low.",
+     "set": {
+      "building": "Block C (Smartworks)"
+     }
+    },
+    {
+     "office": "epam-systems~d044c5",
+     "verdict": "keep",
+     "note": "Recent single OSM node 'Epam System' (node/13945642505) on Luxor South; no other source found, left low."
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "RMZ Ecoworld - Campus 32",
+     "building": "Campus 32 (Building 30 series), unit 402",
+     "locality": "Bellandur / Devarabeesanahalli (Outer Ring Road)",
+     "address": "402, RMZ Ecoworld Building 30 Series, Campus 32, Bhoganahalli Village, Bengaluru East, Bengaluru 560103",
+     "lat": 12.920948,
+     "lng": 77.687347,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "techPark": "RMZ Ecoworld",
+     "evidence": "EPAM's July 2024 announcement of new Bengaluru and Chennai offices names RMZ Eco World (CXOToday, https://cxotoday.com/media-coverage/epam-expands-it-operations-in-india-with-new-state-of-the-art-offices-in-bengaluru-and-chennai/ ; EPAM newsroom https://www.epam.com/about/newsroom/in-the-news/2024/epam-opens-new-offices-in-bengaluru-and-chennai), and EPAM's India contact address is 402, RMZ Ecoworld Building 30 Series, Campus 32, Bhoganahalli 560103. Point is the OSM 'Campus 32' building (way/1212362525)."
+    }
+   ]
+  },
+  {
+   "company": "epson-india",
+   "verdict": "keep",
+   "note": "A business directory gives Epson India's office as 11th Floor, Godrej Centre Hebbal, Byatarayanapura 560092, which geocodes to the same OSM polygon ('Godrej Downtown', way/1040899007) the OSM 'Epson India Pvt Ltd' POI sits in; two independent sources agree, so raised to medium (MCA aggregators still show the older registered office at The Millenia, Murphy Road, https://www.InstaFinancials.com/company/epson-india-private-limited/U72900KA2000PTC027925).",
+   "offices": [
+    {
+     "office": "epson-india~4f43e7",
+     "verdict": "fix",
+     "note": "Pin confirmed (POI inside the Godrej Centre/Downtown polygon); building, address, park and confidence updated.",
+     "set": {
+      "building": "Godrej Centre Hebbal, 11th floor (OSM polygon 'Godrej Downtown')",
+      "address": "11th Floor, Godrej Centre Hebbal, Byatarayanapura, Hebbal, Bengaluru 560092",
+      "techPark": "Godrej Downtown (OSM name)",
+      "confidence": "medium",
+      "evidence": "OSM office POI 'Epson India Pvt Ltd' (https://www.openstreetmap.org/node/13428525776) inside the polygon OSM names 'Godrej Downtown'; a business directory independently lists Epson India at 11th Floor, Godrej Centre Hebbal, Byatarayanapura 560092 (https://m.indiamart.com/epson/about-us.html), which Photon geocodes to that same polygon. Registered office per MCA aggregators is still The Millenia, Murphy Road, Ulsoor."
+     }
+    }
+   ]
+  },
+  {
+   "company": "extron",
+   "verdict": "keep",
+   "note": "Extron's own contact page lists Extron India at NCC Urban Windsor, 6th Floor, New Airport Road, opp. Jakkur Aerodrome, Bangalore 560064 (+91 80 6819 8000) (https://www.extron.com/company/contactus.aspx, seen via search; direct fetch bot-blocked); the OSM 'Extron' POI sits on the OSM 'NCC Urban Windsor' building (way/346275484), so the office is confirmed and raised to high.",
+   "offices": [
+    {
+     "office": "extron~424811",
+     "verdict": "fix",
+     "note": "Pin is correct (on NCC Urban Windsor); building, address, locality, evidence and confidence updated.",
+     "set": {
+      "label": "Extron India - NCC Urban Windsor",
+      "building": "NCC Urban Windsor, 6th floor",
+      "locality": "Jakkur / Yelahanka (New Airport Road)",
+      "address": "NCC Urban Windsor, 6th Floor, New Airport Road, Opp. Jakkur Aerodrome, Bengaluru 560064",
+      "confidence": "high",
+      "evidence": "Extron's contact page lists 'Extron India, NCC Urban Windsor, 6th Floor, New Airport Road, Opp. Jakkur Aerodrome, Bangalore 560064' (https://www.extron.com/company/contactus.aspx); OSM POI 'Extron' (node/11817854566) lies on the OSM 'NCC Urban Windsor' building (way/346275484)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "fico",
+   "verdict": "keep",
+   "note": "A FICO-domain contact page and a careers profile both give Fair Isaac India Software Pvt Ltd at 3rd Floor, RMZ Titanium, 135 Airport Road, Kodihalli 560017 (opened 2003, ~1,300 staff, FICO's largest office), agreeing with the OSM POI; raised to high (www.fico.com/en/contact-us itself lists only 'India').",
+   "set": {
+    "bengaluruEmployeesApprox": 1300,
+    "description": "US analytics and credit-scoring software company; Fair Isaac India's Bengaluru centre (since 2003, ~1,300 staff, its largest office) is on the 3rd floor of RMZ Titanium, Old Airport Road."
+   },
+   "offices": [
+    {
+     "office": "fico~48228e",
+     "verdict": "fix",
+     "note": "Pin on RMZ Titanium confirmed; address and confidence updated.",
+     "set": {
+      "address": "3rd Floor, RMZ Titanium, 135 HAL Old Airport Road, Kodihalli, Bengaluru 560017",
+      "confidence": "high",
+      "evidence": "FICO contact listing (devcloud.fico.com/en/contact-us, via search) and the hyring.com FICO careers profile (https://hyring.com/company/fico) both give Fair Isaac India Software Pvt Ltd, 3rd Floor, RMZ Titanium Building, 135 Airport Road, Kodihalli 560017; OSM POI 'Fair Isaac India Software Pvt Ltd;FICO' at RMZ Titanium (https://www.openstreetmap.org/node/3797621212)."
+     }
+    }
+   ]
+  },
+  {
+   "company": "finastra",
+   "verdict": "keep",
+   "note": "Finastra Software Solutions (India) Pvt Ltd (CIN U30006KA1998PTC024012) is registered at Virgo Building, Bagmane Constellation Business Park, Doddanekundi 560037 (https://www.infyner.com/finance/finastra-software-solutions-india/U30006KA1998PTC024012), and Finastra reopened a refurbished Bangalore office in 2022 (https://thefintechtimes.com/finastra-gets-its-indian-foothold-back-on-its-feet-with-new-office-opening); the OSM 'Finastra' POI is ~55 m from the OSM Bagmane Virgo footprint, so raised to high.",
+   "offices": [
+    {
+     "office": "finastra~e43c75",
+     "verdict": "fix",
+     "note": "Pin confirmed next to the Bagmane Virgo footprint (way/1065147881); building, address and confidence updated.",
+     "set": {
+      "label": "Bagmane Constellation - Virgo",
+      "building": "Virgo",
+      "address": "Virgo Building, Bagmane Constellation Business Park, Outer Ring Road, Doddanekundi, Bengaluru 560037",
+      "confidence": "high",
+      "evidence": "MCA-derived registered address 'Virgo Building, Bagmane Constellation Business Park, Outer Ring Road, Doddanekundi, Bengaluru 560037' (Infyner and InstaFinancials, CIN U30006KA1998PTC024012); Finastra's 2022 press on 'new and reinvigorated workspaces in Pune and Bangalore' (https://www.finastra.com/press-media/finastra-celebrates-new-and-reinvigorated-workspaces-pune-and-bangalore); OSM POI 'Finastra' node/6201924570 beside OSM 'Bagmane Virgo' way/1065147881."
+     }
+    }
+   ]
+  },
+  {
+   "company": "first-abu-dhabi-bank-gbs",
+   "verdict": "keep",
+   "note": "The Bengaluru entity First Abu Dhabi Bank Global Business Services Pvt Ltd is confirmed by People Matters (https://www.peoplematters.in/news/appointments/first-abu-dhabi-bank-appoints-head-of-hr-27344) and live Bengaluru job postings; the Luxor South location rests on the OSM POI alone, so raised to medium, not high.",
+   "offices": [
+    {
+     "office": "first-abu-dhabi-bank-gbs~f2da6f",
+     "verdict": "fix",
+     "note": "Existence of the Bengaluru GBS entity confirmed by press; building from OSM only.",
+     "set": {
+      "confidence": "medium",
+      "evidence": "OSM POI 'FAB Global Business Service' node/13945629498 on the Bagmane Luxor South footprint (way/1065147893); the Bengaluru entity 'First Abu Dhabi Bank, Global Business Services Pvt Ltd' is named in People Matters (https://www.peoplematters.in/news/appointments/first-abu-dhabi-bank-appoints-head-of-hr-27344) and in Bengaluru job postings (https://builtinbengaluru.in/job/avp-enablement-finance-analysis-gt/4040421); no source names the building."
+     }
+    }
+   ]
+  },
+  {
+   "company": "flex",
+   "verdict": "keep",
+   "note": "Flex's India careers page (https://flex.com/careers/india-en) lists two Bengaluru sites: SVR Fortune, No 70-A, Electronic City Phase I 560100 (matches the OSM 'Flextronics' building) and No. 165 near Christ Academy, S. Bingepura, off Begur-Koppa Main Road 560083 (missing, added).",
+   "offices": [
+    {
+     "office": "flex~095ec4",
+     "verdict": "fix",
+     "note": "Confirmed by Flex's own page; building and address added, pin kept on the OSM 'Flextronics' building (SVR Fortune itself is not in OSM).",
+     "set": {
+      "label": "Electronic City Phase 1 - SVR Fortune",
+      "building": "SVR Fortune",
+      "address": "SVR Fortune, No 70-A, Electronic City Phase I, Bengaluru 560100",
+      "confidence": "medium",
+      "evidence": "Flex India careers page lists 'SVR Fortune No 70-A, Electronic City Phase I Bengaluru - 560100' (https://flex.com/careers/india-en); pin is the OSM 'Flextronics' building way/146499016 / node/459489322 in Phase 1 - the building name SVR Fortune could not be matched in OSM, so the pin is not independently tied to plot 70-A."
+     }
+    }
+   ],
+   "addOffices": [
+    {
+     "label": "Begur-Koppa Road site (S. Bingepura)",
+     "building": null,
+     "locality": "S. Bingipura (Begur-Koppa Road)",
+     "address": "No. 165, Near Christ Academy, S. Bingepura, Off Begur-Koppa Main Road, Bengaluru 560083",
+     "lat": 12.824503,
+     "lng": 77.620673,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "techPark": null,
+     "evidence": "Flex India careers page lists 'No. 165, Near Christ Academy, S. Bingepura, Off Begur-Koppa Main Road, Bengaluru, 560083' (https://flex.com/careers/india-en). Pin is the Nominatim geocode of the landmark named in the address, Christ Academy ICSE School, Begur-Koppa Road, Bangipura (way/308189767), so the building itself is approximate."
+    }
+   ]
+  },
+  {
+   "company": "ge-healthcare",
+   "verdict": "keep",
+   "note": "GE HealthCare's own branch page (https://www.gehealthcare.com/en-in/about/ge-healthcare-service-branches) lists 'Wipro GE, No. 122 (part 1) Xray division, EPIP Area, Whitefield 560066' - plot 122 is the JFWTC plot - so the separate OSM-only 'Whitefield office' 400 m north (way/1144296219, 'Wipro GE Healthcare') is the same site recorded twice and is dropped; the page also lists an 'Inventor Building, 60 ITPL Main Rd' site, not added because it could not be located reliably.",
+   "offices": [
+    {
+     "office": "ge-healthcare~a63d40",
+     "verdict": "fix",
+     "note": "Kept as the JFWTC / plot 122 record; address and evidence now cite GE HealthCare's own page and absorb the dropped duplicate's OSM way.",
+     "set": {
+      "label": "JFWTC, Plot 122 EPIP - GE HealthCare engineering and X-ray division",
+      "address": "No. 122 (part 1), X-ray division, EPIP Area, Whitefield, Bengaluru 560066 (John F. Welch Technology Centre)",
+      "evidence": "GE HealthCare's India branches page lists 'Export Promotion Industrial Park 6 Wipro Ge. No. 122, (part 1) Xray division EPIP Area, Whitefield, Bengaluru 560066' (https://www.gehealthcare.com/en-in/about/ge-healthcare-service-branches); OSM maps the JFWTC campus on plot 122 (https://www.openstreetmap.org/way/180969776) and a 'Wipro GE Healthcare' building at its north edge (https://www.openstreetmap.org/way/1144296219); a GCC directory records GE HealthCare engineering at JFWTC (https://flexiple.com/global-capability-centers/list-of-global-capability-centers-in-bengaluru)."
+     }
+    },
+    {
+     "office": "ge-healthcare~c51a27",
+     "verdict": "drop",
+     "note": "Duplicate of ge-healthcare~a63d40: the OSM 'Wipro GE Healthcare' building (way/1144296219) is ~400 m from the JFWTC pin on the same plot 122 that GE HealthCare's page lists as its X-ray division; detail moved onto a63d40."
+    }
+   ]
+  },
+  {
+   "company": "general-motors",
+   "verdict": "keep",
+   "note": "GM Technical Centre India Pvt Ltd still operates in Bengaluru (registered office Gurugram); the ITPB pin rested on a 2012 article, while the Business of GCC profile (updated 2026-03-18, https://www.businessofgcc.com/gcc-data/companies/general-motors-india-bangalore) names the Prestige Shantiniketan campus in Whitefield, so the office is moved there but stays low (directory only).",
+   "set": {
+    "description": "GM's Bengaluru engineering centre (General Motors Technical Centre India, opened 2003; registered office in Gurugram). It started in ITPB; after TCS took over certain GMTC-I assets and 1,300+ staff in 2019, a 2026 GCC directory places it on the Prestige Shantiniketan campus, Whitefield - unconfirmed by GM."
+   },
+   "offices": [
+    {
+     "office": "general-motors~a48124",
+     "verdict": "fix",
+     "note": "Moved from the ITPB centroid (2012-era evidence) to Prestige Shantiniketan per a 2026 GCC directory; still single-source, so low; isHq false because GMTCI's registered office is in Gurugram.",
+     "set": {
+      "label": "GM Technical Centre India - Prestige Shantiniketan (directory)",
+      "building": null,
+      "locality": "Whitefield (Hoodi / ITPL Main Road)",
+      "address": "Prestige Shantiniketan, Whitefield, Bengaluru 560048",
+      "lat": 12.988903,
+      "lng": 77.731042,
+      "techPark": "Prestige Shantiniketan",
+      "isHq": false,
+      "confidence": "low",
+      "evidence": "Business of GCC profile (last updated 2026-03-18) names GMTCI's workspace as the Prestige Shantiniketan campus in Whitefield (https://www.businessofgcc.com/gcc-data/companies/general-motors-india-bangalore); the earlier ITPB location comes from a 2012 Autocar Pro article (https://www.autocarpro.in/feature/gm-tech-prowess-3535). Pin is the dataset's Prestige Shantiniketan park centroid; no GM page confirms either."
+     }
+    }
+   ]
+  },
+  {
+   "company": "gkn-aerospace",
+   "verdict": "keep",
+   "note": "GKN Aerospace's India page (https://www.gknaerospace.com/locations/asia-pacific/india/, seen via search; direct fetch 403) gives GKN Aerospace Engine Systems India Pvt Ltd at 3rd Floor, Bagmane Commerz 1, Bagmane Tech Park, C.V. Raman Nagar 560093, so the OSM-only RMZ Titanium pin (the 2013 Old Airport Road opening) is stale and the office is moved.",
+   "offices": [
+    {
+     "office": "gkn-aerospace~5cfd75",
+     "verdict": "fix",
+     "note": "Moved ~4 km from RMZ Titanium to the OSM 'Bagmane Commerz' building per the company's own India page.",
+     "set": {
+      "label": "GKN Aerospace engineering centre - Bagmane Commerz",
+      "building": "Bagmane Commerz 1, 3rd floor",
+      "locality": "C V Raman Nagar (Byrasandra)",
+      "address": "3rd Floor, Bagmane Commerz 1, Bagmane Tech Park, C.V. Raman Nagar, Bengaluru 560093",
+      "lat": 12.978843,
+      "lng": 77.658118,
+      "techPark": "Bagmane Tech Park",
+      "confidence": "medium",
+      "evidence": "GKN Aerospace India locations page lists 'GKN Aerospace Engine Systems India Private Limited, 3rd Floor, Bagmane Commerz 1, Bagmane Tech Park, C.V. Raman Nagar, Bengaluru 560 093' (+91 80 6952 9700) (https://www.gknaerospace.com/locations/asia-pacific/india/); pin is the OSM 'Bagmane Commerz' building (way/323047917). The older OSM 'GKN Aerospace' POI at RMZ Titanium (node/3797621210) reflects the 2013 Old Airport Road opening."
+     }
+    }
+   ]
+  },
+  {
+   "company": "globant",
+   "verdict": "keep",
+   "note": "Globant's Bengaluru delivery centre is confirmed by Nearshore Americas (https://nearshoreamericas.com/argentinas-globant-set-to-workforce-india/) and a Clay profile (Pune and Bengaluru), but no source gives its address; the HSR Layout pin remains OSM-only and stays low.",
+   "offices": [
+    {
+     "office": "globant~1839e1",
+     "verdict": "keep",
+     "note": "OSM building 'Globant Office Bangalore' (way/348213990) is the only locator found; left low."
+    }
+   ]
+  },
+  {
+   "company": "gokaldas-exports",
+   "verdict": "keep",
+   "note": "The company's site still lists only #25, 2nd Cross, 3rd Main, Industrial Suburb, Yeshwanthpur 560022 (https://www.gokaldasexports.com/contact-us), but a 17 Feb 2026 exchange filing moved the registered office to Vile Parle (E), Mumbai effective 16 Feb 2026 (https://nsearchives.nseindia.com/corporate/GOKEX_17022026143335_seintimationshiftingofRO.pdf); Bengaluru stays the operating base (MNC is correct: Indian, listed, >10,000 workers).",
+   "set": {
+    "description": "Listed apparel exporter with 30,000+ workers and African subsidiaries since 2023; its Bengaluru office is at Industrial Suburb, Yeshwanthpur (the address on its website), though the registered office moved to Vile Parle, Mumbai on 16 Feb 2026."
+   },
+   "offices": [
+    {
+     "office": "gokaldas-exports~720f9b",
+     "verdict": "fix",
+     "note": "Address confirmed on the company's own site; registered office now Mumbai, so the label changes; pin remains an area-level point (no building POI found).",
+     "set": {
+      "label": "Corporate office (registered office until Feb 2026) - Industrial Suburb, Yeshwanthpur",
+      "confidence": "medium",
+      "evidence": "The company's website footer gives '#25, 2nd Cross, 3rd Main, Industrial Suburb, Yeshwanthpur, Bengaluru - 560022' (https://www.gokaldasexports.com/contact-us); the 17 Feb 2026 NSE filing moved the registered office from this address to Vile Parle (E), Mumbai with effect from 16 Feb 2026. Pin is an area-level point for Industrial Suburb, not the building."
+     }
+    }
+   ]
+  },
+  {
+   "company": "grab",
+   "verdict": "keep",
+   "note": "Grab Greco LLP, Grab's India R&D centre (announced 2016), is Great Place To Work-listed with Bengaluru HQ and 292 India employees (https://www.greatplacetowork.in/great/company/grab-greco-llp); category fixed to MNC because Grab is a Nasdaq-listed, Singapore-HQ'd multinational, not a startup.",
+   "set": {
+    "category": "MNC",
+    "bengaluruEmployeesApprox": 292,
+    "description": "Singapore super-app (ride-hailing, delivery, payments; Nasdaq-listed 2021); Grab Greco LLP, its India R&D centre since 2016 (~290 staff), is placed by OSM in Block 2A of Embassy TechVillage."
+   },
+   "offices": [
+    {
+     "office": "grab~7f5bb6",
+     "verdict": "fix",
+     "note": "Bengaluru R&D entity confirmed; building still OSM-only, so medium.",
+     "set": {
+      "confidence": "medium",
+      "evidence": "OSM office POI 'Grab Greco LLP' (website grab.com) on the Block 2A footprint of Embassy TechVillage (https://www.openstreetmap.org/node/6360638296); Great Place To Work lists Grab Greco LLP, Grab's India R&D centre, with HQ Bengaluru and 292 India-based employees (https://www.greatplacetowork.in/great/company/grab-greco-llp). No source names the building."
+     }
+    }
+   ]
+  },
+  {
+   "company": "hengst",
+   "verdict": "keep",
+   "note": "Hengst's own news (14 Mar 2024, https://www.hengst.com/en/company/news/1427-Hengst-Filtration-opens-site-in-Bengaluru--India) confirms a Bengaluru manufacturing site, and trade press puts the 36,000 sq ft plant in the Yelahanka area (https://mobilityoutlook.com/news/hengst-filtration-opens-state-of-the-art-facility-in-bengaluru); no source gives the street address, so the OSM building in KIADB Hardware Park is kept at medium.",
+   "set": {
+    "description": "German filtration maker (Hengst SE, Muenster); opened a 36,000 sq ft Bengaluru plant in March 2024, which OSM maps inside KIADB Hardware Park on the airport corridor."
+   },
+   "offices": [
+    {
+     "office": "hengst~d26506",
+     "verdict": "fix",
+     "note": "Plant existence confirmed by the company; location from OSM, consistent with press 'Yelahanka'.",
+     "set": {
+      "confidence": "medium",
+      "evidence": "Hengst announced the opening of its Bengaluru production site on 14 Mar 2024 (https://www.hengst.com/en/company/news/1427-Hengst-Filtration-opens-site-in-Bengaluru--India); Mobility Outlook places the 36,000 sq ft facility in Yelahanka, Bengaluru (https://mobilityoutlook.com/news/hengst-filtration-opens-state-of-the-art-facility-in-bengaluru); OSM maps a 'Hengst' building (way/1328149081) inside KIADB Hardware Park (way/1279894907). No source gives the plot address."
+     }
+    }
+   ]
+  }
+ ],
+ "notes": "Primary pages that blocked automated access (epam.com 403, gknaerospace.com 403, extron.com bot-wall, NSE PDF 503) were read only through search-engine summaries; confidences reflect that. Not checked or left open: Endava's post-GalaxE Bengaluru building (no India addresses on endava.com); Globant's Bengaluru address (none published); FAB GBS and Grab buildings (OSM-only); GM's current campus (only a 2026 GCC directory says Prestige Shantiniketan, no GM source); EPAM's GTP and Bagmane Capital offices (possibly superseded by RMZ Ecoworld, no closure evidence); GE HealthCare's 'Inventor Building, 60 ITPL Main Rd' site from its branch page (not added because it could not be located reliably); Gokaldas pin is area-level only; Flex's Bingepura pin is the landmark named in its address."
+}

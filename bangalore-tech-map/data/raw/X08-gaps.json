@@ -1,0 +1,793 @@
+{
+ "key": "X08-gaps",
+ "techParks": [
+  {
+   "name": "MS Ramaiah North City",
+   "aliases": [
+    "MS Ramaiah Tech Park",
+    "MSR North Towers"
+   ],
+   "locality": "Nagavara (Outer Ring Road)",
+   "lat": 13.042051,
+   "lng": 77.623557,
+   "bbox": [
+    13.041344,
+    13.042877,
+    77.622743,
+    77.624297
+   ],
+   "developer": "MS Ramaiah Developers and Builders",
+   "areaSqFtMillions": 0.75,
+   "description": "Commercial campus on the Outer Ring Road (Dr. Puneeth Rajkumar Road) at Nagavara where it meets Thanisandra Main Road, beside Manyata Tech Park; its MSR North Towers (~7.5 lakh sq ft, launched 2022) house Strand Life Sciences and a Regus centre. Coordinates are the OSM 'MS Ramaiah Tech Park' footprint.",
+   "notableTenants": [
+    "Strand Life Sciences",
+    "Regus"
+   ],
+   "sources": [
+    "https://www.realtynmore.com/ms-ramaiah-developers-and-builders-launches-its-sustainable-commercial-property-msr-north-towers-at-bengaluru",
+    "https://www.regus.com/en/in/7150",
+    "https://us.strandls.com/contact"
+   ]
+  },
+  {
+   "name": "Novel Tech Park",
+   "aliases": [
+    "Novel Tech Park Kudlu Gate"
+   ],
+   "locality": "Kudlu Gate (Hosur Road)",
+   "lat": 12.89143,
+   "lng": 77.641255,
+   "bbox": [
+    12.891119,
+    12.891901,
+    77.640889,
+    77.641667
+   ],
+   "developer": null,
+   "areaSqFtMillions": null,
+   "description": "Office building at 46/4 GB Palya, Hosur Main Road, Kudlu Gate; listed as Locus's Bengaluru HQ. Coordinates are the OSM footprint.",
+   "notableTenants": [
+    "Locus"
+   ],
+   "sources": [
+    "https://www.highperformr.ai/company/locus-sh"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "Strand Life Sciences",
+   "aliases": [
+    "Strand Life Sciences Private Limited",
+    "Strand",
+    "StrandLS"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Genomics / bioinformatics / diagnostics",
+   "description": "Bengaluru genomics, clinical-diagnostics and bioinformatics company incorporated in 2000; majority-owned (~80%) by Reliance Strategic Business Ventures since 2021. Classed MID_SIZE because it predates the 2005 startup cut-off.",
+   "founded": 2000,
+   "isUnicorn": false,
+   "website": "https://strandls.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - MSR North Tower, Nagavara",
+     "techPark": "MS Ramaiah North City",
+     "building": "MSR North Tower",
+     "locality": "Nagavara (Outer Ring Road)",
+     "address": "7th Floor, M S R North Tower, 144, Dr. Puneeth Rajkumar Road (Outer Ring Road), MS Ramaiah North City, Nagavara, Bengaluru 560045",
+     "lat": 13.042051,
+     "lng": 77.623557,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-park-centroid (MS Ramaiah Tech Park)",
+     "evidence": "Strand's own contact page lists '7th floor, M S R North Tower, Dr. Puneeth Rajkumar Road, Outer Ring Road, Bengaluru 560045' as its India location, and the MCA-derived company profile (updated Mar 2026) gives the same building as the company's address; the older Kirloskar Business Park (Hebbal) address is no longer listed. Point is the OSM centroid of the MS Ramaiah tech-park campus that MSR North Tower stands on (Regus lists the tower in 'MS Ramaiah North City, Manyata Tech Park, Nagavara'). https://us.strandls.com/contact ; https://www.infyner.com/company/strand-life-sciences-private-limited/U85199KA2000PTC027913"
+    }
+   ],
+   "sources": [
+    "https://us.strandls.com/contact",
+    "https://us.strandls.com/",
+    "https://www.infyner.com/company/strand-life-sciences-private-limited/U85199KA2000PTC027913",
+    "https://pharmchoices.com/list-of-biotech-companies-in-bengaluru-karnataka/5/",
+    "https://www.regus.com/en/in/7150",
+    "https://www.indianpharmapost.com/regulatory/reliance-strategic-business-ventures-acquires-strand-life-sciences-for-rs-393-crores-10166"
+   ]
+  },
+  {
+   "name": "iD Fresh Food",
+   "aliases": [
+    "iD Fresh Food (India) Pvt. Ltd.",
+    "ID Fresh Food",
+    "iD"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Packaged fresh food / FMCG",
+   "description": "Bengaluru-headquartered maker of ready-to-cook fresh foods (idli/dosa batter, parotas, filter coffee decoction), founded 2005 by P.C. Mustafa and cousins; venture-backed (Helion, Premji Invest).",
+   "founded": 2005,
+   "isUnicorn": false,
+   "website": "https://www.idfreshfood.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - Trifecta Adatto, ITPL Main Road",
+     "techPark": "Trifecta Adatto",
+     "building": "Trifecta Adatto (91Springboard, 5th floor)",
+     "locality": "Mahadevapura (Garudachar Palya)",
+     "address": "91Springboard, 5th Floor, Trifecta Adatto, 21, ITPL Main Road, Garudachar Palya, Mahadevapura, Bengaluru 560048",
+     "lat": 12.993865,
+     "lng": 77.699255,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-park-centroid (Trifecta Adatto)",
+     "evidence": "The live map embedded on iD Fresh's own contact page is pinned to '91Springboard 5th floor, Trifecta Adatto, 21, ITPL Main Rd, Garudachar Palya, Mahadevapura, Bengaluru 560048', and PitchBook gives the same floor of Trifecta Adatto as the corporate office (the page's older Doddanekkundi Industrial Area address is commented out of its HTML). Point is the OSM footprint centroid of the Trifecta Adatto building. https://www.idfreshfood.com/contact-us/ ; https://pitchbook.com/profiles/company/99066-34"
+    },
+    {
+     "label": "Attibele food plant (Anekal)",
+     "techPark": null,
+     "building": null,
+     "locality": "Attibele (Anekal Taluk)",
+     "address": "Sy. Nos. 515/2, 515/3, 515/4, 516/2, 516/3, 516/4, 533, Madivala village, Kasaba Hobli, Attibele, Anekal Taluk, Bangalore 562107",
+     "lat": 12.7751249,
+     "lng": 77.7709216,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "nominatim (locality: Attibele)",
+     "evidence": "iD Fresh's own contact page lists this Attibele (Anekal) address, with its FSSAI licence number, as its Bengaluru 'Visit us' location; the point is the Nominatim centroid of Attibele, not the plant building. https://www.idfreshfood.com/contact-us/"
+    }
+   ],
+   "sources": [
+    "https://www.idfreshfood.com/contact-us/",
+    "https://pitchbook.com/profiles/company/99066-34",
+    "https://en.wikipedia.org/wiki/ID_Fresh_Food"
+   ]
+  },
+  {
+   "name": "Eightfold AI",
+   "aliases": [
+    "Eightfold AI India Pvt Ltd",
+    "Eightfold.ai"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "hqCity": "Santa Clara",
+   "hqCountry": "USA",
+   "sector": "HR tech / talent-intelligence AI",
+   "description": "Talent-intelligence AI unicorn headquartered in Santa Clara, California, with a large Bengaluru R&D centre (plus a Noida office).",
+   "founded": 2016,
+   "isUnicorn": true,
+   "website": "https://eightfold.ai",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru R&D centre - SJR Cyber, Adugodi",
+     "techPark": "SJR Cyber",
+     "building": "SJR Cyber",
+     "locality": "Adugodi (Laskar Hosur Road)",
+     "address": "Eightfold AI India Pvt Ltd, SJR Cyber, 3rd & 4th Floor, Site No 22, Laskar Main Road, Hosur Road, Adugodi, Bengaluru 560030",
+     "lat": 12.938931,
+     "lng": 77.609475,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-park-centroid (SJR Cyber Laskar)",
+     "evidence": "Eightfold's own contact page lists 'SJR Cyber, 3rd & 4th Floor, Site No 22, Laskar Main Road, Hosur Road, Adugodi, Bengaluru 560030'; point is the OSM footprint of SJR Cyber Laskar (an OSM office POI named 'Eightfold AI' also sits ~300 m away). https://eightfold.ai/contact-us/"
+    }
+   ],
+   "sources": [
+    "https://eightfold.ai/contact-us/",
+    "https://www.openstreetmap.org/node/13207072479"
+   ]
+  },
+  {
+   "name": "Hasura",
+   "aliases": [
+    "Hasura Technologies Private Limited",
+    "Hasura Inc",
+    "PromptQL"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "hqCity": "San Francisco",
+   "hqCountry": "USA",
+   "sector": "Developer tools / data APIs (GraphQL) / AI data agents",
+   "description": "GraphQL and data-API unicorn founded in Bengaluru in 2017 by Tanmai Gopal and Rajoshi Ghosh, now headquartered in San Francisco; launched the PromptQL AI data-agent product in 2025, with engineering still in Bengaluru.",
+   "founded": 2017,
+   "isUnicorn": true,
+   "website": "https://hasura.io",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru engineering office - Koramangala 80 Feet Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Koramangala",
+     "address": "No 37/38, 80 Feet Road, 3rd Block, Koramangala 1A Block, SBI Colony, Koramangala, Bengaluru 560034 (2nd/3rd floor)",
+     "lat": 12.9282918,
+     "lng": 77.6254034,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "nominatim (locality: Koramangala 3rd Block)",
+     "evidence": "A company directory lists Hasura's address as '2nd Floor, No 37/38, 80 Feet Rd, 3rd Block, Koramangala 1A Block, SBI Colony, Bengaluru 560034', and Hasura's own (now-removed) 'The Terrace' community-space page gave the 3rd floor of the same building around 2022; nothing current from Hasura confirms it, and the MCA registered office is a separate Anepalya address. Point is the Koramangala 3rd Block locality centroid, not the building. https://www.easyleadz.com/company/hasura/gst ; https://www.zaubacorp.com/company/U72900KA2017PTC104083"
+    }
+   ],
+   "sources": [
+    "https://www.easyleadz.com/company/hasura/gst",
+    "https://www.zaubacorp.com/company/U72900KA2017PTC104083",
+    "https://inc42.com/company/hasura/overview",
+    "https://clay.com/dossier/hasura-headquarters-office-locations"
+   ]
+  },
+  {
+   "name": "Paytm Money",
+   "aliases": [
+    "Paytm Money Limited"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Fintech / stock broking and wealth",
+   "description": "Paytm's investment and stock-broking arm, a wholly owned subsidiary of listed One97 Communications (Paytm, HQ Noida); registered office in Delhi, operations head office in Bengaluru. Classed MID_SIZE because it is a subsidiary of a listed group rather than a venture-funded startup.",
+   "founded": 2017,
+   "isUnicorn": false,
+   "website": "https://www.paytmmoney.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Operations head office - The Hub, Sarjapur Road",
+     "techPark": "SJR Primeco The Hub",
+     "building": "The Hub",
+     "locality": "Ambalipura (Sarjapur Road / Bellandur)",
+     "address": "Paytm Money Limited, THE HUB, 1st Floor, Sy No 8 & 8/2 Ambalipura Village, Varthur Hobli, Sarjapura Main Road, Bangalore 560103",
+     "lat": 12.920335,
+     "lng": 77.668522,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi (Primeco The Hub)",
+     "evidence": "Paytm Money's own website footer gives 'Operations Head Office: THE HUB, 1ST FLOOR, SY No 8 & 8/2 Ambalipura Village, Varthur Hobli Sarjapura Main Road, Bangalore 560103' (registered office: Nehru Place, Delhi); point is the OSM footprint of SJR Primeco 'The Hub' at Ambalipura. https://www.paytmmoney.com/"
+    }
+   ],
+   "sources": [
+    "https://www.paytmmoney.com/",
+    "https://www.registerkaro.in/company/paytm-money-limited-U72900DL2017PLC323936"
+   ]
+  },
+  {
+   "name": "Cropin",
+   "aliases": [
+    "CropIn",
+    "Cropin Technology Solutions Private Limited",
+    "CropIn Technology"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Agritech SaaS",
+   "description": "Agri-intelligence SaaS pioneer (farm digitisation, crop analytics) founded 2010 and headquartered in BTM Layout, Bengaluru.",
+   "founded": 2010,
+   "isUnicorn": false,
+   "website": "https://www.cropin.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - BTM Layout 1st Stage",
+     "techPark": null,
+     "building": null,
+     "locality": "BTM Layout 1st Stage",
+     "address": "Cropin Technology Solutions Private Limited, 3rd Floor, 1021, 16th Main Road, BTM 1st Stage, Bengaluru 560029",
+     "lat": 12.91851,
+     "lng": 77.6102265,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "nominatim (street: 16th Main Road, BTM 1st Stage)",
+     "evidence": "Cropin's own privacy policy and terms of use both give its registered office as '3rd Floor, 1021, 16th Main Road, BTM 1st Stage, Bengaluru 560029', matching GeospatialWorld's HQ listing; point is the Nominatim centroid of 16th Main Road, BTM 1st Stage (street-level). https://www.cropin.com/privacy-policy/ ; https://www.cropin.com/terms-of-use/"
+    }
+   ],
+   "sources": [
+    "https://www.cropin.com/privacy-policy/",
+    "https://www.cropin.com/terms-of-use/",
+    "https://resource.geospatialworld.net/company/cropin-technologies-solutrions-pvt-ltd"
+   ]
+  },
+  {
+   "name": "Locus",
+   "aliases": [
+    "Locus.sh",
+    "Mara Labs Inc"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Logistics / route-optimisation SaaS",
+   "description": "AI logistics-automation and route-optimisation SaaS founded in Bengaluru in 2015 by Nishith Rastogi and Geet Garg (legal parent Mara Labs Inc.); Bengaluru is its HQ and engineering base.",
+   "founded": 2015,
+   "isUnicorn": false,
+   "website": "https://locus.sh",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Novel Tech Park, Kudlu Gate",
+     "techPark": "Novel Tech Park",
+     "building": "Novel Tech Park",
+     "locality": "Kudlu Gate (Hosur Road)",
+     "address": "Novel Tech Park, 46/4, GB Palya, Hosur Main Road, Kudlu Gate, Bengaluru 560068",
+     "lat": 12.89143,
+     "lng": 77.641255,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-park-centroid (Novel Tech Park)",
+     "evidence": "A company profile gives Locus's Bengaluru HQ and R&D hub as 'Novel Tech Park, 46/4, GB Palya, Hosur Main Road, Kudlu Gate'; Locus's own site still carries '87-148, 4th Floor, Mayur Greens, 1st Block Koramangala' in its schema markup but has commented that address out of its visible Asia-Pacific office listing, so the Koramangala site is treated as superseded. Point is the OSM footprint of Novel Tech Park. https://www.highperformr.ai/company/locus-sh ; https://locus.sh/asia-pacific/"
+    }
+   ],
+   "sources": [
+    "https://www.highperformr.ai/company/locus-sh",
+    "https://locus.sh/asia-pacific/",
+    "https://locus.sh/",
+    "https://yourstory.com/companies/locus"
+   ]
+  },
+  {
+   "name": "MediBuddy",
+   "aliases": [
+    "DocsApp",
+    "MediBuddy (DocsApp)"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Digital health",
+   "description": "Digital-health platform (teleconsultation, lab tests, medicines, corporate health benefits) formed when Medi Assist's digital arm MediBuddy merged with DocsApp in 2020; headquartered with the Medi Assist group at IBC Knowledge Park, Bannerghatta Road.",
+   "founded": null,
+   "isUnicorn": false,
+   "website": "https://www.medibuddy.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - IBC Knowledge Park, Bannerghatta Road",
+     "techPark": "IBC Knowledge Park",
+     "building": null,
+     "locality": "Bannerghatta Road (S.G. Palya)",
+     "address": "IBC Knowledge Park, 4/1 Bannerghatta Road, Bengaluru 560029 (Tower C 6th Floor per Craft/Bitscale; Tower D 4th Floor per CB Insights)",
+     "lat": 12.932234,
+     "lng": 77.602547,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-park-centroid (IBC Knowledge Park)",
+     "evidence": "Craft and Bitscale list MediBuddy at 'Tower C, 6th Floor, IBC Knowledge Park, 4/1 Bannerghatta Road' and CB Insights at Tower D, 4th Floor of the same park, which is also the corporate office Medi Assist publishes on its own contact page; the tower is unresolved, so the point is the IBC Knowledge Park centroid. https://www.cbinsights.com/company/medibuddy-merged-with-docsapp ; https://www.mediassist.in/contact/"
+    }
+   ],
+   "sources": [
+    "https://craft.co/medibuddy",
+    "https://bitscale.ai/directory/medibuddy",
+    "https://www.cbinsights.com/company/medibuddy-merged-with-docsapp",
+    "https://www.mediassist.in/contact/"
+   ]
+  },
+  {
+   "name": "HomeLane",
+   "aliases": [
+    "HomeLane.com"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Home interiors / proptech",
+   "description": "Tech-enabled home-interiors and modular-kitchen platform founded 2014, headquartered in HSR Layout, Bengaluru.",
+   "founded": 2014,
+   "isUnicorn": false,
+   "website": "https://www.homelane.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - HSR Layout Sector 2",
+     "techPark": null,
+     "building": null,
+     "locality": "HSR Layout",
+     "address": "Sri Ranga, #1147, 22nd Cross, 23rd Main, HSR Layout 2nd Sector, Bengaluru 560102",
+     "lat": 12.9082273,
+     "lng": 77.6477342,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "photon (street-level, HSR Layout Sector 2)",
+     "evidence": "The schema.org PostalAddress on HomeLane's own contact page is 'Sri Ranga, #1147, 22nd cross, 23rd main, HSR Layout 2nd sector, Bangalore 560102'; point is a Photon street-junction match in HSR Layout Sector 2, not the building. https://www.homelane.com/contact-us"
+    }
+   ],
+   "sources": [
+    "https://www.homelane.com/contact-us"
+   ]
+  },
+  {
+   "name": "MyGate",
+   "aliases": [
+    "Mygate",
+    "Vivish Technologies Private Limited"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Proptech / community-management app",
+   "description": "Gated-community security, visitor-management and society-accounting app founded 2016, headquartered in HSR Layout, Bengaluru.",
+   "founded": 2016,
+   "isUnicorn": false,
+   "website": "https://mygate.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - HSR Layout Sector 7",
+     "techPark": null,
+     "building": null,
+     "locality": "HSR Layout",
+     "address": "Vivish Technologies Private Limited, 12, 17th Cross, Sector 7, HSR Layout, Bengaluru 560102",
+     "lat": 12.912187,
+     "lng": 77.636237,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "geocodeSource": "osm-poi",
+     "evidence": "MyGate's own contact page and site footer give 'Vivish Technologies Private Limited, 12, 17th Cross, Sector 7, HSR Layout, Bengaluru 560102', and an OSM office POI named 'MyGate' sits at these coordinates on 17th Cross. https://mygate.com/contact-us/"
+    }
+   ],
+   "sources": [
+    "https://mygate.com/contact-us/",
+    "https://www.openstreetmap.org/node/11259898960"
+   ]
+  },
+  {
+   "name": "BlueStone",
+   "aliases": [
+    "BlueStone Jewellery and Lifestyle Limited",
+    "BlueStone.com"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Jewellery retail (omnichannel D2C)",
+   "description": "Omnichannel fine-jewellery brand founded 2011, listed on Indian exchanges in 2025, headquartered on the Outer Ring Road at Marathahalli, Bengaluru.",
+   "founded": 2011,
+   "isUnicorn": false,
+   "website": "https://www.bluestone.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office / HQ - Lava Kusha Arcade, Munnekolal",
+     "techPark": null,
+     "building": "Lava Kusha Arcade",
+     "locality": "Marathahalli (Munnekolal, ORR)",
+     "address": "Site No. 89/2, Lava Kusha Arcade, Munnekolal Village, Outer Ring Road, Marathahalli, Bengaluru 560037",
+     "lat": 12.9480839,
+     "lng": 77.7090175,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "photon (locality: Munnekolala)",
+     "evidence": "BlueStone's own investor-relations page gives 'Site No. 89/2, Lava Kusha Arcade, Munnekolal Village, Outer Ring Road, Marathahalli, Bengaluru 560037' as its registered office; the building is not in OSM, so the point is the Munnekolala locality node. https://www.bluestone.com/investor-relations.html"
+    }
+   ],
+   "sources": [
+    "https://www.bluestone.com/investor-relations.html",
+    "https://voguestock.in/fundamental/locations/bluestone-jewellery-and-lifestyle-ltd"
+   ]
+  },
+  {
+   "name": "HackerRank",
+   "aliases": [
+    "Interviewstreet",
+    "Interviewstreet Solutions"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "hqCity": "Mountain View",
+   "hqCountry": "USA",
+   "sector": "HR tech / developer-skills assessment",
+   "description": "Developer-skills assessment and technical-hiring platform founded in 2009 (as Interviewstreet) by Vivek Ravisankar and Hari Karunanidhi; HQ in California's Bay Area with a Bengaluru engineering office.",
+   "founded": 2009,
+   "isUnicorn": false,
+   "website": "https://www.hackerrank.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru engineering office - Koramangala",
+     "techPark": null,
+     "building": null,
+     "locality": "Koramangala",
+     "address": "Koramangala, Bengaluru (street address not published)",
+     "lat": 12.931826,
+     "lng": 77.613174,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "osm-poi",
+     "evidence": "HackerRank's own About page refers to 'the Bangalore office' and its job ads are on-site in Bengaluru, but it publishes no address; the point is an OSM office POI named 'Hackerrank' in Koramangala. https://www.hackerrank.com/about-us/ ; https://www.openstreetmap.org/node/6140712415"
+    }
+   ],
+   "sources": [
+    "https://www.hackerrank.com/about-us/",
+    "https://www.openstreetmap.org/node/6140712415",
+    "https://builtin.com/company/hackerrank"
+   ]
+  },
+  {
+   "name": "Observe.AI",
+   "aliases": [
+    "Observe AI",
+    "ObserveAI"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "hqCity": "Redwood City",
+   "hqCountry": "USA",
+   "sector": "Conversational AI for contact centres",
+   "description": "Contact-centre conversation-intelligence and voice-AI company founded 2017, headquartered in Redwood City, California, with its engineering office in Bengaluru.",
+   "founded": 2017,
+   "isUnicorn": false,
+   "website": "https://www.observe.ai",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - IndiQube Lakeside, Bellandur",
+     "techPark": null,
+     "building": "IndiQube Lakeside",
+     "locality": "Bellandur (Outer Ring Road)",
+     "address": "IndiQube Lakeside, 2nd Floor, Sy. No. 80/2, Bellandur, Varthur Hobli, Bengaluru 560103",
+     "lat": 12.9269039,
+     "lng": 77.6701877,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "nominatim (locality: Green Glen Layout, Bellandur)",
+     "evidence": "Observe.AI's own careers page lists its two offices as Redwood City and 'IndiQube Lakeside 2nd Floor, Sy. No. 80/2, Bellandur, Varthur Hobli, Bengaluru KA 560103'; myHQ places IndiQube Lakeside on the Outer Ring Road at Green Glen Layout, whose Nominatim centroid is used (locality-level). https://www.observe.ai/careers ; https://myhq.in/meeting-room/indiqube-bellandur-2"
+    }
+   ],
+   "sources": [
+    "https://www.observe.ai/careers",
+    "https://myhq.in/meeting-room/indiqube-bellandur-2"
+   ]
+  },
+  {
+   "name": "Harness",
+   "aliases": [
+    "Harness Inc",
+    "Harness.io"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "hqCity": "San Francisco",
+   "hqCountry": "USA",
+   "sector": "DevOps / CI-CD software",
+   "description": "AI software-delivery (CI/CD, feature flags, cloud-cost) unicorn founded 2017 by Jyoti Bansal, HQ San Francisco; the CEO says 50-60% of its R&D is done in India, primarily in the Bangalore office (about 250 India staff in June 2024).",
+   "founded": 2017,
+   "isUnicorn": true,
+   "website": "https://www.harness.io",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru R&D centre - HSR Layout",
+     "techPark": null,
+     "building": null,
+     "locality": "HSR Layout (Agara)",
+     "address": "24th Main Road, Agara Village, 1st Sector, HSR Layout, Bengaluru 560102",
+     "lat": 12.9220052,
+     "lng": 77.6486831,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "photon (street: 24th Main Road, HSR Layout)",
+     "evidence": "A Harness engineering job listing (removed Aug 2025) gives the office as '24th Main Rd, Agara Village, 1st Sector, HSR Layout, Bengaluru 560102', and Harness's own press page confirms R&D is 'primarily in the Bangalore office'; point is a street-level Photon match on 24th Main Road, HSR. https://builtinbengaluru.in/job/staff-software-engineer/3749267 ; https://www.harness.io/press-and-news/jyoti-bansal-led-harness-to-step-up-india-investment-triple-workforce-locally"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/job/staff-software-engineer/3749267",
+    "https://www.harness.io/press-and-news/jyoti-bansal-led-harness-to-step-up-india-investment-triple-workforce-locally"
+   ]
+  },
+  {
+   "name": "SUN Mobility",
+   "aliases": [
+    "Sun Mobility",
+    "SUN Mobility Private Limited"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "EV battery swapping / energy infrastructure",
+   "description": "EV battery-swapping and energy-infrastructure company co-founded by Chetan Maini and Uday Khemka, headquartered in Doddanekkundi, Bengaluru.",
+   "founded": 2016,
+   "isUnicorn": false,
+   "website": "https://www.sunmobility.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ / registered office - Doddanekkundi Industrial Area",
+     "techPark": null,
+     "building": null,
+     "locality": "Doddanekkundi (Mahadevapura)",
+     "address": "25, 1st Cross, 2nd Main Road, Doddanekundi Industrial Area 2, Phase 1, Doddanekkundi, Bengaluru 560048",
+     "lat": 12.9742421,
+     "lng": 77.6937128,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "photon (street: Doddanekkundi Main Road)",
+     "evidence": "SUN Mobility's own website footer lists both its 'Reg. Office' and 'Office' as '25, 1st Cross, 2nd Main Road, Doddanekundi Industrial Area 2, Phase 1, Doddanekkundi, Bengaluru 560048'; point is the Photon match for Doddanekkundi Main Road (street-level). https://www.sunmobility.com/"
+    }
+   ],
+   "sources": [
+    "https://www.sunmobility.com/",
+    "https://en.wikipedia.org/wiki/SUN_Mobility"
+   ]
+  },
+  {
+   "name": "Snitch",
+   "aliases": [
+    "Snitch Apparels Private Limited"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "D2C menswear / fashion retail",
+   "description": "Bengaluru menswear D2C fashion brand founded by Siddharth Dungarwal, expanding into offline stores; raised a $40M Series B in 2025.",
+   "founded": null,
+   "isUnicorn": false,
+   "website": "https://www.snitch.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office / HQ - St. John's Church Road, Fraser Town",
+     "techPark": null,
+     "building": null,
+     "locality": "Fraser Town",
+     "address": "No 1/1, 1st-5th Floors, St. Johns Church Road, Bharathinagar, Fraser Town, Bangalore 560005",
+     "lat": 12.9917569,
+     "lng": 77.6130125,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "photon (street: St. John's Church Road)",
+     "evidence": "The company's LEI record (validated against MCA) and Instafinancials both give Snitch Apparels' registered address as 'No 1/1, St. Johns Church Road, Bharathinagar, Fraser Town, Bangalore 560005'; point is the Photon match for St. John's Church on that road (street-level). https://www.leikart.com/leicert/984500F2C6DA50368075 ; https://instafinancials.com/company/snitch-apparels-private-limited/U18109KA2022PTC163969"
+    }
+   ],
+   "sources": [
+    "https://www.leikart.com/leicert/984500F2C6DA50368075",
+    "https://instafinancials.com/company/snitch-apparels-private-limited/U18109KA2022PTC163969",
+    "https://www.barandbench.com/law-firms/dealstreet/jsa-acts-on-snitch-apparels-40-mn-series-b-fundraise"
+   ]
+  },
+  {
+   "name": "GIVA",
+   "aliases": [
+    "Giva"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "D2C silver and fine jewellery",
+   "description": "Silver and fine-jewellery D2C brand founded 2019, headquartered off Kanakapura Road (JP Nagar 9th Phase) in south Bengaluru.",
+   "founded": 2019,
+   "isUnicorn": false,
+   "website": "https://www.giva.co",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office / HQ - Kanakapura Main Road",
+     "techPark": null,
+     "building": null,
+     "locality": "Doddakallasandra (JP Nagar 9th Phase)",
+     "address": "Plot No. 60, 3rd Floor, Doddakallasandra, Kanakapura Main Road, Bangalore South, Bangalore 560062",
+     "lat": 12.8846862,
+     "lng": 77.552751,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "nominatim (locality: Doddakallasandra)",
+     "evidence": "GIVA's own contact page gives 'Registered Office: Plot No. 60, 3rd Floor, Doddakallsandra, Kanakapura Main Road, Bangalore South, Bangalore 560062' (also 'JP Nagar Phase 9, Bangalore 560062'); point is the Nominatim Doddakallasandra node on Kanakapura Road (locality-level). https://www.giva.co/pages/contact-us"
+    }
+   ],
+   "sources": [
+    "https://www.giva.co/pages/contact-us"
+   ]
+  },
+  {
+   "name": "Urban Ladder",
+   "aliases": [
+    "Urban Ladder Home Decor Solutions Pvt Ltd",
+    "UrbanLadder"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Online furniture and home decor",
+   "description": "Online furniture and home-decor retailer founded 2012 in Bengaluru; about 96% acquired by Reliance Retail Ventures in 2020 and run as a separate brand (its website now carries Reliance Retail's Mumbai address).",
+   "founded": 2012,
+   "isUnicorn": false,
+   "website": "https://www.urbanladder.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Amarjyothi Layout, Domlur",
+     "techPark": null,
+     "building": null,
+     "locality": "Domlur",
+     "address": "1st-3rd Floor, #259 & 276, Amarjyothi HBCS Layout, 100 Feet Road, Domlur, Bengaluru 560071",
+     "lat": 12.9566279,
+     "lng": 77.6427434,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "geocodeSource": "nominatim (locality: Amarjyothi Layout, Domlur)",
+     "evidence": "CB Insights gives Urban Ladder's HQ as '#259 & 276 Amarjyothi HBCS Layout, Domlur, Bengaluru 560071' and Craft lists the 1st-3rd floors of 259 & 276, 100 Feet Rd, Amarjyoti; both listings are undated and post-acquisition status is unconfirmed. Point is the Nominatim Amarjyothi Layout node (locality-level). https://www.cbinsights.com/company/urban-ladder ; https://craft.co/urban-ladder"
+    }
+   ],
+   "sources": [
+    "https://www.cbinsights.com/company/urban-ladder",
+    "https://craft.co/urban-ladder",
+    "https://www.urbanladder.com/contact-us",
+    "https://entrackr.com/2020/11/urban-ladder-raised-rs-770-cr-and-acquired-by-reliance-for-rs-182-cr"
+   ]
+  },
+  {
+   "name": "Zivame",
+   "aliases": [
+    "Actoserba Active Wholesale Pvt Ltd",
+    "Zivame.com"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "sector": "Lingerie / intimate-wear e-commerce",
+   "description": "Lingerie and intimate-wear e-commerce brand founded 2011 in Bengaluru, majority-owned by Reliance Retail since 2020.",
+   "founded": 2011,
+   "isUnicorn": false,
+   "website": "https://www.zivame.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru HQ - Embassy Prime, CV Raman Nagar",
+     "techPark": "Bagmane Tech Park",
+     "building": "Embassy Prime",
+     "locality": "CV Raman Nagar",
+     "address": "5th Floor, Embassy Prime, Krishnappa Garden, CV Raman Nagar (Bagmane Tech Park), Bengaluru 560093",
+     "lat": 12.978694,
+     "lng": 77.662447,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "geocodeSource": "osm-park-centroid (Bagmane Tech Park)",
+     "evidence": "A company directory dated Nov 2025 lists Zivame at '5th Floor, Embassy Prime, Krishnappa Garden, CV Raman Nagar, Bagmane Tech Park, Bangalore 560093', while PitchBook gives an older 80 Feet Road, Indiranagar corporate office; Zivame publishes no address. Point is the Bagmane Tech Park centroid, the convention this dataset uses for Embassy Prime. https://bitscale.ai/directory/zivame ; https://pitchbook.com/profiles/company/54073-72"
+    }
+   ],
+   "sources": [
+    "https://bitscale.ai/directory/zivame",
+    "https://pitchbook.com/profiles/company/54073-72",
+    "https://develop.builtinbengaluru.in/company/zivame",
+    "https://www.businesstoday.in/current/corporate/reliance-confirms-buying-stake-in-lingerie-retailer-zivame/story/423455.html"
+   ]
+  }
+ ],
+ "coverageNotes": "X08 gap-fill: 19 of the 20 named companies placed, 20 Bengaluru offices. None of the 20 was already in the dataset under another name (checked every raw file's names and aliases). LEFT OUT: Games24x7. Its own contact page still lists a 'Bangalore' office with only a phone number and email, The New Indian Express reported it would shut the Bengaluru office from 6 Sep 2025 after the Online Gaming Act ban on real-money games, and no street address could be found. The only address found was a one-off hackathon venue in Mahadevapura, which is not evidence of an office. CATEGORY CHANGES FROM THE CRITIC'S LIST: Strand Life Sciences is MID_SIZE because it was incorporated in 2000, before the 2005 startup cut-off, and is now ~80% Reliance-owned. Paytm Money is MID_SIZE because it is a wholly owned subsidiary of listed One97 Communications, not a venture-funded startup. The parent One97/Paytm (HQ Noida) is NOT entered, because no Bengaluru office of the parent itself was substantiated. Urban Ladder and Zivame stay STARTUP: they were founded after 2005 and venture-funded before Reliance bought them. CONFIRMED FROM COMPANY PAGES: Strand (MSR North Tower, also the MCA address as of Mar 2026; the hinted Kirloskar Business Park in Hebbal is an older address, no longer listed, and is left out rather than pinned), iD Fresh (corporate office via its contact-page map pin, plus its Attibele plant), Eightfold (SJR Cyber), Paytm Money (The Hub), Cropin (privacy policy and T&C), MyGate (footer plus OSM POI), HomeLane (contact-page schema), BlueStone (investor-relations page), Observe.AI (careers page: IndiQube Lakeside, not the Prestige Khoday Tower or IndiQube Lexington addresses that directories list), SUN Mobility (site footer) and GIVA (contact page). SECONDARY OR WEAK: Locus. A profile gives Novel Tech Park, Kudlu Gate. Locus's own schema markup still says Mayur Greens, Koramangala, but that address is commented out of its visible office list, so Novel Tech Park is used at medium. MediBuddy: IBC Knowledge Park is certain, but the tower is not (C per Craft/Bitscale, D per CB Insights, and D is Medi Assist's published corporate office); the OSM 'Medi Assist' POI in Electronic City belongs to the insurance-TPA parent and is not used. Harness: HSR Layout address from one job listing. HackerRank: its About page confirms a Bangalore office but gives no address, so it is pinned to the OSM 'Hackerrank' POI in Koramangala. Hasura: low. The Koramangala 80 Feet Road address comes from a directory plus a now-removed 2022 Hasura page, and the company has since pivoted to PromptQL. Snitch: registered address from the LEI record and Instafinancials. Urban Ladder: undated CB Insights and Craft HQ listing in Domlur, with post-Reliance status unconfirmed. Zivame: low, because directories conflict (Embassy Prime in CV Raman Nagar, Nov 2025, vs an older Indiranagar address). COORDINATES: several points are street- or locality-level because the building is not in OSM and Nominatim returned HTTP 429 midway. Their offices are capped at medium and the evidence names the geocodeSource. No headcounts were published for Bengaluru, so all are null; Harness's ~250 is India-wide (June 2024)."
+}

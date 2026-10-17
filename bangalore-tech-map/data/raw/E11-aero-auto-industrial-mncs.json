@@ -1,0 +1,3323 @@
+{
+ "key": "E11-aero-auto-industrial-mncs",
+ "techParks": [
+  {
+   "name": "Bengaluru Aerospace Park",
+   "aliases": [
+    "KIADB Aerospace Park",
+    "Hi-Tech Defence and Aerospace Park (Phase 1)",
+    "Aerospace SEZ Devanahalli",
+    "Bengaluru Aerospace SEZ"
+   ],
+   "locality": "Devanahalli / Bagalur / Bhatramarenahalli (airport belt)",
+   "developer": "KIADB",
+   "lat": 13.18094,
+   "lng": 77.727459,
+   "bbox": [
+    13.170057,
+    13.192111,
+    77.714523,
+    77.744265
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Boeing",
+    "Collins Aerospace",
+    "Dynamatic Technologies",
+    "Eaton",
+    "Tata Advanced Systems",
+    "Centum Electronics",
+    "Safran HAL Aircraft Engines",
+    "Dedienne Aerospace"
+   ],
+   "description": "KIADB's Hi-Tech, Defence and Aerospace Park (Phase 1, with an Aerospace SEZ) along SH104 north-east of Kempegowda International Airport; the ~1,000-acre industrial park holds Boeing's 43-acre BIETC campus, Collins' 26-acre operations centre, Dynamatic's Aerotropolis, Eaton Aerospace, TASL and Centum.",
+   "sources": [
+    "https://www.openstreetmap.org/way/172937213"
+   ]
+  },
+  {
+   "name": "Boeing India Engineering and Technology Center",
+   "aliases": [
+    "BIETC",
+    "Boeing Devanahalli campus"
+   ],
+   "locality": "Devanahalli (inside the KIADB Aerospace Park)",
+   "developer": "Boeing",
+   "lat": 13.181879,
+   "lng": 77.721898,
+   "bbox": [
+    13.180241,
+    13.184382,
+    77.719209,
+    77.725504
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Boeing"
+   ],
+   "description": "Boeing's 43-acre, Rs 1,600 crore engineering campus inside the Aerospace Park, inaugurated January 2024 with Building 2 added in August 2024; Boeing's largest facility of its kind outside the US.",
+   "sources": [
+    "https://www.boeing.co.in/news/2024/bietc-b2-inauguration",
+    "https://www.openstreetmap.org/way/991727364"
+   ]
+  },
+  {
+   "name": "North Gate Business Park",
+   "aliases": [
+    "Northgate Tech Park",
+    "North Gate Tech Park"
+   ],
+   "locality": "Yelahanka (Kogilu Cross, Bellary Road)",
+   "developer": null,
+   "lat": 13.1167482,
+   "lng": 77.6062585,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Collins Aerospace",
+    "Pratt & Whitney"
+   ],
+   "description": "Multi-phase office park on Bellary Road at Kogilu Cross, Yelahanka; Collins Aerospace's 413,000 sq ft Global Engineering & Technology Center (2022), its Engineering Development and Test Centre (2025) and Pratt & Whitney's India Engineering Center (2023) are here. Phase 3 was under construction in OSM.",
+   "sources": [
+    "https://www.pax-intl.com/ife-connectivity/tech-hardware/2022/12/15/collins-aerospace-opens-new-facilities-in-india/",
+    "https://www.openstreetmap.org/way/760685450"
+   ]
+  },
+  {
+   "name": "John F. Welch Technology Centre",
+   "aliases": [
+    "JFWTC",
+    "GE India Technology Centre",
+    "Bangalore Engineering Center"
+   ],
+   "locality": "Whitefield (EPIP Zone Phase 2, 2 Whitefield Road)",
+   "developer": "General Electric",
+   "lat": 12.97376,
+   "lng": 77.724167,
+   "bbox": [
+    12.971151,
+    12.975557,
+    77.721444,
+    77.72694
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "GE Aerospace",
+    "GE Vernova",
+    "GE HealthCare"
+   ],
+   "description": "GE's first and largest integrated R&D campus outside the US, opened 17 September 2000 and named after Jack Welch; 4,000-5,000 engineers across GE Aerospace, GE Vernova and GE HealthCare on a walled campus at 2 Whitefield Road in the EPIP Zone.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/John_F._Welch_Technology_Centre",
+    "https://www.openstreetmap.org/way/180969776"
+   ]
+  },
+  {
+   "name": "EPIP Zone Whitefield",
+   "aliases": [
+    "EPIP Industrial Area",
+    "EPIP Zone Phase 1",
+    "EPIP Zone Phase 2",
+    "Export Promotion Industrial Park"
+   ],
+   "locality": "Whitefield (Export Promotion Industrial Park, Hoodi-Kundalahalli)",
+   "developer": "KIADB",
+   "lat": 12.975639,
+   "lng": 77.71776,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Collins Aerospace",
+    "Wabtec",
+    "GE Aerospace",
+    "Daimler Truck",
+    "Mercedes-Benz Research and Development India",
+    "Aptiv",
+    "Schneider Electric"
+   ],
+   "description": "KIADB's Export Promotion Industrial Park at Whitefield, laid out in the 1990s and now a mix of engineering campuses (GE's JFWTC, Collins' Hoodi plant, Wabtec) and leased office parks (Embassy Crest, Whitefield Palms, Kalyani Platina); the point is a Nominatim-resolved EPIP address, not a zone centroid.",
+   "sources": [
+    "https://www.openstreetmap.org/way/122701298"
+   ]
+  },
+  {
+   "name": "Kalyani Tech Park",
+   "aliases": [
+    "Kalyani Tech Park Brookefield"
+   ],
+   "locality": "Brookefield (Kundalahalli)",
+   "developer": "Kalyani Developers",
+   "lat": 12.969732,
+   "lng": 77.71753,
+   "bbox": [
+    12.967354,
+    12.972473,
+    77.715457,
+    77.719202
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Safran"
+   ],
+   "description": "Kalyani Developers' office park at Kundalahalli, Brookefield; Safran Electronics & Defense's 3,000 m2 R&D centre (operational August 2025, growing to 250 engineers) is here.",
+   "sources": [
+    "https://www.openstreetmap.org/way/414833843",
+    "https://evertiq.com/news/2025-02-13-safran-opens-new-electronics-site-and-an-rd-centre-in-india"
+   ]
+  },
+  {
+   "name": "Kalyani Platina",
+   "aliases": [
+    "Kalyani Platina Tech Park"
+   ],
+   "locality": "Whitefield (EPIP Zone Phase 2)",
+   "developer": "Kalyani Developers",
+   "lat": 12.972056,
+   "lng": 77.718544,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Aptiv"
+   ],
+   "description": "Kalyani Developers' office park in EPIP Zone Phase 2, Whitefield, where Delphi (now Aptiv) set up its Bengaluru technical centre at No. 24; the point is the Aptiv/Delphi OSM POI, the park itself is not a polygon in OSM.",
+   "sources": [
+    "https://www.openstreetmap.org/node/4861726306"
+   ]
+  },
+  {
+   "name": "Embassy Crest",
+   "aliases": [
+    "Embassy Crest MBRDI campus"
+   ],
+   "locality": "Whitefield (EPIP Zone Phase 1, Kaveri Nagar)",
+   "developer": "Embassy Group",
+   "lat": 12.986561,
+   "lng": 77.727085,
+   "bbox": [
+    12.985049,
+    12.987572,
+    77.726657,
+    77.728101
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Mercedes-Benz Research and Development India"
+   ],
+   "description": "Embassy Group's built-to-suit campus on Whitefield Road in EPIP Zone Phase 1 that houses the main Mercedes-Benz Research and Development India site.",
+   "sources": [
+    "https://www.openstreetmap.org/way/181699297"
+   ]
+  },
+  {
+   "name": "Whitefield Palms",
+   "aliases": [],
+   "locality": "Whitefield (EPIP Zone Phase 1, Whitefield Road)",
+   "developer": null,
+   "lat": 12.984874,
+   "lng": 77.728688,
+   "bbox": [
+    12.984444,
+    12.985733,
+    77.727728,
+    77.729329
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Daimler Truck"
+   ],
+   "description": "Office building at Plot 9 & 10 (Plot 5-P), EPIP Zone Phase 1, Whitefield Road, home to the Daimler Truck Innovation Center India since 2021.",
+   "sources": [
+    "https://www.openstreetmap.org/way/122668477",
+    "https://locations.daimlertruck.com/en/career/locations/detail/bengaluru-daimler-truck-innovation-center-india-private-limited"
+   ]
+  },
+  {
+   "name": "Brigade Tech Gardens",
+   "aliases": [
+    "BTG"
+   ],
+   "locality": "Brookefield (Kundalahalli)",
+   "developer": "Brigade Group",
+   "lat": 12.964095,
+   "lng": 77.719774,
+   "bbox": [
+    12.962366,
+    12.965397,
+    77.717838,
+    77.722596
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Mercedes-Benz Research and Development India",
+    "Aptiv"
+   ],
+   "description": "Brigade Group's ~3 million sq ft 'garden' office campus at Brookefield; MBRDI and Aptiv have second Bengaluru sites here per OSM.",
+   "sources": [
+    "https://www.openstreetmap.org/way/117313586"
+   ]
+  },
+  {
+   "name": "Manyata Tech Park",
+   "aliases": [
+    "Embassy Manyata Business Park",
+    "Manyata Embassy Business Park",
+    "Manyata Tech Park"
+   ],
+   "locality": "Nagavara (Hebbal Outer Ring Road)",
+   "developer": "Embassy Group",
+   "lat": 13.04809,
+   "lng": 77.61975,
+   "bbox": [
+    13.041258,
+    13.055452,
+    77.616136,
+    77.625275
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Rolls-Royce"
+   ],
+   "description": "Embassy's ~14 million sq ft Manyata Embassy Business Park at Nagavara; Rolls-Royce's aerospace engineering centre is on floors 9-10 of Block L3 (Hazel) and its 700-seat Global Capability Centre opened in the park in September 2025.",
+   "sources": [
+    "https://www.rolls-royce.com/country-sites/india/contacts.aspx",
+    "https://www.openstreetmap.org/way/34121900"
+   ]
+  },
+  {
+   "name": "Bagmane Tech Park",
+   "aliases": [
+    "Bagmane Tech Park CV Raman Nagar"
+   ],
+   "locality": "C.V. Raman Nagar (Byrasandra)",
+   "developer": "Bagmane Developers",
+   "lat": 12.978694,
+   "lng": 77.662447,
+   "bbox": [
+    12.977296,
+    12.98027,
+    77.65617,
+    77.66637
+   ],
+   "areaSqFtMillions": 4.7,
+   "notableTenants": [
+    "Volvo Group",
+    "Boeing",
+    "Alstom",
+    "Texas Instruments",
+    "Dell",
+    "Cisco",
+    "Infineon"
+   ],
+   "description": "Bagmane's 42-acre, 4.7 million sq ft campus at Byrasandra, CV Raman Nagar; Volvo Group India's head office is in Tridib, Boeing in Lakeview, and Alstom's India contact office is in the adjoining Embassy Prime building.",
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-tech-park",
+    "https://www.openstreetmap.org/way/323047914"
+   ]
+  },
+  {
+   "name": "Bagmane World Technology Center",
+   "aliases": [
+    "Bagmane WTC"
+   ],
+   "locality": "Mahadevapura (Outer Ring Road)",
+   "developer": "Bagmane Developers",
+   "lat": 12.985291,
+   "lng": 77.694672,
+   "bbox": [
+    12.979985,
+    12.988634,
+    77.692421,
+    77.697466
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Boeing"
+   ],
+   "description": "Bagmane's World Technology Center SEZ on the Outer Ring Road at Mahadevapura; Boeing occupies the Amber building (213,146 sq ft), the pre-2024 BIETC premises.",
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/world-technology-centre",
+    "https://www.openstreetmap.org/way/91237236"
+   ]
+  },
+  {
+   "name": "Bagmane Constellation Business Park",
+   "aliases": [
+    "Bagmane Constellation"
+   ],
+   "locality": "Doddanekundi (Outer Ring Road)",
+   "developer": "Bagmane Developers",
+   "lat": 12.980938,
+   "lng": 77.697153,
+   "bbox": [
+    12.978625,
+    12.983996,
+    77.694879,
+    77.700592
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Boeing",
+    "Nvidia"
+   ],
+   "description": "Bagmane's Constellation Business Park on the Outer Ring Road at Doddanekundi; Boeing shares the Orion building with Nvidia per the developer's page.",
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-constellation-business-park",
+    "https://www.openstreetmap.org/way/732010480"
+   ]
+  },
+  {
+   "name": "Bagmane Solarium City",
+   "aliases": [
+    "Bagmane Solarium"
+   ],
+   "locality": "Kundalahalli Colony, Brookefield (ITPL Main Road)",
+   "developer": "Bagmane Developers",
+   "lat": 12.969934,
+   "lng": 77.708425,
+   "bbox": [
+    12.967266,
+    12.973182,
+    77.705221,
+    77.711449
+   ],
+   "areaSqFtMillions": 10.5,
+   "notableTenants": [
+    "Schneider Electric",
+    "Visteon",
+    "Harman International",
+    "Shell",
+    "Baker Hughes",
+    "Cognizant",
+    "Northern Trust",
+    "Zebra Technologies",
+    "Tekion",
+    "Carelon"
+   ],
+   "description": "Bagmane's 82-acre, 10.5 million sq ft campus at Kundalahalli on ITPL Main Road; Schneider Electric leased ~0.48 million sq ft here in 2023 for an R&D centre, and the developer lists Visteon, Shell and BHGE (Baker Hughes) among occupiers.",
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city",
+    "https://www.openstreetmap.org/way/414833858"
+   ]
+  },
+  {
+   "name": "International Tech Park Bangalore",
+   "aliases": [
+    "ITPL",
+    "ITPB",
+    "International Tech Park Bengaluru"
+   ],
+   "locality": "Whitefield (Pattandur Agrahara)",
+   "developer": "CapitaLand (Ascendas)",
+   "lat": 12.985228,
+   "lng": 77.736825,
+   "bbox": [
+    12.981491,
+    12.987764,
+    77.733699,
+    77.739693
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "General Motors",
+    "Harman International"
+   ],
+   "description": "The 1994 Singapore-India ITPL/ITPB campus at Whitefield; GM's Technical Center India has been reported here since 2003 and OSM maps a Harman office inside, though neither was confirmed from a company page in this run.",
+   "sources": [
+    "https://www.openstreetmap.org/way/26399624",
+    "https://www.openstreetmap.org/node/10695073042"
+   ]
+  },
+  {
+   "name": "Electronics City Phase 1",
+   "aliases": [
+    "Electronic City Phase I",
+    "ELCIA"
+   ],
+   "locality": "Electronic City (west of Hosur Road)",
+   "developer": "KEONICS / ELCIA",
+   "lat": 12.8471839,
+   "lng": 77.6707326,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Siemens",
+    "Timken",
+    "Yokogawa",
+    "Bosch",
+    "3M India",
+    "Schneider Electric"
+   ],
+   "description": "The original KEONICS/ELCIA electronics estate west of Hosur Road; in this lens it holds Siemens Technology and Services' campus, Yokogawa India's head office (Plot 96), Timken India's registered office, Bosch Global Software Technologies' 360 Degree Business Park centre and APC/Schneider.",
+   "sources": [
+    "https://nominatim.openstreetmap.org/"
+   ]
+  },
+  {
+   "name": "Electronics City Phase 2",
+   "aliases": [
+    "Electronic City Phase II"
+   ],
+   "locality": "Electronic City (east of Hosur Road, Veerasandra / Shantipura)",
+   "developer": "KIADB / ELCIA",
+   "lat": 12.8475,
+   "lng": 77.6755,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Siemens Healthineers",
+    "Continental",
+    "Moog",
+    "Siemens"
+   ],
+   "description": "The KIADB eastern extension of Electronic City; Continental's Technical Center India, Moog Controls India and the Siemens Healthineers development centre are mapped here.",
+   "sources": [
+    "https://www.openstreetmap.org/node/12519614249"
+   ]
+  },
+  {
+   "name": "Bidadi Industrial Area",
+   "aliases": [
+    "Bidadi KIADB Industrial Area"
+   ],
+   "locality": "Bidadi (Ramanagara, Bengaluru-Mysuru road)",
+   "developer": "KIADB",
+   "lat": 12.782,
+   "lng": 77.418217,
+   "bbox": [
+    12.76833,
+    12.793028,
+    77.403261,
+    77.434215
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Toyota Kirloskar Motor",
+    "Bosch"
+   ],
+   "description": "KIADB's industrial area at Bidadi south-west of the city; Toyota Kirloskar Motor's 850-acre two-plant site and its supplier cluster, plus a Bosch Limited plant.",
+   "sources": [
+    "https://www.openstreetmap.org/way/124778550"
+   ]
+  },
+  {
+   "name": "Bommasandra Industrial Area",
+   "aliases": [
+    "Bommasandra Industrial Estate"
+   ],
+   "locality": "Bommasandra (Hosur Road, Anekal Taluk)",
+   "developer": "KIADB",
+   "lat": 12.81729,
+   "lng": 77.695091,
+   "bbox": [
+    12.805196,
+    12.822558,
+    77.687614,
+    77.703259
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "SKF",
+    "Mahindra & Mahindra"
+   ],
+   "description": "KIADB industrial estate on Hosur Road south of Electronic City; SKF's Bengaluru plant and the Mahindra Last Mile Mobility (ex-Mahindra Electric) plant are here.",
+   "sources": [
+    "https://www.openstreetmap.org/way/103293015"
+   ]
+  },
+  {
+   "name": "Jigani Industrial Area",
+   "aliases": [
+    "Jigani Industrial Estate",
+    "KIADB Jigani"
+   ],
+   "locality": "Jigani (Anekal Taluk)",
+   "developer": "KIADB",
+   "lat": 12.779041,
+   "lng": 77.632773,
+   "bbox": [
+    12.761856,
+    12.791421,
+    77.624476,
+    77.64907
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Otis",
+    "Tata Advanced Systems"
+   ],
+   "description": "KIADB industrial estate at Jigani; Otis India's elevator factory (No. 92, Phase II) and TASL's composite-structures facility opened November 2025 are here.",
+   "sources": [
+    "https://www.openstreetmap.org/way/103293010"
+   ]
+  },
+  {
+   "name": "Peenya Industrial Area",
+   "aliases": [
+    "Peenya Industrial Estate",
+    "Peenya 2nd Stage"
+   ],
+   "locality": "Peenya (Tumkur Road / Outer Ring Road)",
+   "developer": "KIADB / KSSIDC",
+   "lat": 13.0202404,
+   "lng": 77.5081111,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "ABB",
+    "Dynamatic Technologies",
+    "Kennametal"
+   ],
+   "description": "One of Asia's largest industrial estates, north-west Bengaluru; ABB India's registered office 'Disha' and works, Dynamatic's manufacturing and hydraulics plants, with Kennametal's HQ just beyond on Tumkur Road.",
+   "sources": [
+    "https://photon.komoot.io/"
+   ]
+  },
+  {
+   "name": "Hoskote Industrial Area",
+   "aliases": [
+    "KIADB Hoskote"
+   ],
+   "locality": "Hoskote (NH75, east of Bengaluru)",
+   "developer": "KIADB",
+   "lat": 13.115385,
+   "lng": 77.827063,
+   "bbox": [
+    13.110556,
+    13.1269,
+    77.81939,
+    77.836032
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Volvo Group"
+   ],
+   "description": "KIADB industrial area at Hoskote; Volvo Group's Indian truck, bus and construction-equipment plant.",
+   "sources": [
+    "https://www.openstreetmap.org/way/155430908"
+   ]
+  },
+  {
+   "name": "RMZ Ecospace",
+   "aliases": [
+    "Ecospace Bellandur"
+   ],
+   "locality": "Bellandur (Outer Ring Road)",
+   "developer": "RMZ Corp",
+   "lat": 12.923868,
+   "lng": 77.681327,
+   "bbox": [
+    12.920082,
+    12.928193,
+    77.678204,
+    77.682839
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Bosch"
+   ],
+   "description": "RMZ's Ecospace campus on the Bellandur stretch of the Outer Ring Road; Bosch Global Software Technologies occupied Campus 1B per OSM.",
+   "sources": [
+    "https://www.openstreetmap.org/way/361528993",
+    "https://www.openstreetmap.org/node/3551347251"
+   ]
+  },
+  {
+   "name": "Prestige Tech Park",
+   "aliases": [
+    "Prestige Tech Park Kadubeesanahalli"
+   ],
+   "locality": "Kadubeesanahalli (Outer Ring Road)",
+   "developer": "Prestige Group",
+   "lat": 12.942865,
+   "lng": 77.692806,
+   "bbox": [
+    12.939183,
+    12.94534,
+    77.688172,
+    77.697502
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Harman International"
+   ],
+   "description": "Prestige Group's office park at Kadubeesanahalli on the Outer Ring Road; Harman International (India) has an office here per OSM.",
+   "sources": [
+    "https://www.openstreetmap.org/way/233001388",
+    "https://www.openstreetmap.org/node/3546632356"
+   ]
+  },
+  {
+   "name": "World Trade Center Bengaluru (Brigade Gateway)",
+   "aliases": [
+    "WTC Bengaluru",
+    "Brigade Gateway"
+   ],
+   "locality": "Rajajinagar / Malleswaram West (Dr Rajkumar Road)",
+   "developer": "Brigade Group",
+   "lat": 13.012512,
+   "lng": 77.556088,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Toyota Tsusho"
+   ],
+   "description": "Brigade's mixed-use Gateway campus with the WTC tower on Dr Rajkumar Road; Toyota Tsusho India's office is on the campus per OSM.",
+   "sources": [
+    "https://www.openstreetmap.org/node/4488744179"
+   ]
+  },
+  {
+   "name": "Shell Technology Centre Bangalore",
+   "aliases": [
+    "STCB",
+    "Shell Bangalore"
+   ],
+   "locality": "Devanahalli (KIADB Hardware Park, Mahadeva Kodigehalli)",
+   "developer": "Shell",
+   "lat": 13.156474,
+   "lng": 77.701876,
+   "bbox": [
+    13.154307,
+    13.158047,
+    77.698673,
+    77.704161
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Shell"
+   ],
+   "description": "Shell's 52-acre technology centre in the KIADB Hardware Park near the airport, one of its three global R&D hubs; the OSM campus polygon sits inside the Hardware Park.",
+   "sources": [
+    "https://www.openstreetmap.org/way/203058241"
+   ]
+  },
+  {
+   "name": "KIADB Hardware Park",
+   "aliases": [
+    "Hardware Park Devanahalli",
+    "ITIR Hardware Park"
+   ],
+   "locality": "Devanahalli (Mahadeva Kodigehalli, airport belt)",
+   "developer": "KIADB",
+   "lat": 13.151089,
+   "lng": 77.685651,
+   "bbox": [
+    13.146138,
+    13.16031,
+    77.675343,
+    77.708203
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Shell"
+   ],
+   "description": "KIADB's Hardware Park beside the airport road, which contains the Shell Technology Centre Bangalore campus.",
+   "sources": [
+    "https://www.openstreetmap.org/way/1279894907"
+   ]
+  },
+  {
+   "name": "RMZ Latitude Commercial",
+   "aliases": [
+    "RMZ Latitude",
+    "Azure"
+   ],
+   "locality": "Hebbal (Bellary Road)",
+   "developer": "RMZ Corp / Brookfield",
+   "lat": 13.056398,
+   "lng": 77.594162,
+   "bbox": [
+    13.055997,
+    13.057023,
+    77.593694,
+    77.594915
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Boeing"
+   ],
+   "description": "RMZ's Latitude / Azure office block on Bellary Road at Hebbal; an OSM POI places a Boeing office here (unconfirmed).",
+   "sources": [
+    "https://www.openstreetmap.org/way/732232656"
+   ]
+  },
+  {
+   "name": "Brigade Magnum",
+   "aliases": [],
+   "locality": "Hebbal (Kodigehalli Gate, Bellary Road)",
+   "developer": "Brigade Group",
+   "lat": 13.057396,
+   "lng": 77.594451,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "ABB"
+   ],
+   "description": "Brigade's office building on Bellary Road at Kodigehalli Gate; OSM places an ABB office here (unconfirmed). Point is the ABB POI, not a polygon centroid.",
+   "sources": [
+    "https://www.openstreetmap.org/node/11477159657"
+   ]
+  },
+  {
+   "name": "Bhoruka Tech Park",
+   "aliases": [],
+   "locality": "Mahadevapura (Whitefield Road)",
+   "developer": "Bhoruka",
+   "lat": 12.994174,
+   "lng": 77.705315,
+   "bbox": [
+    12.993134,
+    12.994941,
+    77.704882,
+    77.706057
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "ABB",
+    "Hitachi Energy"
+   ],
+   "description": "Office park on Whitefield Road, Mahadevapura, on the former Bhoruka industrial land; OSM maps ABB's Block-1 and a Hitachi Energy office here, the ex-ABB power-grids technology campus.",
+   "sources": [
+    "https://www.openstreetmap.org/way/83231745"
+   ]
+  },
+  {
+   "name": "Embassy TechVillage",
+   "aliases": [
+    "Vrindavan Tech Village",
+    "ETV"
+   ],
+   "locality": "Devarabeesanahalli (Outer Ring Road, Bellandur)",
+   "developer": "Embassy Group",
+   "lat": 12.93004,
+   "lng": 77.690611,
+   "bbox": [
+    12.926403,
+    12.934501,
+    77.687141,
+    77.694925
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Collins Aerospace"
+   ],
+   "description": "Embassy's ~9 million sq ft campus on the Outer Ring Road; Rockwell Collins was on its 2020 occupier list and has since consolidated into Yelahanka.",
+   "sources": [
+    "https://www.openstreetmap.org/way/232970396"
+   ]
+  },
+  {
+   "name": "Brigade Metropolis",
+   "aliases": [
+    "Brigade Metropolis Summit"
+   ],
+   "locality": "Garudachar Palya (Mahadevapura, Whitefield Road)",
+   "developer": "Brigade Group",
+   "lat": 12.991912,
+   "lng": 77.703447,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Volvo Group"
+   ],
+   "description": "Brigade's mixed-use Metropolis campus on Whitefield Road; OSM places a Volvo office in the Summit 2 building (unconfirmed). Point is the Volvo POI.",
+   "sources": [
+    "https://www.openstreetmap.org/node/1839605386"
+   ]
+  },
+  {
+   "name": "Bosch Adugodi Campus",
+   "aliases": [
+    "Bosch Spark.NXT",
+    "MICO Adugodi",
+    "Bosch India HQ"
+   ],
+   "locality": "Adugodi (Hosur Road)",
+   "developer": "Bosch",
+   "lat": 12.943794,
+   "lng": 77.604909,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Bosch"
+   ],
+   "description": "Bosch Limited's 76-acre historic MICO works on Hosur Road at Adugodi, being redeveloped as the Spark.NXT smart campus; it is Bosch's India headquarters and registered office.",
+   "sources": [
+    "https://www.openstreetmap.org/relation/14311757",
+    "https://www.sparknxt.com"
+   ]
+  },
+  {
+   "name": "Rajajinagar IT Park",
+   "aliases": [
+    "KSSIDC IT/BT Park Rajajinagar",
+    "Rajajinagar Industrial Estate"
+   ],
+   "locality": "Rajajinagar Industrial Estate (Dr Rajkumar Road side)",
+   "developer": "KSSIDC",
+   "lat": 12.978,
+   "lng": 77.550857,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "ABB"
+   ],
+   "description": "KSSIDC's IT/BT park inside the Rajajinagar Industrial Estate; ABB India's R&D and office block at Plots 1-4 is here per an ABB job listing and OSM. Point is the ABB POI, not a park polygon.",
+   "sources": [
+    "https://www.openstreetmap.org/node/4489715363",
+    "https://builtinbengaluru.in/job/r-d-test-engineer/"
+   ]
+  },
+  {
+   "name": "RMZ Titanium",
+   "aliases": [],
+   "locality": "Domlur (Old Airport Road)",
+   "developer": "RMZ Corp",
+   "lat": 12.958872,
+   "lng": 77.648111,
+   "bbox": [
+    12.958313,
+    12.959774,
+    77.647628,
+    77.648591
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "GKN Aerospace"
+   ],
+   "description": "RMZ's Titanium office building on Old Airport Road, Domlur; OSM places GKN Aerospace's engineering office beside it (unconfirmed).",
+   "sources": [
+    "https://www.openstreetmap.org/node/3797621210"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "Boeing",
+   "aliases": [
+    "Boeing India",
+    "Boeing India Engineering & Technology Center",
+    "BIETC"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "US aerospace major; Bengaluru hosts the Boeing India Engineering & Technology Center (BIETC), its largest engineering campus outside the US, plus leased Bagmane offices it grew out of.",
+   "founded": 1916,
+   "hqCity": "Arlington (Virginia)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.boeing.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "BIETC campus - Devanahalli (Building 1 and 2)",
+     "locality": "Devanahalli (KIADB Hi-Tech Defence and Aerospace Park, Bhatramarenahalli)",
+     "address": "KIADB Hi-Tech Defence and Aerospace Park, Devanahalli, Bengaluru Rural 562149",
+     "building": null,
+     "techPark": "Bengaluru Aerospace Park",
+     "lat": 13.181879,
+     "lng": 77.721898,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "PM Modi inaugurated the 43-acre, Rs 1,600 crore BIETC campus in the Hightech Defence and Aerospace Park, Devanahalli, in January 2024 and Boeing opened Building 2 there in August 2024 (https://www.thenewsminute.com/karnataka/pm-modi-inaugurates-bietc-in-bengaluru, https://www.boeing.co.in/news/2024/bietc-b2-inauguration); OSM maps the campus polygon 'Boeing India Engineering and Technology Center' (https://www.openstreetmap.org/way/991727364).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Bagmane World Technology Center - Amber",
+     "locality": "Mahadevapura (Outer Ring Road)",
+     "address": "Bagmane World Technology Center, Mahadevapura, Bengaluru 560048",
+     "building": "Amber",
+     "techPark": "Bagmane World Technology Center",
+     "lat": 12.987463,
+     "lng": 77.69404,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bagmane's WTC page assigns Boeing to the Amber building (https://www.bagmanegroup.com/portfolio/world-technology-centre) and OSM has an office POI 'Boeing' there (https://www.openstreetmap.org/node/6853514009); this is the pre-2024 BIETC leased space, so occupancy after the Devanahalli consolidation is not re-verified.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Bagmane Tech Park - Lakeview",
+     "locality": "C.V. Raman Nagar (Byrasandra)",
+     "address": "Bagmane Tech Park, Byrasandra, C.V. Raman Nagar, Bengaluru 560093",
+     "building": "Lakeview",
+     "techPark": "Bagmane Tech Park",
+     "lat": 12.978647,
+     "lng": 77.660676,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bagmane's Tech Park page lists Boeing as a Lakeview occupier (https://www.bagmanegroup.com/portfolio/bagmane-tech-park); 2023 press said most engineers 'will continue to work from the BIETC in Bengaluru's Bagmane Tech Park'.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Bagmane Constellation Business Park - Orion",
+     "locality": "Doddanekundi (Outer Ring Road)",
+     "address": "Bagmane Constellation Business Park, Doddanekundi, Bengaluru 560048",
+     "building": "Orion",
+     "techPark": "Bagmane Constellation Business Park",
+     "lat": 12.979967,
+     "lng": 77.695726,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bagmane's Constellation page shows Boeing as an occupier of the Orion building (https://www.bagmanegroup.com/portfolio/bagmane-constellation-business-park); tower-level pin from Nominatim, no second source.",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "RMZ Latitude / Azure office - Hebbal",
+     "locality": "Hebbal (Bellary Road)",
+     "address": "RMZ Latitude Commercial, Bellary Road, Hebbal, Bengaluru 560024",
+     "building": null,
+     "techPark": "RMZ Latitude Commercial",
+     "lat": 13.055493,
+     "lng": 77.594381,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI 'Boeing' inside the RMZ Latitude Commercial polygon on Bellary Road places Boeing here (https://www.openstreetmap.org/node/11205796366); no company or press source reached.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.boeing.co.in/news/2024/bietc-b2-inauguration",
+    "https://www.thenewsminute.com/karnataka/pm-modi-inaugurates-bietc-in-bengaluru",
+    "https://www.bagmanegroup.com/portfolio/world-technology-centre",
+    "https://www.bagmanegroup.com/portfolio/bagmane-tech-park",
+    "https://www.bagmanegroup.com/portfolio/bagmane-constellation-business-park",
+    "https://www.openstreetmap.org/way/991727364"
+   ]
+  },
+  {
+   "name": "Airbus",
+   "aliases": [
+    "Airbus India",
+    "Airbus Group India",
+    "Airbus India Engineering Centre",
+    "AITC"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "European aircraft maker; Bengaluru holds its India engineering and digital centres (since 2007) and, from March 2026, the 880,000 sq ft Airbus India Technology Centre; the India HQ itself is at Delhi airport.",
+   "founded": 1970,
+   "hqCity": "Leiden (operational HQ Toulouse)",
+   "hqCountry": "Netherlands / France",
+   "isUnicorn": false,
+   "website": "https://www.airbus.com/en/our-worldwide-presence/airbus-in-india",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Airbus India Technology Centre (AITC) - presumed Belathur/Kadugodi site",
+     "locality": "Belathur / Kadugodi (Whitefield, Dinnur Main Road)",
+     "address": "Dinnur Main Road, Belathur, Whitefield, Bengaluru 560067",
+     "building": null,
+     "techPark": null,
+     "lat": 12.986297,
+     "lng": 77.747946,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Airbus inaugurated the ~880,000 sq ft, 5,000-seat Airbus India Technology Centre in Bengaluru on 6 March 2026 (https://themachinemaker.com/news/airbus-opens-major-technology-center-in-bengaluru-to-expand-engineering-and-aviation-support/, https://ssfglobal.in/?p=40098) but no article fetched names the locality; the pin is OSM's recently mapped office POI 'Airbus India Private Limited' at Belathur, which Nominatim confirms (https://www.openstreetmap.org/node/13013588732), so the match of campus to POI is inferred.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Airbus Group India engineering office - Mahadevapura (OSM)",
+     "locality": "Mahadevapura (Whitefield Road)",
+     "address": "Whitefield Road, Mahadevapura, Bengaluru 560048",
+     "building": null,
+     "techPark": null,
+     "lat": 12.994422,
+     "lng": 77.701599,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Airbus Group India Pvt Ltd' on Whitefield Road, Mahadevapura (https://www.openstreetmap.org/node/1536507290); Airbus says its India engineering centre dates from 2007 with 700+ then 1,500+ engineers (https://www.airbus.com/en/our-worldwide-presence/airbus-in-india/engineering-and-innovation) but names no building, and whether this site survives the 2026 consolidation is unverified.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.airbus.com/en/our-worldwide-presence/airbus-in-india",
+    "https://www.airbus.com/en/our-worldwide-presence/airbus-in-india/engineering-and-innovation",
+    "https://themachinemaker.com/news/airbus-opens-major-technology-center-in-bengaluru-to-expand-engineering-and-aviation-support/",
+    "https://www.airbus.com/sites/g/files/jlcbta136/files/2024-11/final_-_press_release_-_airbus_india_new_hq_launch_oct_2024_1.pdf"
+   ]
+  },
+  {
+   "name": "Safran",
+   "aliases": [
+    "Safran Electronics & Defense",
+    "Safran Engineering Services",
+    "Safran HAL Aircraft Engines",
+    "Snecma"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "French engine and avionics group; in Bengaluru it has an electronics R&D centre, the Safran HAL Aircraft Engines JV plant near the airport, an electronics plant under construction, and Safran Engineering Services offices.",
+   "founded": 2005,
+   "hqCity": "Paris",
+   "hqCountry": "France",
+   "isUnicorn": false,
+   "website": "https://www.safran-group.com/countries/india",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Safran Electronics & Defense R&D centre - Kalyani Tech Park",
+     "locality": "Brookefield (Kundalahalli)",
+     "address": "Kalyani Tech Park, Kundalahalli, Brookefield, Bengaluru 560037",
+     "building": null,
+     "techPark": "Kalyani Tech Park",
+     "lat": 12.969732,
+     "lng": 77.71753,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Safran's 11 Feb 2025 release says the R&D centre 'spanning 3,000 square meters in Kalyani Tech Park' opens August 2025 and grows to 250 engineers (reported by https://evertiq.com/news/2025-02-13-safran-opens-new-electronics-site-and-an-rd-centre-in-india and https://themachinemaker.com/news/safran-expands-footprint-in-india-with-new-electronics-manufacturing-facility-and-rd-center-in-bengaluru/); pinned to OSM's Kalyani Tech Park polygon (https://www.openstreetmap.org/way/414833843).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Safran HAL Aircraft Engines JV plant - Aerospace SEZ",
+     "locality": "Devanahalli (KIADB Aerospace SEZ near the airport)",
+     "address": "KIADB Aerospace SEZ, Devanahalli",
+     "building": null,
+     "techPark": "Bengaluru Aerospace Park",
+     "lat": 13.18094,
+     "lng": 77.727459,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The 50/50 Safran Aircraft Engines-HAL JV plant for LEAP engine piping was inaugurated on 8 July 2022 'in a Special Economic Zone near the Bangalore airport' (https://www.etvbharat.com/english/bharat/ceo-of-french-company-safran-group-calls-on-def-min-rajnath-singh/na20220706070758184184722, https://www.aviation-defence-universe.com/ceo-of-french-aircraft-engine-maker-safran-group-calls-on-raksha-mantri-shri-rajnath-singh-in-new-delhi); no plot number, so the pin is the Bengaluru Aerospace Park centroid.",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Safran Electronics & Defense production site - airport area (under construction)",
+     "locality": "Devanahalli (airport area)",
+     "address": "Airport area, Devanahalli",
+     "building": null,
+     "techPark": "Bengaluru Aerospace Park",
+     "lat": 13.18094,
+     "lng": 77.727459,
+     "isHq": false,
+     "status": "planned",
+     "confidence": "low",
+     "evidence": "The same Safran release announces a 12,000 m2 electronics production site 'in the airport area of Bengaluru' employing ~400 with operations from H1 2026 (https://evertiq.com/news/2025-02-13-safran-opens-new-electronics-site-and-an-rd-centre-in-india); exact plot not published, pin is the Aerospace Park centroid.",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Safran Engineering Services India - Bannerghatta Road",
+     "locality": "Doraisanipalya / Bilekahalli (Bannerghatta Road)",
+     "address": "Bannerghatta Road, Bengaluru 560076",
+     "building": null,
+     "techPark": null,
+     "lat": 12.898391,
+     "lng": 77.594417,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Safran Engineering Services India' carrying the company website safran-engineering.com, beside the Kalyani Magnum park on Bannerghatta Road (https://www.openstreetmap.org/node/5100578921); not confirmed from a Safran page in this run.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Safran Engineering Services - Iblur / Ambalipura",
+     "locality": "Iblur (Bellandur-Sarjapur Road)",
+     "address": "Ambalipura, Iblur, Bengaluru 560102",
+     "building": null,
+     "techPark": null,
+     "lat": 12.920252,
+     "lng": 77.668621,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Safran Engineering Services' at Ambalipura, Iblur, confirmed by Nominatim reverse lookup (https://www.openstreetmap.org/node/7989324487); OSM only.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.safran-group.com/pressroom/safran-consolidates-its-presence-india-creation-electronics-production-site-and-rd-center-bengaluru-2025-02-11",
+    "https://evertiq.com/news/2025-02-13-safran-opens-new-electronics-site-and-an-rd-centre-in-india",
+    "https://www.etvbharat.com/english/bharat/ceo-of-french-company-safran-group-calls-on-def-min-rajnath-singh/na20220706070758184184722",
+    "https://www.openstreetmap.org/way/414833843"
+   ]
+  },
+  {
+   "name": "Collins Aerospace",
+   "aliases": [
+    "Rockwell Collins",
+    "UTC Aerospace Systems",
+    "Goodrich Aerospace Services India",
+    "RTX"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "RTX's aerospace-systems unit; Bengaluru holds its 413,000 sq ft Global Engineering & Technology Center and test centre at Yelahanka, a legacy Goodrich plant at Hoodi/EPIP and a 26-acre manufacturing site in the KIADB Aerospace Park.",
+   "founded": 2018,
+   "hqCity": "Charlotte (North Carolina)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.collinsaerospace.com",
+   "bengaluruEmployeesApprox": 3600,
+   "offices": [
+    {
+     "label": "Global Engineering & Technology Center and EDTC - North Gate Business Park",
+     "locality": "Yelahanka (Kogilu Cross, Bellary Road)",
+     "address": "North Gate Business Park, Kogilu Cross, Bellary Road, Yelahanka, Bengaluru 560064",
+     "building": null,
+     "techPark": "North Gate Business Park",
+     "lat": 13.116037,
+     "lng": 77.60684,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Collins opened the 413,000 sq ft GETC at Northgate Tech Park in December 2022 to absorb ~3,000 engineers from three other Bengaluru sites (https://www.pax-intl.com/ife-connectivity/tech-hardware/2022/12/15/collins-aerospace-opens-new-facilities-in-india/) and its Engineering Development and Test Centre at the North Gate campus, Yelahanka, in March 2025 (https://www.theweek.in/wire-updates/national/2025/03/05/mes23-ka-aerospace-sector.html); OSM maps 'Collins Aerospace' and 'Collins Aerospace EDTC' there (https://www.openstreetmap.org/node/11572254990).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Collins India Operations Center - KIADB Aerospace Park",
+     "locality": "Devanahalli (KIADB Aerospace Park)",
+     "address": "KIADB Aerospace Park, Devanahalli, Bengaluru Rural 562149",
+     "building": null,
+     "techPark": "Bengaluru Aerospace Park",
+     "lat": 13.181406,
+     "lng": 77.729111,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Press on the December 2022 opening describes the 26-acre Collins India Operations Center in the Hitech Defense and Aerospace Park making seats, lighting, sensors and evacuation slides with 2,200 staff by 2026 (https://industrialautomationindia.in/newsitm/14868/Collins-Aerospace-opens-new-engineering-and-global-operations-centers-in-India/news); OSM maps the 'Collins Aerospace' building polygon beside Boeing's campus (https://www.openstreetmap.org/way/991727363).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Bengaluru Operations Plant (Hoodi Site 1, ex-Goodrich) - EPIP",
+     "locality": "Kundalahalli / Hoodi (EPIP Industrial Area)",
+     "address": "EPIP Industrial Area, Hoodi, Whitefield, Bengaluru 560066",
+     "building": null,
+     "techPark": "EPIP Zone Whitefield",
+     "lat": 12.973547,
+     "lng": 77.721211,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Collins' own announcements name the 'Bengaluru Operations Plant (Hoodi Site 1)' as one of its two Bengaluru manufacturing sites (https://www.spsairbuz.com/news/?id=229); OSM maps 'Collins Aerospace' on the EPIP Industrial Area, Divyasree Technopark Road (https://www.openstreetmap.org/node/9846046251).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Embassy TechVillage office (consolidated into GETC)",
+     "locality": "Devarabeesanahalli (Outer Ring Road)",
+     "address": "Embassy TechVillage, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "building": null,
+     "techPark": "Embassy TechVillage",
+     "lat": 12.93004,
+     "lng": 77.690611,
+     "isHq": false,
+     "status": "closed",
+     "confidence": "low",
+     "evidence": "Embassy TechVillage's occupier list (data as of 30 Sep 2020) named Rockwell Collins; Collins said in 2022 that engineers from three other Bengaluru locations would move into the Yelahanka GETC (https://www.pax-intl.com/ife-connectivity/tech-hardware/2022/12/15/collins-aerospace-opens-new-facilities-in-india/), so this site is recorded as closed.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.pax-intl.com/ife-connectivity/tech-hardware/2022/12/15/collins-aerospace-opens-new-facilities-in-india/",
+    "https://www.theweek.in/wire-updates/national/2025/03/05/mes23-ka-aerospace-sector.html",
+    "https://industrialautomationindia.in/newsitm/14868/Collins-Aerospace-opens-new-engineering-and-global-operations-centers-in-India/news",
+    "https://www.openstreetmap.org/way/991727363"
+   ]
+  },
+  {
+   "name": "GE Aerospace",
+   "aliases": [
+    "GE",
+    "General Electric",
+    "GE India Technology Centre",
+    "JFWTC"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "Jet-engine maker; its Bengaluru engineers sit in the John F. Welch Technology Centre at Whitefield, GE's first and largest multidisciplinary R&D campus outside the US (shared with GE Vernova and GE HealthCare).",
+   "founded": 1892,
+   "hqCity": "Evendale (Cincinnati, Ohio)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.geaerospace.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "John F. Welch Technology Centre - Whitefield",
+     "locality": "Whitefield (EPIP Zone Phase 2)",
+     "address": "2 Whitefield Road, EPIP Zone, Whitefield, Bengaluru 560066",
+     "building": null,
+     "techPark": "John F. Welch Technology Centre",
+     "lat": 12.973354,
+     "lng": 77.724192,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "GE Aerospace job listings give the office as '2 Whitefield Road, Bengaluru 560066' and Wikipedia describes JFWTC as GE's Whitefield research campus founded 17 Sep 2000 with 4,000-5,000 engineers (https://en.wikipedia.org/wiki/John_F._Welch_Technology_Centre); OSM maps the campus with operator General Electric (https://www.openstreetmap.org/way/180969776).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/John_F._Welch_Technology_Centre",
+    "https://builtinbengaluru.in/job/research-engineer-aeromechanics/7906242",
+    "https://www.openstreetmap.org/way/180969776"
+   ]
+  },
+  {
+   "name": "Rolls-Royce",
+   "aliases": [
+    "Rolls-Royce India",
+    "Rolls-Royce plc",
+    "IAMPL"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "UK engine maker; its Bengaluru aerospace engineering centre and 700-seat global capability centre are in Manyata, and the HAL joint venture IAMPL machines engine parts near the HAL airport.",
+   "founded": 1906,
+   "hqCity": "London (engineering HQ Derby)",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://www.rolls-royce.com/country-sites/india.aspx",
+   "bengaluruEmployeesApprox": 2000,
+   "offices": [
+    {
+     "label": "Engineering Centre (Aerospace) - Manyata Block L3 Hazel",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "9th & 10th Floor, Block L3 (Hazel), Manyata Embassy Business Park, Nagawara, Bengaluru 560045",
+     "building": "Block L3 (Hazel)",
+     "techPark": "Manyata Tech Park",
+     "lat": 13.045039,
+     "lng": 77.618622,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Rolls-Royce India's contacts page: 'Rolls-Royce India Private Limited, 9th and 10th Floor, Block L3 (Hazel), Manyata Embassy Business Park, Hebbal Outer Ring Road, Nagawara, Bengaluru 560045' (https://www.rolls-royce.com/country-sites/india/contacts.aspx).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Global Capability and Innovation Centre - Manyata (block not named)",
+     "locality": "Nagavara (Hebbal Outer Ring Road)",
+     "address": "Manyata Embassy Business Park, Nagawara, Bengaluru 560045",
+     "building": null,
+     "techPark": "Manyata Tech Park",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Rolls-Royce opened a 700-seat Global Capability Centre at Manyata Embassy Business Park on 17 Sep 2025 (https://www.storyboard18.com/brand-marketing/rolls-royce-opens-its-largest-global-capability-centre-in-bengaluru-81115.htm, https://machinist.in/2025/09/rolls-royce-inaugurates-700-seat-global-capability-centre-in-bengaluru/); block not named, so the pin is the park centroid.",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "International Aerospace Manufacturing (HAL-Rolls-Royce JV) - Kempapura",
+     "locality": "Kempapura / Yemalur (south of HAL Airport)",
+     "address": "Survey No. 3, Kempapura, Bellandur Post, Bengaluru 560037",
+     "building": null,
+     "techPark": null,
+     "lat": 12.944064,
+     "lng": 77.671762,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps 'International Aerospace Manufacturing pvt.ltd, Survey No-3 Kempapura, Bellandur' (https://www.openstreetmap.org/node/4447064801); IAMPL is the 50:50 HAL-Rolls-Royce JV making engine rings and compressor parts (https://www.rolls-royce.com/country-sites/india/partners-in-progress/engineering.aspx).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.rolls-royce.com/country-sites/india/contacts.aspx",
+    "https://www.storyboard18.com/brand-marketing/rolls-royce-opens-its-largest-global-capability-centre-in-bengaluru-81115.htm",
+    "https://machinist.in/2025/09/rolls-royce-inaugurates-700-seat-global-capability-centre-in-bengaluru/"
+   ]
+  },
+  {
+   "name": "Pratt & Whitney",
+   "aliases": [
+    "Pratt & Whitney India",
+    "UTC India (UTCIPL)",
+    "RTX"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "RTX engine maker; its $36m India Engineering Center and India Capability Center share the North Gate campus at Yelahanka with Collins Aerospace.",
+   "founded": 1925,
+   "hqCity": "East Hartford (Connecticut)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.prattwhitney.com",
+   "bengaluruEmployeesApprox": 500,
+   "offices": [
+    {
+     "label": "India Engineering Center and India Capability Center - North Gate Business Park",
+     "locality": "Yelahanka (Kogilu Cross, Bellary Road)",
+     "address": "North Gate Business Park, Kogilu Cross, Bellary Road, Yelahanka, Bengaluru 560064",
+     "building": null,
+     "techPark": "North Gate Business Park",
+     "lat": 13.116141,
+     "lng": 77.606505,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Pratt & Whitney opened the $36m India Engineering Centre in January 2023 'co-located in Yelahanka with the Pratt & Whitney India Capability Centre' and the Collins GETC, planning 500 staff (https://www.outlookbusiness.com/news/pratt-whitney-opens-36-million-engineering-centre-in-bengaluru-news-255031); OSM maps 'Pratt & Whitney India' inside North Gate Business Park (https://www.openstreetmap.org/node/11566442300).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.outlookbusiness.com/news/pratt-whitney-opens-36-million-engineering-centre-in-bengaluru-news-255031",
+    "https://www.aviationpros.com/aircraft-maintenance-technology/engines-parts/press-release/21293103/raytheon-aircraft-company-raytheon-technologies-expands-bengaluru-operations-with-opening-of-pratt-whitney-india-engineering-center",
+    "https://www.openstreetmap.org/node/11566442300"
+   ]
+  },
+  {
+   "name": "Honeywell",
+   "aliases": [
+    "Honeywell Technology Solutions",
+    "HTS",
+    "Honeywell Technology Solutions Lab"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "US aerospace, automation and building-technology conglomerate; Honeywell Technology Solutions Lab runs two Outer Ring Road campuses at Bellandur plus a Bannerghatta Road site.",
+   "founded": 1906,
+   "hqCity": "Charlotte (North Carolina)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.honeywell.com/in/en",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Campus 1 - Adarsh Prime Project, Devarabisanahalli",
+     "locality": "Devarabisanahalli (Outer Ring Road, Bellandur)",
+     "address": "No. 19/2, Adarsh Prime Project, Devarabisanahalli Village, Varthur Hobli, Bengaluru 560103",
+     "building": null,
+     "techPark": null,
+     "lat": 12.9279469,
+     "lng": 77.6808628,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Honeywell's India locations page lists 'Bangalore - Campus 1, Honeywell Technology Solutions Lab Pvt. Ltd., No. 19/2, Adarsh Prime Project, Devarabisanahalli Village, Varthur Hobli, Bengaluru 560103' (https://www.honeywell.com/in/en/careers/locations/india); the pin is Photon's Outer Ring Road point for Devarabisanahalli, not the building.",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Campus 2 - Boganahalli / Doddakannahalli",
+     "locality": "Doddakannahalli (Outer Ring Road, beside RMZ Ecoworld)",
+     "address": "Survey No. 96 & 97, Boganahalli Village and 72/2 & 72/5, Doddakannahalli Village, Varthur Hobli, Bengaluru 560103",
+     "building": null,
+     "techPark": null,
+     "lat": 12.924965,
+     "lng": 77.686859,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "The same Honeywell page lists 'Bangalore - Campus 2 ... Survey No. 96 & 97, Boganahalli Village, Survey No. 72/2 & 72/5, Doddakannahalli Village, Varthur Hobli, Bengaluru 560103' (https://www.honeywell.com/in/en/careers/locations/india); OSM maps 'Honeywell Technology Solutions' on RMZ Eco World Road (https://www.openstreetmap.org/node/11553915354).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Bannerghatta Road campus - 151/1 Doraisanipalya",
+     "locality": "Doraisanipalya (Bannerghatta Road)",
+     "address": "No. 151/1, Doraisanipalya, Bannerghatta Road, Bengaluru 560076",
+     "building": null,
+     "techPark": null,
+     "lat": 12.899209,
+     "lng": 77.599272,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "A Naukri company listing gives Honeywell Technology Solutions at 'No. 151/1, Doraisanipalya, Bannerghatta Road, Bangalore 560076' (https://companies.naukri.com/honeywell-jobs/contact) and OSM maps a commercial site 'Honeywell Technology Solutions Lab Pvt Ltd' there (https://www.openstreetmap.org/way/121004026); it is not on Honeywell's current locations page, so it may be legacy.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.honeywell.com/in/en/careers/locations/india",
+    "https://companies.naukri.com/honeywell-jobs/contact",
+    "https://www.openstreetmap.org/node/11553915354"
+   ]
+  },
+  {
+   "name": "Thales",
+   "aliases": [
+    "Thales India",
+    "Thales Group",
+    "Thales Engineering Competence Centre"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "French defence-electronics group; its Bengaluru Engineering Competence Centre (2019, 500+ engineers) gained a second building in November 2023, but no fetched source names the park.",
+   "founded": 2000,
+   "hqCity": "Paris (La Defense)",
+   "hqCountry": "France",
+   "isUnicorn": false,
+   "website": "https://www.thalesgroup.com/en/countries-asia-pacific/india",
+   "bengaluruEmployeesApprox": 500,
+   "offices": [
+    {
+     "label": "Bengaluru office (OSM 'Thales', Richmond Road) - ECC building not located",
+     "locality": "Richmond Town (Richmond Road, Langford Gardens)",
+     "address": "Richmond Road, Bengaluru 560025",
+     "building": null,
+     "techPark": null,
+     "lat": 12.964847,
+     "lng": 77.598883,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Thales launched a second Bengaluru building in November 2023 as an extension of its 2019 Engineering Competence Centre, now over 500 staff (https://www.thalesgroup.com/en/news-centre/press-releases/thales-expands-footprint-india-second-office-bengaluru, https://www.hrkatha.com/news/thales-inaugurates-office-in-bengaluru/), without naming the location; the only mapped Thales point is an OSM brand POI on Richmond Road (https://www.openstreetmap.org/node/11542415992), so the ECC's park remains unconfirmed.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.thalesgroup.com/en/news-centre/press-releases/thales-expands-footprint-india-second-office-bengaluru",
+    "https://www.hrkatha.com/news/thales-inaugurates-office-in-bengaluru/",
+    "https://www.openstreetmap.org/node/11542415992"
+   ]
+  },
+  {
+   "name": "Dassault Systemes",
+   "aliases": [
+    "3DS",
+    "Dassault Systèmes"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "French 3D-design and PLM software house (CATIA, 3DEXPERIENCE); its Bengaluru offices are in Jayanagar. Dassault Aviation, the aircraft maker, has no Bengaluru office found.",
+   "founded": 1981,
+   "hqCity": "Velizy-Villacoublay",
+   "hqCountry": "France",
+   "isUnicorn": false,
+   "website": "https://www.3ds.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bangalore Nanda office - Jayanagar 3rd Block",
+     "locality": "Jayanagar 3rd Block",
+     "address": "No. 45, 22nd Cross, 5th Main Road, 3rd Block, Jayanagar, Bengaluru 560011",
+     "building": "Nanda",
+     "techPark": null,
+     "lat": 12.932924,
+     "lng": 77.58107,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Dassault Systemes' office page gives 'Nanda, No 45 22nd Cross, 5th Main Road 3rd Block, Jayanagar, Bangalore 560011' (https://www.3ds.com/about/company/office-locations/india/bangalore-nanda); OSM maps 'Dassault Systemes' with the same house number and website (https://www.openstreetmap.org/node/6433396485).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Bangalore Pramuk office - Jayanagar",
+     "locality": "Jayanagar (560070)",
+     "address": "Jayanagar, Bengaluru 560070",
+     "building": "Pramuk",
+     "techPark": null,
+     "lat": 12.929971,
+     "lng": 77.574094,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Dassault Systemes' India office list also carries a 'Bangalore Pramuk' office in Jayanagar 560070 (https://www.3ds.com/fr/about/company/office-locations/india/3ds-bangalore-pramuk); OSM has a second 'Dassault Systems' POI in Jayanagar (https://www.openstreetmap.org/node/12308893237) taken as that office.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.3ds.com/about/company/office-locations/india/bangalore-nanda",
+    "https://www.3ds.com/fr/about/company/office-locations/india/3ds-bangalore-pramuk",
+    "https://www.openstreetmap.org/node/6433396485"
+   ]
+  },
+  {
+   "name": "Eaton",
+   "aliases": [
+    "Eaton Aerospace",
+    "Eaton India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Irish-domiciled power-management group; Eaton Aerospace India runs a works in the KIADB Aerospace Park at Devanahalli (its India Innovation Center is in Pune).",
+   "founded": 1911,
+   "hqCity": "Dublin",
+   "hqCountry": "Ireland",
+   "isUnicorn": false,
+   "website": "https://www.eaton.com/in/en-gb.html",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Eaton Aerospace India - KIADB Aerospace Park",
+     "locality": "Devanahalli (Bhatramarenahalli, KIADB Aerospace Park)",
+     "address": "SH104, KIADB Aerospace Park, Bhatramarenahalli, Devanahalli 562149",
+     "building": null,
+     "techPark": "Bengaluru Aerospace Park",
+     "lat": 13.178312,
+     "lng": 77.731397,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps an industrial works polygon 'Eaton Aerospace India' on SH104 inside the Bengaluru Aerospace Park, which Nominatim reverse lookup confirms (https://www.openstreetmap.org/way/1240497180); eaton.com's India page returned 404 in this run, so this is OSM-only.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/1240497180",
+    "https://www.eaton.com/in/en-gb.html"
+   ]
+  },
+  {
+   "name": "Dynamatic Technologies",
+   "aliases": [
+    "Dynamatic-Oldland Aerospace",
+    "Dynamatic Hydraulics",
+    "JKM Dynamatic"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "description": "Bengaluru-headquartered aerostructures and hydraulics maker (Boeing, Airbus and Bell supplier); registered office at its Aerotropolis in the KIADB Aerospace Park with plants in Peenya.",
+   "founded": 1973,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.dynamatics.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Dynamatic Aerotropolis - registered office, Dynamatic-Oldland Aerospace and Dynauton",
+     "locality": "Devanahalli (KIADB Aerospace Park)",
+     "address": "55, KIADB Aerospace Park, Devanahalli, Bengaluru 562149",
+     "building": "JKM Plaza",
+     "techPark": "Bengaluru Aerospace Park",
+     "lat": 13.1849,
+     "lng": 77.718063,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Dynamatic's contact page gives the Registered Office as 'JKM Plaza, Dynamatic Aerotropolis, 55, KIADB Aerospace Park, Bangalore 562149' with the aerospace and UAV divisions at the same site (http://www.dynamatics.com/contact-us/); OSM maps the 'Dynamatic' site in the park (https://www.openstreetmap.org/way/801307395).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Dynamatic Manufacturing - Peenya II Stage (Plot V-77 & 78)",
+     "locality": "Peenya Industrial Estate (2nd Stage)",
+     "address": "Plot No. V-77 & 78, Peenya Industrial Estate, Peenya II Stage, Bengaluru 560058",
+     "building": null,
+     "techPark": "Peenya Industrial Area",
+     "lat": 13.0202404,
+     "lng": 77.5081111,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The same page lists Dynamatic Manufacturing Limited at 'Plot No. V-77 & 78, Peenya Industrial Estate, Peenya II Stage, Bangalore 560058' (http://www.dynamatics.com/contact-us/); pinned to the Photon point for Peenya 2nd Stage, not the plot.",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Dynamatic Hydraulics - Peenya 1st Stage",
+     "locality": "Peenya Industrial Area (1st Stage, 2nd Phase)",
+     "address": "No. 1A/1, 1st Main Road, 1st Stage, 2nd Phase, Peenya Industrial Area, Bengaluru 560058",
+     "building": null,
+     "techPark": "Peenya Industrial Area",
+     "lat": 13.0352642,
+     "lng": 77.5269388,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The same page lists Dynamatic Hydraulics at 'No. 1A/1, 1st Main Road, 1st Stage, 2nd Phase, Peenya Industrial Area, Bangalore 560058' (http://www.dynamatics.com/contact-us/); Nominatim point for the 1st Stage.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "http://www.dynamatics.com/contact-us/",
+    "https://en.wikipedia.org/wiki/Dynamatic_Technologies",
+    "https://www.openstreetmap.org/way/801307395"
+   ]
+  },
+  {
+   "name": "Tata Advanced Systems",
+   "aliases": [
+    "TASL",
+    "Tata Aerospace & Defence"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "description": "Tata group's aerospace and defence arm (Hyderabad HQ); in Bengaluru it has an Aerospace Park unit, a Jigani composites facility opened in November 2025 and a C-130J MRO hangar under construction near the airport.",
+   "founded": 2007,
+   "hqCity": "Hyderabad",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.tataadvancedsystems.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru Aerospace Park facility",
+     "locality": "Devanahalli (Baladimmanahalli, KIADB Aerospace Park)",
+     "address": "SH104, Baladimmanahalli, KIADB Aerospace Park, Devanahalli 562149",
+     "building": null,
+     "techPark": "Bengaluru Aerospace Park",
+     "lat": 13.1776516,
+     "lng": 77.7346726,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps an industrial polygon 'Tata Advanced Systems, SH104, Baladimmanahalli, Devanahalli' inside the Bengaluru Aerospace Park and Nominatim resolves it (https://www.openstreetmap.org/way/801307402); not confirmed from a TASL page in this run.",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Composite structures facility - Jigani",
+     "locality": "Jigani Industrial Area",
+     "address": "KIADB Jigani Industrial Area, Anekal Taluk",
+     "building": null,
+     "techPark": "Jigani Industrial Area",
+     "lat": 12.779041,
+     "lng": 77.632773,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "TASL's site says its composite structures facility for Airbus programmes was inaugurated in Jigani, Bengaluru on 27 Nov 2025 (https://www.tataadvancedsystems.com/); plot not given, pin is the Jigani Industrial Estate centroid (https://www.openstreetmap.org/way/103293010).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "C-130J MRO facility (under construction)",
+     "locality": "Bhatramarenahalli (near Kempegowda International Airport)",
+     "address": "Bhatramarenahalli, Devanahalli",
+     "building": null,
+     "techPark": null,
+     "lat": 13.1670614,
+     "lng": 77.7364577,
+     "isHq": false,
+     "status": "planned",
+     "confidence": "medium",
+     "evidence": "Wikipedia records TASL's C-130J MRO facility at Bhatramarenahalli near the airport with groundbreaking on 5 Dec 2025 and completion due late 2026/early 2027 (https://en.wikipedia.org/wiki/Tata_Advanced_Systems); Photon point for the village.",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.tataadvancedsystems.com/",
+    "https://en.wikipedia.org/wiki/Tata_Advanced_Systems",
+    "https://www.openstreetmap.org/way/801307402"
+   ]
+  },
+  {
+   "name": "Aequs",
+   "aliases": [
+    "Aequs Aerospace",
+    "QuEST Global Manufacturing"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Aerospace & defence",
+   "description": "Belagavi-based aerospace precision-manufacturing group; its registered office is Aequs Tower on Whitefield Main Road, Mahadevapura.",
+   "founded": 2006,
+   "hqCity": "Belagavi",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://aequs.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Aequs Tower - registered office",
+     "locality": "Mahadevapura (Whitefield Main Road)",
+     "address": "Aequs Tower, No. 55, Whitefield Main Road, Mahadevapura Post, Bengaluru 560048",
+     "building": null,
+     "techPark": null,
+     "lat": 12.9965445,
+     "lng": 77.6927176,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "aequs.com's contact page gives 'Registered office: Aequs Tower, No. 55, Whitefield Main Road, Mahadevapura Post, Bengaluru 560048' (https://aequs.com/contact-us/); the building did not geocode, so the pin is Nominatim's Mahadevapura point.",
+     "geocodeSource": "nominatim"
+    }
+   ],
+   "sources": [
+    "https://aequs.com/contact-us/"
+   ]
+  },
+  {
+   "name": "Moog",
+   "aliases": [
+    "Moog Controls India",
+    "Moog Inc."
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "US flight-control and motion-control maker; Moog Controls India has an engineering and manufacturing site on Shantipura Main Road, Electronic City Phase 2.",
+   "founded": 1951,
+   "hqCity": "Elma (New York)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.moog.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Moog Controls India - Electronic City Phase 2",
+     "locality": "Electronic City Phase 2 (Shantipura Main Road)",
+     "address": "41P, 100P, 99P, Shantipura Main Road, Electronic City Phase 2, Bengaluru 560100",
+     "building": null,
+     "techPark": "Electronics City Phase 2",
+     "lat": 12.846329,
+     "lng": 77.679328,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps 'Moog Controls India Private Limited' at '41P, 100P, 99P Shantipura Main Road, 560100' carrying the moog.com website (https://www.openstreetmap.org/node/4672149492); Moog's own locations page was not reachable in this run.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4672149492",
+    "https://www.moog.com"
+   ]
+  },
+  {
+   "name": "GKN Aerospace",
+   "aliases": [
+    "GKN Aerospace Engineering Services India",
+    "Melrose Industries"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "UK aerostructures and engine-systems supplier (Melrose); GKN Aerospace Engineering Services runs a Bengaluru engineering centre that OSM places at RMZ Titanium on Old Airport Road.",
+   "founded": 1759,
+   "hqCity": "Bristol",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://www.gknaerospace.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "GKN Aerospace engineering centre - RMZ Titanium (OSM)",
+     "locality": "Domlur (Old Airport Road)",
+     "address": "RMZ Titanium, Old Airport Road, Domlur, Bengaluru 560017",
+     "building": null,
+     "techPark": "RMZ Titanium",
+     "lat": 12.959391,
+     "lng": 77.648218,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI 'GKN Aerospace' beside the RMZ Titanium polygon on Old Airport Road places it here (https://www.openstreetmap.org/node/3797621210); gknaerospace.com's locations page returned 404 in this run.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/3797621210"
+   ]
+  },
+  {
+   "name": "Bosch",
+   "aliases": [
+    "Bosch Limited",
+    "Bosch Global Software Technologies",
+    "BGSW",
+    "Robert Bosch Engineering and Business Solutions",
+    "RBEI",
+    "MICO",
+    "Bosch Automotive Electronics India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "German automotive and industrial group whose India flagship Bosch Limited is headquartered at Adugodi; Bosch Global Software Technologies (16,000+ staff in India) has its HQ in Koramangala, and Bosch Automotive Electronics makes ECUs at Naganathapura.",
+   "founded": 1886,
+   "hqCity": "Gerlingen (Stuttgart)",
+   "hqCountry": "Germany",
+   "isUnicorn": false,
+   "website": "https://www.bosch.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bosch Limited India HQ - Adugodi campus (Spark.NXT)",
+     "locality": "Adugodi (Hosur Road)",
+     "address": "Hosur Road, Adugodi, Bengaluru 560030",
+     "building": null,
+     "techPark": "Bosch Adugodi Campus",
+     "lat": 12.943794,
+     "lng": 77.604909,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Bosch Limited's registered office is Hosur Road, Adugodi, Bengaluru 560030 and OSM maps the redeveloped 'Bosch Spark.NXT' campus relation there with website sparknxt.com (https://www.openstreetmap.org/relation/14311757); bosch.in's India page lists Bosch Limited as the flagship company (https://www.bosch.in/our-company/bosch-in-india/).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Bosch Global Software Technologies HQ - 123 Industrial Layout, Hosur Road, Koramangala",
+     "locality": "Koramangala Industrial Layout (Hosur Road)",
+     "address": "123, Industrial Layout, Hosur Road, Koramangala, Bengaluru 560095",
+     "building": null,
+     "techPark": null,
+     "lat": 12.936006,
+     "lng": 77.612364,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "BGSW's locations page lists its Bangalore engineering centre and sales office at '123, Industrial Layout, Hosur Road, Koramangala, Bangalore 560095' (https://www.bosch-softwaretechnologies.com/en/locations/); OSM maps the 'Bosch RBEI' campus and building 905 there (https://www.openstreetmap.org/way/28110531).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Bosch Global Software Technologies - 360 Degree Business Park, Electronic City Phase 1",
+     "locality": "Electronic City Phase 1",
+     "address": "360 Degree Business Park, Electronic City Phase I, Bengaluru 560100",
+     "building": "360 Degree Business Park",
+     "techPark": "Electronics City Phase 1",
+     "lat": 12.842158,
+     "lng": 77.654168,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "BGSW's locations page lists an engineering centre at '360 Business Park, Electronic City Phase I, Bengaluru 560100' (https://www.bosch-softwaretechnologies.com/en/locations/); OSM has a 'Bosch' company POI in Phase 1 (https://www.openstreetmap.org/node/11949923277) used as the pin, the park itself not being mapped.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Bosch Global Software Technologies - RMZ Ecospace Campus 1B (OSM)",
+     "locality": "Bellandur (Outer Ring Road)",
+     "address": "Campus 1B, RMZ Ecospace, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "building": "Campus 1B",
+     "techPark": "RMZ Ecospace",
+     "lat": 12.926528,
+     "lng": 77.679808,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM maps 'Robert Bosch Engineering and Business Solutions Limited' at Campus 1B, EcoSpace, Bellandur with the company website (https://www.openstreetmap.org/node/3551347251); the site is not on BGSW's current locations page, so it may have been given up.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Bosch Automotive Electronics India - Naganathapura plant",
+     "locality": "Naganathapura (Electronic City Post)",
+     "address": "Naganathapura, Electronic City Post, Bengaluru 560100",
+     "building": null,
+     "techPark": null,
+     "lat": 12.870505,
+     "lng": 77.663552,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "OSM maps the industrial sites 'Bosch NhP' and 'Bosch RBAI' at Naganathapura, south of Electronic City (https://www.openstreetmap.org/way/24580022, https://www.openstreetmap.org/way/71559709); bosch.in lists Bosch Automotive Electronics India among its Indian companies (https://www.bosch.in/our-company/bosch-in-india/).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Bosch Limited - Bidadi plant",
+     "locality": "Bidadi Industrial Area (Ramanagara)",
+     "address": "KIADB Industrial Area, Bidadi, Ramanagara 562109",
+     "building": null,
+     "techPark": "Bidadi Industrial Area",
+     "lat": 12.782,
+     "lng": 77.418217,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Bosch Limited's annual reports list a Bidadi plant among its manufacturing sites; not re-verified from a primary page in this run, so the pin is the OSM Bidadi Industrial Area centroid (https://www.openstreetmap.org/way/124778550).",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.bosch-softwaretechnologies.com/en/locations/",
+    "https://www.bosch.in/our-company/bosch-in-india/",
+    "https://www.openstreetmap.org/relation/14311757",
+    "https://www.openstreetmap.org/way/28110531"
+   ]
+  },
+  {
+   "name": "Mercedes-Benz Research and Development India",
+   "aliases": [
+    "MBRDI",
+    "Daimler India R&D",
+    "Mercedes-Benz Group"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Mercedes-Benz Group's largest R&D centre outside Germany (founded 1996); its main Bengaluru campus is Embassy Crest in Whitefield's EPIP Zone with a second site at Brigade Tech Gardens.",
+   "founded": 1996,
+   "hqCity": "Stuttgart",
+   "hqCountry": "Germany",
+   "isUnicorn": false,
+   "website": "https://www.mbrdi.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Embassy Crest campus - Whitefield (EPIP Zone Phase 1)",
+     "locality": "Whitefield (EPIP Zone Phase 1, Kaveri Nagar)",
+     "address": "Embassy Crest, Plot 5, EPIP Zone Phase 1, Whitefield Road, Bengaluru 560066",
+     "building": null,
+     "techPark": "Embassy Crest",
+     "lat": 12.985765,
+     "lng": 77.727261,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps 'Mercedes-Benz Research and Development India' with website mbrdi.co.in inside the Embassy Crest polygon on Whitefield Road (https://www.openstreetmap.org/node/6325151821, https://www.openstreetmap.org/way/181699297); mbrdi.co.in rendered no address text in this run.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Brigade Tech Gardens office",
+     "locality": "Brookefield (Kundalahalli)",
+     "address": "Brigade Tech Gardens, Kundalahalli, Brookefield, Bengaluru 560037",
+     "building": null,
+     "techPark": "Brigade Tech Gardens",
+     "lat": 12.963678,
+     "lng": 77.719399,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM maps a second 'Mercedes-Benz Research and Development India' office POI inside the Brigade Tech Gardens polygon (https://www.openstreetmap.org/node/11787241423); OSM only.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/6325151821",
+    "https://www.openstreetmap.org/node/11787241423",
+    "https://www.mbrdi.co.in/"
+   ]
+  },
+  {
+   "name": "Daimler Truck",
+   "aliases": [
+    "DTICI",
+    "Daimler Truck Innovation Center India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "German truck and bus maker; the Daimler Truck Innovation Center India (DTICI, founded 2021, 1,300+ engineers) is at Whitefield Palms in the EPIP Zone.",
+   "founded": 2021,
+   "hqCity": "Leinfelden-Echterdingen (Stuttgart)",
+   "hqCountry": "Germany",
+   "isUnicorn": false,
+   "website": "https://www.daimlertruck.com",
+   "bengaluruEmployeesApprox": 1300,
+   "offices": [
+    {
+     "label": "Daimler Truck Innovation Center India - Whitefield Palms",
+     "locality": "Whitefield (EPIP Zone Phase 1, Whitefield Road)",
+     "address": "Whitefield Palms, Plot No. 9 & 10, EPIP Zone Phase 1, Whitefield Road, Bengaluru 560066",
+     "building": null,
+     "techPark": "Whitefield Palms",
+     "lat": 12.984187,
+     "lng": 77.728234,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Daimler Truck's careers location page gives 'Bengaluru, Daimler Truck Innovation Center India Private Limited, Whitefield Palms, Plot No. 9 & 10, 560066 Bangalore' and describes 1,300+ engineers (https://locations.daimlertruck.com/en/career/locations/detail/bengaluru-daimler-truck-innovation-center-india-private-limited); OSM maps the office with the same plot (https://www.openstreetmap.org/node/4267988390).",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://locations.daimlertruck.com/en/career/locations/detail/bengaluru-daimler-truck-innovation-center-india-private-limited",
+    "https://www.openstreetmap.org/node/4267988390"
+   ]
+  },
+  {
+   "name": "Volvo Group",
+   "aliases": [
+    "Volvo Group India",
+    "Volvo Buses India",
+    "VE Commercial Vehicles"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Swedish truck, bus and construction-equipment group; India head office in Bagmane Tech Park's Tridib building, with its truck/bus plant at Hoskote east of the city.",
+   "founded": 1927,
+   "hqCity": "Gothenburg",
+   "hqCountry": "Sweden",
+   "isUnicorn": false,
+   "website": "https://www.volvogroup.com/in/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India head office - Bagmane Tech Park, Tridib",
+     "locality": "C.V. Raman Nagar (Byrasandra)",
+     "address": "Tridib, Bagmane Tech Park, Byrasandra, C.V. Raman Nagar, Bengaluru 560093",
+     "building": "Tridib",
+     "techPark": "Bagmane Tech Park",
+     "lat": 12.978524,
+     "lng": 77.663325,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Bagmane's Tech Park page lists Volvo as a Tridib occupier (https://www.bagmanegroup.com/portfolio/bagmane-tech-park) and OSM maps 'Volvo Group India Private Limited', CV Raman Nagar, inside the park (https://www.openstreetmap.org/node/5571447701); volvogroup.com/in location pages returned 404.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Hoskote plant (Volvo Buses / Volvo Trucks / Volvo CE)",
+     "locality": "Hoskote Industrial Area (KIADB)",
+     "address": "KIADB Industrial Area, Hoskote 562114",
+     "building": null,
+     "techPark": "Hoskote Industrial Area",
+     "lat": 13.115385,
+     "lng": 77.827063,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Volvo's Indian truck, bus and construction-equipment plant is at the KIADB Hoskote Industrial Area east of Bengaluru; plot not re-verified from a company page, pin is the OSM industrial-area centroid (https://www.openstreetmap.org/way/155430908).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Brigade Metropolis - Summit 2 (OSM 'Volvo')",
+     "locality": "Garudachar Palya (Mahadevapura)",
+     "address": "Brigade Metropolis, Whitefield Road, Mahadevapura, Bengaluru 560048",
+     "building": "Summit 2",
+     "techPark": "Brigade Metropolis",
+     "lat": 12.991912,
+     "lng": 77.703447,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Volvo' on the Summit 2 building of Brigade Metropolis (https://www.openstreetmap.org/node/1839605386); likely Volvo Construction Equipment or Volvo Car India, no primary source reached.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-tech-park",
+    "https://www.openstreetmap.org/node/5571447701",
+    "https://www.openstreetmap.org/way/155430908"
+   ]
+  },
+  {
+   "name": "Continental",
+   "aliases": [
+    "Continental Automotive Components (India)",
+    "Continental AG",
+    "TCI Bengaluru"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "German automotive-electronics and tyre group; Continental Automotive Components (India) runs its Technical Center India and plant in Electronic City Phase 2 (Veerasandra).",
+   "founded": 1871,
+   "hqCity": "Hanover",
+   "hqCountry": "Germany",
+   "isUnicorn": false,
+   "website": "https://www.continental.com/en-in/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Technical Center India and plant - Electronic City Phase 2 (Veerasandra)",
+     "locality": "Electronic City Phase 2 (Veerasandra)",
+     "address": "Veerasandra, Electronic City Phase 2, Hosur Road, Bengaluru 560100",
+     "building": null,
+     "techPark": "Electronics City Phase 2",
+     "lat": 12.840716,
+     "lng": 77.677365,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps 'Continental Automotive Components (India) Private Limited' at Veerasandra, Electronic City, 560100, which Photon resolves by name (https://www.openstreetmap.org/node/12519614249); continental.com's India location pages returned 404 in this run.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Continental Automotive - second Phase 2 site (OSM)",
+     "locality": "Electronic City Phase 2",
+     "address": "Electronic City Phase 2, Bengaluru 560100",
+     "building": null,
+     "techPark": "Electronics City Phase 2",
+     "lat": 12.845617,
+     "lng": 77.67757,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "A second OSM node 'Continental Automotives' lies north of the first inside Phase 2 (https://www.openstreetmap.org/node/12519677931); OSM only.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12519614249",
+    "https://www.openstreetmap.org/node/12519677931"
+   ]
+  },
+  {
+   "name": "Aptiv",
+   "aliases": [
+    "Delphi Automotive Systems",
+    "Delphi Technologies",
+    "Aptiv Technical Center India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Vehicle-electronics and software supplier (ex-Delphi); its Bengaluru technical centre sits in Kalyani Platina, Whitefield, with a second site at Brigade Tech Gardens.",
+   "founded": 2017,
+   "hqCity": "Schaffhausen (operational HQ Dublin)",
+   "hqCountry": "Switzerland / Ireland",
+   "isUnicorn": false,
+   "website": "https://www.aptiv.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Technical Center - Kalyani Platina, EPIP Phase 2",
+     "locality": "Whitefield (EPIP Zone Phase 2)",
+     "address": "No. 24, Kalyani Platina Tech Park, EPIP Zone Phase 2, Whitefield, Bengaluru 560066",
+     "building": null,
+     "techPark": "Kalyani Platina",
+     "lat": 12.972056,
+     "lng": 77.718544,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps 'Delphi Automotive Systems Private Limited, No 24, Kalyani Platina Tech Park, EPIP Zone Phase 2, Whitefield 560066' (https://www.openstreetmap.org/node/4861726306), the Delphi technical centre that became Aptiv's; aptiv.com's locations page returned 404.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Brigade Tech Gardens office",
+     "locality": "Brookefield (Thubarahalli, Kundalahalli)",
+     "address": "Brigade Tech Gardens, Kundalahalli, Brookefield, Bengaluru 560037",
+     "building": null,
+     "techPark": "Brigade Tech Gardens",
+     "lat": 12.963748,
+     "lng": 77.720756,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Aptiv' inside the Brigade Tech Gardens polygon, confirmed by Nominatim reverse lookup (https://www.openstreetmap.org/node/9828082755); OSM only.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4861726306",
+    "https://www.openstreetmap.org/node/9828082755"
+   ]
+  },
+  {
+   "name": "Harman International",
+   "aliases": [
+    "Harman",
+    "Harman Connected Services",
+    "Samsung Electronics"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Samsung-owned car-audio, infotainment and connected-services company with several Bengaluru engineering offices (Prestige Tech Park, Bagmane Solarium City / ITPL Main Road, ITPB).",
+   "founded": 1980,
+   "hqCity": "Stamford (Connecticut)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.harman.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Tech Park office - Kadubeesanahalli",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "address": "Prestige Tech Park, Kadubeesanahalli, Outer Ring Road, Bengaluru 560103",
+     "building": null,
+     "techPark": "Prestige Tech Park",
+     "lat": 12.942331,
+     "lng": 77.694909,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps 'Harman International (india) Pvt. Ltd.' with pincode 560103 inside the Prestige Tech Park polygon (https://www.openstreetmap.org/node/3546632356); harman.com's locations page returned 404 in this run.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "'Harman Corporate Headquarters' - ITPL Main Road, Bagmane Solarium City side",
+     "locality": "Doddanekundi / Kundalahalli (ITPL Main Road)",
+     "address": "ITPL Main Road, Kundalahalli, Bengaluru 560037",
+     "building": null,
+     "techPark": "Bagmane Solarium City",
+     "lat": 12.974465,
+     "lng": 77.711589,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Harman Corporate Headquarters' beside the Building 1 footprint on the ITPL Main Road side of Bagmane Solarium City (https://www.openstreetmap.org/node/10702472536); OSM only, no company page reached.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "ITPB office - Pattandur Agrahara",
+     "locality": "Whitefield (International Tech Park Bangalore)",
+     "address": "International Tech Park Bangalore, Whitefield, Bengaluru 560066",
+     "building": null,
+     "techPark": "International Tech Park Bangalore",
+     "lat": 12.986195,
+     "lng": 77.733287,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Harman' on Pattandur Agrahara Road inside the ITPB polygon, confirmed by Nominatim reverse lookup (https://www.openstreetmap.org/node/10695073042); OSM only.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/3546632356",
+    "https://www.openstreetmap.org/node/10702472536",
+    "https://www.openstreetmap.org/node/10695073042"
+   ]
+  },
+  {
+   "name": "Visteon",
+   "aliases": [
+    "Visteon Technical and Services Centre"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "US cockpit-electronics supplier; Bagmane lists it among the occupiers of Bagmane Solarium City (its main Indian technical centre is in Chennai).",
+   "founded": 2000,
+   "hqCity": "Van Buren Township (Michigan)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.visteon.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Solarium City office",
+     "locality": "Kundalahalli (Brookefield, ITPL Main Road)",
+     "address": "Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037",
+     "building": null,
+     "techPark": "Bagmane Solarium City",
+     "lat": 12.969934,
+     "lng": 77.708425,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bagmane's Solarium City page names Visteon among the park's occupiers (https://www.bagmanegroup.com/portfolio/bagmane-solarium-city); building not given, pin is the OSM park centroid.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city"
+   ]
+  },
+  {
+   "name": "Caterpillar",
+   "aliases": [
+    "Caterpillar India",
+    "Cat"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "US construction and mining equipment maker whose Caterpillar India engineering and digital teams work from Whitefield; only an OSM POI at Belathur/Kadugodi locates the office.",
+   "founded": 1925,
+   "hqCity": "Irving (Texas)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.caterpillar.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Whitefield office (OSM 'Caterpillar', Belathur/Kadugodi)",
+     "locality": "Belathur / Kadugodi (Whitefield)",
+     "address": "Belathur, Kadugodi, Whitefield, Bengaluru 560067",
+     "building": null,
+     "techPark": null,
+     "lat": 12.987298,
+     "lng": 77.748184,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI 'Caterpillar' at Belathur, next to the Airbus India POI, places the office (https://www.openstreetmap.org/node/13781586354); caterpillar.com's India page returned 404, so the building is unconfirmed.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/13781586354"
+   ]
+  },
+  {
+   "name": "Toyota Kirloskar Motor",
+   "aliases": [
+    "TKM",
+    "Toyota India",
+    "Toyota Kirloskar Auto Parts"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Toyota's Indian car-making JV (1997) with two plants and its registered office on an 850-acre site at Bidadi, just south-west of Bengaluru.",
+   "founded": 1997,
+   "hqCity": "Toyota City (parent); Bidadi (JV)",
+   "hqCountry": "Japan",
+   "isUnicorn": false,
+   "website": "https://www.toyotabharat.com",
+   "bengaluruEmployeesApprox": 7000,
+   "offices": [
+    {
+     "label": "Bidadi plants and registered office",
+     "locality": "Bidadi Industrial Area (Ramanagara)",
+     "address": "Plot No. 1, Bidadi Industrial Area, Ramanagara 562109",
+     "building": null,
+     "techPark": "Bidadi Industrial Area",
+     "lat": 12.785843,
+     "lng": 77.420008,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wikipedia: TKM's plant at Bidadi 'is spread across 850 acres' with a second plant beside it and headquarters 'located in Bidadi, Karnataka' (https://en.wikipedia.org/wiki/Toyota_Kirloskar_Motor); OSM maps the 'Toyota Kirloskar' industrial polygon (https://www.openstreetmap.org/way/796362875).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Second Toyota site north of the main plant (OSM 'Toyota')",
+     "locality": "Bidadi Industrial Area",
+     "address": "Bidadi Industrial Area, Ramanagara 562109",
+     "building": null,
+     "techPark": "Bidadi Industrial Area",
+     "lat": 12.818171,
+     "lng": 77.410965,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM maps a second industrial polygon named 'Toyota' north of the main plant at Bidadi (https://www.openstreetmap.org/way/841058200); whether it is TKM, Toyota Kirloskar Auto Parts or Toyota Industries Engine India is unverified.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Toyota_Kirloskar_Motor",
+    "https://www.openstreetmap.org/way/796362875"
+   ]
+  },
+  {
+   "name": "Toyota Tsusho",
+   "aliases": [
+    "Toyota Tsusho India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Logistics",
+   "description": "Toyota group's trading and logistics arm; Toyota Tsusho India's office is on the Brigade Gateway / World Trade Center campus in Rajajinagar.",
+   "founded": 1948,
+   "hqCity": "Nagoya",
+   "hqCountry": "Japan",
+   "isUnicorn": false,
+   "website": "https://www.toyota-tsusho.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India office - Brigade Gateway campus",
+     "locality": "Rajajinagar / Malleswaram West (Dr Rajkumar Road)",
+     "address": "Brigade Gateway Campus, Dr Rajkumar Road, Malleswaram West, Bengaluru 560055",
+     "building": null,
+     "techPark": "World Trade Center Bengaluru (Brigade Gateway)",
+     "lat": 13.012512,
+     "lng": 77.556088,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps 'Toyota Tsusho India Pvt Ltd' at 'Brigade Gateway Campus, Dr Rajkumar Road, Malleshwaram West' with the company website (https://www.openstreetmap.org/node/4488744179); not confirmed from a company page.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4488744179"
+   ]
+  },
+  {
+   "name": "Denso",
+   "aliases": [
+    "Denso Kirloskar Industries",
+    "DNKI"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Japanese auto-components giant; Denso Kirloskar Industries' plant is on the Nelamangala industrial belt north-west of Bengaluru, beside ABB's factory.",
+   "founded": null,
+   "hqCity": "Kariya (Aichi)",
+   "hqCountry": "Japan",
+   "isUnicorn": false,
+   "website": "https://www.denso.com/in/en/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Denso Kirloskar Industries - Nelamangala plant",
+     "locality": "Nelamangala (Basavanahalli, Vishveshwarapura)",
+     "address": "Vishveshwarapura, Basavanahalli, Nelamangala 562123",
+     "building": null,
+     "techPark": null,
+     "lat": 13.114382,
+     "lng": 77.376939,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps the industrial site 'Denso Kirloskar' at Vishveshwarapura, Basavanahalli, Nelamangala taluk, which Nominatim resolves by name (https://www.openstreetmap.org/way/344730027); not confirmed from a Denso page.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/344730027"
+   ]
+  },
+  {
+   "name": "Mahindra & Mahindra",
+   "aliases": [
+    "Mahindra Electric",
+    "Mahindra Last Mile Mobility",
+    "Reva Electric Car Company",
+    "Mahindra Electric Automobile"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "Mobility & EV",
+   "description": "Indian automotive multinational; its Bengaluru-born EV unit (Reva, later Mahindra Electric, now Mahindra Last Mile Mobility) builds three-wheelers at Bommasandra, and OSM maps a Mahindra Electric EV technology centre (GEVTeC) near the Aerospace Park.",
+   "founded": 1945,
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.mahindra.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Mahindra Last Mile Mobility (ex-Mahindra Electric) plant - Bommasandra",
+     "locality": "Bommasandra Industrial Area",
+     "address": "Bommasandra Industrial Area, Hosur Road, Bengaluru 560099",
+     "building": null,
+     "techPark": "Bommasandra Industrial Area",
+     "lat": 12.81729,
+     "lng": 77.695091,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Wikipedia records Mahindra Electric (founded 1994 as Reva, renamed Mahindra Last Mile Mobility in 2023) as Bengaluru-based (https://en.wikipedia.org/wiki/Mahindra_Electric); the Bommasandra plot was not re-verified, so the pin is the OSM industrial-estate centroid (https://www.openstreetmap.org/way/103293015).",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Mahindra Electric GEVTeC - Bande Kodigehalli (OSM)",
+     "locality": "Bande Kodigehalli / Palya (near KIADB Aerospace Park)",
+     "address": "Bande Kodigehalli, Bengaluru North",
+     "building": null,
+     "techPark": null,
+     "lat": 13.1645255,
+     "lng": 77.6996436,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Photon resolves an OSM feature named 'Mahindra Electric GEVTeC, Palya, Bande Kodigehalli' (https://photon.komoot.io/); OSM only, not confirmed from a Mahindra page.",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Mahindra_Electric",
+    "https://www.openstreetmap.org/way/103293015"
+   ]
+  },
+  {
+   "name": "Tesla",
+   "aliases": [
+    "Tesla India Motors and Energy"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Mobility & EV",
+   "description": "US EV maker; Tesla India Motors and Energy was registered in Bengaluru in January 2021 with its office on Lavelle Road (its 2025 showrooms are in Mumbai and Delhi).",
+   "founded": 2003,
+   "hqCity": "Austin (Texas)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.tesla.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Tesla India Motors and Energy - Lavelle Road office",
+     "locality": "Lavelle Road (Ashok Nagar)",
+     "address": "Lavelle Road, Ashok Nagar, Bengaluru 560001",
+     "building": null,
+     "techPark": null,
+     "lat": 12.965451,
+     "lng": 77.596403,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM maps 'Tesla India' on Lavelle Road, confirmed by Nominatim reverse lookup (https://www.openstreetmap.org/node/10236050010); the January 2021 Bengaluru registration at a Lavelle Road address was widely reported but not re-fetched in this run.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/10236050010"
+   ]
+  },
+  {
+   "name": "General Motors",
+   "aliases": [
+    "GM Technical Center India",
+    "GM TCI",
+    "General Motors India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "US carmaker that stopped selling in India in 2017 but kept its Bengaluru technical centre (GM Technical Center India, opened 2003) as an engineering hub.",
+   "founded": 1908,
+   "hqCity": "Detroit (Michigan)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.gm.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "GM Technical Center India - ITPB (building not confirmed)",
+     "locality": "Whitefield (International Tech Park Bangalore)",
+     "address": "International Tech Park Bangalore, Whitefield, Bengaluru 560066",
+     "building": null,
+     "techPark": "International Tech Park Bangalore",
+     "lat": 12.985228,
+     "lng": 77.736825,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Wikipedia says GM 'opened its technical center operations in Bangalore' in 2003 and expanded engine/transmission engineering there in 2007 (https://en.wikipedia.org/wiki/General_Motors_India); the ITPL location is the commonly reported one but no fetched page states it, so the pin is the ITPB park centroid.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/General_Motors_India"
+   ]
+  },
+  {
+   "name": "Siemens",
+   "aliases": [
+    "Siemens Technology and Services",
+    "Siemens Ltd",
+    "Siemens Digital Industries Software",
+    "Siemens PLM",
+    "Siemens Mobility"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "German industrial and automation group; Siemens Technology and Services' Bengaluru campus is in Electronic City Phase 1, with further Siemens sites in Phase 2 and a Digital Industries Software office in the CBD.",
+   "founded": 1847,
+   "hqCity": "Munich",
+   "hqCountry": "Germany",
+   "isUnicorn": false,
+   "website": "https://www.siemens.com/in/en.html",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Siemens Technology and Services campus - Electronic City Phase 1",
+     "locality": "Electronic City Phase 1 (Hosur Road)",
+     "address": "84, Hosur Road, Keonics Electronic City, Bengaluru 560100",
+     "building": null,
+     "techPark": "Electronics City Phase 1",
+     "lat": 12.845092,
+     "lng": 77.66132,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps the 'Siemens' commercial campus on Hosur Road beside the Infosys and 3M sites (https://www.openstreetmap.org/way/364872810) and Wikipedia's Electronic City article lists Siemens among the major companies there; siemens.com India location pages were not reachable.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Siemens - Gold Hill Excelsior Park, Electronic City Phase 2",
+     "locality": "Electronic City Phase 2",
+     "address": "1st Main Road, Electronic City Phase 2, Bengaluru 560100",
+     "building": "Gold Hill Excelsior Park",
+     "techPark": "Electronics City Phase 2",
+     "lat": 12.848969,
+     "lng": 77.676744,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM brand POI 'Siemens' in the Gold Hill Excelsior Park buildings, which Nominatim resolves as 'Siemens, 1st Main Road, Electronics City Phase 2 (East)' (https://www.openstreetmap.org/node/12109492116); not confirmed from a company page.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Siemens Digital Industries Software - Residency Road office",
+     "locality": "Residency Road / Lavelle Road (Ashok Nagar)",
+     "address": "Residency Road, Bengaluru 560025",
+     "building": null,
+     "techPark": null,
+     "lat": 12.966241,
+     "lng": 77.59582,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only the OSM office POI 'Siemens PLM Software' near Residency Road places this office (https://www.openstreetmap.org/node/1474007530); OSM only.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/364872810",
+    "https://www.openstreetmap.org/node/12109492116",
+    "https://www.openstreetmap.org/node/1474007530"
+   ]
+  },
+  {
+   "name": "Siemens Healthineers",
+   "aliases": [
+    "Siemens Healthcare Pvt Ltd",
+    "Siemens Healthineers Development Center"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Siemens' medical-technology company; its Bengaluru development centre building is mapped in Electronic City Phase 2 off Shantipura Main Road.",
+   "founded": 2016,
+   "hqCity": "Erlangen",
+   "hqCountry": "Germany",
+   "isUnicorn": false,
+   "website": "https://www.siemens-healthineers.com/en-in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Development Center - Electronic City Phase 2",
+     "locality": "Electronic City Phase 2 (Shantipura Main Road)",
+     "address": "Shantipura Main Road, Electronic City Phase 2, Bengaluru 560100",
+     "building": null,
+     "techPark": "Electronics City Phase 2",
+     "lat": 12.845966,
+     "lng": 77.678487,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM maps an office building named 'Siemens Healthineers' off Shantipura Main Road in Phase 2 (https://www.openstreetmap.org/way/557926285); siemens-healthineers.com's India page returned 404, so this is OSM-only.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/557926285"
+   ]
+  },
+  {
+   "name": "ABB",
+   "aliases": [
+    "ABB India",
+    "Asea Brown Boveri",
+    "ABB Global Industries and Services"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Swiss-Swedish electrification and automation group; ABB India is registered at 'Disha' in Peenya with factories at Peenya and Nelamangala, an R&D/office block in Rajajinagar and a technology campus at Mahadevapura.",
+   "founded": 1988,
+   "hqCity": "Zurich",
+   "hqCountry": "Switzerland",
+   "isUnicorn": false,
+   "website": "https://new.abb.com/indian-subcontinent",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Rajajinagar Industrial Estate office (KSSIDC IT/BT Park)",
+     "locality": "Rajajinagar Industrial Estate",
+     "address": "Plot No. 1-4, Rajajinagar Industrial Estate, KSSIDC IT/BT Park, Bengaluru 560010",
+     "building": null,
+     "techPark": "Rajajinagar IT Park",
+     "lat": 12.978,
+     "lng": 77.550857,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "An ABB job listing gives the Bengaluru office as 'Rajaji Nagar Industrial Estate, KSSIDC IT/BT Park, Bengaluru 560010' (https://builtinbengaluru.in/job/r-d-test-engineer/) and OSM maps 'ABB India Limited, Plot No. 1,2,3,4, Rajajinagar 560010' with website abb.co.in (https://www.openstreetmap.org/node/4489715363).",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Nelamangala factory",
+     "locality": "Nelamangala (Basavanahalli)",
+     "address": "Sy No 88/3-88/6, Basavanahalli, Nelamangala 562123",
+     "building": null,
+     "techPark": null,
+     "lat": 13.1149134,
+     "lng": 77.3825603,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Nominatim and OSM carry 'ABB India Limited, Sy No 88/3-88/6, Basavanahalli, Nelamangala 562123' as an industrial site (https://www.openstreetmap.org/way/702813191).",
+     "geocodeSource": "nominatim"
+    },
+    {
+     "label": "Registered office 'Disha' and Peenya works",
+     "locality": "Peenya Industrial Area (2nd Stage)",
+     "address": "Disha, 3rd Floor, Plot No. 5 & 6, 2nd Stage, Peenya Industrial Area IV Phase, Bengaluru 560058",
+     "building": "Disha",
+     "techPark": "Peenya Industrial Area",
+     "lat": 13.0202404,
+     "lng": 77.5081111,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "ABB India's registered office is Disha, 3rd Floor, Plot No. 5 & 6, 2nd Stage, Peenya Industrial Area IV Phase, Bengaluru 560058 (statutory filings; new.abb.com returned 503 in this run), pinned to Photon's Peenya 2nd Stage point rather than the plot.",
+     "geocodeSource": "photon"
+    },
+    {
+     "label": "Mahadevapura technology campus - Bhoruka Tech Park Block-1",
+     "locality": "Mahadevapura (Whitefield Road)",
+     "address": "Bhoruka Tech Park, Whitefield Road, Mahadevapura, Bengaluru 560048",
+     "building": "Block-1",
+     "techPark": "Bhoruka Tech Park",
+     "lat": 12.99369,
+     "lng": 77.705459,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM maps an office building named 'Block-1 (ABB)' inside Bhoruka Tech Park on Whitefield Road and an 'ABB' company POI nearby (https://www.openstreetmap.org/way/83070744, https://www.openstreetmap.org/node/13245235393); no primary source reached.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Hebbal office - Brigade Magnum (OSM)",
+     "locality": "Hebbal (Kodigehalli Gate, Bellary Road)",
+     "address": "Brigade Magnum, Bellary Road, Hebbal, Bengaluru 560092",
+     "building": null,
+     "techPark": "Brigade Magnum",
+     "lat": 13.057396,
+     "lng": 77.594451,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'ABB' inside the Brigade Magnum polygon on Bellary Road (https://www.openstreetmap.org/node/11477159657); OSM only.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "ABB Corporate Research Center - Khanija Bhavan, Race Course Road (OSM)",
+     "locality": "High Grounds (Race Course Road)",
+     "address": "Khanija Bhavan, Race Course Road, Bengaluru 560001",
+     "building": "Khanija Bhavan",
+     "techPark": null,
+     "lat": 12.983166,
+     "lng": 77.585623,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI 'ABB Corporate Research Center' on the Khanija Bhavan polygon places ABB here (https://www.openstreetmap.org/node/1554187112); OSM only.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4489715363",
+    "https://www.openstreetmap.org/way/702813191",
+    "https://builtinbengaluru.in/job/r-d-test-engineer/",
+    "https://new.abb.com/indian-subcontinent"
+   ]
+  },
+  {
+   "name": "Hitachi Energy",
+   "aliases": [
+    "ABB Power Grids",
+    "Hitachi ABB Power Grids",
+    "Hitachi Energy India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "Hitachi's power-grid business (ex-ABB Power Grids); Hitachi Energy India is registered at Brigade Opus on Kodigehalli Main Road, Hebbal, with a technology office in the former ABB block at Mahadevapura.",
+   "founded": 2020,
+   "hqCity": "Zurich (parent Hitachi, Tokyo)",
+   "hqCountry": "Switzerland / Japan",
+   "isUnicorn": false,
+   "website": "https://www.hitachienergy.com/in/en",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office - Brigade Opus, Kodigehalli",
+     "locality": "Kodigehalli (Hebbal, Bellary Road)",
+     "address": "8th Floor, Brigade Opus, 70/401, Kodigehalli Main Road, Bengaluru 560092",
+     "building": "Brigade Opus",
+     "techPark": null,
+     "lat": 13.0572,
+     "lng": 77.592269,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Hitachi Energy India's statutory filings give the registered office as 8th Floor, Brigade Opus, 70/401 Kodigehalli Main Road, Bengaluru 560092 (hitachienergy.com's contact page returned 404 in this run); OSM maps Brigade Opus and a 'Hitachi Energy' POI nearby (https://www.openstreetmap.org/way/732232650, https://www.openstreetmap.org/node/13428525779).",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Mahadevapura technology office - Bhoruka Tech Park",
+     "locality": "Mahadevapura (Whitefield Road)",
+     "address": "Bhoruka Tech Park, Whitefield Road, Mahadevapura, Bengaluru 560048",
+     "building": null,
+     "techPark": "Bhoruka Tech Park",
+     "lat": 12.993529,
+     "lng": 77.705376,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM office POI 'Hitachi Energy' on the Bhoruka Tech Park polygon beside the 'Block-1 (ABB)' building (https://www.openstreetmap.org/node/11215663853); OSM only.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/732232650",
+    "https://www.openstreetmap.org/node/11215663853",
+    "https://www.hitachienergy.com/in/en"
+   ]
+  },
+  {
+   "name": "Schneider Electric",
+   "aliases": [
+    "Schneider Electric India",
+    "APC by Schneider Electric",
+    "Luminous"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "French energy-management and automation group; it took ~0.48 million sq ft at Bagmane Solarium City in 2023 for an R&D and technology centre and has an older Whitefield R&D building.",
+   "founded": 1836,
+   "hqCity": "Rueil-Malmaison (Paris)",
+   "hqCountry": "France",
+   "isUnicorn": false,
+   "website": "https://www.se.com/in/en/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "R&D and technology centre - Bagmane Solarium City",
+     "locality": "Kundalahalli (Brookefield, ITPL Main Road)",
+     "address": "Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037",
+     "building": null,
+     "techPark": "Bagmane Solarium City",
+     "lat": 12.970602,
+     "lng": 77.710048,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bagmane's Solarium City page lists 'Schneider Electricals' among the park's occupiers (https://www.bagmanegroup.com/portfolio/bagmane-solarium-city) and OSM maps a 'Schneider Electric' office POI inside the park (https://www.openstreetmap.org/node/11975926129); the ~0.48 million sq ft, 10-year lease for the R&D centre was reported in November 2023 trade press that could not be re-fetched in this run.",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Whitefield R&D building (OSM 'Schneider Electric India Pvt. Ltd.')",
+     "locality": "Whitefield (EPIP Zone, near Whitefield Palms)",
+     "address": "EPIP Zone, Whitefield, Bengaluru 560066",
+     "building": null,
+     "techPark": "EPIP Zone Whitefield",
+     "lat": 12.977379,
+     "lng": 77.729338,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps a building named 'Schneider Electric India Pvt. Ltd.' in Whitefield (https://www.openstreetmap.org/way/181284245); OSM only.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "APC by Schneider Electric - Electronic City Phase 1 (OSM)",
+     "locality": "Electronic City Phase 1",
+     "address": "Electronic City Phase 1, Bengaluru 560100",
+     "building": null,
+     "techPark": "Electronics City Phase 1",
+     "lat": 12.839461,
+     "lng": 77.658668,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM maps 'American Power Corporation' beside the Wipro campus in Electronic City Phase 1 (https://www.openstreetmap.org/way/231335582); OSM only.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city",
+    "https://www.openstreetmap.org/node/11975926129",
+    "https://www.openstreetmap.org/way/181284245"
+   ]
+  },
+  {
+   "name": "Kennametal",
+   "aliases": [
+    "Kennametal India",
+    "Widia India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "US tooling and wear-materials group; Kennametal India (formerly Widia India) has its India headquarters and plant at 8/9th Mile, Tumkur Road.",
+   "founded": 1938,
+   "hqCity": "Pittsburgh (Pennsylvania)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.kennametal.com/in/en.html",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India HQ and plant - 8/9th Mile, Tumkur Road",
+     "locality": "Nagasandra / Bagalakunte (Tumkur Road)",
+     "address": "8/9th Mile, Tumkur Road, Bengaluru 560073",
+     "building": null,
+     "techPark": null,
+     "lat": 13.051078,
+     "lng": 77.499172,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Kennametal's India page lists 'India Headquarters, Kennametal India Limited, 8/9th Mile, Tumkur Road, Bangalore 560073' (https://www.kennametal.com/in/en/about-us/kennametal-india.html) and OSM maps the 'Kennametal' industrial site there (https://www.openstreetmap.org/way/45919485).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.kennametal.com/in/en/about-us/kennametal-india.html",
+    "https://www.openstreetmap.org/way/45919485"
+   ]
+  },
+  {
+   "name": "Yokogawa",
+   "aliases": [
+    "Yokogawa India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Japanese industrial-automation and measurement group; Yokogawa India's head office and engineering centre are at Plot 96, Electronic City Phase 1.",
+   "founded": 1915,
+   "hqCity": "Tokyo (Musashino)",
+   "hqCountry": "Japan",
+   "isUnicorn": false,
+   "website": "https://www.yokogawa.com/in/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Head office - Plot 96, Electronic City Phase 1",
+     "locality": "Electronic City Phase 1 (Hosur Road)",
+     "address": "Plot No. 96, Electronic City Complex, Hosur Road, Bengaluru 560100",
+     "building": null,
+     "techPark": "Electronics City Phase 1",
+     "lat": 12.8495098,
+     "lng": 77.6630993,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Yokogawa India's contact page lists 'Plot No. 96, Electronic City Complex, Hosur Road, Bangalore 560100' (https://www.yokogawa.com/in/contact/); Photon resolves a feature named 'Yokogawa' on Infosys Drive, Electronic City.",
+     "geocodeSource": "photon"
+    }
+   ],
+   "sources": [
+    "https://www.yokogawa.com/in/contact/"
+   ]
+  },
+  {
+   "name": "Timken",
+   "aliases": [
+    "Timken India",
+    "Timken Engineering and Research India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "US bearings and power-transmission maker; Timken India's registered office and engineering centre are at 39-42 Electronic City, Hosur Road.",
+   "founded": 1899,
+   "hqCity": "North Canton (Ohio)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.timken.com/en-in/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office and engineering centre - Electronic City",
+     "locality": "Electronic City (Hosur Road)",
+     "address": "39-42, Electronic City, Hosur Road, Bengaluru 560100",
+     "building": null,
+     "techPark": "Electronics City Phase 1",
+     "lat": 12.851831,
+     "lng": 77.65958,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Timken India's filings give the registered office as 39-42, Electronic City Phase II, Hosur Road, Bengaluru 560100; OSM maps a 'Timken' commercial site in Electronic City which Photon resolves by name (https://www.openstreetmap.org/way/160379982). The OSM polygon lies west of Hosur Road, so the phase label is taken from the geometry.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/160379982",
+    "https://www.timken.com/en-in/"
+   ]
+  },
+  {
+   "name": "SKF",
+   "aliases": [
+    "SKF India",
+    "SKF Technologies India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Swedish bearings and seals group; OSM maps an SKF plant inside the Bommasandra Industrial Estate (SKF Technologies' Bengaluru works).",
+   "founded": 1907,
+   "hqCity": "Gothenburg",
+   "hqCountry": "Sweden",
+   "isUnicorn": false,
+   "website": "https://www.skf.com/in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bommasandra plant",
+     "locality": "Bommasandra Industrial Area",
+     "address": "Bommasandra Industrial Area, Hosur Road, Bengaluru 560099",
+     "building": null,
+     "techPark": "Bommasandra Industrial Area",
+     "lat": 12.821931,
+     "lng": 77.683753,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps an industrial site named 'SKF' inside the Bommasandra Industrial Estate (https://www.openstreetmap.org/way/170320606); skf.com/in rendered no address text and its contact page was rate-limited in this run.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/170320606"
+   ]
+  },
+  {
+   "name": "Otis",
+   "aliases": [
+    "Otis Elevator Company (India)",
+    "Otis India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "US elevator and escalator maker; Otis India's manufacturing plant is at No. 92, KIADB Jigani Industrial Area, Anekal Taluk.",
+   "founded": 1853,
+   "hqCity": "Farmington (Connecticut)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.otis.com/en/in/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Jigani factory - No. 92, KIADB Phase II",
+     "locality": "Jigani Industrial Area (Anekal Taluk)",
+     "address": "No. 92, KIADB Industrial Estate Phase II, Jigani Industrial Area, Anekal Taluk, Bengaluru 560105",
+     "building": null,
+     "techPark": "Jigani Industrial Area",
+     "lat": 12.779264,
+     "lng": 77.631116,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Otis India's contact page lists 'Manufacturing Bengaluru: No. 92, KIADB Indl. Estate, Phase II Jingani Indl. Area, Anekal Taluk, Bengaluru 560105' (https://www.otis.com/en/in/contact-us); OSM maps the 'Otis Elevator Company (India) Ltd' industrial polygon (https://www.openstreetmap.org/way/722828169).",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.otis.com/en/in/contact-us",
+    "https://www.openstreetmap.org/way/722828169"
+   ]
+  },
+  {
+   "name": "Wabtec",
+   "aliases": [
+    "Wabtec India",
+    "GE Transportation",
+    "Westinghouse Air Brake Technologies"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "US rail-technology group (absorbed GE Transportation in 2019); OSM maps two 'Wabtec Corporation' buildings in the EPIP Zone, Whitefield, next to the GE campus, its Bengaluru engineering centre.",
+   "founded": 1869,
+   "hqCity": "Pittsburgh (Pennsylvania)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.wabteccorp.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "EPIP Zone engineering centre - Green Domain Layout",
+     "locality": "Whitefield (EPIP Zone, Bharath Aikya Ward)",
+     "address": "130, 1st A Road, Green Domain Layout, EPIP Zone, Whitefield, Bengaluru 560066",
+     "building": null,
+     "techPark": "EPIP Zone Whitefield",
+     "lat": 12.975639,
+     "lng": 77.71776,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps two commercial buildings named 'Wabtec Corporation' in the EPIP Zone and Nominatim resolves 'Wabtec Corporation, EPIP Zone' at 130, 1st A Road, Green Domain Layout (https://www.openstreetmap.org/way/122701298, https://www.openstreetmap.org/way/122701301); wabteccorp.com's locations pages returned 404 / were rate-limited, so OSM-only.",
+     "geocodeSource": "osm-park"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/way/122701298",
+    "https://www.openstreetmap.org/way/122701301"
+   ]
+  },
+  {
+   "name": "Alstom",
+   "aliases": [
+    "Alstom Transport India",
+    "Bombardier Transportation India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "French rail manufacturer (owner of the former Bombardier Transportation since 2021); its Bengaluru office and engineering teams are at Embassy Prime beside Bagmane Tech Park, CV Raman Nagar.",
+   "founded": 1928,
+   "hqCity": "Saint-Ouen-sur-Seine (Paris)",
+   "hqCountry": "France",
+   "isUnicorn": false,
+   "website": "https://www.alstom.com/alstom-india",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Alstom Transport India - Embassy Prime, Bagmane Tech Park",
+     "locality": "C.V. Raman Nagar",
+     "address": "66/2, 3rd Floor, Embassy Prime, Bagmane Tech Park, CV Raman Nagar, Bengaluru 560093",
+     "building": "Embassy Prime",
+     "techPark": "Bagmane Tech Park",
+     "lat": 12.978694,
+     "lng": 77.662447,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Alstom's India page gives 'Contact Alstom in India: Alstom Transport India Limited, 66/2, 3rd Floor, Embassy Prime, Bagmane Tech Park, CV Raman Nagar, Bengaluru 560093' (https://www.alstom.com/alstom-india); the building did not geocode, so the pin is the OSM Bagmane Tech Park centroid.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.alstom.com/alstom-india"
+   ]
+  },
+  {
+   "name": "Rockwell Automation",
+   "aliases": [
+    "Rockwell Automation India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "US industrial-automation company; its Bengaluru office is mapped at Prestige Obelisk on Kasturba Road.",
+   "founded": 1903,
+   "hqCity": "Milwaukee (Wisconsin)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.rockwellautomation.com/en-in.html",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - Prestige Obelisk, Kasturba Road (OSM)",
+     "locality": "Kasturba Road (CBD)",
+     "address": "Prestige Obelisk, Kasturba Road, Bengaluru 560001",
+     "building": "Prestige Obelisk",
+     "techPark": null,
+     "lat": 12.975757,
+     "lng": 77.597455,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI 'Rockwell automation' inside the Prestige Obelisk polygon places the office (https://www.openstreetmap.org/node/4308192384); rockwellautomation.com's locations page returned 404.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4308192384"
+   ]
+  },
+  {
+   "name": "Ingersoll Rand",
+   "aliases": [
+    "Ingersoll-Rand (India)",
+    "Ingersoll Rand India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "US compressor and industrial-tools group whose listed Indian arm, Ingersoll-Rand (India), is Bengaluru-registered; the only mapped Bengaluru office is an OSM POI near Infantry Road.",
+   "founded": 1871,
+   "hqCity": "Davidson (North Carolina)",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.irco.com/en-in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office (OSM 'Ingersoll Rand', Infantry Road area)",
+     "locality": "Infantry Road / Cunningham Road (CBD)",
+     "address": "Infantry Road area, Bengaluru 560001",
+     "building": null,
+     "techPark": null,
+     "lat": 12.981792,
+     "lng": 77.601332,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI 'Ingersoll Rand' places the office (https://www.openstreetmap.org/node/4294930739); the registered office published in Ingersoll-Rand (India) filings is on Bannerghatta Road but irco.com was rate-limited in this run, so neither address is confirmed.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/4294930739"
+   ]
+  },
+  {
+   "name": "Sandvik",
+   "aliases": [
+    "Sandvik Asia",
+    "Sandvik Coromant"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Swedish engineering group (tooling, mining equipment); a Bengaluru sales office is mapped in OSM near Halasuru.",
+   "founded": 1862,
+   "hqCity": "Stockholm",
+   "hqCountry": "Sweden",
+   "isUnicorn": false,
+   "website": "https://www.home.sandvik",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office (OSM 'Sandvik', Hanumanthappa Layout)",
+     "locality": "Halasuru / Ulsoor (Hanumanthappa Layout)",
+     "address": "2nd Cross Road, Hanumanthappa Layout, Halasuru, Bengaluru 560008",
+     "building": null,
+     "techPark": null,
+     "lat": 12.974009,
+     "lng": 77.617555,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Only an OSM office POI 'Sandvik' at 2nd Cross Road, Hanumanthappa Layout places this office (https://www.openstreetmap.org/node/12459951924); OSM only.",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.openstreetmap.org/node/12459951924"
+   ]
+  },
+  {
+   "name": "Shell",
+   "aliases": [
+    "Shell Technology Centre Bangalore",
+    "STCB",
+    "Shell India Markets"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "Anglo-Dutch energy major; Shell Technology Centre Bangalore in the KIADB Hardware Park near the airport is one of its three global R&D hubs, and Bagmane lists Shell at Solarium City (energy lens E12 covers it in depth).",
+   "founded": 1907,
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "isUnicorn": false,
+   "website": "https://www.shell.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Shell Technology Centre Bangalore - KIADB Hardware Park",
+     "locality": "Devanahalli (KIADB Hardware Park, Mahadeva Kodigehalli)",
+     "address": "Mahadeva Kodigehalli, KIADB Hardware Park, Bengaluru 562149",
+     "building": null,
+     "techPark": "Shell Technology Centre Bangalore",
+     "lat": 13.156474,
+     "lng": 77.701876,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM maps the 'Shell Technology Centre Bangalore' campus polygon inside the KIADB Hardware Park (https://www.openstreetmap.org/way/203058241); shell.in's STCB page was not reachable in this run.",
+     "geocodeSource": "osm-park"
+    },
+    {
+     "label": "Bagmane Solarium City office",
+     "locality": "Kundalahalli (Brookefield, ITPL Main Road)",
+     "address": "Bagmane Solarium City, Kundalahalli Colony, Brookefield, Bengaluru 560037",
+     "building": null,
+     "techPark": "Bagmane Solarium City",
+     "lat": 12.969934,
+     "lng": 77.708425,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Bagmane's Solarium City page names Shell among the park's occupiers (https://www.bagmanegroup.com/portfolio/bagmane-solarium-city); building not given, pin is the park centroid.",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.bagmanegroup.com/portfolio/bagmane-solarium-city"
+   ]
+  }
+ ],
+ "coverageNotes": "SEARCH BUDGET: the shared WebSearch quota ran out after 16 queries and WebFetch safety checks were rate-limited for most corporate domains late in the run, so many company location pages (bosch.in, siemens, abb, continental, zf, aptiv, harman, eaton, hitachienergy, yokogawa, timken, skf, tatatechnologies, textron, wabtec, trane, otis, collins, boeing.co.in) returned 404/403/503 or were blocked; where that happened the pin is an OpenStreetMap POI/polygon, a Nominatim/Photon hit, or a developer tenant page, and confidence is marked low or medium accordingly. CONFIRMED FROM PRIMARY OR TWO SECONDARY SOURCES: Boeing BIETC Devanahalli, Collins GETC Yelahanka and Aerospace Park, Pratt & Whitney Yelahanka, Rolls-Royce Manyata L3 Hazel, GE JFWTC, Honeywell's two ORR campuses, Dassault Systemes Jayanagar Nanda, Dynamatic's three sites, Daimler Truck Innovation Center (Whitefield Palms), BGSW Koramangala and 360 Business Park, Bosch Adugodi, Volvo Tridib, Schneider at Bagmane Solarium, Kennametal Tumkur Road, Otis Jigani, ABB Nelamangala and Rajajinagar, Toyota Kirloskar Bidadi, Alstom Embassy Prime, Safran's Kalyani Tech Park R&D centre. NOT LOCATED PRECISELY: Airbus India Technology Centre (6 March 2026, 880,000 sq ft, 5,000 seats) - every fetched article names only Bengaluru, so it is pinned to OSM's new 'Airbus India Private Limited' POI at Belathur/Kadugodi as a presumption; the Airbus India HQ opened October 2024 is at Delhi airport, not Bengaluru. Thales' Engineering Competence Centre (500+ staff, second building Nov 2023) - no source names the park, pinned to an OSM brand POI on Richmond Road. Rolls-Royce's Sept 2025 GCC block within Manyata. Safran HAL Aircraft Engines' plot in the Aerospace SEZ and Safran's airport-area electronics plant (planned). LEFT OUT FOR LACK OF ANY BENGALURU EVIDENCE: Lockheed Martin (no Bengaluru office found; Tata Lockheed Martin Aerostructures is Hyderabad), Dassault Aviation (Nagpur JV only), Leonardo (Adani JV, no Bengaluru site), ZF (tech centres in Hyderabad/Chennai/Pune/Coimbatore), Magna, Cummins, John Deere (Pune), Emerson (Pune), Danfoss (Chennai), Carrier (Hyderabad), Johnson Controls, Hexagon (Hyderabad), Hitachi Rail STS (Bengaluru HQ claimed but no address reached), Siemens Mobility (folded into Siemens aliases), Trane Technologies (a Bengaluru engineering centre is reported but no address reached; Photon returned junk), Textron India (site gives no address), Tata Technologies (locations page rate-limited), Honda R&D (Greater Noida; only an HMSI south regional sales office exists in Rajajinagar per OSM), Toyota Connected (Chennai), L&T Defence (no Bengaluru design centre confirmed; L&T Technology Services is lens E05). OTHER NOTES: Safran Aircraft Engine Services' LEAP MRO and Safran Electrical & Power are in Hyderabad, not Bengaluru, despite the brief. Honeywell's Bannerghatta Road site appears on Naukri and OSM but not on Honeywell's current locations page. BGSW's RMZ Ecospace and Bosch's 690 Hosur Road sites are OSM-only and may be vacated. Collins' Embassy TechVillage office is recorded closed on the strength of the 2022 consolidation statement. Timken's registered address says Phase II but the OSM polygon lies west of Hosur Road, so Phase 1 is used. Boeing's Bagmane sites (WTC Amber, Tech Park Lakeview, Constellation Orion) are still listed by the developer but occupancy after the 2024 Devanahalli consolidation was not re-verified. Ingersoll Rand's Bannerghatta Road registered office could not be fetched; only an OSM POI near Infantry Road is pinned. Baker Hughes, Centum, QuEST and Cyient are left to the energy/engineering-services lenses. Geocode coordinates marked park-centroid or photon are not building-level."
+}

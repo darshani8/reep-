@@ -1,0 +1,674 @@
+{
+ "key": "X02-gaps",
+ "techParks": [
+  {
+   "name": "SJR iPark",
+   "aliases": [
+    "SJR I-Park"
+   ],
+   "locality": "Whitefield (EPIP Zone Phase 1)",
+   "developer": "SJR Prime Corporation",
+   "lat": 12.981131,
+   "lng": 77.72629,
+   "bbox": [
+    12.980343,
+    12.982145,
+    77.725543,
+    77.727494
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "FIS"
+   ],
+   "description": "Three-tower IT park on about 8 acres in the EPIP zone of Whitefield, near Sathya Sai hospital and the Whitefield metro line; FIS has used Tower 3 (the 'Warp' block).",
+   "sources": [
+    "https://www.openstreetmap.org/way/123613244",
+    "https://www.office-hub.com/in/properties/rd-number-9-epip-zone-whitefield-bengaluru-ka-a0vQg00000Fm03VIAR"
+   ]
+  },
+  {
+   "name": "ITC Green Centre",
+   "aliases": [],
+   "locality": "Maruthi Seva Nagar (Banaswadi Main Road)",
+   "developer": "ITC",
+   "lat": 12.998486,
+   "lng": 77.626561,
+   "bbox": [
+    12.997399,
+    12.999878,
+    77.625129,
+    77.628254
+   ],
+   "areaSqFtMillions": null,
+   "notableTenants": [
+    "Levi Strauss & Co.",
+    "Optum",
+    "Infor"
+   ],
+   "description": "ITC's green-certified office complex on Banaswadi Main Road (North and South towers), home of Levi Strauss India's head office.",
+   "sources": [
+    "https://www.openstreetmap.org/way/863515482",
+    "https://opencorpdata.com/lei/335800I2TVBMII518W66"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "UST",
+   "aliases": [
+    "UST Global",
+    "US Technology International"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT Services / Digital Engineering",
+   "description": "US-headquartered digital-transformation and engineering services company; Bengaluru is its second-largest delivery centre worldwide, with 6,500+ staff across Prestige Shantiniketan, ITPB, Helios Business Park and (since April 2025) a 300-seat office in MSR North Tower near Manyata.",
+   "founded": 1999,
+   "hqCity": "Aliso Viejo",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.ust.com",
+   "bengaluruEmployeesApprox": 6500,
+   "offices": [
+    {
+     "label": "Prestige Shantiniketan office",
+     "locality": "Whitefield (Hoodi / ITPL Main Road)",
+     "address": "Prestige Shantiniketan, Whitefield Main Road, Bengaluru 560048",
+     "building": null,
+     "techPark": "Prestige Shantiniketan",
+     "lat": 12.988903,
+     "lng": 77.731042,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "UST's April 2025 announcement (carried by CXOToday and HRKatha) says the new office 'complements UST's facilities across Prestige Shantiniketan, ITPB, and Helios Business Park in Bengaluru'; Sakshi Post reports 6,500+ Bengaluru staff: https://cxotoday.com/press-release/ust-further-strengthens-bengaluru-presence-with-a-new-300-seater-office/ and https://www.hrkatha.com/news/ust-expands-bengaluru-footprint-focuses-on-employee-convenience/",
+     "geocodeSource": "osm-poi (Prestige Shantiniketan commercial building, way/194740174)"
+    },
+    {
+     "label": "International Tech Park Bangalore (ITPB) office",
+     "locality": "Whitefield (Pattandur Agrahara)",
+     "address": "International Tech Park Bangalore, ITPL Main Road, Whitefield, Bengaluru 560066",
+     "building": null,
+     "techPark": "International Tech Park Bangalore",
+     "lat": 12.985228,
+     "lng": 77.736825,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Named among UST's existing Bengaluru facilities in its April 2025 press release (CXOToday, HRKatha); block not published: https://cxotoday.com/press-release/ust-further-strengthens-bengaluru-presence-with-a-new-300-seater-office/",
+     "geocodeSource": "osm-park (ITPB, way/26399624)"
+    },
+    {
+     "label": "Helios Business Park office",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "address": "Helios Business Park, Outer Ring Road, Kadubeesanahalli, Bengaluru 560103",
+     "building": null,
+     "techPark": "Helios Business Park",
+     "lat": 12.937403,
+     "lng": 77.689719,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Named among UST's existing Bengaluru facilities in its April 2025 press release; HRKatha quotes 'complementing its other offices at Prestige Shantiniketan, ITPB, and Helios Business Park': https://www.hrkatha.com/news/ust-expands-bengaluru-footprint-focuses-on-employee-convenience/",
+     "geocodeSource": "osm-park (Helios Business Park, way/779346494)"
+    },
+    {
+     "label": "MSR North Tower office (North Bengaluru)",
+     "locality": "Nagavara (ORR / Thanisandra Main Road, near Manyata Tech Park)",
+     "address": "MSR North Tower, Dr. Puneeth Rajkumar Road, MS Ramaiah North City, Nagavara, Bengaluru 560045",
+     "building": "MSR North Tower",
+     "techPark": null,
+     "lat": 13.042051,
+     "lng": 77.623557,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "UST inaugurated a 300+ seat office 'in the MSR North Tower near Manyata Tech Park, Nagavara' in April 2025 (CXOToday, HRKatha); building address per OfficeSpace listing; pin is the OSM 'MS Ramaiah Tech Park' polygon at the ORR-Thanisandra Main Road junction because the tower itself is not mapped: https://cxotoday.com/press-release/ust-further-strengthens-bengaluru-presence-with-a-new-300-seater-office/ and https://www.officespace.com/en/in/office-rental/bengaluru/15446-msr-north-tower",
+     "geocodeSource": "osm-park (MS Ramaiah Tech Park polygon way/777618526; tower not mapped, approximate)"
+    }
+   ],
+   "sources": [
+    "https://cxotoday.com/press-release/ust-further-strengthens-bengaluru-presence-with-a-new-300-seater-office/",
+    "https://www.hrkatha.com/news/ust-expands-bengaluru-footprint-focuses-on-employee-convenience/",
+    "https://www.sakshipost.com/news/american-tech-firm-ust-expands-india-footprint-opens-4th-office-bengaluru-397757",
+    "https://www.officespace.com/en/in/office-rental/bengaluru/15446-msr-north-tower"
+   ]
+  },
+  {
+   "name": "FIS",
+   "aliases": [
+    "Fidelity National Information Services",
+    "FIS Global",
+    "FIS Global Business Solutions India",
+    "Fidelity Information Services India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Fintech / Banking & Payments Technology",
+   "description": "Fortune 500 financial-technology company (core banking, capital-markets and payments software); its Indian delivery network includes a Whitefield EPIP-zone centre. Not to be confused with Fiserv or Fidelity Investments.",
+   "founded": 1968,
+   "hqCity": "Jacksonville",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.fisglobal.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Whitefield EPIP Zone office (SJR iPark)",
+     "locality": "Whitefield (EPIP Zone Phase 1)",
+     "address": "2nd-3rd and 6th Floors, Tower 3 (Warp block), SJR iPark, EPIP Zone 1, Whitefield Road, Bengaluru 560066",
+     "building": "Tower 3 (Warp block)",
+     "techPark": "SJR iPark",
+     "lat": 12.981131,
+     "lng": 77.72629,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "FIS's own ISO 22301 certificate appendix (reissued Jan 2021, valid to Apr 2023) lists 'Fidelity Information Services (FIS) ... 2-3/F and 6/F, Tower 3, Block Warp, EPIP Zone 1, Whitefield Road, Bangalore 560066'; a Justdial listing places FIS Global Business Solutions India at '2nd Floor, SJR iPark, EPIP Zone, Whitefield Main Road 560066'. The SJR iPark name rests on the directory listing and the 2021 address may be dated: https://storage.mtender.gov.md/get/1dc18a37-e214-4cd7-aac4-d82808704767-1624012945712 and https://www.justdial.com/Bangalore/Fis-Global-Business-Solutions-India-Pvt-Ltd-Whitefield-Main-Road/080PXX80-XX80-120131172849-Z5S2_BZDET",
+     "geocodeSource": "osm-park (SJR iPark, way/123613244)"
+    }
+   ],
+   "sources": [
+    "https://storage.mtender.gov.md/get/1dc18a37-e214-4cd7-aac4-d82808704767-1624012945712",
+    "https://www.justdial.com/Bangalore/Fis-Global-Business-Solutions-India-Pvt-Ltd-Whitefield-Main-Road/080PXX80-XX80-120131172849-Z5S2_BZDET",
+    "https://theorg.com/org/fis/offices/bangalore",
+    "https://www.peoplematters.in/news/recruitment/fis-to-hire-over-10000-people-in-12-months-31131"
+   ]
+  },
+  {
+   "name": "Mastercard",
+   "aliases": [
+    "Mastercard India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Payments",
+   "description": "Global card-payments network; its main India tech hub is in Pune, but Mastercard also lists Bengaluru among its Indian offices (product, technology and business-development roles).",
+   "founded": 1966,
+   "hqCity": "Purchase, New York",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.mastercard.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office (Brigade Gateway / WTC, reported)",
+     "locality": "Malleswaram West / Rajajinagar (Dr Rajkumar Road)",
+     "address": "6th Floor, Brigade Gateway, 26/1 Dr. Rajkumar Road, Bengaluru 560055",
+     "building": null,
+     "techPark": "World Trade Center Bengaluru (Brigade Gateway)",
+     "lat": 13.012255,
+     "lng": 77.556175,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Investment Monitor (Oct 2024, on the Pune hub launch) says Mastercard 'already has offices in Gurugram, Mumbai, Hyderabad, Bengaluru, and Vadodara'; the Brigade Gateway 6th-floor address comes only from a marketing blog and could not be confirmed, and Mastercard's careers locations page lists no Bengaluru office: https://www.investmentmonitor.ai/news/mastercard-expands-in-india-with-technology-hub-in-pune/ and https://tattvammedia.com/blog/mastercard-offices-in-india/",
+     "geocodeSource": "osm-poi (World Trade Center Bangalore building, way/149418884)"
+    }
+   ],
+   "sources": [
+    "https://www.investmentmonitor.ai/news/mastercard-expands-in-india-with-technology-hub-in-pune/",
+    "https://tattvammedia.com/blog/mastercard-offices-in-india/",
+    "https://careers.mastercard.com/us/en/locations"
+   ]
+  },
+  {
+   "name": "Albertsons Companies India",
+   "aliases": [
+    "Albertsons Innovation and Development Centre (India) Private Limited",
+    "Albertsons Companies"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail (Grocery) - Global Capability Centre",
+   "description": "Technology and innovation GCC of the US grocery chain Albertsons, incorporated April 2025 in Bengaluru; about 300 staff with plans to hire about 1,000 within 18 months; CEO Sunil Gopinath appointed August 2025.",
+   "founded": 1939,
+   "hqCity": "Boise",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.albertsonscompanies.com",
+   "bengaluruEmployeesApprox": 300,
+   "offices": [
+    {
+     "label": "India technology and innovation centre",
+     "locality": "Nagavara (Manyata Tech Park, Outer Ring Road)",
+     "address": "7th & 8th Floor, M3 Block (Acacia), Parcel 2, Embassy Manyata Business Park, Outer Ring Road, Nagavara, Bengaluru 560045",
+     "building": "M3 Block (Acacia), Parcel 2",
+     "techPark": "Manyata Tech Park",
+     "lat": 13.050496,
+     "lng": 77.618837,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "GLEIF record for Albertsons Innovation and Development Centre (India) Pvt Ltd (updated Mar 2026) gives '7th and 8th Floor M3 Block Parcel 2, Embassy Manyata Business Park'; a magicpin listing gives the same floors in 'M3, Parcel 2 Acacia', and an April 2026 report places the centre in Manyata Tech Park (the April 2025 incorporation address was J Block, 1st Floor, in the same park): https://search.gleif.org/#/record/3358003OFRZJAE7YHN08 and https://magicpin.in/Bangalore/Embassy-Manyata-Business-Park/Other/Albertsons-Companies-India/store/1ab8745 and https://booknewproperty.com/news/albertsons-bengaluru-tech-center-manyata-update/",
+     "geocodeSource": "osm-poi (Acacia building way/1136507017; parcel assignment inferred)"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/3358003OFRZJAE7YHN08",
+    "https://magicpin.in/Bangalore/Embassy-Manyata-Business-Park/Other/Albertsons-Companies-India/store/1ab8745",
+    "https://booknewproperty.com/news/albertsons-bengaluru-tech-center-manyata-update/",
+    "https://www.indiafilings.com/search/albertsons-innovation-and-development-centre-india-private-limited-cin-U62099KA2025FTC200765",
+    "https://www.grocerydive.com/news/albertsons-ceo-new-global-tech-innovation-center-india/758725/"
+   ]
+  },
+  {
+   "name": "Kenvue",
+   "aliases": [
+    "Kenvue Solutions India Private Limited",
+    "Kenvue GCC"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consumer Health - Global Capability Centre",
+   "description": "Consumer-health company spun off from Johnson & Johnson (Neutrogena, Listerine, Band-Aid); its first global capability centre, set up with ANSR and inaugurated in Bengaluru in August 2023, covers digital, data science, cybersecurity, AI, digital marketing and supply-chain technology.",
+   "founded": 2023,
+   "hqCity": "Summit, New Jersey",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.kenvue.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global capability centre (Embassy Manyata)",
+     "locality": "Nagavara (Manyata Tech Park, Outer Ring Road)",
+     "address": "5th and 6th Floor, Acacia, Embassy Manyata Business Park, Outer Ring Road, Bengaluru 560045",
+     "building": "Acacia",
+     "techPark": "Manyata Tech Park",
+     "lat": 13.050496,
+     "lng": 77.618837,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The LEI record for Kenvue Solutions India Pvt Ltd (registered Oct 2023, updated Aug 2026) gives the legal address '5th and 6th Floor, Acacia, Embassy Manyata Business Park'; ANSR's case study confirms the GCC was inaugurated in Bengaluru in August 2023. A GST record seen only in search results gives a 7th-floor Redwood (D3) address in the same park: https://indialei.in/detailed-information/49367999/254900PT0NW8W3EC6V13/kenvue-solutions-india-private-limited/ and https://ansr.com/case-study/kenvues-bengaluru-gcc-drives-global-digital-excellence/",
+     "geocodeSource": "osm-poi (Acacia building way/1136507017; which Acacia parcel is not stated)"
+    }
+   ],
+   "sources": [
+    "https://indialei.in/detailed-information/49367999/254900PT0NW8W3EC6V13/kenvue-solutions-india-private-limited/",
+    "https://search.gleif.org/#/record/254900PT0NW8W3EC6V13",
+    "https://ansr.com/case-study/kenvues-bengaluru-gcc-drives-global-digital-excellence/"
+   ]
+  },
+  {
+   "name": "Lululemon",
+   "aliases": [
+    "lululemon athletica",
+    "Lululemon India (Services) Private Limited",
+    "lululemon India Technology Hub"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Apparel Retail - Technology Hub",
+   "description": "Canadian athletic-apparel brand whose India Technology Hub, opened in Bengaluru in April 2021 with ANSR, was its first technology centre outside North America (marketing tech, data science, machine learning, cloud engineering).",
+   "founded": 1998,
+   "hqCity": "Vancouver",
+   "hqCountry": "Canada",
+   "isUnicorn": false,
+   "website": "https://shop.lululemon.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India Technology Hub",
+     "locality": "Nagavara (Manyata Tech Park, Outer Ring Road)",
+     "address": "10th Floor, Block NXT - Tower 2, Manyata Embassy Business Park, Outer Ring Road, Nagawara, Bengaluru 560045",
+     "building": "Manyata NXT Tower 2",
+     "techPark": "Manyata Tech Park",
+     "lat": 13.041761,
+     "lng": 77.619526,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "The LEI record for Lululemon India (Services) Pvt Ltd (updated Jul 2026) gives the legal address '10th Floor, Block NXT - Tower 2, Manyata Embassy Business Park'; YourStory reported the hub's April 2021 launch in Bengaluru as lululemon's first tech centre outside North America: https://lei.bloomberg.com/leis/view/5493004MJ3QOTKS5BL86 and https://yourstory.com/2021/04/athlectic-apparel-brand-lululemon-opens-tech-centre-bengaluru/amp",
+     "geocodeSource": "osm-poi (Manyata NXT Tower 2, way/782063729)"
+    }
+   ],
+   "sources": [
+    "https://lei.bloomberg.com/leis/view/5493004MJ3QOTKS5BL86",
+    "https://yourstory.com/2021/04/athlectic-apparel-brand-lululemon-opens-tech-centre-bengaluru/amp",
+    "https://www.hrkatha.com/hiring-firing/lululemon-athletica-to-hire-250-techies-for-bengaluru-tech-hub/"
+   ]
+  },
+  {
+   "name": "Levi Strauss & Co.",
+   "aliases": [
+    "Levi's",
+    "Levi Strauss (India) Private Limited",
+    "Levi Strauss Global Talent Hub"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Apparel",
+   "description": "US denim and apparel company; its Indian subsidiary is headquartered in Bengaluru, which also hosts the company's India Global Talent Hub / GCC (led from Bengaluru by Vijay Nair).",
+   "founded": 1853,
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.levistrauss.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Levi Strauss India head office",
+     "locality": "Maruthi Seva Nagar (Banaswadi Main Road)",
+     "address": "ITC Green Centre, No. 18, 4th & 5th Floor, Banaswadi Main Road, Maruthi Seva Nagar, Bengaluru 560005",
+     "building": "ITC Green Centre (North Tower)",
+     "techPark": null,
+     "lat": 12.998486,
+     "lng": 77.626561,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "The LEI record for Levi Strauss (India) Pvt Ltd (updated Jan 2026) and the company's provident-fund trust record both give ITC Green Centre, 18 Banaswadi Main Road (the trust: '5th Floor North Tower'); Zauba and Tofler list the same registered office. Whether the Global Talent Hub sits in the same building is not published: https://opencorpdata.com/lei/335800I2TVBMII518W66 and https://www.zaubacorp.com/LEVI-STRAUSS-INDIA-PRIVATE-LIMITED-U18101KA1994PTC015448",
+     "geocodeSource": "osm-park (ITC Green Centre, way/863515482)"
+    }
+   ],
+   "sources": [
+    "https://opencorpdata.com/lei/335800I2TVBMII518W66",
+    "https://search.gleif.org/#/record/2549006MWHS0JAYUXT53",
+    "https://www.zaubacorp.com/LEVI-STRAUSS-INDIA-PRIVATE-LIMITED-U18101KA1994PTC015448",
+    "https://www.cxodigitalpulse.com/?p=56419"
+   ]
+  },
+  {
+   "name": "H&M Group",
+   "aliases": [
+    "H&M",
+    "Hennes & Mauritz",
+    "H & M Hennes & Mauritz India Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Fashion Retail",
+   "description": "Swedish fashion retailer that moved its India head office from Saket, Delhi-NCR, to North Bengaluru in 2025; it also runs eight Bengaluru stores.",
+   "founded": 1947,
+   "hqCity": "Stockholm",
+   "hqCountry": "Sweden",
+   "isUnicorn": false,
+   "website": "https://www2.hm.com/en_in/",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India head office (Phoenix Asia Towers)",
+     "locality": "Byatarayanapura / Hebbal (Bellary Road)",
+     "address": "Unit No. 701, 7th Floor, Tower 2, Phoenix Asia Towers, Byatarayanapura, Bengaluru 560092",
+     "building": "Phoenix Asia Towers, Tower 2",
+     "techPark": null,
+     "lat": 13.0709388,
+     "lng": 77.5903031,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "The LEI record for H & M Hennes & Mauritz India Pvt Ltd (updated June 2026) gives 'Unit No. 701, 7th Floor, Tower 2, Phoenix Asia Towers, Byatarayanapura, Bangalore North 560092'; Apparel Resources (Jan 2025) reported the India HQ moving from Delhi's Saket to North Bengaluru. The pin is the adjoining Phoenix Mall of Asia footprint because the office towers are not mapped separately: https://opencorpdata.com/lei/3358003U4PAURRFDP734 and https://apparelresources.com/business-news/retail/hm-switches-indian-headquarters-delhi-ncr-tech-hub-bengaluru",
+     "geocodeSource": "photon (Phoenix Mall of Asia polygon way/635509936; towers not mapped, approximate)"
+    }
+   ],
+   "sources": [
+    "https://opencorpdata.com/lei/3358003U4PAURRFDP734",
+    "https://apparelresources.com/business-news/retail/hm-switches-indian-headquarters-delhi-ncr-tech-hub-bengaluru",
+    "https://cwv.yourstory.com/2025/01/hm-shifts-base-bengaluru-fashion-retail-apparel-ecosystem-myntra-ajio-shein"
+   ]
+  },
+  {
+   "name": "Ralph Lauren",
+   "aliases": [
+    "Ralph Lauren Corporation",
+    "Ralph Lauren Sourcing India LLP",
+    "RL Sourcing India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Fashion / Luxury Apparel",
+   "description": "US luxury-apparel company with a long-standing Bengaluru sourcing presence; in June 2026 it named Tathagat Varma (ex-Walmart Global Tech) VP and head of its new India Global Capability Centre, based in Bengaluru.",
+   "founded": 1967,
+   "hqCity": "New York",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.ralphlauren.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Ralph Lauren Sourcing India (Brigade Tech Gardens SEZ)",
+     "locality": "Brookefield / Kundalahalli",
+     "address": "Enclosure No. 2, Unit No. 101, 1st Floor, Tower B1, Brigade Tech Gardens (SEZ), Krishnarajapuram Hobli, Bengaluru 560037",
+     "building": "Tower B1",
+     "techPark": "Brigade Tech Gardens",
+     "lat": 12.964095,
+     "lng": 77.719774,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The LEI record for Ralph Lauren Sourcing India LLP (registered Feb 2020, updated Sept 2026) gives this SEZ address; outlets report the India GCC head is based in Bengaluru but name no building, so whether the GCC sits here is unconfirmed: https://indialei.in/detailed-information/745549/549300F53ZIGMX34TJ06/ralph-lauren-sourcing-india-llp/ and https://news.outsourceaccelerator.com/ralph-lauren-india-gcc/",
+     "geocodeSource": "osm-park (Brigade Tech Gardens, way/117313586)"
+    }
+   ],
+   "sources": [
+    "https://indialei.in/detailed-information/745549/549300F53ZIGMX34TJ06/ralph-lauren-sourcing-india-llp/",
+    "https://news.outsourceaccelerator.com/ralph-lauren-india-gcc/",
+    "https://www.exchange4media.com/people-movement-news/ralph-lauren-appoints-tathagat-varma-as-vp-head-of-global-capability-centre-155305.html"
+   ]
+  },
+  {
+   "name": "Check Point Software",
+   "aliases": [
+    "Check Point Software Technologies",
+    "Check Point Software Technologies India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Cybersecurity",
+   "description": "Israeli cybersecurity company; its 42,700 sq ft Bengaluru office (opened 2024) is its second-largest facility after Tel Aviv and houses its first Asia-Pacific R&D centre (announced Feb 2025, starting with 100+ engineers on Quantum/SASE) plus sales, channel and security-engineering teams.",
+   "founded": 1993,
+   "hqCity": "Tel Aviv",
+   "hqCountry": "Israel",
+   "isUnicorn": false,
+   "website": "https://www.checkpoint.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office and APAC R&D centre",
+     "locality": "Doraisanipalya / JP Nagar (Bannerghatta Road)",
+     "address": "Kalyani Magnum, Block-1, Wing-A, 1st Floor, J.P. Nagar 4th Phase, Bannerghatta Road, Bengaluru 560076",
+     "building": "Kalyani Magnum Block 1, Wing A",
+     "techPark": "Kalyani Magnum",
+     "lat": 12.900462,
+     "lng": 77.596169,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Check Point's official contact page lists 'Kalyani Magnum, Block-1, Wing-A, 1st Floor, J.P. Nagar 4th Phase, Bengaluru 560076' as its India office (also its Karnataka GST address); its Feb 2025 blog calls the 42,700 sq ft Bengaluru office its second-largest global facility and home of the first APAC R&D centre: https://www.checkpoint.com/about-us/contact-check-point/ and https://blog.checkpoint.com/security/check-point-software-announces-plans-to-expand-global-rd-footprint-with-first-asia-pacific-research-development-centre-in-bengaluru/",
+     "geocodeSource": "osm-park (Kalyani Magnum, way/699268545)"
+    }
+   ],
+   "sources": [
+    "https://www.checkpoint.com/about-us/contact-check-point/",
+    "https://blog.checkpoint.com/security/check-point-software-announces-plans-to-expand-global-rd-footprint-with-first-asia-pacific-research-development-centre-in-bengaluru/",
+    "https://gst.iadv.io/CHECK-POINT-SOFTWARE-TECHNOLOGIES-INDIA-PRIVATE-LIMITED-29AACCC2132Q1ZG/"
+   ]
+  },
+  {
+   "name": "Zoom",
+   "aliases": [
+    "Zoom Communications",
+    "Zoom Video Communications"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Communications Software (SaaS)",
+   "description": "Video-communications software company (renamed Zoom Communications in 2024); announced a Bengaluru technology centre in July 2020 for engineering, DevOps, IT, security and business operations, and lists Bangalore among its global offices.",
+   "founded": 2011,
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.zoom.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru technology centre (Embassy TechVillage, reported)",
+     "locality": "Devarabeesanahalli (Outer Ring Road)",
+     "address": "Block L, Embassy TechVillage, Devarabeesanahalli, Outer Ring Road, Bengaluru 560103",
+     "building": "Block L",
+     "techPark": "Embassy TechVillage",
+     "lat": 12.931026,
+     "lng": 77.691147,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Zoom's contact page lists 'Bangalore, India' among its offices and Tele.net (21 Jul 2020) reported the Bengaluru technology centre announcement; the Block L, Embassy TechVillage address comes only from a Glassdoor office listing seen in search results and is unconfirmed: https://www.zoom.com/en/contact/ and https://tele.net.in/zoom-to-set-up-a-new-technology-centre-in-bengaluru/ and https://www.glassdoor.com/Location/Zoom-Video-Communications-Bengaluru-Indien-Location-EI_IE924644.0,25_IL.26,42_IC2940587.htm",
+     "geocodeSource": "osm-poi (WeWork, Block L, Embassy TechVillage, node/6569023743)"
+    }
+   ],
+   "sources": [
+    "https://www.zoom.com/en/contact/",
+    "https://tele.net.in/zoom-to-set-up-a-new-technology-centre-in-bengaluru/",
+    "https://sg.finance.yahoo.com/news/zoom-open-tech-centre-indias-083426477.html",
+    "https://www.glassdoor.com/Location/Zoom-Video-Communications-Bengaluru-Indien-Location-EI_IE924644.0,25_IL.26,42_IC2940587.htm"
+   ]
+  },
+  {
+   "name": "Twilio",
+   "aliases": [
+    "Twilio Technology India Private Limited",
+    "Twilio India Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Cloud Communications (CPaaS)",
+   "description": "US cloud-communications platform (SMS, voice, email APIs and Segment customer data); its Indian product-engineering subsidiary, Twilio Technology India, is registered at RMZ Ecoworld on the Outer Ring Road.",
+   "founded": 2008,
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.twilio.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Twilio Technology India (RMZ Ecoworld)",
+     "locality": "Devarabeesanahalli / Bellandur (Outer Ring Road)",
+     "address": "CoWrks, RMZ Ecoworld, The Bay Area, 3rd Floor, Building 6A, Outer Ring Road, Devarabeesanahalli, Bellandur, Bengaluru 560103",
+     "building": "Building 6A (CoWrks)",
+     "techPark": "RMZ Ecoworld",
+     "lat": 12.921143,
+     "lng": 77.684473,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "GLEIF record for Twilio Technology India Pvt Ltd (entity created Oct 2019, updated Feb 2026) gives this legal and headquarters address; it is a managed (CoWrks) floor and no press source names the building: https://search.gleif.org/#/record/335800WJZD1MR5I1VS77",
+     "geocodeSource": "osm-poi (Campus 6A and 6B, relation/7722136)"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800WJZD1MR5I1VS77",
+    "https://search.gleif.org/#/record/335800LQJGPY1F46JD98"
+   ]
+  },
+  {
+   "name": "HubSpot",
+   "aliases": [
+    "HubSpot India Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "SaaS (CRM / Marketing Software)",
+   "description": "US CRM and marketing-software company whose first India office, for go-to-market and engineering talent, is in Bengaluru (HubSpot India Pvt Ltd incorporated April 2024).",
+   "founded": 2006,
+   "hqCity": "Cambridge, Massachusetts",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.hubspot.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India office (WeWork Cherry Hills)",
+     "locality": "Challaghatta / Domlur (Embassy GolfLinks)",
+     "address": "#04B-105 and #04B-114, WeWork Cherry Hills, Embassy Golf Links Business Park, Challaghatta, Bengaluru 560071",
+     "building": "Cherry Hills (WeWork)",
+     "techPark": "Embassy GolfLinks Business Park",
+     "lat": 12.95009,
+     "lng": 77.641712,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "HubSpot's official contact page lists its India office at '#04B-105 and #04B-114, WeWork Cherry Hills, Embassy Golf Links Business Park, Challaghatta, Bengaluru, Karnataka 560071': https://www.hubspot.com/company/contact",
+     "geocodeSource": "osm-poi (Cherry Hills building, way/105322121)"
+    }
+   ],
+   "sources": [
+    "https://www.hubspot.com/company/contact",
+    "https://search.gleif.org/#/record/335800JVWEHDBSDVVX69"
+   ]
+  },
+  {
+   "name": "Synaptics",
+   "aliases": [
+    "Synaptics India Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors",
+   "description": "US fabless chipmaker (IoT, wireless connectivity, human-interface and display chips) with an India design centre in Bengaluru (Indian entity since 2008) as well as Hyderabad.",
+   "founded": 1986,
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.synaptics.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru design centre (RMZ Ecospace)",
+     "locality": "Bellandur (Sarjapur-Marathahalli Outer Ring Road)",
+     "address": "Building 1C, 4th Floor, RMZ Ecospace, Bellandur, Bengaluru 560103",
+     "building": "Building 1C",
+     "techPark": "RMZ Ecospace",
+     "lat": 12.926929,
+     "lng": 77.680417,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "GLEIF record for Synaptics India Pvt Ltd (entity created 2008, updated 6 Oct 2026) gives the legal and headquarters address 'Building 1C, 4th Floor, RMZ Ecospace, Bellandur, Bangalore 560103': https://search.gleif.org/#/record/335800GQVS4EPIE9K824",
+     "geocodeSource": "dataset (RMZ Ecospace Campus 1A/1C position used for Broadcom; Synaptics floor not mapped)"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800GQVS4EPIE9K824"
+   ]
+  },
+  {
+   "name": "Magna International",
+   "aliases": [
+    "Magna",
+    "Magna Electronics India Private Limited"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive Components / Electronics",
+   "description": "Canadian tier-1 automotive supplier; its Bengaluru unit, Magna Electronics India (entity created Dec 2017), works on vehicle electronics such as driver-assistance systems. Magna Automotive India is registered separately in Pune.",
+   "founded": 1957,
+   "hqCity": "Aurora, Ontario",
+   "hqCountry": "Canada",
+   "isUnicorn": false,
+   "website": "https://www.magna.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Magna Electronics India (Ardente Office One)",
+     "locality": "Hoodi (Whitefield)",
+     "address": "No. G-1006, Ground Floor, Block 1, Janapriya Hanuma Reddy Complex (Ardente Office One), Hoodi, Bengaluru 560048",
+     "building": "Ardente Office One, Block 1",
+     "techPark": null,
+     "lat": 12.9918006,
+     "lng": 77.716493,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "GLEIF record for Magna Electronics India Pvt Ltd (updated June 2026) gives this legal and headquarters address in Hoodi. The building is not in OSM, so the pin is a Hoodi Main Road locality point and is approximate: https://search.gleif.org/#/record/335800IV4EX3D9XDN889",
+     "geocodeSource": "nominatim (Hoodi Main Road locality point; building not mapped, approximate)"
+    }
+   ],
+   "sources": [
+    "https://search.gleif.org/#/record/335800IV4EX3D9XDN889",
+    "https://search.gleif.org/#/record/3358001L5H7TKM8ECK17"
+   ]
+  }
+ ],
+ "coverageNotes": "SCOPE. Twenty critic-named gaps; none was already in the dataset under any name or alias (checked against every raw file). Placed: 15 companies with 18 offices. Left out: 5 companies. METHOD. Web search was used until the shared search budget ran out; after that the work used direct fetches of company pages and the GLEIF LEI registry API (legal and headquarters addresses of each Indian subsidiary, with last-update dates). Pins come from OSM building or park polygons in the shared extracts; there were no OSM office POIs for any of the 20 names. Live Overpass mirrors were down. LEFT OUT (could not be placed in Bengaluru with a substantiated building, so no pin was invented): (1) Woodside Energy (Woodside Global Solutions): its Bengaluru office is real (Woodside news story and Business Wire India, Sept 2026), but no building or locality is published and no Indian LEI entity was found. (2) Airbnb: the only Indian GCC entity, Airbnb Global Capability Center Pvt Ltd, is registered at 241 Udyog Vihar Phase-1, Gurugram (GLEIF 984500740823COEA8E06), Airbnb's careers site lists no India roles, and no Bengaluru office could be substantiated; the 'Bengaluru engineering centre' claim looks wrong. (3) Kimberly-Clark: its Indian entities are in Pune (Sanaswadi plant; Chakan) and Mumbai. A second critic's hint of a 'Global Digital Technology Centre, Infantry Road' could not be confirmed. (4) STMicroelectronics: Wikipedia describes a Bangalore HW/SW design centre of 250+ people, but no address was found; st.com returned 503 and the only Indian LEI entity is Delhi/Greater Noida. (5) Panasonic (Panasonic India Innovation Centre): no Bengaluru entity or address was found among Panasonic's Indian LEI records (all in Gurugram, Delhi, Chennai, Vadodara and Pune), and panasonic.com returned 403. WEAK OR UNCERTAIN PLACEMENTS. Mastercard (low): Bengaluru is confirmed as one of its Indian offices, but the Brigade Gateway 6th-floor address is from a single blog. Zoom (low): the city is confirmed by zoom.com, but Embassy TechVillage Block L is from a single Glassdoor listing. FIS (medium): the address is from FIS's own 2021 ISO certificate appendix and a Justdial listing and may be dated; a third-party profile also mentioned RMZ Ecoworld, which is unconfirmed. Ralph Lauren (medium): the LEI-registered Sourcing LLP in Brigade Tech Gardens SEZ is placed, but the new GCC's building is unpublished; an older liaison and RL Sourcing office at Prestige Nebula, Cubbon Road, was not added because its current status is unknown. Twilio (medium): this is the CoWrks floor in the registry; Twilio India Pvt Ltd's registered office at a Langford Road residential complex was not added because it is not an operating office. Magna (medium): the pin is at locality level (Hoodi). HubSpot: the registry's Electronics City address is a residential registered office; the operating office is the official WeWork Cherry Hills address. H&M: the older WTC Bengaluru 11th-floor address (Zauba) appears superseded by Phoenix Asia Towers in the 2026 LEI record, so it was not added. Kenvue: a GST record (seen only in search results) gives Redwood D3, 7th floor, in the same park; the Acacia LEI address was used. Two Manyata pins use the Acacia polygon way/1136507017, assumed to be the Parcel 2 (M3) block because ANZ's 'Acacia Parcel 1' maps to way/1073961646. isHq marks the company's India head or registered office where that is in Bengaluru. HEADCOUNTS: only UST (6,500+, April 2025) and Albertsons (about 300) are given; all others are null rather than guessed."
+}

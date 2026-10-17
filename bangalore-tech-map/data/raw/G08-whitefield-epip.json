@@ -1,0 +1,2542 @@
+{
+ "key": "G08-whitefield-epip",
+ "techParks": [
+  {
+   "name": "EPIP Zone Whitefield",
+   "aliases": [
+    "Export Promotion Industrial Park",
+    "KIADB Export Promotion Industrial Area",
+    "EPIP Phase I",
+    "EPIP Phase II",
+    "EPIP Industrial Area Whitefield"
+   ],
+   "locality": "Whitefield / Hoodi / Kundalahalli",
+   "developer": "KIADB",
+   "lat": 12.9781922,
+   "lng": 77.7246451,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "description": "The KIADB Export Promotion Industrial Park in Whitefield, laid out in Phase I (around Whitefield Main Road / Hoodi) and Phase II (towards Brookefield and Kundalahalli), is a plotted industrial-cum-IT zone rather than a single campus. It hosts owner-occupied R&D campuses (SAP Labs India #138, GE's John F. Welch Technology Centre at #122, Tesco #81-82, Qualcomm #125-127, AMD #102-103, Microchip #149-B, NTT DATA #178, Capgemini #155-170, TCS Abhilash #96 and L-Centre #78-83) plus multi-tenant buildings such as Gopalan Global Axis (#152), Kalyani Platina (#6 & 24), Mindcomp Tech Park (#149-A), Whitefield Palms and Embassy Crest. The coordinate is the Photon/OSM node for 'EPIP Zone', not a polygon centroid.",
+   "notableTenants": [
+    "SAP",
+    "GE Aerospace",
+    "GE HealthCare",
+    "Tesco Bengaluru",
+    "Qualcomm",
+    "AMD",
+    "Microchip Technology",
+    "NTT DATA",
+    "Capgemini",
+    "Tata Consultancy Services",
+    "Oracle",
+    "LTIMindtree",
+    "Unisys",
+    "Novo Nordisk",
+    "BSH Home Appliances",
+    "Mercedes-Benz R&D India",
+    "Daimler Truck Innovation Center India",
+    "HP Inc",
+    "Infineon Technologies",
+    "Collins Aerospace",
+    "Applied Materials",
+    "Mphasis"
+   ],
+   "sources": [
+    "https://www.sap.com/india/about/labs-india.html",
+    "https://www.qualcomm.com/content/dam/qcomm-martech/dm-assets/documents/qualcomm-iso-9001-certificate.pdf",
+    "https://www.capgemini.com/jp-jp/about-us/locations/",
+    "https://news.ventureintelligence.com/real-estate/us-based-applied-materials%C3%A2%E2%82%AC%E2%84%A2-india-arm-buys-office-space%2C-land-in-bengaluru-for-rs.338-cr"
+   ]
+  },
+  {
+   "name": "SAP Labs India Campus",
+   "aliases": [
+    "SAP Labs India, #138 EPIP Zone",
+    "SAP Labs Whitefield"
+   ],
+   "locality": "EPIP Zone, Whitefield",
+   "developer": null,
+   "lat": 12.979677,
+   "lng": 77.715782,
+   "bbox": [
+    12.977727,
+    12.98199,
+    77.71429,
+    77.717607
+   ],
+   "areaSqFtMillions": null,
+   "description": "SAP Labs India's owner-occupied main campus at #138 EPIP Zone, Whitefield (blocks A-E plus later buildings), the company's largest R&D hub outside Germany until the second Devanahalli campus opened in August 2025. SAP also lists an RMZ NXT site in nearby Mahadevapura.",
+   "notableTenants": [
+    "SAP"
+   ],
+   "sources": [
+    "https://www.sap.com/india/about/labs-india.html",
+    "https://www.voicendata.com/sap-labs-india-inaugurates-the-gerhard-oswald-innovation-space-in-bengaluru"
+   ]
+  },
+  {
+   "name": "John F. Welch Technology Centre",
+   "aliases": [
+    "JFWTC",
+    "GE John F. Welch Technology Centre",
+    "GE India Technology Centre"
+   ],
+   "locality": "EPIP Zone Phase 2, Hoodi / Whitefield",
+   "developer": null,
+   "lat": 12.97376,
+   "lng": 77.724167,
+   "bbox": [
+    12.971151,
+    12.975557,
+    77.721444,
+    77.72694
+   ],
+   "areaSqFtMillions": null,
+   "description": "GE's first and largest integrated multidisciplinary R&D centre outside the US, inaugurated by Jack Welch on 17 September 2000 on a 50-acre campus in Whitefield's EPIP zone (plot 122). Since GE's 2024 split it is described as a GE Aerospace site (25th anniversary in 2025) while GE HealthCare still lists its X-ray division at No. 122 EPIP.",
+   "notableTenants": [
+    "GE Aerospace",
+    "GE HealthCare"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/John_F._Welch_Technology_Centre",
+    "https://machinist.in/2025/09/ge-aerospace-celebrates-25-years-of-innovation-at-john-f-welch-technology-centre-bengaluru/",
+    "https://www.gehealthcare.com/en-in/about/ge-healthcare-service-branches"
+   ]
+  },
+  {
+   "name": "Brigade Tech Gardens",
+   "aliases": [
+    "Brigade Tech Gardens Brookefield",
+    "BTG"
+   ],
+   "locality": "Brookefield / Kundalahalli",
+   "developer": "Brigade Group (JV with GIC Singapore)",
+   "lat": 12.964095,
+   "lng": 77.719774,
+   "bbox": [
+    12.962366,
+    12.965397,
+    77.717838,
+    77.722596
+   ],
+   "areaSqFtMillions": 3.0,
+   "description": "A ~3 million sq ft LEED Platinum SEZ campus on Brookefields Green Avenue, Kundalahalli (ITPL Main Road, Phase 2), developed by Brigade Enterprises with GIC and inaugurated in December 2022; six blocks in a B cluster (B1, B3) and a C cluster (C1, C2, C4, C5), with BuzzWorks coworking. Confirmed occupiers include Manhattan Associates (B1, since 2019), Aptiv's Technical Center India (237,000 sq ft, Feb 2023), JLR's technology and business services arm (~2.04 lakh sq ft) and FNF India (Butterfly building, B1).",
+   "notableTenants": [
+    "Aptiv",
+    "Manhattan Associates",
+    "Jaguar Land Rover",
+    "FNF India",
+    "Mercedes-Benz R&D India"
+   ],
+   "sources": [
+    "https://www.brigadegroup.com/commercial/projects/bengaluru/brigade-tech-gardens",
+    "https://www.brigadegroup.com/blog/commercial/brigade-tech-gardens-inaugurated",
+    "https://nsearchives.nseindia.com/corporate/BRIGADE_04082022162157_Pressrelease.pdf",
+    "https://www.manh.com/en-in/office-locations",
+    "https://therealtytoday.com/news/commercial/jaguar-land-rover-expands-bengaluru-office-footprint-with-146-lakh-sq-ft-lease-at-brigade-tech-gardens/"
+   ]
+  },
+  {
+   "name": "Brigade Tech Park",
+   "aliases": [
+    "Brigade TechPark Whitefield"
+   ],
+   "locality": "Pattandur Agrahara, Whitefield Main Road",
+   "developer": "Brigade Group",
+   "lat": 12.986779,
+   "lng": 77.739731,
+   "bbox": [
+    12.98523,
+    12.987515,
+    77.738901,
+    77.740705
+   ],
+   "areaSqFtMillions": 0.44,
+   "description": "A Grade A office development by Brigade on 4 acres on Whitefield Main Road at Pattandur Agrahara, next to ITPB: about 4.4 lakh sq ft over basement + ground + nine floors with 14,000-50,000 sq ft floor plates, plus a BuzzWorks managed office (750 seats, 2023). No current anchor tenant could be confirmed from a primary source.",
+   "notableTenants": [],
+   "sources": [
+    "https://www.brigadegroup.com/commercial/projects/bengaluru/brigade-tech-park",
+    "https://nsearchives.nseindia.com/corporate/BRIGADE_27022023152742_BELPressReleaseOnBuzzworksExpansion.pdf"
+   ]
+  },
+  {
+   "name": "Prestige Shantiniketan",
+   "aliases": [
+    "Prestige Shantiniketan Business Precinct",
+    "Crescent 1-4 / Tower C, Shantiniketan"
+   ],
+   "locality": "Hoodi / Thigalarapalya, Whitefield Main Road",
+   "developer": "Prestige Group",
+   "lat": 12.988903,
+   "lng": 77.7310416,
+   "bbox": [
+    12.9886984,
+    12.9891074,
+    77.7308302,
+    77.731253
+   ],
+   "areaSqFtMillions": 3.2,
+   "description": "Prestige's integrated township on Whitefield Main Road at Hoodi whose business precinct has about 3.2 million sq ft of offices in seven towers (six forming a crescent-shaped building, plus Tower C near the Nexus Shantiniketan mall). ExxonMobil's Bengaluru technology centre occupies large parts of Crescent 1 and Crescent 2 (0.531 msf renewed Nov 2023-Oct 2028) and Tata Elxsi has an office in Crescent 4.",
+   "notableTenants": [
+    "ExxonMobil",
+    "Tata Elxsi"
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/Prestige_Shantiniketan",
+    "https://therealtytoday.com/news/exxonmobil-renews-5-year-lease-for-531-lakh-sq-ft-office-in-bengalurus-whitefield-it-hub",
+    "https://tataelxsi.com/contact-us"
+   ]
+  },
+  {
+   "name": "Kalyani Platina",
+   "aliases": [
+    "Kalyani Platina Tech Park",
+    "KTP Platina"
+   ],
+   "locality": "EPIP Zone Phase 2, Kundalahalli / Brookefield",
+   "developer": "Kalyani Group (Kalyani Techpark Pvt Ltd)",
+   "lat": 12.972056,
+   "lng": 77.718544,
+   "bbox": null,
+   "areaSqFtMillions": null,
+   "description": "A multi-block office park (blocks include Block 1, Ebony and Magnolia) at Survey No 1, 6 & 24 of Kundalahalli village, EPIP Zone Phase 2, opposite Brookefield Hospital. An ICRA rationale (2016) reported 100% occupancy with the HP group taking 74% of the leased area; HP Inc, Infineon and GE HealthCare list addresses here. The coordinate is an OSM POI that carries the Kalyani Platina address, not a park polygon.",
+   "notableTenants": [
+    "HP Inc",
+    "Infineon Technologies",
+    "GE HealthCare"
+   ],
+   "sources": [
+    "https://www.hp.com/in-en/contact-hp/office-locations.html",
+    "https://company.naukri.com/infineon-india-jobs/contact.html",
+    "https://www.gehealthcare.com/en-in/about/ge-healthcare-service-branches",
+    "https://icra.in/Rating/ShowRationalReportFilePdf/29440"
+   ]
+  },
+  {
+   "name": "Gopalan Global Axis",
+   "aliases": [
+    "Global Axis",
+    "Gopalan Enterprises SEZ, #152 EPIP"
+   ],
+   "locality": "EPIP Zone Phase 2, Hoodi Village, Whitefield",
+   "developer": "Gopalan Enterprises",
+   "lat": 12.982486,
+   "lng": 77.724345,
+   "bbox": [
+    12.981084,
+    12.984108,
+    77.723156,
+    77.725751
+   ],
+   "areaSqFtMillions": null,
+   "description": "Gopalan Enterprises' IT SEZ at Plot 152, EPIP Zone (Hoodi village, K.R. Puram Hobli), on ITPL Main Road; Square Yards gives the project as 26 acres. Oracle Financial Services Software (Units I & II), LTIMindtree (4th-7th floors) and Unisys Global Services India (Block G, 3rd-4th floors) list it as an office, and GoodWorks runs a ~42,000 sq ft managed office here.",
+   "notableTenants": [
+    "Oracle",
+    "LTIMindtree",
+    "Unisys"
+   ],
+   "sources": [
+    "https://www.oracle.com/in/corporate/contact/field-offices.html",
+    "https://ltimindtree.com/annual-report-html/pdf/global-presence.pdf",
+    "https://companies.naukri.com/unisysnew-jobs/contact-us",
+    "https://www.squareyards.com/bangalore-residential-property/gopalan-global-axis/96071/project"
+   ]
+  },
+  {
+   "name": "Sigma Soft Tech Park",
+   "aliases": [
+    "Sigma Tech Park",
+    "Sigma Softech Park"
+   ],
+   "locality": "Ramagondanahalli / Varthur Kodi, Whitefield Main Road",
+   "developer": null,
+   "lat": 12.957685,
+   "lng": 77.744263,
+   "bbox": [
+    12.956828,
+    12.958641,
+    77.743631,
+    77.744883
+   ],
+   "areaSqFtMillions": 0.835,
+   "description": "A four-tower IT park (Alpha, Beta, Gamma, Delta) at No. 7 Whitefield Main Road, Ramagondanahalli / Varthur Kodi, south of Whitefield; a listing gives about 835,000 sq ft built-up. Occupiers are mostly small and mid-size firms by registry address (Embitel Technologies in Delta, ATI Accurate Technologies India in Alpha, Mercatus Commerce in Gamma), and GoodWorks runs a coworking floor.",
+   "notableTenants": [
+    "Embitel Technologies"
+   ],
+   "sources": [
+    "https://houssed.com/commercial/bangalore/sigma-group/sigma-tech-park-150825",
+    "https://embeddedcomputing.com/company/Embitel%20Technologies",
+    "https://www.zaubacorp.com/company-by-address/SIGMA-SOFT-TECH-PARK--ALPHA-BLOCK--GROUND-FLOOR-WHITEFIELD-ROAD-----BANGALORE--KARNATAKA--INDIA---560066"
+   ]
+  },
+  {
+   "name": "Salarpuria Sattva Mindcomp Tech Park",
+   "aliases": [
+    "Mindcomp Tech Park",
+    "Mind Comp Tech Park"
+   ],
+   "locality": "EPIP Zone Phase 2 (Basavanna Nagar), Whitefield",
+   "developer": "Salarpuria Sattva (50:50 Salarpuria and Sattva JV)",
+   "lat": 12.98223,
+   "lng": 77.72099,
+   "bbox": [
+    12.981727,
+    12.982881,
+    77.719541,
+    77.721937
+   ],
+   "areaSqFtMillions": 0.24,
+   "description": "A ~2.4 lakh sq ft leasable office building at Plot 149-A, EPIP Phase 2, held by Mindcomp Tech Park Pvt Ltd (a 50:50 Salarpuria-Sattva JV). CRISIL reported it fully leased to three tenants (Novo Nordisk, BSH Household and Pharmed) as of May 2025; Novo Nordisk's GBS lists its office on the 4th floor.",
+   "notableTenants": [
+    "Novo Nordisk",
+    "BSH Home Appliances",
+    "Pharmed"
+   ],
+   "sources": [
+    "https://www.crisil.com/mnt/winshare/Ratings/RatingList/RatingDocs/MindcompTechParkPrivateLimited_July%2015_%202025_RR_373464.html",
+    "https://novonordisk.co.in/about/about-novo-nordisk-india.html"
+   ]
+  },
+  {
+   "name": "DivyaSree Technopark",
+   "aliases": [
+    "Divyashree Techno Park SEZ",
+    "Divyasree TechPark SEZ Kundalahalli"
+   ],
+   "locality": "Kundalahalli / Doddanakundi, EPIP Zone",
+   "developer": "DivyaSree Developers",
+   "lat": 12.967948,
+   "lng": 77.72404,
+   "bbox": [
+    12.965861,
+    12.97002,
+    77.721436,
+    77.7267
+   ],
+   "areaSqFtMillions": null,
+   "description": "DivyaSree's IT/ITES SEZ at Sy. No. 36/2, Kundalahalli (Doddanakundi post), at the southern edge of the EPIP zone next to the Huawei campus. Wipro (SEZ Units I & II), Capgemini (blocks B4, B5, A5, A6) and Accenture list offices here. Distinct from DivyaSree Technopolis on the Old Airport Road / Yemalur side.",
+   "notableTenants": [
+    "Wipro",
+    "Capgemini",
+    "Accenture"
+   ],
+   "sources": [
+    "https://wipro.jibeapply.com/contact-us",
+    "https://www.capgemini.com/jp-jp/about-us/locations/",
+    "https://builtinbengaluru.in/job/custom-software-engineer/7994916"
+   ]
+  },
+  {
+   "name": "Titanium Tech Park",
+   "aliases": [
+    "Titanium Tech Park Whitefield"
+   ],
+   "locality": "Kadugodi / Belathur, Whitefield",
+   "developer": null,
+   "lat": 12.987881,
+   "lng": 77.747672,
+   "bbox": [
+    12.98561,
+    12.990371,
+    77.744898,
+    77.748663
+   ],
+   "areaSqFtMillions": null,
+   "description": "An office campus in the Kadugodi industrial belt east of ITPB. Airbus leased an entire building here (reported as 650,000 sq ft over 10 years, Dec 2024; CRE Matrix separately records a 1.51 lakh sq ft lease to Oct 2034) for the Airbus India Technology Centre inaugurated in March 2026, and an OSM POI places Caterpillar's Cat Digital office here.",
+   "notableTenants": [
+    "Airbus",
+    "Caterpillar"
+   ],
+   "sources": [
+    "https://www.cxodigitalpulse.com/?p=25755",
+    "https://www.crematrix.com/blog/?p=1834"
+   ]
+  },
+  {
+   "name": "Sumadhura Capitol Towers",
+   "aliases": [
+    "Capitol Towers Whitefield"
+   ],
+   "locality": "Kadugodi (Hope Farm Junction), Whitefield Main Road",
+   "developer": "Sumadhura Group",
+   "lat": 12.984959,
+   "lng": 77.750298,
+   "bbox": [
+    12.984305,
+    12.985809,
+    77.74799,
+    77.75232
+   ],
+   "areaSqFtMillions": 1.5,
+   "description": "Sumadhura's office-and-retail project on 8.67 acres near Hope Farm Junction with about 1.5 million sq ft leasable. In 2025 Sumadhura reported leasing ~5 lakh sq ft to First Brands Group, Terex India and Saiharmony Solutions; Swiggy moved its Bengaluru headquarters here in April 2026 (about 2,000 staff), and an OSM POI places BMW TechWorks India in Tower 2.",
+   "notableTenants": [
+    "Swiggy",
+    "Terex",
+    "BMW TechWorks India",
+    "First Brands Group"
+   ],
+   "sources": [
+    "https://therealtytoday.com/news/sumadhura-group-leases-five-lakh-sq-ft-of-commercial-space-to-global-firms-in-bengaluru-eyes-50-crore-annual-revenue",
+    "https://www.motilaloswal.com/news/stocks/109347"
+   ]
+  },
+  {
+   "name": "Alembic City",
+   "aliases": [
+    "Alembic City Whitefield"
+   ],
+   "locality": "Kadugodi, Whitefield-Hoskote Road",
+   "developer": "Alembic Real Estate",
+   "lat": 12.989116,
+   "lng": 77.757463,
+   "bbox": [
+    12.987859,
+    12.990374,
+    77.755115,
+    77.759787
+   ],
+   "areaSqFtMillions": null,
+   "description": "Alembic's mixed-use campus on Whitefield-Hoskote Road at Kadugodi. Google IT Services India leased about 650,000 sq ft here in October 2024 and by early 2026 held rights to about 2.4-2.6 million sq ft (Annex Tower, Office Block Towers B and G reserved for it).",
+   "notableTenants": [
+    "Google"
+   ],
+   "sources": [
+    "https://therealtytoday.com/news/commercial/google-significantly-expands-bengaluru-office-footprint-with-26-million-sq-ft-at-alembic-city/",
+    "https://therealtytoday.com/news/google-expands-its-footprint-in-india-by-leasing-649000-sq-ft-office-space-in-bengaluru"
+   ]
+  },
+  {
+   "name": "Embassy Crest",
+   "aliases": [
+    "Embassy Crest Whitefield",
+    "Embassy Crest Phase 1 / Phase 2"
+   ],
+   "locality": "EPIP Zone Phase 1, Whitefield",
+   "developer": "Embassy Group",
+   "lat": 12.986561,
+   "lng": 77.727085,
+   "bbox": [
+    12.985049,
+    12.987572,
+    77.726657,
+    77.728101
+   ],
+   "areaSqFtMillions": null,
+   "description": "Embassy's two-phase office building in EPIP Phase 1 next to Whitefield Palms. Mercedes-Benz R&D India renewed its lease here for 60 months at the end of 2023.",
+   "notableTenants": [
+    "Mercedes-Benz R&D India"
+   ],
+   "sources": [
+    "https://autocomponentsindia.com/mercedes-benz-expands-bengaluru-presence-with-research-wing-expansion/"
+   ]
+  },
+  {
+   "name": "Whitefield Palms",
+   "aliases": [
+    "Whitefield Palms, Plot 9 & 10 EPIP"
+   ],
+   "locality": "EPIP Zone Phase 1, Whitefield Main Road",
+   "developer": null,
+   "lat": 12.984874,
+   "lng": 77.728688,
+   "bbox": [
+    12.984444,
+    12.985733,
+    77.727728,
+    77.729329
+   ],
+   "areaSqFtMillions": null,
+   "description": "Office campus at Plot Nos. 9 & 10, Whitefield Main Road, EPIP Phase 1, which is the registered visitor and postal address of Mercedes-Benz R&D India and of Daimler Truck Innovation Center India.",
+   "notableTenants": [
+    "Mercedes-Benz R&D India",
+    "Daimler Truck Innovation Center India"
+   ],
+   "sources": [
+    "https://group.mercedes-benz.com/careers/about-us/locations/location-detail-page-18185.html",
+    "https://www.daimlertruck.com/career/locations/location-detail-page-366989.html"
+   ]
+  },
+  {
+   "name": "Bhoruka Tech Park",
+   "aliases": [
+    "Bhoruka Tech Park, Mahadevapura Industrial Area"
+   ],
+   "locality": "Hoodi / Mahadevapura Industrial Area",
+   "developer": "Bhoruka Group",
+   "lat": 12.994174,
+   "lng": 77.705315,
+   "bbox": [
+    12.993134,
+    12.994941,
+    77.704882,
+    77.706057
+   ],
+   "areaSqFtMillions": null,
+   "description": "Office park at Sy. No. 27 & 31, Mahadevapura Industrial Area, Hoodi, on Whitefield Road. Hitachi Energy runs its India R&D centre on the 3rd floor and Tata Elxsi has an office in Block I.",
+   "notableTenants": [
+    "Hitachi Energy",
+    "Tata Elxsi"
+   ],
+   "sources": [
+    "https://hitachienergy.com/in/en/about-us/hitachi-energy-india",
+    "https://tataelxsi.com/contact-us"
+   ]
+  },
+  {
+   "name": "GR Tech Park",
+   "aliases": [
+    "Salarpuria GR Tech Park",
+    "GR Salarpuria Tech Park"
+   ],
+   "locality": "Pattandur Agrahara, Whitefield",
+   "developer": "Salarpuria Sattva / GR Group",
+   "lat": 12.985638,
+   "lng": 77.743407,
+   "bbox": [
+    12.983857,
+    12.986783,
+    77.742307,
+    77.744756
+   ],
+   "areaSqFtMillions": null,
+   "description": "Office park east of ITPB at Pattandur Agrahara (blocks include Vayu), where Awfis runs a coworking centre on the first floor of Vayu block. OSM maps SAP, HP, Sapient and TCS (Jal, Dhara, Agni) POIs inside it, but no current tenant could be confirmed from a primary source.",
+   "notableTenants": [],
+   "sources": [
+    "https://liquidspace.com/in/ka/bengaluru/awfis-coworking-gr-tech-park-bengaluru"
+   ]
+  },
+  {
+   "name": "Nethra Tech Park",
+   "aliases": [
+    "Nethra Tech Park EPIP"
+   ],
+   "locality": "EPIP Industrial Area, Kundalahalli",
+   "developer": null,
+   "lat": 12.973472,
+   "lng": 77.720979,
+   "bbox": [
+    12.973093,
+    12.973779,
+    77.720252,
+    77.721386
+   ],
+   "areaSqFtMillions": null,
+   "description": "Small office building in the EPIP Industrial Area at Kundalahalli village; a business directory and an OSM POI place a Collins Aerospace office here.",
+   "notableTenants": [
+    "Collins Aerospace"
+   ],
+   "sources": [
+    "https://yappe.in/karnataka/bengaluru/collins-aerospace/1017476"
+   ]
+  },
+  {
+   "name": "HM Tech Park",
+   "aliases": [
+    "HM Tech Park Whitefield"
+   ],
+   "locality": "Kadugodi / Whitefield Main Road",
+   "developer": "HM Group",
+   "lat": 12.983005,
+   "lng": 77.75134,
+   "bbox": [
+    12.982671,
+    12.983389,
+    77.75021,
+    77.752089
+   ],
+   "areaSqFtMillions": null,
+   "description": "Office building on Whitefield Main Road near Hope Farm, Kadugodi; Netradyne's Bengaluru engineering office is based here per its job postings.",
+   "notableTenants": [
+    "Netradyne"
+   ],
+   "sources": [
+    "https://startup.jobs/front-end-developer-angular-typescript-netradyne-7946428"
+   ]
+  },
+  {
+   "name": "Kadugodi Industrial Area",
+   "aliases": [
+    "Sadaramangala / Kadugodi Industrial Area",
+    "Whitefield Industrial Area"
+   ],
+   "locality": "Kadugodi, Whitefield",
+   "developer": "KIADB",
+   "lat": 12.991174,
+   "lng": 77.747588,
+   "bbox": [
+    12.98561,
+    12.995769,
+    77.744898,
+    77.748663
+   ],
+   "areaSqFtMillions": null,
+   "description": "Older KIADB industrial estate on Whitefield Main Road at Kadugodi / Sadaramangala, home to the Wipro GE Healthcare head office and medical-device factory at No. 4 (CT, cath-lab, ultrasound, patient monitoring).",
+   "notableTenants": [
+    "GE HealthCare"
+   ],
+   "sources": [
+    "https://www.gehealthcare.com/en-in/about/ge-healthcare-service-branches"
+   ]
+  },
+  {
+   "name": "RMZ NXT",
+   "aliases": [
+    "RMZ NXT Whitefield",
+    "Arliga NXT"
+   ],
+   "locality": "Sonnenahalli / Mahadevapura (ITPL Main Road)",
+   "developer": "RMZ Corp",
+   "lat": 12.978994,
+   "lng": 77.713338,
+   "bbox": [
+    12.977896,
+    12.980455,
+    77.711193,
+    77.714727
+   ],
+   "areaSqFtMillions": null,
+   "description": "RMZ office campus at 2A/2B Sonnenahalli village on ITPL Main Road, immediately west of the SAP Labs campus; SAP Labs India lists it as its second Whitefield-side site.",
+   "notableTenants": [
+    "SAP"
+   ],
+   "sources": [
+    "https://www.sap.com/india/about/labs-india.html"
+   ]
+  },
+  {
+   "name": "Prestige Technostar",
+   "aliases": [
+    "Technostar"
+   ],
+   "locality": "Doddanekundi / Kundalahalli, ITPL Main Road",
+   "developer": "Prestige Group",
+   "lat": 12.973147,
+   "lng": 77.710782,
+   "bbox": [
+    12.972264,
+    12.974385,
+    77.709114,
+    77.711508
+   ],
+   "areaSqFtMillions": null,
+   "description": "Prestige office campus on ITPL Main Road west of Kundalahalli Gate; AMD's largest global design centre (about 500,000 sq ft, ~3,000 engineers by 2028) was inaugurated here in November 2023, and The Executive Centre runs a centre here.",
+   "notableTenants": [
+    "AMD"
+   ],
+   "sources": [
+    "https://swarajyamag.com/amp/story/technology/indias-semiconductor-efforts-get-a-shot-in-the-arm-with-launch-of-chipmaker-amds-largest-global-design-centre-in-bengaluru"
+   ]
+  },
+  {
+   "name": "Bagmane Solarium City",
+   "aliases": [
+    "Bagmane Solarium Tech Park"
+   ],
+   "locality": "Doddanekundi / Kundalahalli, ITPL Main Road",
+   "developer": "Bagmane Group",
+   "lat": 12.969934,
+   "lng": 77.708425,
+   "bbox": [
+    12.967266,
+    12.973182,
+    77.705221,
+    77.711449
+   ],
+   "areaSqFtMillions": null,
+   "description": "Bagmane's campus on the ITPL Main Road west of Brookefield; Schneider Electric opened one of its largest employee campuses here in 2024 (capacity 8,000+), and Infineon leased its consolidated 'SILANE' campus here for up to 4,500 employees, planned for autumn 2026.",
+   "notableTenants": [
+    "Schneider Electric",
+    "Infineon Technologies"
+   ],
+   "sources": [
+    "https://www.pv-magazine-india.com/2024/05/30/schneider-electric-opens-new-campus-in-india",
+    "https://evertiq.com/design/2025-10-15-infineon-consolidates-indian-operations-with-new-bengaluru-campus"
+   ]
+  }
+ ],
+ "companies": [
+  {
+   "name": "SAP",
+   "aliases": [
+    "SAP Labs India",
+    "SAP Labs India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "German enterprise-software major; SAP Labs India runs its main Whitefield campus at #138 EPIP Zone, a site at RMZ NXT and, since August 2025, a second 41-acre campus at Devanahalli.",
+   "hqCity": "Walldorf",
+   "hqCountry": "Germany",
+   "founded": 1972,
+   "website": "https://www.sap.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Whitefield campus (#138 EPIP Zone)",
+     "locality": "EPIP Zone, Whitefield",
+     "lat": 12.978846,
+     "lng": 77.714922,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "SAP's own SAP Labs India page lists the Bangalore site as #138, EPIP Zone, Whitefield, Bangalore 560066 (https://www.sap.com/india/about/labs-india.html).",
+     "geocodeSource": "osm-poi",
+     "techPark": "SAP Labs India Campus",
+     "building": null,
+     "address": "#138, EPIP Zone, Whitefield, Bengaluru 560066"
+    },
+    {
+     "label": "RMZ NXT",
+     "locality": "Sonnenahalli, Mahadevapura (ITPL Main Road)",
+     "lat": 12.978994,
+     "lng": 77.713338,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "SAP Labs India's page lists 'Bangalore - RMZ: RMZ NXT, 2A/2B, Sonnenahalli Village, Mahadevapura, East Taluk, Bangalore 560066' (https://www.sap.com/india/about/labs-india.html).",
+     "geocodeSource": "osm-park",
+     "techPark": "RMZ NXT",
+     "building": null,
+     "address": "RMZ NXT, 2A/2B Sonnenahalli Village, Mahadevapura, Bengaluru 560066"
+    },
+    {
+     "label": "SAP Labs India Innovation Park, Devanahalli",
+     "locality": "Bande Kodigehalli, Devanahalli",
+     "lat": 13.161831,
+     "lng": 77.713493,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "SAP lists 'SAP Labs India Innovation Park, Bande Kodigehalli, Singahalli 562149' and The Week/PTI report the 41-acre second Bengaluru campus was inaugurated on 5 Aug 2025 with ~3,200 staff moved in (https://www.theweek.in/wire-updates/business/2025/08/05/dcm57-biz-sap-labs-india.html).",
+     "geocodeSource": "osm-park",
+     "techPark": null,
+     "building": "BLR11-BLR13",
+     "address": "Bande Kodigehalli, Singahalli, Devanahalli, Karnataka 562149"
+    }
+   ],
+   "sources": [
+    "https://www.sap.com/india/about/labs-india.html",
+    "https://events.sap.com/sap-alm-summit-apj-and-emea-south-2024/en/accommodation",
+    "https://www.theweek.in/wire-updates/business/2025/08/05/dcm57-biz-sap-labs-india.html",
+    "https://evertiq.com/news/2025-08-07-sap-labs-india-unveils-225-million-campus-in-bengaluru"
+   ]
+  },
+  {
+   "name": "GE Aerospace",
+   "aliases": [
+    "General Electric",
+    "GE",
+    "JFWTC",
+    "John F. Welch Technology Centre"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "Jet-engine maker spun out of General Electric in 2024; it now runs the John F. Welch Technology Centre (JFWTC), GE's 50-acre Whitefield R&D campus opened in 2000, which hosts several thousand engineers (60-70% of the GE9X team).",
+   "hqCity": "Evendale (Cincinnati)",
+   "hqCountry": "USA",
+   "founded": 1892,
+   "website": "https://www.geaerospace.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "John F. Welch Technology Centre",
+     "locality": "EPIP Zone Phase 2, Hoodi / Whitefield",
+     "lat": 12.973354,
+     "lng": 77.724192,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Wikipedia and machinist.in (Sept 2025, 25th anniversary) describe JFWTC in Whitefield as GE's first and largest integrated R&D centre outside the US, now serving GE Aerospace (https://machinist.in/2025/09/ge-aerospace-celebrates-25-years-of-innovation-at-john-f-welch-technology-centre-bengaluru/).",
+     "geocodeSource": "osm-poi",
+     "techPark": "John F. Welch Technology Centre",
+     "building": null,
+     "address": "Plot 122, EPIP Phase 2, Hoodi Village, Whitefield, Bengaluru 560066"
+    }
+   ],
+   "sources": [
+    "https://en.wikipedia.org/wiki/John_F._Welch_Technology_Centre",
+    "https://machinist.in/2025/09/ge-aerospace-celebrates-25-years-of-innovation-at-john-f-welch-technology-centre-bengaluru/",
+    "https://www.businessofgcc.com/gcc-data/companies/general-electric-company-india-bengaluru"
+   ]
+  },
+  {
+   "name": "GE HealthCare",
+   "aliases": [
+    "Wipro GE Healthcare",
+    "GE Healthcare",
+    "GE Medical Systems"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Medical-imaging and diagnostics company spun off from GE in 2023; in Bengaluru it runs Wipro GE Healthcare's head office and device factory at Kadugodi plus engineering at JFWTC (EPIP), Kalyani Platina and ITPB.",
+   "hqCity": "Chicago",
+   "hqCountry": "USA",
+   "founded": null,
+   "website": "https://www.gehealthcare.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bangalore HO and medical-device factory (Wipro GE Healthcare)",
+     "locality": "Kadugodi / Sadaramangala Industrial Area",
+     "lat": 12.991547,
+     "lng": 77.746834,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "GE HealthCare's service-branch page lists 'Bangalore - HO, Whitefield Main Rd, Sadaramangala Industrial Area, Kadugodi, Bengaluru 560067', the Wipro GE Healthcare address No. 4 Kadugodi Industrial Area, where the 2022 medical-device factory builds CT, cath-lab and ultrasound equipment (https://www.gehealthcare.com/en-in/about/ge-healthcare-service-branches).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Kadugodi Industrial Area",
+     "building": null,
+     "address": "No. 4, Kadugodi Industrial Area, Whitefield Main Road, Bengaluru 560067"
+    },
+    {
+     "label": "X-ray division, No. 122 EPIP (JFWTC)",
+     "locality": "EPIP Zone, Whitefield",
+     "lat": 12.976213,
+     "lng": 77.722008,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "GE HealthCare lists 'Export Promotion Industrial Park 6 Wipro Ge, No. 122 (part 1) Xray division, EPIP Area, Whitefield, Bengaluru 560066'; an OSM building named Wipro GE Healthcare sits beside the JFWTC campus (https://www.gehealthcare.com/en-in/about/ge-healthcare-service-branches).",
+     "geocodeSource": "osm-park",
+     "techPark": "John F. Welch Technology Centre",
+     "building": null,
+     "address": "No. 122 (part 1), EPIP Area, Whitefield, Bengaluru 560066"
+    },
+    {
+     "label": "Kalyani Platina - Magnolia",
+     "locality": "EPIP Zone Phase 2, Kundalahalli / Brookefield",
+     "lat": 12.972056,
+     "lng": 77.718544,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "GE HealthCare's branch page also lists 'Ground Floor, Magnolia, Kalyani Platina, EPIP Zone, Whitefield Road, Brookfield, Kundahalli, Bangalore 560066' (https://www.gehealthcare.com/en-in/about/ge-healthcare-service-branches).",
+     "geocodeSource": "park-centroid",
+     "techPark": "Kalyani Platina",
+     "building": "Magnolia",
+     "address": "Ground Floor, Magnolia, Kalyani Platina, EPIP Zone, Brookefield, Bengaluru 560066"
+    },
+    {
+     "label": "ITPB Inventor building",
+     "locality": "Whitefield (ITPB)",
+     "lat": 12.985228,
+     "lng": 77.736825,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "GE HealthCare lists 'Export Promotion Industrial Park 4 Inventor Building, 60 ITPL Main Rd, KIADB Export Promotion Industrial Area, Whitefield 560066'; coordinate is the ITPB park centroid (https://www.gehealthcare.com/en-in/about/ge-healthcare-service-branches).",
+     "geocodeSource": "park-centroid",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Inventor",
+     "address": "Inventor Building, 60 ITPL Main Road, Whitefield, Bengaluru 560066"
+    }
+   ],
+   "sources": [
+    "https://www.gehealthcare.com/en-in/about/ge-healthcare-service-branches",
+    "https://www.businesstoday.in/amp/latest/corporate/story/wipro-ge-healthcare-to-invest-960-milion-in-rd-manufacturing-in-india-422865-2024-03-26"
+   ]
+  },
+  {
+   "name": "Tesco Bengaluru",
+   "aliases": [
+    "Tesco",
+    "Tesco Business Services",
+    "Tesco Technology",
+    "Tesco HSC"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "UK grocer Tesco's global capability centre (Tesco Business Services and Tesco Technology), run from its own campus in the EPIP zone.",
+   "hqCity": "Welwyn Garden City",
+   "hqCountry": "United Kingdom",
+   "founded": 2004,
+   "website": "https://www.tescobengaluru.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Tesco Bengaluru main campus",
+     "locality": "EPIP Zone, Whitefield",
+     "lat": 12.97399,
+     "lng": 77.728791,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "CB Insights and Tesco job listings on Built In Bengaluru give the location as the Main Campus, 81 & 82, EPIP Area, Whitefield, Bengaluru 560066 (https://www.cbinsights.com/company/tesco-bengaluru).",
+     "geocodeSource": "osm-poi",
+     "techPark": null,
+     "building": null,
+     "address": "81 & 82, EPIP Area, Whitefield, Bengaluru 560066"
+    }
+   ],
+   "sources": [
+    "https://www.cbinsights.com/company/tesco-bengaluru",
+    "https://builtinbengaluru.in/job/systems-engineer-ii/4047029",
+    "https://www.peoplematters.in/news/employee-engagement/tesco-plans-for-india-expansion-to-hire-1000-people-35333"
+   ]
+  },
+  {
+   "name": "Huawei Technologies India",
+   "aliases": [
+    "Huawei",
+    "Huawei India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Telecom & networking",
+   "description": "Chinese telecom-equipment maker's India R&D centre, run from a 20-acre, one-million-sq-ft campus at Kundalahalli opened in 2015 (US$170 million, built for 5,000 engineers).",
+   "hqCity": "Shenzhen",
+   "hqCountry": "China",
+   "founded": 1987,
+   "website": "https://www.huawei.com/in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Kundalahalli R&D campus",
+     "locality": "Kundalahalli / EPIP Zone",
+     "lat": 12.969243,
+     "lng": 77.726821,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Huawei Technologies India's LEI record gives its address as Sy No 37, 46, 45/3, 45/4, Kundalahalli Village, Bangalore 560037, and press reports describe the 20-acre US$170m R&D campus opened in Bengaluru in Feb 2015 (https://lei.bloomberg.com/leis/view/213800ZRDU2ZVBYUVM54).",
+     "geocodeSource": "osm-poi",
+     "techPark": null,
+     "building": null,
+     "address": "Sy No 37, 46, 45/3, 45/4, Kundalahalli Village, Bengaluru 560037"
+    }
+   ],
+   "sources": [
+    "https://lei.bloomberg.com/leis/view/213800ZRDU2ZVBYUVM54",
+    "https://www.voicendata.com/huawei-launches-usd-170-mn-rd-campus-bangalore/",
+    "https://capacitymedia.com/article/29ot6yez83ccbe6lc1kw0/news/huawei-opens-r-d-centre-in-bangalore"
+   ]
+  },
+  {
+   "name": "Oracle",
+   "aliases": [
+    "Oracle Financial Services Software",
+    "OFSS",
+    "i-flex solutions",
+    "Oracle India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "US database and cloud company; its listed Indian subsidiary Oracle Financial Services Software (ex-i-flex) runs a Whitefield office in the Gopalan Global Axis SEZ.",
+   "hqCity": "Austin",
+   "hqCountry": "USA",
+   "founded": 1977,
+   "website": "https://www.oracle.com/in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Oracle Financial Services Software - Global Axis",
+     "locality": "EPIP Zone, Hoodi, Whitefield",
+     "lat": 12.982486,
+     "lng": 77.724345,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Oracle's India contact page lists Oracle Financial Services Software Ltd at #152, EPIP Zone, Bengaluru 560066, in the Gopalan Enterprises SEZ campus (Global Axis, Units I and II) (https://www.oracle.com/in/corporate/contact/field-offices.html).",
+     "geocodeSource": "osm-park",
+     "techPark": "Gopalan Global Axis",
+     "building": null,
+     "address": "#152, EPIP Zone, Gopalan Global Axis, Whitefield, Bengaluru 560066"
+    }
+   ],
+   "sources": [
+    "https://www.oracle.com/in/corporate/contact/field-offices.html"
+   ]
+  },
+  {
+   "name": "Unisys",
+   "aliases": [
+    "Unisys Global Services India",
+    "Unisys India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "US IT services company; Unisys Global Services India lists an SEZ unit in Gopalan Global Axis in Whitefield besides its Residency Road office.",
+   "hqCity": "Blue Bell",
+   "hqCountry": "USA",
+   "founded": 1986,
+   "website": "https://www.unisys.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global Axis SEZ (Block G)",
+     "locality": "EPIP Zone, Hoodi Village, Whitefield",
+     "lat": 12.982486,
+     "lng": 77.724345,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Unisys's Naukri company page lists Unisys Global Services India SEZ Units I and II at Global Axis Block, ABC (Block G), 3rd and 4th floors, Plot No. 152, EPIP Zone, Hoodi Village, Whitefield, Bengaluru 560066 (https://companies.naukri.com/unisysnew-jobs/contact-us).",
+     "geocodeSource": "osm-park",
+     "techPark": "Gopalan Global Axis",
+     "building": "Block G",
+     "address": "Global Axis, Block G, Plot 152, EPIP Zone, Hoodi Village, Whitefield, Bengaluru 560066"
+    },
+    {
+     "label": "Residency Road office",
+     "locality": "Residency Road, Shanthala Nagar",
+     "lat": 12.966114,
+     "lng": 77.599125,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The same Naukri page lists 135/1, Residency Road, Bengaluru 560025, and Unisys's 2017 release says the Residency Road and Whitefield offices remained after part of Whitefield moved to Sarjapur Road (https://unisys.com/news-release/unisys-expands-presence-india-new-bengaluru-office).",
+     "geocodeSource": "osm-poi",
+     "techPark": null,
+     "building": null,
+     "address": "135/1, Residency Road, Bengaluru 560025"
+    }
+   ],
+   "sources": [
+    "https://companies.naukri.com/unisysnew-jobs/contact-us",
+    "https://unisys.com/news-release/unisys-expands-presence-india-new-bengaluru-office"
+   ]
+  },
+  {
+   "name": "LTIMindtree",
+   "aliases": [
+    "L&T Infotech",
+    "LTI",
+    "Mindtree",
+    "Larsen & Toubro Infotech"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Larsen & Toubro's listed IT services arm (merger of L&T Infotech and Mindtree, 2022), with two Whitefield EPIP sites besides Mindtree's Global Village campus.",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 1996,
+   "website": "https://www.ltimindtree.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Gopalan Global Axis (4th-7th floors)",
+     "locality": "EPIP Zone Phase 2, Hoodi Village, Whitefield",
+     "lat": 12.982486,
+     "lng": 77.724345,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "LTIMindtree's annual-report global-presence list gives 'Gopalan Global Axis, 4th to 7th Floor, Plot No 152, EPIP Industrial Area, K.R. Puram Hobli, Whitefield, Bengaluru 560066' (https://ltimindtree.com/annual-report-html/pdf/global-presence.pdf).",
+     "geocodeSource": "osm-park",
+     "techPark": "Gopalan Global Axis",
+     "building": null,
+     "address": "Plot 152, EPIP Industrial Area, Whitefield, Bengaluru 560066"
+    },
+    {
+     "label": "EPIP Phase 2 campus (Plot 25-31)",
+     "locality": "EPIP Zone Phase 2, Whitefield",
+     "lat": 12.981873,
+     "lng": 77.722641,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The same LTIMindtree list gives a second Bengaluru site at Plot No. 25-31, Phase 2, EPIP, KIADB Industrial Area, Whitefield, Bengaluru 560066; OSM maps a 'Larsen & Toubro Infotech Ltd' campus polygon here (https://ltimindtree.com/annual-report-html/pdf/global-presence.pdf).",
+     "geocodeSource": "osm-park",
+     "techPark": null,
+     "building": null,
+     "address": "Plot 25-31, Phase 2, EPIP, KIADB Industrial Area, Whitefield, Bengaluru 560066"
+    }
+   ],
+   "sources": [
+    "https://ltimindtree.com/annual-report-html/pdf/global-presence.pdf",
+    "https://www.indiacustomercare.com/ltimindtree-customer-care-no"
+   ]
+  },
+  {
+   "name": "Capgemini",
+   "aliases": [
+    "iGATE",
+    "Capgemini Technology Services India",
+    "Capgemini Engineering"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "French IT services and engineering group; its Whitefield EPIP campus is the former iGATE site and it also occupies blocks in DivyaSree Technopark, Kundalahalli.",
+   "hqCity": "Paris",
+   "hqCountry": "France",
+   "founded": 1967,
+   "website": "https://www.capgemini.com/in-en",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "EPIP campus",
+     "locality": "EPIP Zone Phase 2, Whitefield",
+     "lat": 12.973131,
+     "lng": 77.716807,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Capgemini's locations page lists Capgemini Technology Services India Ltd (EPIP Campus) at No. 155-156 (P), 158-162 (P) & 164-170 (P), EPIP Phase II, Whitefield, Bengaluru 560066 (https://www.capgemini.com/jp-jp/about-us/locations/).",
+     "geocodeSource": "osm-park",
+     "techPark": null,
+     "building": null,
+     "address": "155-156 (P), 158-162 (P) & 164-170 (P), EPIP Phase II, Whitefield, Bengaluru 560066"
+    },
+    {
+     "label": "DivyaSree Technopark SEZ (B4, B5, A5, A6)",
+     "locality": "Kundalahalli / Doddanakundi",
+     "lat": 12.969715,
+     "lng": 77.724754,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Capgemini's locations page lists Capgemini Technology Services India Ltd (DTP) at Divyasree TechPark SEZ (B4, B5, A5 & A6), Doddanakundi Post, Kundalahalli, Whitefield, Bengaluru 560037; OSM has a Capgemini POI on Road 3, EPIP Zone beside it (https://www.capgemini.com/jp-jp/about-us/locations/).",
+     "geocodeSource": "osm-poi",
+     "techPark": "DivyaSree Technopark",
+     "building": "B4, B5, A5, A6",
+     "address": "Divyasree TechPark SEZ, Kundalahalli, Whitefield, Bengaluru 560037"
+    }
+   ],
+   "sources": [
+    "https://www.capgemini.com/jp-jp/about-us/locations/",
+    "https://www.bsigroup.com/en-GB/products-and-services/assessment-and-certification/validation-and-verification/client-directory-profile/CAPGEM-0047596222-000"
+   ]
+  },
+  {
+   "name": "Accenture",
+   "aliases": [
+    "Accenture Solutions Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Consulting & professional services",
+   "description": "Global consulting and IT services firm; one of its many Bengaluru delivery centres sits in the DivyaSree Technopark SEZ at Kundalahalli.",
+   "hqCity": "Dublin",
+   "hqCountry": "Ireland",
+   "founded": 1989,
+   "website": "https://www.accenture.com/in-en",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "DivyaSree Technopark SEZ",
+     "locality": "Kundalahalli, Whitefield",
+     "lat": 12.968978,
+     "lng": 77.722598,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Accenture job postings on Built In Bengaluru give the office as 'SEZ, Divyashree Techno Park, 36/2, K R Puram Hobli, Kundalahalli, Whitefield, Bengaluru 560066', and OSM maps Accenture Solutions buildings there (https://builtinbengaluru.in/job/custom-software-engineer/7994916).",
+     "geocodeSource": "osm-poi",
+     "techPark": "DivyaSree Technopark",
+     "building": null,
+     "address": "Divyashree Techno Park SEZ, 36/2, Kundalahalli, Whitefield, Bengaluru"
+    }
+   ],
+   "sources": [
+    "https://builtinbengaluru.in/job/custom-software-engineer/7994916",
+    "https://builtinbengaluru.in/job/application-developer/7757031"
+   ]
+  },
+  {
+   "name": "Wipro",
+   "aliases": [
+    "Wipro Limited",
+    "Wipro Technologies"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Bengaluru-headquartered IT services major; its SEZ Units I and II sit in DivyaSree Technopark on the EPIP side of Kundalahalli.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1945,
+   "website": "https://www.wipro.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "DivyaSree Technopark SEZ Units I & II",
+     "locality": "Kundalahalli / Doddanakundi, EPIP Zone",
+     "lat": 12.967948,
+     "lng": 77.72404,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wipro's careers contact page lists 'Wipro Limited, SEZ Unit I & II, Divyasree Technopark, EPIP Zone, Kundalahalli, Doddanakundi Post, Whitefield, Bengaluru 560037' (https://wipro.jibeapply.com/contact-us).",
+     "geocodeSource": "osm-park",
+     "techPark": "DivyaSree Technopark",
+     "building": null,
+     "address": "SEZ Unit I & II, Divyasree Technopark, EPIP Zone, Kundalahalli, Bengaluru 560037"
+    }
+   ],
+   "sources": [
+    "https://wipro.jibeapply.com/contact-us",
+    "https://careers.wipro.com/contact-us"
+   ]
+  },
+  {
+   "name": "NTT DATA",
+   "aliases": [
+    "NTT DATA Global Delivery Services",
+    "NTT DATA Information Processing Services",
+    "Perot Systems",
+    "Dell Services"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services",
+   "description": "Japanese IT services group; its Indian delivery entities (successors to Perot Systems / Dell Services) are registered at Plot 178, EPIP Phase II.",
+   "hqCity": "Tokyo",
+   "hqCountry": "Japan",
+   "founded": 1988,
+   "website": "https://www.nttdata.com/in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "EPIP Phase II delivery centre (Plot 178)",
+     "locality": "EPIP Zone Phase II, Whitefield",
+     "lat": 12.97468,
+     "lng": 77.720179,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Dassault Systemes' partner directory and Bloomberg LEI records list NTT DATA Global Delivery Services and the active NTT DATA Information Processing Services at Plot No. 178, EPIP Phase II, Whitefield Industrial Area, Bangalore 560066; OSM has an NTT DATA GDS POI on 2nd Road (https://www.3ds.com/partners/partner-details/200000000370971_NTT_DATA_GLOBAL_DELIVERY_SERVICES_PVT_LTD).",
+     "geocodeSource": "osm-poi",
+     "techPark": null,
+     "building": null,
+     "address": "Plot 178, EPIP Phase II, Whitefield Industrial Area, Bengaluru 560066"
+    }
+   ],
+   "sources": [
+    "https://www.3ds.com/partners/partner-details/200000000370971_NTT_DATA_GLOBAL_DELIVERY_SERVICES_PVT_LTD",
+    "https://lei.bloomberg.com/leis/view/335800SI7HFPI9IQ3836",
+    "https://lei.bloomberg.com/leis/view/5493002LRTOQ18V4XH71"
+   ]
+  },
+  {
+   "name": "Microchip Technology",
+   "aliases": [
+    "Microchip Technology India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "US microcontroller and analog-chip maker; its Bengaluru Development Center is at Plot 149-B EPIP, and in November 2025 it bought two neighbouring blocks (about 1.72 lakh sq ft) in EPIP Phase 2.",
+   "hqCity": "Chandler",
+   "hqCountry": "USA",
+   "founded": 1989,
+   "website": "https://www.microchip.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru Development Center (Plot 149-B)",
+     "locality": "EPIP Zone Phase 2, Whitefield",
+     "lat": 12.981854,
+     "lng": 77.721583,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OSM records Microchip Technology India Pvt Ltd at Plot No. 149-B, EPIP Industrial Area ('Microchip Tech Park' polygon), and Microchip's Nov 2025 release describes the new space as an extension of its existing Bengaluru Development Center (https://www.microchip.com/en-us/about/news-releases/corporate/microchip-technology-expands-its-india-footprint-with-new-office).",
+     "geocodeSource": "osm-poi",
+     "techPark": null,
+     "building": null,
+     "address": "Plot 149-B, EPIP Industrial Area, Whitefield, Bengaluru 560066"
+    },
+    {
+     "label": "New office blocks, 170-172 EPIP Phase 2",
+     "locality": "EPIP Zone Phase 2, Whitefield",
+     "lat": 12.97275,
+     "lng": 77.7189,
+     "isHq": false,
+     "status": "planned",
+     "confidence": "high",
+     "evidence": "The Realty Today and Legal Parivar report Microchip Technology India bought two blocks (92,098 + 80,395 sq ft) at 170-172, Phase 2, EPIP Zone from Ascendum Solutions for Rs 176 crore, announced by Microchip on 10 Nov 2025 for 3,000+ staff over a decade; coordinate is the OSM POI of the seller at that address (https://therealtytoday.com/news/microchip-technology-expands-bengaluru-footprint-with-172-lakh-sq-ft-office-acquisition).",
+     "geocodeSource": "osm-poi",
+     "techPark": null,
+     "building": null,
+     "address": "170-172, Phase 2, EPIP Zone, Whitefield, Bengaluru 560066"
+    }
+   ],
+   "sources": [
+    "https://www.microchip.com/en-us/about/news-releases/corporate/microchip-technology-expands-its-india-footprint-with-new-office",
+    "https://therealtytoday.com/news/microchip-technology-expands-bengaluru-footprint-with-172-lakh-sq-ft-office-acquisition",
+    "https://news.legalparivar.com/microchip-technology-india-acquires-1-72-lakh-sq-ft-office-space-in-whitefield-for-%e2%82%b9176-crore/"
+   ]
+  },
+  {
+   "name": "Qualcomm",
+   "aliases": [
+    "Qualcomm India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "US wireless-chip designer; its ISO 9001 certificate lists a Bangalore engineering site at Plot 125-127, EPIP Zone Phase II (it has also leased large Bagmane campuses on the ORR, not covered here).",
+   "hqCity": "San Diego",
+   "hqCountry": "USA",
+   "founded": 1985,
+   "website": "https://www.qualcomm.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "EPIP Phase II campus (Plot 125-127)",
+     "locality": "EPIP Zone Phase II, Whitefield / Brookefield",
+     "lat": 12.975453,
+     "lng": 77.718439,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Qualcomm's ISO 9001 certificate lists its Bangalore site as Plot No. 125-127, EPIP Zone, Phase II, Whitefield, Bangalore 560066; OSM maps a cluster of Qualcomm buildings at this point (https://www.qualcomm.com/content/dam/qcomm-martech/dm-assets/documents/qualcomm-iso-9001-certificate.pdf).",
+     "geocodeSource": "osm-poi",
+     "techPark": null,
+     "building": null,
+     "address": "Plot 125-127, EPIP Zone Phase II, Whitefield, Bengaluru 560066"
+    }
+   ],
+   "sources": [
+    "https://www.qualcomm.com/content/dam/qcomm-martech/dm-assets/documents/qualcomm-iso-9001-certificate.pdf",
+    "https://therealtytoday.com/news/commercial/semiconductor-giant-qualcomm-leases-256-lakh-sq-ft-at-bagmane-constellation-for-184-cr/"
+   ]
+  },
+  {
+   "name": "Aptiv",
+   "aliases": [
+    "Delphi",
+    "Delphi Automotive Systems",
+    "Aptiv Technical Center India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Auto-electronics and software supplier (the former Delphi Automotive); its Aptiv Technical Center India moved into a 237,000 sq ft campus at Brigade Tech Gardens in February 2023.",
+   "hqCity": "Dublin",
+   "hqCountry": "Ireland",
+   "founded": 2017,
+   "website": "https://www.aptiv.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": 2000,
+   "offices": [
+    {
+     "label": "Aptiv Technical Center India - Brigade Tech Gardens",
+     "locality": "Brookefield / Kundalahalli",
+     "lat": 12.963748,
+     "lng": 77.720756,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "CXOToday and Mobility Outlook (Feb 2023) report Aptiv inaugurated a 237,000 sq ft, US$14m Technical Center campus at Brigade Tech Gardens, Whitefield, with over 2,000 staff (https://cxotoday.com/media-coverage/aptiv-announces-grand-opening-of-new-state-of-the-art-campus-for-its-technical-center-in-bengaluru/).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Brigade Tech Gardens",
+     "building": null,
+     "address": "Brigade Tech Gardens, Brookefield, Bengaluru 560037"
+    }
+   ],
+   "sources": [
+    "https://cxotoday.com/media-coverage/aptiv-announces-grand-opening-of-new-state-of-the-art-campus-for-its-technical-center-in-bengaluru/",
+    "https://mobilityoutlook.com/news/aptiv-opens-new-tech-centre-in-bengaluru-invests-14-million",
+    "https://autocarpro.in/news-national/aptivs-new-tech-centre-in-bengaluru-to-focus-on-sdvs-and-connected-mobility-solutions-114028"
+   ]
+  },
+  {
+   "name": "Mercedes-Benz R&D India",
+   "aliases": [
+    "MBRDI",
+    "Mercedes-Benz Research and Development India",
+    "Daimler R&D India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Mercedes-Benz Group's largest R&D centre outside Germany (MBRDI), headquartered at Whitefield Palms in EPIP Phase 1 with further space at Embassy Crest and Brigade Tech Gardens.",
+   "hqCity": "Stuttgart",
+   "hqCountry": "Germany",
+   "founded": 1996,
+   "website": "https://www.mbrdi.co.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Whitefield Palms HQ (Plot 9 & 10)",
+     "locality": "EPIP Zone Phase 1, Whitefield Main Road",
+     "lat": 12.984874,
+     "lng": 77.728688,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Mercedes-Benz's careers location page gives MBRDI's visitor and postal address as Whitefield Palms, Plot Nos. 9 & 10, Whitefield Main Road, EPIP Zone Phase 1, Bangalore 560066 (https://group.mercedes-benz.com/careers/about-us/locations/location-detail-page-18185.html).",
+     "geocodeSource": "osm-park",
+     "techPark": "Whitefield Palms",
+     "building": null,
+     "address": "Whitefield Palms, Plot 9 & 10, Whitefield Main Road, EPIP Zone Phase 1, Bengaluru 560066"
+    },
+    {
+     "label": "Embassy Crest",
+     "locality": "EPIP Zone Phase 1, Whitefield",
+     "lat": 12.985765,
+     "lng": 77.727261,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Auto Components India (Mar 2024) reports Mercedes-Benz renewed its lease at Embassy Crest, Whitefield, for 60 months at the end of 2023; OSM maps an MBRDI POI in Embassy Crest (https://autocomponentsindia.com/mercedes-benz-expands-bengaluru-presence-with-research-wing-expansion/).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Embassy Crest",
+     "building": null,
+     "address": "Embassy Crest, EPIP Zone Phase 1, Whitefield, Bengaluru 560066"
+    },
+    {
+     "label": "Brigade Tech Gardens",
+     "locality": "Brookefield / Kundalahalli",
+     "lat": 12.963678,
+     "lng": 77.719399,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM maps a Mercedes-Benz Research and Development India POI inside Brigade Tech Gardens and MBRDI's MD unveiled the campus's inauguration plaque in Dec 2022; no lease report was found, so this is unconfirmed (https://www.brigadegroup.com/blog/commercial/brigade-tech-gardens-inaugurated).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Brigade Tech Gardens",
+     "building": null,
+     "address": "Brigade Tech Gardens, Brookefield, Bengaluru 560037"
+    }
+   ],
+   "sources": [
+    "https://group.mercedes-benz.com/careers/about-us/locations/location-detail-page-18185.html",
+    "https://autocomponentsindia.com/mercedes-benz-expands-bengaluru-presence-with-research-wing-expansion/",
+    "https://www.brigadegroup.com/blog/commercial/brigade-tech-gardens-inaugurated"
+   ]
+  },
+  {
+   "name": "Daimler Truck Innovation Center India",
+   "aliases": [
+    "DTICI",
+    "Daimler Truck"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "Daimler Truck AG's wholly owned software and zero-emission-vehicle development centre (DTICI), launched in March 2022 at Whitefield Palms.",
+   "hqCity": "Leinfelden-Echterdingen",
+   "hqCountry": "Germany",
+   "founded": 2021,
+   "website": "https://www.daimlertruck.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Whitefield Palms (Plot 9 & 10)",
+     "locality": "EPIP Zone Phase 1, Whitefield Main Road",
+     "lat": 12.984187,
+     "lng": 77.728234,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Daimler Truck's careers location page lists DTICI at Whitefield Palms, Plot No. 9 & 10, Bengaluru 560066 (501-1,000 employees); OSM records the same address (https://www.daimlertruck.com/career/locations/location-detail-page-366989.html).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Whitefield Palms",
+     "building": null,
+     "address": "Whitefield Palms, Plot 9 & 10, Whitefield Main Road, Bengaluru 560066"
+    }
+   ],
+   "sources": [
+    "https://www.daimlertruck.com/career/locations/location-detail-page-366989.html",
+    "https://www.automotiveworld.com/analysis/daimler-truck-innovation-center-india-global-software-and-zev-hub/"
+   ]
+  },
+  {
+   "name": "Manhattan Associates",
+   "aliases": [
+    "Manhattan Associates India Development Center"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "US supply-chain and warehouse-management software firm; its India development centre moved from #172 EPIP to a 170,000 sq ft space at Brigade Tech Gardens in September 2019.",
+   "hqCity": "Atlanta",
+   "hqCountry": "USA",
+   "founded": 1990,
+   "website": "https://www.manh.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Brigade Tech Gardens, B1 Block (5th & 6th floors)",
+     "locality": "Brookefield / Kundalahalli",
+     "lat": 12.964095,
+     "lng": 77.719774,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Manhattan's India office-locations page lists 'Manhattan Associates India, Brigade Tech Gardens, 5th & 6th floor, B1 Block, Bangalore 560037', and its 2019 release says the 170,000 sq ft facility was built for 1,400+ staff (https://www.manh.com/en-in/office-locations).",
+     "geocodeSource": "park-centroid",
+     "techPark": "Brigade Tech Gardens",
+     "building": "B1 Block",
+     "address": "Brigade Tech Gardens, 5th & 6th floor, B1 Block, Bengaluru 560037"
+    }
+   ],
+   "sources": [
+    "https://www.manh.com/en-in/office-locations",
+    "https://www.globenewswire.com/news-release/2019/09/19/1917971/0/en/Manhattan-Associates-Opens-New-India-Facility.html"
+   ]
+  },
+  {
+   "name": "FNF India",
+   "aliases": [
+    "Fidelity National Financial India",
+    "FNF India Private Limited",
+    "FNFI"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "BFSI",
+   "description": "Indian operations of US title insurer Fidelity National Financial (title search and related services), with an SEZ unit at Brigade Tech Gardens.",
+   "hqCity": "Jacksonville",
+   "hqCountry": "USA",
+   "founded": null,
+   "website": "https://www.fnf.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Brigade Tech Gardens - Butterfly building (B1, 4th floor)",
+     "locality": "Brookefield / Kundalahalli",
+     "lat": 12.964095,
+     "lng": 77.719774,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Two FNF India job postings give the office as SEZ Unit, Block B1, Butterfly building, 4th Floor, Units 403-404, Brigade Tech Gardens, Kundalahalli, Brookefield, Bengaluru 560037 (https://jobs.weekday.works/walk-ins-at-fnfi-full-search-current-owner-two-owner-searchers-at-fnf-india-private-limited-wkdye0djwi).",
+     "geocodeSource": "park-centroid",
+     "techPark": "Brigade Tech Gardens",
+     "building": "B1 (Butterfly building)",
+     "address": "Butterfly Building, B1 Block, 4th Floor, Brigade Tech Gardens, Bengaluru 560037"
+    }
+   ],
+   "sources": [
+    "https://jobs.weekday.works/walk-ins-at-fnfi-full-search-current-owner-two-owner-searchers-at-fnf-india-private-limited-wkdye0djwi",
+    "https://jobs.weekday.works/title-specialist-at-fnf-india-private-limited-wkdyqgm2s7"
+   ]
+  },
+  {
+   "name": "Jaguar Land Rover",
+   "aliases": [
+    "JLR",
+    "JLR Technology and Business Services India",
+    "JLRTBSI"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "UK carmaker (owned by Tata Motors); its Jaguar Land Rover Technology and Business Services India arm has about 2.04 lakh sq ft at Brigade Tech Gardens.",
+   "hqCity": "Coventry",
+   "hqCountry": "United Kingdom",
+   "founded": 2008,
+   "website": "https://www.jaguarlandrover.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "JLR Technology and Business Services India - Brigade Tech Gardens",
+     "locality": "Brookefield / Kundalahalli",
+     "lat": 12.962881,
+     "lng": 77.721786,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "The Realty Today and Indian Startup News (Nov 2025) report JLRTBSI took an extra 1.46 lakh sq ft at Brigade Tech Gardens, Brookefield (ground, first, fifth and eighth floors, leases from May and Dec 2024), taking it to about 2.04 lakh sq ft (https://therealtytoday.com/news/commercial/jaguar-land-rover-expands-bengaluru-office-footprint-with-146-lakh-sq-ft-lease-at-brigade-tech-gardens/).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Brigade Tech Gardens",
+     "building": null,
+     "address": "Brigade Tech Gardens, Brookefield, Bengaluru 560037"
+    }
+   ],
+   "sources": [
+    "https://therealtytoday.com/news/commercial/jaguar-land-rover-expands-bengaluru-office-footprint-with-146-lakh-sq-ft-lease-at-brigade-tech-gardens/",
+    "https://indianstartupnews.com/news/tatas-jaguar-land-rover-leases-146-lakh-sq-ft-office-space-in-bengaluru-for-rs-106-crore-10785134"
+   ]
+  },
+  {
+   "name": "ExxonMobil",
+   "aliases": [
+    "ExxonMobil Services and Technology",
+    "ExxonMobil Company India",
+    "ExxonMobil Bengaluru Technology Center"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "US oil and gas major; its Bengaluru technology centre (ExxonMobil Services & Technology) occupies most of the Crescent buildings at Prestige Shantiniketan and took further space at ITPB in 2026.",
+   "hqCity": "Spring",
+   "hqCountry": "USA",
+   "founded": 1999,
+   "website": "https://corporate.exxonmobil.com/locations/india",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Prestige Shantiniketan - Crescent 1 & 2",
+     "locality": "Hoodi / Thigalarapalya, Whitefield Main Road",
+     "lat": 12.989288,
+     "lng": 77.73113,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "ExxonMobil's India page lists its Bengaluru office at Prestige Shantiniketan, Whitefield Main Road, Bangalore 560048, and The Realty Today reports it renewed 5.31 lakh sq ft across Crescent 1 (floors 4-8) and Crescent 2 from 1 Nov 2023 to 31 Oct 2028 (https://therealtytoday.com/news/exxonmobil-renews-5-year-lease-for-531-lakh-sq-ft-office-in-bengalurus-whitefield-it-hub).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Prestige Shantiniketan",
+     "building": "Crescent 1 & Crescent 2",
+     "address": "Prestige Shantiniketan, Whitefield Main Road, Bengaluru 560048"
+    },
+    {
+     "label": "ITPB Inventor building",
+     "locality": "Whitefield (ITPB)",
+     "lat": 12.985228,
+     "lng": 77.736825,
+     "isHq": false,
+     "status": "planned",
+     "confidence": "medium",
+     "evidence": "Channel IAM (July 2026) reports ExxonMobil leased 235,300 sq ft across seven floors of the ITPB Inventor building; coordinate is the ITPB park centroid (https://en.channeliam.com/2026/07/09/exxonmobil-bengaluru-whitefield-office-lease-itpb/).",
+     "geocodeSource": "park-centroid",
+     "techPark": "International Tech Park Bangalore",
+     "building": "Inventor",
+     "address": "Inventor Building, ITPB, Whitefield, Bengaluru 560066"
+    }
+   ],
+   "sources": [
+    "https://corporate.exxonmobil.com/locations/india",
+    "https://therealtytoday.com/news/exxonmobil-renews-5-year-lease-for-531-lakh-sq-ft-office-in-bengalurus-whitefield-it-hub",
+    "https://www.constructionworld.in/policy-updates-and-economic-news/exxonmobil-leases-0.235-mn-sq-ft-in-whitefield-bengaluru/94162",
+    "https://en.channeliam.com/2026/07/09/exxonmobil-bengaluru-whitefield-office-lease-itpb/"
+   ]
+  },
+  {
+   "name": "Tata Elxsi",
+   "aliases": [
+    "Tata Elxsi Ltd"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Tata group design and technology-services company (automotive software, media and healthcare engineering), headquartered on ITPB Road, Whitefield.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 1989,
+   "website": "https://www.tataelxsi.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Global HQ, ITPB Road",
+     "locality": "Whitefield / Hoodi (ITPB Road)",
+     "lat": 12.990777,
+     "lng": 77.724801,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Tata Elxsi's contact page and stock-exchange filings give the global headquarters and registered office as ITPB Road, Whitefield, Bangalore 560048 (https://tataelxsi.com/contact-us).",
+     "geocodeSource": "osm-park",
+     "techPark": null,
+     "building": null,
+     "address": "ITPB Road, Whitefield, Bengaluru 560048"
+    },
+    {
+     "label": "Prestige Shantiniketan - Crescent 4",
+     "locality": "Hoodi, Whitefield Main Road",
+     "lat": 12.988903,
+     "lng": 77.7310416,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Tata Elxsi's contact page lists 'Prestige Shantiniketan, Crescent 4, 9th Floor, Whitefield Road, Bangalore 560048'; coordinate is the Prestige Shantiniketan geocode, not the Crescent 4 tower (https://tataelxsi.com/contact-us).",
+     "geocodeSource": "nominatim",
+     "techPark": "Prestige Shantiniketan",
+     "building": "Crescent 4, 9th floor",
+     "address": "Crescent 4, 9th Floor, Prestige Shantiniketan, Whitefield Road, Bengaluru 560048"
+    },
+    {
+     "label": "Bhoruka Tech Park - Block I",
+     "locality": "Mahadevapura Industrial Area, Hoodi",
+     "lat": 12.993537,
+     "lng": 77.705557,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Tata Elxsi's contact page lists 'Bhoruka Tech Park, Block I, Mahadevpura Industrial Area, Hoodi, Krishnarajapuram Hobli, Bangalore 560048'; OSM has a Tata Elxsi POI inside the park (https://tataelxsi.com/contact-us).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Bhoruka Tech Park",
+     "building": "Block I",
+     "address": "Block I, Bhoruka Tech Park, Mahadevapura Industrial Area, Hoodi, Bengaluru 560048"
+    }
+   ],
+   "sources": [
+    "https://tataelxsi.com/contact-us",
+    "https://bseindia.com/xml-data/corpfiling/AttachHis/61e3c1d7-6a7f-4207-bad2-6aa5813d5ae5.pdf"
+   ]
+  },
+  {
+   "name": "Infineon Technologies",
+   "aliases": [
+    "Infineon Technologies India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "German power and automotive semiconductor maker; its India R&D sites, including Kalyani Platina Block 1 in EPIP, are being consolidated into a new 'SILANE' campus at Bagmane Solarium for up to 4,500 people.",
+   "hqCity": "Neubiberg",
+   "hqCountry": "Germany",
+   "founded": 1999,
+   "website": "https://www.infineon.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Kalyani Platina - Block 1 (3rd floor)",
+     "locality": "EPIP Zone Phase 2, Brookefield",
+     "lat": 12.97278,
+     "lng": 77.718323,
+     "isHq": false,
+     "status": "closing",
+     "confidence": "medium",
+     "evidence": "Infineon's Naukri contact page lists '3rd floor, Block 1, Kalyani Platina Tech Park, #6 & 24, EPIP Zone, Phase 2, Whitefield, Bangalore 560066'; Infineon announced in Oct 2025 that its two Bengaluru sites will move to a new campus, so this site is expected to close (https://company.naukri.com/infineon-india-jobs/contact.html).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Kalyani Platina",
+     "building": "Block 1",
+     "address": "3rd floor, Block 1, Kalyani Platina Tech Park, #6 & 24, EPIP Zone Phase 2, Bengaluru 560066"
+    },
+    {
+     "label": "SILANE campus, Bagmane Solarium",
+     "locality": "Doddanekundi / Kundalahalli (ITPL Main Road)",
+     "lat": 12.969934,
+     "lng": 77.708425,
+     "isHq": false,
+     "status": "planned",
+     "confidence": "medium",
+     "evidence": "Evertiq (15 Oct 2025) reports Infineon leased a new campus called SILANE at Bagmane Solarium Tech Park to unite its two Bengaluru sites for up to 4,500 employees, with operations planned from autumn 2026; coordinate is the park centroid (https://evertiq.com/design/2025-10-15-infineon-consolidates-indian-operations-with-new-bengaluru-campus).",
+     "geocodeSource": "park-centroid",
+     "techPark": "Bagmane Solarium City",
+     "building": null,
+     "address": "Bagmane Solarium Tech Park, Bengaluru"
+    }
+   ],
+   "sources": [
+    "https://company.naukri.com/infineon-india-jobs/contact.html",
+    "https://evertiq.com/design/2025-10-15-infineon-consolidates-indian-operations-with-new-bengaluru-campus",
+    "https://themachinemaker.com/news/infineon-expands-bengaluru-operations-with-major-new-rd-campus/"
+   ]
+  },
+  {
+   "name": "HP Inc",
+   "aliases": [
+    "HP",
+    "HP Computing & Printing Systems India",
+    "HP PPS Service India",
+    "Hewlett-Packard"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "US PC and printer maker; HP Computing & Printing Systems India and HP PPS Service India list an office in the Ebony building at Kalyani Platina (HP was 74% of Platina's leased area in 2016).",
+   "hqCity": "Palo Alto",
+   "hqCountry": "USA",
+   "founded": 1939,
+   "website": "https://www.hp.com/in-en",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Kalyani Platina - KTP Ebony building",
+     "locality": "EPIP Zone Phase 2, Kundalahalli / Brookefield",
+     "lat": 12.972056,
+     "lng": 77.718544,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "HP's India office-locations page lists HP Computing & Printing Systems India and HP PPS Service India at Kalyani Platina, Survey No 1, 6 & 24 of Kundalahalli Village, KTP Ebony Building, opposite Brookefield Hospital, Whitefield, Bengaluru 560066 (https://www.hp.com/in-en/contact-hp/office-locations.html).",
+     "geocodeSource": "park-centroid",
+     "techPark": "Kalyani Platina",
+     "building": "Ebony",
+     "address": "KTP Ebony Building, Kalyani Platina, Kundalahalli, Whitefield, Bengaluru 560066"
+    }
+   ],
+   "sources": [
+    "https://www.hp.com/in-en/contact-hp/office-locations.html",
+    "https://icra.in/Rating/ShowRationalReportFilePdf/29440"
+   ]
+  },
+  {
+   "name": "Tata Consultancy Services",
+   "aliases": [
+    "TCS"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "India's largest IT services company; besides its ITPB buildings it runs two owned software-development centres in the Whitefield EPIP zone (Abhilash and L-Centre).",
+   "hqCity": "Mumbai",
+   "hqCountry": "India",
+   "founded": 1968,
+   "website": "https://www.tcs.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Abhilash Software Development Centre (Plot 96)",
+     "locality": "EPIP Zone, Whitefield",
+     "lat": 12.975789,
+     "lng": 77.726274,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "TCS's additional-offices list (hosted by CREST) gives 'Abhilash Software Development Centre, Plot No. 96, EPIP Industrial Area, Whitefield, Bangalore 560066', matching the OSM 'TCS Abhilash' POI (https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf).",
+     "geocodeSource": "osm-poi",
+     "techPark": null,
+     "building": "Abhilash",
+     "address": "Plot 96, EPIP Industrial Area, Whitefield, Bengaluru 560066"
+    },
+    {
+     "label": "L-Centre (Plot 78, 79 & 83)",
+     "locality": "EPIP Zone, Whitefield",
+     "lat": 12.977569,
+     "lng": 77.728158,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "The same TCS list gives 'L-Centre, Plot No. 78, 79 & 83, EPIP Industrial Area, Whitefield, Bangalore 560066' (Unit VI), matching the OSM 'TCS L Center' POI (https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf).",
+     "geocodeSource": "osm-poi",
+     "techPark": null,
+     "building": "L-Centre",
+     "address": "Plot 78, 79 & 83, EPIP Industrial Area, Whitefield, Bengaluru 560066"
+    }
+   ],
+   "sources": [
+    "https://www.crest-approved.org/wp-content/uploads/2023/05/Tata-Consultancy-Additional-Offices.pdf",
+    "https://www.consumercomplaints.in/tata-consultancy-services-b100400/customer-care"
+   ]
+  },
+  {
+   "name": "Collins Aerospace",
+   "aliases": [
+    "Rockwell Collins",
+    "Goodrich Aerospace",
+    "UTC Aerospace Systems",
+    "RTX"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "RTX's avionics and aerostructures business (Rockwell Collins + UTC Aerospace / Goodrich); in Bengaluru it has an EPIP engineering office, the Hoodi 'Site 1' plant (ex-Goodrich, evacuation systems) and a 26-acre operations centre at the KIADB Aerospace Park opened in Nov 2025.",
+   "hqCity": "Charlotte",
+   "hqCountry": "USA",
+   "founded": 2018,
+   "website": "https://www.collinsaerospace.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "EPIP office (Nethra Tech Park)",
+     "locality": "EPIP Industrial Area, Kundalahalli",
+     "lat": 12.973547,
+     "lng": 77.721211,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "A business directory lists Collins Aerospace at Nethra Tech Park, EPIP Industrial Area, Kundalahalli Village, Bengaluru 560066, and OSM records a Collins Aerospace POI there (https://yappe.in/karnataka/bengaluru/collins-aerospace/1017476).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Nethra Tech Park",
+     "building": null,
+     "address": "Nethra Tech Park, EPIP Industrial Area, Kundalahalli, Bengaluru 560066"
+    },
+    {
+     "label": "Bengaluru Operations Plant (Hoodi Site 1)",
+     "locality": "Hoodi",
+     "lat": 12.988062,
+     "lng": 77.712632,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Machinist (Nov 2025) says Collins runs the Bengaluru Operations Plant (Hoodi Site 1, originally Goodrich) making evacuation systems; an electronics.org directory lists Collins at Maruthi Industrial Estate, Hoodi Main Road, and OSM maps a 'Collin Aero Space' industrial site in Hoodi (https://machinist.in/2025/11/collins-aerospace-opens-advanced-manufacturing-site-in-bengaluru-to-support-global-programmes/).",
+     "geocodeSource": "osm-park",
+     "techPark": null,
+     "building": null,
+     "address": "Maruthi Industrial Estate, Hoodi Main Road, Seetharampalya, Bengaluru 560048"
+    },
+    {
+     "label": "Collins India Operations Center (Site 4), KIADB Aerospace Park",
+     "locality": "KIADB Aerospace Park, Devanahalli",
+     "lat": 13.181406,
+     "lng": 77.729111,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "RTX's release of 11 Nov 2025 announces Collins Aerospace's new 26-acre manufacturing site at the KIADB Aerospace Park in Bengaluru; coordinate is the OSM Collins Aerospace POI there (https://www.rtx.com/news/news-center/2025/11/11/rtxs-collins-aerospace-unveils-new-manufacturing-site-in-bengaluru).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Bengaluru Aerospace Park",
+     "building": null,
+     "address": "KIADB Aerospace Park, Bengaluru"
+    }
+   ],
+   "sources": [
+    "https://yappe.in/karnataka/bengaluru/collins-aerospace/1017476",
+    "https://machinist.in/2025/11/collins-aerospace-opens-advanced-manufacturing-site-in-bengaluru-to-support-global-programmes/",
+    "https://www.rtx.com/news/news-center/2025/11/11/rtxs-collins-aerospace-unveils-new-manufacturing-site-in-bengaluru",
+    "https://www.electronics.org/es/member-directory?page=92"
+   ]
+  },
+  {
+   "name": "Unilever",
+   "aliases": [
+    "Hindustan Unilever",
+    "HUL",
+    "Unilever R&D Bangalore"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "British consumer-goods group (London HQ); Hindustan Unilever's main R&D centre at 64 Whitefield Main Road (set up 1997, a global Unilever R&D site since 2006) is one of Unilever's six global R&D hubs.",
+   "hqCity": "London",
+   "hqCountry": "United Kingdom",
+   "founded": 1929,
+   "website": "https://www.hul.co.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Unilever R&D Bengaluru (Hindustan Unilever Research Centre)",
+     "locality": "Whitefield Main Road (Palm Meadows)",
+     "lat": 12.964946,
+     "lng": 77.746855,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "HUL's R&D-locations page describes the Bengaluru site (est. 1997, ~350 staff) as a key pillar of Unilever's global R&D network, and directories give its address as 64 Whitefield Main Road, Whitefield 560066 (https://www.hul.co.in/our-company/rd-innovation/our-rd-locations/bengaluru-india/).",
+     "geocodeSource": "osm-park",
+     "techPark": null,
+     "building": null,
+     "address": "64, Whitefield Main Road, Whitefield, Bengaluru 560066"
+    }
+   ],
+   "sources": [
+    "https://www.hul.co.in/our-company/rd-innovation/our-rd-locations/bengaluru-india/",
+    "https://tattvammedia.com/blog/list-of-hul-offices-in-india/"
+   ]
+  },
+  {
+   "name": "Google",
+   "aliases": [
+    "Google IT Services India",
+    "Alphabet"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Software & internet",
+   "description": "Alphabet's Google; besides its Mahadevapura campuses it has leased a large and growing share of Alembic City in Kadugodi, Whitefield.",
+   "hqCity": "Mountain View",
+   "hqCountry": "USA",
+   "founded": 1998,
+   "website": "https://about.google",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Alembic City",
+     "locality": "Kadugodi, Whitefield",
+     "lat": 12.98918,
+     "lng": 77.758245,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The Realty Today reports Google IT Services India leased ~6.5 lakh sq ft at Alembic City, Whitefield in Oct 2024 and by Feb 2026 held rights to ~2.6 million sq ft there (Annex Tower and Towers B and G reserved); OSM maps a Google POI in Tower A (https://therealtytoday.com/news/commercial/google-significantly-expands-bengaluru-office-footprint-with-26-million-sq-ft-at-alembic-city/).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Alembic City",
+     "building": null,
+     "address": "Alembic City, Whitefield-Hoskote Road, Kadugodi, Bengaluru 560067"
+    }
+   ],
+   "sources": [
+    "https://therealtytoday.com/news/commercial/google-significantly-expands-bengaluru-office-footprint-with-26-million-sq-ft-at-alembic-city/",
+    "https://therealtytoday.com/news/google-expands-its-footprint-in-india-by-leasing-649000-sq-ft-office-space-in-bengaluru",
+    "https://mgsarchitecture.in/real-estate/global-tech-giant-leases-2-4-mn-sq-ft-office-space-at-alembic-city-bengaluru.html"
+   ]
+  },
+  {
+   "name": "Airbus",
+   "aliases": [
+    "Airbus India",
+    "Airbus Group India",
+    "Airbus India Technology Centre"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Aerospace & defence",
+   "description": "European aircraft maker; its Airbus India Technology Centre, inaugurated on 6 March 2026 for about 5,000 employees, is in a building it leased in full at Titanium Tech Park, Kadugodi.",
+   "hqCity": "Blagnac (Toulouse)",
+   "hqCountry": "France",
+   "founded": 1970,
+   "website": "https://www.airbus.com/en/our-worldwide-presence/airbus-in-asia-pacific/airbus-in-india",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Airbus India Technology Centre - Titanium Tech Park",
+     "locality": "Kadugodi, Whitefield",
+     "lat": 12.986297,
+     "lng": 77.747946,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "CXO Digital Pulse (Dec 2024) reports Airbus leased the entire building at Titanium Tech Park, Whitefield (650,000 sq ft, 10 years), CRE Matrix records a 1.51 lakh sq ft lease to Oct 2034, and ePlane AI reports the 5,000-person centre was inaugurated in March 2026; OSM places Airbus India in the park (https://www.cxodigitalpulse.com/?p=25755).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Titanium Tech Park",
+     "building": null,
+     "address": "Titanium Tech Park, Kadugodi, Whitefield, Bengaluru"
+    }
+   ],
+   "sources": [
+    "https://www.cxodigitalpulse.com/?p=25755",
+    "https://www.crematrix.com/blog/?p=1834",
+    "https://www.eplaneai.com/ar/news/airbus-opens-largest-technology-and-innovation-center-outside-europe-in-bengaluru"
+   ]
+  },
+  {
+   "name": "Caterpillar",
+   "aliases": [
+    "Cat Digital",
+    "Caterpillar India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "US construction and mining equipment maker; Cat Digital opened a Whitefield office in December 2024 holding about 30% of its India digital workforce.",
+   "hqCity": "Irving",
+   "hqCountry": "USA",
+   "founded": 1925,
+   "website": "https://www.caterpillar.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Cat Digital office",
+     "locality": "Kadugodi, Whitefield",
+     "lat": 12.987298,
+     "lng": 77.748184,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Machinist (19 Dec 2024) reports Caterpillar opened a Cat Digital office in Whitefield, Bangalore with an employee experience centre and lab; OSM places a Caterpillar POI in Titanium Tech Park (https://machinist.in/2024/12/caterpillar-expands-digital-operations-with-new-bangalore-office/).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Titanium Tech Park",
+     "building": null,
+     "address": "Titanium Tech Park, Whitefield, Bengaluru"
+    }
+   ],
+   "sources": [
+    "https://machinist.in/2024/12/caterpillar-expands-digital-operations-with-new-bangalore-office/",
+    "https://cxotoday.com/media-coverage/caterpillar-expands-its-tech-capacity-in-karnataka/"
+   ]
+  },
+  {
+   "name": "Swiggy",
+   "aliases": [
+    "Bundl Technologies",
+    "Swiggy Limited"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "E-commerce & consumer internet",
+   "description": "Food-delivery and quick-commerce (Instamart) company, listed in 2024; in April 2026 it moved its corporate headquarters from Bellandur to a four-floor campus at Sumadhura Capitol Towers, Whitefield.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2014,
+   "website": "https://www.swiggy.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate HQ - Sumadhura Capitol Towers",
+     "locality": "Kadugodi (Hope Farm), Whitefield",
+     "lat": 12.985034,
+     "lng": 77.750152,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "News Karnataka and Realty N More (21-22 Apr 2026) report Swiggy moved its corporate HQ from Bellandur to a four-floor Whitefield campus, and Motilal Oswal (Nov 2025) said it would house ~2,000 staff at Sumadhura Capitol Towers (https://newskarnataka.com/bengaluru/swiggy-shifts-bengaluru-headquarters-to-whitefield/22042026/).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Sumadhura Capitol Towers",
+     "building": null,
+     "address": "Sumadhura Capitol Towers, Whitefield Main Road, Bengaluru"
+    }
+   ],
+   "sources": [
+    "https://newskarnataka.com/bengaluru/swiggy-shifts-bengaluru-headquarters-to-whitefield/22042026/",
+    "https://realtynmore.com/swiggy-relocates-headquarters-to-whitefield/",
+    "https://www.motilaloswal.com/news/stocks/109347"
+   ]
+  },
+  {
+   "name": "Terex",
+   "aliases": [
+    "Terex India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "US maker of aerial work platforms and materials-processing machinery; Terex India is one of the first office tenants at Sumadhura Capitol Towers.",
+   "hqCity": "Norwalk",
+   "hqCountry": "USA",
+   "founded": 1933,
+   "website": "https://www.terex.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Sumadhura Capitol Towers",
+     "locality": "Kadugodi (Hope Farm), Whitefield",
+     "lat": 12.984959,
+     "lng": 77.750298,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The Realty Today and Outlook Business (2025) name Terex India Pvt Ltd among the office tenants of Sumadhura's ~5 lakh sq ft leasing at Capitol Towers near Hope Farm Junction; area and floor are not given (https://therealtytoday.com/news/sumadhura-group-leases-five-lakh-sq-ft-of-commercial-space-to-global-firms-in-bengaluru-eyes-50-crore-annual-revenue).",
+     "geocodeSource": "osm-park",
+     "techPark": "Sumadhura Capitol Towers",
+     "building": null,
+     "address": "Sumadhura Capitol Towers, Whitefield Main Road, Bengaluru"
+    }
+   ],
+   "sources": [
+    "https://therealtytoday.com/news/sumadhura-group-leases-five-lakh-sq-ft-of-commercial-space-to-global-firms-in-bengaluru-eyes-50-crore-annual-revenue",
+    "https://www.outlookbusiness.com/amp/story/corporate/sumadhura-group-leases-out-5-lakh-sq-ft-commercial-space-in-bengaluru",
+    "https://www.terex.com/tirc/en/contact-us"
+   ]
+  },
+  {
+   "name": "BMW TechWorks India",
+   "aliases": [
+    "BMW TechWorks",
+    "BMW Group",
+    "Tata Technologies JV"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Automotive & industrial",
+   "description": "50:50 joint venture of BMW Group and Tata Technologies (2024) for automotive software and business IT, with offices in Pune, Bengaluru and Chennai.",
+   "hqCity": "Munich",
+   "hqCountry": "Germany",
+   "founded": 2024,
+   "website": null,
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Whitefield office",
+     "locality": "Kadugodi (Hope Farm), Whitefield",
+     "lat": 12.984938,
+     "lng": 77.750936,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The Realty Today (Oct 2025) reports BMW TechWorks leased 58,900 sq ft over six floors of a Grade A tower in Whitefield from Simpliwork Offices (phases from Sept 2025 and Apr 2026); the building is not named, and the coordinate is an OSM POI inside Sumadhura Capitol Towers (https://www.therealtytoday.com/news/news/bmw-techworks-the-bmw-tata-joint-venture-leases-58900-sq-ft-of-premium-office-space-in-whitefield-bengaluru/).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Sumadhura Capitol Towers",
+     "building": null,
+     "address": "Whitefield, Bengaluru"
+    }
+   ],
+   "sources": [
+    "https://www.therealtytoday.com/news/news/bmw-techworks-the-bmw-tata-joint-venture-leases-58900-sq-ft-of-premium-office-space-in-whitefield-bengaluru/",
+    "https://press.bmwgroup.com/global/article/detail/T0445452EN/bmw-group-and-tata-technologies-establish-bmw-techworks-india"
+   ]
+  },
+  {
+   "name": "Netradyne",
+   "aliases": [
+    "Netradyne Technology India"
+   ],
+   "category": "STARTUP",
+   "origin": "Foreign",
+   "sector": "AI & deep tech",
+   "description": "San Diego-headquartered maker of AI dash-cam fleet-safety systems founded by Indian engineers; its core R&D and testing are done in Bengaluru, at HM Tech Park in Whitefield.",
+   "hqCity": "San Diego",
+   "hqCountry": "USA",
+   "founded": 2015,
+   "website": "https://www.netradyne.com",
+   "isUnicorn": true,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru R&D office - HM Tech Park",
+     "locality": "Kadugodi, Whitefield Main Road",
+     "lat": 12.982924,
+     "lng": 77.751225,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Netradyne job postings say roles are based out of HM Tech Park, Whitefield, Bangalore, and MediaNama reports all its major R&D and testing is done at its Bengaluru office (https://startup.jobs/front-end-developer-angular-typescript-netradyne-7946428).",
+     "geocodeSource": "osm-poi",
+     "techPark": "HM Tech Park",
+     "building": null,
+     "address": "HM Tech Park, Whitefield, Bengaluru"
+    }
+   ],
+   "sources": [
+    "https://startup.jobs/front-end-developer-angular-typescript-netradyne-7946428",
+    "https://en.wikipedia.org/wiki/Netradyne",
+    "https://www.medianama.com/2026/01/223-exclusive-netradyne-india-arm-rs-295-crore-revenue-in-fy25/"
+   ]
+  },
+  {
+   "name": "Applied Materials",
+   "aliases": [
+    "Applied Materials India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "US semiconductor-equipment maker; in 2022 its India arm bought a 10-acre plot and five office blocks in EPIP Phase II, and from April 2025 it leased about 8 lakh sq ft at ITPB.",
+   "hqCity": "Santa Clara",
+   "hqCountry": "USA",
+   "founded": 1967,
+   "website": "https://www.appliedmaterials.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "EPIP Phase II campus (five blocks, 10 acres)",
+     "locality": "EPIP Zone Phase II, Whitefield",
+     "lat": 12.9781922,
+     "lng": 77.7246451,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Venture Intelligence (4 May 2022) reports Applied Materials India bought a 10-acre parcel and ~2.6 lakh sq ft of built-up space across five office blocks in EPIP Phase II, Whitefield, for Rs 338 crore; plot numbers are not given, so the coordinate is the EPIP zone point (https://news.ventureintelligence.com/real-estate/us-based-applied-materials%C3%A2%E2%82%AC%E2%84%A2-india-arm-buys-office-space%2C-land-in-bengaluru-for-rs.338-cr).",
+     "geocodeSource": "park-centroid",
+     "techPark": "EPIP Zone Whitefield",
+     "building": null,
+     "address": "EPIP Phase II, Whitefield Industrial Area, Bengaluru"
+    },
+    {
+     "label": "ITPB (8.06 lakh sq ft lease)",
+     "locality": "Whitefield (ITPB)",
+     "lat": 12.986106,
+     "lng": 77.734245,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "The Realty Today reports Applied Materials signed a 10-year, Rs 855 crore lease for 8.06 lakh sq ft at International Tech Park, Whitefield, starting 1 Apr 2025; OSM has an Applied Materials POI inside ITPB (https://therealtytoday.com/news/commercial/applied-materials-signs-855-crore-lease-for-8-lakh-sq-ft-office-space-in-bengaluru/).",
+     "geocodeSource": "osm-poi",
+     "techPark": "International Tech Park Bangalore",
+     "building": null,
+     "address": "International Tech Park Bangalore, Whitefield, Bengaluru 560066"
+    }
+   ],
+   "sources": [
+    "https://news.ventureintelligence.com/real-estate/us-based-applied-materials%C3%A2%E2%82%AC%E2%84%A2-india-arm-buys-office-space%2C-land-in-bengaluru-for-rs.338-cr",
+    "https://therealtytoday.com/news/commercial/applied-materials-signs-855-crore-lease-for-8-lakh-sq-ft-office-space-in-bengaluru/",
+    "https://www.businesstoday.in/latest/corporate/story/applied-materials-to-invest-rs-1800-cr-in-india-331877-2022-04-29"
+   ]
+  },
+  {
+   "name": "AMD",
+   "aliases": [
+    "Advanced Micro Devices",
+    "AMD India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Semiconductors & hardware",
+   "description": "US CPU/GPU designer; AMD India's registered office is at Plot 102-103 EPIP and its largest global design centre (about 500,000 sq ft, ~3,000 engineers by 2028) opened at Prestige Technostar in November 2023.",
+   "hqCity": "Santa Clara",
+   "hqCountry": "USA",
+   "founded": 1969,
+   "website": "https://www.amd.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "AMD India registered office (Plot 102 & 103 EPIP)",
+     "locality": "EPIP Zone, Whitefield",
+     "lat": 12.975342,
+     "lng": 77.725791,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "AMD's CSR-committee document (Dec 2024) lists AMD India Private Limited at Plot No. 102 & 103, EPIP, Whitefield, Bangalore 560066, and OSM records an AMD POI with that address (https://www.amd.com/content/dam/amd/en/documents/corporate/cr/composition-of-csr-committee-aipl.pdf).",
+     "geocodeSource": "osm-poi",
+     "techPark": null,
+     "building": null,
+     "address": "Plot 102 & 103, EPIP Zone, Whitefield, Bengaluru 560066"
+    },
+    {
+     "label": "Technostar design centre",
+     "locality": "Doddanekundi / Kundalahalli (ITPL Main Road)",
+     "lat": 12.973285,
+     "lng": 77.709989,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Swarajya (29 Nov 2023) reports AMD inaugurated its largest global design centre on the roof of Prestige Technostar in east Bengaluru on 28 Nov 2023, with about 3,000 engineers planned by 2028; OSM has an AMD POI inside Technostar (https://swarajyamag.com/amp/story/technology/indias-semiconductor-efforts-get-a-shot-in-the-arm-with-launch-of-chipmaker-amds-largest-global-design-centre-in-bengaluru).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Prestige Technostar",
+     "building": null,
+     "address": "Prestige Technostar, ITPL Main Road, Bengaluru"
+    }
+   ],
+   "sources": [
+    "https://www.amd.com/content/dam/amd/en/documents/corporate/cr/composition-of-csr-committee-aipl.pdf",
+    "https://swarajyamag.com/amp/story/technology/indias-semiconductor-efforts-get-a-shot-in-the-arm-with-launch-of-chipmaker-amds-largest-global-design-centre-in-bengaluru",
+    "https://www.telecomreviewasia.com/news/service-news/3786-amd-inaugurates-largest-global-design-center-in-bengaluru-india/"
+   ]
+  },
+  {
+   "name": "Schneider Electric",
+   "aliases": [
+    "Schneider Electric India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "French energy-management and automation group; it opened one of its largest employee campuses (8,000+ seats, R&D, innovation hub, Rs 200 crore) at Bagmane Solarium City in 2024.",
+   "hqCity": "Rueil-Malmaison",
+   "hqCountry": "France",
+   "founded": 1836,
+   "website": "https://www.se.com/in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bagmane Solarium City campus",
+     "locality": "Doddanekundi / Kundalahalli (ITPL Main Road)",
+     "lat": 12.970602,
+     "lng": 77.710048,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "pv magazine India (30 May 2024) reports Schneider Electric inaugurated a campus at Bagmane Solarium City, Bengaluru, for over 8,000 professionals with an R&D centre and innovation hub; OSM places a Schneider Electric POI at the park's edge (https://www.pv-magazine-india.com/2024/05/30/schneider-electric-opens-new-campus-in-india).",
+     "geocodeSource": "osm-poi",
+     "techPark": "Bagmane Solarium City",
+     "building": null,
+     "address": "Bagmane Solarium City, Bengaluru"
+    }
+   ],
+   "sources": [
+    "https://www.pv-magazine-india.com/2024/05/30/schneider-electric-opens-new-campus-in-india",
+    "https://equipmentindia.com/construction-machinery-news/top-equipment-news/webexclusive/Schneider-Electric-expands-Bengaluru-presence/128980"
+   ]
+  },
+  {
+   "name": "Hitachi Energy",
+   "aliases": [
+    "Hitachi Energy India",
+    "ABB Power Grids",
+    "Hitachi ABB Power Grids"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Energy",
+   "description": "Swiss-based power-grid technology company (formerly ABB Power Grids); its India Development Center (R&D, ~500 engineers) is at Bhoruka Tech Park, Hoodi, while its India HQ is in Hebbal.",
+   "hqCity": "Zurich",
+   "hqCountry": "Switzerland",
+   "founded": 2020,
+   "website": "https://www.hitachienergy.com/in/en",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "India Development Center - Bhoruka Tech Park",
+     "locality": "Mahadevapura Industrial Area, Hoodi",
+     "lat": 12.994174,
+     "lng": 77.705315,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Hitachi Energy India's page lists its R&D centre at Sy No. 27 & 31, Bhoruka Tech Park, 3rd Floor, Mahadevapura Industrial Area, Whitefield, Bengaluru 560048; coordinate is the park centroid (https://hitachienergy.com/in/en/about-us/hitachi-energy-india).",
+     "geocodeSource": "osm-park",
+     "techPark": "Bhoruka Tech Park",
+     "building": null,
+     "address": "Sy No. 27 & 31, Bhoruka Tech Park, 3rd Floor, Mahadevapura Industrial Area, Bengaluru 560048"
+    }
+   ],
+   "sources": [
+    "https://hitachienergy.com/in/en/about-us/hitachi-energy-india"
+   ]
+  },
+  {
+   "name": "Novo Nordisk",
+   "aliases": [
+    "Novo Nordisk Service Centre India",
+    "Novo Nordisk GBS",
+    "Novo Nordisk India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "HealthTech & pharma",
+   "description": "Danish diabetes and obesity drug maker; its Global Business Services centre (about 4,500 staff) is at Mindcomp Tech Park in EPIP, while Novo Nordisk India's corporate office is at Manyata.",
+   "hqCity": "Bagsværd",
+   "hqCountry": "Denmark",
+   "founded": 1923,
+   "website": "https://www.novonordisk.co.in",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": 4500,
+   "offices": [
+    {
+     "label": "Global Business Services - Mindcomp Tech Park",
+     "locality": "EPIP Zone Phase 2, Whitefield",
+     "lat": 12.98223,
+     "lng": 77.72099,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Novo Nordisk India's site lists 'Novo Nordisk Service Centre India Pvt Ltd, Plot No 149-A, Mindcomp Tech Park, 4th Floor, 2nd Phase, EPIP Area, Whitefield, Bangalore 560066', and CRISIL (July 2025) names Novo Nordisk as a tenant of the fully leased Mindcomp Tech Park (https://novonordisk.co.in/about/about-novo-nordisk-india.html).",
+     "geocodeSource": "osm-park",
+     "techPark": "Salarpuria Sattva Mindcomp Tech Park",
+     "building": null,
+     "address": "Plot 149-A, Mindcomp Tech Park, 4th Floor, EPIP Phase 2, Whitefield, Bengaluru 560066"
+    },
+    {
+     "label": "Novo Nordisk India corporate office - Manyata",
+     "locality": "Nagavara",
+     "lat": 13.04809,
+     "lng": 77.61975,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Novo Nordisk India's site gives NXT-2, 1st & 2nd Floor, Embassy Manyata Business Park, Nagavara Village, Bangalore 560045 as the company's office; coordinate is the Manyata park centroid (https://novonordisk.co.in/about/about-novo-nordisk-india.html).",
+     "geocodeSource": "park-centroid",
+     "techPark": "Manyata Tech Park",
+     "building": "NXT-2",
+     "address": "NXT-2, 1st & 2nd Floor, Embassy Manyata Business Park, Nagavara, Bengaluru 560045"
+    }
+   ],
+   "sources": [
+    "https://novonordisk.co.in/about/about-novo-nordisk-india.html",
+    "https://www.crisil.com/mnt/winshare/Ratings/RatingList/RatingDocs/MindcompTechParkPrivateLimited_July%2015_%202025_RR_373464.html",
+    "https://yourstory.com/enterprise-story/2025/04/novo-nordisks-india-gcc-steadily-moves-value-chain"
+   ]
+  },
+  {
+   "name": "BSH Home Appliances",
+   "aliases": [
+    "BSH Hausgerate",
+    "BSH Household Appliances",
+    "BSH Home Appliances India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Retail & consumer goods",
+   "description": "Bosch group's household-appliance maker (Bosch, Siemens, Gaggenau brands); CRISIL names BSH Household as one of three tenants filling Mindcomp Tech Park in EPIP.",
+   "hqCity": "Munich",
+   "hqCountry": "Germany",
+   "founded": 1967,
+   "website": "https://www.bsh-group.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Mindcomp Tech Park",
+     "locality": "EPIP Zone Phase 2, Whitefield",
+     "lat": 12.98223,
+     "lng": 77.72099,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "CRISIL's July 2025 rating rationale for Mindcomp Tech Park Pvt Ltd says the Whitefield asset was fully leased to three tenants including BSH Household, Novo Nordisk and Pharmed; BSH's own address there was not found (https://www.crisil.com/mnt/winshare/Ratings/RatingList/RatingDocs/MindcompTechParkPrivateLimited_July%2015_%202025_RR_373464.html).",
+     "geocodeSource": "osm-park",
+     "techPark": "Salarpuria Sattva Mindcomp Tech Park",
+     "building": null,
+     "address": "Mindcomp Tech Park, Plot 149-A, EPIP Phase 2, Whitefield, Bengaluru 560066"
+    }
+   ],
+   "sources": [
+    "https://www.crisil.com/mnt/winshare/Ratings/RatingList/RatingDocs/MindcompTechParkPrivateLimited_July%2015_%202025_RR_373464.html",
+    "https://www.bsh-group.com/es/prensa/notas-de-prensa/bsh-inaugurates-technology-centre-in-india"
+   ]
+  },
+  {
+   "name": "Embitel Technologies",
+   "aliases": [
+    "Embitel Technologies (India) Pvt Ltd"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Software & internet",
+   "description": "Bengaluru automotive-embedded and e-commerce engineering services firm, with its office in Delta Block of Sigma Soft Tech Park; headcount and current ownership were not confirmed.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": null,
+   "website": "https://www.embitel.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Sigma Soft Tech Park - Delta Block (Units 208-216)",
+     "locality": "Ramagondanahalli / Varthur Kodi, Whitefield",
+     "lat": 12.957685,
+     "lng": 77.744263,
+     "isHq": true,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Embedded Computing's company profile and Zauba registry listings give Embitel Technologies at Units 208-216, 2nd Floor, Delta Block, Sigma Soft Tech Park, Whitefield Main Road, Bangalore 560066 (https://embeddedcomputing.com/company/Embitel%20Technologies).",
+     "geocodeSource": "osm-park",
+     "techPark": "Sigma Soft Tech Park",
+     "building": "Delta Block",
+     "address": "Units 208-216, 2nd Floor, Delta Block, Sigma Soft Tech Park, Whitefield Main Road, Bengaluru 560066"
+    }
+   ],
+   "sources": [
+    "https://embeddedcomputing.com/company/Embitel%20Technologies",
+    "https://www.zaubacorp.com/company-by-address/3RD-FLOOR-DELTA-BLOCK-SIGMA-SOFT-TECH-PARK-VARTHUR-KODI-WHITEFIELD-ROAD-----BANGALORE--KARNATAKA--INDIA---560066"
+   ]
+  },
+  {
+   "name": "Mphasis",
+   "aliases": [
+    "Mphasis Limited"
+   ],
+   "category": "MNC",
+   "origin": "Indian",
+   "sector": "IT services",
+   "description": "Bengaluru-headquartered IT services company (majority-owned by Blackstone); directories still list a 'Mascot' delivery site in the EPIP zone, not confirmed as current.",
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "founded": 2000,
+   "website": "https://www.mphasis.com",
+   "isUnicorn": false,
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Mascot, EPIP Industrial Area (No. 80)",
+     "locality": "EPIP Zone, Whitefield",
+     "lat": 12.9781922,
+     "lng": 77.7246451,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Directory listings give Mphasis Limited 'Mascot', 90 EPIP Industrial Area / No. 80, Block II, Whitefield Road, Vijayanagar, KIADB EPIP, Whitefield, Bangalore 560066; no official or recent source confirms it, and the coordinate is the EPIP zone point (https://www.indiacustomercare.com/mphasis-contact-no).",
+     "geocodeSource": "park-centroid",
+     "techPark": "EPIP Zone Whitefield",
+     "building": "Mascot",
+     "address": "No. 80, Block II, EPIP Industrial Area, Whitefield, Bengaluru 560066"
+    }
+   ],
+   "sources": [
+    "https://www.indiacustomercare.com/mphasis-contact-no",
+    "https://in.worldorgs.com/catalog/bengaluru/software-company/mphasis"
+   ]
+  }
+ ],
+ "coverageNotes": "Scope: Whitefield beyond ITPB itself (ITPB, its buildings and tenants such as Societe Generale (Voyager/Victor), Mu Sigma, HCL and the TCS Jal/Dhara/Agni blocks are left to the ITPL lens, except where a lens company also has an ITPB site, e.g. GE HealthCare, ExxonMobil and Applied Materials, entered with ITPB park-centroid coordinates). Web search budget ran out (shared 200-search limit) before Huawei's current status, Dell, Siemens Healthineers and some park tenant rosters could be rechecked; later checks used direct fetches of already-known official pages. NOT CONFIRMED and therefore left out: Dell (only official address found is Embassy GolfLinks, Domlur; no Whitefield/EPIP site evidenced), Honeywell, Shell (Shell Technology Centre Bangalore is in north Bengaluru near Devanahalli, not Hoodi; the OSM 'Shell' polygons in Hoodi and Brookefield are unverified), Boeing, Xerox, Sun Microsystems, Infosys, L&T Technology Services (only LTIMindtree is evidenced at Gopalan Global Axis / EPIP Plot 25-31), Lowe's (directory places it at Manyata), Bosch / BGSW (no Whitefield site found), Siemens Healthineers (new campus location not found), Societe Generale (ITPB only), Perot Systems (now NTT DATA, entered) and iGATE (now Capgemini, entered). Delphi: OSM shows 'Delphi Automotive Systems' at Kalyani Platina; Aptiv (ex-Delphi) moved to Brigade Tech Gardens in Feb 2023, and the date the old site closed is unknown, so no Kalyani Platina office is recorded for Aptiv. Manhattan Associates' old #172 EPIP site (OSM) closed in 2019 and is omitted. Lower-confidence items kept and flagged: Mercedes-Benz R&D at Brigade Tech Gardens (OSM POI and MD at the inauguration only; low), Embitel at Sigma Soft Tech Park (registry/directory only; low), Mphasis 'Mascot' at EPIP No. 80 (directories only; low, EPIP zone point), Unisys at Global Axis (Naukri contact page, possibly stale), FNF India (job postings), Accenture at DivyaSree Technopark (job postings plus OSM), Collins Aerospace Nethra Tech Park (directory plus OSM). Coordinates: EPIP Zone has no OSM polygon, so its point is the Photon/OSM 'EPIP Zone' node (12.97819, 77.72465) and offices without a plot-level POI (Applied Materials EPIP, Mphasis) use it as a park point. Kalyani Platina has no OSM polygon (the geocoder returned the DoubleTree inside Kalyani Tech Park), so its point is the OSM POI carrying a 'Kalyani Platina Tech Park, #24 EPIP Phase 2' address. Infineon's Block 1 point is an OSM POI at the '24 - Blk 1, EPIP Zone' address that OSM labels Qualcomm. BMW TechWorks' building is not named in the lease report; only an OSM POI places it in Sumadhura Capitol Towers. Status choices: Microchip's 170-172 EPIP blocks (bought Nov 2025) and ExxonMobil's ITPB Inventor lease (July 2026) are 'planned' because occupation is not reported; Infineon Kalyani Platina is 'closing' and its SILANE campus at Bagmane Solarium 'planned' (operational start scheduled for autumn 2026, not confirmed). Swiggy's former Bellandur HQ (vacated April 2026) is not recorded because its exact building was not verified. Other leads seen in OSM but not verified and omitted: Tata Communications, Airtel Nxtra and ST Telemedia data centres in EPIP; Infinite Computer Solutions (157 EPIP); Vidal Health; Rossell Techsys (the company places its plant in Devanahalli); Sasmos HET; Harman; IHS Markit / S&P Global and Tesco at SJR iPark; Google Connect Services and Hindustan Unilever POIs in Prestige Shantiniketan (Wikipedia's unsourced Shantiniketan tenant list was not used as evidence); Airbus Group India at Mahadevapura; NetApp at Hoodi; the Bagmane Solarium tenants (Baker Hughes, Cognizant, Tekion, Carelon, Northern Trust, Thermo Fisher, SAP Fioneer), left to the Bagmane lens. Parks with no confirmed anchor tenant (Brigade Tech Park, GR Tech Park) are listed with empty tenant arrays; Sigma Soft Tech Park's occupiers are mostly small firms known only from registry addresses (ATI Accurate Technologies, Mercatus Commerce, Simerics, Mothercare Sourcing India). Out-of-lens offices of in-lens companies that were evidenced on official pages but not geocoded and so omitted: Capgemini (Pritech Park 6B, RMZ Ecoworld 5B, Prestige Tech Park Vector, Global Village), HP (Embassy Prime, Pritech Park, Electronic City), Oracle (Bellandur Tech Hub, Embassy Business Park), Hitachi Energy (Brigade Opus and Godrej Centre in Hebbal, Peenya factory), Qualcomm (Bagmane Constellation / Capital leases), Terex (E.City Tower 2, Bommasandra R&D), Unisys (Sarjapur Road). Headcounts are given only where a source states a Bengaluru figure (Aptiv 2,000+ in 2023; Novo Nordisk GBS 4,500 in 2025)."
+}

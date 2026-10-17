@@ -1,0 +1,1201 @@
+{
+ "key": "X07-gaps",
+ "techParks": [],
+ "companies": [
+  {
+   "name": "Shahi Exports",
+   "aliases": [
+    "Shahi Exports Pvt Ltd",
+    "Shahi"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Textiles & apparel manufacturing",
+   "description": "India's largest garment exporter (100,000+ workers nationally, headquartered in Faridabad); runs a Bangalore corporate office and several garment units in and around Bengaluru. Unlisted, so it falls to MID_SIZE by elimination despite its size.",
+   "founded": 1974,
+   "hqCity": "Faridabad",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.shahi.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bangalore Corporate Office",
+     "locality": "Bellandur Gate (Sarjapur Main Road)",
+     "address": "Bellandur Gate, Sarjapur Main Road, Bengaluru 560102",
+     "building": null,
+     "techPark": null,
+     "lat": 12.9238725,
+     "lng": 77.6724708,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Shahi's own contact page lists 'Bangalore Corporate Office, Bellandur Gate, Sarjapur Main Road, Bangalore - 560102': https://www.shahi.co.in/contact-us (pin is the Bellandur Gate road geocode, not the building)",
+     "geocodeSource": "nominatim (Bellandur Gate Road)"
+    },
+    {
+     "label": "Unit 12 - Knits Division Office",
+     "locality": "Arekere (Bannerghatta Road)",
+     "address": "37/1B, Arekere, Bannerghatta Road, Bengaluru 560076",
+     "building": null,
+     "techPark": null,
+     "lat": 12.8867874,
+     "lng": 77.5967537,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Shahi's contact page lists 'Unit 12 - Knits Division Office, 37/1B, Arekere, Bannerghatta Rd., Bangalore - 560076': https://www.shahi.co.in/contact-us (pin is the Arekere locality geocode)",
+     "geocodeSource": "nominatim (Arekere locality)"
+    },
+    {
+     "label": "Garment factory, Bommanahalli",
+     "locality": "Bommanahalli (Hosur Road)",
+     "address": "Bommanahalli, Hosur Road, Bengaluru",
+     "building": null,
+     "techPark": null,
+     "lat": 12.901892,
+     "lng": 77.6229515,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "OpenStreetMap has a building mapped as 'Shahi Exports' in Bommanahalli (way/236700838), and The News Minute (Nov 2017) reported Shahi workers being told they would be shifted to 'another factory at Bommanahalli': https://www.openstreetmap.org/way/236700838 and https://www.thenewsminute.com/amp/story/karnataka/union-alleges-workers-forced-resign-bengaluru-garment-factory-company-denies-71668",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.shahi.co.in/contact-us",
+    "https://www.openstreetmap.org/way/236700838",
+    "https://www.thenewsminute.com/amp/story/karnataka/union-alleges-workers-forced-resign-bengaluru-garment-factory-company-denies-71668"
+   ]
+  },
+  {
+   "name": "Arvind Fashions",
+   "aliases": [
+    "Arvind Fashions Limited",
+    "AFL"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Apparel & fashion retail",
+   "description": "Listed branded-apparel company (U.S. Polo Assn., Arrow, Flying Machine; Tommy Hilfiger and Calvin Klein via its PVH joint venture). Registered office is in Ahmedabad; the corporate office is on MG Road, Bengaluru.",
+   "founded": 2016,
+   "hqCity": "Bengaluru (corporate); Ahmedabad (registered)",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.arvindfashions.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - Du Parc Trinity",
+     "locality": "MG Road (Trinity Circle)",
+     "address": "Du Parc Trinity, 8th Floor, 17 M.G. Road, Bengaluru 560001",
+     "building": "Du Parc Trinity",
+     "techPark": null,
+     "lat": 12.97169,
+     "lng": 77.619142,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Arvind Fashions' contact page lists its South office at 'Trinity Circle, 17, MG Road, Craig Park Layout, Ashok Nagar, Bengaluru - 560001', and its exchange filings give the corporate office as 'Du Parc Trinity, 8th Floor, 17 M.G. Road, Bengaluru 560001': https://www.arvindfashions.com/contact-us and https://bseindia.com/xml-data/corpfiling/AttachHis/5749b1cb-0ca4-4135-82fe-90694c040c5f.pdf",
+     "geocodeSource": "osm-poi (way/377247413)"
+    }
+   ],
+   "sources": [
+    "https://www.arvindfashions.com/contact-us",
+    "https://bseindia.com/xml-data/corpfiling/AttachHis/5749b1cb-0ca4-4135-82fe-90694c040c5f.pdf",
+    "https://www.openstreetmap.org/way/377247413"
+   ]
+  },
+  {
+   "name": "Orkla India (MTR Foods)",
+   "aliases": [
+    "MTR Foods",
+    "MTR Foods Pvt Ltd",
+    "Orkla India Limited",
+    "Orkla India Private Limited",
+    "Eastern Condiments (group)"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Packaged foods",
+   "description": "Packaged-foods company behind MTR and Eastern, listed in India in 2025 and majority-owned by Norway's Orkla ASA (so classed MNC/Foreign by the parent-HQ rule). Registered office and HQ on the Inner Ring Road, Ejipura; a factory in Bommasandra.",
+   "founded": 1924,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India / Norway",
+   "isUnicorn": false,
+   "website": "https://www.orklaindia.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office and HQ - Inner Ring Road, Ejipura",
+     "locality": "Ejipura / Koramangala (Inner Ring Road)",
+     "address": "No. 1, 2nd & 3rd Floor, 100 Feet Inner Ring Road, Ejipura, Ashwini Layout, Vivek Nagar, Bengaluru 560047",
+     "building": null,
+     "techPark": null,
+     "lat": 12.9396583,
+     "lng": 77.6288969,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Orkla India's contact page: 'Orkla India Limited (formerly ... MTR Foods Private Limited). Address: No. 1, 2nd & 3rd Floor, 100 Feet Inner Ring Road, Ejipura, Ashwini Layout, Vivek Nagar, Bengaluru - 560047': https://orklaindia.com/contact (pin is the Ashwini Layout geocode)",
+     "geocodeSource": "photon (Ashwini Layout)"
+    },
+    {
+     "label": "MTR plant, Bommasandra",
+     "locality": "Bommasandra Industrial Area",
+     "address": "Bommasandra Industrial Area, Hosur Road, Bengaluru",
+     "building": null,
+     "techPark": "Bommasandra Industrial Area",
+     "lat": 12.81729,
+     "lng": 77.695091,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "An MSRIM student plant-visit report dated 17 Feb 2024 places the 'MTR Plant' at 'Karnataka, Bommasandra'; Orkla India's IPO notes list Bengaluru among its nine owned plants. No street address found, so the pin is the KIADB Bommasandra estate centroid: https://msrim.in/happenings/neinfo/mtr-plant-visit-by-the-students-of-marketing-batch",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://orklaindia.com/contact",
+    "https://msrim.in/happenings/neinfo/mtr-plant-visit-by-the-students-of-marketing-batch",
+    "https://groww.in/ipo/orkla-ipo"
+   ]
+  },
+  {
+   "name": "Amrut Distilleries",
+   "aliases": [
+    "Amrut Distilleries Private Ltd",
+    "N.R. Jagdale Group",
+    "Amrut"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Beverages (alcoholic)",
+   "description": "Bengaluru-based distiller (N.R. Jagdale Group) and maker of Amrut, India's first single malt whisky; head office on Raja Rammohan Roy Road and the distillery at Kambipura on Mysore Road.",
+   "founded": 1948,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.amrutdistilleries.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Head office - JNR City Center",
+     "locality": "Raja Rammohan Roy Road (Sampangi Rama Nagar)",
+     "address": "7th Floor, JNR City Center, Raja Rammohan Roy Road, Bengaluru 560027",
+     "building": "JNR City Center",
+     "techPark": null,
+     "lat": 12.96719,
+     "lng": 77.593746,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Amrut's contact page: 'Amrut Distilleries Private Ltd (N.R.Jagdale Group), 7th Floor, JNR City Center, Raja Rammohan Roy Road, Bengaluru - 560027': https://www.amrutdistilleries.com/contact-us",
+     "geocodeSource": "osm-poi (way/1231870401)"
+    },
+    {
+     "label": "Distillery, Kambipura",
+     "locality": "Kambipura (Mysore Road)",
+     "address": "Mysore Road, Kambipura, Bengaluru 560060",
+     "building": null,
+     "techPark": null,
+     "lat": 12.8822711,
+     "lng": 77.4606466,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Wikipedia: 'The main distillery is located on a 4-acre site in Kambipura on Mysore Road, roughly 20 km from Bangalore'; Rum Auctioneer gives 'Mysore Road, Kambipura, Karnataka 560060'. Pin is the Kambipura locality centroid: https://en.wikipedia.org/wiki/Amrut_Distilleries",
+     "geocodeSource": "nominatim (Kambipura locality)"
+    }
+   ],
+   "sources": [
+    "https://www.amrutdistilleries.com/contact-us",
+    "https://en.wikipedia.org/wiki/Amrut_Distilleries",
+    "https://rumauctioneer.com/learn/explore-rum/distilleries/amrut"
+   ]
+  },
+  {
+   "name": "John Distilleries",
+   "aliases": [
+    "John Distilleries Pvt Ltd",
+    "JDL",
+    "Paul John"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Beverages (alcoholic)",
+   "description": "Bengaluru-headquartered spirits maker (Original Choice, Paul John single malt, Big Banyan wines); US-based Sazerac holds a minority stake (reported at 43% in 2018) and founder Paul P. John the controlling share.",
+   "founded": 1996,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.jdl.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Head office and Mysore Road unit - Pantharapalya",
+     "locality": "Pantharapalya / Nayandahalli (Mysore Road)",
+     "address": "No. 110, Pantharapalya, Mysore Road, Bengaluru 560039",
+     "building": null,
+     "techPark": null,
+     "lat": 12.9416715,
+     "lng": 77.5251166,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "JDL's contact page lists 'John Distilleries Pvt Ltd, No. 110, Pantharapalya, Mysore Road, Bangalore - 560039', and its manufacturing page lists a 'Mysore Road Unit, Bangalore': https://www.jdl.in/contact-us.php and https://www.jdl.in/manufacturing.php (pin is the Pantharapalya bus-stop geocode on Mysore Road)",
+     "geocodeSource": "nominatim (Pantharapalya, Mysore Road)"
+    },
+    {
+     "label": "Marketing & Sales Office - Mittal Tower",
+     "locality": "MG Road",
+     "address": "311-316, 3rd Floor, C Wing, Mittal Tower, MG Road, Bengaluru 560001",
+     "building": "Mittal Tower, C Wing",
+     "techPark": null,
+     "lat": 12.9739914,
+     "lng": 77.6156803,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "JDL's contact page: 'Marketing & Sales Office 311 - 316, 3rd Floor, C Wing, Mittal Tower, Near Trinity Metro Station, MG Road, Bangalore - 560001': https://www.jdl.in/contact-us.php",
+     "geocodeSource": "photon (Mittal Tower)"
+    },
+    {
+     "label": "Big Banyan Winery, Chunchunkuppe",
+     "locality": "Chunchunkuppe (Tavarekere Hobli)",
+     "address": "Survey No. 8/1, Chunchunkuppe Village, Tavarekere Hobli, Bengaluru South Taluk 562130",
+     "building": null,
+     "techPark": null,
+     "lat": 12.9024628,
+     "lng": 77.3835364,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "JDL's contact page: 'Big Banyan Winery, Winery Division - 2, Survey No. 8/1, Chunchunkuppe Village, Tavarekere Hobli, Bengaluru South Taluk, Bengaluru Urban - 562130': https://www.jdl.in/contact-us.php (pin is the village centroid)",
+     "geocodeSource": "photon (Chunchanakuppe village)"
+    }
+   ],
+   "sources": [
+    "https://www.jdl.in/contact-us.php",
+    "https://www.jdl.in/manufacturing.php",
+    "https://www.just-drinks.com/news/the-sazerac-co-enters-india-with-john-distilleries-stake-purchase"
+   ]
+  },
+  {
+   "name": "ACT Fibernet (Atria Convergence Technologies)",
+   "aliases": [
+    "Atria Convergence Technologies Ltd",
+    "ACT",
+    "ACT Broadband",
+    "ACT Fibernet"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Telecom (wired broadband ISP)",
+   "description": "Bengaluru-headquartered wired broadband provider, one of India's largest by subscribers; registered office in the Indian Express Building on Queen's Road plus regional and customer-service offices across the city.",
+   "founded": 2000,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.actcorp.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office - Indian Express Building",
+     "locality": "Queen's Road",
+     "address": "2nd & 3rd Floor, No.1, Indian Express Building, Queens Road, Bengaluru 560001",
+     "building": "Indian Express Building",
+     "techPark": null,
+     "lat": 12.983469,
+     "lng": 77.596701,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "ACT's contact page: 'Registered Office 2nd & 3rd Floor, No.1, Indian Express Building, Queens Road, Bengaluru, Karnataka, India - 560 001' (CIN U72900KA2000PLC027290): https://www.actcorp.in/contact-us",
+     "geocodeSource": "osm-poi (way/52063528)"
+    },
+    {
+     "label": "Regional office - Trade Centre, Race Course Road",
+     "locality": "Race Course Road",
+     "address": "#29/4, Trade Centre (4th Floor), Race Course Road, Bengaluru 560001",
+     "building": "Trade Centre",
+     "techPark": null,
+     "lat": 12.9843339,
+     "lng": 77.5879988,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "ACT's contact page lists its Bengaluru offices: https://www.actcorp.in/contact-us ('Race course road #29/4, Trade Centre (4th Floor), Race Course Road, Bengaluru - 560001'); pin is a Race Course Road street geocode",
+     "geocodeSource": "photon (Race Course Road)"
+    },
+    {
+     "label": "Regional office - SKAV Silver Cloud",
+     "locality": "Yeshwanthpur Industrial Suburb / Mahalakshmi Layout",
+     "address": "SKAV Silver Cloud, Yeshwanthpur Industrial Suburb, Mahalakshmi Layout, Bengaluru",
+     "building": "SKAV Silver Cloud",
+     "techPark": null,
+     "lat": 13.0113153,
+     "lng": 77.5446972,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "ACT's contact page lists its Bengaluru offices: https://www.actcorp.in/contact-us ('Regional Office SKAV Silver Cloud, Yeshwanthpur Industrial Suburb, Mahalakshmi Layout, Bengaluru'); building not mapped, pin is the Mahalakshmi Layout locality geocode",
+     "geocodeSource": "nominatim (Mahalakshmi Layout locality)"
+    },
+    {
+     "label": "Branch - Indiranagar",
+     "locality": "Indiranagar (HAL 3rd Stage, 80 Feet Road)",
+     "address": "#43, 1st Floor, 80 Feet Road, HAL 3rd Stage, Indiranagar, Bengaluru 560038",
+     "building": null,
+     "techPark": null,
+     "lat": 12.969985,
+     "lng": 77.647739,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "ACT's contact page lists its Bengaluru offices: https://www.actcorp.in/contact-us ('Indiranagar #43, 1st Floor, 80 Feet Road HAL 3rd Stage ... Opp. Empire Hotel'); OSM has an 'ACT FiberNet' office node at this spot (node/3851551570)",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Branch - R T Nagar",
+     "locality": "R T Nagar (HMT Colony)",
+     "address": "#58, 1st Floor, HMT Colony, R T Nagar, Bengaluru 560032",
+     "building": null,
+     "techPark": null,
+     "lat": 13.0247743,
+     "lng": 77.5946774,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "ACT's contact page lists its Bengaluru offices: https://www.actcorp.in/contact-us ('R T Nagar #58, 1st Floor, H M T Colony ... Bengaluru-560032'); pin is the HMT Layout locality geocode",
+     "geocodeSource": "photon (HMT Layout)"
+    },
+    {
+     "label": "Branch - Banaswadi / Horamavu",
+     "locality": "Horamavu (Kalyan Nagar)",
+     "address": "#170/2, 4th Floor, Horamavu Main Road, Kalyan Nagar Post, Bengaluru 560043",
+     "building": null,
+     "techPark": null,
+     "lat": 13.0310943,
+     "lng": 77.6689906,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "ACT's contact page lists its Bengaluru offices: https://www.actcorp.in/contact-us ('Banaswadi #170/2, 4th Floor, Horamavu Main Road ... Bengaluru - 560043'); pin is a Horamavu Main Road street geocode",
+     "geocodeSource": "nominatim (Horamavu Main Road)"
+    },
+    {
+     "label": "Branch - BTM Layout",
+     "locality": "BTM 1st Stage",
+     "address": "No. 2, HB Complex, 100 Feet Main Road, BTM 1st Stage, Bengaluru 560068",
+     "building": "HB Complex",
+     "techPark": null,
+     "lat": 12.9190004,
+     "lng": 77.6112906,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "ACT's contact page lists its Bengaluru offices: https://www.actcorp.in/contact-us ('BTM Layout No. 2, HB Complex, 100 Feet Main Road, BTM 1st Stage, Bengaluru-560068'); pin is the BTM 1st Stage locality geocode",
+     "geocodeSource": "photon (BTM 1st Stage)"
+    },
+    {
+     "label": "Branch - Banashankari",
+     "locality": "Banashankari 2nd Stage",
+     "address": "No. 1036, 1st Floor, Srinidhi Plaza, 14th C Main, Banashankari 2nd Stage, Bengaluru 560070",
+     "building": "Srinidhi Plaza",
+     "techPark": null,
+     "lat": 12.9268667,
+     "lng": 77.5637191,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "ACT's contact page lists its Bengaluru offices: https://www.actcorp.in/contact-us ('Banashankri No. 1036, 1st Floor, Srinidhi Plaza, 14th C Main, Banashankari 2nd Stage, Bengaluru - 560070'); pin is the locality geocode",
+     "geocodeSource": "nominatim (Banashankari 2nd Stage)"
+    },
+    {
+     "label": "Branch - Bellandur",
+     "locality": "Bellandur (Green Glen Layout)",
+     "address": "No. 212, 2nd Floor, Green Glen Layout, Sobha Main Road, Outer Ring Road, Bellandur, Bengaluru 560103",
+     "building": null,
+     "techPark": null,
+     "lat": 12.9269039,
+     "lng": 77.6701877,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "ACT's contact page lists its Bengaluru offices: https://www.actcorp.in/contact-us ('Bellandur No. 212, 2nd Floor ... Green Glen Layout, Sobha Main Road, Outer Ring Road, Bellandur, Bengaluru - 560103'); pin is the Green Glen Layout geocode",
+     "geocodeSource": "nominatim (Green Glen Layout)"
+    }
+   ],
+   "sources": [
+    "https://www.actcorp.in/contact-us",
+    "https://www.openstreetmap.org/way/52063528",
+    "https://www.openstreetmap.org/node/3851551570"
+   ]
+  },
+  {
+   "name": "NxtGen Cloud Technologies",
+   "aliases": [
+    "NxtGen Datacenter & Cloud Technologies",
+    "NxtGen Datacenter and Cloud Technologies Pvt Ltd",
+    "NxtGen"
+   ],
+   "category": "STARTUP",
+   "origin": "Indian",
+   "sector": "Data centres & cloud",
+   "description": "Bengaluru-area data-centre and sovereign-cloud provider founded in 2012 and venture-funded (hence STARTUP by the rules). Its legal and headquarters address is its Bidadi data-centre campus; a directory also lists an EPIP Whitefield facility.",
+   "founded": 2012,
+   "hqCity": "Bengaluru (Bidadi)",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://nxtgen.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HQ and data-centre campus - Bidadi Industrial Area",
+     "locality": "Bidadi Industrial Area (Mysore Road)",
+     "address": "Plot No. 25-P-13, Phase 1, Bidadi Industrial Area, Bidadi 562109",
+     "building": null,
+     "techPark": "Bidadi Industrial Area",
+     "lat": 12.782,
+     "lng": 77.418217,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "The GLEIF/Bloomberg LEI record gives both legal and headquarters address of 'NXTGEN CLOUD TECHNOLOGIES PRIVATE LIMITED' as 'PLOT NO. 25-P-13, PHASE 1, BIDADI INDUSTRIAL AREA ... 562109'; YourStory (2016) describes its Bidadi data centre campus. Pin is the Bidadi Industrial Area centroid: https://lei.bloomberg.com/leis/view/33580021WJPIQOTFHH07 and https://yourstory.com/2016/11/data-centres-known-huge-power-consumption-see-four-year-startup-changing",
+     "geocodeSource": "park-centroid"
+    },
+    {
+     "label": "Data centre - EPIP Zone, Whitefield",
+     "locality": "Whitefield (EPIP Zone)",
+     "address": "Plot 72 & 73, Road No. 3, EPIP Zone, Whitefield, Bengaluru 560066",
+     "building": null,
+     "techPark": "EPIP Zone Whitefield",
+     "lat": 12.9781922,
+     "lng": 77.7246451,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "Data Center Map lists a NxtGen 'Bangalore DC' at '#72-73, EPIP Industrial Area, Whitefield'; a company profile gives 'EPIP Zone Plot 72 & 73, Rd Number 3, Whitefield ... 560066'. Not confirmed by the company; pin is the EPIP Zone centroid: https://datacentermap.com/india/bangalore/bangalore-dc and https://builtinbengaluru.in/company/nxtgen-datacenter-cloud",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://lei.bloomberg.com/leis/view/33580021WJPIQOTFHH07",
+    "https://www.infyner.com/company/nxtgen-datacenter-cloud-technologies-private-limited/U72200KA2012PTC063135",
+    "https://datacentermap.com/india/bangalore/bangalore-dc"
+   ]
+  },
+  {
+   "name": "Alpha Design Technologies",
+   "aliases": [
+    "Alpha Design Technologies Pvt Ltd",
+    "ADTL",
+    "Alpha"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Defence electronics & aerospace",
+   "description": "Bengaluru defence-electronics, avionics and satellite-subsystem maker established in 2003-04 (Adani Defence is a shareholder); runs Alpha-Elsec, a JV with Israel's Elbit, in Bengaluru.",
+   "founded": 2003,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.adtl.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office - 9 Service Road, HAL II Stage",
+     "locality": "Indiranagar / Domlur (HAL II Stage)",
+     "address": "No. 9, Service Road, HAL II Stage, Indiranagar (Doopanahalli), Bengaluru 560008",
+     "building": "Interface Accolade (per IndiaMART)",
+     "techPark": null,
+     "lat": 12.968548,
+     "lng": 77.6368672,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "MCA-derived listings give the registered office as '9, Service Road, HAL II Stage Indiranagar, Bangalore 560008' (CIN U74140KA2003PTC032191); IndiaMART names the building 'Interface Accolade, Doopanahalli'. The company's own site confirms only 'Established in Bangalore'. Pin is the Doopanahalli locality geocode: https://www.infyner.com/company/alpha-design-technologies-private-limited/U74140KA2003PTC032191 and https://m.indiamart.com/alpha-design-technologies",
+     "geocodeSource": "nominatim (Doopanahalli)"
+    },
+    {
+     "label": "Manufacturing unit - Peenya",
+     "locality": "Peenya Industrial Area",
+     "address": "Plot No. 535/540, 4th Phase, Peenya Industrial Area, Bengaluru 560058",
+     "building": null,
+     "techPark": "Peenya Industrial Area",
+     "lat": 13.0329419,
+     "lng": 77.5273253,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "A GST-registration lookup lists the principal place of business as 'Plot No. 535/540, 4th phase, Peenya Industrial Area, Bengaluru 560058' plus 'Site No. 12, Peenya II Phase'. Single secondary source; pin is the Peenya locality centroid: https://piceapp.com/gst-number-search/alpha-design-technologies-pvt-ltd-29aaeca3323p1zf/",
+     "geocodeSource": "nominatim (Peenya locality)"
+    }
+   ],
+   "sources": [
+    "https://www.adtl.co.in/",
+    "https://www.infyner.com/company/alpha-design-technologies-private-limited/U74140KA2003PTC032191",
+    "https://piceapp.com/gst-number-search/alpha-design-technologies-pvt-ltd-29aaeca3323p1zf/"
+   ]
+  },
+  {
+   "name": "Stumpp Schuele & Somappa Springs (SSS Defence)",
+   "aliases": [
+    "Stumpp Schuele & Somappa Springs Ltd",
+    "SSS Springs",
+    "SSS Defence",
+    "Stumpp Schuele and Somappa"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Auto components & small arms",
+   "description": "Bengaluru family-owned spring maker (since 1960, 11 plants across India); its subsidiary SSS Defence (2017) designs and builds sniper rifles and other small arms at an eight-acre facility in Jigani.",
+   "founded": 1960,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.ssssprings.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "HQ and springs plant - Bommasandra Industrial Area",
+     "locality": "Bommasandra (Bommasandra-Jigani Link Road)",
+     "address": "#4, Bommasandra Industrial Area, Bommasandra-Jigani Link Road, Anekal Taluk, Bengaluru 560099",
+     "building": null,
+     "techPark": null,
+     "lat": 12.8010236,
+     "lng": 77.6617985,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "The company's contact page: 'Stumpp Schuele & Somappa Springs Ltd ... #4, Bommasandra Industrial Area, Bommasandra-Jigani Link Road, Anekal - TQ, Bangalore - 560 099'; a BIS Connect listing gives the same. Pin is a Bommasandra-Jigani link road geocode: https://ssssprings.com/contact.html",
+     "geocodeSource": "photon (Jigani Industrial Estate Road)"
+    },
+    {
+     "label": "SSS Defence small-arms factory - Jigani",
+     "locality": "Jigani Industrial Area",
+     "address": "Jigani Industrial Area, Anekal Taluk, Bengaluru",
+     "building": null,
+     "techPark": "Jigani Industrial Area",
+     "lat": 12.779041,
+     "lng": 77.632773,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Indian Defence News (Nov 2021) describes SSS Defence's 'eight-acre unit at Jigani near ... Electronic City', and The Week (Sep 2025) describes weapons being built at the Jigani facility. No street address; pin is the KIADB Jigani estate centroid: https://www.indiandefensenews.in/2021/11/private-sector-firm-sss-defence-set-to.html and https://www.theweek.in/magazine/theweek/specials/2025/09/06/indian-defence-manufacturing-sss-saber-sniper-rifle.html",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://ssssprings.com/contact.html",
+    "https://en.wikipedia.org/wiki/SSS_Defence",
+    "https://www.indiandefensenews.in/2021/11/private-sector-firm-sss-defence-set-to.html"
+   ]
+  },
+  {
+   "name": "Tata Hitachi Construction Machinery",
+   "aliases": [
+    "Tata Hitachi Construction Machinery Company Pvt Ltd",
+    "Tata Hitachi",
+    "Telcon"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Construction equipment",
+   "description": "Construction-equipment joint venture, 60% Hitachi Construction Machinery (Japan) and 40% Tata Motors; registered office at Jubilee Building on Museum Road, Bengaluru, with plants outside the city (Dharwad, Kharagpur).",
+   "founded": 1998,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India / Japan",
+   "isUnicorn": false,
+   "website": "https://www.tatahitachi.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office - Jubilee Building",
+     "locality": "Museum Road",
+     "address": "Jubilee Building, 45 Museum Road, Bengaluru 560025",
+     "building": "Jubilee Building",
+     "techPark": null,
+     "lat": 12.972751,
+     "lng": 77.604562,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Tata Hitachi's 2023 company profile footer: 'Registered Office: Jubilee Building 45 Museum Road Bangalore 560 025 India' (CIN U85110KA1998PTC024588): https://www.tatahitachi.co.in/wp-content/uploads/2023/09/company-profile-25-08-23.pdf",
+     "geocodeSource": "osm-poi (way/327589098)"
+    }
+   ],
+   "sources": [
+    "https://www.tatahitachi.co.in/wp-content/uploads/2023/09/company-profile-25-08-23.pdf",
+    "https://en.wikipedia.org/wiki/Tata_Hitachi_Construction_Machinery"
+   ]
+  },
+  {
+   "name": "Sami-Sabinsa Group",
+   "aliases": [
+    "Sami-Sabinsa Group Limited",
+    "Sami Labs Limited",
+    "Sabinsa"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Nutraceuticals & phytochemicals",
+   "description": "Bengaluru-headquartered nutraceutical, phytochemical and cosmeceutical maker founded by the late Dr Muhammed Majeed (Sabinsa is its US arm); corporate office and R&D in Peenya, with a newer plant in Hassan.",
+   "founded": 1991,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://sabinsa.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office and R&D - Peenya 2nd Phase",
+     "locality": "Peenya Industrial Area (Phase II)",
+     "address": "19/1 & 19/2, I Main, II Phase, Peenya Industrial Area, Bengaluru 560058",
+     "building": null,
+     "techPark": "Peenya Industrial Area",
+     "lat": 13.0160478,
+     "lng": 77.5045057,
+     "isHq": true,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "CPHI Online lists Sami-Sabinsa Group Limited at '19/1 & 19/2, I Main, II Phase, Peenya Industrial Area, Bangalore'; trade press places the group HQ in Bengaluru and Dr Majeed's office and R&D centre in Peenya. Pin is the Peenya Industrial Area centroid: https://www.cphi-online.com/company/sami-sabinsa-group-limited/ and https://www.nutraingredients-asia.com/Article/2024/04/01/Anju-and-Shaheen-Majeed-to-lead-Sami-Sabinsa-Group",
+     "geocodeSource": "park-centroid (Peenya Industrial Area relation)"
+    }
+   ],
+   "sources": [
+    "https://www.cphi-online.com/company/sami-sabinsa-group-limited/",
+    "https://www.nutraingredients-asia.com/Article/2024/04/01/Anju-and-Shaheen-Majeed-to-lead-Sami-Sabinsa-Group",
+    "https://in.indeed.com/cmp/Sami-Labs-Limited"
+   ]
+  },
+  {
+   "name": "Jubilant Biosys",
+   "aliases": [
+    "Jubilant Biosys Limited",
+    "Jubilant Pharmova (drug discovery)"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Pharma & drug-discovery services (CRO/CRDMO)",
+   "description": "Contract research, development and manufacturing arm of Jubilant Pharmova; its Integrated Drug Discovery Centre in Bengaluru (400+ staff, ~125,000 sq ft) is the main research campus. Its Bengaluru page calls this the headquarters; its contact page names Noida as corporate HQ.",
+   "founded": null,
+   "hqCity": "Bengaluru (per company's facility page; Noida per its contact page)",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.jubilantbiosys.com",
+   "bengaluruEmployeesApprox": 400,
+   "offices": [
+    {
+     "label": "Integrated Drug Discovery Centre (IDDC) - Yeshwanthpur",
+     "locality": "Yeshwanthpur Industrial Suburb (Goraguntepalya)",
+     "address": "96, Industrial Suburb, 2nd Stage, Yeshwanthpur, Bengaluru 560022",
+     "building": null,
+     "techPark": null,
+     "lat": 13.0269315,
+     "lng": 77.54409,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Jubilant Biosys' Bengaluru facility page: 'The headquarters of Jubilant Biosys ... is located in Bengaluru ... The IDDC hosts 400+ employees ... Facility of around 125,000 sq. ft.'; Plunkett, CB Insights and BSI's certificate directory give the address '96, Industrial Suburb, 2nd Stage, Yeshwantpur, Bengaluru 560 022'. Pin is the 560022 locality (Goraguntepalya) centroid: https://www.jubilantbiosys.com/our-facilities/bengaluru/ and https://www.plunkettresearch.com/company-profile/jubilant-biosys-limited/",
+     "geocodeSource": "nominatim (Goraguntepalya locality)"
+    }
+   ],
+   "sources": [
+    "https://www.jubilantbiosys.com/our-facilities/bengaluru/",
+    "https://www.jubilantbiosys.com/contact-us/",
+    "https://www.plunkettresearch.com/company-profile/jubilant-biosys-limited/",
+    "https://www.bsigroup.com/en-US/products-and-services/assessment-and-certification/validation-and-verification/client-directory-profile/JUBILA-0047610411-004"
+   ]
+  },
+  {
+   "name": "Eurofins Advinus",
+   "aliases": [
+    "Advinus Therapeutics",
+    "Eurofins Advinus Discovery Services",
+    "Eurofins Advinus Agrosciences Services India",
+    "Eurofins Advinus Biopharma Services India"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Pharma & drug-discovery services (CRO)",
+   "description": "Formerly Tata's Advinus Therapeutics, now part of Luxembourg-headquartered Eurofins Scientific; discovery, safety-assessment and agrosciences labs in Peenya and a CDMO site in Bidadi.",
+   "founded": 2005,
+   "hqCity": "Luxembourg (Eurofins); Bengaluru (Advinus)",
+   "hqCountry": "Luxembourg",
+   "isUnicorn": false,
+   "website": "https://www.advinus.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Peenya campus",
+     "locality": "Peenya Industrial Area (Phase II)",
+     "address": "#21 & #22, Phase II, Peenya Industrial Area, Bengaluru 560058",
+     "building": null,
+     "techPark": "Peenya Industrial Area",
+     "lat": 13.0160478,
+     "lng": 77.5045057,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Advinus' contact page: 'Eurofins Advinus Bangalore #21 & #22 Phase II, Peenya Industrial Area, Bangalore 560058'; Eurofins' location pages and the 2026 GLP certificate give the same plots. Pin is the Peenya Industrial Area centroid: https://www.advinus.com/contact-us and https://location.eurofins.com/en/ele/eurofins-advinus-agrosciences-services-india-pvt-ltd",
+     "geocodeSource": "park-centroid (Peenya Industrial Area relation)"
+    },
+    {
+     "label": "Eurofins Advinus Biopharma Services - CDMO site, Bidadi",
+     "locality": "Bidadi Industrial Area",
+     "address": "Plot-17F, Bidadi Industrial Area 2nd Phase, Sector-1, Bidadi 562109",
+     "building": null,
+     "techPark": "Bidadi Industrial Area",
+     "lat": 12.782,
+     "lng": 77.418217,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Advinus' contact page: 'Eurofins Advinus Biopharma Services - CDMO Site Plot-17F, Bidadi Industrial Area 2nd Phase, Sector-1, Bidadi-562109'; Eurofins' location page lists the same Bangalore laboratory. Pin is the Bidadi Industrial Area centroid: https://www.advinus.com/contact-us and https://location.eurofins.com/en/ele/eurofins-advinus-biopharma-services-india-private-limited",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.advinus.com/contact-us",
+    "https://location.eurofins.com/en/ele/eurofins-advinus-agrosciences-services-india-pvt-ltd",
+    "https://location.eurofins.com/en/ele/eurofins-advinus-biopharma-services-india-private-limited"
+   ]
+  },
+  {
+   "name": "Royal Orchid Hotels",
+   "aliases": [
+    "Royal Orchid Hotels Limited",
+    "Regenta"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Hospitality",
+   "description": "Bengaluru-headquartered listed hotel chain (Royal Orchid, Regenta); registered office at its flagship Hotel Royal Orchid next to the KGA golf course on HAL Old Airport Road.",
+   "founded": 1986,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.royalorchidhotels.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered office - No. 1 Golf Avenue (Hotel Royal Orchid)",
+     "locality": "Kodihalli (HAL Old Airport Road)",
+     "address": "No. 1, Golf Avenue, Adjoining KGA Golf Course, HAL Airport Road, Kodihalli, Bengaluru 560008",
+     "building": "Hotel Royal Orchid",
+     "techPark": null,
+     "lat": 12.9574354,
+     "lng": 77.6440056,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "BSE filings give the registered office as '1, Golf Avenue, Adjoining KGA Golf Course, HAL Airport Road, Kodihalli, Bangalore - 560 008' (CIN L55101KA1986PLC007392); pin is the OSM Hotel Royal Orchid footprint at that address: https://bseindia.com/xml-data/corpfiling/AttachHis/67119f5d-637e-4352-9c43-5c3d9fd8c0ab.pdf",
+     "geocodeSource": "nominatim (Hotel Royal Orchid)"
+    },
+    {
+     "label": "Sales & reservations office - Royal Orchid Central",
+     "locality": "Dickenson Road (MG Road)",
+     "address": "Royal Orchid Central, 47/1, Dickenson Road, Manipal Centre, Bengaluru 560042",
+     "building": "Royal Orchid Central",
+     "techPark": null,
+     "lat": 12.9749732,
+     "lng": 77.6153651,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Royal Orchid's contact page lists 'Bangalore Royal Orchid Central, 47/1, Dickenson Road, Manipal Centre, Bangalore - 560 042' for South reservations: https://www.royalorchidhotels.com/contact-us",
+     "geocodeSource": "photon (Royal Orchid Central)"
+    }
+   ],
+   "sources": [
+    "https://bseindia.com/xml-data/corpfiling/AttachHis/67119f5d-637e-4352-9c43-5c3d9fd8c0ab.pdf",
+    "https://www.royalorchidhotels.com/contact-us"
+   ]
+  },
+  {
+   "name": "Natural Remedies",
+   "aliases": [
+    "Natural Remedies Pvt Ltd"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Herbal health & veterinary products",
+   "description": "Bengaluru-headquartered maker of standardised botanical extracts and herbal veterinary health products; corporate office in Veerasandra Industrial Area off Hosur Road (Electronic City), with factories in Tamil Nadu and Madhya Pradesh.",
+   "founded": null,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.naturalremedy.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - Veerasandra Industrial Area",
+     "locality": "Veerasandra (Electronic City, Hosur Road)",
+     "address": "Plot 5B, Veerasandra Industrial Area, Hosur Road, Electronic City, Bengaluru 560100",
+     "building": null,
+     "techPark": "Veerasandra Industrial Estate",
+     "lat": 12.842262,
+     "lng": 77.681315,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Natural Remedies' website lists 'Corporate Offices India: Hosur Road, Electronic City, Bengaluru, Karnataka - 560 100'; Nutrition Industry Executive (Sep 2025) gives '5B, Veerasandra Industrial Area, Hosur Road, Electronic City, Bangalore 560100'. Pin is the Veerasandra Industrial Estate centroid: https://www.naturalremedy.com/ and https://niemagazine.com/tag/suresh-lakshmikanthan/",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.naturalremedy.com/",
+    "https://niemagazine.com/tag/suresh-lakshmikanthan/",
+    "https://envis.frlht.org/labs.htm"
+   ]
+  },
+  {
+   "name": "IIFL Samasta Finance",
+   "aliases": [
+    "IIFL Samasta Finance Limited",
+    "Samasta Microfinance Limited"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Microfinance (NBFC-MFI)",
+   "description": "Bengaluru-headquartered microfinance NBFC, a subsidiary of IIFL Finance (Mumbai); registered and head office on Lalbagh Main Road.",
+   "founded": 1995,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://iiflsamasta.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Registered & head office - Lalbagh Main Road",
+     "locality": "Lalbagh Main Road (Krishnappa Layout / Shanthinagar)",
+     "address": "No. 110/3, Lalbagh Main Road, Krishnappa Layout, Bengaluru 560027",
+     "building": null,
+     "techPark": null,
+     "lat": 12.959149,
+     "lng": 77.5868617,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "IIFL Samasta's Sept 2021 name-change filing lists the 'Regd. & Head Office' at 'No. 110/3, Lalbagh Main Road, Krishnappa Layout, Bangalore-560027'; its website's contact page gives '#73, 2nd floor, Lalbagh road, next to KIA motors Bangalore-560027'. Pin is a Lalbagh Road street geocode: https://iiflsamasta.com/wp-content/uploads/2021/11/Intimation-regarding-newspaper-publication-wrt-name-change-1.pdf and https://iiflsamasta.com/contact-us",
+     "geocodeSource": "photon (Lalbagh Road)"
+    }
+   ],
+   "sources": [
+    "https://iiflsamasta.com/wp-content/uploads/2021/11/Intimation-regarding-newspaper-publication-wrt-name-change-1.pdf",
+    "https://iiflsamasta.com/contact-us",
+    "https://gocredit.money/nbfc/iifl-samasta-finance-limited-formerly-samasta-microfinance-limited"
+   ]
+  },
+  {
+   "name": "BPL Medical Technologies",
+   "aliases": [
+    "BPL Medical Technologies Pvt Ltd",
+    "BPL Group",
+    "BPL Limited",
+    "BPL Medtech"
+   ],
+   "category": "MID_SIZE",
+   "origin": "Indian",
+   "sector": "Medical devices",
+   "description": "Medical-device maker (ECGs, defibrillators, patient monitors, X-ray) from Bengaluru's BPL group; head office at Arakere on Bannerghatta Road, registered office on Madras Bank Road, and a second plant in Jigani opened in October 2024.",
+   "founded": 2012,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://www.bplmedicaltechnologies.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Head office - Arakere, Bannerghatta Road",
+     "locality": "Arekere (Bannerghatta Road)",
+     "address": "11th KM, Arakere, Bannerghatta Road, Bengaluru 560076",
+     "building": null,
+     "techPark": null,
+     "lat": 12.886467,
+     "lng": 77.595803,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "BPL Medical's website footer lists '11th KM Arakere, Bannerghatta Road, Bangalore-560076'; OSM has a 'BPL' office node there (node/3019860766): https://www.bplmedicaltechnologies.com/contact-us",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Registered office - Prestige Emerald",
+     "locality": "Madras Bank Road (CBD)",
+     "address": "No. 4, Prestige Emerald, 5th Floor, Madras Bank Road, Bengaluru 560001",
+     "building": "Prestige Emerald",
+     "techPark": null,
+     "lat": 12.974214,
+     "lng": 77.605798,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "BPL Medical's website footer: 'Registered Office: BPL Medical Technologies Private Limited No. 4, Prestige Emerald, 5th Floor, Madras Bank Road, Bengaluru-560001' (CIN U33110KA2012PTC067282); OSM has a 'BPL Limited' office node at this spot (node/9981998120): https://www.bplmedicaltechnologies.com/contact-us",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Second manufacturing plant - Jigani",
+     "locality": "Jigani Industrial Area",
+     "address": "Jigani Industrial Area, Anekal Taluk, Bengaluru",
+     "building": null,
+     "techPark": "Jigani Industrial Area",
+     "lat": 12.779041,
+     "lng": 77.632773,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "BPL Medical (Oct 2024): the PM virtually inaugurated 'our second manufacturing plant in Bengaluru' which 'is spread across a total of about two acres in the Jigani industrial area'. Pin is the KIADB Jigani estate centroid: https://www.bplmedicaltechnologies.com/news-events/official-inauguration-of-our-second-manufacturing-facility-in-bengaluru/30/",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.bplmedicaltechnologies.com/contact-us",
+    "https://www.bplmedicaltechnologies.com/news-events/official-inauguration-of-our-second-manufacturing-facility-in-bengaluru/30/",
+    "https://www.openstreetmap.org/node/3019860766"
+   ]
+  },
+  {
+   "name": "Tavant Technologies",
+   "aliases": [
+    "Tavant",
+    "Tavant Technologies India Pvt Ltd"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "IT services & software (lending/fintech, manufacturing)",
+   "description": "Santa Clara-headquartered IT services and AI-products firm (founded 2000) whose largest Indian development centre is in Koramangala, Bengaluru; a foreign-HQ'd multinational, so MNC by the rules.",
+   "founded": 2000,
+   "hqCity": "Santa Clara",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.tavant.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru development centre - Koramangala 6th Block",
+     "locality": "Koramangala 6th Block",
+     "address": "32, C Block, Grape Garden, 17th H Main Road, Koramangala 6th Block, Bengaluru 560095",
+     "building": null,
+     "techPark": null,
+     "lat": 12.933832,
+     "lng": 77.618562,
+     "isHq": false,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Tavant's contact page lists 'Bangalore 32, C Block, Grape Garden 17th H Main Road Koramangala 6th Block Bangalore, Karnataka 560095 ... Tel: +91-80-4567-1800'; OSM has a 'Tavant Technologies India Pvt Ltd' office node at this spot (node/5915409408): https://tavant.com/contact-us/",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://tavant.com/contact-us/",
+    "https://www.openstreetmap.org/node/5915409408",
+    "https://prnewswire.co.uk/news-releases/tavant-technologies-announces-relocation-of-corporate-headquarters-within-silicon-valley-541632541.html"
+   ]
+  },
+  {
+   "name": "BESCOM",
+   "aliases": [
+    "Bangalore Electricity Supply Company Limited",
+    "Bengaluru Electricity Supply Company"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Power distribution (utility)",
+   "description": "Karnataka government-owned electricity distribution company for Bengaluru and seven surrounding districts; corporate office at Belaku Bhavana, K R Circle, plus hundreds of division and sub-division offices across the city.",
+   "founded": 2002,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://bescom.karnataka.gov.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - Belaku Bhavana, K R Circle",
+     "locality": "K R Circle",
+     "address": "Belaku Bhavana, Corporate Office, K.R. Circle, Bengaluru 560001",
+     "building": "Belaku Bhavana",
+     "techPark": null,
+     "lat": 12.975675,
+     "lng": 77.588106,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "An APTEL judgment lists the Managing Director, BESCOM at 'Corporate Office, K.R. Circle, Bengaluru-560001', and a KERC case record names the building 'Belaku Bhavana, Corporate Office, KR Circle'; OSM has a BESCOM government-office node at K R Circle (node/663484943): https://aptel.gov.in/sites/default/files/Jud2024/APL_No_137_2022&_IA_No_2604of2023_&_APL%20No_138,139,140,141,142,143,144,145_of_2022.pdf and https://legistify.com/case-search/karnataka-electricity-regulatory-commision/case-322435924",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://aptel.gov.in/sites/default/files/Jud2024/APL_No_137_2022&_IA_No_2604of2023_&_APL%20No_138,139,140,141,142,143,144,145_of_2022.pdf",
+    "https://legistify.com/case-search/karnataka-electricity-regulatory-commision/case-322435924",
+    "https://www.openstreetmap.org/node/663484943"
+   ]
+  },
+  {
+   "name": "BMRCL (Namma Metro)",
+   "aliases": [
+    "Bangalore Metro Rail Corporation Limited",
+    "Namma Metro",
+    "BMRCL"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Urban rail transit",
+   "description": "Joint Government of India / Government of Karnataka company that builds and runs Bengaluru's Namma Metro; head office in the BMTC complex on K H Road, Shanthinagar, with operations at the Baiyappanahalli depot.",
+   "founded": 1994,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://english.bmrc.co.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Head office - BMTC Complex, K H Road",
+     "locality": "Shanthinagar (K H Road)",
+     "address": "III Floor, BMTC Complex, K.H. Road, Shanthinagar, Bengaluru 560027",
+     "building": "BMTC Complex",
+     "techPark": null,
+     "lat": 12.953972,
+     "lng": 77.591959,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "BMRCL recruitment notices (2025) direct applicants to 'III Floor, BMTC Complex, K.H. Road, Shanthinagar, Bangalore 560027'; OSM has a 'Bangalore Metro Rail Corporation Limited' office node on K H Road (node/13350579871): https://www.indgovtjobs.in/2025/07/bmrcl-chief-engineer-recruitment-2025.html and https://www.openstreetmap.org/node/13350579871",
+     "geocodeSource": "osm-poi"
+    },
+    {
+     "label": "Operations office - Baiyappanahalli",
+     "locality": "Baiyappanahalli (Benniganahalli)",
+     "address": "8th Main Road, Benniganahalli (Baiyappanahalli), Bengaluru 560065",
+     "building": null,
+     "techPark": null,
+     "lat": 12.987981,
+     "lng": 77.648951,
+     "isHq": false,
+     "status": "active",
+     "confidence": "low",
+     "evidence": "OSM maps a building as 'BMRCL Operations Office' at 8th Main Road, Benniganahalli 560065, beside the Baiyappanahalli depot (way/150214754); not confirmed by a BMRCL source: https://www.openstreetmap.org/way/150214754",
+     "geocodeSource": "osm-poi"
+    }
+   ],
+   "sources": [
+    "https://www.indgovtjobs.in/2025/07/bmrcl-chief-engineer-recruitment-2025.html",
+    "https://resource.geospatialworld.net/user/bangalore-metro-rail-corporation-limited-bmrcl",
+    "https://www.openstreetmap.org/node/13350579871"
+   ]
+  },
+  {
+   "name": "KPTCL",
+   "aliases": [
+    "Karnataka Power Transmission Corporation Limited"
+   ],
+   "category": "PSU",
+   "origin": "Indian",
+   "sector": "Power transmission (utility)",
+   "description": "Karnataka state power-transmission utility, headquartered at Kaveri Bhavan on K G Road, Bengaluru.",
+   "founded": 1999,
+   "hqCity": "Bengaluru",
+   "hqCountry": "India",
+   "isUnicorn": false,
+   "website": "https://kptcl.karnataka.gov.in",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Corporate office - Kaveri Bhavan",
+     "locality": "K G Road",
+     "address": "Kaveri Bhavan, K.G. Road, Bengaluru 560009",
+     "building": "Kaveri Bhavan",
+     "techPark": null,
+     "lat": 12.972807,
+     "lng": 77.582583,
+     "isHq": true,
+     "status": "active",
+     "confidence": "high",
+     "evidence": "Directory listings give 'Karnataka Power Transmission Corporation Limited, Corporate Office, Kaveri Bhavan, K. G. Road, Bengaluru-560009', and Wikipedia places its HQ in Bengaluru; OSM maps Kaveri Bhavan (way/52244619): https://resource.geospatialworld.net/user/karnataka-power-transmission-corporation-limited-kptcl and https://en.wikipedia.org/wiki/Karnataka_Power_Transmission_Corporation",
+     "geocodeSource": "osm-poi (way/52244619)"
+    }
+   ],
+   "sources": [
+    "https://resource.geospatialworld.net/user/karnataka-power-transmission-corporation-limited-kptcl",
+    "https://en.wikipedia.org/wiki/Karnataka_Power_Transmission_Corporation",
+    "https://www.openstreetmap.org/way/52244619"
+   ]
+  },
+  {
+   "name": "Tredence",
+   "aliases": [
+    "Tredence Inc",
+    "Tredence Analytics Solutions"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Data science & AI services",
+   "description": "AI and data-science services firm founded in 2013, headquartered in San Jose with India as its largest talent hub (about 4,000 staff in India in 2025); Bengaluru is its largest delivery centre. Foreign-HQ'd, so MNC by the rules.",
+   "founded": 2013,
+   "hqCity": "San Jose",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.tredence.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru delivery centre - Prestige Tech Park IV, Building 2",
+     "locality": "Kadubeesanahalli (Outer Ring Road)",
+     "address": "11th & 12th Floor, Building 2, Prestige Tech Park IV, Kadubeesanahalli, Bengaluru 560103",
+     "building": "Prestige Tech Park IV, Building 2",
+     "techPark": "Prestige Tech Park",
+     "lat": 12.942865,
+     "lng": 77.692806,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Tredence's contact page: 'Bengaluru, India 11th & 12th Floor, Building 2, Prestige Tech Park IV, Amane Bellandur Khane Village, Varthur Hobli, Kadubeesanahalli, Bangalore, 560103'; Building 2 is not mapped, so the pin is the Prestige Tech Park centroid: https://www.tredence.com/contact-us",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.tredence.com/contact-us",
+    "https://www.business-standard.com/technology/tech-news/ai-solutions-company-tredence-plans-to-hire-1-700-people-in-2025-125032801135_1.html"
+   ]
+  },
+  {
+   "name": "Sigmoid",
+   "aliases": [
+    "Sigmoid Analytics"
+   ],
+   "category": "MNC",
+   "origin": "Foreign",
+   "sector": "Data engineering & AI services",
+   "description": "Data-engineering and AI services firm founded in 2013 by IIT Kharagpur alumni and backed by Sequoia Capital India; TechCrunch described it as San Francisco-headquartered, with most of its staff at its primary centre in Bengaluru. Foreign-HQ'd, so MNC by the rules (venture-backed and startup-shaped, though).",
+   "founded": 2013,
+   "hqCity": "San Francisco",
+   "hqCountry": "United States",
+   "isUnicorn": false,
+   "website": "https://www.sigmoid.com",
+   "bengaluruEmployeesApprox": null,
+   "offices": [
+    {
+     "label": "Bengaluru office - SJR I Park, Tower 2",
+     "locality": "Whitefield (EPIP Zone)",
+     "address": "SJR I Park, 2nd Floor, Tower 2, Road No. 9, EPIP Zone, Whitefield, Bengaluru 560066",
+     "building": "SJR I Park, Tower 2",
+     "techPark": "SJR iPark",
+     "lat": 12.981131,
+     "lng": 77.72629,
+     "isHq": false,
+     "status": "active",
+     "confidence": "medium",
+     "evidence": "Sigmoid's contact page: 'Bengaluru - SJR I Park, 2nd Floor, Tower 2, Rd Number 9, EPIP Zone, Whitefield, Bengaluru, Karnataka 560066'; tower not mapped, so the pin is the SJR iPark centroid: https://www.sigmoid.com/contact-us/ and https://techcrunch.com/2022/09/14/sigmoid-sequoia-capital-india-series-b-funding/",
+     "geocodeSource": "park-centroid"
+    }
+   ],
+   "sources": [
+    "https://www.sigmoid.com/contact-us/",
+    "https://techcrunch.com/2022/09/14/sigmoid-sequoia-capital-india-series-b-funding/"
+   ]
+  }
+ ],
+ "coverageNotes": "X07 gap-fill, 23 named companies, all placed in Bengaluru; none was already in the dataset under another name (checked every data/raw file by name and alias). BESCOM, BMRCL and KPTCL also appear in the X06 gap list (gap-chunks index 5); the merge should de-duplicate them. CLASSIFICATION CHANGES from the critic's labels, applied by the stated rules (origin = parent HQ; foreign-HQ'd multinational = MNC): Orkla India/MTR (Orkla ASA, Norway, majority), Tata Hitachi (Hitachi 60%), Eurofins Advinus (Eurofins, Luxembourg), Tavant (Santa Clara), Tredence (San Jose) and Sigmoid (San Francisco per TechCrunch and its contact page; another profile says Jersey City) are MNC/Foreign. This follows the precedent for United Spirits/Diageo and Toyota Kirloskar. NxtGen is STARTUP (venture-funded, founded 2012) and now trades as NxtGen Cloud Technologies Pvt Ltd. Shahi Exports is MID_SIZE only by elimination: it is unlisted, with 80,000+ workers in Karnataka. OMITTED or UNCONFIRMED: Shahi's Unit 29 at Kaggalipura was reported closing in Nov 2017 and is left out. Shahi has many more Bengaluru units (Indeed job postings name Bommasandra, Electronic City, Hulimavu, Madiwala and Sarjapur) but no addresses could be confirmed. MTR also has an older site at No. 4, 17th Cross, K.R. Road, BSK 2nd Stage (a 2024 Panjiva shipping record), left out as unconfirmed. The SSS Springs address '#139/2 Hosur Road, Koramangala' appears only in an old directory and is left out. Royal Orchid's other Bengaluru hotels (e.g. its Yelahanka resort and Whitefield suites) are not listed; only the registered office and the Royal Orchid Central sales office are. ACT's Bengaluru customer-service branches are recorded as the company's contact page lists them. BESCOM and KPTCL have dozens of division and sub-division offices in OSM (32 BESCOM POIs); only the corporate offices are recorded. PINS: several are locality, street or park centroids, not buildings, and geocodeSource and evidence say which: Shahi, Orkla, Jubilant Biosys, Alpha Design, IIFL Samasta, ACT branches, and the Bidadi/Jigani/Peenya/Bommasandra/Veerasandra estates. Eurofins Advinus and Sami-Sabinsa share the Peenya Industrial Area centroid. NxtGen's HQ and the Eurofins Advinus CDMO share the Bidadi centroid. BPL's Jigani plant shares the Jigani centroid with SSS Defence. HEADCOUNTS: only Jubilant Biosys' 400+ (company page) is recorded. The critic's figures for Tavant (~1,500), Sami-Sabinsa (~2,000) and Tredence (~3,500) could not be confirmed for Bengaluru and are left null. Jubilant Biosys' own site contradicts itself on HQ: the Bengaluru facility page says Bengaluru, the contact page says Noida."
+}

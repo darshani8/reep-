@@ -1637,6 +1637,82 @@ test.describe('Admin: people and access', () => {
     }
   });
 
+  test("Disabling a student's account from their record and enabling it again @TC-541", async ({
+    page,
+    signIn,
+  }) => {
+    await signIn('admin');
+    const api = page.request;
+    const student = await createStudent(api);
+    const reason = 'E2E: password shared with another student';
+    const summary = page.getByRole('complementary', { name: 'Student summary' });
+    const status = summary.locator('.chip-row .chip').first();
+    const more = page.getByRole('button', { name: 'More', exact: true });
+    const disableBox = page.getByRole('dialog', { name: `Disable ${student.name}'s account?` });
+    const disableButton = disableBox.getByRole('button', { name: 'Disable account' });
+    const enableBox = page.getByRole('alertdialog', { name: `Enable ${student.name}'s account?` });
+
+    try {
+      await test.step("1. Open the student's record at /admin/students/<id>", async () => {
+        await page.goto(`/admin/students/${student.studentId}`);
+        await expect(status, 'TC-541 (arrange): the record has loaded').toHaveText('Not signed in yet');
+      });
+
+      await test.step('2. Click "More", then "Disable account"', async () => {
+        await more.click();
+        await page.getByRole('menuitem', { name: 'Disable account' }).click();
+        await expect(disableBox, "TC-541 ER-1: a \"Disable <name>'s account?\" box opens").toBeVisible();
+        await expect(
+          disableBox,
+          'TC-541 ER-1: it says what the student will be told',
+        ).toContainText(
+          'they are told the account was disabled for a security reason and to contact the placement office',
+        );
+        await expect(disableButton, 'TC-541 ER-1: Disable waits for a reason').toBeDisabled();
+      });
+
+      await test.step(`3. Type ${reason} into "Reason" and click "Disable account" in the box`, async () => {
+        await disableBox.getByRole('textbox', { name: 'Reason' }).fill(reason);
+        await disableButton.click();
+        await expect(disableBox, 'TC-541 ER-2: the box closes').toBeHidden();
+        await expect(
+          notice(page, `${student.email} can no longer sign in, and every device it held has been signed out.`),
+          'TC-541 ER-2: the screen says what disabling did',
+        ).toBeVisible();
+        await expect(status, 'TC-541 ER-2: the status reads Disabled').toHaveText('Disabled');
+        await expect(
+          summary.locator('.account-line'),
+          'TC-541 ER-2: the line under it gives the reason',
+        ).toContainText(reason);
+      });
+
+      await test.step('4. Click "More", then "Enable account"', async () => {
+        await more.click();
+        await expect(
+          page.getByRole('menuitem', { name: 'Disable account' }),
+          'TC-541 ER-3: Disable is not offered twice',
+        ).toHaveCount(0);
+        await page.getByRole('menuitem', { name: 'Enable account' }).click();
+        await expect(enableBox, "TC-541 ER-3: an \"Enable <name>'s account?\" box opens").toBeVisible();
+      });
+
+      await test.step('5. Click "Enable account" in the box', async () => {
+        await enableBox.getByRole('button', { name: 'Enable account' }).click();
+        await expect(enableBox, 'TC-541 ER-4: the box closes').toBeHidden();
+        await expect(
+          notice(page, `${student.email} can sign in again.`),
+          'TC-541 ER-4: the screen says they can sign in again',
+        ).toBeVisible();
+        await expect(status, 'TC-541 ER-4: the status no longer reads Disabled').toHaveText(
+          'Not signed in yet',
+        );
+      });
+    } finally {
+      // Removing keeps a disabled account disabled, which is all a throwaway needs.
+      await removeStudent(api, student.studentId);
+    }
+  });
+
   // ============================================================= faculty ==
 
   test('The faculty list shows the seeded faculty member @TC-516', async ({ page, signIn }) => {
@@ -2327,7 +2403,8 @@ test.describe('Admin: people and access', () => {
         await page.getByRole('button', { name: 'Sign in', exact: true }).click();
         await expect(
           page.getByRole('alert').filter({
-            hasText: 'This account has been disabled. Contact the placement office.',
+            hasText:
+              'Your account has been disabled for security reasons. Contact the placement office (Main Admin) to resolve the issue.',
           }),
           'TC-523 ER-1: the page says the account is disabled',
         ).toBeVisible();
@@ -2393,6 +2470,58 @@ test.describe('Admin: people and access', () => {
         await expect(theirs.page, 'TC-524 ER-3: the faculty member is sent to sign in').toHaveURL(
           /\/login\?next=%2Fmentor%2Fnotebook/,
         );
+      });
+    } finally {
+      await theirs.context.close();
+      await removeUser(api, faculty.userId);
+    }
+  });
+
+  test('A faculty member signed in when their account is disabled is told why @TC-542', async ({
+    page,
+    signIn,
+    browser,
+    baseURL,
+    playwright,
+  }) => {
+    await signIn('admin');
+    const api = page.request;
+    const ids = await seeded(api);
+    const faculty = await createFaculty(api, ids.departmentId);
+    await activate(playwright, baseURL ?? '', faculty.link);
+    const theirs = await openBrowserAs(browser, baseURL ?? '', faculty.email, FACULTY_PASSWORD);
+
+    try {
+      await test.step('1. In a second browser, sign in as the new faculty member and open their notebook', async () => {
+        await theirs.page.goto('/mentor/notebook');
+        await expect(
+          heading(theirs.page, 'Faculty notebook'),
+          'TC-542 ER-1: the faculty member is signed in',
+        ).toBeVisible();
+      });
+
+      await test.step('2. In the admin browser, disable their account with the reason E2E: checking the signed-out note', async () => {
+        await ok(
+          await api.post(`/api/admin/users/${faculty.userId}/disable`, {
+            data: { reason: 'E2E: checking the signed-out note' },
+          }),
+          'POST /api/admin/users/{id}/disable',
+        );
+      });
+
+      await test.step('3. In the second browser, reload the page', async () => {
+        await theirs.page.reload();
+        await expect(
+          theirs.page,
+          'TC-542 ER-2: they are sent to sign in, and the address says why',
+        ).toHaveURL(/\/login\?next=%2Fmentor%2Fnotebook&signedOut=disabled$/);
+        await expect(
+          theirs.page.getByRole('alert').filter({
+            hasText:
+              'Your account has been disabled for security reasons. Contact the placement office (Main Admin) to resolve the issue.',
+          }),
+          'TC-542 ER-2: the page says the account was disabled and who resolves it',
+        ).toBeVisible();
       });
     } finally {
       await theirs.context.close();

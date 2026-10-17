@@ -16,7 +16,9 @@
  *                                         leaderboard standing, the ledger
  *                                         fortnight, the English baseline,
  *                                         interviews, six weeks of attendance
- *   GET /api/admin/students/{id}/access   who can open this record
+ *   GET /api/admin/students/{id}/access   who can open this record (the
+ *                                         Main Admin's alone, as is the
+ *                                         Access tab that draws it)
  *
  * Until this redesign the time sheet, the English baseline and the attendance
  * came from mentor and analytics reads on other keys, so the office saw "not
@@ -29,6 +31,13 @@
  * nothing more: the edit buttons, the account actions and the access controls
  * are not drawn, and the API refuses them anyway. These are FILTERS on what is
  * drawn, never gates; the server decides.
+ *
+ * THE ACCESS TAB IS THE MAIN ADMIN'S (2026-10-17, the owner's decision). Who
+ * else can open a student, the sign-ins and the record's history are the
+ * office's business, so the tab, the rail's "Who can open this record" card
+ * and the line pointing at it are drawn for the Main Admin alone, and the API
+ * answers them to nobody else (`/access` is `require_admin`; `/360` sends an
+ * empty sign-in list and history to anybody else).
  *
  * THE RESUME IS THE CV FROM THE APPLICATION. The owner's words: the resume the
  * office wants is the one the student uploaded when they registered. Approval
@@ -103,6 +112,9 @@ const TABS: TabSpec[] = [
   { key: 'access', label: 'Access' },
 ];
 
+/** The tab only the Main Admin is shown. */
+const OFFICE_TAB = 'access';
+
 /** A document's verdict as text AND colour, never colour alone — the words the
  *  student reads on their own Uploads screen. */
 const DOCUMENT_CHIP: Record<string, { tone: string; label: string }> = {
@@ -127,6 +139,9 @@ const RECORDS_KEY = 'admin.student_records';
 
 /** Governance refuses a grant or a removal with a shorter reason. */
 const MIN_REASON_CHARS = 20;
+
+/** `admin_faculty.DisableIn` refuses a reason shorter than this. */
+const MIN_DISABLE_REASON_CHARS = 3;
 
 /** How long access lasts when the office does not change the date. */
 const DEFAULT_ACCESS_DAYS = 180;
@@ -197,27 +212,32 @@ export class AdminStudentDetailComponent {
   readonly batches = signal<CohortOut[]>([]);
   readonly batchesRefusal = signal<string | null>(null);
 
-  readonly tabs = TABS;
+  /** Every tab for the Main Admin; the record without Access for anybody else. */
+  readonly tabs = computed(() =>
+    this.isMainAdmin() ? TABS : TABS.filter((spec) => spec.key !== OFFICE_TAB),
+  );
   readonly tab = signal('overview');
   readonly notReadable = NOT_READABLE;
   readonly stages = STAGES;
 
   constructor() {
     const fromUrl = this.route.snapshot.fragment ?? '';
-    if (TABS.some((spec) => spec.key === fromUrl)) {
+    if (this.tabs().some((spec) => spec.key === fromUrl)) {
       this.tab.set(fromUrl);
     }
     void this.loadEverything();
   }
 
   setTab(key: string): void {
-    this.tab.set(key);
     this.menuOpen.set(false);
+    if (!this.tabs().some((spec) => spec.key === key)) return;
+    this.tab.set(key);
   }
 
   /** Arrow keys move along the tab row, as a tablist should. */
   onTabKey(event: KeyboardEvent, index: number): void {
-    const last = TABS.length - 1;
+    const tabs = this.tabs();
+    const last = tabs.length - 1;
     let next: number | null = null;
     if (event.key === 'ArrowRight') next = index === last ? 0 : index + 1;
     if (event.key === 'ArrowLeft') next = index === 0 ? last : index - 1;
@@ -225,8 +245,8 @@ export class AdminStudentDetailComponent {
     if (event.key === 'End') next = last;
     if (next === null) return;
     event.preventDefault();
-    this.setTab(TABS[next].key);
-    const target = document.getElementById(`tab-${TABS[next].key}`);
+    this.setTab(tabs[next].key);
+    const target = document.getElementById(`tab-${tabs[next].key}`);
     target?.focus();
   }
 
@@ -276,6 +296,13 @@ export class AdminStudentDetailComponent {
   readonly accountLine = computed(() => {
     const login = this.record()?.login;
     if (login === undefined) return null;
+    // The reasons were written for the office, and the API sends them to it
+    // alone; anybody else reads the fact and the date.
+    if (!this.isMainAdmin()) {
+      if (login.deleted_at !== null) return `Removed from the roster ${formatMoment(login.deleted_at)}.`;
+      if (login.disabled) return `Disabled ${formatMoment(login.disabled_at)}.`;
+      return null;
+    }
     if (login.deleted_at !== null) {
       return `Removed from the roster ${formatMoment(login.deleted_at)}: ${login.delete_reason ?? 'no reason recorded'}.`;
     }
@@ -948,6 +975,83 @@ export class AdminStudentDetailComponent {
     this.menuOpen.update((open) => !open);
   }
 
+  // Disable and enable (the Main Admin's; `POST /admin/users/{id}/disable` and
+  // `/enable` are `require_admin`). The ACCOUNT's id, as for the sign-out.
+
+  /** `admin_faculty.DisableIn` refuses a shorter reason. */
+  readonly minDisableReason = MIN_DISABLE_REASON_CHARS;
+  readonly disableOpen = signal(false);
+  readonly disableReason = signal('');
+  readonly canDisable = computed(
+    () => !this.busy() && this.disableReason().trim().length >= MIN_DISABLE_REASON_CHARS,
+  );
+  readonly enableOpen = signal(false);
+
+  askDisable(): void {
+    this.menuOpen.set(false);
+    this.error.set(null);
+    this.flash.set(null);
+    this.disableReason.set('');
+    this.disableOpen.set(true);
+  }
+
+  cancelDisable(): void {
+    this.disableOpen.set(false);
+  }
+
+  askEnable(): void {
+    this.menuOpen.set(false);
+    this.error.set(null);
+    this.flash.set(null);
+    this.enableOpen.set(true);
+  }
+
+  cancelEnable(): void {
+    this.enableOpen.set(false);
+  }
+
+  async disableAccount(): Promise<void> {
+    if (!this.canDisable()) return;
+    const done = await this.accountAction('disable', { reason: this.disableReason().trim() });
+    if (done) this.disableOpen.set(false);
+  }
+
+  async enableAccount(): Promise<void> {
+    if (this.busy()) return;
+    const done = await this.accountAction('enable', null);
+    if (done) this.enableOpen.set(false);
+  }
+
+  /** One of the two account posts; the server's own sentence is shown. */
+  private async accountAction(verb: 'disable' | 'enable', body: object | null): Promise<boolean> {
+    const row = this.student();
+    if (row === null) return false;
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      const response = await fetch(`${this.apiBase}/admin/users/${row.user_id}/${verb}`, {
+        method: 'POST',
+        credentials: 'include',
+        ...(body === null
+          ? {}
+          : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+      });
+      if (!response.ok) {
+        this.error.set(await this.detailOf(response));
+        return false;
+      }
+      const state = (await response.json()) as AccountStateOut;
+      this.flash.set(state.detail);
+      await this.load360();
+      return true;
+    } catch {
+      this.error.set('The server could not be reached. Nothing was changed.');
+      return false;
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
   readonly confirmingSignOut = signal(false);
 
   askSignOutEverywhere(): void {
@@ -1167,7 +1271,9 @@ export class AdminStudentDetailComponent {
     this.panelsRefusal.set(panels.refusal);
   }
 
+  /** The Main Admin's alone; the API refuses it to anybody else. */
   private async loadAccess(): Promise<void> {
+    if (!this.isMainAdmin()) return;
     const access = await this.read<AccessOut>(`/admin/students/${this.studentId}/access`);
     this.access.set(access.value);
   }

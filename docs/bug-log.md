@@ -55,6 +55,51 @@ Entry format:
   the address bounced on 2026-10-07 and Amazon SES now delivers nothing to it.
   No code fix needed; the office can lift the block on `/admin/mail`.
 
+## 2026-10-17 — Faculty saw who else could open a student, and a disabled account was not told why
+
+- **Symptom:** reported by the owner from the Student 360 page. (1) The
+  record's Access tab ("Who can open this record", with every grant's reach)
+  and the rail card pointing at it were drawn for every faculty member who
+  could open the record, not only for the Main Admin. (2) The office could
+  disable a faculty account on the Faculty screen but had no button anywhere to
+  disable a student. (3) A disabled person was not told clearly why: Google
+  sign-in said "That Google account is not on the programme roster", and a
+  session cut by the disable landed on the login screen with no word at all.
+- **Cause:** (1) `GET /api/admin/students/{id}/access` hung on
+  `admin.student_records`, which a mentor or a granted faculty member holds,
+  and `GET .../360` sent the sign-ins, the record's history and the disable
+  reason to the same readers. (2) `POST /api/admin/users/{id}/disable` was
+  always `require_admin` and works for a student, but only the Faculty screen
+  called it. (3) The Google callback reused `sso_not_enrolled` for a disabled
+  account, and `get_current_session` set `X-Reep-Session` only for a retired
+  session, never for a disabled one.
+- **Evidence:** the owner's screenshot of the Access tab; reading the routers
+  above.
+- **Fix:** (1) `/access` is `require_admin`; `/360` sends an empty sign-in list
+  and history, and no disable or removal reason, to anybody but the Main Admin;
+  the page draws the Access tab, the rail card and the "recorded on the Access
+  tab" line for the Main Admin alone. (2) The student record's More menu (Main
+  Admin only) has "Disable account" (a reason is required) and "Enable
+  account". A student has no 90-day enable window, because there is no "new
+  account" to give one. (3) A disabled account now hears "Your account has been
+  disabled for security reasons. Contact the placement office (Main Admin) to
+  resolve the issue." at the password and code doors, at Google
+  (`?error=sso_disabled`, added to the three-way code contract) and when its
+  open session ends (`X-Reep-Session: disabled` → `/login?signedOut=disabled`).
+  A removed account hears that it is no longer on the roster instead.
+- **Where:** `app/routers/admin_student_record.py`, `admin_student_360.py`,
+  `admin_faculty.py`, `auth.py`, `app/security.py`, `app/identity.py`;
+  `features/admin/student-detail/`, `features/login/`, `core/auth.service.ts`,
+  `core/auth.guard.ts`; `docs/google-sign-in.md`.
+- **Checked by:** `tests/test_disabled_account.py` (new),
+  `test_student_record_access.py::test_the_access_tab_half_of_the_record_is_the_offices`,
+  `test_google_callback.py::test_a_barred_roster_row_gets_no_session_and_the_right_code`,
+  `test_sso_contract.py`; E2E TC-403, TC-523, TC-541 (new), TC-542 (new).
+- **Status:** open PR.
+- **Left open:** a screen that is already open when the account is disabled
+  shows the screen's own "Sign in required" errors until the next page load;
+  the note appears on that load. Nothing intercepts every `fetch` in the app.
+
 ## 2026-10-16 — The daily drift check never compared AWS with its templates
 
 - **Symptom:** issue [#117](https://github.com/darshani8/reep-/issues/117)

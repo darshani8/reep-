@@ -55,6 +55,15 @@
                 <button type="button" role="menuitem" (click)="setTab('access')">
                   <span class="icon" aria-hidden="true">history</span> See what changed
                 </button>
+                @if (isDisabled()) {
+                  <button type="button" role="menuitem" (click)="askEnable()">
+                    <span class="icon" aria-hidden="true">lock_open</span> Enable account
+                  </button>
+                } @else if (!isRemoved()) {
+                  <button type="button" role="menuitem" class="danger" (click)="askDisable()">
+                    <span class="icon" aria-hidden="true">block</span> Disable account
+                  </button>
+                }
               </div>
             }
           </div>
@@ -90,6 +99,48 @@
         <button type="button" class="btn secondary" (click)="cancelSignOutEverywhere()">Cancel</button>
         <button type="button" class="btn primary" [disabled]="busy()" (click)="signOutEverywhere()">
           Sign out everywhere
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (disableOpen()) {
+    <div class="card confirm" role="dialog" aria-labelledby="disable-title">
+      <h2 class="card-title" id="disable-title">Disable {{ studentName() }}'s account?</h2>
+      <p class="card-sub">
+        They cannot sign in by any door, and every device they are signed in on is signed out now. When they
+        try, they are told the account was disabled for a security reason and to contact the placement office.
+        Nothing in their record is removed, and you can enable the account again from this menu.
+      </p>
+      <div class="field">
+        <label for="disable-reason">Reason</label>
+        <input
+          #disableInput
+          id="disable-reason"
+          type="text"
+          placeholder="For example: password shared with another student"
+          [value]="disableReason()"
+          (input)="disableReason.set(disableInput.value)"
+        />
+        <div class="help">Required. Kept on this student's history. The student is not shown it.</div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn secondary" (click)="cancelDisable()">Cancel</button>
+        <button type="button" class="btn danger" [disabled]="!canDisable()" (click)="disableAccount()">
+          <span class="icon" aria-hidden="true">block</span> Disable account
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (enableOpen()) {
+    <div class="card confirm" role="alertdialog" aria-labelledby="enable-title">
+      <h2 class="card-title" id="enable-title">Enable {{ studentName() }}'s account?</h2>
+      <p class="card-sub">They can sign in again straight away. Their record is as it was.</p>
+      <div class="actions">
+        <button type="button" class="btn secondary" (click)="cancelEnable()">Cancel</button>
+        <button type="button" class="btn primary" [disabled]="busy()" (click)="enableAccount()">
+          <span class="icon" aria-hidden="true">lock_open</span> Enable account
         </button>
       </div>
     </div>
@@ -296,28 +347,30 @@
           }
         </section>
 
-        <section class="card">
-          <h2 class="card-title">Who can open this record</h2>
-          @if (access()) {
-            <div class="stack-row">
-              <div class="avstack">
-                @for (holder of people(); track holder.holder_id) {
-                  <span class="avatar-sm" [title]="holder.name">{{ holderInitials(holder) }}</span>
-                }
+        @if (isMainAdmin()) {
+          <section class="card">
+            <h2 class="card-title">Who can open this record</h2>
+            @if (access()) {
+              <div class="stack-row">
+                <div class="avstack">
+                  @for (holder of people(); track holder.holder_id) {
+                    <span class="avatar-sm" [title]="holder.name">{{ holderInitials(holder) }}</span>
+                  }
+                </div>
+                <span class="chip neutral">{{ people().length }} {{ people().length === 1 ? 'person' : 'people' }}</span>
               </div>
-              <span class="chip neutral">{{ people().length }} {{ people().length === 1 ? 'person' : 'people' }}</span>
-            </div>
-            <p class="soft small">
-              The placement office{{ mentorName() ? ', the faculty mentor' : '' }}{{
-                grantedCount() > 0 ? ' and ' + grantedCount() + ' given access' : ''
-              }}.
-            </p>
-          }
-          <button type="button" class="btn secondary block" (click)="setTab('access')">
-            <span class="icon" aria-hidden="true">shield_person</span>
-            {{ canManageAccess() ? 'Manage access' : 'See who has access' }}
-          </button>
-        </section>
+              <p class="soft small">
+                The placement office{{ mentorName() ? ', the faculty mentor' : '' }}{{
+                  grantedCount() > 0 ? ' and ' + grantedCount() + ' given access' : ''
+                }}.
+              </p>
+            }
+            <button type="button" class="btn secondary block" (click)="setTab('access')">
+              <span class="icon" aria-hidden="true">shield_person</span>
+              {{ canManageAccess() ? 'Manage access' : 'See who has access' }}
+            </button>
+          </section>
+        }
       </aside>
 
       <!-- ================================================= the workspace -->
@@ -462,7 +515,7 @@
 
         <div class="tabs-scroll">
           <div class="tabs" role="tablist" aria-label="Parts of the record">
-            @for (view of tabs; track view.key; let index = $index) {
+            @for (view of tabs(); track view.key; let index = $index) {
               <button
                 type="button"
                 role="tab"
@@ -706,7 +759,7 @@
                     <div class="viewer">
                       <app-pdf-preview [src]="fileUrl(cv.id)" [label]="'The CV ' + studentName() + ' uploaded'" />
                     </div>
-                    <p class="soft small note">This is the student's own file, as uploaded. Downloads are recorded on the Access tab.</p>
+                    <p class="soft small note">This is the student's own file, as uploaded.{{ isMainAdmin() ? ' Downloads are recorded on the Access tab.' : '' }}</p>
                   } @else {
                     <div class="empty">
                       <span class="icon" aria-hidden="true">description</span>Nothing to show.
@@ -1204,162 +1257,164 @@
               </section>
             }
 
-            <!-- ========================================================= ACCESS -->
+            <!-- ============================== ACCESS (the Main Admin's alone) -->
             @case ('access') {
-              <section class="card">
-                <div class="card-head">
-                  <div>
-                    <h2 class="card-title">Who can open this record</h2>
-                    <div class="card-sub">Anybody else needs access from the placement office</div>
-                  </div>
-                  @if (canManageAccess() && !giveOpen()) {
-                    <button type="button" class="btn primary sm" (click)="openGive()">
-                      <span class="icon" aria-hidden="true">person_add</span> Give access
-                    </button>
-                  }
-                </div>
-
-                @if (giveOpen()) {
-                  <div class="give" role="group" aria-labelledby="give-title">
-                    <h3 class="give-title" id="give-title">Give access to student records</h3>
-                    <p class="soft small">They can open records and download CVs and documents. They cannot edit, move or remove students.</p>
-                    <div class="field">
-                      <label for="give-person">Faculty member</label>
-                      <select #personSelect id="give-person" (change)="giveTo.set(personSelect.value)">
-                        <option value="" [selected]="giveTo() === ''">Choose a faculty member</option>
-                        @for (person of grantableStaff(); track person.user_id) {
-                          <option [value]="person.user_id" [selected]="person.user_id === giveTo()">{{ person.name }} · {{ person.email }}</option>
-                        }
-                      </select>
-                    </div>
-                    <fieldset class="field reach">
-                      <legend>Which students</legend>
-                      @for (option of reachOptions(); track reachKey(option)) {
-                        <label class="reach-opt">
-                          <input
-                            type="radio"
-                            name="give-reach"
-                            [value]="reachKey(option)"
-                            [checked]="giveReach() === reachKey(option)"
-                            (change)="giveReach.set(reachKey(option))"
-                          />
-                          <span><b>{{ option.label }}</b><span class="soft small">{{ plural(option.students, 'student') }}</span></span>
-                        </label>
-                      }
-                    </fieldset>
-                    <div class="field">
-                      <label for="give-until">Until</label>
-                      <input #untilInput id="give-until" type="date" [min]="todayIso" [value]="giveUntil()" (input)="giveUntil.set(untilInput.value)" />
-                      <div class="help">Access ends on its own on this date.</div>
-                    </div>
-                    <div class="field">
-                      <label for="give-reason">Reason</label>
-                      <textarea
-                        #reasonInput
-                        id="give-reason"
-                        rows="3"
-                        placeholder="For example: placement coordinator for the 2025-27 MBA batches"
-                        [value]="giveReason()"
-                        (input)="giveReason.set(reasonInput.value)"
-                      ></textarea>
-                      <div class="help">At least {{ minReason }} characters. Kept on the history.</div>
-                    </div>
-                    <div class="actions">
-                      <button type="button" class="btn secondary" (click)="closeGive()">Cancel</button>
-                      <button type="button" class="btn primary" [disabled]="!canGive()" (click)="give()">
-                        <span class="icon" aria-hidden="true">person_add</span> Give access
-                      </button>
-                    </div>
-                  </div>
-                }
-
-                <ul class="holders">
-                  @for (holder of holders(); track holder.holder_id + holder.kind + (holder.grant_id ?? '')) {
-                    <li class="holder">
-                      <span class="avatar-sm" aria-hidden="true">{{ holderInitials(holder) }}</span>
-                      <div>
-                        <b>{{ holder.name }}</b>
-                        <span class="soft small">{{ holder.detail }}</span>
-                        <span class="chip-row">
-                          @if (holder.kind === 'admin') {
-                            <span class="chip accent">Every student</span>
-                          } @else if (holder.kind === 'mentor') {
-                            <span class="chip accent">Their mentees</span>
-                          }
-                          @if (holder.reach_label) {
-                            <span class="chip accent">{{ holder.reach_label }}</span>
-                          }
-                          @if (holder.until) {
-                            <span class="chip neutral">Until {{ formatDay(holder.until) }}</span>
-                          }
-                        </span>
-                        @if (holder.reason) {
-                          <span class="cellnote">
-                            Given{{ holder.granted_at ? ' ' + formatDay(holder.granted_at) : '' }}{{ holder.granted_by ? ' by ' + holder.granted_by : '' }}: "{{ holder.reason }}"
-                          </span>
-                        }
-                        @if (holder.grant_id && removing() === holder.grant_id) {
-                          <div class="field remove">
-                            <label [for]="'remove-' + holder.grant_id">Why remove access?</label>
-                            <input
-                              #removeInput
-                              [id]="'remove-' + holder.grant_id"
-                              type="text"
-                              [value]="removeReason()"
-                              (input)="removeReason.set(removeInput.value)"
-                            />
-                            <div class="help">At least {{ minReason }} characters.</div>
-                            <div class="actions">
-                              <button type="button" class="btn secondary sm" (click)="cancelRemove()">Cancel</button>
-                              <button type="button" class="btn danger sm" [disabled]="!canRemove()" (click)="remove(holder)">Remove access</button>
-                            </div>
-                          </div>
-                        }
-                      </div>
-                      @if (canManageAccess() && holder.grant_id && removing() !== holder.grant_id) {
-                        <button type="button" class="btn danger sm" (click)="askRemove(holder.grant_id)">Remove access</button>
-                      }
-                    </li>
-                  }
-                </ul>
-              </section>
-
-              <div class="grid-2 even">
+              @if (isMainAdmin()) {
                 <section class="card">
                   <div class="card-head">
-                    <h2 class="card-title">Sign-in</h2>
-                    @if (isMainAdmin()) {
-                      <button type="button" class="btn sm secondary" (click)="askSignOutEverywhere()">
-                        <span class="icon" aria-hidden="true">logout</span> Sign out everywhere
+                    <div>
+                      <h2 class="card-title">Who can open this record</h2>
+                      <div class="card-sub">Anybody else needs access from the placement office</div>
+                    </div>
+                    @if (canManageAccess() && !giveOpen()) {
+                      <button type="button" class="btn primary sm" (click)="openGive()">
+                        <span class="icon" aria-hidden="true">person_add</span> Give access
                       </button>
                     }
                   </div>
-                  <dl class="rail-facts">
-                    <div><dt>Signs in with</dt><dd>{{ doorsLine() }}</dd></div>
-                    <div><dt>Last signed in</dt><dd>{{ lastSignInLabel() }}</dd></div>
-                  </dl>
-                  @if (signIns().length > 0) {
-                    <h3 class="eyebrow sub">Recent sign-ins</h3>
-                    <ul class="feed">
-                      @for (signIn of signIns(); track signIn.at) {
-                        <li><span>{{ signIn.door }}</span><time>{{ formatMoment(signIn.at) }}</time></li>
-                      }
-                    </ul>
+
+                  @if (giveOpen()) {
+                    <div class="give" role="group" aria-labelledby="give-title">
+                      <h3 class="give-title" id="give-title">Give access to student records</h3>
+                      <p class="soft small">They can open records and download CVs and documents. They cannot edit, move or remove students.</p>
+                      <div class="field">
+                        <label for="give-person">Faculty member</label>
+                        <select #personSelect id="give-person" (change)="giveTo.set(personSelect.value)">
+                          <option value="" [selected]="giveTo() === ''">Choose a faculty member</option>
+                          @for (person of grantableStaff(); track person.user_id) {
+                            <option [value]="person.user_id" [selected]="person.user_id === giveTo()">{{ person.name }} · {{ person.email }}</option>
+                          }
+                        </select>
+                      </div>
+                      <fieldset class="field reach">
+                        <legend>Which students</legend>
+                        @for (option of reachOptions(); track reachKey(option)) {
+                          <label class="reach-opt">
+                            <input
+                              type="radio"
+                              name="give-reach"
+                              [value]="reachKey(option)"
+                              [checked]="giveReach() === reachKey(option)"
+                              (change)="giveReach.set(reachKey(option))"
+                            />
+                            <span><b>{{ option.label }}</b><span class="soft small">{{ plural(option.students, 'student') }}</span></span>
+                          </label>
+                        }
+                      </fieldset>
+                      <div class="field">
+                        <label for="give-until">Until</label>
+                        <input #untilInput id="give-until" type="date" [min]="todayIso" [value]="giveUntil()" (input)="giveUntil.set(untilInput.value)" />
+                        <div class="help">Access ends on its own on this date.</div>
+                      </div>
+                      <div class="field">
+                        <label for="give-reason">Reason</label>
+                        <textarea
+                          #reasonInput
+                          id="give-reason"
+                          rows="3"
+                          placeholder="For example: placement coordinator for the 2025-27 MBA batches"
+                          [value]="giveReason()"
+                          (input)="giveReason.set(reasonInput.value)"
+                        ></textarea>
+                        <div class="help">At least {{ minReason }} characters. Kept on the history.</div>
+                      </div>
+                      <div class="actions">
+                        <button type="button" class="btn secondary" (click)="closeGive()">Cancel</button>
+                        <button type="button" class="btn primary" [disabled]="!canGive()" (click)="give()">
+                          <span class="icon" aria-hidden="true">person_add</span> Give access
+                        </button>
+                      </div>
+                    </div>
                   }
+
+                  <ul class="holders">
+                    @for (holder of holders(); track holder.holder_id + holder.kind + (holder.grant_id ?? '')) {
+                      <li class="holder">
+                        <span class="avatar-sm" aria-hidden="true">{{ holderInitials(holder) }}</span>
+                        <div>
+                          <b>{{ holder.name }}</b>
+                          <span class="soft small">{{ holder.detail }}</span>
+                          <span class="chip-row">
+                            @if (holder.kind === 'admin') {
+                              <span class="chip accent">Every student</span>
+                            } @else if (holder.kind === 'mentor') {
+                              <span class="chip accent">Their mentees</span>
+                            }
+                            @if (holder.reach_label) {
+                              <span class="chip accent">{{ holder.reach_label }}</span>
+                            }
+                            @if (holder.until) {
+                              <span class="chip neutral">Until {{ formatDay(holder.until) }}</span>
+                            }
+                          </span>
+                          @if (holder.reason) {
+                            <span class="cellnote">
+                              Given{{ holder.granted_at ? ' ' + formatDay(holder.granted_at) : '' }}{{ holder.granted_by ? ' by ' + holder.granted_by : '' }}: "{{ holder.reason }}"
+                            </span>
+                          }
+                          @if (holder.grant_id && removing() === holder.grant_id) {
+                            <div class="field remove">
+                              <label [for]="'remove-' + holder.grant_id">Why remove access?</label>
+                              <input
+                                #removeInput
+                                [id]="'remove-' + holder.grant_id"
+                                type="text"
+                                [value]="removeReason()"
+                                (input)="removeReason.set(removeInput.value)"
+                              />
+                              <div class="help">At least {{ minReason }} characters.</div>
+                              <div class="actions">
+                                <button type="button" class="btn secondary sm" (click)="cancelRemove()">Cancel</button>
+                                <button type="button" class="btn danger sm" [disabled]="!canRemove()" (click)="remove(holder)">Remove access</button>
+                              </div>
+                            </div>
+                          }
+                        </div>
+                        @if (canManageAccess() && holder.grant_id && removing() !== holder.grant_id) {
+                          <button type="button" class="btn danger sm" (click)="askRemove(holder.grant_id)">Remove access</button>
+                        }
+                      </li>
+                    }
+                  </ul>
                 </section>
-                <section class="card">
-                  <h2 class="card-title">History of this record</h2>
-                  @if (auditRows().length > 0) {
-                    <ul class="feed">
-                      @for (row of auditRows(); track row.id) {
-                        <li><span>{{ auditLine(row) }}</span><time>{{ formatMoment(row.occurred_at) }}</time></li>
+
+                <div class="grid-2 even">
+                  <section class="card">
+                    <div class="card-head">
+                      <h2 class="card-title">Sign-in</h2>
+                      @if (isMainAdmin()) {
+                        <button type="button" class="btn sm secondary" (click)="askSignOutEverywhere()">
+                          <span class="icon" aria-hidden="true">logout</span> Sign out everywhere
+                        </button>
                       }
-                    </ul>
-                  } @else {
-                    <p class="soft small">Nothing has been done to this record yet.</p>
-                  }
-                </section>
-              </div>
+                    </div>
+                    <dl class="rail-facts">
+                      <div><dt>Signs in with</dt><dd>{{ doorsLine() }}</dd></div>
+                      <div><dt>Last signed in</dt><dd>{{ lastSignInLabel() }}</dd></div>
+                    </dl>
+                    @if (signIns().length > 0) {
+                      <h3 class="eyebrow sub">Recent sign-ins</h3>
+                      <ul class="feed">
+                        @for (signIn of signIns(); track signIn.at) {
+                          <li><span>{{ signIn.door }}</span><time>{{ formatMoment(signIn.at) }}</time></li>
+                        }
+                      </ul>
+                    }
+                  </section>
+                  <section class="card">
+                    <h2 class="card-title">History of this record</h2>
+                    @if (auditRows().length > 0) {
+                      <ul class="feed">
+                        @for (row of auditRows(); track row.id) {
+                          <li><span>{{ auditLine(row) }}</span><time>{{ formatMoment(row.occurred_at) }}</time></li>
+                        }
+                      </ul>
+                    } @else {
+                      <p class="soft small">Nothing has been done to this record yet.</p>
+                    }
+                  </section>
+                </div>
+              }
             }
           }
         </div>

@@ -107,6 +107,12 @@
   background: var(--tint-2);
 }
 
+/* Disable account: the one item that locks a person out. The words say so
+   too; the colour is never the only signal. */
+.menu button.danger {
+  color: var(--risk);
+}
+
 /* --- the two columns --------------------------------------------------------- */
 
 .layout {

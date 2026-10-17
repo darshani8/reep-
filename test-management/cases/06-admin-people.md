@@ -1122,7 +1122,7 @@ or enable the new faculty member.
 
 | # | After step | Expected result |
 |---|---|---|
-| ER-1 | 4 | The page says "This account has been disabled. Contact the placement office.", which is what the server answers. |
+| ER-1 | 4 | The page says "Your account has been disabled for security reasons. Contact the placement office (Main Admin) to resolve the issue.", which is what the server answers. |
 
 ### Post-conditions
 
@@ -1857,3 +1857,92 @@ None.
 Both faculty members hold Jobs sheet. Remove it on "Who has access" (tick both
 under "Jobs sheet" and click "Remove Jobs sheet from 2 people"); the automated
 test revokes every grant and removes both accounts through the API.
+
+---
+
+## TC-541 — Disabling a student's account from their record and enabling it again
+
+| Field | Value |
+|---|---|
+| ID | TC-541 |
+| Module | Admin: student record, disable |
+| Priority | P1 |
+| Type | Functional, positive |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-541` |
+
+### Pre-conditions
+
+1. The common pre-conditions at the top of this file.
+2. A new student exists, named "E2E Student …", approved from an application
+   and never signed in. Not the seeded student: disabling them would sign them
+   out of every other case.
+
+### Test data
+
+| Field | Value |
+|---|---|
+| Reason | `E2E: password shared with another student` |
+
+### Steps
+
+1. Open the student's record at `/admin/students/<id>`.
+2. Click "More", then "Disable account".
+3. Type `E2E: password shared with another student` into "Reason" and click "Disable account" in the box.
+4. Click "More", then "Enable account".
+5. Click "Enable account" in the box.
+
+### Expected results
+
+| # | After step | Expected result |
+|---|---|---|
+| ER-1 | 2 | A box "Disable <name>'s account?" opens. It says they cannot sign in, that every device is signed out, and that "they are told the account was disabled for a security reason and to contact the placement office". Its "Disable account" button is disabled until a reason is typed. |
+| ER-2 | 3 | The box closes and the page says "<address> can no longer sign in, and every device it held has been signed out. Nothing they wrote has been removed." The status chip in the summary reads "Disabled", and the line under it gives the reason. |
+| ER-3 | 4 | The menu offers "Enable account" and not "Disable account". A box "Enable <name>'s account?" opens. |
+| ER-4 | 5 | The box closes and the page says "<address> can sign in again." The status chip reads "Not signed in yet" again. |
+
+### Post-conditions
+
+The student can sign in again. The automated test removes them from the
+roster through the API.
+
+---
+
+## TC-542 — A faculty member signed in when their account is disabled is told why
+
+| Field | Value |
+|---|---|
+| ID | TC-542 |
+| Module | Admin: faculty, disable; the sign-in page |
+| Priority | P2 |
+| Type | Functional, negative |
+| Automated test | `tests/06-admin-people.spec.ts`, title tagged `@TC-542` |
+
+### Pre-conditions
+
+1. The common pre-conditions at the top of this file.
+2. An activated faculty member exists and you know their password.
+3. A second browser, or a private window, for the faculty member.
+
+### Test data
+
+| Field | Value |
+|---|---|
+| Reason | `E2E: checking the signed-out note` |
+
+### Steps
+
+1. In a second browser, sign in as the new faculty member and open their notebook.
+2. In the admin browser, disable their account with the reason `E2E: checking the signed-out note`.
+3. In the second browser, reload the page.
+
+### Expected results
+
+| # | After step | Expected result |
+|---|---|---|
+| ER-1 | 1 | The faculty member sees their notebook, headed "Faculty notebook". |
+| ER-2 | 3 | The second browser is sent to `/login?next=%2Fmentor%2Fnotebook&signedOut=disabled`, and the page says "Your account has been disabled for security reasons. Contact the placement office (Main Admin) to resolve the issue." |
+
+### Post-conditions
+
+The faculty member is still disabled. Enable or remove them in the console;
+the automated test removes them through the API.

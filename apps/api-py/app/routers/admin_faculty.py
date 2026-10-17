@@ -3,8 +3,10 @@
   POST   /api/admin/faculty                        create the login (B3.1, B3.2)
   GET    /api/admin/faculty[?unfiled=true]         every faculty account (B3.1)
   PATCH  /api/admin/faculty/{user_id}              identity + filing (B3.5)
-  POST   /api/admin/users/{user_id}/disable        offboard (B3.3)
-  POST   /api/admin/users/{user_id}/enable         within 90 days (B3.3)
+  POST   /api/admin/users/{user_id}/disable        offboard (B3.3); a student
+                                                   too, from their record
+  POST   /api/admin/users/{user_id}/enable         within 90 days (B3.3); a
+                                                   student at any time
   POST   /api/admin/users/{user_id}/sign-out-everywhere   (B3.6)
 
 Until 2026-09 a faculty login was minted only by `python -m app.grant_access` -
@@ -803,7 +805,8 @@ def enable_account(
 
     NINETY DAYS, from `disabled_at`. Past that the answer is a new account,
     because "re-enable" a year later is how a departed colleague's access comes
-    back with nobody having decided it should.
+    back with nobody having decided it should. Never for a STUDENT, who has no
+    "new account" to be given (see the check below).
     """
     require_admin(session)
     user = db.get(User, user_id)
@@ -825,7 +828,13 @@ def enable_account(
     disabled_at = user.disabled_at
     if disabled_at.tzinfo is None:  # a column read back from a naive driver
         disabled_at = disabled_at.replace(tzinfo=timezone.utc)
-    if _now() - disabled_at > timedelta(days=ENABLE_WINDOW_DAYS):
+    # A STUDENT has no window. "Create a new account instead" has no meaning
+    # for one: a student account is minted only by approving an application,
+    # their USN is already taken by this row, and every mark, upload and note
+    # hangs off it. The window guards a colleague's access coming back by
+    # accident; a student the office disabled over a security issue comes back
+    # when the office has resolved it, however long that took (2026-10-17).
+    if user.role is not Role.STUDENT and _now() - disabled_at > timedelta(days=ENABLE_WINDOW_DAYS):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
@@ -861,8 +870,12 @@ def enable_account(
         user_id=user.id, email=user.email, role=user.role.value, disabled=False,
         token_version=int(user.token_version or 0),
         detail=(
-            f"{user.email} can sign in again. Capability grants were not "
-            "restored - grant what is still needed in Governance."
+            f"{user.email} can sign in again."
+            if user.role is Role.STUDENT
+            else (
+                f"{user.email} can sign in again. Capability grants were not "
+                "restored - grant what is still needed in Governance."
+            )
         ),
     )
 

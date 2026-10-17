@@ -71,6 +71,7 @@ turns the code into a sentence. The codes are:
     sso_identity          the ID token did not verify
     sso_unverified_email  Google reports the address as unverified
     sso_not_enrolled      verified, but no roster row for that address
+    sso_disabled          verified, but the office has disabled the account
     sso_identity_mismatch the roster row is pinned to a DIFFERENT Google account
     sso_failed            the backstop: anything not enumerated above
 
@@ -377,26 +378,44 @@ class AccountDisabledError(Exception):
     """A disabled account reached a door that mints sessions."""
 
 
-#: Said to the person, and deliberately incurious. It names no reason: the
-#: `disable_reason` is what the office wrote FOR THE OFFICE, and it can be
-#: "under investigation".
+#: Said to the person, and still incurious about the details. It names no
+#: reason: the `disable_reason` is what the office wrote FOR THE OFFICE, and it
+#: can be "under investigation". What it does say is the owner's wording
+#: (2026-10-17): that the office disabled it over a security issue, and who
+#: resolves it, so the person stops retrying and goes to the one office that
+#: can switch it back on. The login screen prints the same words for
+#: `?error=sso_disabled` and `?signedOut=disabled` (login.component.ts).
 DISABLED_SIGN_IN_MESSAGE = (
-    "This account has been disabled. Contact the placement office."
+    "Your account has been disabled for security reasons. "
+    "Contact the placement office (Main Admin) to resolve the issue."
+)
+
+#: A REMOVED account is not the security sentence: the office took it off the
+#: roster (a student who left, an application approved by mistake), and telling
+#: that person about a security issue would be untrue.
+REMOVED_SIGN_IN_MESSAGE = (
+    "This account is no longer on the roster. "
+    "Contact the placement office (Main Admin) if you think this is a mistake."
 )
 
 
 def refuse_disabled_sign_in(user: User) -> None:
     """403 if this account has been offboarded OR removed from the roster.
-    Called by every sign-in door; `User.barred_at` is the one answer to both."""
+    Called by every sign-in door; `User.barred_at` is the one answer to both.
+    A DISABLED account hears the security sentence, a removed one the roster
+    sentence; disabled wins when both are true, because that is the act the
+    office has to undo first."""
     if user.barred_at is not None:
+        disabled = user.disabled_at is not None
         log.warning(
             "sign-in refused for %s: the account was %s at %s",
             user.email,
-            "removed" if user.deleted_at is not None else "disabled",
+            "disabled" if disabled else "removed",
             user.barred_at,
         )
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail=DISABLED_SIGN_IN_MESSAGE
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=DISABLED_SIGN_IN_MESSAGE if disabled else REMOVED_SIGN_IN_MESSAGE,
         )
 
 
@@ -1179,23 +1198,32 @@ def google_callback(
         )
         return _sso_failure("sso_not_enrolled")
 
+    if user.disabled_at is not None:
+        # DISABLED BY THE OFFICE (B3.3). Google verified them; the office has
+        # shut the account, and the person needs to hear that, not "you are
+        # not on the roster" (2026-10-17, the owner's request). This branch was
+        # kept apart from the one below for exactly this day: its own code,
+        # added to the router, the docstring table, `messageFor` in
+        # login.component.ts and docs/google-sign-in.md in one change, which
+        # tests/test_sso_contract.py holds together.
+        log.warning(
+            "GET /api/auth/sso/google/callback -> 302 /login?error=sso_disabled: "
+            "%s is DISABLED (since %s) — Google verified the identity, the "
+            "office has disabled the account",
+            identity.email,
+            user.disabled_at,
+        )
+        return _sso_failure("sso_disabled")
+
     if user.barred_at is not None:
-        # OFFBOARDED (B3.3) OR REMOVED (2026-09-16). Google verified them; the
-        # roster no longer admits them, which is the same sentence `sso_not_enrolled` already says and
-        # the same thing to do about it — talk to the placement office.
-        #
-        # DELIBERATELY REUSING THAT CODE rather than adding `sso_disabled`. The
-        # code list is a three-way contract (this docstring, `messageFor` in
-        # apps/web/.../login.component.ts, and docs/google-sign-in.md); a code
-        # added on one side only lands the person on the "reason unknown to this
-        # page" fallback, which is worse than a true-enough sentence. The REAL
-        # reason is logged, which is where the operator looks. When the client
-        # learns a code of its own, split this branch off — it is already
-        # separate for that reason.
+        # REMOVED (2026-09-16). Google verified them; the roster no longer
+        # admits them, which is the same sentence `sso_not_enrolled` already
+        # says and the same thing to do about it — talk to the placement office.
+        # The REAL reason is logged, which is where the operator looks.
         log.warning(
             "GET /api/auth/sso/google/callback -> 302 /login?error=sso_not_enrolled: "
-            "%s is DISABLED or REMOVED (since %s) — Google verified the identity, "
-            "the account is offboarded",
+            "%s was REMOVED from the roster (since %s) — Google verified the "
+            "identity, the account is off the roster",
             identity.email,
             user.barred_at,
         )

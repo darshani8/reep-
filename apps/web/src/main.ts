@@ -4,6 +4,7 @@ import { appConfig } from './app/app.config';
 import { App } from './app/app';
 import { scrubBreadcrumb, scrubEvent } from './app/core/telemetry-scrub';
 import { environment } from './environments/environment';
+import { isNativeApp } from './app/native/platform';
 
 /**
  * Sentry is initialized before Angular bootstraps so framework errors are
@@ -123,11 +124,21 @@ async function bootstrap(): Promise<void> {
     }
   }
 
+  // THE PHONE APP (Ionic + Capacitor). Loaded only inside the app, as its own
+  // chunk, so the website downloads none of it. It points the API calls at
+  // the server, restores the saved sign-in token and returns Ionic's
+  // providers. See src/app/native/native-bootstrap.ts.
+  const nativeProviders = isNativeApp()
+    ? await import('./app/native/native-bootstrap').then((m) => m.startNativeApp())
+    : [];
+
+  const baseConfig = { ...appConfig, providers: [...appConfig.providers, ...nativeProviders] };
+
   const config = sentry
     ? {
-        ...appConfig,
+        ...baseConfig,
         providers: [
-          ...appConfig.providers,
+          ...baseConfig.providers,
           { provide: ErrorHandler, useValue: sentry.createErrorHandler() },
           // Without this there are no navigation spans at all, and the SDK
           // logs nothing: its own warning is gated on a flag that
@@ -139,7 +150,7 @@ async function bootstrap(): Promise<void> {
           }),
         ],
       }
-    : appConfig;
+    : baseConfig;
 
   await bootstrapApplication(App, config);
 }

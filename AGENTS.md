@@ -2420,6 +2420,77 @@ templates, so an icon is only ever as discoverable as its markup; `running` was
 a state value it mistook for a glyph inside an interpolation and is denylisted
 beside `draft` and `completed`.
 
+### The phone APP: Ionic + Capacitor (2026-10-13)
+
+`apps/web` also builds the Android and iOS apps. `docs/mobile-app.md` is the
+beginner's runbook; this is what the next editor must not break.
+
+**ONE CODEBASE, AND THE WEBSITE PAYS NOTHING FOR THE APP.** The app loads the
+same `dist/web/browser` files. `isNativeApp()` (`src/app/native/platform.ts`)
+reads `window.Capacitor`, which the native side injects, and never imports
+`@capacitor/core` — main.ts and app.config.ts are in the website's first
+download. Everything native is behind it: `native-bootstrap.ts` is a dynamic
+import from main.ts, the Ionic frame (`layout/mobile-shell.component.*`) is an
+`@defer` inside AppShell's template, and Ionic's CSS (`src/ionic.scss`) is a
+NON-INJECTED style bundle the bootstrap links — its `structure.css` pins
+`<body>` and would stop every website page scrolling. The website's initial
+bundle did not grow; keep it that way.
+
+**THE FRAME IS DRAWN TWICE, THE NAVIGATION IS DATA ONCE.** MobileShell takes
+`navigation()` from AppShell as an input and has no list of its own. It keeps
+Angular's `<router-outlet>` (not `ion-router-outlet`), so no route changed;
+the price is no page-slide animation. `hardwareBackButton: false` because
+Ionic's handler needs its own outlet's stack; `wireBackButton` does it.
+
+**SIGN-IN IN THE APP IS THE SAME TOKEN AS THE COOKIE, CARRIED AS A BEARER.**
+The app is `https://localhost` / `capacitor://localhost`, cross-site to the
+API, so `reep_session` never reaches it. `NATIVE_APP_ORIGINS` (blank by
+default = no app) adds those origins to CORS, and `/auth/login` and
+`/auth/login/code` return `session_token` in the body ONLY when the request's
+`Origin` is one of them (`_native_session_token`) — a browser on the real
+site always gets null, so the httpOnly cookie stays the only copy JavaScript
+cannot read. `identity.session_token_from` reads the cookie first, then
+`Authorization: Bearer`, and both go through `verify_session_token`, so
+revocation and one-device-at-a-time apply unchanged. The app keeps the token
+in Capacitor Preferences (`token-store.ts`), and `native-fetch.ts` wraps
+`window.fetch` once to point `/api/` at `native.apiOrigin` and attach it —
+which is how every existing `fetch` and `HttpClient` call works unedited.
+`tests/test_native_app_session.py` pins it. **Not covered, on purpose and
+written down:** the interview WebSocket (cookie + Origin check), plain
+`<a href="/api/...">` downloads, and Google sign-in (Google refuses embedded
+webviews).
+
+**THE APP IS PUBLISHED FROM `feature/mobile-app` AND NEVER FROM `main`
+(2026-10-17, the owner's rule).** `.github/workflows/android-play.yml` is a
+`push` trigger on that branch, because a push runs the workflow file from the
+pushed commit and nothing about it has to land on `main` (a
+`workflow_dispatch` button would). Its `guard` job refuses any other ref and
+any pusher but the owner, `deploy.yml`'s check. It builds `bundleRelease`
+signed with the Play UPLOAD key, which reaches Gradle only as
+`REEP_UPLOAD_KEYSTORE*` environment variables (`android/app/build.gradle`;
+unset means an unsigned release and a debug build that needs no key), and it
+refuses a bundle that is unsigned or carries `CN=Android Debug`. The secrets are
+in the `play-store` ENVIRONMENT, whose deployment-branch rule is what keeps
+other branches from reading them; the guard job alone cannot, because a write
+collaborator can push an edited copy of it to the same branch. The upload is
+`tools/play/upload_bundle.py`, Google's own auth library against the
+androidpublisher API, deliberately not a third-party Action: whatever runs that
+step holds the credential that publishes to every student's phone. One edit,
+deleted on any failure, so no half-made release sits in Play Console;
+`tests/test_play_upload.py` pins the call order. The default is the internal
+track rolled out at once (`completed`), the owner's call on 2026-10-17: Google
+holds internal tests for no standard review, they reach the listed testers
+(100 at most) within minutes, and the 12-tester closed-test rule gates
+production only. Every other track defaults to DRAFT. Before an app's first
+rollout Google accepts only a draft, so the uploader retries a `completed`
+refused with Google's "draft app" sentence as a draft in the same edit and says
+so in the run summary; any other refusal is reported as it is. `PLAY_UPLOAD`
+stays off until the first bundle has been uploaded by hand, which Google
+requires. versionCode is
+`run_number * 100 + run_attempt`: Play refuses a code it has seen, and renaming
+the workflow restarts `run_number`. `docs/mobile-app.md` §8 is the owner's
+runbook.
+
 The floating **agent orb** and the **dock** it opens live in the SHELL
 (`layout/agent-orb.component.ts`, `layout/agent-dock.component.ts`), not in a
 route, because they are on every screen. **The dock is BOTH assistants under

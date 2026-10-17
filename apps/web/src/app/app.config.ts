@@ -4,6 +4,7 @@ import { provideHttpClient, withFetch } from '@angular/common/http';
 import { provideServiceWorker } from '@angular/service-worker';
 
 import { routes } from './app.routes';
+import { isNativeApp } from './native/platform';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -60,7 +61,9 @@ export const appConfig: ApplicationConfig = {
      * holds one open for the whole of a mock interview).
      */
     provideServiceWorker('reep-sw.js', {
-      enabled: !isDevMode(),
+      // Not inside the phone app: its files are already on the phone, inside
+      // the app package, so there is nothing for a worker to cache.
+      enabled: !isDevMode() && !isNativeApp(),
       registrationStrategy: 'registerWhenStable:30000',
     }),
   ],

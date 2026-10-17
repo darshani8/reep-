@@ -311,10 +311,15 @@ app = FastAPI(
 # Credentials are sent (the session cookie), so the origin must be explicit, not "*".
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.web_origin],
+    # The phone app's origins join only when NATIVE_APP_ORIGINS names them;
+    # see that setting. `X-Reep-Session` is exposed because a cross-origin
+    # caller cannot read a header CORS does not name, and the phone app needs
+    # it for the same "signed out on another device" sentence the web shows.
+    allow_origins=[settings.web_origin, *settings.native_app_origin_list],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Reep-Session"],
 )
 # Traceability: every request carries an X-Request-ID edge to log line — see
 # app/traceability.py. Added AFTER CORSMiddleware so it runs INSIDE it and the

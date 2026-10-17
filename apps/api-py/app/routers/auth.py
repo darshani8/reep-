@@ -102,7 +102,7 @@ from ..account_links import consume_user_code, issue_user_token, new_login_code,
 from ..architecture_events import record_change
 from ..config import settings
 from ..db import get_db
-from ..identity import get_current_session
+from ..identity import get_current_session, session_token_from
 from ..mailer import deliver_once
 from ..models.account_events import LoginEvent
 from ..models.auth_token import PURPOSE_LOGIN_CODE
@@ -705,17 +705,38 @@ def _confirm_exclusive_session(user: User) -> None:
     note_revocation(user.id, user.token_version)
 
 
-def _issue_session(response: Response, payload: dict) -> None:
-    """Set the one and only session cookie. See `_cookie_secure` for `secure`."""
+def _issue_session(response: Response, payload: dict) -> str:
+    """Set the one and only session cookie. See `_cookie_secure` for `secure`.
+
+    Returns the token it set, for `_native_session_token`; every caller that
+    is not a phone-app sign-in ignores it."""
+    token = create_session_token(payload)
     response.set_cookie(
         SESSION_COOKIE,
-        create_session_token(payload),
+        token,
         httponly=True,
         samesite="lax",
         secure=_cookie_secure(),
         path="/",
         max_age=SESSION_TTL_SECONDS,
     )
+    return token
+
+
+def _native_session_token(request: Request, token: str) -> str | None:
+    """The token for the response BODY, or None.
+
+    Only a caller whose Origin is one of NATIVE_APP_ORIGINS gets it — the
+    Ionic + Capacitor app, which lives on https://localhost (Android) or
+    capacitor://localhost (iOS) and so can never hold this API's cookie. A
+    browser on the real site sends the web origin and gets None, so the
+    httpOnly cookie stays the only copy JavaScript cannot read. A blank
+    setting means nobody gets one. Origin is set by the browser engine, not
+    by page script, so a web page cannot claim to be the app."""
+    origin = (request.headers.get("origin") or "").rstrip("/")
+    if origin and origin in settings.native_app_origin_list:
+        return token
+    return None
 
 
 def _safe_next(raw: str | None) -> str:
@@ -913,8 +934,12 @@ def login(
     _record_login(db, user, door=DOOR_PASSWORD, request=request)
     _confirm_exclusive_session(user)
     payload = _payload_for(user)
-    _issue_session(response, payload)
-    return SessionUser(**payload, capabilities=sorted(capabilities_for(db, payload)))
+    token = _issue_session(response, payload)
+    return SessionUser(
+        **payload,
+        capabilities=sorted(capabilities_for(db, payload)),
+        session_token=_native_session_token(request, token),
+    )
 
 
 @router.post("/login/code", response_model=SessionUser)
@@ -1002,8 +1027,12 @@ def login_with_code(
     _record_login(db, user, door=DOOR_CODE, request=request)
     _confirm_exclusive_session(user)
     payload = _payload_for(user)
-    _issue_session(response, payload)
-    return SessionUser(**payload, capabilities=sorted(capabilities_for(db, payload)))
+    token = _issue_session(response, payload)
+    return SessionUser(
+        **payload,
+        capabilities=sorted(capabilities_for(db, payload)),
+        session_token=_native_session_token(request, token),
+    )
 
 
 class SsoStatus(BaseModel):
@@ -1432,7 +1461,7 @@ def logout(
     needs to be told to drop the cookie, and the student is left looking signed
     in. So the cookie is read optionally, and the endpoint is idempotent.
     """
-    token = request.cookies.get(SESSION_COOKIE)
+    token = session_token_from(request)
     claims = verify_session_token(token) if token else None
     if claims:
         user_id = str(claims["userId"])

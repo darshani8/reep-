@@ -85,6 +85,13 @@ class SessionUser(BaseModel):
     # next request rather than the next sign-in. The client renders its nav
     # and its route guards from this list; the API re-decides every call.
     capabilities: list[str] = []
+    # The session token, IN THE BODY, for the phone app only (Ionic +
+    # Capacitor). Set by /auth/login and /auth/login/code when the request's
+    # Origin is listed in NATIVE_APP_ORIGINS, and None for every browser: a
+    # browser keeps the httpOnly cookie, which JavaScript cannot read, and
+    # putting the token here for it would undo that. The app stores it with
+    # Capacitor Preferences and sends it back as `Authorization: Bearer`.
+    session_token: str | None = None
     # B2.2. The student's feature switches, resolved on GET /api/auth/me and
     # EMPTY EVERYWHERE ELSE — including on /login, deliberately.
     #

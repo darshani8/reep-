@@ -1,3 +1,20 @@
+<!-- INSIDE THE PHONE APP (Ionic + Capacitor) the same navigation is drawn
+     by MobileShellComponent instead: an ion-menu, an ion-header, ion-content
+     and bottom tabs. `@defer` makes Ionic a separate download that the
+     website never fetches. The website's frame below is unchanged and is
+     left at its original indentation so this wrap does not rewrite it. -->
+@if (native) {
+  @defer (on immediate) {
+    <app-mobile-shell
+      [navigation]="navigation()"
+      [consoleName]="consoleName()"
+      [displayName]="displayName()"
+      [subtitle]="usn() || roleLabel()"
+      [initials]="initials()"
+      (signOut)="signOut()"
+    />
+  }
+} @else {
 <div class="desktop-frame">
   <!-- The app bar. 52px, the titlebar gradient, one hairline at the bottom.
        Brand mark and console name on the left; the admin's environment pill
@@ -295,3 +312,4 @@
      sidebar carries no agent link and no interview link of its own. -->
 <app-agent-orb />
 <app-agent-dock />
+}

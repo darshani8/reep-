@@ -127,6 +127,16 @@ class Settings(BaseSettings):
     # and USN, and no login, no Google round-trip and no DB row is involved.
     auth_secret: str = _DEV_AUTH_SECRET
     web_origin: str = "http://localhost:4200"
+    # THE PHONE APP'S ORIGINS (Ionic + Capacitor, apps/web/capacitor.config.ts).
+    # The Android app is served from https://localhost and the iOS app from
+    # capacitor://localhost, so to this API it is a different site and the
+    # httpOnly `reep_session` cookie cannot travel. Listing those origins here
+    # does two things and nothing else: CORS admits them, and /auth/login and
+    # /auth/login/code hand THAT caller the session token in the body so it can
+    # send it back as `Authorization: Bearer`. Blank (the default) = no phone
+    # app: no extra origin is admitted and no token ever leaves in a body.
+    # Production value: "https://localhost,capacitor://localhost".
+    native_app_origins: str = ""
 
     # --- outbound mail: activation, password reset, registration confirmation ---
     # Blank = no transport: messages are logged in full and kept in
@@ -478,6 +488,17 @@ class Settings(BaseSettings):
     # reports nowhere and says so at the top of its log.
     sentry_jobs_dsn: str = ""
     sentry_interview_worker_dsn: str = ""
+
+    @property
+    def native_app_origin_list(self) -> list[str]:
+        """`native_app_origins` split on commas, blanks dropped. Never "*":
+        a wildcard would hand a session token to any page that can post a
+        password, so it is refused here rather than trusted."""
+        return [
+            origin.strip().rstrip("/")
+            for origin in self.native_app_origins.split(",")
+            if origin.strip() and origin.strip() != "*"
+        ]
 
     @property
     def sentry_environment_name(self) -> str:
